@@ -98,13 +98,13 @@ export_light(F, Name, spot, OpenGL, Attr) ->
     AimPoint = proplists:get_value(aim_point, OpenGL, {0.0,0.0,1.0}),
     ConeAngle = proplists:get_value(cone_angle, OpenGL, ?DEF_CONE_ANGLE),
     Diffuse = proplists:get_value(diffuse, OpenGL, {1.0,1.0,1.0,1.0}),
-    Type = proplists:get_value(type, Attr, spotlight),
+    SpotType = proplists:get_value(spot_type, Attr, spotlight),
     SpotSoftShadows = proplists:get_value(spot_soft_shadows, Attr, ?DEF_SPOT_SOFT_SHADOWS),
-    SpotIESSamples =    proplists:get_value(spot_ies_samples, Attr,  16),
+    SpotIESSamples = proplists:get_value(spot_ies_samples, Attr,  16),
 
     println(F, "<light name=\"~s\">",[Name]),
     println(F, "\t<power fval=\"~.3f\"/>",[Power]),
-    case Type of
+    case SpotType of
         spotlight ->
             println(F, "\t<type sval=\"spotlight\"/>"),
             println(F,
