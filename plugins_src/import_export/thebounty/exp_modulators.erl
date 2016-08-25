@@ -13,7 +13,7 @@
 %  Export material shaders modulators
 %  TO DO:
 %  Split mapping code part and make an function
-%  for mapping multiple modulators ( layer )
+%  for mapping multiple modulators ( layers )
 %
 
 export_modulator(F, Texname, Maps, {modulator,Ps}, _Opacity) when is_list(Ps) ->
@@ -82,7 +82,7 @@ export_modulator(F, Texname, Maps, {modulator,Ps}, _Opacity) when is_list(Ps) ->
             println(F,"\t<list_element>"),
 
             %% shader factor amount controled with 'Factor Modulator' slider in UI
-            Factor = proplists:get_value(diffuse_factor, Ps, ?DEF_MOD_COLORFACTOR),
+            Factor = proplists:get_value(diffuse_factor, Ps, 1.0),
             %% Try use value or color
             FactorType =
                 case DoColor of
