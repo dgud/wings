@@ -2,11 +2,23 @@
 %
 % Tooltip help text
 %
+% new code ---------------------->
+help_export() ->
+    Title = help(title, {options_dialog,general}),
+    Text = help(text, {options_dialog,general}),
+    {Title,Text}.
+% end new   -------------------------------->
+help_button(Subject) ->
+    Title = help(title, Subject),
+    TextFun = fun () -> help(text, Subject) end,
+    {help,Title,TextFun}.
 
-%help_button(Subject) ->
-%    Title = help(title, Subject),
-%    TextFun = fun () -> help(text, Subject) end,
-%    {help,Title,TextFun}.
+    % test
+help(title, {options_dialog,_}) ->
+    ?__(811,"TheBounty Render Options");
+help(text, {options_dialog,general}) ->
+    [?__(5,"Test..")];
+% end test
 
 help(title, {material_dialog,object}) ->
     ?__(6,"TheBounty Material Properties: Object Parameters");
@@ -14,7 +26,7 @@ help(text, {material_dialog,object}) ->
     [?__(7,"Object Parameters are applied to whole objects, namely those "
       "that have this material on a majority of their faces."),
     ?__(8,"Mesh: Standard 3D mesh."),
-    ?__(9,"Volume: Defines an area for Volumetrics. The material name must be TEmytex. "
+    ?__(9,"Volume: Defines an area for Volumetrics. "
       "Control simulated size by adjusting Min/Max settings. "
       "When using the Noise option, a Texture must also be defined in the Material "
       "Properties. Volumetrics must also be enabled under TheBounty Render Options."),

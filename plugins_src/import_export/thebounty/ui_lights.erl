@@ -31,8 +31,7 @@ light_dialog(Name, Ps) ->
                 {label,?__(1,"Power")},
                 {text,Power,[range(power),key(power)]}
             ]},
-            panel, panel, panel, panel%, % povman test
-            ,help_button({light_dialog,LightType})
+            panel, panel, panel, panel, help_button({light_dialog,LightType})
         ]}],
     {vframe, PowerStr ++ light_dialog(Name, LightType, Attr)}.
 
@@ -226,6 +225,7 @@ light_result([{?KEY(type),spherelight}|_]=Ps) ->
 %!-------------------
 light_result([{?KEY(spot_type),spotlight}|_]=Ps) ->
     split_list(Ps, 7);
+    
 light_result([{?KEY(spot_type),spot_ies}|_]=Ps) ->
     split_list(Ps, 7);
 
