@@ -52,7 +52,7 @@ export_shinydiffuse_shader(F, Name, Mat, ExportDir, Attr) ->
               (_, N) ->
                   N % Ignore old modulators
           end, 1, Modulators),
-		  
+          
     println(F, "<material name=\"~s\">",[[Name]]),
     println(F, "\t<type sval=\"shinydiffusemat\"/>"),
 
@@ -130,9 +130,9 @@ export_glossy_shader(F, Name, Mat, ExportDir, Attr) ->
     Specular = alpha(proplists:get_value(specular, OpenGL)),
     DefReflected = Specular,
     DefTransmitted = def_transmitted(DiffuseA),
-	
+    
     export_rgb(F, color, proplists:get_value(reflected, Attr, DefReflected)),
-	
+    
     export_rgb(F, diffuse_color, proplists:get_value(transmitted, Attr, DefTransmitted)),
 
     DiffuseReflect = proplists:get_value(diffuse_reflect, Attr, ?DEF_DIFFUSE_REFLECT),
@@ -285,7 +285,7 @@ export_coatedglossy_shader(F, Name, Mat, ExportDir, Attr) ->
             "\t<exp_v fval=\"~.10f\"/>~n"
             "\t<exponent fval=\"~.10f\"/>~n",
             [IOR,DiffuseReflect,GlossyReflect,Anisotropic,Anisotropic_U,Anisotropic_V,Exponent]),
-			
+            
     foldl(fun ({modulator,Ps}=M, N) when is_list(Ps) ->
                   case export_modulator(F, [Name,$_,format(N)],
                                         Maps, M, Opacity) of

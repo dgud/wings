@@ -120,9 +120,6 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
 
     DistortionIntensity = proplists:get_value(distortion_intensity, Ps, ?DEF_MOD_DISTORTION_INTENSITY),
     DistortionNoiseSize = proplists:get_value(distortion_noisesize, Ps, ?DEF_MOD_DISTORTION_NOISESIZE),
-    %% test
-    %MatType =  proplists:get_value(material_type, Ps, shinydiffuse),
-    % end
 
     MapsItems = [{atom_to_list(Map),{map,Map}} || {Map,_} <- Maps],
 
@@ -149,7 +146,7 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                 wings_dialog:show(?KEY({pnl_musgrave,M}), Value =:= musgrave, Store),
                 wings_dialog:show(?KEY({pnl_dist_noise,M}), Value =:= distorted_noise, Store),                
                 wings_dialog:update(?KEY({pnl_mod,M}), Store);
-            {?TAG, ShaderType, M} ->
+            {?TAG, material_type, M} ->
                 wings_dialog:show(?KEY({pnl_layer,M}), Value =:= glossy, Store),
                 wings_dialog:update(?KEY({pnl_mod,M}), Store)
         end
@@ -167,8 +164,8 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                         {label,?__(7,"Blend Mode" )},
                         {menu,menu_blend_mode(), BlendMode,[]},
                         panel,
-                        {?__(8," Stencil "), Stencil},
-                        {?__(9," Negative "), Negative},
+                        {?__(8," Stencil "), Stencil}, panel,
+                        {?__(9," Negative "), Negative},panel,
                         {?__(10," No RGB "), NoRGB}
                     ]},
                     {hframe,[

@@ -18,8 +18,8 @@ export_light(F, Name, Ps) ->
         true ->
             OpenGL = proplists:get_value(opengl, Ps, []),
             Attr = proplists:get_value(?TAG, Ps, []),
-            Type = proplists:get_value(type, OpenGL, []),
-            export_light(F, Name, Type, OpenGL, Attr);
+            LightType = proplists:get_value(type, OpenGL, []),
+            export_light(F, Name, LightType, OpenGL, Attr);
         _ ->
             undefined
     end.

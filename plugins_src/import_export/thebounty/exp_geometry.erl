@@ -1,7 +1,14 @@
-%
-%
-%
-%
+%%%
+%%  This file is part of TheBounty exporter for Wings3D 2.0.1 or above.
+%%  Copyright (C) 2015 - 2016 Pedro Alcaide, aka povmaniac.
+%%  Contact: thebountyrenderer@gmail.com
+%%
+%%  This program is free software; you can redistribute it and/or modify
+%%  it under the terms of the GNU GPL as published by the FSF;
+%%  either version 2 of the License, or (at your option) any later version.
+%%  See the include GNU General Public License file for more details.
+%%
+
 
 %% Return object with arealight faces only
 %%
@@ -25,42 +32,37 @@ count_equal([H|T], C, H, R) ->
 count_equal([H|T], C, K, R) ->
     count_equal(T, 1, H, [{C,K}|R]).
 
-
-
-
-
-
 export_object_1(F, NameStr, Mesh0=#e3d_mesh{he=He0}, DefaultMaterial, MatPs, Id) ->
-    YafaRay = proplists:get_value(?TAG, MatPs, []),
+    Attr = proplists:get_value(?TAG, MatPs, []),
     _OpenGL = proplists:get_value(opengl, MatPs),
-    UseHardness = proplists:get_value(use_hardness, YafaRay, ?DEF_USE_HARDNESS),
-    Object_Type = proplists:get_value(object_type, YafaRay, ?DEF_OBJECT_TYPE),
+    UseHardness = proplists:get_value(use_hardness, Attr, ?DEF_USE_HARDNESS),
+    Object_Type = proplists:get_value(object_type, Attr, ?DEF_OBJECT_TYPE),
 
-    Volume_Sigma_a = proplists:get_value(volume_sigma_a, YafaRay, ?DEF_VOLUME_SIGMA_A),
-    Volume_Sigma_s = proplists:get_value(volume_sigma_s, YafaRay, ?DEF_VOLUME_SIGMA_S),
-    Volume_Height = proplists:get_value(volume_height, YafaRay, ?DEF_VOLUME_HEIGHT),
-    Volume_Steepness = proplists:get_value(volume_steepness, YafaRay, ?DEF_VOLUME_STEEPNESS),
-    Volume_Attgridscale = proplists:get_value(volume_attgridscale, YafaRay, ?DEF_VOLUME_ATTGRIDSCALE),
-    Volume_Sharpness = proplists:get_value(volume_sharpness, YafaRay, ?DEF_VOLUME_SHARPNESS),
-    Volume_Cover = proplists:get_value(volume_cover, YafaRay, ?DEF_VOLUME_COVER),
-    Volume_Density = proplists:get_value(volume_density, YafaRay, ?DEF_VOLUME_DENSITY),
-    Volume_Minmax_X = proplists:get_value(volume_minmax_x, YafaRay, ?DEF_VOLUME_MINMAX_X),
-    Volume_Minmax_Y = proplists:get_value(volume_minmax_y, YafaRay, ?DEF_VOLUME_MINMAX_Y),
-    Volume_Minmax_Z = proplists:get_value(volume_minmax_z, YafaRay, ?DEF_VOLUME_MINMAX_Z),
-    Lightportal_Power = proplists:get_value(lightportal_power, YafaRay, ?DEF_LIGHTPORTAL_POWER),
-    Lightportal_Samples = proplists:get_value(lightportal_samples, YafaRay, ?DEF_LIGHTPORTAL_SAMPLES),
-    Lightportal_Diffusephotons = proplists:get_value(lightportal_diffusephotons, YafaRay, ?DEF_LIGHTPORTAL_DIFFUSEPHOTONS),
-    Lightportal_Causticphotons = proplists:get_value(lightportal_causticphotons, YafaRay, ?DEF_LIGHTPORTAL_CAUSTICPHOTONS),
-    Lightportal_Photon_Only = proplists:get_value(lightportal_photon_only, YafaRay, ?DEF_LIGHTPORTAL_PHOTON_ONLY),
-    Meshlight_Power = proplists:get_value(meshlight_power, YafaRay, ?DEF_MESHLIGHT_POWER),
-    Meshlight_Samples = proplists:get_value(meshlight_samples, YafaRay, ?DEF_MESHLIGHT_SAMPLES),
-    Meshlight_Color = proplists:get_value(meshlight_color, YafaRay, ?DEF_MESHLIGHT_COLOR),
+    Volume_Sigma_a = proplists:get_value(volume_sigma_a, Attr, ?DEF_VOLUME_SIGMA_A),
+    Volume_Sigma_s = proplists:get_value(volume_sigma_s, Attr, ?DEF_VOLUME_SIGMA_S),
+    Volume_Height = proplists:get_value(volume_height, Attr, ?DEF_VOLUME_HEIGHT),
+    Volume_Steepness = proplists:get_value(volume_steepness, Attr, ?DEF_VOLUME_STEEPNESS),
+    Volume_Attgridscale = proplists:get_value(volume_attgridscale, Attr, ?DEF_VOLUME_ATTGRIDSCALE),
+    Volume_Sharpness = proplists:get_value(volume_sharpness, Attr, ?DEF_VOLUME_SHARPNESS),
+    Volume_Cover = proplists:get_value(volume_cover, Attr, ?DEF_VOLUME_COVER),
+    Volume_Density = proplists:get_value(volume_density, Attr, ?DEF_VOLUME_DENSITY),
+    Volume_Minmax_X = proplists:get_value(volume_minmax_x, Attr, ?DEF_VOLUME_MINMAX_X),
+    Volume_Minmax_Y = proplists:get_value(volume_minmax_y, Attr, ?DEF_VOLUME_MINMAX_Y),
+    Volume_Minmax_Z = proplists:get_value(volume_minmax_z, Attr, ?DEF_VOLUME_MINMAX_Z),
+    Lightportal_Power = proplists:get_value(lightportal_power, Attr, ?DEF_LIGHTPORTAL_POWER),
+    Lightportal_Samples = proplists:get_value(lightportal_samples, Attr, ?DEF_LIGHTPORTAL_SAMPLES),
+    Lightportal_Diffusephotons = proplists:get_value(lightportal_diffusephotons, Attr, ?DEF_LIGHTPORTAL_DIFFUSEPHOTONS),
+    Lightportal_Causticphotons = proplists:get_value(lightportal_causticphotons, Attr, ?DEF_LIGHTPORTAL_CAUSTICPHOTONS),
+    Lightportal_Photon_Only = proplists:get_value(lightportal_photon_only, Attr, ?DEF_LIGHTPORTAL_PHOTON_ONLY),
+    Meshlight_Power = proplists:get_value(meshlight_power, Attr, ?DEF_MESHLIGHT_POWER),
+    Meshlight_Samples = proplists:get_value(meshlight_samples, Attr, ?DEF_MESHLIGHT_SAMPLES),
+    Meshlight_Color = proplists:get_value(meshlight_color, Attr, ?DEF_MESHLIGHT_COLOR),
 
-    Meshlight_Double_Sided = proplists:get_value(meshlight_double_sided, YafaRay, ?DEF_MESHLIGHT_DOUBLE_SIDED),
+    Meshlight_Double_Sided = proplists:get_value(meshlight_double_sided, Attr, ?DEF_MESHLIGHT_DOUBLE_SIDED),
     AutosmoothAngle =
-        proplists:get_value(autosmooth_angle, YafaRay, ?DEF_AUTOSMOOTH_ANGLE),
+        proplists:get_value(autosmooth_angle, Attr, ?DEF_AUTOSMOOTH_ANGLE),
 
-    Autosmooth = proplists:get_value(autosmooth, YafaRay,
+    Autosmooth = proplists:get_value(autosmooth, Attr,
                                      if AutosmoothAngle == 0.0 -> false;
                                         true -> ?DEF_AUTOSMOOTH end),
 
@@ -107,7 +109,7 @@ export_object_1(F, NameStr, Mesh0=#e3d_mesh{he=He0}, DefaultMaterial, MatPs, Id)
             println(F," "),
             println(F, "<volumeregion name=\"volumename\">"),
 
-            case proplists:get_value(volume_type, YafaRay,
+            case proplists:get_value(volume_type, Attr,
                                      ?DEF_VOLUME_TYPE) of
                 uniformvolume ->
                     println(F, "<type sval=\"UniformVolume\"/>");
@@ -145,7 +147,7 @@ export_object_1(F, NameStr, Mesh0=#e3d_mesh{he=He0}, DefaultMaterial, MatPs, Id)
             println(F," "),
             println(F, "<light name=\"~s\">",[NameStr]),
 
-            export_rgb(F, color, proplists:get_value(meshlight_color, YafaRay, Meshlight_Color)),
+            export_rgb(F, color, proplists:get_value(meshlight_color, Attr, Meshlight_Color)),
 
             println(F, "<object ival= \"~w\"/>",[Id]),
             println(F, "<power fval=\"~.10f\"/>",[Meshlight_Power]),
@@ -228,7 +230,7 @@ export_vertices(F, [Pos|T]) ->
 
 %% The coordinate system is rotated to make sunsky background
 %% and environment images work as expected.
-%% It assumes `South Y=East Z=Up in YafaRay coordinates.
+%% It assumes `South Y=East Z=Up in TheBounty coordinates.
 %% Hence Z=South, X=East, Y=Up in Wings coordinates.
 %%
 export_pos(F, Type, {X,Y,Z}) ->

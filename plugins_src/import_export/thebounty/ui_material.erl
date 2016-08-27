@@ -10,8 +10,6 @@ material_dialog(_Name, Mat) ->
     DefLightmatColor = def_lightmat_color(proplists:get_value(diffuse, OpenGL)),
     Attr = proplists:get_value(?TAG, Mat, []),
     %MatAttr = proplists:get_value(?TAG, Mat, []),
-    %DefShaderType = get_pref(shader_type, Attr),
-    %DefMatType = get_pref(shader_type, Attr),
     MaterialType = proplists:get_value(material_type, Attr, ?DEF_MATERIAL_TYPE),
     Object_Type = proplists:get_value(object_type, Attr, ?DEF_OBJECT_TYPE),
     Volume_Type = proplists:get_value(volume_type, Attr, ?DEF_VOLUME_TYPE),
