@@ -8,20 +8,32 @@ export_texture(F, Name, Maps, ExportDir, {modulator,Ps}) when is_list(Ps) ->
         {false,_,_} ->
             off;
         {true,_,image} ->
-            Filename = proplists:get_value(filename, Ps, ?DEF_MOD_FILENAME),
+            Filename = proplists:get_value(image_filename, Ps, ?DEF_MOD_FILENAME),
             export_texture(F, Name, image, Filename);
         {true,_,jpeg} -> %% Old tag
-            Filename = proplists:get_value(filename, Ps, ?DEF_MOD_FILENAME),
+            Filename = proplists:get_value(image_filename, Ps, ?DEF_MOD_FILENAME),
             export_texture(F, Name, image, Filename);
         {true,_,{map,Map}} ->
             case proplists:get_value(Map, Maps, undefined) of
                 undefined ->
                     exit({unknown_texture_map,{?MODULE,?LINE,[Name,Map]}});
-                #e3d_image{name=ImageName}=Image ->
-                    MapFile = ImageName++".tga",
-                    ok = e3d_image:save(Image,
-                                        filename:join(ExportDir, MapFile)),
-                    export_texture(F, Name, image, MapFile)
+                #e3d_image{name=ImageName, filename = FileName}=Image ->
+                    case FileName of
+                        none ->
+                            MapFile = case get_map_type(ImageName) of
+                                          sys -> ImageName++".png";
+                                          _ -> ImageName
+                                      end,
+                            Filepath0 = filename:join(ExportDir, MapFile),
+                            case e3d_image:save(Image, Filepath0) of
+                                {error, _} -> % file type not supported by Wings3d
+                                    Filepath = filename:join(ExportDir, set_map_type(ImageName,".png")),
+                                    e3d_image:save(Image, Filepath);
+                                _ -> Filepath = Filepath0
+                            end;
+                        _ -> Filepath = FileName
+                    end,
+                    export_texture(F, Name, image, Filepath)
             end;
         {true,_,Type} ->
             export_texture(F, Name, Type, Ps)
@@ -125,4 +137,31 @@ export_texture(F, Name, Type, Ps) ->
             ok
     end,
     println(F, "</texture>").
+% add from micheus
+get_map_type(Filepath) ->
+    Ext = filename:extension(Filepath),
+    case Ext of
+        ".tga" -> tga;
+        ".jpg" -> jpg;
+        ".png" -> png;
+        ".tiff" -> tiff;
+        ".hdr" -> hdr;
+        ".exr" -> exr;
+        _ -> sys
+    end.
+
+images_format() ->
+    ImgInfo = wings_job:render_formats(),
+    lists:foldr(fun(Type,Acc) ->
+        case lists:keyfind(Type,1,ImgInfo) of
+            {_,Ext,Desc} -> Acc ++[{Ext,Desc}];
+            _ -> Acc
+        end
+    end, [{".tiff","Tagged Image File Format"}], [tga,jpg,png,hdr,exr]).
+
+%%% Ext parameter must include the "." - ex. ".jpg"
+%%% that will replace the extension in case the file name already includes it.
+set_map_type(Filepath0,Ext) ->
+    Filepath = filename:rootname(Filepath0),
+    Filepath ++ Ext.
 

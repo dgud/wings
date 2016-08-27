@@ -1,18 +1,19 @@
 %%
 %% 
 %%
--define(TAG, bounty).
+-define(TAG, thebounty).
 -define(KEY(K), {?TAG,(K)}).
--define(TAG_RENDER, bounty_render).
+-define(TAG_RENDER, thebounty_render).
 
 key(Key) -> {key,?KEY(Key)}.
+-define(LOCAL_MODULE, ?MODULE).
 
 -define(NONZERO, 1.0e-10).
 
 %%% Default values
 -define(DEF_DIALOGS, auto).
 -define(DEF_RENDERER, "yafaray-xml").
--define(DEF_PLUGINS_PATH, os:getenv("BOUNTY_ROOT")++"/plugins").
+-define(DEF_PLUGINS_PATH, "plugins").
 -define(DEF_OPTIONS, "").
 -define(DEF_THREADS_AUTO, true).
 -define(DEF_THREADS_NUMBER, 1).
@@ -343,7 +344,7 @@ range_1(autosmooth_angle)       -> {0.0,181.0};
 range_1(ior)                    -> {0.0,3.0};
 range_1(glass_ir_depth)         -> {0,32};
 range_1(min_refle)              -> {0.0,1.0};
-range_1(size)                   -> {0.0,infinity};
+range_1(size)                   -> {0.0,1000.0}; %infinity is not a good idea
 range_1(modulation)             -> {-5.0,5.0};
 range_1(mod_colorfactor)        -> {-1.0,1.0};
 range_1(turbulence)             -> {?NONZERO,infinity};
