@@ -1,6 +1,6 @@
 %%
 %%  This file is part of TheBounty exporter for Wings3D 2.0.1 or above.
-%%  Copyright (C) 2015 Pedro Alcaide, aka povmaniac.
+%%  Copyright (C) 2015-2016 Pedro Alcaide, aka povmaniac.
 %%  Contact: thebountyrenderer@gmail.com
 %%
 %%  This program is free software; you can redistribute it and/or modify
@@ -11,8 +11,8 @@
 
 export_dialog(Op, Title) ->
     wpa:dialog(true, Title,
-               export_dialog_qs(Op, get_prefs(export_prefs())),
-               fun(Attr) -> {file,{Op,{?TAG,Attr}}} end).
+                export_dialog_qs(Op, get_prefs(export_prefs())),
+               fun(Attr) -> {file,{Op,{?TAG,Attr}}} end, fun () -> help_export() end).
 
 %% Export Render Options Dialog Settings
 export_prefs() ->
@@ -102,15 +102,32 @@ export_prefs() ->
         {bokeh_rotation,?DEF_BOKEH_ROTATION},
         {dof_distance,?DEF_DOF_DISTANCE},
         %{save_alpha,?DEF_SAVE_ALPHA},
-        {environment, constant},
-        {turbidity, 2.0},{a_var, 1.0},{b_var, 1.0},{c_var, 1.0},{d_var, 1.0},{e_var, 1.0},
-        {altitude, 1.0},{add_sun, false},{sun_power, 1.0},{background_light, false},
-        {background_power, 1.0},{background_samples, 8},{to_diffuse_photons, false},
-        {to_caustics_photons, false},{night, false},
+        {background, constant},
+        {turbidity, 2.0},
+        {a_var, 1.0},
+        {b_var, 1.0},
+        {c_var, 1.0},
+        {d_var, 1.0},
+        {e_var, 1.0},
+        {altitude, 1.0},
+        {add_sun, false},
+        {sun_power, 1.0},
+        {background_light, false},
+        {background_power, 1.0},
+        {background_samples, 8},
+        {to_diffuse_photons, false},
+        {to_caustics_photons, false},
+        {night, false},
         % start---------------------------
-        {background_color, {0.25,0.25,0.50}}, {horizon_color, ?DEF_HORIZON_COLOR},{zenith_color, ?DEF_ZENITH_COLOR},
-        {back_filename, ""}, {background_mapping, probe},{use_ibl, false},
-        {ambient_diffusephotons, false}, {ambient_causticphotons, false}, {background_rotation, 0.0},
+        {background_color, {0.25,0.25,0.50}},
+        {horizon_color, ?DEF_HORIZON_COLOR},
+        {zenith_color, ?DEF_ZENITH_COLOR},
+        {back_filename, ""},
+        {background_mapping, probe},
+        {use_ibl, false},
+        {ambient_diffusephotons, false},
+        {ambient_causticphotons, false},
+        {background_rotation, 0.0},
         {samples, 8}
         ].
 
@@ -243,10 +260,13 @@ export_dialog_qs(Op, Attr) ->
     fun(Key, Value, Store) ->
         case Key of
             ?KEY(environment) ->
-                wings_dialog:show(?KEY(pnl_sky), Value =:= darksky, Store), %=/= undefined, Store),
+                %wings_dialog:show(?KEY(pnl_sky), Value =:= darksky, Store), %=/= undefined, Store),
+                wings_dialog:show(?KEY(pnl_sky), is_member(Value,[darksky,sunsky]), Store), %=/= undefined, Store),
                 wings_dialog:update(?KEY(pnl_sky), Store),
-                wings_dialog:show(?KEY(pnl_background), Value =:= constant, Store),
-                wings_dialog:update(?KEY(pnl_background), Store)
+                wings_dialog:show(?KEY(pnl_background), is_member(Value,[texture,constant]), Store),
+                wings_dialog:update(?KEY(pnl_background), Store),
+                wings_dialog:show(?KEY(pnl_file), Value =:= texture, Store),
+                wings_dialog:update(?KEY(pnl_file), Store)
         end
     end,
     %!----------------------------------------
@@ -257,141 +277,7 @@ export_dialog_qs(Op, Attr) ->
                             {".hdr",?__(398,"High Dynamic Range image")},
                             {".exr",?__(399,"OpenEXR image")}]
                         }],
-    World =
-    {?__(400, "World") ,
-        {vframe,[
-            {menu, [
-                {?__(401,"Constant"),constant},
-                {?__(402,"Gradient"),gradientback},
-                {?__(403,"Texture"),texture},
-                {?__(404,"Sunsky"),sunsky},
-                {?__(405,"DarkSky"),darksky}
-            ], get_pref(environment,Attr), [key(environment), {hook,WHook_Show}]},
-            %!------------------------------------
-            %! DarkSky
-            %!------------------------------------
-            {vframe, [
-                {hframe, [
-                    {label_column, [
-                        {?__(407,"Turbidity"),{text,get_pref(turbidity,Attr),[range(turbidity),key(turbidity),{width, 5}]}},
-                        {?__(408,"Horizon Brightness"),{text,get_pref(a_var,Attr),[key(a_var),{width, 5}]}},
-                        {?__(409,"Horizon Spread"),{text,get_pref(b_var,Attr),[key(zero_to_ten),{width, 5}]}}
-                    ],[{margin,false}]},
-                    {label_column, [
-                        {?__(410,"Sun Brightness"),{text,get_pref(c_var,Attr),[key(c_var),{width, 5}]}},
-                        {?__(411,"Sun Distance"),{text,get_pref(d_var,Attr),[key(d_var),{width, 5}]}},
-                        {?__(412,"Backscattered Light"),{text,get_pref(e_var,Attr),[key(e_var),{width, 5}]}}
-                    ],[{margin,false}]}
-                ],[{margin,false}]},
-            
-                {hframe,[
-                    {hframe,[
-                        {label,?__(413,"Altitude")},
-                        {text,get_pref(altitude,Attr),[range(altitude),key(altitude)]}
-                    ],[key(pnl_darksky_altitude),{margin,false}]
-                    }
-                ]},
 
-                {hframe,[
-                    {?__(414,"Add Sun"),get_pref(add_sun, Attr),[key(add_sun),{hook,WHook_Enabled}]},
-                    panel, panel,
-                    {?__(416,"Add Skylight"),get_pref(background_light, Attr),[key(background_light),{hook,WHook_Enabled}]}%,
-                    %panel,
-                    %{hframe,[
-                    %    {label,?__(415,"Sun Power")},
-                    %    {text, get_pref(sun_power, Attr),[range(sun_power),key(sun_power),{width,4}]}
-                    %    ],[key(pnl_add_sun),{margin,false}]
-                    %}
-                ]},
-
-                {vframe,[
-                    {hframe, [
-                    %{?__(416,"Skylight"),get_pref(background_light, Attr),[key(background_light),{hook,WHook_Enabled}]},
-                        {hframe,[
-                            {label,?__(415,"Sun Power")},
-                            {text, get_pref(sun_power, Attr),[range(sun_power),key(sun_power),{width,5}]}
-                            ],[key(pnl_add_sun),{margin,false}]
-                        },
-                        %panel,
-                        {hframe, [
-                            {label,?__(417," Sky Power")},
-                            {text,get_pref(background_power, Attr),[range(zero_to_ten),key(sky_background_power),{width,5}]},
-                            {label,?__(418,"Samples")},
-                            {text,get_pref(background_samples, Attr),[range(background_samples),key(background_samples),{width,5}]}
-                        ], [key(pnl_bkg_power),{margin,false}]}
-                    ]},
-                    {hframe, [
-                        {?__(419,"Diffuse Photons"),get_pref(to_diffuse_photons,Attr),[key(to_diffuse_photons)]},
-                        panel,
-                        {?__(420,"Caustic Photons"),get_pref(to_caustics_photons, Attr),[key(to_caustics_photons)]}
-                    ],[key(pnl_bkg_photons)]}
-                ],[{margin,false}]
-                },
-                {vframe,[
-                    {?__(421,"Night"),get_pref(night, Attr),[key(night)]}
-                ]}
-            ],[key(pnl_sky),{margin,false}]
-            },
-            % end darksky
-            {vframe, [
-                %% HDRI Background
-                {vframe, [
-                    {label_column, [
-                        {?__(425,"Filename"),
-                            {vframe, [
-                                {hframe, [
-                                    {button,{text,get_pref(back_filename, Attr),[key(back_filename),{width,35},{props,BrowsePropsHDRI}]}},
-                                    {menu, [
-                                        {?__(426,"Light Probe"),probe},
-                                        {?__(427,"Spherical"),spherical}
-                                    ], get_pref(background_mapping, Attr), [key(background_mapping)]}
-                                ],[key(pnl_img_hdri),{margin,false}]}
-                            ],[{margin,false}]}
-                        },
-                        {?__(428,"Rotation"),
-                            {text,get_pref(background_rotation, Attr),[range(background_rotation),key(background_rotation)]}
-                        }
-                    ],[{margin,false}]
-                }],
-                [key(pnl_file),{margin,false}]
-                },
-                %!------------------------
-                %! Constant Background
-                %!------------------------
-                {hframe, [
-                    {label,?__(429,"Color")},
-                    {color,get_pref(background_color, Attr),[key(background_color)]}
-                ],[key(pnl_const),{show,false}]},
-                %% Gradient Background
-                {hframe,[
-                    {label,?__(430,"Horizon Color")},
-                    {color,get_pref(horizon_color, Attr),[key(horizon_color)]},
-                    panel,
-                    {label,?__(431,"Zenith Color")},
-                    {color,get_pref(zenith_color, Attr),[key(zenith_color)]}
-                ],[key(pnl_gradient),{show,false}]},
-                %% Common parameters
-                {vframe,[
-                    {hframe,[
-                        {hframe,[
-                            {?__(432,"Use IBL"),get_pref(use_ibl, Attr),[key(use_ibl),{hook,WHook_Enabled}]}
-                        ]},
-                        panel,
-                        {hframe,[
-                            {label,?__(433,"Samples")},
-                            {text,get_pref(samples, Attr),[range(samples),key(samples)]}
-                        ],[key(pnl_ibl_samples),{margin,false}]}
-                    ],[{margin,false}]},
-                    {hframe, [
-                        {?__(94,"Diffuse Photons"),get_pref(ambient_diffusephotons, Attr),[key(ambient_diffusephotons)]},
-                        panel,
-                        {?__(96,"Caustic Photons"),get_pref(ambient_causticphotons, Attr),[key(ambient_causticphotons)]}
-                    ],[key(pnl_enlight_photons)]}
-                ]}
-            ],[key(pnl_background),{margin,false}]}
-            % end import code
-        ],[{title, ?__(450, "Environment")},{margin,false}]}
-    },
     %!-------------------------
     %!
     %!-------------------------
@@ -558,10 +444,10 @@ export_dialog_qs(Op, Attr) ->
                     {hframe,[
                         {menu, [
                             {?__(201, "Direct Light"), directlighting},
-                            {?__(202, "Photon Mapping - Global Illumination"), photonmapping},
-                            {?__(203, "Path Tracing - Global Illumination"), pathtracing},
-                            {?__(204, "Bidirectional Path Tracing - Global Illumination"), bidirectional},
-                            {?__(205, "SPPM - Global Illumination"),sppm}
+                            {?__(202, "Photon Mapping"), photonmapping},
+                            {?__(203, "Path Tracing"), pathtracing},
+                            {?__(204, "Bidirectional Path Tracing"), bidirectional},
+                            {?__(205, "SPPM"),sppm}
                         ], get_pref(lighting_method,Attr), [{key,lighting_method}, {hook,Hook_Show}]}
                     ]},
                     %% Start Direct Lighting Menu Section
@@ -794,6 +680,137 @@ export_dialog_qs(Op, Attr) ->
             ],[{title,""}]}
         },
     % world--
+    World =
+    {?__(400, "World") ,
+        {vframe,[
+            {menu, [
+                {?__(401,"Constant"),constant},
+                {?__(402,"Gradient"),gradientback},
+                {?__(403,"Texture"),texture},
+                {?__(404,"Sunsky"),sunsky},
+                {?__(405,"DarkSky"),darksky}
+            ], get_pref(background,Attr), [key(environment), {hook,WHook_Show}]},
+            %!------------------------------------
+            %! DarkSky
+            %!------------------------------------
+            {vframe, [
+                {hframe, [
+                    {label_column, [
+                        {?__(407,"Turbidity"),{text,get_pref(turbidity,Attr),[range(turbidity),key(turbidity),{width, 5}]}},
+                        {?__(408,"Horizon Brightness"),{text,get_pref(a_var,Attr),[key(a_var),{width, 5}]}},
+                        {?__(409,"Horizon Spread"),{text,get_pref(b_var,Attr),[key(zero_to_ten),{width, 5}]}}
+                    ],[{margin,false}]},
+                    {label_column, [
+                        {?__(410,"Sun Brightness"),{text,get_pref(c_var,Attr),[key(c_var),{width, 5}]}},
+                        {?__(411,"Sun Distance"),{text,get_pref(d_var,Attr),[key(d_var),{width, 5}]}},
+                        {?__(412,"Backscattered Light"),{text,get_pref(e_var,Attr),[key(e_var),{width, 5}]}}
+                    ],[{margin,false}]}
+                ],[key(pnl_sky),{margin,false}]
+                },
+                {hframe,[
+                    {hframe,[
+                        {label,?__(413,"Altitude")},
+                        {text,get_pref(altitude,Attr),[range(altitude),key(altitude)]}
+                    ],[key(pnl_darksky_altitude),{margin,false}]
+                    }
+                ]},
+
+                {hframe,[
+                    {?__(414,"Add Sun"),get_pref(add_sun, Attr),[key(add_sun),{hook,WHook_Enabled}]},
+                    panel, panel,
+                    {?__(416,"Add Skylight"),get_pref(background_light, Attr),[key(background_light),{hook,WHook_Enabled}]}
+                ]},
+
+                {vframe,[
+                    {hframe, [
+                    %{?__(416,"Skylight"),get_pref(background_light, Attr),[key(background_light),{hook,WHook_Enabled}]},
+                        {hframe,[
+                            {label,?__(415,"Sun Power")},
+                            {text, get_pref(sun_power, Attr),[range(sun_power),key(sun_power),{width,5}]}
+                            ],[key(pnl_add_sun),{margin,false}]
+                        },
+                        %panel,
+                        {hframe, [
+                            {label,?__(417," Sky Power")},
+                            {text,get_pref(background_power, Attr),[range(zero_to_ten),key(sky_background_power),{width,5}]},
+                            {label,?__(418,"Samples")},
+                            {text,get_pref(background_samples, Attr),[range(background_samples),key(background_samples),{width,5}]}
+                        ], [key(pnl_bkg_power),{margin,false}]}
+                    ]},
+                    {hframe, [
+                        {?__(419,"Diffuse Photons"),get_pref(to_diffuse_photons,Attr),[key(to_diffuse_photons)]},
+                        panel,
+                        {?__(420,"Caustic Photons"),get_pref(to_caustics_photons, Attr),[key(to_caustics_photons)]}
+                    ],[key(pnl_bkg_photons)]}
+                ],[{margin,false}]
+                },
+                {vframe,[
+                    {?__(421,"Night"),get_pref(night, Attr),[key(night)]}
+                ]}
+            ], [{margin,false}] %[key(pnl_sky),{margin,false}]
+            },
+            % end darksky
+            {vframe, [
+                %% HDRI Background
+                {vframe, [
+                    {label_column, [
+                        {?__(425,"Filename"),
+                            {vframe, [
+                                {hframe, [
+                                    {button,{text,get_pref(back_filename, Attr),[key(back_filename),{width,35},{props,BrowsePropsHDRI}]}},
+                                    {menu, [
+                                        {?__(426,"Angular Map"),probe},
+                                        {?__(427,"Spherical Map"),spherical}
+                                    ], get_pref(background_mapping, Attr), [key(background_mapping)]}
+                                ],[key(pnl_img_hdri),{margin,false}]}
+                            ],[{margin,false}]}
+                        },
+                        {?__(428,"Rotation"),
+                            {text,get_pref(background_rotation, Attr),[range(background_rotation),key(background_rotation)]}
+                        }
+                    ],[{margin,false}]
+                }],
+                [key(pnl_file),{margin,false}]
+                },
+                %!------------------------
+                %! Constant Background
+                %!------------------------
+                {hframe, [
+                    {label,?__(429,"Color")},
+                    {color,get_pref(background_color, Attr),[key(background_color)]}
+                ],[key(pnl_const),{show,false}]},
+                %!------------------------
+                %! Gradient Background
+                %!------------------------
+                {hframe,[
+                    {label,?__(430,"Horizon Color")},
+                    {color,get_pref(horizon_color, Attr),[key(horizon_color)]},
+                    panel,
+                    {label,?__(431,"Zenith Color")},
+                    {color,get_pref(zenith_color, Attr),[key(zenith_color)]}
+                ],[key(pnl_gradient),{show,false}]},
+                %% Common parameters
+                {vframe,[
+                    {hframe,[
+                        {hframe,[
+                            {?__(432,"Use IBL"),get_pref(use_ibl, Attr),[key(use_ibl),{hook,WHook_Enabled}]}
+                        ]},
+                        panel,
+                        {hframe,[
+                            {label,?__(433,"Samples")},
+                            {text,get_pref(samples, Attr),[range(samples),key(samples)]}
+                        ],[key(pnl_ibl_samples),{margin,false}]}
+                    ],[{margin,false}]},
+                    {hframe, [
+                        {?__(94,"Diffuse Photons"),get_pref(ambient_diffusephotons, Attr),[key(ambient_diffusephotons)]},
+                        panel,
+                        {?__(96,"Caustic Photons"),get_pref(ambient_causticphotons, Attr),[key(ambient_causticphotons)]}
+                    ],[key(pnl_enlight_photons)]}
+                ]}
+            ],[key(pnl_background),{margin,false}]}
+            % end import code
+        ],[{title, ?__(450, "Environment")},{margin,false}]}
+    },
 
     [
         {oframe, [
