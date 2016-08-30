@@ -2,7 +2,7 @@
 %%  This file is part of TheBounty exporter for Wings3D,
 %%  forked from YafaRay Wings3d exporter.
 %%
-%%  Copyright (C) 2013, 2015  Pedro Alcaide aka 'povmaniac' and others
+%%  Copyright (C) 2013, 2016  Pedro Alcaide aka 'povmaniac' and others
 %%
 %%  See AUTHORS.txt file for more info about authors and license.
 %%---------------------------------------------------------------------
@@ -19,7 +19,7 @@
 %%  along with this program. If not, see <http://www.gnu.org/licenses/>.
 %%
 
--module(wpc_bounty).
+-module(wpc_thebounty).
 -export([init/0,menu/2,dialog/2,command/2]).
 
 %% Debug exports
@@ -42,6 +42,7 @@
 %%
 
 init() ->
+    ets:new(?LOCAL_MODULE, [named_table,public,ordered_set]),
     init_pref(),
     set_var(rendering, false),
     true.
@@ -189,10 +190,8 @@ do_export(Op, Props0, Attr0, St0) ->
     wpa:Op(Props, ExportFun, St).
 
 props(render, Attr) ->
-    RenderFormat =
-        proplists:get_value(render_format, Attr, ?DEF_RENDER_FORMAT),
-    {value,{RenderFormat,Ext,Desc}} =
-        lists:keysearch(RenderFormat, 1, wings_job:render_formats()),
+    RenderFormat = proplists:get_value(render_format, Attr, ?DEF_RENDER_FORMAT),
+    {value,{RenderFormat,Ext,Desc}} =  lists:keysearch(RenderFormat, 1, wings_job:render_formats()),
     Title =
         case os:type() of
             {win32,_} -> "Render";
@@ -223,7 +222,7 @@ props(export_selected, _Attr) ->
 -include("ui_material.erl").
 %%--------------------------------------------------------------------------------------------
 
-%% modulatrs def move to ui_material.erl
+%% modulators def move to ui_material.erl
 
 
 material_result(_Name, Mat0, Res0) ->
@@ -256,15 +255,23 @@ material_result(_Name, Mat0, Res0) ->
 %!-----------------------------
 -include("ui_lights.erl").
 %------------------------------
-
+% for default material in preferences
+menu_shader() ->
+    [{?__(1,"Shiny Diffuse"),shinydiffuse},
+    {?__(2,"Glass"),glass},
+    {?__(3,"Rough Glass"),rough_glass},
+    {?__(4,"Glossy"),glossy},
+    {?__(5,"Coated Glossy"),coatedglossy},
+    {?__(6,"Translucent (SSS)"),translucent},
+    {?__(7,"Light Material"),lightmat},
+    {?__(8,"Blend"),blend_mat}].
 
 pref_dialog(St) ->
-    [{dialogs,Dialogs},{renderer,Renderer},{pluginspath,PluginsPath},
-     {options,Options},{material_type,MatType}] =
+    [{dialogs,Dialogs},{renderer,Renderer},
+     {options,Options},{material_type,DefaultMaterialType}] =
         get_user_prefs([
             {dialogs,?DEF_DIALOGS},
             {renderer,?DEF_RENDERER},
-            {pluginspath,?DEF_PLUGINS_PATH},
             {options,?DEF_OPTIONS},
             {material_type,?DEF_MATERIAL_TYPE}]),
 
@@ -279,10 +286,12 @@ pref_dialog(St) ->
                 panel%, help_button(pref_dialog)
             ]},
             {label_column, [
-                {?__(4,"Executable"),{button,{text,Renderer,[{key,renderer},{width,35},wings_job:browse_props()]}}},
-                {?__(5,"TheBounty Plugins Path"),{button,{text,PluginsPath,[{key,pluginspath},{width,35},{props,[{dialog_type,dir_dialog}]}]}}},
-                {?__(6,"Options"),{text,Options,[{key,options}]}},
-                {?__(7,"Default Material"),{menu,menu_shader(), MatType, [{key,shader_type}]}}
+                {?__(4,"Executable folder"),
+                    {button,{text,Renderer,[{key,renderer},{width,35},{props,[{dialog_type,dir_dialog}]}]}}},%wings_job:browse_props()]}}},
+                {?__(6,"Options"),
+                    {text,Options,[{key,options}]}},
+                {?__(7,"Default Material"),
+                    {menu,menu_shader(), DefaultMaterialType, [{key,default_material_type}]}}
             ]}
         ], [{title,""}]}],
     wpa:dialog(?__(8,"TheBounty Options"), Dialog, fun (Attr) -> pref_result(Attr,St) end).
@@ -290,8 +299,19 @@ pref_dialog(St) ->
 
 pref_result(Attr, St) ->
     set_user_prefs(Attr),
+    OldVal = get_var(renderer), % from Micheus
     init_pref(),
+    %% more..
+    case get_var(renderer) of
+        OldVal -> ok;
+        false ->
+            wings_menu:update_menu(file, {render, ?TAG}, delete);
+        _ ->
+            [{Label, _}] = menu_entry(render),
+            wings_menu:update_menu(file, {render, ?TAG}, {append, -1, Label})
+    end,
     St.
+    
 %%%
 %!-----------------------------
 -include("ui_general.erl").
@@ -299,27 +319,27 @@ pref_result(Attr, St) ->
 
 %%% Export and rendering functions
 %%%
-
-export(Attr, Filename, #e3d_file{objs=Objs, mat=Mats, creator=Creator}) ->
+export(Attr, XMLFilename, #e3d_file{objs=Objs, mat=Mats, creator=Creator}) ->
     wpa:popup_console(),
     ExportTS = os:timestamp(),
     Render = proplists:get_value(?TAG_RENDER, Attr, false),
     KeepXML = proplists:get_value(keep_xml, Attr, ?DEF_KEEP_XML),
+    GuiMode = proplists:get_value(gui_mode, Attr, false),
     RenderFormat =
         proplists:get_value(render_format, Attr, ?DEF_RENDER_FORMAT),
-    ExportDir = filename:dirname(Filename),
+    ExportDir = filename:dirname(XMLFilename),
     {ExportFile,RenderFile} =
         case {Render,KeepXML} of
             {true,true} ->
-                {filename:rootname(Filename)++".xml", Filename};
+                {filename:rootname(XMLFilename)++".xml", XMLFilename};
             {true,false} ->
                 {filename:join(ExportDir, ?MODULE_STRING++"-"
                                ++wings_job:uniqstr()++".xml"),
-                 Filename};
+                 XMLFilename};
             {false,_} ->
                 {value,{RenderFormat,Ext,_}} =
                     lists:keysearch(RenderFormat, 1, wings_job:render_formats()),
-                {Filename,filename:rootname(Filename)++Ext}
+                {XMLFilename,filename:rootname(XMLFilename)++Ext}
         end,
     F = open(ExportFile, export),
     io:format(?__(1,"Exporting  to:")++" ~s~n"++
@@ -365,26 +385,26 @@ export(Attr, Filename, #e3d_file{objs=Objs, mat=Mats, creator=Creator}) ->
     % export scene lights
     %!----------------------
     %BgLights =
-        reverse(
-          foldl(fun ({Name,Ps}=Light, Bgs) ->
-                        Bg = export_light(F, "w_"++format(Name), Ps),
-                        println(F),
-                        case Bg of
-                            undefined -> Bgs;
-                            _ -> [Light|Bgs]
-                        end
-                end, [], Lights)),
+    reverse(
+        foldl(fun ({Name,Ps}=Light, Bgs) ->
+                Bg = export_light(F, "w_"++format(Name), Ps),
+                println(F),
+                case Bg of
+                    undefined -> Bgs;
+                    _ -> [Light|Bgs]
+                end
+            end, [], Lights)),
     
     %!----------------------
     % environment background
-    %!----------------------
-    export_background(F, BgName, Attr), %(F, N, Ps),
+    %!----------------------    
+    export_background(F, Attr),
     println(F),
     
     %!----------------------
     %! export camera
     %!----------------------
-    export_camera(F, CameraName, Attr),
+    export_camera(F, Attr),
     println(F),
 
     %% test:  split integrator code
@@ -392,7 +412,7 @@ export(Attr, Filename, #e3d_file{objs=Objs, mat=Mats, creator=Creator}) ->
     %!------------------------
     %! export render options
     %!------------------------
-    export_render(F, CameraName, BgName, filename:basename(RenderFile), Attr),
+    export_render(F, filename:basename(RenderFile), Attr),
     %%
     println(F),
     println(F, "</scene>"),
@@ -402,26 +422,24 @@ export(Attr, Filename, #e3d_file{objs=Objs, mat=Mats, creator=Creator}) ->
     %! Command line parameters
     %!-------------------------
     [{options,Options}] = get_user_prefs([{options,?DEF_OPTIONS}]),
-    [{pluginspath,PluginsPath}] = get_user_prefs([{pluginspath,?DEF_PLUGINS_PATH}]),
-        case {get_var(renderer),Render} of
-            {_,false} ->
-                wings_job:export_done(ExportTS),
-                io:nl();
-            {false,true} ->
-                %% Should not happen since the file->render dialog
-                %% must have been disabled
-                if KeepXML -> ok;
+    case {get_var(renderer),Render} of
+        {_,false} ->
+            wings_job:export_done(ExportTS),
+            io:nl();
+        {false,true} ->
+            %% Should not happen since the file->render dialog must have been disabled
+            if KeepXML -> ok;
                 true -> file:delete(ExportFile) end,
             no_renderer;
         {_,true} when ExportFile == RenderFile ->
             export_file_is_render_file;
         {Renderer,true} ->
             SaveAlpha = proplists:get_value(save_alpha, Attr),
-            AlphaChannel =  case SaveAlpha of
-                                false -> " ";
-                                _ ->
-                                    " -a "
-                            end,
+            AlphaChannel =  
+                case SaveAlpha of
+                    true -> " -a ";
+                    _ ->     " "
+                end,
 
             ArgStr = Options++case Options of
                                   [] -> [];
@@ -431,18 +449,35 @@ export(Attr, Filename, #e3d_file{objs=Objs, mat=Mats, creator=Creator}) ->
             PortOpts = [{cd,filename:dirname(ExportFile)}],
             Handler =
                 fun (Status) ->
-                        if KeepXML -> ok; true -> file:delete(ExportFile) end,
-                        set_var(rendering, false),
-                        case Status of
-                            ok -> {RenderFormat,RenderFile};
-                            _  -> Status
-                        end
+                    if KeepXML -> ok; true -> file:delete(ExportFile) end,
+                    set_var(rendering, false),
+                    case Status of
+                        ok -> {RenderFormat,RenderFile};
+                        _  -> Status
+                    end
+                end,
+            % Set binarie file under each OS
+            RenderExec =
+                case os:type() of
+                    {win32,_} -> 
+                        case GuiMode of
+                            true -> format(Renderer)++"/thebounty-gui.exe";
+                            _ -> format(Renderer)++"/thebounty-xml.exe"
+                        end;
+                    % atm, not GUI option under Linux or OSX
+                    _ -> format(Renderer)++"/thebounty-xml"
+                end,
+            PluginsPath = "-pp "++format(Renderer)++"/plugins",
+            OutputFormat = 
+                case RenderFormat of
+                    "" -> "-f png";
+                    _ -> "-f "++format(RenderFormat)
                 end,
             file:delete(RenderFile),
             set_var(rendering, true),
-        Arguments = "-pp "++wings_job:quote(PluginsPath)++" "++AlphaChannel++"-f "++format(RenderFormat),
+        Arguments = PluginsPath++AlphaChannel++OutputFormat,
         wings_job:render(
-                ExportTS,Renderer,Arguments++" "++ArgStr++" "++wings_job:quote(filename:rootname(Filename))++" ", PortOpts, Handler)
+                ExportTS,RenderExec,Arguments++" "++ArgStr++" "++wings_job:quote(filename:rootname(XMLFilename))++" ", PortOpts, Handler)                
     end.
 
 section(F, Name) ->
@@ -659,26 +694,33 @@ get_user_prefs(KeyDefs) when is_list(KeyDefs) ->
 
 set_var(Name, undefined) ->
     erase_var(Name);
+    
+% new insert code from micheus ----------------------->    
 set_var(Name, Value) ->
-    put({?MODULE,Name}, Value).
+    ets:insert(?LOCAL_MODULE, {Name,Value}).
 
 get_var(Name) ->
-    get({?MODULE,Name}).
+    case ets:lookup(?LOCAL_MODULE, Name) of
+        [] -> undefined;
+        [{Name,Val}] -> Val
+    end.
 
 erase_var(Name) ->
-    erase({?MODULE,Name}).
+    ets:delete(?LOCAL_MODULE, Name).
+% end insert from micheus --------------------->
+    
+%set_var(Name, Value) ->
+%    put({?MODULE,Name}, Value).
+
+%get_var(Name) ->
+%    get({?MODULE,Name}).
+
+%erase_var(Name) ->
+%    erase({?MODULE,Name}).
 
 %%
 % some useful declarations for User Interface
-menu_shader() ->
-    [{?__(1,"Shiny Diffuse"),shinydiffuse},
-        {?__(2,"Glass"),glass},
-        {?__(3,"Rough Glass"),rough_glass},
-        {?__(4,"Glossy"),glossy},
-        {?__(5,"Coated Glossy"),coatedglossy},
-        {?__(6,"Translucent (SSS)"),translucent},
-        {?__(7,"Light Material"),lightmat},
-        {?__(8,"Blend"),blend_mat}].
+
 
 %% Split a list into a list of length Pos, and the tail
 %%
