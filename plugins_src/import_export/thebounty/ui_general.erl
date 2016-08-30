@@ -19,6 +19,7 @@ export_prefs() ->
     [
         {subdivisions,?DEF_SUBDIVISIONS},
         {keep_xml,?DEF_KEEP_XML},
+        {gui_mode, false}, % test for use GUI mode
         {threads_number,?DEF_THREADS_NUMBER},
         {threads_auto,?DEF_THREADS_AUTO},
         {lighting_method,?DEF_LIGHTING_METHOD},
@@ -74,7 +75,7 @@ export_prefs() ->
         {z_pass, false},
         %
         {render_format,?DEF_RENDER_FORMAT},
-        {exr_float,false},
+        {exr_float, false},
         {exr_flag_compression,?DEF_EXR_FLAG_COMPRESSION},
         {aa_passes,?DEF_AA_PASSES},
         %add
@@ -93,7 +94,6 @@ export_prefs() ->
         {lens_angular_mirrored,?DEF_LENS_ANGULAR_MIRRORED},
         {lens_angular_max_angle,?DEF_LENS_ANGULAR_MAX_ANGLE},
         {lens_angular_angle,?DEF_LENS_ANGULAR_ANGLE},
-        {bokeh_use_QMC,?DEF_USE_QMC},
         {width,?DEF_WIDTH},
         {aperture,?DEF_APERTURE},
         {bokeh_type,?DEF_BOKEH_TYPE},
@@ -175,7 +175,7 @@ export_dialog_qs(Op, Attr) ->
             aperture ->
                 {Value0,_} = f_stop_find(Value,ApertureList),
                 wings_dialog:set_value(aperture_idx, Value0, Store),
-                wings_dialog:enable(bokeh_use_QMC, Value =/= 0.0, Store),
+                %wings_dialog:enable(bokeh_use_QMC, Value =/= 0.0, Store),
                 wings_dialog:enable(?KEY(pnl_dof_type), Value =/= 0.0, Store),
                 wings_dialog:enable(?KEY(pnl_dof_sliders), Value =/= 0.0, Store);
             aperture_idx ->
@@ -185,7 +185,7 @@ export_dialog_qs(Op, Attr) ->
                     true -> ok
                 end,
                 Enabled = wings_dialog:get_value(aperture, Store) =/= 0.0,
-                wings_dialog:enable(bokeh_use_QMC, Enabled, Store),
+                %wings_dialog:enable(bokeh_use_QMC, Enabled, Store),
                 wings_dialog:enable(?KEY(pnl_dof_type), Enabled, Store),
                 wings_dialog:enable(?KEY(pnl_dof_sliders), Enabled, Store);
             _ -> ok
@@ -244,31 +244,31 @@ export_dialog_qs(Op, Attr) ->
 %!----------------------------------------
 %!----------------------------------------
     WHook_Enabled =
-    fun(Key, Value, Store) ->
-        case Key of
-            ?KEY(add_sun) ->
-                wings_dialog:enable(?KEY(pnl_add_sun), Value =/= ?DEF_SUN_REAL, Store);
-            ?KEY(background_light) ->
-                wings_dialog:enable(?KEY(pnl_bkg_power), Value =/= ?DEF_SKY_BACKGROUND_LIGHT, Store),
-                wings_dialog:enable(?KEY(pnl_bkg_photons), Value =/=?DEF_SKY_BACKGROUND_LIGHT, Store);
-            ?KEY(use_ibl) ->
-                wings_dialog:enable(?KEY(pnl_ibl_samples), Value =/= false, Store)%,
-                %wings_dialog:enable(?KEY(pnl_enlight_photons), Value =/= false, Store)
-        end
-    end,
+        fun(Key, Value, Store) ->
+            case Key of
+                ?KEY(add_sun) ->
+                    wings_dialog:enable(?KEY(pnl_add_sun), Value =/= ?DEF_SUN_REAL, Store);
+                ?KEY(background_light) ->
+                    wings_dialog:enable(?KEY(pnl_bkg_power), Value =/= ?DEF_SKY_BACKGROUND_LIGHT, Store),
+                    wings_dialog:enable(?KEY(pnl_bkg_photons), Value =/=?DEF_SKY_BACKGROUND_LIGHT, Store);
+                ?KEY(use_ibl) ->
+                    wings_dialog:enable(?KEY(pnl_ibl_samples), Value =/= false, Store)%,
+                    %wings_dialog:enable(?KEY(pnl_enlight_photons), Value =/= false, Store)
+            end
+        end,
     WHook_Show =
-    fun(Key, Value, Store) ->
-        case Key of
-            ?KEY(environment) ->
-                %wings_dialog:show(?KEY(pnl_sky), Value =:= darksky, Store), %=/= undefined, Store),
-                wings_dialog:show(?KEY(pnl_sky), is_member(Value,[darksky,sunsky]), Store), %=/= undefined, Store),
-                wings_dialog:update(?KEY(pnl_sky), Store),
-                wings_dialog:show(?KEY(pnl_background), is_member(Value,[texture,constant]), Store),
-                wings_dialog:update(?KEY(pnl_background), Store),
-                wings_dialog:show(?KEY(pnl_file), Value =:= texture, Store),
-                wings_dialog:update(?KEY(pnl_file), Store)
-        end
-    end,
+        fun(Key, Value, Store) ->
+            case Key of
+                ?KEY(environment) ->
+                    %wings_dialog:show(?KEY(pnl_sky), Value =:= darksky, Store), %=/= undefined, Store),
+                    wings_dialog:show(?KEY(pnl_sky), is_member(Value,[darksky,sunsky]), Store), %=/= undefined, Store),
+                    wings_dialog:update(?KEY(pnl_sky), Store),
+                    wings_dialog:show(?KEY(pnl_background), is_member(Value,[texture,constant]), Store),
+                    wings_dialog:update(?KEY(pnl_background), Store),
+                    wings_dialog:show(?KEY(pnl_file), Value =:= texture, Store),
+                    wings_dialog:update(?KEY(pnl_file), Store)
+            end
+        end,
     %!----------------------------------------
     %! Environment background 150 ->
     %!----------------------------------------
@@ -297,10 +297,12 @@ export_dialog_qs(Op, Attr) ->
                             render ->
                                 {hframe,[
                                     {?__(102, "Write .xml file"), get_pref(keep_xml,Attr),[{key,keep_xml}]},
-                                    panel
+                                    panel,
+                                    {?__(103, "GUI mode"), get_pref(gui_mode, Attr),[{key, gui_mode}]}
                                 ]};
                             _ ->
-                                {value, get_pref(keep_xml,Attr), [{key,keep_xml}]}
+                                {value, get_pref(keep_xml,Attr), [{key,keep_xml}]},
+                                {value, get_pref(gui_mode,Attr), [{key,gui_mode}]}
                         end
                     ],[{margin,false}]}
                 ],[{title, ?__(104, "Pre-rendering")},{margin,false}]
@@ -367,13 +369,13 @@ export_dialog_qs(Op, Attr) ->
                         {menu, [
                             {Ext ++ " (" ++ Desc ++ ")", Format}
                             || {Format, Ext, Desc} <- wings_job:render_formats(),
-                            (Format == tga) or (Format == tif) or (Format == png) or
-                            (Format == hdr) or (Format == exr)
+                            (Format == jpg) or (Format == tga) or (Format == tiff) or
+                            (Format == png) or (Format == hdr) or (Format == exr)
                         ], get_pref(render_format,Attr), [{key,render_format},{hook,Hook_Enable}]}
                     ]},
                     panel,
                     {hframe, [
-                        {?__(131, "Float"), get_pref(exr_float,Attr), [{key,exr_float}]},
+                        {?__(132, "Float"), get_pref(exr_float,Attr), [{key,exr_float}]},
                         panel,
                         {label, ?__(133, "Compression ")},
                         %------------------------------------
@@ -463,17 +465,20 @@ export_dialog_qs(Op, Attr) ->
                                 {?__(209, "Mix"),{text, get_pref(caustic_mix,Attr), [range(caustic_mix),{key,caustic_mix}]}},
                                 {?__(210, "Radius"),{text, get_pref(caustic_radius,Attr), [range(caustic_radius),{key,caustic_radius}]}}
                             ], [key(pnl_dl1)]}
-                        ], [key(pnl_caustics),{show,false},{magin,false}]},
+                        ], [key(pnl_caustics),{show,false},{magin,false}]
+                        },
                         {label_column, [
                             {?__( 211, "Photons"),{text, get_pref(pm_diffuse_photons,Attr), [range(pm_diffuse_photons),{key,pm_diffuse_photons}]}},
                             {?__(212, "Bounces"),{text, get_pref(pm_bounces,Attr), [range(pm_bounces),{key,pm_bounces}]}},
                             {?__(213, "Search"),{text, get_pref(pm_search,Attr), [range(pm_search),{key,pm_search}]}},
                             {?__(214, "Diffuse Radius"),{text, get_pref(pm_diffuse_radius,Attr), [range(pm_diffuse_radius),{key,pm_diffuse_radius}]}}
-                        ], [key(pnl_pm1)]},
+                        ], [key(pnl_pm1)]
+                        },
                         {label_column, [
                             {?__( 215, "Photons"),{text, get_pref(pt_diffuse_photons,Attr), [range(pt_diffuse_photons),{key,pt_diffuse_photons}]}},
                             {?__(216, "Bounces"),{text, get_pref(pt_bounces,Attr), [range(pt_bounces),{key,pt_bounces}]}}
-                        ], [key(pnl_pt1),{show,false}]},
+                        ], [key(pnl_pt1),{show,false}]
+                        },
                         {label_column, [
                             {?__( 217, "Photons"),{text,get_pref(sppm_photons,Attr),[range(sppm_photons),{key,sppm_photons}]}},
                             {?__(218, "Bounces"),{text,get_pref(sppm_bounces,Attr),[range(sppm_bounces),{key,sppm_bounces}]}},
@@ -492,12 +497,14 @@ export_dialog_qs(Op, Attr) ->
                                     {?__(98, "AO Samples"),{text, get_pref(ao_samples,Attr), [range(ao_samples),{key,ao_samples}]}},
                                     {?__(99, "AO Color"),{color, get_pref(ao_color,Attr), [{key,ao_color}]}}
                                 ], [key(pnl_use_ao)]}
-                            ], [key(pnl_ao),{show,false},{magin,false}]},
+                            ], [key(pnl_ao),{show,false},{magin,false}]
+                            },
                             {label_column, [
                                 {?__(225, "Caustic Photons"),{text, get_pref(pm_caustic_photons,Attr), [range(pm_caustic_photons),{key,pm_caustic_photons}]}},
                                 {?__(226, "Caustic Radius"),{text, get_pref(pm_caustic_radius,Attr), [range(pm_caustic_radius),{key,pm_caustic_radius}]}},
                                 {?__(227, "Caustic Mix"),{text, get_pref(pm_caustic_mix,Attr), [range(pm_caustic_mix),{key,pm_caustic_mix}]}}
-                            ],[key(pnl_pm2)]},
+                            ],[key(pnl_pm2)]
+                            },
                             {vframe,[
                                 {hframe,[
                                     {label, ?__(245, "Caustic Type ")},
@@ -513,7 +520,8 @@ export_dialog_qs(Op, Attr) ->
                                     {?__(258, "Caustic Mix"),{text, get_pref(pt_caustic_mix,Attr), [{key,pt_caustic_mix},range(pt_caustic_mix)]}},
                                     {?__(259, "Caustic Depth"),{text, get_pref(pt_caustic_depth,Attr), [{key,pt_caustic_depth},range(pt_caustic_depth)]}}
                                 ],[{margin,false}]}
-                            ],[key(pnl_pt2),{show,false}]},
+                            ],[key(pnl_pt2),{show,false}]
+                            },
                             {vframe,[
                                 {label_column, [
                                     {?__(260, "Times"),{text,get_pref(sppm_times,Attr),[{key,sppm_times},range(sppm_times)]}},
@@ -535,11 +543,13 @@ export_dialog_qs(Op, Attr) ->
                                     {label_column, [
                                         {?__(264, "FG Bounces"),{text, get_pref(pm_fg_bounces,Attr), [{key,pm_fg_bounces},range(pm_fg_bounces)]}},
                                         {?__(265, "FG Samples"),{text, get_pref(pm_fg_samples,Attr), [{key,pm_fg_samples},range(pm_fg_samples)]}}
-                                    ],[{margin,false}]},
+                                    ],[{margin,false}]
+                                    },
                                     {vframe,[
                                         {?__(266, "Show Map"), get_pref(pm_fg_show_map,Attr), [{key,pm_fg_show_map}]}
                                     ],[{border,1}]}
-                                ], [key(pnl_use_fg),[{margin,false}]]}
+                                ], [key(pnl_use_fg),[{margin,false}]]
+                                }
                             ], [key(pnl_pm3)]},
                             {label_column, [
                                 {?__(267, "Path Samples"),{text, get_pref(pt_samples,Attr), [{key,pt_samples},range(pt_samples)]}}
@@ -642,10 +652,8 @@ export_dialog_qs(Op, Attr) ->
                         panel,
                         {label, ?__(313, "f-stop ")},
                         {menu, [{F,A} || {F,A,_} <- ApertureList]++[{"Custom",Custom}],
-                            ApertureIdx, [{key,aperture_idx},{hook,Hook_Enable}]},
-                        panel,
-                        {?__(314, "Use QMC"), get_pref(bokeh_use_QMC,Attr),[{key,bokeh_use_QMC}]}
-                    ],[{margin,false}]},
+                            ApertureIdx, [{key,aperture_idx},{hook,Hook_Enable}]
+                        }],[{margin,false}]},
 
                     {hframe, [
                         {label, ?__(315, "DOF Type ")},
@@ -666,6 +674,7 @@ export_dialog_qs(Op, Attr) ->
                             {?__(326, "Edge"), edge}
                         ], get_pref(bokeh_bias,Attr), [{key,bokeh_bias}]}
                     ],[key(pnl_dof_type)]},
+                    
                     {vframe, [
                         {hframe, [
                             {label, ?__(327, "DOF Rotation ")},
@@ -754,7 +763,7 @@ export_dialog_qs(Op, Attr) ->
                 %% HDRI Background
                 {vframe, [
                     {label_column, [
-                        {?__(425,"Filename"),
+                        {?__(425,"HDRI File"),
                             {vframe, [
                                 {hframe, [
                                     {button,{text,get_pref(back_filename, Attr),[key(back_filename),{width,35},{props,BrowsePropsHDRI}]}},

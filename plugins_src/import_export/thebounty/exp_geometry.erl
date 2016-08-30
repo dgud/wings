@@ -88,7 +88,7 @@ export_object_1(F, NameStr, Mesh0=#e3d_mesh{he=He0}, DefaultMaterial, MatPs, Id)
 
     %% Add Export Object Name Start
 
-    println(F, "<!--Object Name ~s, Object # ~w-->", [NameStr,Id]),
+    println(F, "<!-- Object Name ~s, Object # ~w -->", [NameStr,Id]),
 
     %% Add Export Object Name End
 
@@ -106,7 +106,6 @@ export_object_1(F, NameStr, Mesh0=#e3d_mesh{he=He0}, DefaultMaterial, MatPs, Id)
             println(F," ");
 
         volume ->
-            println(F," "),
             println(F, "<volumeregion name=\"volumename\">"),
 
             case proplists:get_value(volume_type, Attr,
@@ -190,30 +189,26 @@ export_object_1(F, NameStr, Mesh0=#e3d_mesh{he=He0}, DefaultMaterial, MatPs, Id)
     case Object_Type of
         mesh ->
             println(F," "),
-            println(F, "</mesh>"),
-            println(F," ");
+            println(F, "</mesh>\n");
 
         volume ->
             println(F," "),
-            println(F, "</volumeregion>"),
-            println(F," ");
+            println(F, "</volumeregion>\n");
 
         meshlight ->
             println(F," "),
-            println(F, "</mesh>"),
-            println(F," ");
+            println(F, "</mesh>\n");
 
         lightportal ->
             println(F," "),
-            println(F, "</light>"),
-            println(F," ")
+            println(F, "</light>\n")
     end,
 
     case Autosmooth of
         false ->
             println(F, "");
         true ->
-            println(F, "    <smooth ID=\"~w\" angle=\"~.3f\"/>", [Id,AutosmoothAngle])
+            println(F, "<smooth ID=\"~w\" angle=\"~.3f\"/>", [Id,AutosmoothAngle])
     end,
 
     io:format(?__(6,"done")++"~n").

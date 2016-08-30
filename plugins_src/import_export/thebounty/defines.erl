@@ -12,7 +12,7 @@ key(Key) -> {key,?KEY(Key)}.
 
 %%% Default values
 -define(DEF_DIALOGS, auto).
--define(DEF_RENDERER, "yafaray-xml").
+-define(DEF_RENDERER, "thebounty-xml").
 -define(DEF_PLUGINS_PATH, "plugins").
 -define(DEF_OPTIONS, "").
 -define(DEF_THREADS_AUTO, true).
@@ -56,7 +56,7 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_MESHLIGHT_DOUBLE_SIDED, false).
 -define(DEF_USE_HARDNESS, false).
 -define(DEF_AUTOSMOOTH, true).
--define(DEF_AUTOSMOOTH_ANGLE, 60.0).
+-define(DEF_AUTOSMOOTH_ANGLE, 181.0).
 -define(DEF_SSS_ABSORPTION_COLOR, {0.649,0.706,0.655}).
 -define(DEF_SCATTER_COLOR, {0.599,0.680,0.511}).
 -define(DEF_SSS_SPECULAR_COLOR, {1.0,1.0,1.0}).

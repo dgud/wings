@@ -1,6 +1,6 @@
 %%
 %%  This file is part of TheBounty exporter for Wings3D 2.0.1 or above.
-%%  Copyright (C) 2013-2015 Pedro Alcaide, aka povmaniac.
+%%  Copyright (C) 2013-2016 Pedro Alcaide, aka povmaniac.
 %%  Contact: thebountyrenderer@gmail.com
 %%
 %%  This program is free software; you can redistribute it and/or modify
@@ -15,72 +15,29 @@
 %  Split mapping code part and make an function
 %  for mapping multiple modulators ( layers )
 %
-
-export_modulator(F, Texname, Maps, {modulator,Ps}, _Opacity) when is_list(Ps) ->
+% org. export_modulator(F, Texname, Maps, {modulator,Ps}, _Opacity) when is_list(Ps) ->
+export_modulator(F, Texname, Maps, {modulator,Ps}, Attr) when is_list(Ps) ->
     case mod_enabled_mode_type(Ps, Maps) of
         {false,_,_} ->
             off;
         {true,BlendMode,TexType} ->
-            %
-            ShaderType = proplists:get_value(shader_type, Ps, ?DEF_SHADER_TYPE),            
-
-            %UpperLayer =
-            %    case {Num,BlendMode,AlphaIntensity} of
-            %        {"1",mix,_} ->  "";
-            %        {"1",_,_} ->  "<upper_layer sval=\""++UpperLayerName++"\"/>";
-            %        {"2",_,stencil} ->  "<upper_layer sval=\""++UpperLayerName++"\"/>";
-            %        _ -> ""
-            %    end,
-            %% End Identify Modulator #
-            %UseAlpha =
-            %    case {Num,AlphaIntensity} of
-            %        {"1",off} ->  "";
-            %        {_,transparency} -> "<do_scalar bval=\"true\"/>";
-            %        {_,diffusealphatransparency} -> "<use_alpha bval=\"true\"/>";
-            %        {_,translucency} -> "<do_scalar bval=\"true\"/>";
-            %        {_,specularity} -> "<do_scalar bval=\"true\"/>";
-            %        {_,stencil} -> "<use_alpha bval=\"true\"/>";
-            %        _ -> ""
-            %    end,
-            % TextureShaderType
-
-            %ShaderName =
-            %    case {Num,BlendMode} of
-            %        {"1",_} ->   "  "++TextureShaderType++" sval=\""++Texname++"\"/>";
-            %        {_,mix} ->   "  "++TextureShaderType++" sval=\""++Texname++"\"/>";
-            %        _ -> ""
-            %    end,
-
-            %%------------------------------------------------------------------------------------->
-
-            %% Identify Modulator # (w_default_Name_1 or w_default_Name_2)
-            %Split=re:split(Texname,"_",[{return, list}]),
-            %Num=lists:last(Split),
-
+            %             
+            ShaderType = proplists:get_value(shader_type, Ps),
             DoColor = 
-                case ShaderType of
-                diffuse -> true;
-                mirror_color -> true;
-                glossy_reflect -> true;
-                glossy -> true;
-                _ -> false
-                %{mirror,transparency,translucency,bump}-> false
-            end,
-            %
-            %_ShaderName =
-            %    case {Num, BlendMode} of
-            %            {"1",_} ->   "  "++ShaderType++" sval=\""++Texname++"\"/>";
-            %            {_,mix} ->   "  "++ShaderType++" sval=\""++Texname++"\"/>";
-            %            _ -> ""
-            %    end,
-
-            %% write shader type. TODO: search better way..
-            %println(F, ShaderType),
+                case ShaderType of 
+                    diffuse ->  true;
+                    mirror_color -> true;
+                    glossy_reflect ->  true;
+                    _ -> false
+                end,
+                
             println(F, "\t<~s_shader sval=\"~s\"/>",[ShaderType,Texname]),
 
-            %% entry to element shader list
+            %!----------------------------------------------------
+            %! entry to element shader list  D:\apps\wings3d205\lib\wings-2.0.5\plugins\import_export\wpc_thebounty.beam
+            %!----------------------------------------------------
             println(F,"\t<list_element>"),
-
+            
             %% shader factor amount controled with 'Factor Modulator' slider in UI
             Factor = proplists:get_value(diffuse_factor, Ps, 1.0),
             %% Try use value or color
@@ -108,10 +65,10 @@ export_modulator(F, Texname, Maps, {modulator,Ps}, _Opacity) when is_list(Ps) ->
 
             println(F,"\t\t<color_input bval=\"~s\"/>",[IsColor]),
 
-            % def color for 'blended' by default
-            {Ar, Ag, Ab} = proplists:get_value(def_color, Ps, ?DEF_MOD_DEFCOLOR),
-            
-            println(F,"\t\t<def_col r=\"~w\" g=\"~w\" b=\"~w\" a=\"1\"/>",[Ar,Ag,Ab]),
+            % def color for 'blending' by default
+            {DefaultR, DefaultG, DefaultB} = proplists:get_value(def_color, Ps, ?DEF_MOD_DEFCOLOR),
+
+            println(F,"\t\t<def_col r=\"~w\" g=\"~w\" b=\"~w\" a=\"1\"/>",[DefaultR, DefaultG, DefaultB]),
             %
             println(F,"\t\t<def_val fval=\"~w\"/>",[proplists:get_value(def_value, Ps, 1.0)]),
 
@@ -125,7 +82,6 @@ export_modulator(F, Texname, Maps, {modulator,Ps}, _Opacity) when is_list(Ps) ->
             %
             println(F,"\t\t<input sval=\"~s_mod\"/>",[Texname]),
             %
-            erlang:display("BlendMode for Modenumber "++format(BlendMode)),
             ModeNumber =
                 case BlendMode of
                     mix -> "0"; add -> "1"; mul -> "2"; sub -> "3"; scr -> "4";
@@ -141,35 +97,22 @@ export_modulator(F, Texname, Maps, {modulator,Ps}, _Opacity) when is_list(Ps) ->
             println(F, "\t\t<noRGB bval=\"~s\"/>",[proplists:get_value(no_rgb, Ps, false)]),
 
             Stencil = proplists:get_value(stencil, Ps, false),
-            % erlang:display("Modulator. Stencil value is: "++StencilMode),
-
 
             println(F, "\t\t<stencil bval=\"~s\"/>",[Stencil]),
+            % TODO: create code for stencil modes
 
-            % for layers, is need 'stencil' param and more review code.. :)
-            %%
-            %_UpperColor =
-            %    case Num of
-            %        "1" ->  "<upper_color r=\"1\" g=\"1\" b=\"1\" a=\"1\"/>";
-            %        _ -> ""
-            %    end,
+            %!------------------
+            %! Set upper color
+            %!------------------
+            {UpR, UpG, UpB} =
+                case ShaderType of
+                    diffuse ->
+                        proplists:get_value(diffuse_color, Attr, {0.0,0.0,0.0});
+                    mirror_color ->
+                        proplists:get_value(mirror_color, Attr, {0.0,0.0,0.0});
 
-            %%% Change Number from Texname for UpperLayer
-            %_ULayerName =
-            %    case ModShaderType of % TODO: change for stencil mode
-            %        stencil ->
-            %            re:replace(Texname,"_2","_1",[global]);
-            %        _->
-            %            re:replace(Texname,"_1","_2",[global])
-            %    end,
-            % UpperLayer =
-            %    case {Num, BlendMode, ModShaderType} of
-            %            {"1",mix,_} ->  "";
-            %            {"1",_,_} ->  UlayerName;
-            %            {"2",_,stencil} -> UlayerName;
-            %            _ -> ""
-            %    end,
-
+                    _ -> {0.0,0.0,0.0}
+                end,
             Ulayer = "",
             %
             case Ulayer of
@@ -177,11 +120,11 @@ export_modulator(F, Texname, Maps, {modulator,Ps}, _Opacity) when is_list(Ps) ->
                     case DoColor of
                         true ->
                             println(F,
-                                "\t\t<upper_color r=\"1\" g=\"1\" b=\"1\" a=\"1\"/>\n"
-                                "\t\t<upper_value fval=\"0\"/>");
+                                "\t\t<upper_color r=\"~.10f\" g=\"~.10f\" b=\"~.10f\" a=\"1\"/>\n"
+                                "\t\t<upper_value fval=\"0\"/>",[UpR, UpG, UpB]);
                         false ->
                             println(F,
-                                "\t\t<upper_color r=\"0\" g=\"0\" b=\"0\" a=\"1\"/>\n" % alpha = 1 ??
+                                "\t\t<upper_color r=\"0\" g=\"0\" b=\"0\" a=\"1\"/>\n"
                                 "\t\t<upper_value fval=\"~w\"/>",[Factor])
                     end;
                 _ ->
@@ -215,7 +158,7 @@ export_modulator(F, Texname, Maps, {modulator,Ps}, _Opacity) when is_list(Ps) ->
             println(F,
                 "\t\t<offset x=\"~w\" y=\"~w\" z=\"~w\"/>",
                 [OffX, OffY, OffZ]),
-            %
+            % TODO: create option in UI panel
             println(F,
                 "\t\t<proj_x ival=\"1\"/>\n"
                 "\t\t<proj_y ival=\"2\"/>\n"

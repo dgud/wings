@@ -107,7 +107,7 @@ light_dialog(_Name, spot, Ps) ->
     },
     {vframe, [
         {hframe, [
-            {label,?__(102,"Filename")},
+            {label,?__(102,"File IES")},
             {button,{text,SpotIESFilename,[key(spot_ies_filename),{width,35},{props,BrowsePropsIES}]}}
             ],[key(pnl_ies)]
         },

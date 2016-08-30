@@ -47,7 +47,6 @@ export_texture(F, TexName, image, Filename) ->
 
 export_texture(F, Name, Type, Ps) ->
     %
-    %TextureNameChg = re:replace(Name,"w_TEmytex_1","TEmytex",[global]),
     println(F, "<texture name=\"~s\">",[Name]),
     println(F, "\t<type sval=\"~s\"/>", [format(Type)]),
     %
@@ -137,6 +136,7 @@ export_texture(F, Name, Type, Ps) ->
             ok
     end,
     println(F, "</texture>").
+    
 % add from micheus
 get_map_type(Filepath) ->
     Ext = filename:extension(Filepath),

@@ -1,6 +1,6 @@
 %%
 %%  This file is part of TheBounty exporter for Wings3D 2.0.1 or above.
-%%  Copyright (C) 2015 Pedro Alcaide, aka povmaniac.
+%%  Copyright (C) 2015-2016 Pedro Alcaide, aka povmaniac.
 %%  Contact: thebountyrenderer@gmail.com
 %%
 %%  This program is free software; you can redistribute it and/or modify
@@ -14,25 +14,24 @@
 %! TO DO: make only one 'textured' mode
 %!
 
-export_background(F, BgName, Ps) ->
-    OpenGL = proplists:get_value(opengl, Ps, []),
-    Attr = proplists:get_value(?TAG, Ps, []),
-
-    Bg = proplists:get_value(environment, Attr, ?DEF_BACKGROUND_AMBIENT),
+export_background(F, Attr) ->
+    OpenGL = proplists:get_value(opengl,Attr,[]), %Ps, []),
+    %Attr = proplists:get_value(?TAG, Att, []),
+  
+    Bg = proplists:get_value(background, Attr, sunsky),
     SkyBackgroundLight = proplists:get_value(background_light, Attr, ?DEF_SKY_BACKGROUND_LIGHT),
     % test
-
     case Bg of
         %% Constant Background Export
         constant ->
-            println(F, "<background name=\"~s\">",[BgName]),
+            println(F, "<background name=\"worldbackground\">"),
             println(F, "\t<type sval=\"~s\"/>",[format(Bg)]),
             BgColor = proplists:get_value(background_color, Attr, ?DEF_BACKGROUND_COLOR),
             export_rgb(F, color, BgColor),
             println(F, "\t<power fval=\"~w\"/>", [proplists:get_value(power, Attr, ?DEF_POWER)]);
 
         gradientback ->
-            println(F, "<background name=\"~s\">",[BgName]),
+            println(F, "<background name=\"worldbackground\">"),
             println(F, "\t<type sval=\"~s\"/>",[format(Bg)]),
             HorizonColor = proplists:get_value(horizon_color, Attr, ?DEF_HORIZON_COLOR),
             export_rgb(F, horizon_color, HorizonColor),
@@ -45,18 +44,18 @@ export_background(F, BgName, Ps) ->
 
 %% Sunsky Background Export
         sunsky ->
-            println(F, "<background name=\"~s\">",[BgName]),
+            println(F, "<background name=\"worldbackground\">"),
             println(F, "\t<type sval=\"~s\"/>",[format(Bg)]),
 
             AddSun = proplists:get_value(add_sun, Attr, false),
             Position = proplists:get_value(position, OpenGL, {1.0,1.0,1.0}),
 
-            println(F, "\t<turbidity fval=\"~.3f\"/>",[proplists:get_value(turbidity, Attr, ?DEF_TURBIDITY)]),
-            println(F, "\t<a_var fval=\"~.3f\"/>",[proplists:get_value(a_var, Attr, ?DEF_SUNSKY_VAR)]),
-            println(F, "\t<b_var fval=\"~.3f\"/>",[proplists:get_value(b_var, Attr, ?DEF_SUNSKY_VAR)]),
-            println(F, "\t<c_var fval=\"~.3f\"/>",[proplists:get_value(c_var, Attr, ?DEF_SUNSKY_VAR)]),
-            println(F, "\t<d_var fval=\"~.3f\"/>",[proplists:get_value(d_var, Attr, ?DEF_SUNSKY_VAR)]),
-            println(F, "\t<e_var fval=\"~.3f\"/>",[proplists:get_value(e_var, Attr, ?DEF_SUNSKY_VAR)]),
+            println(F, "\t<turbidity fval=\"~.3f\"/>",[proplists:get_value(turbidity, Attr, 2.0)]),
+            println(F, "\t<a_var fval=\"~.3f\"/>",[proplists:get_value(a_var, Attr, 1.0)]),
+            println(F, "\t<b_var fval=\"~.3f\"/>",[proplists:get_value(b_var, Attr, 1.0)]),
+            println(F, "\t<c_var fval=\"~.3f\"/>",[proplists:get_value(c_var, Attr, 1.0)]),
+            println(F, "\t<d_var fval=\"~.3f\"/>",[proplists:get_value(d_var, Attr, 1.0)]),
+            println(F, "\t<e_var fval=\"~.3f\"/>",[proplists:get_value(e_var, Attr, 1.0)]),
 
             %% Add Sun
             case AddSun of
@@ -95,7 +94,7 @@ export_background(F, BgName, Ps) ->
             DarkskyCausticPhotons = proplists:get_value(darksky_causticphotons, Attr, ?DEF_DARKSKY_CAUSTICPHOTONS),
             Position = proplists:get_value(position, OpenGL, {1.0,1.0,1.0}),
             %
-            println(F, "<background name=\"~s\">",[BgName]),
+            println(F, "<background name=\"worldbackground\">"),
             println(F, "\t<type sval=\"~s\"/>",[format(Bg)]),
             println(F, "\t<turbidity fval=\"~.3f\"/>",[proplists:get_value(turbidity, Attr, 3.0)]),
             println(F, "\t<a_var fval=\"~.3f\"/>",[proplists:get_value(a_var, Attr, 1.0)]),
@@ -158,7 +157,7 @@ export_background(F, BgName, Ps) ->
             println(F, "\t<type sval=\"image\"/>"),
             println(F, "</texture>"),
 
-            println(F, "<background name=\"~s\">",[BgName]),
+            println(F, "<background name=\"worldbackground\">"),
             println(F, "\t<type sval=\"textureback\"/>"),
             println(F, "\t<power fval=\"~w\"/>",[BgExpAdj]),
             println(F, "\t<mapping sval=\"~s\"/>",[format(BgMapping)]),
@@ -181,7 +180,7 @@ export_background(F, BgName, Ps) ->
             println(F, "</texture>"),
 
             % Now, background
-            println(F, "<background name=\"~s\">",[BgName]),
+            println(F, "<background name=\"worldbackground\">"),
             println(F, "\t<type sval=\"textureback\"/>"),
             println(F, "\t<texture sval=\"world_texture\"/>"),
             println(F, "\t<power fval=\"~.3f\"/>",[BgPower]),

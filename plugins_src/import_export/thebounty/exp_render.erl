@@ -14,7 +14,7 @@
 %! Using SSS integrator without SSS material, cause to render freeze.
 
 
-export_render(F, CameraName, BackgroundName, Outfile, Attr) ->
+export_render(F, Outfile, Attr) ->
     %
     RenderFormat = proplists:get_value(render_format, Attr),
     %ExrFlagFloat = proplists:get_value(exr_float, Attr),
@@ -34,13 +34,15 @@ export_render(F, CameraName, BackgroundName, Outfile, Attr) ->
     %--------------------------------------------------------------
 
     println(F, "<render>"),
-    println(F, "\t<camera_name sval=\"~s\"/>",[CameraName]),
+    println(F, "\t<camera_name sval=\"camera\"/>"),
     println(F,
         "\t<filter_type sval=\"~s\"/>",[proplists:get_value(aa_filter_type, Attr)]),
     println(F,
         "\t<AA_passes ival=\"~w\"/>",[proplists:get_value(aa_passes, Attr)]),
     println(F,
         "\t<AA_threshold fval=\"~.10f\"/>",[proplists:get_value(aa_threshold, Attr)]),
+    println(F,
+        "\t<AA_inc_samples ival=\"~w\"/>",[proplists:get_value(aa_moresamples, Attr)]),
     println(F,
         "\t<AA_minsamples ival=\"~w\"/>",[proplists:get_value(aa_samples, Attr)]),
     println(F,
@@ -59,11 +61,11 @@ export_render(F, CameraName, BackgroundName, Outfile, Attr) ->
     println(F,
         "\t<clamp_rgb bval=\"~s\"/>",[format(proplists:get_value(clamp_rgb, Attr))]),
     println(F,
-        "\t<z_channel bval=\"false\"/>"), % povman. review.. [proplists:get_value(flag_zbuf, Attr)]),
+        "\t<z_channel bval=\"~s\"/>",[format(proplists:get_value(z_pass, Attr))]),
     %println(F,
     %    "\t<bg_transp_refract bval=\"~s\"/>",[format(proplists:get_value(background_transp_refract, Attr))]),
     println(F,
-        "\t<background_name sval=\"~s\"/>",[BackgroundName]),
+        "\t<background_name sval=\"worldbackground\"/>"),
     %
     println(F, "\t<output_type sval=\"~s\"/>",[RenderFormat]),
     %%------------------------------------
@@ -85,12 +87,9 @@ export_render(F, CameraName, BackgroundName, Outfile, Attr) ->
     println(F, "\t<width ival=\"~w\"/>",[proplists:get_value(width, Attr)]),
     println(F, "\t<height ival=\"~w\"/>",[proplists:get_value(height, Attr)]),
     println(F, "\t<outfile sval=\"~s\"/>",[Outfile]),
-    %println(F, "\t<indirect_samples sval=\"0\"/>"), % TO DO: review..
-    %println(F, "\t<indirect_power sval=\"1.0\"/>"), %
-    %println(F,
     %    "\t<exposure fval=\"~.10f\"/>",[proplists:get_value(exposure, Attr)]),
     println(F,
-        "\t<gamma fval=\"~.10f\"/>",[proplists:get_value(gamma, Attr)]),
+        "\t<gamma fval=\"~.4f\"/>",[proplists:get_value(gamma, Attr)]),
     println(F,
         "\t<integrator_name sval=\"default\"/>"),
     %
@@ -99,6 +98,7 @@ export_render(F, CameraName, BackgroundName, Outfile, Attr) ->
         true -> -1;
         false -> [proplists:get_value(threads_number, Attr)]
     end,
+    println(F, "\t<drawParams bval=\"~s\"/>",[proplists:get_value(draw_params, Attr)]),
     println(F, "\t<threads ival=\"~w\"/>",[NThreads]),
 
     println(F, "\t<volintegrator_name sval=\"volintegr\"/>"),

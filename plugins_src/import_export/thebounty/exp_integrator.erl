@@ -20,6 +20,7 @@ export_integrator(F, Attr) ->
     println(F, "\t<raydepth ival=\"~w\"/>",    [proplists:get_value(raydepth, Attr)]),
     println(F, "\t<transpShad bval=\"~s\"/>",  [format(proplists:get_value(transparent_shadows, Attr))]),
     println(F, "\t<shadowDepth ival=\"~w\"/>", [proplists:get_value(shadow_depth, Attr)]),
+    % TODO: create option in UI
     println(F, "\t<bg_transp bval=\"false\"/>"),
     println(F, "\t<bg_transp_refract bval=\"false\"/>"),
 
