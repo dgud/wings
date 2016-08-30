@@ -35,16 +35,16 @@ export_shinydiffuse_shader(F, Name, Mat, ExportDir, Attr) ->
     Maps = proplists:get_value(maps, Mat, []),
     Modulators = proplists:get_value(modulators, Attr, def_modulators(Maps)),
     foldl(fun ({modulator,Ps}=M, N) when is_list(Ps) ->
-              case export_texture(F, [Name,$_,format(N)],Maps, ExportDir, M) of
-                    off -> N+1;
-                    ok ->
-                        println(F),
-                        N+1
-              end;
+          case export_texture(F, [Name,$_,format(N)],Maps, ExportDir, M) of
+                      off -> N+1;
+                      ok ->
+                          println(F),
+                          N+1
+                  end;
               (_, N) ->
                     N % Ignore old modulators
           end, 1, Modulators),
-          
+		  
     println(F, "<material name=\"~s\">",[[Name]]),
     println(F, "\t<type sval=\"shinydiffusemat\"/>"),
 
@@ -65,10 +65,10 @@ export_shinydiffuse_shader(F, Name, Mat, ExportDir, Attr) ->
     end, 
 
     println(F,
-        "\t<IOR fval=\"~.10f\"/>",[proplists:get_value(ior, Attr, ?DEF_IOR)]),                
-    println(F,  
-        "\t<fresnel_effect bval=\"~s\"/>",[format(proplists:get_value(fresnel, Attr, ?DEF_TIR))]),    
-    println(F,  
+        "\t<IOR fval=\"~.10f\"/>",[proplists:get_value(ior, Attr, ?DEF_IOR)]),
+    println(F,
+        "\t<fresnel_effect bval=\"~s\"/>",[format(proplists:get_value(fresnel, Attr, ?DEF_TIR))]),
+    println(F,
         "\t<transmit_filter fval=\"~.10f\"/>",[proplists:get_value(transmit_filter, Attr, ?DEF_TRANSMIT_FILTER)]),
     println(F,
         "\t<translucency fval=\"~.10f\"/>",[proplists:get_value(translucency, Attr, ?DEF_TRANSLUCENCY)]),
@@ -322,6 +322,7 @@ export_translucent_shader(F, Name, Mat, ExportDir, Attr) ->
             "        <sss_transmit fval=\"~.10f\"/>~n"
             "        <exponent fval=\"~.10f\"/>~n",
             [IOR,SigmaSfactor,DiffuseReflect,GlossyReflect,SSS_Translucency,Exponent]),
+			
     foldl(fun ({modulator,Ps}=M, N) when is_list(Ps) ->
                   case export_modulator(F, [Name,$_,format(N)],
                                         Maps, M, Opacity) of

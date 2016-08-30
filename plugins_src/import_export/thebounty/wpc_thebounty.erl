@@ -393,7 +393,7 @@ export(Attr, Filename, #e3d_file{objs=Objs, mat=Mats, creator=Creator}) ->
     %! export render options
     %!------------------------
     export_render(F, CameraName, BgName, filename:basename(RenderFile), Attr),
-    %% 95Cvp5Ml
+    %%
     println(F),
     println(F, "</scene>"),
     close(F),
@@ -438,19 +438,11 @@ export(Attr, Filename, #e3d_file{objs=Objs, mat=Mats, creator=Creator}) ->
                             _  -> Status
                         end
                 end,
-            Ppath = case PluginsPath of
-                    "" -> " ";
-                    _ -> "-pp "++wings_job:quote(PluginsPath)
-                    end,
-            %Rformat = case RenderFormat of
-            %        ->> c:/THEBOU~2/bin/THEBOU~1.EXE -pp C:\TheBounty\bin\plugins -a -f tga wpc_bounty-5624-TEJXBO.xml d:/devs/resources/untitled 
             file:delete(RenderFile),
             set_var(rendering, true),
-        %Arguments = "-pp "++wings_job:quote(PluginsPath)++" "++AlphaChannel++"-f "++format(RenderFormat),
-        Arguments = Ppath++AlphaChannel++"-f "++format(RenderFormat),
+        Arguments = "-pp "++wings_job:quote(PluginsPath)++" "++AlphaChannel++"-f "++format(RenderFormat),
         wings_job:render(
                 ExportTS,Renderer,Arguments++" "++ArgStr++" "++wings_job:quote(filename:rootname(Filename))++" ", PortOpts, Handler)
-                %ExportTS,Renderer,Arguments++" "++ArgStr++" "++wings_job:quote(filename:rootname(Filename))++" ", PortOpts, Handler)
     end.
 
 section(F, Name) ->
