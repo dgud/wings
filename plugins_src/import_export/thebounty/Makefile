@@ -16,7 +16,7 @@
 
 ESRC=.
 WINGS_INTL=../../../intl_tools
-EBIN=D:/apps/wings3d201/lib/wings-2.0.1/plugins/import_export
+EBIN=D:/apps/wings3d205/lib/wings-2.0.5/plugins/import_export
 ERLC=erlc
 WINGS_SRC=../../../src
 WINGS_EBIN=../../../ebin
@@ -28,14 +28,14 @@ else
 TYPE_FLAGS=
 endif
 
-MODULES= wpc_bounty
+MODULES= wpc_thebounty
 
 TARGET_FILES= $(MODULES:%=$(EBIN)/%.beam)
 
 # ----------------------------------------------------
 # FLAGS
 # ----------------------------------------------------
-ERL_COMPILE_FLAGS += -Werror \
+ERL_COMPILE_FLAGS += -W0 \
   -pa $(WINGS_EBIN) -pa $(WINGS_INTL) -I $(WINGS_INTL) \
   -I $(WINGS_SRC) -I $(WINGS_E3D) $(TYPE_FLAGS) +debug_info
 
