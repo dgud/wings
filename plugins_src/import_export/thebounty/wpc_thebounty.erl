@@ -302,7 +302,7 @@ pref_result(Attr, St) ->
             wings_menu:update_menu(file, {render, ?TAG}, {append, -1, Label})
     end,
     St.
-    
+
 %%%
 %!-----------------------------
 -include("ui_general.erl").
@@ -385,13 +385,13 @@ export(Attr, XMLFilename, #e3d_file{objs=Objs, mat=Mats, creator=Creator}) ->
                     _ -> [Light|Bgs]
                 end
             end, [], Lights)),
-    
+
     %!----------------------
     % environment background
-    %!----------------------    
+    %!----------------------
     export_background(F, Attr),
     println(F),
-    
+
     %!----------------------
     %! export camera
     %!----------------------
@@ -426,7 +426,7 @@ export(Attr, XMLFilename, #e3d_file{objs=Objs, mat=Mats, creator=Creator}) ->
             export_file_is_render_file;
         {Renderer,true} ->
             SaveAlpha = proplists:get_value(save_alpha, Attr),
-            AlphaChannel =  
+            AlphaChannel =
                 case SaveAlpha of
                     true -> " -a ";
                     _ ->     " "
@@ -450,7 +450,7 @@ export(Attr, XMLFilename, #e3d_file{objs=Objs, mat=Mats, creator=Creator}) ->
             % Set binarie file under each OS
             RenderExec =
                 case os:type() of
-                    {win32,_} -> 
+                    {win32,_} ->
                         case GuiMode of
                             true -> format(Renderer)++"/thebounty-gui.exe";
                             _ -> format(Renderer)++"/thebounty-xml.exe"
@@ -459,7 +459,7 @@ export(Attr, XMLFilename, #e3d_file{objs=Objs, mat=Mats, creator=Creator}) ->
                     _ -> format(Renderer)++"/thebounty-xml"
                 end,
             PluginsPath = "-pp "++format(Renderer)++"/plugins",
-            OutputFormat = 
+            OutputFormat =
                 case RenderFormat of
                     "" -> "-f png";
                     _ -> "-f "++format(RenderFormat)
@@ -468,7 +468,7 @@ export(Attr, XMLFilename, #e3d_file{objs=Objs, mat=Mats, creator=Creator}) ->
             set_var(rendering, true),
         Arguments = PluginsPath++AlphaChannel++OutputFormat,
         wings_job:render(
-                ExportTS,RenderExec,Arguments++" "++ArgStr++" "++wings_job:quote(filename:rootname(XMLFilename))++" ", PortOpts, Handler)                
+                ExportTS,RenderExec,Arguments++" "++ArgStr++" "++wings_job:quote(filename:rootname(XMLFilename))++" ", PortOpts, Handler)
     end.
 
 section(F, Name) ->
@@ -553,7 +553,7 @@ close(F) ->
     end.
 
 %!---------------------------------------
-%! Convert certain terms to printable 
+%! Convert certain terms to printable
 %! strings in a hopefully efficient way.
 %!---------------------------------------
 
@@ -685,8 +685,8 @@ get_user_prefs(KeyDefs) when is_list(KeyDefs) ->
 
 set_var(Name, undefined) ->
     erase_var(Name);
-    
-% new insert code from micheus ----------------------->    
+
+% new insert code from micheus ----------------------->
 set_var(Name, Value) ->
     ets:insert(?LOCAL_MODULE, {Name,Value}).
 
@@ -699,7 +699,7 @@ get_var(Name) ->
 erase_var(Name) ->
     ets:delete(?LOCAL_MODULE, Name).
 % end insert from micheus --------------------->
-    
+
 %set_var(Name, Value) ->
 %    put({?MODULE,Name}, Value).
 

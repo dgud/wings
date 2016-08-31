@@ -38,7 +38,7 @@ material_dialog(_Name, Mat) ->
     Autosmooth = proplists:get_value(autosmooth, Attr,
                                      if AutosmoothAngle == 0.0 -> false;
                                         true -> ?DEF_AUTOSMOOTH end),
-    
+
     %!---------------------------
     % shiny diffuse properties
     %!---------------------------
@@ -47,23 +47,23 @@ material_dialog(_Name, Mat) ->
     MirrorColor =    proplists:get_value(mirror_color, Attr, {0.7,0.7,0.7}),
     MirrorReflect =  proplists:get_value(mirror_reflect, Attr, ?DEF_SPECULAR_REFLECT),
     Fresnel =        proplists:get_value(fresnel, Attr, ?DEF_FRESNEL),
-    
+
     Emit =           proplists:get_value(emit, Attr, ?DEF_EMIT),
-    
+
     Transparency =  proplists:get_value(transparency, Attr, ?DEF_TRANSPARENCY),
     Translucency =  proplists:get_value(translucency, Attr, ?DEF_TRANSLUCENCY),
     Transmittance = proplists:get_value(transmittance, Attr, ?DEF_TRANSMIT_FILTER),
     IOR =           proplists:get_value(ior, Attr, ?DEF_IOR),
     OrenNayar =     proplists:get_value(oren_nayar, Attr, ?DEF_OREN_NAYAR),
-    Sigma =         proplists:get_value(sigma, Attr, ?DEF_OREN_NAYAR_SIGMA),    
+    Sigma =         proplists:get_value(sigma, Attr, ?DEF_OREN_NAYAR_SIGMA),
     %Transmitted = proplists:get_value(transmitted, Attr, DefTransmitted),
-    
+
     %!------------------------------------------------------------------
     %! Glossy and Coated Glossy Properties.
     %!   -difuse, mirror (color and amount) are declared on shiny panel
     %!------------------------------------------------------------------
     GlossyColor =   proplists:get_value(glossy_color, Attr, {0.9,0.9,0.9}),
-    GlossyReflect = proplists:get_value(glossy_reflect, Attr, 0.0), 
+    GlossyReflect = proplists:get_value(glossy_reflect, Attr, 0.0),
     Anisotropic = proplists:get_value(anisotropic, Attr, ?DEF_ANISOTROPIC),
     Exponent =    proplists:get_value(exponent, Attr, ?DEF_EXPONENT),
     Exponent_U =  proplists:get_value(anisotropic_u, Attr, ?DEF_ANISOTROPIC_U),
@@ -151,7 +151,7 @@ material_dialog(_Name, Mat) ->
                     %% Internal Reflection
                     %wings_dialog:show(?KEY(pnl_ir), Value =:= glass, Store),
                     %% Glossy Color
-                    
+
                     wings_dialog:show(?KEY(pnl_gc), Gc, Store),
                     %% Reflected Light
                     wings_dialog:show(?KEY(pnl_rl), Rl, Store),
@@ -311,7 +311,7 @@ material_dialog(_Name, Mat) ->
             {vframe, [
                 %!-----------------------
                 %! shiny material panels
-                %!-----------------------          
+                %!-----------------------
                 {vframe, [
                     {hframe, [
                         {label, "Diffuse Color"},
@@ -367,7 +367,7 @@ material_dialog(_Name, Mat) ->
                 %! glossy material.
                 %!---------------------
                 {vframe, [
-                    {hframe, [ 
+                    {hframe, [
                         {label, "Glossy Color"}, {slider, {color,GlossyColor,[key(glossy_color)]}}, panel
                     ]},
                     {hframe, [
@@ -385,8 +385,8 @@ material_dialog(_Name, Mat) ->
                     ]}
                 ],[key(pnl_an),{show,false},{margin,false}]
                 },
-                
-                
+
+
                 {hframe, [
                     {vframe, [
                         {label, "Filtered Light"}
@@ -436,7 +436,7 @@ material_dialog(_Name, Mat) ->
                     ],[key(pnl_dsp_sam),{margin,false}]},
                     {"Fake Shadows",FakeShadows,[key(fake_shadows)]}
                 ],[key(pnl_dsp),{show,false},{margin,false}]
-                },           
+                },
                 {hframe, [
                     {"Fresnel Effect",Fresnel,[key(fresnel)]}
                 ],[key(pnl_fe),{show,false},{margin,false}]},

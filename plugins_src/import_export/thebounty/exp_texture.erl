@@ -143,7 +143,7 @@ export_texture(F, Name, Type, Ps) ->
             ok
     end,
     println(F, "</texture>").
-    
+
 % add from micheus
 get_map_type(Filepath) ->
     Ext = filename:extension(Filepath),

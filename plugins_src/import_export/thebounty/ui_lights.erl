@@ -17,7 +17,7 @@ light_dialog(Name, Ps) ->
     OpenGL = proplists:get_value(opengl, Ps, []),
     Attr = proplists:get_value(?TAG, Ps, []),
     LightType = proplists:get_value(type, OpenGL, []),
-    DefPower = 
+    DefPower =
         case LightType of
             point -> ?DEF_ATTN_POWER;
             spot -> ?DEF_ATTN_POWER;
@@ -145,7 +145,7 @@ light_dialog(_Name, infinite, Ps) ->
 
     Hook_Enabled =
     fun(Key, Value, Store) ->
-        case Key of 
+        case Key of
             ?KEY(infinite_true) ->
                 wings_dialog:enable(?KEY(pnl_inf_radius), Value =:= false, Store)
         end
@@ -225,7 +225,7 @@ light_result([{?KEY(type),spherelight}|_]=Ps) ->
 %!-------------------
 light_result([{?KEY(spot_type),spotlight}|_]=Ps) ->
     split_list(Ps, 7);
-    
+
 light_result([{?KEY(spot_type),spot_ies}|_]=Ps) ->
     split_list(Ps, 7);
 

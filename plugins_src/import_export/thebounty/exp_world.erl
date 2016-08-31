@@ -18,7 +18,7 @@
 export_background(F, Attr) ->
     OpenGL = proplists:get_value(opengl,Attr,[]), %Ps, []),
     %Attr = proplists:get_value(?TAG, Att, []),
-  
+
     Bg = proplists:get_value(background, Attr, constant),
     SkyBackgroundLight = proplists:get_value(background_light, Attr, ?DEF_SKY_BACKGROUND_LIGHT),
     % test
@@ -172,7 +172,7 @@ export_background(F, Attr) ->
             BgPower = proplists:get_value(power, Attr,   ?DEF_POWER),
             BgRotation = proplists:get_value(background_rotation, Attr, ?DEF_BACKGROUND_ROTATION),
             %Samples = proplists:get_value(samples, Attr, ?DEF_SAMPLES),
-            
+
             % Create texture before background definition
             println(F, "<texture name=\"world_texture\">"),
             println(F, "\t<filename sval=\"~s\"/>",[BgFname]),
@@ -190,7 +190,7 @@ export_background(F, Attr) ->
     end,
 
     %% Add Enlight Image Background for all suport modes
-    AllowIBL = 
+    AllowIBL =
         case  Bg of
             constant -> true;
             gradientback -> true;

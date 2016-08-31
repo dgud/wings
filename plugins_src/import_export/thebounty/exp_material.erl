@@ -52,7 +52,7 @@ export_shinydiffuse_shader(F, Name, Mat, ExportDir, Attr) ->
               (_, N) ->
                     N % Ignore old modulators
           end, 1, Modulators),
-		  
+
     println(F, "<material name=\"~s\">",[[Name]]),
     println(F, "\t<type sval=\"shinydiffusemat\"/>"),
 
@@ -63,14 +63,14 @@ export_shinydiffuse_shader(F, Name, Mat, ExportDir, Attr) ->
     export_rgb(F, color, proplists:get_value(diffuse_color, Attr, DiffuseA)),% {0.7,0.7,0.7})),
 
     export_rgb(F, mirror_color, proplists:get_value(mirror_color, Attr, {0.7,0.7,0.7})), %DefReflected)),
-    
+
     OrenNayar = proplists:get_value(oren_nayar, Attr, ?DEF_OREN_NAYAR),
     case OrenNayar of
         false -> ok;
         _ ->
             println(F, "\t<diffuse_brdf sval=\"oren_nayar\"/>"),
             println(F, "\t<sigma fval=\"~.10f\"/>",[proplists:get_value(sigma, Attr, ?DEF_OREN_NAYAR_SIGMA)])
-    end, 
+    end,
 
     println(F,
         "\t<IOR fval=\"~.10f\"/>",[proplists:get_value(ior, Attr, ?DEF_IOR)]),
@@ -123,7 +123,7 @@ export_glossy_shader(F, Name, Mat, ExportDir, Attr) ->
 
     println(F, "<material name=\"~s\">",[Name]),
     println(F, "\t<type sval=\"glossy\"/>"),
-    
+
     DiffuseA = {_,_,_,Opacity} = proplists:get_value(diffuse, OpenGL),
     % review..
     Specular = alpha(proplists:get_value(specular, OpenGL)),
@@ -131,7 +131,7 @@ export_glossy_shader(F, Name, Mat, ExportDir, Attr) ->
     DefTransmitted = def_transmitted(DiffuseA),
     % to here
     export_rgb(F, color, proplists:get_value(reflected, Attr, DefReflected)),
-    
+
     export_rgb(F, diffuse_color, proplists:get_value(transmitted, Attr, DefTransmitted)),
 
     OrenNayar = proplists:get_value(oren_nayar, Attr, ?DEF_OREN_NAYAR),
@@ -143,7 +143,7 @@ export_glossy_shader(F, Name, Mat, ExportDir, Attr) ->
             println(F, "\t<sigma fval=\"~.10f\"/>",[proplists:get_value(sigma, Attr, ?DEF_OREN_NAYAR_SIGMA)])
     end,
 
-    println(F, 
+    println(F,
         "\t<diffuse_reflect fval=\"~.10f\"/>",[proplists:get_value(diffuse_reflect, Attr, ?DEF_DIFFUSE_REFLECT)]),
     println(F,
         "\t<glossy_reflect fval=\"~.10f\"/>",[proplists:get_value(glossy_reflect, Attr, ?DEF_GLOSSY_REFLECT)]),
@@ -181,7 +181,7 @@ export_coatedglossy_shader(F, Name, Mat, ExportDir, Attr) ->
               (_, N) ->
                   N % Ignore old modulators
           end, 1, Modulators),
-  
+
     println(F, "<material name=\"~s\">~n"++
            "\t<type sval=\"coated_glossy\"/>", [Name]),
 
@@ -203,7 +203,7 @@ export_coatedglossy_shader(F, Name, Mat, ExportDir, Attr) ->
     Anisotropic = proplists:get_value(anisotropic, Attr, ?DEF_ANISOTROPIC),
     Anisotropic_U = proplists:get_value(anisotropic_u, Attr, ?DEF_ANISOTROPIC_U),
     Anisotropic_V = proplists:get_value(anisotropic_v, Attr, ?DEF_ANISOTROPIC_V),
-    OrenNayar = proplists:get_value(oren_nayar, Attr, ?DEF_OREN_NAYAR),    
+    OrenNayar = proplists:get_value(oren_nayar, Attr, ?DEF_OREN_NAYAR),
 
     case OrenNayar of
         false -> ok;
@@ -220,9 +220,9 @@ export_coatedglossy_shader(F, Name, Mat, ExportDir, Attr) ->
             "\t<exp_v fval=\"~.10f\"/>~n"
             "\t<exponent fval=\"~.10f\"/>~n",
             [IOR,DiffuseReflect,GlossyReflect,Anisotropic,Anisotropic_U,Anisotropic_V,Exponent]),
-            
+
     foldl(fun ({modulator,Ps}=M, N) when is_list(Ps) ->
-                case export_modulator(F, 
+                case export_modulator(F,
                     [Name,$_,format(N)], Maps, M, Opacity) of
                         off -> N+1;
                         ok ->
@@ -330,7 +330,7 @@ export_translucent_shader(F, Name, Mat, ExportDir, Attr) ->
             "        <sss_transmit fval=\"~.10f\"/>~n"
             "        <exponent fval=\"~.10f\"/>~n",
             [IOR,SigmaSfactor,DiffuseReflect,GlossyReflect,SSS_Translucency,Exponent]),
-			
+
     foldl(fun ({modulator,Ps}=M, N) when is_list(Ps) ->
                   case export_modulator(F, [Name,$_,format(N)],
                                         Maps, M, Opacity) of
@@ -384,7 +384,7 @@ export_glass_shader(F, Name, Mat, ExportDir, Attr) ->
         "\t<absorption_dist fval=\"~.10f\"/>",[proplists:get_value(absorption_dist, Attr, ?DEF_ABSORPTION_DIST)]),
     println(F,
         "\t<transmit_filter fval=\"~.10f\"/>",[proplists:get_value(transmit_filter, Attr, 1.0)]),
-    
+
     println(F,
         "\t<dispersion_power fval=\"~.10f\"/>", [proplists:get_value(dispersion_power, Attr, ?DEF_DISPERSION_POWER)]),
     %println(F,  "\t<dispersion_samples ival=\"~w\"/>",
@@ -394,7 +394,7 @@ export_glass_shader(F, Name, Mat, ExportDir, Attr) ->
         "\t<IOR fval=\"~.10f\"/>",[proplists:get_value(ior, Attr, ?DEF_IOR)]),
     println(F,
         "\t<fake_shadows bval=\"~s\"/>",[format(proplists:get_value(fake_shadows, Attr, false))]),
-            
+
     foldl(fun ({modulator,Ps}=M, N) when is_list(Ps) ->
                   case export_modulator(F, [Name,$_,format(N)],
                                         Maps, M, Opacity) of
@@ -476,7 +476,7 @@ export_rough_glass_shader(F, Name, Mat, ExportDir, Attr) ->
 
     println(F, "\t<IOR fval=\"~.10f\"/>",[IOR]),
     println(F, "\t<fake_shadows bval=\"~s\"/>",[format(FakeShadows)]),
-            
+
     % loop for export modulators / layers
     foldl(fun ({modulator,Ps}=M, N) when is_list(Ps) ->
                   case export_modulator(F, [Name,$_,format(N)],
@@ -575,7 +575,7 @@ export_blend_mat_shader(F, Name, Mat, ExportDir, YafaRay) ->
               (_, N) ->
                   N % Ignore old modulators
           end, 1, Modulators),
-          
+
     println(F, "<material name=\"~s\">~n"++
                 "\t<type sval=\"blend_mat\"/>", [Name]),
     DiffuseA = {_,_,_,Opacity} = proplists:get_value(diffuse, OpenGL),
@@ -599,7 +599,7 @@ export_blend_mat_shader(F, Name, Mat, ExportDir, YafaRay) ->
             "\t<material2 sval=\"""w_""\~s\"/>~n"
             "        <blend_value fval=\"~.10f\"/>~n",
             [Blend_Mat1,Blend_Mat2,Blend_Value]),
-            
+
     foldl(fun ({modulator,Ps}=M, N) when is_list(Ps) ->
                   case export_modulator(F, [Name,$_,format(N)],
                                         Maps, M, Opacity) of

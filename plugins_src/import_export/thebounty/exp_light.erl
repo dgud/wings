@@ -37,7 +37,7 @@ export_light(F, Name, point, OpenGL, Attr) ->
     println(F, "<light name=\"~s\">",[Name]),
     println(F, "\t<power fval=\"~.3f\"/>",[Power]),
     println(F, "\t<type sval=\"~s\"/>",[PointType]),
-    
+
     case PointType of
         spherelight ->
             println(F,
@@ -72,17 +72,17 @@ export_light(F, Name, infinite, OpenGL, Attr) ->
             println(F, "<infinite bval=\"~s\"/>",[InfiniteTrue]),
             case InfiniteTrue of
                 false ->
-                    println(F, 
+                    println(F,
                         "<radius fval=\"~.10f\"/>",[proplists:get_value(infinite_radius, Attr, 10.0)]);
                 true -> ok
             end,
             export_pos(F, direction, Position),
             export_rgb(F, color, Diffuse);
-        
+
         % sun light case
-        sunlight ->            
+        sunlight ->
             println(F, "\t<samples ival=\"~w\"/>",[SunSamples]),
-            println(F, "\t<angle fval=\"~.3f\"/>",[SunAngle])            
+            println(F, "\t<angle fval=\"~.3f\"/>",[SunAngle])
     end,
     export_pos(F, direction, Position),
     export_rgb(F, color, Diffuse),
@@ -139,11 +139,11 @@ export_light(F, Name, area, OpenGL, Attr) ->
     Color = proplists:get_value(diffuse, OpenGL, {1.0,1.0,1.0,1.0}),
     #e3d_mesh{vs=Vs,fs=Fs0} = proplists:get_value(mesh, OpenGL, #e3d_mesh{}),
     VsT = list_to_tuple(Vs),
-    
+
     Power = proplists:get_value(power, Attr, ?DEF_ATTN_POWER),
     Samples = proplists:get_value(arealight_samples, Attr, 16),
     %Dummy = proplists:get_value(dummy, Attr, ?DEF_DUMMY),
-    
+
     Fs = foldr(fun (Face, Acc) ->
                     e3d_mesh:quadrangulate_face(Face, Vs)++Acc
                end, [], Fs0),
@@ -172,8 +172,8 @@ export_light(F, Name, area, OpenGL, Attr) ->
               end
       end, 1, AFs);
     %undefined;
-    
- % no supported light   
+
+ % no supported light
 export_light(_F, Name, Type, _OpenGL, Attr) ->
     io:format(?__(1,"WARNING: Ignoring unknown light \"~s\" type: ~p")++"~n",
               [Name, format(Type)]).%,

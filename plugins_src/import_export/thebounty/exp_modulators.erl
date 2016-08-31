@@ -22,23 +22,23 @@ export_modulator(F, Texname, Maps, {modulator,Ps}, Attr) when is_list(Ps) ->
         {false,_,_} ->
             off;
         {true,BlendMode,TexType} ->
-            %             
+            %
             ShaderType = proplists:get_value(shader_type, Ps),
-            DoColor = 
-                case ShaderType of 
+            DoColor =
+                case ShaderType of
                     diffuse ->  true;
                     mirror_color -> true;
                     glossy_reflect ->  true;
                     _ -> false
                 end,
-                
+
             println(F, "\t<~s_shader sval=\"~s\"/>",[ShaderType,Texname]),
 
             %!----------------------------------------------------
-            %! entry to element shader list  D:\apps\wings3d205\lib\wings-2.0.5\plugins\import_export\wpc_thebounty.beam
+            %! entry to element shader list
             %!----------------------------------------------------
             println(F,"\t<list_element>"),
-            
+
             %% shader factor amount controled with 'Factor Modulator' slider in UI
             Factor = proplists:get_value(diffuse_factor, Ps, 1.0),
             %% Try use value or color

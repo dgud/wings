@@ -675,7 +675,7 @@ export_dialog_qs(Op, Attr) ->
                             {?__(326, "Edge"), edge}
                         ], get_pref(bokeh_bias,Attr), [{key,bokeh_bias}]}
                     ],[key(pnl_dof_type)]},
-                    
+
                     {vframe, [
                         {hframe, [
                             {label, ?__(327, "DOF Rotation ")},

@@ -150,14 +150,14 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                 wings_dialog:show(?KEY({pnl_wood,M}), Value =:= wood, Store),
                 wings_dialog:show(?KEY({pnl_voronoi,M}), Value =:= voronoi, Store),
                 wings_dialog:show(?KEY({pnl_musgrave,M}), Value =:= musgrave, Store),
-                wings_dialog:show(?KEY({pnl_dist_noise,M}), Value =:= distorted_noise, Store),                
+                wings_dialog:show(?KEY({pnl_dist_noise,M}), Value =:= distorted_noise, Store),
                 wings_dialog:update(?KEY({pnl_mod,M}), Store);
             {?TAG, material_type, M} ->
                 wings_dialog:show(?KEY({pnl_layer,M}), Value =:= glossy, Store),
                 wings_dialog:update(?KEY({pnl_mod,M}), Store)
         end
     end,
-    
+
 
     ModFrame =
         {vframe, [ %% vertical frame que engloba todo el panel
@@ -454,13 +454,13 @@ mod_enabled_mode_type(Ps, Maps) ->
 
 mod_legend(Enabled, Mode, {map,Map}) ->
     mod_legend(Enabled, Mode, atom_to_list(Map));
-    
+
 mod_legend(Enabled, Mode, TextureType) when is_atom(Mode) ->
     mod_legend(Enabled, wings_util:cap(Mode), TextureType);
-    
+
 mod_legend(Enabled, Mode, TextureType) when is_atom(TextureType) ->
     mod_legend(Enabled, Mode, wings_util:cap(TextureType));
-    
+
 mod_legend(Enabled, Mode, TextureType) when is_list(Mode), is_list(TextureType) ->
     case Enabled of
         true -> " ("++?__(1,"On")++", ";
@@ -470,16 +470,16 @@ mod_legend(Enabled, Mode, TextureType) when is_list(Mode), is_list(TextureType) 
 
 modulator_result(Ps, [{{?TAG,enabled,_},_}|_]=Res) ->
     modulator_result(Ps, Res, 1, []);
-    
+
 modulator_result(Ps, Res) ->
     exit({invalid_tag,{?MODULE,?LINE,[Ps, Res]}}).
 
 modulator_result(Ps, [], _, Modulators) ->  % Should not happen
     {[{modulators,reverse(Modulators)}|Ps], []};
-    
+
 modulator_result(Ps, [{{?TAG,autosmooth},_}|_]=Res, _, Modulators) ->
     {[{modulators,reverse(Modulators)}|Ps], Res};
-    
+
 modulator_result(Ps, Res0, M, Modulators) ->
     {Modulator,Res} = modulator(Res0, M),
     modulator_result(Ps, Res, M+1, [Modulator|Modulators]).
@@ -536,7 +536,7 @@ modulator(Res0, M) ->
           {size_x,SizeX},{size_y,SizeY},{size_z,SizeZ},
           {projection, Projection},
           {offset_x,OffsetX},{offset_y,OffsetY},{offset_z,OffsetZ},
-          {diffuse, DiffuseLayer},{diffuse_factor,DiffuseFactor}, 
+          {diffuse, DiffuseLayer},{diffuse_factor,DiffuseFactor},
           {mirror, MirrorLayer},{mirror_factor, MirrorFactor},
           {mirror_color, MirrorColorLayer},{mirror_color_factor, MirrorColorFactor},
           {transparency, TransparentLayer}, {transparent_factor,TransparentFactor},

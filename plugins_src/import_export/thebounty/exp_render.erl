@@ -30,7 +30,7 @@ export_render(F, Outfile, Attr) ->
             exr_zblo -> 3;   exr_piz -> 4;    exr_pxr24 -> 5;
             exr_b44 -> 6;    exr_b44a -> 7;   _ -> 0
         end,
-    
+
     %--------------------------------------------------------------
 
     println(F, "<render>"),
