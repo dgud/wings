@@ -1,12 +1,13 @@
-%%%
+%%
 %%  This file is part of TheBounty exporter for Wings3D 2.0.1 or above.
-%%  Copyright (C) 2015 - 2016 Pedro Alcaide, aka povmaniac.
+%%  Copyright (C) 2013-2016 Pedro Alcaide, aka povmaniac.
 %%  Contact: thebountyrenderer@gmail.com
+%%  See AUTHORS.txt for a complete list of authors.
 %%
 %%  This program is free software; you can redistribute it and/or modify
 %%  it under the terms of the GNU GPL as published by the FSF;
 %%  either version 2 of the License, or (at your option) any later version.
-%%  See the include GNU General Public License file for more details.
+%%  See the GNU General Public License for more details.
 %%
 
 

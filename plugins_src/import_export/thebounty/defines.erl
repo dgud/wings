@@ -1,6 +1,15 @@
 %%
-%% 
+%%  This file is part of TheBounty exporter for Wings3D 2.0.1 or above.
+%%  Copyright (C) 2013-2016 Pedro Alcaide, aka povmaniac.
+%%  Contact: thebountyrenderer@gmail.com
+%%  See AUTHORS.txt for a complete list of authors.
 %%
+%%  This program is free software; you can redistribute it and/or modify
+%%  it under the terms of the GNU GPL as published by the FSF;
+%%  either version 2 of the License, or (at your option) any later version.
+%%  See the GNU General Public License for more details.
+%%
+
 -define(TAG, thebounty).
 -define(KEY(K), {?TAG,(K)}).
 -define(TAG_RENDER, thebounty_render).
@@ -29,7 +38,6 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_FRESNEL, false).
 -define(DEF_MATERIAL_TYPE, shinydiffuse).
 -define(DEF_TIR, false).
--define(DEF_GLASS_IR_DEPTH, 3).
 -define(DEF_IOR, 1.4).
 -define(DEF_MIN_REFLE, 0.0).
 -define(DEF_OBJECT_TYPE, mesh).
@@ -127,7 +135,7 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_VOLINTEGR_STEPSIZE, 0.2).
 -define(DEF_USE_SSS, false).
 -define(DEF_SSS_PHOTONS, 1000).
--define(DEF_SSS_DEPTH, 15.0).
+-define(DEF_SSS_DEPTH, 10.0).
 -define(DEF_SSS_SCALE, 2.0).
 -define(DEF_SSS_SINGLESCATTER_SAMPLES, 32).
 -define(DEF_USE_CAUSTICS, false).
@@ -136,20 +144,19 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_CAUSTIC_MIX, 200).
 -define(DEF_CAUSTIC_RADIUS, 0.5).
 -define(DEF_DO_AO, false).
--define(DEF_AO_DISTANCE, 5.0).
+-define(DEF_AO_DISTANCE, 1.0).
 -define(DEF_AO_SAMPLES, 16.0).
 -define(DEF_AO_COLOR, {1.0,1.0,1.0}).
 -define(DEF_AA_PASSES, 3).
 -define(DEF_AA_MINSAMPLES, 1).
 -define(DEF_AA_PIXELWIDTH, 1.5).
 -define(DEF_AA_THRESHOLD, 0.02).
--define(DEF_AA_JITTERFIRST, true).
 -define(DEF_CLAMP_RGB, true).
 -define(DEF_AA_FILTER_TYPE, box).
 -define(DEF_TRANSPARENT_SHADOWS, false).
--define(DEF_BACKGROUND_TRANSP_REFRACT, true).
+-define(DEF_BACKGROUND_TRANSP_REFRACT, false).
 -define(DEF_SHADOW_DEPTH, 2).
--define(DEF_RAYDEPTH, 12).
+-define(DEF_RAYDEPTH, 3).
 -define(DEF_BIAS, 0.001).
 -define(DEF_WIDTH, 320).
 -define(DEF_HEIGHT, 240).
@@ -166,10 +173,9 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_DOF_DISTANCE, 7.0).
 
 %% Light
--define(DEF_ATTN_POWER, 30.0).
+-define(DEF_ATTN_POWER, 10.0).
 -define(DEF_POINT_TYPE, pointlight).
 -define(DEF_CAST_SHADOWS, true).
--define(DEF_USE_QMC, false).
 -define(DEF_GLOW_INTENSITY, 0.0).
 -define(DEF_GLOW_OFFSET, 0.0).
 -define(DEF_GLOW_TYPE, 0).
@@ -275,7 +281,7 @@ key(Key) -> {key,?KEY(Key)}.
 %%-define(DEF_MOD_AMBIENT, 0.0).
 -define(DEF_MOD_SHININESS, 1.0).
 -define(DEF_MOD_NORMAL, 0.0).
--define(DEF_MOD_TEXTURETYPE, clouds). % cambiar por texturetype
+-define(DEF_MOD_TEXTURETYPE, clouds).
 -define(DEF_MOD_FILENAME, "").
 -define(DEF_MOD_COLOR1, {0.0,0.0,0.0}).
 -define(DEF_MOD_COLOR2, {1.0,1.0,1.0}).

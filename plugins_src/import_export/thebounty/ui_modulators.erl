@@ -1,7 +1,13 @@
 %%
 %%  This file is part of TheBounty exporter for Wings3D 2.0.1 or above.
-%%  Copyright (C) 2015 Pedro Alcaide, aka povmaniac.
-%%  See AUTHORS.txt file for more info about authors and license.
+%%  Copyright (C) 2013-2016 Pedro Alcaide, aka povmaniac.
+%%  Contact: thebountyrenderer@gmail.com
+%%  See AUTHORS.txt for a complete list of authors.
+%%
+%%  This program is free software; you can redistribute it and/or modify
+%%  it under the terms of the GNU GPL as published by the FSF;
+%%  either version 2 of the License, or (at your option) any later version.
+%%  See the GNU General Public License for more details.
 %%
 
 %!
@@ -39,8 +45,8 @@ menu_distortion_type() ->
 modulator_dialogs(Modulators0, Maps) ->
     ModCount = length(Modulators0),
     Modulators =
-        if (ModCount < 5) ->
-            Modulators0 ++ modulator_add(5-ModCount);
+        if (ModCount < 4) ->
+            Modulators0 ++ modulator_add(4-ModCount);
         true -> Modulators0
         end,
     [{oframe, modulator_dialogs(Modulators, Maps, 1), 1, [{style, buttons}]}].
@@ -51,10 +57,10 @@ modulator_dialogs([Modulator|Modulators], Maps, M) ->
     modulator_dialogs(Modulators, Maps, M+1).
 
 modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
-    {Enabled,BlendMode,Type} = mod_enabled_mode_type(Ps, Maps),
+    {Enabled,BlendMode,TextureType} = mod_enabled_mode_type(Ps, Maps),
     %AlphaIntensity = proplists:get_value(alpha_intensity, Ps, ?DEF_MOD_ALPHA_INTENSITY),
     %ShaderType = proplists:get_value(shader_type, Ps, ?DEF_SHADER_TYPE), % only use for logical UI
-    ShaderType = proplists:get_value(material_type, Ps, shinydiffuse),
+    ShaderType = proplists:get_value(material_type, Ps, diffuse),
 
     Stencil = proplists:get_value(stencil, Ps, false),
     Negative = proplists:get_value(negative, Ps, false),
@@ -255,7 +261,7 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                     {?__(54,"Voronoi"),voronoi},
                     {?__(55,"Musgrave"),musgrave},
                     {?__(56,"Distorted Noise"),distorted_noise}
-                ],Type,[{key,{?TAG,texture_type,M}}, {hook,Hook_Show}]},
+                ],TextureType,[{key,{?TAG,texture_type,M}}, {hook,Hook_Show}]},
                 {vframe, [
                     {hframe, [
                         {label,?__(57,"Filename")},
@@ -425,7 +431,7 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                 ],[key({pnl_type,M})]}
             ],[key({pnl_mod,M})]}
         ]},
-    [{?__(100,"Shader")++" "++integer_to_list(M)++mod_legend(Enabled, BlendMode, Type), ModFrame}];
+    [{?__(100,"Shader")++" "++integer_to_list(M)++mod_legend(Enabled, BlendMode, TextureType), ModFrame}];
 
 modulator_dialog(_Modulator, _Maps, _) ->
     []. % Discard old modulators that anyone may have
@@ -436,30 +442,30 @@ mod_enabled_mode_type(Ps, Maps) ->
             off -> {false,?DEF_MOD_MODE};
             Mode1 -> {proplists:get_value(enabled, Ps, ?DEF_MOD_ENABLED),Mode1}
         end,
-    Type = proplists:get_value(texture_type, Ps, ?DEF_MOD_TEXTURETYPE),
-    case Type of
+    TextureType = proplists:get_value(texture_type, Ps, ?DEF_MOD_TEXTURETYPE),
+    case TextureType of
         {map,Map} ->
             case lists:keymember(Map, 1, Maps) of
-                true -> {Enabled,Mode,Type};
+                true -> {Enabled,Mode,TextureType};
                 false -> {false,Mode,?DEF_MOD_TEXTURETYPE}
             end;
-        _ -> {Enabled,Mode,Type}
+        _ -> {Enabled,Mode,TextureType}
     end.
 
 mod_legend(Enabled, Mode, {map,Map}) ->
     mod_legend(Enabled, Mode, atom_to_list(Map));
     
-mod_legend(Enabled, Mode, Type) when is_atom(Mode) ->
-    mod_legend(Enabled, wings_util:cap(Mode), Type);
+mod_legend(Enabled, Mode, TextureType) when is_atom(Mode) ->
+    mod_legend(Enabled, wings_util:cap(Mode), TextureType);
     
-mod_legend(Enabled, Mode, Type) when is_atom(Type) ->
-    mod_legend(Enabled, Mode, wings_util:cap(Type));
+mod_legend(Enabled, Mode, TextureType) when is_atom(TextureType) ->
+    mod_legend(Enabled, Mode, wings_util:cap(TextureType));
     
-mod_legend(Enabled, Mode, Type) when is_list(Mode), is_list(Type) ->
+mod_legend(Enabled, Mode, TextureType) when is_list(Mode), is_list(TextureType) ->
     case Enabled of
-        true -> " ("++?__(1,"enabled")++", ";
-        false -> " ("++?__(2,"disabled")++", "
-    end++Mode++", "++Type++")".
+        true -> " ("++?__(1,"On")++", ";
+        false -> " ("++?__(2,"Off")++", "
+    end++Mode++", "++TextureType++")".
 
 
 modulator_result(Ps, [{{?TAG,enabled,_},_}|_]=Res) ->
@@ -493,7 +499,7 @@ modulator(Res0, M) ->
     EnabledTag = {?TAG,enabled,M},
     TypeTag = {?TAG,texture_type,M},
     {EnabledTag,Enabled} = lists:keyfind(EnabledTag, 1, Res1),
-    {TypeTag,Type} = lists:keyfind(TypeTag, 1, Res1),
+    {TypeTag,TextureType} = lists:keyfind(TypeTag, 1, Res1),
     Res2 = lists:keydelete(EnabledTag, 1, lists:keydelete(TypeTag, 1, Res1)),
     %!------------------------------------------------------------------
     %! !!! IMPORTANTE !!!:
@@ -536,7 +542,7 @@ modulator(Res0, M) ->
           {transparency, TransparentLayer}, {transparent_factor,TransparentFactor},
           {translucency,TranslucentLayer},{translucent_factor, TranslucentFactor},
           {bump,BumpLayer},{bump_factor, BumpFactor},
-          {texture_type,Type},
+          {texture_type,TextureType},
           {image_filename,Filename},{color1,Color1},{color2,Color2},{hard,Hard},
           {noise_basis,NoiseBasis},{noise_size,NoiseSize},{depth,Depth},
           {sharpness,Sharpness},{turbulence,Turbulence},{shape,Shape},

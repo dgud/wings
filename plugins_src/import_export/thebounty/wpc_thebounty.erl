@@ -1,22 +1,13 @@
 %%
-%%  This file is part of TheBounty exporter for Wings3D,
-%%  forked from YafaRay Wings3d exporter.
+%%  This file is part of TheBounty exporter for Wings3D 2.0.1 or above.
+%%  Copyright (C) 2013-2016 Pedro Alcaide, aka povmaniac.
+%%  Contact: thebountyrenderer@gmail.com
+%%  See AUTHORS.txt for a complete list of authors.
 %%
-%%  Copyright (C) 2013, 2016  Pedro Alcaide aka 'povmaniac' and others
-%%
-%%  See AUTHORS.txt file for more info about authors and license.
-%%---------------------------------------------------------------------
-%%  This program is free software; you can redistribute it and/or
-%%  modify it under the terms of the GNU General Public License as
-%%  published by the Free Software Foundation; either version 2 of
-%%  the License, or (at your option) any later version.
-%%
-%%  This program is distributed in the hope that it will be useful,
-%%  but WITHOUT ANY WARRANTY; without even the implied warranty of
-%%  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-%%  See the  GNU General Public License for more details
-%%  You should have received a copy of the GNU General Public License
-%%  along with this program. If not, see <http://www.gnu.org/licenses/>.
+%%  This program is free software; you can redistribute it and/or modify
+%%  it under the terms of the GNU GPL as published by the FSF;
+%%  either version 2 of the License, or (at your option) any later version.
+%%  See the GNU General Public License for more details.
 %%
 
 -module(wpc_thebounty).
