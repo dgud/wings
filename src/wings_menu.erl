@@ -788,9 +788,8 @@ setup_menu(Names, Id, Menus1) when is_list(Menus1) ->
 normalize_menu_wx(separator, _, _) ->
     #menu{type=separator};
 normalize_menu_wx({S,Fun,Help,Ps}, Hotkeys, Ns) when is_function(Fun) ->
-    Name = Fun(1, Ns),
     HK = case proplists:get_value(hotkey, Ps) of
-	     undefined -> match_hotkey(reduce_name(Name), Hotkeys, have_option_box(Ps));
+	     undefined -> match_hotkey(reduce_name([Fun(1, Ns),Fun(2, Ns),Fun(3, Ns)]), Hotkeys, have_option_box(Ps));
 	     String -> String
 	 end,
     #menu{type=menu, desc=S, name=Fun, help=Help, opts=Ps, hk=HK};
