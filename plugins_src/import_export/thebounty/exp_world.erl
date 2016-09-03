@@ -12,183 +12,24 @@
 
 %!
 %! Export background environment
-%! TO DO: make only one 'textured' mode
 %!
 
 export_background(F, Attr) ->
-    OpenGL = proplists:get_value(opengl,Attr,[]), %Ps, []),
-    %Attr = proplists:get_value(?TAG, Att, []),
-
-    Bg = proplists:get_value(background, Attr, constant),
-    SkyBackgroundLight = proplists:get_value(background_light, Attr, ?DEF_SKY_BACKGROUND_LIGHT),
-    % test
+    OpenGL = proplists:get_value(opengl,Attr,[]),
+    Bg = proplists:get_value(enviroment, Attr, sunsky),
+    BgName = "world_background",
     case Bg of
-        %% Constant Background Export
         constant ->
-            println(F, "<background name=\"worldbackground\">"),
-            println(F, "\t<type sval=\"~s\"/>",[format(Bg)]),
-            BgColor = proplists:get_value(background_color, Attr, ?DEF_BACKGROUND_COLOR),
-            export_rgb(F, color, BgColor),
-            println(F, "\t<power fval=\"~w\"/>", [proplists:get_value(power, Attr, ?DEF_POWER)]);
+            export_constant_background(F, Attr);
 
         gradientback ->
-            println(F, "<background name=\"worldbackground\">"),
-            println(F, "\t<type sval=\"~s\"/>",[format(Bg)]),
-            HorizonColor = proplists:get_value(horizon_color, Attr, ?DEF_HORIZON_COLOR),
-            export_rgb(F, horizon_color, HorizonColor),
-            export_rgb(F, horizon_ground_color,{0.8,0.8,0.8}),
-            ZenithColor = proplists:get_value(zenith_color, Attr, ?DEF_ZENITH_COLOR),
-            export_rgb(F, zenith_color, ZenithColor),
-            export_rgb(F, zenith_ground_color,{0.3,0.3,0.3}),
+            export_gradient_background(F, Attr);
 
-            println(F, "\t<power fval=\"~w\"/>", [proplists:get_value(power, Attr, ?DEF_POWER)]);
-
-%% Sunsky Background Export
-        sunsky ->
-            println(F, "<background name=\"worldbackground\">"),
-            println(F, "\t<type sval=\"~s\"/>",[format(Bg)]),
-
-            AddSun = proplists:get_value(add_sun, Attr, false),
-            Position = proplists:get_value(position, OpenGL, {1.0,1.0,1.0}),
-
-            println(F, "\t<turbidity fval=\"~.3f\"/>",[proplists:get_value(turbidity, Attr, 2.0)]),
-            println(F, "\t<a_var fval=\"~.3f\"/>",[proplists:get_value(a_var, Attr, 1.0)]),
-            println(F, "\t<b_var fval=\"~.3f\"/>",[proplists:get_value(b_var, Attr, 1.0)]),
-            println(F, "\t<c_var fval=\"~.3f\"/>",[proplists:get_value(c_var, Attr, 1.0)]),
-            println(F, "\t<d_var fval=\"~.3f\"/>",[proplists:get_value(d_var, Attr, 1.0)]),
-            println(F, "\t<e_var fval=\"~.3f\"/>",[proplists:get_value(e_var, Attr, 1.0)]),
-
-            %% Add Sun
-            case AddSun of
-                true ->
-                    println(F,
-                        "\t<add_sun bval=\"~s\"/>",[format(AddSun)]),
-                    println(F,
-                        "\t<sun_power fval=\"~.3f\"/>", [proplists:get_value(sun_power, Attr, 1.0)]);
-
-                false -> ok
-            end,
-
-            %% Add Skylight
-            println(F, "\t<background_light bval=\"~s\"/>",[format(SkyBackgroundLight)]),
-
-            case SkyBackgroundLight of
-                true ->
-                    println(F,
-                        "\t<power fval=\"~.3f\"/>",
-                            [proplists:get_value(sky_background_power, Attr, ?DEF_SKY_BACKGROUND_POWER)]),
-                    println(F,
-                        "\t<light_samples ival=\"~w\"/>",
-                            [proplists:get_value(background_samples, Attr, ?DEF_SKY_BACKGROUND_SAMPLES)]);
-
-                false -> ok
-            end,
-%% Add Skylight End
-
-            export_pos(F, from, Position);
-
-%% Darksky Background Export
-        darksky ->
-
-            SunReal = proplists:get_value(sun_real, Attr, ?DEF_SUN_REAL),
-            DarkskyDiffusePhotons = proplists:get_value(darksky_diffusephotons, Attr, ?DEF_DARKSKY_DIFFUSEPHOTONS),
-            DarkskyCausticPhotons = proplists:get_value(darksky_causticphotons, Attr, ?DEF_DARKSKY_CAUSTICPHOTONS),
-            Position = proplists:get_value(position, OpenGL, {1.0,1.0,1.0}),
-            %
-            println(F, "<background name=\"worldbackground\">"),
-            println(F, "\t<type sval=\"~s\"/>",[format(Bg)]),
-            println(F, "\t<turbidity fval=\"~.3f\"/>",[proplists:get_value(turbidity, Attr, 3.0)]),
-            println(F, "\t<a_var fval=\"~.3f\"/>",[proplists:get_value(a_var, Attr, 1.0)]),
-            println(F, "\t<b_var fval=\"~.3f\"/>",[proplists:get_value(b_var, Attr, 1.0)]),
-            println(F, "\t<c_var fval=\"~.3f\"/>",[proplists:get_value(c_var, Attr, 1.0)]),
-            println(F, "\t<d_var fval=\"~.3f\"/>",[proplists:get_value(d_var, Attr, 1.0)]),
-            println(F, "\t<e_var fval=\"~.3f\"/>",[proplists:get_value(e_var, Attr, 1.0)]),
-            println(F, "\t<altitude fval=\"~.3f\"/>",[proplists:get_value(altitude, Attr, 0.0)]),
-
-            %% Add Sun Real Start
-            case SunReal of
-                true ->
-                    println(F,
-                        "\t<add_sun bval=\"~s\"/>",[format(SunReal)]),
-
-                    println(F,
-                        "\t<sun_power fval=\"~.3f\"/>",
-                            [proplists:get_value(sun_real_power, Attr, ?DEF_SUN_REAL_POWER)]);
-
-                false -> ok
-            end,
-
-            %% Add Skylight Start
-            println(F, "\t<background_light bval=\"~s\"/>",[format(SkyBackgroundLight)]),
-            %
-            case SkyBackgroundLight of
-                true ->
-                    println(F,
-                        "\t<power fval=\"~.3f\"/>",
-                            [proplists:get_value(sky_background_power, Attr, ?DEF_SKY_BACKGROUND_POWER)]),
-                    println(F,
-                        "\t<light_samples ival=\"~w\"/>",
-                            [proplists:get_value(sky_background_samples, Attr, ?DEF_SKY_BACKGROUND_SAMPLES)]);
-
-                false -> ok
-            end,
-
-            %% Add Darksky Photons
-
-            println(F, "\t<with_diffuse bval=\"~s\"/>",[format(DarkskyDiffusePhotons)]),
-
-            println(F, "\t<with_caustic bval=\"~s\"/>",[format(DarkskyCausticPhotons)]),
-
-            println(F, "\t<night bval=\"false\"/>"), %[format(proplists:get_value(darksky_night, Attr, ?DEF_DARKSKY_NIGHT))]),
-
-            export_pos(F, from, Position);
-
-
-%% HDRI Background Export
-        texture ->
-            BgFname =  proplists:get_value(back_filename, Attr,  ?DEF_BACKGROUND_FILENAME),
-            BgExpAdj =  proplists:get_value(power, Attr, ?DEF_POWER),
-            BgMapping = proplists:get_value(background_mapping, Attr, ?DEF_BACKGROUND_MAPPING),
-            BgRotation = proplists:get_value(background_rotation, Attr, ?DEF_BACKGROUND_ROTATION),
-
-            %Samples = proplists:get_value(samples, Attr, ?DEF_SAMPLES),
-            println(F, "<texture name=\"world_texture\">"),
-            println(F, "\t<filename sval=\"~s\"/>",[BgFname]),
-            println(F, "\t<interpolate sval=\"bilinear\"/>"),
-            println(F, "\t<type sval=\"image\"/>"),
-            println(F, "</texture>"),
-
-            println(F, "<background name=\"worldbackground\">"),
-            println(F, "\t<type sval=\"textureback\"/>"),
-            println(F, "\t<power fval=\"~w\"/>",[BgExpAdj]),
-            println(F, "\t<mapping sval=\"~s\"/>",[format(BgMapping)]),
-            println(F, "\t<rotation fval=\"~.3f\"/>",[BgRotation]),
-
-            println(F, "\t<texture sval=\"world_texture\"/>");
-
-%% Image Background Export
-        image ->
-            BgFname = proplists:get_value(background_filename_image, Attr,  ?DEF_BACKGROUND_FILENAME),
-            BgPower = proplists:get_value(power, Attr,   ?DEF_POWER),
-            BgRotation = proplists:get_value(background_rotation, Attr, ?DEF_BACKGROUND_ROTATION),
-            %Samples = proplists:get_value(samples, Attr, ?DEF_SAMPLES),
-
-            % Create texture before background definition
-            println(F, "<texture name=\"world_texture\">"),
-            println(F, "\t<filename sval=\"~s\"/>",[BgFname]),
-            println(F, "\t<interpolate sval=\"bilinear\"/>"),
-            println(F, "\t<type sval=\"image\"/>"),
-            println(F, "</texture>"),
-
-            % Now, background
-            println(F, "<background name=\"worldbackground\">"),
-            println(F, "\t<type sval=\"textureback\"/>"),
-            println(F, "\t<texture sval=\"world_texture\"/>"),
-            println(F, "\t<power fval=\"~.3f\"/>",[BgPower]),
-            println(F, "\t<rotation fval=\"~.3f\"/>",[BgRotation]);
-        _  -> ""
+        textureback ->
+            export_texture_background(F, Attr);
+        _ ->
+            export_sunsky_backgrounds(F, Bg, OpenGL, Attr)
     end,
-
     %% Add Enlight Image Background for all suport modes
     AllowIBL =
         case  Bg of
@@ -204,17 +45,115 @@ export_background(F, Attr) ->
             case UseIBL of
                 true ->
                     println(F,
-                        "\t<ibl_samples ival=\"~w\"/>",[proplists:get_value(samples, Attr, 16)]),
+                        "\t<ibl_samples ival=\"~w\"/>",[proplists:get_value(ibl_samples, Attr, 16)]),
                     println(F,
-                        "\t<with_diffuse bval=\"~s\"/>",
-                            [proplists:get_value(ambient_diffusephotons, Attr, false)]),
+                        "\t<with_diffuse bval=\"~s\"/>",[proplists:get_value(to_diffuse, Attr, false)]),
                     println(F,
-                        "\t<with_caustic bval=\"~s\"/>",
-                            [proplists:get_value(ambient_causticphotons, Attr, false)]);
+                        "\t<with_caustic bval=\"~s\"/>",[proplists:get_value(to_caustic, Attr, false)]);
                 false -> ok
             end;
-        _ -> ""
+        _ -> ok
     end,
     println(F, "</background>").
+
+export_constant_background(F, Attr) ->
+    %
+    println(F, "<background name=\"world_background\">"),
+    println(F, "\t<type sval=\"constant\"/>"),
+    BgColor = proplists:get_value(background_color, Attr, {0.8,0.8,0.8}),
+    export_rgb(F, color, proplists:get_value(background_color, Attr, {0.8,0.8,0.8})),
+    println(F, "\t<power fval=\"~w\"/>", [proplists:get_value(background_power, Attr, 1.0)]).
+
+export_gradient_background(F, Attr)->
+    %gradientback
+    println(F, "<background name=\"world_background\">"),
+    println(F, "\t<type sval=\"gradientback\"/>"),
+    HorizonColor = proplists:get_value(horizon_color, Attr, ?DEF_HORIZON_COLOR),
+    export_rgb(F, horizon_color, HorizonColor),
+    export_rgb(F, horizon_ground_color,{0.8,0.8,0.8}),
+    ZenithColor = proplists:get_value(zenith_color, Attr, ?DEF_ZENITH_COLOR),
+    export_rgb(F, zenith_color, ZenithColor),
+    export_rgb(F, zenith_ground_color,{0.3,0.3,0.3}),
+    println(F, "\t<power fval=\"~w\"/>", [proplists:get_value(background_power, Attr, 1.0)]).
+
+
+export_texture_background(F, Attr) ->
+    %!-----------------------------------------------
+    %! write texture out of background declaration
+    %!-----------------------------------------------
+    println(F, "<texture name=\"world_texture\">"),
+    println(F, "\t<filename sval=\"~s\"/>",[proplists:get_value(back_filename, Attr, "")]),
+    println(F, "\t<interpolate sval=\"bilinear\"/>"), % TODO: create UI option
+    println(F, "\t<type sval=\"image\"/>"),
+    println(F, "</texture>"),
+
+    % now, background values
+    println(F, "<background name=\"world_background\">"),
+    println(F, "\t<type sval=\"textureback\"/>"),
+    println(F,
+        "\t<power fval=\"~w\"/>",[proplists:get_value(background_power, Attr)]),
+    println(F,
+        "\t<mapping sval=\"~s\"/>",[format(proplists:get_value(background_mapping, Attr))]),
+    println(F,
+        "\t<rotation fval=\"~.3f\"/>",[proplists:get_value(background_rotation, Attr, 180.0)]),
+    println(F,
+        "\t<texture sval=\"world_texture\"/>").
+
+
+export_sunsky_backgrounds(F, Bg, OpenGL, Attr) ->
+    %!---------------------------
+    %! common sunsky's values
+    %!---------------------------
+    BgLight = proplists:get_value(background_light, Attr, false),
+
+    println(F, "<background name=\"world_background\">"),
+    println(F, "\t<type sval=\"~s\"/>",[format(Bg)]),
+    %Position = proplists:get_value(position, OpenGL, {0.0,2.0,0.0}),
+    export_pos(F, from, {0.0,2.0,0.0}),
+    println(F,
+        "\t<turbidity fval=\"~.3f\"/>",[proplists:get_value(turbidity, Attr, 2.0)]),
+    println(F,
+        "\t<a_var fval=\"~.3f\"/>",[proplists:get_value(a_var, Attr, 1.0)]),
+    println(F,
+        "\t<b_var fval=\"~.3f\"/>",[proplists:get_value(b_var, Attr, 1.0)]),
+    println(F,
+        "\t<c_var fval=\"~.3f\"/>",[proplists:get_value(c_var, Attr, 1.0)]),
+    println(F,
+        "\t<d_var fval=\"~.3f\"/>",[proplists:get_value(d_var, Attr, 1.0)]),
+    println(F,
+        "\t<e_var fval=\"~.3f\"/>",[proplists:get_value(e_var, Attr, 1.0)]),
+    println(F,
+        "\t<add_sun bval=\"~s\"/>",[format(proplists:get_value(add_sun, Attr, false))]),
+    println(F,
+        "\t<sun_power fval=\"~.3f\"/>",[proplists:get_value(sun_power, Attr, 1.0)]),
+    println(F,
+        "\t<background_light bval=\"~s\"/>",[format(BgLight)]),
+    println(F,
+        "\t<power fval=\"~.3f\"/>", [proplists:get_value(background_power, Attr, 1.0)]),
+    println(F,
+        "\t<light_samples ival=\"~w\"/>", [proplists:get_value(background_samples, Attr, 16)]),
+    %!-------------------------
+    %! specific daksky values
+    %!-------------------------
+    case Bg of
+        darksky ->
+            % "night", "altitude", "bright", "exposure", "color_space",
+            println(F, "\t<night bval=\"~s\"/>",[format(proplists:get_value(night, Attr, false))]),
+            println(F, "\t<altitude fval=\"~.3f\"/>",[proplists:get_value(altitude, Attr, 0.0)]),
+            println(F, "\t<bright fval=\"~.3f\"/>",[1.0]),
+            println(F, "\t<exposure fval=\"~.3f\"/>",[0.0]),
+            println(F, "\t<color_space sval=\"~s\"/>",["sRGB (D65)"]), % TODO: create option in UI
+            case BgLight of
+                true ->
+                    println(F,
+                        "\t<with_diffuse bval=\"~s\"/>", [proplists:get_value(to_diffuse, Attr, false)]),
+                    println(F,
+                        "\t<with_caustic bval=\"~s\"/>",[proplists:get_value(to_caustic, Attr, false)]);
+                _ -> ok
+            end;
+        _ -> ok
+    end.
+
+
 
 
