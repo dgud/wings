@@ -338,17 +338,8 @@ export(Filename, Contents, Attr) ->
         true -> ExportFile = filename:rootname(Filename) ++ ?__(1, "_export")++".pov"
     end,
 
-    case get_var(use_model_dim) of
-        false ->
-            Width = proplists:get_value(width, Attr, 320),
-            Height = proplists:get_value(height, Attr, 240);
-        _ ->
-            %get the focus window.  If it isn't a sub geom window, use the primary geom window
-            case wings_wm:actual_focus_window() of
-                {geom, N} -> {Width, Height} = wings_wm:win_size({geom, N});
-                _ -> {Width, Height} = wings_wm:win_size(geom)
-            end
-    end,
+    Width = proplists:get_value(width, Attr, 320),
+    Height = proplists:get_value(height, Attr, 240),
 
     #camera_info{fov = Fov} = proplists:lookup(camera_info, Attr),
     Depth = (float(Height) / 2.0) / math:tan((Fov / 2.0) * math:pi() / 180.0),
@@ -428,7 +419,7 @@ export(Filename, Contents, Attr) ->
                 end ++
                 case proplists:get_value(threads_auto, Attr, true) of
                     true -> [];
-                    false -> " +WT" ++ wings_job:quote(integer_to_list(Threads))
+                    false -> " +WT" ++ integer_to_list(Threads)
                 end,
 
             RA = get_var(renderargs),
@@ -517,36 +508,39 @@ export_interior(F, Attr) ->
     end.
 
 export_camera(F, Attr, CorrectedFOV, Width, Height) ->
-
     #camera_info{pos = Pos, dir = Dir, up = Up} = proplists:lookup(camera_info, Attr),
-    {Dx, Dy, Dz} = Dir,
     {Px, Py, Pz} = Pos,
+    {Dx, Dy, Dz} = Dir,
+    {Ux, Uy, Uz} = Up,
 
+    CamType = proplists:get_value(camera_type, Attr, perspective),
     %% FOV, Width and Height information passed in to allow dimensions to be forced
     %% to geometry screen size
-    Fov = CorrectedFOV,
-    %Width = proplists:get_value(width, Attr, 320),
-    %Height = proplists:get_value(height, Attr, 240),
+    Fov =
+        case is_member(CamType, [fisheye, ultra_wide_angle, spherical]) of
+            true -> proplists:get_value(cam_angle, Attr, 180.0);
+            _ -> CorrectedFOV
+        end,
 
-    io:format(F, "#declare camera_location = <~f, ~f, ~f>;\n", [Px, Py, Pz]),
+    io:format(F,    "#declare camera_location = <~f, ~f, ~f>;\n", [Px, Py, Pz]),
     io:put_chars(F, "camera{\n"),
 
-    io:format(F, "\t ~s\n", [atom_to_list(proplists:get_value(camera_type, Attr, perspective))]),
+    io:format(F,    "\t ~s\n", [atom_to_list(CamType)]),
     io:put_chars(F, "\t location camera_location\n"),
 
-    io:format(F, "\t right (~p / ~p) * x\n", [Width, Height]),
+    io:format(F,    "\t right (~p / ~p) * x\n", [Width, Height]),
     io:put_chars(F, "\t up y\n"),
-    io:format(F, "\t angle ~f\n", [Fov]),
-    {Ux, Uy, Uz} = Up,
-    io:format(F, "\t sky <~f, ~f, ~f>\n", [Ux, Uy, Uz]),
+    io:format(F,    "\t angle ~f\n", [Fov]),
+    io:format(F,    "\t sky <~f, ~f, ~f>\n", [Ux, Uy, Uz]),
+    io:format(F,    "\t look_at <~f, ~f, ~f>\n", [Px + Dx, Py + Dy, Pz + Dz]),
     case proplists:get_value(aperture, Attr, 0.0) of
         0.0 -> ok;
         _ ->
             io:format(F, "\t aperture ~f\n", [proplists:get_value(aperture, Attr, 0.0)]),
             io:format(F, "\t blur_samples ~p\n", [proplists:get_value(blur_samples, Attr, 1)]),
-            io:format(F, "\t focal_point <~f, ~f, ~f>\n", [Px + Dx, Py + Dy, Pz + Dz])
+            io:format(F, "\t focal_point <~f, ~f, ~f>\n", [Px + Dx, Py + Dy, Pz + Dz]),
+            io:format(F, "\t variance ~f\n", [proplists:get_value(variance, Attr, 1.0/128)])
     end,
-    io:format(F, "\t look_at <~f, ~f, ~f>\n", [Px + Dx, Py + Dy, Pz + Dz]),
 
     io:put_chars(F, "}\n").
 
@@ -1656,10 +1650,29 @@ export_dialog(Op) ->
             render -> true;
             _ -> false
         end,
-    SizeCam =
+
+    %get the focus window.  If it isn't a sub geom window, use the primary geom window
+    {ViewW, ViewH} =
+        case wings_wm:actual_focus_window() of
+            {geom, N} -> wings_wm:win_size({geom, N});
+            _ -> wings_wm:win_size(geom)
+        end,
+    VpDim = io_lib:format(" (~px~p)",[ViewW, ViewH]),
+
+    {Width, Height} =
         case get_var(use_model_dim) of
-            true ->  false;
-            _ -> true
+            true -> {ViewW, ViewH};
+            _ -> {get_pref(width, 320), get_pref(height, 240)}
+        end,
+
+    DimPreset =
+        case get_pref(dim_preset, undefined) of
+            undefined ->
+                case get_var(use_model_dim) of
+                    true -> viewport;
+                    _ -> custom
+                end;
+            DimPreset0 -> DimPreset0
         end,
 
     Hook_Enable = fun(Key, Value, Store) ->
@@ -1685,6 +1698,43 @@ export_dialog(Op) ->
             antialias ->
                 wings_dialog:enable(aa_jitter, Value =:= true, Store),
                 wings_dialog:enable(pnl_aa_params, Value =:= true, Store);
+            camera_type ->
+                wings_dialog:enable(pnl_angle, is_member(Value, [fisheye, ultra_wide_angle, spherical]), Store);
+            dim_preset ->
+		wings_dialog:show(pnl_ar, Value =:= aspect, Store),
+	    	wings_dialog:enable(pnl_w, is_member(Value, [custom, aspect]), Store),
+                wings_dialog:enable(pnl_h, Value =:= custom, Store),
+                case Value of
+                    aspect ->
+                        W = wings_dialog:get_value(width, Store),
+                        ARPreset = wings_dialog:get_value(ar_preset, Store),
+                        {W,H} = get_aspect_dim(ARPreset, W),
+                        wings_dialog:set_value(height, H, Store),
+                        wings_dialog:update(pnl_h, Store);
+                    custom -> ok;
+                    viewport ->
+                        wings_dialog:set_value(width, ViewW, Store),
+                        wings_dialog:set_value(height, ViewH, Store);
+                    _ ->
+                        {W,H} = get_default_dim(Value),
+                        wings_dialog:set_value(width, W, Store),
+                        wings_dialog:set_value(height, H, Store)
+                end;
+            ar_preset ->
+                W = wings_dialog:get_value(width, Store),
+                {W,H} = get_aspect_dim(Value, W),
+                wings_dialog:set_value(height, H, Store),
+                wings_dialog:update(pnl_h, Store);
+            width ->
+                DP = wings_dialog:get_value(dim_preset, Store),
+                case DP of
+                    aspect ->
+                        ARPreset = wings_dialog:get_value(ar_preset, Store),
+                        {Value,H} = get_aspect_dim(ARPreset, Value),
+                        wings_dialog:set_value(height, H, Store),
+                        wings_dialog:update(pnl_h, Store);
+                    _ -> ok
+                end;
             aperture ->
                 wings_dialog:enable(pnl_blur, Value =/= 0.0, Store);
             _ -> ok
@@ -1907,39 +1957,83 @@ export_dialog(Op) ->
     Camera =
         {?__(15, "Camera"),
             {vframe, [
-                {hframe, [
-                    {hframe, [
-                        {label, ?__(13, "Width")},
-                        {text, get_pref(width, 320), [exkey(width)]}
-                    ]},
-                    {hframe, [
-                        {label, ?__(14, "Height")},
-                        {text, get_pref(height, 240), [exkey(height)]}
-                    ]}
-                ],[exkey(pnl_dim),{enabled, SizeCam},{margin,false}]},
+		{hframe, [
+		    {label, ?__(15, "Camera")},
+		    {menu, [
+			{?__(16, "Perspective"), perspective},
+			{?__(17, "Orthographic"), orthographic},
+			{?__(18, "Fisheye"), fisheye},
+			{?__(19, "Ultra Wide"), ultra_wide_angle},
+			{?__(20, "Omnimax"), omnimax},
+			{?__(21, "Panoramic"), panoramic},
+			{?__(22, "Spherical"), spherical}
+		    ], get_pref(camera_type, perspective),[exkey(camera_type), {hook, Hook_Enable}]},
+                    panel,
+                    {label_column, [
+                        {?__(112, "Angle"),
+                        {slider, {text, get_pref(cam_angle, 180.0), [exkey(cam_angle), range({0.0, 360.0})]}}}
+                    ],[exkey(pnl_angle)]}
+		]},
+
+                {vframe, [
+		    {hframe, [
+			{label_column, [
+			    {?__(92, "Preset"),
+			    {menu, [
+				{?__(93,  "Custom"), custom},
+                                {?__(94,  "Viewport")++VpDim, viewport},
+				{?__(95,  "Set by Aspect Ratio"), aspect},
+				{?__(96,  "Squared (320x320) [1:1]"), res_square},
+				{?__(97,  "VGA (640x480) [4:3]"), res_vga},
+				{?__(98,  "SVGA (800x600) [4:3]"), res_svga},
+				{?__(99,  "DV (720x576) [16:9]"), res_dv},
+				{?__(100,  "HD (1280x720) [16:9]"), res_hd},
+				{?__(101, "FullHD (1920x1080) [16:9]"), res_fhd}
+			    ], DimPreset, [exkey(dim_preset), {hook, Hook_Enable}]}}
+			]},
+			{label_column, [
+			    {?__(102, "Aspect Ratio"),
+			     {menu, [
+				 {?__(103, "Squared [1:1]"), ar11},
+				 {?__(104, "Classic Film [3:2]"), ar32},
+				 {?__(105, "Standard Monitor [4:3]"), ar43},
+				 {?__(106, "Photo [5:4]"), ar54},
+				 {?__(107, "Panoramic [12:6]"), ar126},
+				 {?__(108, "HD Video [16:9]"), ar169},
+				 {?__(109, "Cinemascope [21:9]"), ar219}
+			     ], get_pref(ar_preset, ar43),[exkey(ar_preset), {hook, Hook_Enable}]}}
+			], [exkey(pnl_ar)]}
+		    ], [exkey(pnl_preset)]},
+		    {hframe, [
+			{label_column, [
+			    {?__(13, "Width"),
+			    {text, Width, [exkey(width), {hook, Hook_Enable}]}}
+			],[exkey(pnl_w)]},
+			panel,
+			{label_column, [
+			    {?__(14, "Height"),
+			    {text, Height, [exkey(height)]}}
+			],[exkey(pnl_h)]}
+		    ]}
+                ],[{title,?__(91,"Dimension")},{margin,false}]},
 
                 {hframe, [
-                    {label, ?__(15, "Camera")},
-                    {menu, [
-                        {?__(16, "Perspective"), perspective},
-                        {?__(17, "Orthographic"), orthographic},
-                        {?__(18, "Fisheye"), fisheye},
-                        {?__(19, "Ultra Wide"), ultra_wide_angle},
-                        {?__(20, "Omnimax"), omnimax},
-                        {?__(21, "Panoramic"), panoramic},
-                        {?__(22, "Spherical"), spherical}
-                    ], get_pref(camera_type, perspective),[exkey(camera_type)]}
-                ]},
-                {hframe, [
-                    {hframe, [
-                        {label, ?__(23, "Aperture")},
-                        {text, get_pref(aperture, 0.0), [exkey(aperture), {hook, Hook_Enable}]}
+                    {label_column, [
+                        {?__(23, "Aperture"),
+                        {text, get_pref(aperture, 0.0), [range({0.0,infinity}), exkey(aperture), {hook, Hook_Enable}]}}
                     ]},
                     {hframe, [
-                        {label, ?__(24, "Blur Samples")},
-                        {text, get_pref(blur_samples, 1), [range({1, 50}), exkey(blur_samples)]}
-                    ],[exkey(pnl_blur)]}
-                ],[{margin,false}]}
+                        {label_column, [
+                            {?__(24, "Blur Samples"),
+                            {text, get_pref(blur_samples, 1), [range({1,50}), exkey(blur_samples)]}}
+                        ]},
+                        {label_column, [
+                            {?__(111, "Variance"),
+                            {slider, {text, get_pref(variance, 1.0/128), [range({1.0/1000000, 0.99999}),
+                                                                          exkey(variance), {hook, Hook_Enable}]}}}
+                        ]}
+                    ],[exkey(pnl_blur),{margin,false}]}
+                ],[{title,?__(110,"Focal Blur")},{margin,false}]}
             ]}
         },
 
@@ -2950,6 +3044,25 @@ images_format() ->
     images_format_filter([tga,jpg,png,hdr,exr]) ++
     [{".tiff","Tagged Image File Format"},
      {".gif","Graphics Interchange Format"}].
+
+get_default_dim(res_square) -> {320,320};
+get_default_dim(res_vga) -> {640,480};
+get_default_dim(res_svga) -> {800,600};
+get_default_dim(res_dv) -> {720,576};
+get_default_dim(res_hd) -> {1280,720};
+get_default_dim(res_fhd) -> {1920,1080}.
+
+get_aspect_dim(AspRatio, W) ->
+    AR = get_asp_ratio(AspRatio),
+    {W,trunc(W*AR)}.
+
+get_asp_ratio(ar11) -> 1.0;
+get_asp_ratio(ar32) -> 2.0/3.0;
+get_asp_ratio(ar43) -> 3.0/4.0;
+get_asp_ratio(ar54) -> 4.0/5.0;
+get_asp_ratio(ar126) -> 6.0/12.0;
+get_asp_ratio(ar169) -> 9.0/16.0;
+get_asp_ratio(ar219) -> 9.0/21.0.
 
 %%%
 %%% functions to manage the output file type
