@@ -4,9 +4,9 @@
 material_dialog(_Name, Mat) ->
     Maps = proplists:get_value(maps, Mat, []),
     OpenGL = proplists:get_value(opengl, Mat),
-    DefReflected = alpha(proplists:get_value(specular, OpenGL)),
-    DefTransmitted = def_transmitted(proplists:get_value(diffuse, OpenGL)),
-    DefAbsorptionColor = def_absorption_color(proplists:get_value(diffuse, OpenGL)),
+    _DefReflected = alpha(proplists:get_value(specular, OpenGL)),
+    _DefTransmitted = def_transmitted(proplists:get_value(diffuse, OpenGL)),
+    _DefAbsorptionColor = def_absorption_color(proplists:get_value(diffuse, OpenGL)),
     DefLightmatColor = def_lightmat_color(proplists:get_value(diffuse, OpenGL)),
     Attr = proplists:get_value(?TAG, Mat, []),
     %MatAttr = proplists:get_value(?TAG, Mat, []),
@@ -68,7 +68,7 @@ material_dialog(_Name, Mat) ->
     Exponent =    proplists:get_value(exponent, Attr, ?DEF_EXPONENT),
     Exponent_U =  proplists:get_value(anisotropic_u, Attr, ?DEF_ANISOTROPIC_U),
     Exponent_V =  proplists:get_value(anisotropic_v, Attr, ?DEF_ANISOTROPIC_V),
-    AsDiffuse  =  proplists:get_value(as_diffuse, Attr, false),
+    _AsDiffuse  =  proplists:get_value(as_diffuse, Attr, false),
 
     %!--------------------------------------
     %! Glass and Roughness glass properties
