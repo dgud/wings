@@ -10,9 +10,8 @@
 %%
 
 %! Export render parameters to scene file.
-%! TO DO: Is need make some code for detecting when no material SSS in scene.
+%! TO DO: Is need make some code for checking when exists any material SSS in scene.
 %! Using SSS integrator without SSS material, cause to render freeze.
-
 
 export_render(F, Outfile, Attr) ->
     %
@@ -48,16 +47,11 @@ export_render(F, Outfile, Attr) ->
     println(F,
         "\t<AA_pixelwidth fval=\"~.10f\"/>",[proplists:get_value(aa_pixelwidth, Attr)]),
     %
-    SaveAlpha = proplists:get_value(save_alpha, Attr),
     println(F,
-        "\t<save_alpha bval=\"~s\"/>",[format(SaveAlpha)]),
-    case SaveAlpha of
-        premultiply ->
-            println(F, "\t<premult bval=\"false\"/>");
-        %backgroundmask ->
-        %    println(F, "\t<alpha_backgroundmask bval=\"true\"/>"); % povman: deprecated
-        _ -> ""
-    end,
+        "\t<save_alpha bval=\"~s\"/>",[format(proplists:get_value(save_alpha, Attr))]),
+    println(F,
+        "\t<premult bval=\"false\"/>"),
+
     println(F,
         "\t<clamp_rgb bval=\"~s\"/>",[format(proplists:get_value(clamp_rgb, Attr))]),
     println(F,
@@ -65,7 +59,7 @@ export_render(F, Outfile, Attr) ->
     %println(F,
     %    "\t<bg_transp_refract bval=\"~s\"/>",[format(proplists:get_value(background_transp_refract, Attr))]),
     println(F,
-        "\t<background_name sval=\"worldbackground\"/>"),
+        "\t<background_name sval=\"world_background\"/>"),
     %
     println(F, "\t<output_type sval=\"~s\"/>",[RenderFormat]),
     %%------------------------------------
@@ -87,19 +81,28 @@ export_render(F, Outfile, Attr) ->
     println(F, "\t<width ival=\"~w\"/>",[proplists:get_value(width, Attr)]),
     println(F, "\t<height ival=\"~w\"/>",[proplists:get_value(height, Attr)]),
     println(F, "\t<outfile sval=\"~s\"/>",[Outfile]),
-    %    "\t<exposure fval=\"~.10f\"/>",[proplists:get_value(exposure, Attr)]),
     println(F,
         "\t<gamma fval=\"~.4f\"/>",[proplists:get_value(gamma, Attr)]),
     println(F,
         "\t<integrator_name sval=\"default\"/>"),
     %
     ThreadsAuto = proplists:get_value(threads_auto, Attr),
-    NThreads = case ThreadsAuto of
-        true -> -1;
-        false -> [proplists:get_value(threads_number, Attr)]
-    end,
-    println(F, "\t<drawParams bval=\"~s\"/>",[proplists:get_value(draw_params, Attr)]),
-    println(F, "\t<threads ival=\"~w\"/>",[NThreads]),
+    NThreads =
+        case ThreadsAuto of
+            true -> -1;
+            false -> [proplists:get_value(threads_number, Attr)]
+        end,
+    println(F,
+        "\t<drawParams bval=\"~s\"/>",[proplists:get_value(draw_params, Attr)]),
+    println(F,
+        "\t<threads ival=\"~w\"/>",[NThreads]),
+    println(F,
+        "\t<tile_size ival=\"64\"/>"),
+    println(F,
+        "\t<tiles_order sval=\"random\"/>"),
+    println(F,
+        "\t<show_sam_pix bval=\"true\"/>"),
+    println(F,
+        "\t<volintegrator_name sval=\"volintegr\"/>"),
 
-    println(F, "\t<volintegrator_name sval=\"volintegr\"/>"),
     println(F, "</render>").
