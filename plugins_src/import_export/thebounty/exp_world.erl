@@ -12,6 +12,8 @@
 
 %!
 %! Export background environment
+%! Note: Small 'case' parts to more extend code
+%! Not more big parts of code inside 'cases'.
 %!
 
 export_background(F, Attr) ->
@@ -32,7 +34,7 @@ export_background(F, Attr) ->
     end,
     %% Add Enlight Image Background for all suport modes
     AllowIBL =
-        case  Bg of
+        case Bg of
             constant -> true;
             gradientback -> true;
             textureback -> true;
@@ -93,9 +95,9 @@ export_texture_background(F, Attr) ->
     println(F,
         "\t<power fval=\"~w\"/>",[proplists:get_value(background_power, Attr)]),
     println(F,
-        "\t<mapping sval=\"~s\"/>",[format(proplists:get_value(background_mapping, Attr))]),
+        "\t<mapping sval=\"~s\"/>",[format(proplists:get_value(ibl_mapping, Attr))]),
     println(F,
-        "\t<rotation fval=\"~.3f\"/>",[proplists:get_value(background_rotation, Attr, 180.0)]),
+        "\t<rotation fval=\"~.3f\"/>",[proplists:get_value(ibl_rotation, Attr, 180.0)]),
     println(F,
         "\t<texture sval=\"world_texture\"/>").
 

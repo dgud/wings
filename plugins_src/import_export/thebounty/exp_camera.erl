@@ -15,7 +15,7 @@ export_camera(F, Attr) ->
     #camera_info{pos=Pos,dir=Dir,up=Up,fov=Fov} = proplists:lookup(camera_info, Attr),
     Width = proplists:get_value(width, Attr),
     Height = proplists:get_value(height, Attr),
-    Lens_Type = proplists:get_value(lens_type, Attr),
+    LensType = proplists:get_value(lens_type, Attr),
     Ro = math:pi()/180.0,
     %% Fov is vertical angle from lower to upper border.
     %% TheBounty focal plane is 1 unit wide.
@@ -23,7 +23,7 @@ export_camera(F, Attr) ->
     Aperture = proplists:get_value(aperture, Attr),
 
     println(F, "<camera name=\"camera\">"),
-    println(F, "\t<type sval=\"~s\"/>",[Lens_Type]),
+    println(F, "\t<type sval=\"~s\"/>",[LensType]),
     println(F, "\t<resx ival=\"~w\"/>",[Width]),
     println(F, "\t<resy ival=\"~w\"/>",[Height]),
     println(F, "\t<focal fval=\"~.10f\"/>",[FocalDist]),
@@ -42,21 +42,21 @@ export_camera(F, Attr) ->
             println(F,
                 "\t<dof_distance fval=\"~.10f\"/>",[proplists:get_value(dof_distance, Attr)])
     end,
-    Lens_Type = proplists:get_value(lens_type, Attr),
-    case Lens_Type of
+    %
+    case LensType of
         %
         orthographic ->
             println(F,
                 "\t<scale fval=\"~.10f\"/>",[proplists:get_value(lens_ortho_scale, Attr)]);
         angular ->
             println(F,
-                "\t<circular bval=\"~s\"/>",[proplists:get_value(lens_angular_circular, Attr)]),
+                "\t<circular bval=\"~s\"/>",[proplists:get_value(lens_circular, Attr)]),
             println(F,
-                "\t<mirrored bval=\"~s\"/>",[proplists:get_value(lens_angular_mirrored, Attr)]),
+                "\t<mirrored bval=\"~s\"/>",[proplists:get_value(lens_mirrored, Attr)]),
             println(F,
-                "\t<max_angle fval=\"~.10f\"/>",[proplists:get_value(lens_angular_max_angle, Attr)]),
+                "\t<max_angle fval=\"~.10f\"/>",[proplists:get_value(lens_max_angle, Attr)]),
             println(F,
-                "\t<angle fval=\"~.10f\"/>",[proplists:get_value(lens_angular_angle, Attr)]);
+                "\t<angle fval=\"~.10f\"/>",[proplists:get_value(lens_angle, Attr)]);
         _ -> ok
     end,
 

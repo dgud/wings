@@ -170,8 +170,8 @@ do_export(Op, Props0, Attr0, St0) ->
                 ok ->
                     ok;
                 Error ->
-                    io:format(?__(1,"ERROR: Failed to export")++":~n~p~n", [Error]),
-                    {error,?__(2,"Failed to export")}
+                    io:format(?__(1,"ERROR: Failed to write scene")++":~n~p~n", [Error]),
+                    {error,?__(2,"Failed to write scene")}
             end
         end,
     %% Freeze virtual mirrors.
@@ -214,7 +214,6 @@ props(export_selected, _Attr) ->
 %%--------------------------------------------------------------------------------------------
 
 %% modulators def move to ui_material.erl
-
 
 material_result(_Name, Mat0, Res0) ->
     %% take the Material settings
@@ -308,6 +307,7 @@ pref_result(Attr, St) ->
 -include("ui_general.erl").
 %!-----------------------------
 
+    
 %%% Export and rendering functions
 %%%
 export(Attr, XMLFilename, #e3d_file{objs=Objs, mat=Mats, creator=Creator}) ->
@@ -336,8 +336,8 @@ export(Attr, XMLFilename, #e3d_file{objs=Objs, mat=Mats, creator=Creator}) ->
     io:format(?__(1,"Exporting  to:")++" ~s~n"++
               ?__(2,"for render to:")++" ~s~n", [ExportFile,RenderFile]),
     CreatorChg = re:replace(Creator,"-","_",[global]),
-    CameraName = "x_Camera",
-    BgName = "x_WorldBackground",
+    %_CameraName = "x_Camera",
+    %_BgName = "x_WorldBackground",
     Lights = proplists:get_value(lights, Attr, []),
     %%
     println(F,
@@ -347,7 +347,7 @@ export(Attr, XMLFilename, #e3d_file{objs=Objs, mat=Mats, creator=Creator}) ->
          [filename:basename(ExportFile), CreatorChg]),
 
     %!----------------------
-    % export shaders
+    % write shaders
     %!----------------------
     MatsGb =
         foldl(fun ({Name,Mat}, Gb) ->
@@ -356,7 +356,7 @@ export(Attr, XMLFilename, #e3d_file{objs=Objs, mat=Mats, creator=Creator}) ->
                       gb_trees:insert(Name, Mat, Gb)
               end, gb_trees:empty(), Mats),
     %%
-    %*   MatsBlend =
+    %*  MatsBlend =
     foldl(fun ({Name,Mat}, Gb) ->
                   export_shaderblend(F, "w_"++format(Name), Mat, ExportDir),
                   println(F),
@@ -373,7 +373,7 @@ export(Attr, XMLFilename, #e3d_file{objs=Objs, mat=Mats, creator=Creator}) ->
           end, 1, Objs),
 
     %!----------------------
-    % export scene lights
+    % write scene lights
     %!----------------------
     %BgLights =
     reverse(
@@ -392,8 +392,9 @@ export(Attr, XMLFilename, #e3d_file{objs=Objs, mat=Mats, creator=Creator}) ->
     export_background(F, Attr),
     println(F),
 
+
     %!----------------------
-    %! export camera
+    %! write camera
     %!----------------------
     export_camera(F, Attr),
     println(F),
@@ -401,7 +402,7 @@ export(Attr, XMLFilename, #e3d_file{objs=Objs, mat=Mats, creator=Creator}) ->
     %% test:  split integrator code
     export_integrator(F, Attr),
     %!------------------------
-    %! export render options
+    %! write render options
     %!------------------------
     export_render(F, filename:basename(RenderFile), Attr),
     %%
@@ -467,17 +468,18 @@ export(Attr, XMLFilename, #e3d_file{objs=Objs, mat=Mats, creator=Creator}) ->
             file:delete(RenderFile),
             set_var(rendering, true),
         Arguments = PluginsPath++AlphaChannel++OutputFormat,
+        OutFile = wings_job:quote(filename:rootname(XMLFilename)),
         wings_job:render(
-                ExportTS,RenderExec,Arguments++" "++ArgStr++" "++wings_job:quote(filename:rootname(XMLFilename))++" ", PortOpts, Handler)
+                ExportTS,RenderExec,Arguments++" "++ArgStr++" "++OutFile++" ", PortOpts, Handler)
     end.
 
 section(F, Name) ->
     println(F, [io_lib:nl(),"<!-- Section ",Name," -->",io_lib:nl()]).
-
-%%% Export Material code
+    
+%%% write material code
 -include("exp_material.erl").
 
-%% Texture Export code
+%% write texture code
 -include("exp_texture.erl").
 
 %% split material modulators
@@ -486,12 +488,13 @@ section(F, Name) ->
 % split geometry
 -include("exp_geometry.erl").
 
-% split export light code
+% split light code
 -include("exp_light.erl").
 
 -include("exp_camera.erl").
 
 -include("exp_world.erl").
+
 
 -include("exp_integrator.erl").
 
