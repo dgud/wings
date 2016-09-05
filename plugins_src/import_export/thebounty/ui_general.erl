@@ -83,7 +83,7 @@ export_prefs() ->
         {sss_photons,?DEF_SSS_PHOTONS},
         {sss_depth,?DEF_SSS_DEPTH},
         {sss_scale,?DEF_SSS_SCALE},
-        {sss_scatter_samples,?DEF_SSS_SINGLESCATTER_SAMPLES},
+        {scatter_samples,?DEF_SSS_SINGLESCATTER_SAMPLES},
         {volintegr_type,?DEF_VOLINTEGR_TYPE},
         {volintegr_adaptive,?DEF_VOLINTEGR_ADAPTIVE},
         {volintegr_stepsize,?DEF_VOLINTEGR_STEPSIZE},
@@ -111,19 +111,19 @@ export_prefs() ->
         {c_var, 1.0},
         {d_var, 1.0},
         {e_var, 1.0},
-        {altitude, 1.0},
         {add_sun, false},
         {background_light, false},
         {sun_power, 1.0},
         {background_power, 1.0},
         {background_samples, 8},
-        {to_diffuse, false},
-        {to_caustics, false},
+        {altitude, 1.0},
+        {exposure, 1.0},
         {night, false},
+        {bright, 1.0},
         {back_filename, ""},
-        {background_mapping, spherical},
-        {background_rotation, 0.0},
-        {background_color, {1.0,0.0,0.0}},
+        {ibl_rotation, 0.0},
+        {ibl_mapping, spherical},
+        {background_color, {0.8,0.8,0.8}},
         {horizon_color, ?DEF_HORIZON_COLOR},
         {zenith_color, ?DEF_ZENITH_COLOR},
         {use_ibl, false},
@@ -241,16 +241,11 @@ export_dialog_qs(Op, Attr) ->
         end
     end,
 
-%%     % TO DO: we need changes to wings_dialog code in order to enable this kind of use for buttons
-%%     ButtonsHook = fun(Key,_,_Store) ->
-%%         io:format("Button ~p pressed...\n",[Key])
-%%     end,
-%!----------------------------------------
-%!----------------------------------------
-    
-    %!----------------------------------------
-    %! Environment 150 ->
-    %!----------------------------------------
+    %%     % TO DO: we need changes to wings_dialog code in order to enable this kind of use for buttons
+    %%     ButtonsHook = fun(Key,_,_Store) ->
+    %%         io:format("Button ~p pressed...\n",[Key])
+    %%     end,
+
     BrowsePropsHDRI = [{dialog_type,open_dialog},
                        {extensions,[
                             {".hdr",?__(398,"High Dynamic Range image")},
@@ -553,7 +548,7 @@ export_dialog_qs(Op, Attr) ->
                                 ]},
                                 {label_column, [
                                     {?__(271, "Scale"),{text, get_pref(sss_scale,Attr), [{key,sss_scale},range(sss_scale)]}},
-                                    {?__(272, "SingleScatter Samples"),{text, get_pref(sss_scatter_samples,Attr), [{key,sss_scatter_samples},range(sss_scatter_samples)]}}
+                                    {?__(272, "SingleScatter Samples"),{text, get_pref(scatter_samples,Attr), [{key,scatter_samples},range(scatter_samples)]}}
                                 ]}
                             ],[key(pnl_sss_opt), {margin,false}]}
                         ],[{title, ?__(273, "SubSurface Scattering")},{margin,false}]}
@@ -669,52 +664,63 @@ export_dialog_qs(Op, Attr) ->
     %!---------------------------------------------------
     %! World enviroment logic values for UI
     %!---------------------------------------------------
-    %WHook_Enabled = 
-    %    fun(Key, Value, Store) ->
-    %        case Key of
-    %            add_sun ->
-    %                wings_dialog:enable(?KEY(pnl_add_sun), Value =/= false, Store);
-    %            background_light ->
-    %                wings_dialog:enable(?KEY(pnl_bkg_power), Value =/= ?DEF_SKY_BACKGROUND_LIGHT, Store),
-    %                wings_dialog:enable(?KEY(pnl_bkg_photons), Value =/=?DEF_SKY_BACKGROUND_LIGHT, Store);
-    %            use_ibl ->
-    %                wings_dialog:enable(?KEY(pnl_ibl_samples), Value =/= false, Store)%,
-    %                %wings_dialog:enable(?KEY(pnl_enlight_photons), Value =/= false, Store)
-    %        end
-    %    end,
+    WHook_Enabled =
+        fun(Key, Value, Store) ->
+            case Key of
+                add_sun ->
+                    wings_dialog:enable(?KEY(pnl_sun_power), Value =/= false, Store),
+                    case environment of
+                        darksky ->
+                            wings_dialog:enable(?KEY(pnl_samples), Value =/= false, Store);
+                        _ -> ok
+                    end;
+
+                background_light ->
+                    wings_dialog:enable(?KEY(pnl_enlight_photons), Value =/= false, Store),
+                    wings_dialog:enable(?KEY(pnl_sky_power), Value =/= false, Store),
+                    wings_dialog:enable(?KEY(pnl_samples), Value =/= false, Store);
+
+                use_ibl ->
+                    wings_dialog:enable(?KEY(pnl_ibl_samples), Value =/= false, Store),
+                    wings_dialog:enable(?KEY(pnl_enlight_photons), Value =/= false, Store)
+            end
+        end,
     WHook_Show =
         fun(Key, Value, Store) ->
             case Key of
                 enviroment ->
                     wings_dialog:show(?KEY(pnl_bkg_power), is_member(Value,[darksky,sunsky]), Store),
-                    wings_dialog:update(?KEY(pnl_bkg_power), Store),
-                    
-                    wings_dialog:show(?KEY(pnl_altitude), Value =:= darksky, Store),
-                    wings_dialog:update(?KEY(pnl_altitude), Store),
-                    
+
+                    wings_dialog:show(?KEY(pnl_add_sun), is_member(Value,[darksky,sunsky]), Store),
+
+                    wings_dialog:show(?KEY(pnl_alt_night), Value =:= darksky, Store),
+
                     wings_dialog:show(?KEY(pnl_sky), is_member(Value,[darksky,sunsky]), Store),
-                    wings_dialog:update(?KEY(pnl_sky), Store),
-                    
-                    wings_dialog:show(?KEY(pnl_background), is_member(Value,[textureback,constant]), Store),
-                    wings_dialog:update(?KEY(pnl_background), Store),
-                    
+
+                    wings_dialog:show(?KEY(pnl_const), Value =:= constant, Store),
+
+                    wings_dialog:show(?KEY(pnl_gradient), Value =:= gradientback, Store),
+
+                    wings_dialog:show(?KEY(panel_ibl), is_member(Value,[textureback,constant,gradientback]), Store),
+
                     wings_dialog:show(?KEY(pnl_file), Value =:= textureback, Store),
-                    wings_dialog:update(?KEY(pnl_file), Store),
-                    
-                    wings_dialog:show(?KEY(pnl_ibl_samples), is_member(Value,[textureback,constant,gradientback]), Store),
-                    wings_dialog:update(?KEY(pnl_ibl_samples), Store)
+
+                    wings_dialog:show(?KEY(pnl_enlight_photons), is_member(Value,[textureback,darksky]), Store),
+
+                    wings_dialog:update(?KEY(pnl_background), Store)
             end
         end,
     World =
     {?__(400, "World") ,
         {vframe,[
             {menu, [
-                {?__(401,"Constant"),constant},
-                {?__(402,"Gradient"),gradientback},
-                {?__(403,"Texture"),textureback},
+                {?__(401,"Constant Color"),constant},
+                {?__(402,"Gradient Color"),gradientback},
+                {?__(403,"Textured background"),textureback},
                 {?__(404,"Sunsky"),sunsky},
                 {?__(405,"DarkSky"),darksky}
             ], get_pref(enviroment,Attr), [{key,enviroment},{hook,WHook_Show}]},
+            panel,
             %!------------------------------------
             %! DarkSky
             %!------------------------------------
@@ -732,77 +738,75 @@ export_dialog_qs(Op, Attr) ->
                     ],[{margin,false}]}
                 ],[key(pnl_sky),{margin,false}]
                 },
-                {hframe,[
-                    {hframe,[
-                        {label,?__(413,"Altitude")},
-                        {text,get_pref(altitude,Attr),[range(altitude),{key,altitude}]}
-                    ],[key(pnl_altitude),{margin,false}]
-                    }
-                ]},
+                % altitude y night
 
                 {hframe,[
-                    {?__(414,"Add Sun"),get_pref(add_sun, Attr),[{key,add_sun}]},%{hook,WHook_Enabled}]},
+                    {?__(413,"Add Sun"),get_pref(add_sun, Attr),[{key,add_sun},{hook,WHook_Enabled}]},
                     panel, panel,
-                    {?__(416,"Add Skylight"),get_pref(background_light, Attr),[{key,background_light}]}%,{hook,WHook_Enabled}]}
-                ]},
-
+                    {?__(414,"Add Skylight"),get_pref(background_light, Attr),[{key,background_light},{hook,WHook_Enabled}]}
+                ],[key(pnl_add_sun),{margin,true}]},
+                panel,
                 {vframe,[
                     {hframe, [
-                    %{?__(416,"Skylight"),get_pref(background_light, Attr),[key(background_light),{hook,WHook_Enabled}]},
                         {hframe,[
                             {label,?__(415,"Sun Power")},
                             {text, get_pref(sun_power, Attr),[range(sun_power),{key,sun_power},{width,5}]}
-                            ],[key(pnl_add_sun),{margin,false}]
+                        ],[key(pnl_sun_power),{margin,false}]
                         },
-                        %panel,
+                        {hframe,[
+                            {label,?__(416," Sky Power")},
+                            {text,get_pref(background_power, Attr),[range(zero_to_ten),{key,sky_background_power},{width,5}]}
+                        ],[key(pnl_sky_power),{margin,false}]
+                        },
                         {hframe, [
-                            {label,?__(417," Sky Power")},
-                            {text,get_pref(background_power, Attr),[range(zero_to_ten),{key,sky_background_power},{width,5}]},
-                            {label,?__(418,"Samples")},
+                            {label,?__(417,"Samples")},
                             {text,get_pref(background_samples, Attr),[range(background_samples),{key,background_samples},{width,5}]}
-                        ], [key(pnl_bkg_power),{margin,false}]}
-                    ]},
-                    {hframe, [
-                        {?__(419,"Diffuse Photons"),get_pref(to_diffuse,Attr),[{key,to_diffuse}]},
+                        ],[key(pnl_samples),{margin,false}]
+                        }
+                    ], [key(pnl_bkg_power),{margin,false}]}, % este sirve para activar el panel con el background adecuado
+                    {hframe,[
+                        {hframe,[
+                            {label,?__(418,"Altitude")},
+                            {text,get_pref(altitude,Attr),[range(zero_to_ten),{key,altitude},{width,5}]},
+                            panel,
+                            {label,?__(419,"Exposure")},
+                            {text,get_pref(exposure,Attr),[range(zero_to_ten),{key,exposure},{width,5}]}
+                        ]},
                         panel,
-                        {?__(420,"Caustic Photons"),get_pref(to_caustics, Attr),[{key,to_caustics}]}
-                    ],[key(pnl_bkg_photons)]}
+                        {hframe,[ % moved here for test
+                            {label,?__(420,"Sky bright")},
+                            {text,get_pref(bright,Attr),[range(zero_to_ten),{key,bright},{width,5}]},
+                            panel,
+                            {?__(421,"Night"),get_pref(night, Attr),[{key,night}]}                            
+                        ]}
+                    ],[key(pnl_alt_night),{margin,false}]}
                 ],[{margin,false}]
                 },
-                {vframe,[
-                    {?__(421,"Night"),get_pref(night, Attr),[{key,night}]}
-                ]}
-            ], [{margin,false}] %[key(pnl_sky),{margin,false}]
-            },
-            {vframe, [ %% HDRI Background
+                %!----------------------
+                %! texture background
+                %!----------------------
                 {vframe, [
-                    {label_column, [
-                        {?__(425,"HDRI File"),
-                            {vframe, [
-                                {hframe, [
-                                    {button,{text,get_pref(back_filename, Attr),
-                                            [{key,back_filename},{width,35},{props,BrowsePropsHDRI}]}},
-                                    {menu, [
-                                        {?__(426,"Angular Map"),angular},
-                                        {?__(427,"Spherical Map"),spherical}
-                                    ], get_pref(background_mapping, Attr), [{key,background_mapping}]}
-                                ],[key(pnl_img_hdri),{margin,false}]}
-                            ],[{margin,false}]}
-                        },
-                        {?__(428,"Rotation"),
-                            {text,get_pref(background_rotation, Attr),[range(background_rotation),{key,background_rotation}]}
-                        }
-                    ],[{margin,false}]
-                }],
-                [key(pnl_file),{margin,false}]
-                },
+                    {hframe, [
+                        {label,?__(425,"HDRI File")},
+                        {button,{text,get_pref(back_filename, Attr),[{key,back_filename},{props,BrowsePropsHDRI}]}}
+                    ],[{margin,false}]},
+                    panel,
+                    {hframe,[
+                        {label,?__(426,"Rotation")},
+                        {text,get_pref(ibl_rotation, Attr),[range(ibl_rotation),{key,ibl_rotation}]},
+                        {menu, [
+                            {?__(427,"Mapping Angular"),angular},
+                            {?__(428,"Mapping Spherical"),spherical}
+                        ], get_pref(ibl_mapping, Attr), [{key,ibl_mapping}]}
+                    ],[{margin,false}]}
+                ],[key(pnl_file),{margin,false}]},
                 %!------------------------
                 %! Constant Background
                 %!------------------------
                 {hframe, [
                     {label,?__(429,"Color")},
                     {color,get_pref(background_color, Attr),[{key,background_color}]}
-                ],[key(pnl_const),{show,false}]},
+                ],[key(pnl_const),{margin,false}]},
                 %!------------------------
                 %! Gradient Background
                 %!------------------------
@@ -812,27 +816,28 @@ export_dialog_qs(Op, Attr) ->
                     panel,
                     {label,?__(431,"Zenith Color")},
                     {color,get_pref(zenith_color, Attr),[{key,zenith_color}]}
-                ],[key(pnl_gradient),{show,false}]},
+                ],[key(pnl_gradient),{margin,false}]},
                 %% Common parameters
                 {vframe,[
+                    panel,
                     {hframe,[
                         {hframe,[
-                            {?__(432,"Use IBL"),get_pref(use_ibl, Attr),[{key,use_ibl}]}%,{hook,WHook_Enabled}]}
-                        ]},
-                        panel,
+                            {?__(432,"Use IBL"),get_pref(use_ibl, Attr),[{key,use_ibl},{hook,WHook_Enabled}]}
+                        ]}, panel,
                         {hframe,[
                             {label,?__(433,"Samples")},
                             {text,get_pref(ibl_samples, Attr),[range(samples),{key,ibl_samples}]}
-                        ],[key(pnl_ibl_samples),{margin,false}]}
-                    ],[{margin,false}]},
+                        ],[key(pnl_ibl_samples),{margin,false}]},
+                        panel
+                    ],[key(panel_ibl),{margin,false}]},
+                    %! influence of background light
                     {hframe, [
                         {?__(434,"Diffuse Photons"),get_pref(to_diffuse, Attr),[{key,to_diffuse}]},
                         panel,
                         {?__(435,"Caustic Photons"),get_pref(to_caustic, Attr),[{key,to_caustic}]}
-                    ],[key(pnl_enlight_photons)]}
+                    ],[key(pnl_enlight_photons),{margin,false}]}
                 ]}
             ],[key(pnl_background),{margin,false}]}
-            % end import code
         ],[{title, ?__(450, "Environment")},{margin,false}]
         }
     },
