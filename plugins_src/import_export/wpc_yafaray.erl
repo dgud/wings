@@ -288,6 +288,7 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_GLOBALPHOTONLIGHT_SEARCH, 200).
 
 %% Modulator
+-define(MAX_MODULATORS, 5).
 -define(DEF_MOD_ENABLED, true).
 -define(DEF_MOD_MODE, mix).
 -define(DEF_MOD_SIZE, 1.0).
@@ -910,6 +911,7 @@ material_dialog(_Name, Mat) ->
     %% Object Specific Material Properties Dialog
     %%
     Modulators = proplists:get_value(modulators, YafaRay, def_modulators(Maps)),
+    io:format("Modulators: ~p\n\n",[Modulators]),
     ObjectFrame =
         {vframe, [
             {hframe, [
@@ -1183,35 +1185,18 @@ def_modulators([_|Maps]) ->
     def_modulators(Maps).
 
 
-material_result(_Name, Mat0, Res0) ->
-    %% take the Material settings
-    {Ps30, _Res1} = rip_all(?TAG, Res0),
-%    {Ps,Res} = modulator_result(Found, Res1),
-    {Ps1,Res1} = split_list(Res0,
-        fun
-            ({{?TAG,enabled,1},_}) -> true;   % look for the first modulator
-            (_) -> false
-        end),
-    Ps2 = [{Key,Val} || {?KEY(Key),Val} <- Ps1],
-    %% take the Modulators settings
-    {Ps3,Res2} = modulator_result(Ps2, Res1),
-    %% take the Object Parameters settings
-    {Ps4,Res} = split_list(Res2,
-        fun
-            ({result,_}) -> true;   % look for the end of the list
-            (_) -> false
-        end),
-    Ps = [{Key,Val} || {?KEY(Key),Val} <- Ps4] ++Ps3,
-    Mat = [?KEY(Ps)|keydelete(?TAG, 1, Mat0)],
-
-    io:format("NewMat: ~p\nMat: ~p\n\n",[?KEY(Ps30), Mat]),
-    {Mat,Res}.
+material_result(_Name, Mat0, Res) ->
+    %% Rip out all yafaray material properties
+    {Found0, Remaining} = rip_all(?TAG, Res),
+    {Mod, Mat} = process_modulator(Found0),
+    NewMat = [{?TAG, Mat++Mod} | lists:keydelete(?TAG, 1, Mat0)],
+    {NewMat, Remaining}.
 
 modulator_dialogs(Modulators0, Maps) ->
     ModCount = length(Modulators0),
     Modulators =
-        if (ModCount < 5) ->
-            Modulators0 ++ modulator_add(5-ModCount);
+        if (ModCount < ?MAX_MODULATORS) ->
+            Modulators0 ++ modulator_add(?MAX_MODULATORS-ModCount);
         true -> Modulators0
         end,
     [{oframe, modulator_dialogs(Modulators, Maps, 1), 1, [{style, buttons}]}].
@@ -1269,7 +1254,7 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
 
     Hook_Enable = fun(Key, Value, Store) ->
         case Key of
-            {?TAG,enabled,M} ->
+            {?TAG,{M,enabled}} ->
                 wings_dialog:enable(?KEY({pnl_mode,M}), Value =:= true, Store),
                 wings_dialog:enable(?KEY({pnl_mod,M}), Value =:= true, Store);
             _ -> ok
@@ -1278,7 +1263,7 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
 
     Hook_Show = fun(Key, Value, Store) ->
         case Key of
-            {?TAG,type,M} ->
+            {?TAG,{M,type}} ->
                 wings_dialog:show(?KEY({pnl_image,M}), Value =:= image, Store),
                 wings_dialog:show(?KEY({pnl_base1,M}), is_member(Value,[clouds,marble,wood,musgrave,distorted_noise]), Store),
                 wings_dialog:show(?KEY({pnl_base2,M}), is_member(Value,[clouds,marble,wood]), Store),
@@ -1296,7 +1281,7 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
     ModFrame =
         {vframe, [
             {hframe, [
-                {?__(5,"Enabled"),Enabled,[{key,{?TAG,enabled,M}},{hook,Hook_Enable}]},
+                {?__(5,"Enabled"),Enabled,[key({M,enabled}),{hook,Hook_Enable}]},
                 panel,
                 {hframe, [
                     {menu,[
@@ -1309,7 +1294,7 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                         {?__(112,"Difference"),dif},
                         {?__(113,"Darken"),dar},
                         {?__(114,"Lighten"),lig}
-                    ],Mode,[]},
+                    ],Mode,[key({M,mode})]},
                     panel,
                     {menu,[
                         {?__(115,"Alpha Off"),off},
@@ -1318,7 +1303,7 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                         {?__(118,"Alpha Translucency"),translucency},
                         {?__(119,"Specularity"),specularity},
                         {?__(120,"Stencil"),stencil}
-                    ],AlphaIntensity,[]},
+                    ],AlphaIntensity,[key({M,alpha_intensity})]},
                     panel,
                     {menu,[
                         {?__(121,"Diffuse (Shiny Diffuse, Glossy)"),diffusetexture},
@@ -1329,19 +1314,19 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                         {?__(126,"Transparency (Shiny Diffuse)"),transparencytexture},
                         {?__(127,"Translucency (Shiny Diffuse)"),translucencytexture},
                         {?__(128,"Bump (All)"),bumptexture}
-                    ],TextureType,[]}
+                    ],TextureType,[key({M,texture_type})]}
                 ],[key({pnl_mode,M}),{margin,false},{hook,Hook_Show}]}
             ]},
             {vframe, [
                 {hframe,[
                     {hframe,[
-                        {label,?__(10,"Size X")},{text,SizeX,[range(size)]}
+                        {label,?__(10,"Size X")},{text,SizeX,[key({M,size_x}), range(size)]}
                     ]},
                     {hframe,[
-                        {label,?__(11,"Y")},{text,SizeY,[range(size)]}
+                        {label,?__(11,"Y")},{text,SizeY,[key({M,size_y}), range(size)]}
                     ]},
                     {hframe,[
-                        {label,?__(12,"Z")},{text,SizeZ,[range(size)]}
+                        {label,?__(12,"Z")},{text,SizeZ,[key({M,size_z}), range(size)]}
                     ]}
                 ],[{margin,false}]},
                 {hframe,[
@@ -1351,9 +1336,9 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                         {label,?__(17,"Normal")}
                     ]},
                     {vframe,[
-                        {slider,{text,fit_range(Diffuse,modulation),[range(modulation)]}},
-                        {slider,{text,fit_range(Shininess,modulation),[range(modulation)]}},
-                        {slider,{text,fit_range(Normal,modulation),[range(modulation)]}}
+                        {slider,{text,fit_range(Diffuse,modulation),[key({M,diffuse}), range(modulation)]}},
+                        {slider,{text,fit_range(Shininess,modulation),[key({M,shininess}), range(modulation)]}},
+                        {slider,{text,fit_range(Normal,modulation),[key({M,normal}), range(modulation)]}}
                     ]}
                 ],[{margin,false}]},
                 {menu, MapsItems++[
@@ -1364,19 +1349,19 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                     {?__(46,"Voronoi"),voronoi},
                     {?__(62,"Musgrave"),musgrave},
                     {?__(82,"Distorted Noise"),distorted_noise}
-                ],Type,[{key,{?TAG,type,M}}, {hook,Hook_Show}]},
+                ],Type,[key({M,type}), {hook,Hook_Show}]},
                 {vframe, [
                     {hframe, [
                         {label,?__(22,"Filename")},
-                        {button,{text,Filename,[{width,35},{props,BrowseProps}]}}
+                        {button,{text,Filename,[key({M,filename}), {width,35},{props,BrowseProps}]}}
                     ],[key({pnl_image,M}), {show,false}]},
                     %% Clouds,Marble,Wood Specific Procedurals Line 1
                     {hframe, [
-                        {label,?__(23,"Texture")},{color,Color1},
+                        {label,?__(23,"Texture")},{color,Color1, [key({M,color1})]},
                         panel,
-                        {label,?__(24,"Base")},{color,Color2},
+                        {label,?__(24,"Base")},{color,Color2, [key({M,color2})]},
                         panel,
-                        {?__(25,"Hard Noise"),Hard},
+                        {?__(25,"Hard Noise"),Hard, [key({M,hard})]},
                         %% Start Noise Basis Select
                         {menu,[{?__(36,"Blender-Basis"),blender},
                             {?__(37,"Cellnoise"),cellnoise},
@@ -1388,7 +1373,7 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                             {?__(43,"Voronoi F3"),voronoi_f3},
                             {?__(44,"Voronoi F4"),voronoi_f4},
                             {?__(45,"Voronoi F1F2"),voronoi_f2f1}],
-                            NoiseBasis,[]}
+                            NoiseBasis,[key({M,noise_basis})]}
                         %% End Noise Basis Select
                     ],[key({pnl_base1,M})]},
 
@@ -1396,11 +1381,11 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                     {hframe, [
                         {hframe, [
                             {label,?__(26,"Noise Size")},
-                            {text,NoiseSize,[range(noise_size)]}
+                            {text,NoiseSize,[key({M,noise_size}), range(noise_size)]}
                         ]},
                         {hframe, [
                             {label,?__(27,"Noise Depth")},
-                            {text,Depth,[range(noise_depth)]}
+                            {text,Depth,[key({M,depth}), range(noise_depth)]}
                         ]}
                     ],[key({pnl_base2,M}),{margin,false},{show,false}]},
 
@@ -1408,7 +1393,7 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                     {hframe, [
                         {hframe, [
                             {label,?__(28,"Sharpness")},
-                            {text,Sharpness,[range(sharpness)]}
+                            {text,Sharpness,[key({M,sharpness}), range(sharpness)]}
                         ],[key({pnl_sharpness,M})]},
                         %],[hook(open, [member,{?TAG,type,M},marble])]},
 
@@ -1416,14 +1401,14 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                         {hframe, [
                             {hframe, [
                                 {label,?__(29,"Turbulence")},
-                                {text,Turbulence,[range(turbulence)]}
+                                {text,Turbulence,[key({M,turbulence}), range(turbulence)]}
                             ]},
                             %% Start Shape Select
                             {menu,[
                                 {?__(30,"sin"),"sin"},
                                 {?__(31,"saw"),saw},
                                 {?__(32,"tri"),tri}
-                            ],Shape,[]}
+                            ],Shape,[key({M,shape})]}
                             %% End Shape Select
                         ],[key({pnl_turb,M}),{margin,false}]},
 
@@ -1433,7 +1418,7 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                             {menu,[
                                 {?__(33,"Rings"),rings},
                                 {?__(34,"Bands"),bands}
-                            ],WoodType,[]}
+                            ],WoodType,[key({M,wood_type})]}
                             %% End Wood Type Select
                         ],[key({pnl_wood,M})]}
                     ],[key({pnl_base3,M}),{margin,false},{show,false}]},
@@ -1448,7 +1433,7 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                                 {?__(48,"Color"),col1},
                                 {?__(49,"Color+Outline"),col2},
                                 {?__(50,"Color+Outline+Intensity"),col3}
-                            ],CellType,[]},
+                            ],CellType,[key({M,cell_type})]},
                             %% End Voronoi Cell Type Select
                             panel,
                             %% Start Voronoi Cell Shape Select
@@ -1457,7 +1442,7 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                                    {?__(53,"Manhattan"),manhattan},
                                    {?__(54,"Chebychev"),chebychev},
                                    {?__(55,"Minkovsky"),minkovsky}],
-                                CellShape,[]}
+                                CellShape,[key({M,cell_shape})]}
                             %% End Voronoi Cell Shape Select
                         ],[{margin,false}]},
                         %% End Voronoi Line 1
@@ -1466,11 +1451,11 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                         {hframe, [
                             {hframe, [
                                 {label,?__(56,"Cell Size")},
-                                {text,CellSize,[range(cell_size)]}
+                                {text,CellSize,[key({M,cell_size}), range(cell_size)]}
                             ]},
                             {hframe, [
                                 {label,?__(57,"Intensity")},
-                                {text,Intensity,[range(intensity)]}
+                                {text,Intensity,[key({M,intensity}), range(intensity)]}
                             ]}
                         ],[{margin,false}]},
                         %% End Voronoi Line 2
@@ -1479,19 +1464,19 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                         {hframe, [
                             {hframe, [
                                 {label,?__(58,"W1")},
-                                {text,CellWeight1,[range(cell_weight1)]}
+                                {text,CellWeight1,[key({M,cell_weight1}), range(cell_weight1)]}
                             ]},
                             {hframe, [
                                 {label,?__(59,"W2")},
-                                {text,CellWeight2,[range(cell_weight2)]}
+                                {text,CellWeight2,[key({M,cell_weight2}), range(cell_weight2)]}
                             ]},
                             {hframe, [
                                 {label,?__(60,"W3")},
-                                {text,CellWeight3,[range(cell_weight3)]}
+                                {text,CellWeight3,[key({M,cell_weight3}), range(cell_weight3)]}
                             ]},
                             {hframe, [
                                 {label,?__(61,"W4")},
-                                {text,CellWeight4,[range(cell_weight4)]}
+                                {text,CellWeight4,[key({M,cell_weight4}), range(cell_weight4)]}
                             ]}
                         ],[{margin,false}]}
                         %% End Voronoi Line 3
@@ -1506,15 +1491,15 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                                 {?__(64,"Ridged"),ridgedmf},
                                 {?__(65,"Hybrid"),hybridmf},
                                 {?__(66,"FBM"),fBm}
-                            ],MusgraveType,[]},
+                            ],MusgraveType,[key({M,musgrave_type})]},
                             panel,
                             {hframe,[
                                 {label,?__(77,"Noise Size")},
-                                {text,MusgraveNoiseSize,[range(musgrave_noisesize)]}
+                                {text,MusgraveNoiseSize,[key({M,musgrave_noisesize}), range(musgrave_noisesize)]}
                             ]},
                             {hframe,[
                                 {label,?__(78,"Intensity")},
-                                {text,MusgraveIntensity,[range(musgrave_intensity)]}
+                                {text,MusgraveIntensity,[key({M,musgrave_intensity}), range(musgrave_intensity)]}
                             ]}
                         ],[{margin,false}]},
                         %% End Musgrave Line 1
@@ -1523,15 +1508,15 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                         {hframe, [
                             {hframe, [
                                 {label,?__(79,"Contrast (H)")},
-                                {text,MusgraveContrast,[range(musgrave_contrast)]}
+                                {text,MusgraveContrast,[key({M,musgrave_contrast}), range(musgrave_contrast)]}
                             ]},
                             {hframe, [
                                 {label,?__(80,"Lacunarity")},
-                                {text,MusgraveLacunarity,[range(musgrave_lacunarity)]}
+                                {text,MusgraveLacunarity,[key({M,musgrave_lacunarity}), range(musgrave_lacunarity)]}
                             ]},
                             {hframe, [
                                 {label,?__(81,"Octaves")},
-                                {text,MusgraveOctaves,[range(musgrave_octaves)]}
+                                {text,MusgraveOctaves,[key({M,musgrave_octaves}), range(musgrave_octaves)]}
                             ]}
                         ],[{margin,false}]}
                         %% End Musgrave Line 2
@@ -1552,10 +1537,10 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                                 {?__(94,"Voronoi F3"),voronoi_f3},
                                 {?__(95,"Voronoi F4"),voronoi_f4},
                                 {?__(96,"Voronoi F1F2"),voronoi_f2f1}
-                            ],DistortionType,[]},
+                            ],DistortionType,[key({M,distotion_type})]},
                             %% End Distorted Noise Type Select
-                            {label,?__(107,"Noise Size")},{text,DistortionNoiseSize,[range(distortion_noisesize)]},
-                            {label,?__(108,"Distortion")},{text,DistortionIntensity,[range(distortion_intensity)]}
+                            {label,?__(107,"Noise Size")},{text,DistortionNoiseSize,[key({M,distortion_noisesize}), range(distortion_noisesize)]},
+                            {label,?__(108,"Distortion")},{text,DistortionIntensity,[key({M,distortion_intensity}), range(distortion_intensity)]}
                         ],[{margin,false}]}
                     ],[key({pnl_dist_noise,M}),{show,false}]}
                 ],[key({pnl_type,M})]}
@@ -1595,69 +1580,20 @@ mod_legend(Enabled, Mode, Type) when is_list(Mode), is_list(Type) ->
     end++Mode++", "++Type++")".
 
 
-modulator_result(Ps, [{{?TAG,enabled,_},_}|_]=Res) ->
-    modulator_result(Ps, Res, 1, []);
-modulator_result(Ps, Res) ->
-    exit({invalid_tag,{?MODULE,?LINE,[Ps, Res]}}).
+process_modulator(Ps) ->
+    {Modulators,Remaning} =
+        lists:foldr(fun(Id, {Mod0,Ps0})->
+            {Mod1, Ps1} = modulator_result_find(Ps0, Id, {[],[]}),
+            {[{modulator, lists:sort(Mod1)}]++Mod0,Ps1}
+        end, {[],Ps}, lists:seq(1,?MAX_MODULATORS)),
+    {[{modulators, Modulators}], Remaning}.
 
-modulator_result(Ps, [], _, Modulators) ->  % Should not happen
-    {[{modulators,reverse(Modulators)}|Ps], []};
-modulator_result(Ps, [{{?TAG,autosmooth},_}|_]=Res, _, Modulators) ->
-    {[{modulators,reverse(Modulators)}|Ps], Res};
-modulator_result(Ps, Res0, M, Modulators) ->
-    {Modulator,Res} = modulator(Res0, M),
-    modulator_result(Ps, Res, M+1, [Modulator|Modulators]).
+modulator_result_find([], _, Acc) -> Acc;
+modulator_result_find([{{Id,Field},Value}|Ps], Id, {Mod, Remaining}) ->
+    modulator_result_find(Ps, Id, {Mod ++[{Field,Value}], Remaining});
+modulator_result_find([Item|Ps], Id, {Mod, Remaining}) ->
+    modulator_result_find(Ps, Id, {Mod, Remaining ++ [Item]}).
 
-
-%%% Increase split_list # +1 per line if add Modulator to Dialog
-modulator(Res0, M) ->
-    {Res1,Res} = split_list(Res0,
-        fun (A) ->
-            Next = M+1,
-            case A of
-                {{?TAG,enabled,Next},_} -> true;    % The end block is the next start one
-                {{?TAG,autosmooth},_} -> true;      % The last block was already read
-                _ -> false
-            end
-        end),
-    EnabledTag = {?TAG,enabled,M},
-    TypeTag = {?TAG,type,M},
-    {EnabledTag,Enabled} = lists:keyfind(EnabledTag, 1, Res1),
-    {TypeTag,Type} = lists:keyfind(TypeTag, 1, Res1),
-    Res2 = lists:keydelete(EnabledTag, 1, lists:keydelete(TypeTag, 1, Res1)),
-    [Mode,AlphaIntensity,TextureType,SizeX,SizeY,SizeZ,
-     Diffuse,Shininess,Normal,
-     Filename,
-     Color1,Color2,Hard,NoiseBasis,NoiseSize,Depth,
-     Sharpness,Turbulence,Shape,
-     WoodType,CellType,CellShape,CellSize,Intensity,CellWeight1,CellWeight2,CellWeight3,CellWeight4,
-     MusgraveType,MusgraveNoiseSize,MusgraveIntensity,MusgraveContrast,
-     MusgraveLacunarity,MusgraveOctaves,DistortionType,
-     DistortionNoiseSize,DistortionIntensity] =
-        case Res2 of
-            [Minimized|Rest] when is_boolean(Minimized) -> Rest;  % for keep compatibility with previous W3D version
-            Rest -> Rest
-        end,
-    Ps = [{enabled,Enabled},{mode,Mode},{alpha_intensity,AlphaIntensity},
-          {texture_type,TextureType},
-          {size_x,SizeX},{size_y,SizeY},{size_z,SizeZ},
-          {diffuse,Diffuse},
-          {shininess,Shininess},{normal,Normal},
-          {type,Type},
-          {filename,Filename},{color1,Color1},{color2,Color2},{hard,Hard},
-          {noise_basis,NoiseBasis},{noise_size,NoiseSize},{depth,Depth},
-          {sharpness,Sharpness},{turbulence,Turbulence},{shape,Shape},
-          {wood_type,WoodType},{cell_type,CellType},{cell_shape,CellShape},
-          {cell_size,CellSize},{intensity,Intensity},{cell_weight1,CellWeight1},
-          {cell_weight2,CellWeight2},{cell_weight3,CellWeight3},{cell_weight4,CellWeight4},
-          {musgrave_type,MusgraveType},
-          {musgrave_noisesize,MusgraveNoiseSize},{musgrave_intensity,MusgraveIntensity},
-          {musgrave_contrast,MusgraveContrast},{musgrave_lacunarity,MusgraveLacunarity},
-          {musgrave_octaves,MusgraveOctaves},{distortion_type,DistortionType},
-          {distortion_noisesize,DistortionNoiseSize},
-          {distortion_intensity,DistortionIntensity}
-         ],
-    {{modulator,Ps},Res}.
 
 %%% Creates new Modulator
 modulator_add(M) ->
@@ -1728,9 +1664,9 @@ light_dialog(Name, Ps) ->
     Power = proplists:get_value(power, YafaRay, DefPower),
     PowerStr =
         [{hframe, [
-            {hframe, [
-                {label,?__(1,"Power")},
-                {text,Power,[range(power),key(power)]}
+            {label_column, [
+                {?__(1,"Power"),
+                {text,Power,[key(power),range(power),key(power)]}}
             ]},
             panel,
             help_button({light_dialog,Type})
@@ -1757,14 +1693,14 @@ light_dialog(_Name, point, Ps) ->
             {?__(5,"Spherelight"),spherelight}
         ],Type,[key(type),{hook,Hook_Show}]},
         {hframe, [
-            {hframe, [
-                {label,?__(15,"Radius")},
-                {text,ArealightRadius,[range(arealight_radius),key(arealight_radius)]}
+            {label_column, [
+                {?__(15,"Radius"),
+                {text,ArealightRadius,[key(arealight_radius), range(arealight_radius)]}}
             ]},
             panel,
-            {hframe, [
-                {label,?__(17,"Samples")},
-                {text,ArealightSamples,[range(samples),key(arealight_samples)]}
+            {label_column, [
+                {?__(17,"Samples"),
+                {text,ArealightSamples,[key(arealight_samples), range(samples)]}}
             ]}
         ],[key(pnl_sphere),{margin,false}]}
     ];
@@ -1805,27 +1741,31 @@ light_dialog(_Name, spot, Ps) ->
             {?__(30,"IES"),spot_ies}
         ],Type,[key(type),{hook,Hook_Show}]},
         {vframe, [
-            {hframe, [
-                {label,?__(100,"Filename")},
-                {button,{text,SpotIESFilename,[key(spot_ies_filename),{width,35},{props,BrowsePropsIES}]}}
+            {label_column, [
+                {?__(100,"Filename"),
+                {button,{text,SpotIESFilename,[key(spot_ies_filename),{width,35},{props,BrowsePropsIES}]}}}
             ],[key(pnl_ies)]},
             {vframe, [
                 {hframe, [
-                    {label,?__(101,"Blend")},
-                    {text,SpotBlend,[key(spot_blend),range(spot_blend)]},
+                    {label_column, [
+			{?__(101,"Blend"),
+                    	{text,SpotBlend,[key(spot_blend),range(spot_blend)]}}
+		    ]},
                     panel,
-                    {?__(97,"Photon Only"),SpotPhotonOnly,[key(spot_photon_only)]},
-                    panel
-                ],[key(pnl_spt_photon)]},
+                    {?__(97,"Photon Only"),SpotPhotonOnly,[key(spot_photon_only)]}
+                ],[key(pnl_spt_photon),{margin,false}]},
                 {hframe, [
                     {?__(38,"Soft Shadows"),SpotSoftShadows,[key(spot_soft_shadows),{hook,Hook_Enabled}]},
                     panel,
-                    {label,?__(35,"Samples")},
-                    {text,SpotIESSamples,[range(spot_ies_samples),key(spot_ies_samples)]},
+                    {label_column, [
+			{?__(35,"Samples"),
+                    	{text,SpotIESSamples,[range(spot_ies_samples),key(spot_ies_samples)]}}]},
                     panel,
-                    {label,?__(102,"Fuzzyness")},
-                    {text,SpotFuzzyness,[range(spot_fuzzyness),key(spot_fuzzyness)]}
-                ]}
+                    {label_column, [
+			{?__(102,"Fuzzyness"),
+                    	{text,SpotFuzzyness,[range(spot_fuzzyness),key(spot_fuzzyness)]}}
+		    ]}
+		], [{margin,false}]}
             ],[{margin,false}]}
         ],[key(pnl_spot_light),[{margin,false}]]}
     ];
@@ -1892,14 +1832,14 @@ light_dialog(_Name, infinite, Ps) ->
                 ],Type,[key(type),{hook,Hook_Show}]},
                 %% Sunlight Settings Start
                 {hframe, [
-                    {hframe, [
-                        {label,?__(114,"Samples")++" "},
-                        {text,SunSamples,[key(sun_samples),range(sun_samples)]}
+                    {label_column, [
+                        {?__(114,"Samples")++" ",
+                        {text,SunSamples,[key(sun_samples),range(sun_samples)]}}
                     ]},
                     panel,
-                    {hframe, [
-                        {label,?__(115,"Angle")++" "},
-                        {text,SunAngle,[key(sun_angle),range(sun_angle)]}
+                    {label_column, [
+                        {?__(115,"Angle")++" ",
+                        {text,SunAngle,[key(sun_angle),range(sun_angle)]}}
                     ]}
                 ],[key(pnl_sunlight), {margin,false}]},
                 %% Sunlight Settings End
@@ -1909,9 +1849,9 @@ light_dialog(_Name, infinite, Ps) ->
                     {?__(112,"Infinite"),InfiniteTrue,[key(infinite_true),{hook,Hook_Enabled}]},
                     panel,
                     %% Directional Semi-infinite Radius
-                    {hframe, [
-                        {label,?__(113,"Semi-infinite Radius")},
-                        {text,InfiniteRadius,[range(infinite_radius),key(infinite_radius)]}
+                    {label_column, [
+                        {?__(113,"Semi-infinite Radius"),
+                        {text,InfiniteRadius,[key(infinite_radius), range(infinite_radius)]}}
                     ],[key(pnl_inf_radius), {margin,false}]}
                 ],[key(pnl_directional),{show,false}]}
                 %% End Directional Semi-infinite Radius
@@ -1927,7 +1867,7 @@ light_dialog(_Name, infinite, Ps) ->
                 {vframe, [
                     {hframe, [
                         {label_column, [
-                            {?__(47,"Turbidity"),{text,Turbidity,[range(turbidity),key(turbidity)]}},
+                            {?__(47,"Turbidity"),{text,Turbidity,[key(turbidity),range(turbidity)]}},
                             {"a: "++?__(48,"Horizon Brightness"),{text,A_var,[key(a_var)]}},
                             {"b: "++?__(49,"Horizon Spread"),{text,B_var,[key(b_var)]}}
                         ],[{margin,false}]},
@@ -1949,9 +1889,9 @@ light_dialog(_Name, infinite, Ps) ->
                     {hframe,[
                         {?__(120,"Real Sun"),SunReal,[key(sun_real),{hook,Hook_Enabled}]},
                         panel,
-                        {hframe,[
-                            {label,?__(121,"Sun Power")},
-                            {text,SunRealPower,[range(sun_real_power),key(sun_real_power)]}
+                        {label_column,[
+                            {?__(121,"Sun Power"),
+                            {text,SunRealPower,[range(sun_real_power),key(sun_real_power)]}}
                         ],[key(pnl_sun_real),{margin,false}]}
                     ]},
 
@@ -1962,10 +1902,10 @@ light_dialog(_Name, infinite, Ps) ->
                             panel,
                             {hframe, [
                                 {label,?__(117,"Power")},
-                                {text,SkyBackgroundPower,[range(sky_background_power),key(sky_background_power)]},
+                                {text,SkyBackgroundPower,[key(sky_background_power),range(sky_background_power)]},
                                 panel,
                                 {label,?__(118,"Samples")},
-                                {text,SkyBackgroundSamples,[range(sky_background_samples),key(sky_background_samples)]}
+                                {text,SkyBackgroundSamples,[key(sky_background_samples),range(sky_background_samples)]}
                             ], [key(pnl_bkg_power),{margin,false}]}
                         ]},
                         {hframe, [
@@ -2036,15 +1976,15 @@ light_dialog(_Name, ambient, Ps) ->
         %% Backgrounds
         {vframe, [
             {value,Type,[key(type)]},
-            {hframe, [
-                {label,?__(91,"Background Light/Environment")++" "},
+            {label_column, [
+                {?__(91,"Background Light/Environment")++" ",
                 {menu, [
                     {?__(79,"HDRI"),'HDRI'},
                     {?__(80,"Image"),image},
                     {?__(81,"Constant"),constant},
                     {?__(105,"Gradient"),gradientback},
                     {?__(82,"None"), undefined}
-                ], Bg, [key(background),{hook,Hook_Show}]}
+                ], Bg, [key(background),{hook,Hook_Show}]}}
             ]},
 
             {vframe, [
@@ -2065,22 +2005,26 @@ light_dialog(_Name, ambient, Ps) ->
                                 ],[key(pnl_img_hdri),{margin,false}]}
                             ],[{margin,false}]}},
                         {?__(108,"Rotation"),
-                                {text,BgRotation,[range(background_rotation),key(background_rotation)]}}
+                                {text,BgRotation,[key(background_rotation),range(background_rotation)]}}
                     ],[{margin,false}]}
                 ],[key(pnl_file),{margin,false}]},
                 %% Constant Background
-                {hframe, [
-                    {label,?__(90,"Color")},
-                    {color,BgColor,[key(background_color)]}
+                {label_column, [
+                    {?__(90,"Color"),
+                    {color,BgColor,[key(background_color)]}}
                 ],[key(pnl_const),{show,false}]},
                 %% Gradient Background
                 {hframe,[
-                    {label,?__(106,"Horizon Color")},
-                    {color,HorizonColor,[key(horizon_color)]},
-                    panel,
-                    {label,?__(107,"Zenith Color")},
-                    {color,ZenithColor,[key(zenith_color)]}
-                ],[key(pnl_gradient),{show,false}]},
+                    {label_column, [
+			{?__(106,"Horizon Color"),
+                    	{color,HorizonColor,[key(horizon_color)]}}
+		    ]},
+		    panel,
+                    {label_column, [
+			{?__(107,"Zenith Color"),
+                    	{color,ZenithColor,[key(zenith_color)]}}
+		    ]}
+                ],[key(pnl_gradient),{show,false},{margin,false}]},
                 %% Common parameters
                 {vframe,[
                     {hframe,[
@@ -2089,10 +2033,14 @@ light_dialog(_Name, ambient, Ps) ->
                         ]},
                         panel,
                         {hframe,[
-                            {label,?__(60,"Samples")},
-                            {text,Samples,[range(samples),key(samples)]},
-                            {label,?__(126,"SmartIBL blur")},
-                            {text,Smartibl_blur,[range(smartibl_blur),key(smartibl_blur)]}
+                            {label_column, [
+			     	{?__(60,"Samples"),
+                            	{text,Samples,[key(samples),range(samples)]}}
+			    ]},
+                            {label_column, [
+				{?__(126,"SmartIBL blur"),
+                            	{text,Smartibl_blur,[key(smartibl_blur),range(smartibl_blur)]}}
+			    ]}
                         ],[key(pnl_enlight_samples),{margin,false}]}
                     ],[{margin,false}]},
                     {hframe, [
@@ -2110,7 +2058,8 @@ light_dialog(_Name, area, Ps) ->
 
     [
         {label_column,[
-            {?__(93,"Samples"), {text,ArealightSamples,[range(samples),key(arealight_samples)]}}
+	    {?__(93,"Samples"),
+	    {text,ArealightSamples,[key(arealight_samples),range(samples)]}}
         ]}
     ];
 
@@ -2118,40 +2067,10 @@ light_dialog(_Name, _Type, _Ps) ->
 %%    erlang:display({?MODULE,?LINE,{_Name,_Type,_Ps}}),
     [].
 
-light_result(_Name, Ps0, [{?KEY(power),Power}|Res0]) ->
-    {LightPs0,Res1} = light_result(Res0),
-    LightPs = [{Key,Val} || {?KEY(Key),Val} <- LightPs0],
-    Ps = [{?TAG,[{power,Power}|LightPs]}
-          |keydelete(?TAG, 1, Ps0)],
-    {Ps,Res1}.
-
-%%% Point
-light_result([{?KEY(type),pointlight}|_]=Ps) ->
-    split_list(Ps, 3);
-light_result([{?KEY(type),spherelight}|_]=Ps) ->
-    split_list(Ps, 3);
-%%% Spot
-light_result([{?KEY(type),spotlight}|_]=Ps) ->
-    split_list(Ps, 7);
-light_result([{?KEY(type),spot_ies}|_]=Ps) ->
-    split_list(Ps, 7);
-%%% Infinite
-light_result([{?KEY(type),sunlight}|_]=Ps) ->
-    split_list(Ps, 21);
-light_result([{?KEY(type),directional}|_]=Ps) ->
-    split_list(Ps, 21);
-%%% Area
-light_result([{?KEY(arealight_samples),_}|_]=Ps) ->
-    split_list(Ps, 1);
-%%% Ambient
-light_result([{?KEY(background),_}|_]=Ps) ->
-    split_list(Ps, 12);
-light_result([{?KEY(type),hemilight}|_]=Ps) ->
-    split_list(Ps, 15);
-light_result(Ps) ->
-%%    erlang:display({?MODULE,?LINE,Ps}),
-    {[],Ps}.
-
+light_result(_Name, Light, Res) ->
+    {Found, Remaining} = rip_all(?TAG, Res),
+    NewLight = [{?TAG, Found} | lists:keydelete(?TAG, 1, Light)],
+    {NewLight, Remaining}.
 
 pref_dialog(St) ->
     [{dialogs,Dialogs},{renderer,Renderer},
@@ -6067,35 +5986,12 @@ menu_shader() ->
         {?__(7,"Light Material"),lightmat},
         {?__(8,"Blend"),blend_mat}].
 
-%% Split a list into a list of length Pos, and the tail
-%%
-split_list(List, Pos) when is_list(List), is_integer(Pos), Pos >= 0 ->
-    case split_list1(List, Pos, []) of
-        {_,_}=Result -> Result;
-        Error -> erlang:error(Error, [List, Pos])
-    end;
-split_list(List, Fun) when is_list(List), is_function(Fun) ->
-    split_list2(List, Fun, []).
-%%
-split_list1(List, 0, Head) ->
-    {lists:reverse(Head),List};
-split_list1([], _Pos, _) ->
-    badarg;
-split_list1([H|T], Pos, Head) ->
-    split_list1(T, Pos-1, [H|Head]).
-%%
-split_list2([H|T]=List, Fun, Head) ->
-    case Fun(H) of
-        true -> {lists:reverse(Head),List};
-        _ -> split_list2(T, Fun, [H|Head])
-    end.
 
 %%% pulls out all the values stored as {{KeyTag, SubKey}, Value}
 %%% returns {ListOfFound, ListRemaining}
 %%% ListOfFound is a list of {SubKey, Value}
 rip_all(KeyTag, List) ->
     Keys = proplists:get_keys(List),
-    io:format("Keys: ~p\n\n",[Keys]),
     rip_all(KeyTag, Keys, List).
 rip_all(KeyTag, [Key | Keys], List) ->
     case rip_keytag(KeyTag, Key) of
