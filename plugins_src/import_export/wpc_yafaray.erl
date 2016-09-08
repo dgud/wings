@@ -911,7 +911,6 @@ material_dialog(_Name, Mat) ->
     %% Object Specific Material Properties Dialog
     %%
     Modulators = proplists:get_value(modulators, YafaRay, def_modulators(Maps)),
-    io:format("Modulators: ~p\n\n",[Modulators]),
     ObjectFrame =
         {vframe, [
             {hframe, [
