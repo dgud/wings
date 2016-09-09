@@ -240,7 +240,7 @@ export_translucent_shader(F, Name, Mat, ExportDir, Attr) ->
     println(F,
         "\t<sss_transmit fval=\"~.10f\"/>",[proplists:get_value(sss_translucency, Attr, ?DEF_SSS_TRANSLUCENCY)]), % sure??
     println(F,
-        "\t<exponent fval=\"~.10f\"/>",[proplists:get_value(exponent, Attr, ?DEF_EXPONENT]),
+        "\t<exponent fval=\"~.10f\"/>",[proplists:get_value(exponent, Attr, ?DEF_EXPONENT)]),
 
     write_material_layers(F, Name, Maps, Attr, Modulators),
     

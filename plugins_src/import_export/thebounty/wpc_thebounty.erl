@@ -216,25 +216,12 @@ props(export_selected, _Attr) ->
 %% modulators def move to ui_material.erl
 
 
-material_result(_Name, Mat0, Res0) ->
+material_result(_Name, Mat0, Res) ->
     %% take the Material settings
-    {Ps1,Res1} = split_list(Res0,
-        fun
-            ({{?TAG,enabled,1},_}) -> true;   % look for the first modulator
-            (_) -> false
-        end),
-    Ps2 = [{Key,Val} || {?KEY(Key),Val} <- Ps1],
-    %% take the Modulators settings
-    {Ps3,Res2} = modulator_result(Ps2, Res1),
-    %% take the Object Parameters settings
-    {Ps4,Res} = split_list(Res2,
-        fun
-            ({result,_}) -> true;   % look for the end of the list
-            (_) -> false
-        end),
-    Ps = [{Key,Val} || {?KEY(Key),Val} <- Ps4] ++Ps3,
-    Mat = [?KEY(Ps)|keydelete(?TAG, 1, Mat0)],
-    {Mat,Res}.
+    {Found0, Remaining} = rip_all(?TAG, Res),
+    {Mod, Mat} = process_modulator(Found0),
+    NewMat = [{?TAG, Mat++Mod} | lists:keydelete(?TAG, 1, Mat0)],
+    {NewMat, Remaining}.
 
 %%-----------------------------
 % split modulators code
@@ -698,45 +685,38 @@ get_var(Name) ->
 
 erase_var(Name) ->
     ets:delete(?LOCAL_MODULE, Name).
-% end insert from micheus --------------------->
-
-%set_var(Name, Value) ->
-%    put({?MODULE,Name}, Value).
-
-%get_var(Name) ->
-%    get({?MODULE,Name}).
-
-%erase_var(Name) ->
-%    erase({?MODULE,Name}).
 
 %%
 % some useful declarations for User Interface
 
 
-%% Split a list into a list of length Pos, and the tail
-%%
-split_list(List, Pos) when is_list(List), is_integer(Pos), Pos >= 0 ->
-    case split_list1(List, Pos, []) of
-        {_,_}=Result -> Result;
-        Error -> erlang:error(Error, [List, Pos])
+%%% pulls out all the values stored as {{KeyTag, SubKey}, Value}
+%%% returns {ListOfFound, ListRemaining}
+%%% ListOfFound is a list of {SubKey, Value}
+rip_all(KeyTag, List) ->
+    Keys = proplists:get_keys(List),
+    rip_all(KeyTag, Keys, List).
+rip_all(KeyTag, [Key | Keys], List) ->
+    case rip_keytag(KeyTag, Key) of
+	true ->
+	    {_SetTag, SubTag} = Key,
+	    Value = proplists:get_value(Key, List),
+	    ListNext = proplists:delete(Key, List),
+	    {Found, Remaining} = rip_all(KeyTag, Keys, ListNext),
+	    {[{SubTag, Value} | Found], Remaining};
+	false ->
+	    rip_all(KeyTag, Keys, List)
     end;
-split_list(List, Fun) when is_list(List), is_function(Fun) ->
-    split_list2(List, Fun, []).
-%%
-split_list1(List, 0, Head) ->
-    {lists:reverse(Head),List};
+rip_all(_K, _KL, List) ->
+    {[], List}.
 
-split_list1([], _Pos, _) ->
-    badarg;
-
-split_list1([H|T], Pos, Head) ->
-    split_list1(T, Pos-1, [H|Head]).
-%%
-split_list2([H|T]=List, Fun, Head) ->
-    case Fun(H) of
-        true -> {lists:reverse(Head),List};
-        _ -> split_list2(T, Fun, [H|Head])
-    end.
+rip_keytag(KeyTag, {SetTag, _}) ->
+    case KeyTag of
+	SetTag -> true;
+	_ -> false
+    end;
+rip_keytag(_KT, _ST) ->
+    false.
 
 
 %% Zip lists together into a list of tuples

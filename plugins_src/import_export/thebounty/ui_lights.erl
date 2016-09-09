@@ -29,7 +29,7 @@ light_dialog(Name, Ps) ->
         [{hframe, [
             {hframe, [
                 {label,?__(1,"Power")},
-                {text,Power,[range(power),key(power)]}
+                {text,Power,[key(power),range(power)]}
             ]},
             panel, panel, panel, panel, help_button({light_dialog,LightType})
         ]}],
@@ -57,11 +57,11 @@ light_dialog(_Name, point, Ps) ->
         },
         {hframe,[
             {hframe,[
-                {label,?__(15,"Radius")},{text,ArealightRadius,[range(arealight_radius),key(arealight_radius)]}
+                {label,?__(15,"Radius")},{text,ArealightRadius,[key(arealight_radius),range(arealight_radius)]}
             ]},
             panel,
             {hframe,[
-                {label,?__(17,"Samples")}, {text,ArealightSamples,[range(samples),key(arealight_samples)]}
+                {label,?__(17,"Samples")}, {text,ArealightSamples,[key(arealight_samples),range(samples)]}
             ]}
         ],[key(pnl_sphere),{margin,false}]
         }
@@ -184,7 +184,7 @@ light_dialog(_Name, infinite, Ps) ->
                     panel,
                     {hframe, [
                         {label,?__(115,"Semi-infinite Radius")},
-                        {text,InfiniteRadius,[range(infinite_radius),key(infinite_radius)]}
+                        {text,InfiniteRadius,[key(infinite_radius),range(infinite_radius)]}
                     ],[key(pnl_inf_radius), {margin,false}]}
                 ],[key(pnl_directional),{show,false}]}
             ],[key(pnl_base1),{margin,false}]}
@@ -198,62 +198,15 @@ light_dialog(_Name, infinite, Ps) ->
 light_dialog(_Name, area, Ps) ->
     ArealightSamples = proplists:get_value(arealight_samples, Ps, 16),
     [{label_column,[
-        {?__(93,"Samples"), {text,ArealightSamples,[range(samples),key(arealight_samples)]}}
+        {?__(93,"Samples"), {text,ArealightSamples,[key(arealight_samples),range(samples)]}}
     ]}];
 
 light_dialog(_Name, _Type, _Ps) ->
 %%    erlang:display({?MODULE,?LINE,{_Name,_Type,_Ps}}),
     [].
 
-light_result(_Name, Ps0, [{?KEY(power),Power}|Res0]) ->
-    {LightPs0,Res1} = light_result(Res0),
-    LightPs = [{Key,Val} || {?KEY(Key),Val} <- LightPs0],
-    Ps = [{?TAG,[{power,Power}|LightPs]}
-          |keydelete(?TAG, 1, Ps0)],
-    {Ps,Res1}.
-
-%!-----------------------------
-%! Point and sphere
-%!-----------------------------
-light_result([{?KEY(type),pointlight}|_]=Ps) ->
-    split_list(Ps, 3);
-light_result([{?KEY(type),spherelight}|_]=Ps) ->
-    split_list(Ps, 3);
-
-%!-------------------
-%! Spot
-%!-------------------
-light_result([{?KEY(spot_type),spotlight}|_]=Ps) ->
-    split_list(Ps, 7);
-
-light_result([{?KEY(spot_type),spot_ies}|_]=Ps) ->
-    split_list(Ps, 7);
-
-
-%!----------------------------------
-%! Infinite and sun
-%!----------------------------------
-light_result([{?KEY(type),sunlight}|_]=Ps) ->
-    split_list(Ps, 5); %21);
-
-light_result([{?KEY(type),directional}|_]=Ps) ->
-    split_list(Ps, 5); %21);
-
-%!------------------------------------
-%! Area
-%!------------------------------------
-light_result([{?KEY(arealight_samples),_}|_]=Ps) ->
-    split_list(Ps, 1);
-
-%!------------------------------------
-%! Ambient
-%!------------------------------------
-%light_result([{?KEY(background),_}|_]=Ps) ->
-%    split_list(Ps, 10);
-
-%light_result([{?KEY(type),hemilight}|_]=Ps) ->
-%    split_list(Ps, 11); %13);
-
-light_result(Ps) ->
-%%    erlang:display({?MODULE,?LINE,Ps}),
-    {[],Ps}.
+light_result(_Name, Light, Res) ->
+    {Found, Remaining} = rip_all(?TAG, Res),
+    io:format("Found:~p\n Remaining: ~p\n\n",[Found, Remaining]),
+    NewLight = [{?TAG, Found} | lists:keydelete(?TAG, 1, Light)],
+    {NewLight, Remaining}.
