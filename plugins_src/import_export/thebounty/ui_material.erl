@@ -456,10 +456,7 @@ material_dialog(_Name, Mat) ->
         ]},
     %% End of Material Dialogs
 
-    Modulator_Frame =
-        {vframe,
-            modulator_dialogs(Modulators, Maps)
-        },
+    Modulator_Frame = {vframe, modulator_dialogs(Modulators, Maps) },
 
     [{
         ?__(1,"TheBounty Material"),
