@@ -267,6 +267,7 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_GLOBALPHOTONLIGHT_SEARCH, 200).
 
 %% Modulator
+-define(MAX_MODULATORS, 4).
 -define(DEF_MOD_DEFCOLOR, {1.0,0.0,1.0}).
 -define(DEF_MOD_ENABLED, true).
 -define(DEF_MOD_MODE, mix).
