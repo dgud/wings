@@ -215,6 +215,7 @@ props(export_selected, _Attr) ->
 
 %% modulators def move to ui_material.erl
 
+
 material_result(_Name, Mat0, Res) ->
     %% take the Material settings
     {Found0, Remaining} = rip_all(?TAG, Res),
