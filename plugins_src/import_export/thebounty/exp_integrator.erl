@@ -136,13 +136,16 @@ export_integrator(F, Attr) ->
                     println(F,
                         "\t<sssScale fval=\"~.10f\"/>",[proplists:get_value(sss_scale, Attr)]),
                     println(F,
-                        "\t<singleScatterSamples ival=\"~w\"/>",[proplists:get_value(sss_scatter_samples, Attr)]);
+                        "\t<singleScatterSamples ival=\"~w\"/>",[proplists:get_value(scatter_samples, Attr)]);
                 false -> ok
             end;
         _ -> ok
     end,
 
-    %% volume integrator
+    %!---------------------------------
+    %! volume integrator
+    %! TODO: add sky integrator case
+    %!---------------------------------
     Volintegr_Type = proplists:get_value(volintegr_type, Attr),
     println(F, "</integrator>\n"),
     println(F, "<integrator name=\"volintegr\">"),

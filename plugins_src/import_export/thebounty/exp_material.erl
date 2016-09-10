@@ -42,8 +42,8 @@ export_shader(F, Name, Mat, ExportDir) ->
         blend_mat ->
             ok
     end.
-    
-%% test
+
+%
 write_material_layers(F, Name, Maps, Attr, Modulators)->
     %!
     %! write each active layer on material modulators
@@ -67,7 +67,7 @@ write_material_textures(F, Name, Maps, ExportDir, Modulators)->
                   end;
               (_, N) -> N % Ignore old modulators
           end, 1, Modulators).
-    
+
 
 export_shinydiffuse_shader(F, Name, Mat, ExportDir, Attr) ->
     %!--------------------------------
@@ -76,13 +76,13 @@ export_shinydiffuse_shader(F, Name, Mat, ExportDir, Attr) ->
     OpenGL = proplists:get_value(opengl, Mat),
     Maps = proplists:get_value(maps, Mat, []),
     Modulators = proplists:get_value(modulators, Attr, def_modulators(Maps)),
-    
+
     %! write all textures associated with this material
     write_material_textures(F, Name, Maps, ExportDir, Modulators),
 
     println(F, "<material name=\"~s\">",[Name]),
     println(F, "\t<type sval=\"shinydiffusemat\"/>"),
-    
+
     % for sync viewer object colors (from wings3d color)
     DiffuseA = {_,_,_,Opacity} = proplists:get_value(diffuse, OpenGL),
     Specular = alpha(proplists:get_value(specular, OpenGL)),
@@ -118,9 +118,9 @@ export_shinydiffuse_shader(F, Name, Mat, ExportDir, Attr) ->
 
     %! write each material layer
     write_material_layers(F, Name, Maps, Attr, Modulators),
-    
+
     println(F, "</material>").
-    
+
 
 export_glossy_shaders(F, Name, Mat, ExportDir, Attr, GlossType) ->
     %!------------------------------------
@@ -131,7 +131,7 @@ export_glossy_shaders(F, Name, Mat, ExportDir, Attr, GlossType) ->
     Modulators = proplists:get_value(modulators, Attr, def_modulators(Maps)),
 
     write_material_textures(F, Name, Maps, ExportDir, Modulators),
-    
+
     println(F, "<material name=\"~s\">",[Name]),
     println(F, "\t<type sval=\"~s\"/>", [GlossType]),
 
@@ -188,7 +188,7 @@ export_translucent_shader(F, Name, Mat, ExportDir, Attr) ->
     OpenGL = proplists:get_value(opengl, Mat),
     Maps = proplists:get_value(maps, Mat, []),
     Modulators = proplists:get_value(modulators, Attr, def_modulators(Maps)),
-    
+
     write_material_textures(F, Name, Maps, ExportDir, Modulators),
 
     println(F, "<material name=\"~s\">",[Name]),
@@ -204,7 +204,7 @@ export_translucent_shader(F, Name, Mat, ExportDir, Attr) ->
     ScatterColor = proplists:get_value(scatter_color, Attr, ?DEF_SCATTER_COLOR),
 
     export_rgb(F, glossy_color, proplists:get_value(reflected, Attr, Specular)),
-    
+
     export_rgb(F, color, proplists:get_value(transmitted, Attr, DefTransmitted)),
 
     export_rgb(F, specular_color, proplists:get_value(sss_specular_color, Attr, ?DEF_SSS_SPECULAR_COLOR)),
@@ -213,7 +213,7 @@ export_translucent_shader(F, Name, Mat, ExportDir, Attr) ->
         [ ] -> ok;
         {AbsR,AbsG,AbsB} ->
             AbsD = proplists:get_value(absorption_dist, Attr, ?DEF_ABSORPTION_DIST),
-            
+
             export_rgb(F, sigmaA, {-math:log(max(AbsR, ?NONZERO))/AbsD,
                                    -math:log(max(AbsG, ?NONZERO))/AbsD,
                                    -math:log(max(AbsB, ?NONZERO))/AbsD})
@@ -233,17 +233,17 @@ export_translucent_shader(F, Name, Mat, ExportDir, Attr) ->
     println(F, "\t<IOR fval=\"~.10f\"/>",[proplists:get_value(ior, Attr, 1.3)]),
     println(F,
         "\t<sigmaS_factor fval=\"~.10f\"/>",[proplists:get_value(sigmas_factor, Attr, 1.0)]),
-    println(F, 
+    println(F,
         "\t<diffuse_reflect fval=\"~.10f\"/>",[proplists:get_value(diffuse_reflect, Attr, 1.0)]),
-    println(F, 
+    println(F,
         "\t<glossy_reflect fval=\"~.10f\"/>",[proplists:get_value(glossy_reflect, Attr, 0.0)]),
     println(F,
         "\t<sss_transmit fval=\"~.10f\"/>",[proplists:get_value(sss_translucency, Attr, ?DEF_SSS_TRANSLUCENCY)]), % sure??
     println(F,
-        "\t<exponent fval=\"~.10f\"/>",[proplists:get_value(exponent, Attr, ?DEF_EXPONENT]),
+        "\t<exponent fval=\"~.10f\"/>",[proplists:get_value(exponent, Attr, ?DEF_EXPONENT)]),
 
     write_material_layers(F, Name, Maps, Attr, Modulators),
-    
+
     println(F, "</material>").
 
 
@@ -254,7 +254,7 @@ export_glass_shaders(F, Name, Mat, ExportDir, Attr, GlassType) ->
     OpenGL = proplists:get_value(opengl, Mat),
     Maps = proplists:get_value(maps, Mat, []),
     Modulators = proplists:get_value(modulators, Attr, def_modulators(Maps)),
-    
+
     write_material_textures(F, Name, Maps, ExportDir, Modulators),
 
     println(F, "<material name=\"~s\">",[Name]),
@@ -302,13 +302,13 @@ export_lightmat_shader(F, Name, Mat, ExportDir, Attr) ->
     OpenGL = proplists:get_value(opengl, Mat),
     Maps = proplists:get_value(maps, Mat, []),
     Modulators = proplists:get_value(modulators, Attr, def_modulators(Maps)),
-    
+
     % unsure if this material allow textures..
     write_material_textures(F, Name, Maps, ExportDir, Modulators),
-    
+
     println(F, "<material name=\"~s\">",[Name]),
     println(F, "<type sval=\"light_mat\"/>"),
-    
+
     _DiffuseA = {_,_,_,Opacity} = proplists:get_value(diffuse, OpenGL),
 
     DefLightmatColor = def_lightmat_color(proplists:get_value(diffuse, OpenGL)),
@@ -316,12 +316,12 @@ export_lightmat_shader(F, Name, Mat, ExportDir, Attr) ->
     Lightmat_Color = proplists:get_value(lightmat_color, Attr, DefLightmatColor),
 
     export_rgb(F, color, proplists:get_value(lightmat_color, Attr, Lightmat_Color)),
-    
+
     println(F, "\t<power fval=\"~.10f\"/>",[proplists:get_value(lightmat_power, Attr, 1.0)]),
-    
+
     % unsure about if this material allow layers..
     write_material_layers(F, Name, Maps, Attr, Modulators),
-    
+
     println(F, "</material>").
 
 %%% Start Blend Materials Export
@@ -330,7 +330,7 @@ export_shaderblend(F, Name, Mat, ExportDir) ->
     Attr = proplists:get_value(?TAG, Mat, []),
 
     DefaultMaterialType = get_pref(default_material_type, Attr),
-    
+
     MatType = proplists:get_value(material_type, Attr, DefaultMaterialType),
 
     case MatType of
@@ -358,16 +358,16 @@ export_blend_mat_shader(F, Name, Mat, ExportDir, Attr) ->
     %          (_, N) ->
     %              N % Ignore old modulators
     %      end, 1, Modulators),
-    
+
     println(F, "<material name=\"~s\">",[Name]),
-    
+
     println(F, "\t<type sval=\"blend_mat\"/>"),
-    
+
     println(F,
         "\t<material1 sval=\"""w_""\~s\"/>",[proplists:get_value(blend_mat1, Attr, "blendone")]),
     println(F,
         "\t<material2 sval=\"""w_""\~s\"/>",[proplists:get_value(blend_mat2, Attr, "blendtwo")]),
     println(F,
         "\t<blend_value fval=\"~.4f\"/>",[proplists:get_value(blend_value, Attr, 0.5)]),
-        
+
     println(F, "</material>").

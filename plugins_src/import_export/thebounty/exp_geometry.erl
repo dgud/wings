@@ -109,54 +109,53 @@ export_object_1(F, NameStr, Mesh0=#e3d_mesh{he=He0}, DefaultMaterial, MatPs, Id)
         volume ->
             println(F, "<volumeregion name=\"volumename\">"),
 
-            case proplists:get_value(volume_type, Attr,
-                                     ?DEF_VOLUME_TYPE) of
+            case proplists:get_value(volume_type, Attr,  ?DEF_VOLUME_TYPE) of
                 uniformvolume ->
                     println(F, "<type sval=\"UniformVolume\"/>");
 
 
                 expdensityvolume ->
-                    println(F, "<type sval=\"ExpDensityVolume\"/>"),
-                    println(F, "<a fval=\"~.10f\"/>",[Volume_Height]),
-                    println(F, "<b fval=\"~.10f\"/>",[Volume_Steepness]);
+                    println(F, "\t<type sval=\"ExpDensityVolume\"/>"),
+                    println(F, "\t<a fval=\"~.10f\"/>",[Volume_Height]),
+                    println(F, "\t<b fval=\"~.10f\"/>",[Volume_Steepness]);
 
 
                 noisevolume ->
-                    println(F, "<type sval=\"NoiseVolume\"/>"),
-                    println(F, "<sharpness fval=\"~.10f\"/>",[Volume_Sharpness]),
-                    println(F, "<cover fval=\"~.10f\"/>",[Volume_Cover]),
-                    println(F, "<density fval=\"~.10f\"/>",[Volume_Density]),
-                    println(F, "<texture sval=\"TEmytex\"/>")
+                    println(F, "\t<type sval=\"NoiseVolume\"/>"),
+                    println(F, "\t<sharpness fval=\"~.10f\"/>",[Volume_Sharpness]),
+                    println(F, "\t<cover fval=\"~.10f\"/>",[Volume_Cover]),
+                    println(F, "\t<density fval=\"~.10f\"/>",[Volume_Density]),
+                    println(F, "\t<texture sval=\"TEmytex\"/>")
 
             end,
 
 
-            println(F, "<attgridScale ival=\"~w\"/>",[Volume_Attgridscale]),
-            println(F, "<maxX fval=\"~.10f\"/>",[Volume_Minmax_Z]),
-            println(F, "<maxY fval=\"~.10f\"/>",[Volume_Minmax_X]),
-            println(F, "<maxZ fval=\"~.10f\"/>",[Volume_Minmax_Y]),
-            println(F, "<minX fval=\"-\~.10f\"/>",[Volume_Minmax_Z]),
-            println(F, "<minY fval=\"-\~.10f\"/>",[Volume_Minmax_X]),
-            println(F, "<minZ fval=\"-\~.10f\"/>",[Volume_Minmax_Y]),
-            println(F, "<sigma_a fval=\"~.10f\"/>",[Volume_Sigma_a]),
-            println(F, "<sigma_s fval=\"~.10f\"/>",[Volume_Sigma_s]),
+            println(F, "\t<attgridScale ival=\"~w\"/>",[Volume_Attgridscale]),
+            println(F, "\t<maxX fval=\"~.10f\"/>",[Volume_Minmax_Z]),
+            println(F, "\t<maxY fval=\"~.10f\"/>",[Volume_Minmax_X]),
+            println(F, "\t<maxZ fval=\"~.10f\"/>",[Volume_Minmax_Y]),
+            println(F, "\t<minX fval=\"-\~.10f\"/>",[Volume_Minmax_Z]),
+            println(F, "\t<minY fval=\"-\~.10f\"/>",[Volume_Minmax_X]),
+            println(F, "\t<minZ fval=\"-\~.10f\"/>",[Volume_Minmax_Y]),
+            println(F, "\t<sigma_a fval=\"~.10f\"/>",[Volume_Sigma_a]),
+            println(F, "\t<sigma_s fval=\"~.10f\"/>",[Volume_Sigma_s]),
             println(F," ");
 
 
         meshlight ->
-            println(F," "),
+            %println(F," "),
             println(F, "<light name=\"~s\">",[NameStr]),
 
             export_rgb(F, color, proplists:get_value(meshlight_color, Attr, Meshlight_Color)),
 
-            println(F, "<object ival= \"~w\"/>",[Id]),
-            println(F, "<power fval=\"~.10f\"/>",[Meshlight_Power]),
-            println(F, "<samples ival=\"~w\"/>",[Meshlight_Samples]),
-            println(F, "<double_sided bval=\"~s\"/>",[Meshlight_Double_Sided]),
-            println(F, "<type sval=\"~s\"/>",[Object_Type]),
+            println(F, "\t<object ival= \"~w\"/>",[Id]),
+            println(F, "<\tpower fval=\"~.10f\"/>",[Meshlight_Power]),
+            println(F, "\t<samples ival=\"~w\"/>",[Meshlight_Samples]),
+            println(F, "\t<double_sided bval=\"~s\"/>",[Meshlight_Double_Sided]),
+            println(F, "\t<type sval=\"~s\"/>",[Object_Type]),
             println(F, "</light>"),
             println(F," "),
-            println(F, "<mesh id=\"~w\" type=\"0\">",[Id]),
+            println(F, "\t<mesh id=\"~w\" type=\"0\">",[Id]),
             println(F," ");
 
         lightportal ->
@@ -252,7 +251,7 @@ export_faces(F, [#e3d_face{mat=[Mat|_],tx=Tx,vs=[A,B,C],vc=VCols}|T],
 
     Shader =
         case Mat of
-            DefaultMaterial -> ["  <set_material sval=\"w_",format(Mat),"\"/>"];
+            DefaultMaterial -> ["\t<set_material sval=\"w_",format(Mat),"\"/>"];
             _ -> ["  <set_material sval=\"w_",format(Mat),"\"/>"]
         end,
 

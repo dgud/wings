@@ -88,8 +88,8 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_ANISOTROPIC_V, 1500.0).
 -define(DEF_ROUGHNESS, 0.2).
 -define(DEF_LIGHTMAT_POWER, 0.9).
--define(DEF_BLEND_MAT1, "New Material").
--define(DEF_BLEND_MAT2, "New Material 2").
+-define(DEF_BLEND_MAT1, "blendone").
+-define(DEF_BLEND_MAT2, "blendtwo").
 -define(DEF_BLEND_VALUE, 0.5).
 -define(DEF_OREN_NAYAR, false).
 -define(DEF_OREN_NAYAR_SIGMA, 0.25).
@@ -267,6 +267,7 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_GLOBALPHOTONLIGHT_SEARCH, 200).
 
 %% Modulator
+-define(MAX_MODULATORS, 4).
 -define(DEF_MOD_DEFCOLOR, {1.0,0.0,1.0}).
 -define(DEF_MOD_ENABLED, true).
 -define(DEF_MOD_MODE, mix).
@@ -426,7 +427,7 @@ range_1(sun_samples)            -> {0,infinity};
 range_1(sun_angle)              -> {0.0,80.0};
 
 %backg
-range_1(background_rotation)    -> {0.0,360.0};
+range_1(ibl_rotation)           -> {-180.0,180.0};
 range_1(sky_background_power)   -> {0.0,infinity};
 range_1(background_samples)     -> {0,infinity};
 range_1(altitude)               -> {0.0,infinity};
@@ -457,7 +458,7 @@ range_1(sppm_passes)            -> {0,infinity};
 range_1(sss_photons)            -> {0,infinity};
 range_1(sss_depth)              -> {1.0,50.0};
 range_1(sss_scale)              -> {0.0,100.0};
-range_1(sss_scatter_samples)    -> {0,128};
+range_1(scatter_samples)        -> {0,128};
 range_1(caustic_photons)        -> {0,infinity};
 range_1(caustic_depth)          -> {0,infinity};
 range_1(caustic_mix)            -> {0,infinity};
@@ -475,8 +476,8 @@ range_1(gamma)                  -> {0.0,infinity};
 range_1(exposure)               -> {0.0,infinity};
 range_1(pixels)                 -> {1,infinity};
 range_1(lens_ortho_scale)       -> {0.0,100.0};
-range_1(lens_angular_max_angle) -> {0.0,360.0};
-range_1(lens_angular_angle)     -> {0.0,360.0};
+range_1(lens_max_angle)         -> {0.0,360.0};
+range_1(lens_angle)             -> {0.0,360.0};
 range_1(aperture)               -> {0.0,infinity};
 range_1(bokeh_rotation)         -> {-180.0,180.0};
 range_1(dof_distance)           -> {0.0,250.0}.
