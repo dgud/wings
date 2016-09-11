@@ -1020,21 +1020,21 @@ make_bar(Parent, BG, Label, Close) ->
     Bar = wxPanel:new(Parent, [{style, ?wxBORDER_SIMPLE}, {size, {-1, ?WIN_BAR_HEIGHT}}]),
     FG = wings_pref:get_value(title_text_color),
     #{size:=Sz} = FI = wings_text:get_font_info(?GET(system_font_wx)),
-    Font = case os:type() of
-	       {unix, darwin} -> wings_text:make_wxfont(FI#{size:=Sz-1});
-	       _ -> wings_text:make_wxfont(FI#{size:=Sz-2})
-	   end,
+    {Font,Space} = case os:type() of
+		       {unix, darwin} -> {wings_text:make_wxfont(FI#{size:=Sz-1}), 4};
+		       _ -> {wings_text:make_wxfont(FI#{size:=Sz-2}), 2}
+		   end,
     wxPanel:setFont(Bar, Font),
     wxWindow:setBackgroundColour(Bar, BG),
     wxWindow:setForegroundColour(Bar, wings_color:rgb4bv(FG)),
     WBSz = wxBoxSizer:new(?wxHORIZONTAL),
-    wxSizer:addSpacer(WBSz, 15),
+    wxSizer:addStretchSpacer(WBSz),
     wxSizer:add(WBSz, ST=wxStaticText:new(Bar, ?wxID_ANY, Label), [{flag, ?wxALIGN_CENTER}]),
     {_, H} = wxWindow:getSize(ST),
     wxSizer:addStretchSpacer(WBSz),
     Close andalso make_close_button(Parent, Bar, WBSz, H),
     wxSizer:addSpacer(WBSz, 3),
-    wxWindow:setSize(Bar, {-1, H+2}),
+    wxWindow:setMinSize(Bar, {-1, H+Space}),
     wxWindow:setSizer(Bar, WBSz),
     {Bar,ST}.
 
