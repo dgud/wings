@@ -423,7 +423,7 @@ init([Frame, {W,_}, _Ps, Name, SS]) ->
 	       true  -> update_folders(maps:get(folders, SS), TC)
 	   end,
     Shown = update_shapes(sort_folder(SS), SS, undefined, LC),
-    
+    help(Name),
     connect_events(TC, LC),
     {Splitter, #state{self=self(), name=Name,
 		      sp=Splitter,
@@ -507,7 +507,6 @@ handle_event(#wx{event=#wxTree{type=command_tree_item_menu, item=Indx, pointDrag
     {noreply, State};
 
 handle_event(#wx{event=#wxMouse{type=enter_window}}=Ev, #state{sp=Me}=State) ->
-    help(),
     wings_frame ! Ev#wx{userData={win, Me}},
     {noreply, State};
 
@@ -887,14 +886,11 @@ object_menu(Id) ->
      {?__(7,"Create Folder"),menu_cmd(create_folder)},
      {?__(17,"Remove From Folder"),menu_cmd(remove_from_folder, Id)}].
 
-
-help() ->
+help(Name) ->
     Msg = [?__(1, "Toggle operation"),
 	   wings_msg:mod_format(0, 3, ?__(2, "Toogle all visible objects or show menu")),
 	   wings_msg:mod_format(?SHIFT_BITS, 3, ?__(3, "Toggle objects in all folders"))],
-    wings_status:message(?MODULE, wings_msg:join(Msg)).
-    
-
+    wings_status:message(Name, wings_msg:join(Msg)).
 
 are_all_visible([#we{id=Id}|T], Id) ->
     are_all_visible(T, Id);
