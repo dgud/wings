@@ -162,6 +162,7 @@ init([Frame, _Ps, VS]) ->
 		     end,
     wxWindow:connect(LC, command_list_item_selected, [{callback, IgnoreForPopup}]),
     wxWindow:connect(LC, command_list_item_activated),
+    wxWindow:connect(LC, enter_window, [{userData, {win, Panel}}]),
     case os:type() of
 	{win32,nt} ->
 	    %% list_item_right_click does not work outside of items
@@ -244,6 +245,10 @@ handle_event(#wx{event=#wxMouse{type=left_up, x=X,y=Y}},
 		    {noreply, State#state{drag=undefined}}
 	    end
     end;
+
+handle_event(#wx{event=#wxMouse{type=enter_window}}=Ev, State) ->
+    wings_frame ! Ev,
+    {noreply, State};
 
 handle_event(#wx{} = _Ev, State) ->
     %% io:format("~p:~p Got unexpected event ~p~n", [?WIN_NAME,?LINE, _Ev]),

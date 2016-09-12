@@ -398,7 +398,6 @@ init([Frame, {W,_}, _Ps, Name, SS]) ->
     wxSplitterWindow:setFont(Splitter, ?GET(system_font_wx)),
     wxSplitterWindow:setMinimumPaneSize(Splitter, 1),
     wxSplitterWindow:setSashGravity(Splitter, 0.25),
-    wxSplitterWindow:connect(Splitter, enter_window),
     
     TreeStyle = ?wxTR_EDIT_LABELS bor ?wxTR_NO_BUTTONS bor ?wxTR_NO_LINES,
     TC  = wxTreeCtrl:new(Splitter, [{style, TreeStyle}]),
@@ -507,8 +506,9 @@ handle_event(#wx{event=#wxTree{type=command_tree_item_menu, item=Indx, pointDrag
     wings_wm:psend(Name, {apply, false, Cmd}),
     {noreply, State};
 
-handle_event(#wx{event=#wxMouse{type=enter_window}}, State) ->
+handle_event(#wx{event=#wxMouse{type=enter_window}}=Ev, #state{sp=Me}=State) ->
     help(),
+    wings_frame ! Ev#wx{userData={win, Me}},
     {noreply, State};
 
 handle_event(#wx{event=#wxMouse{type=left_up, x=X,y=Y}},
@@ -749,12 +749,14 @@ get_id(Indx, SHS) ->
     end.
 
 connect_events(TC, LC) ->
+    wxWindow:connect(TC, enter_window),
     wxWindow:connect(TC, command_tree_begin_label_edit, [callback]),
     wxWindow:connect(TC, command_tree_end_label_edit),
     wxWindow:connect(TC, command_tree_sel_changed),
     wxWindow:connect(TC, command_tree_item_menu, [{skip, true}]),
     %% wxWindow:connect(TC, left_up, [{skip,true}]),
 
+    wxWindow:connect(LC, enter_window),
     wxWindow:connect(LC, command_list_begin_drag),
     wxWindow:connect(LC, command_list_end_label_edit),
     wxWindow:connect(LC, size, [{skip, true}]),

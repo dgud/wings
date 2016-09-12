@@ -326,16 +326,16 @@ handle_event(#wx{id=Id, event=#wxCommand{type=command_menu_selected}}, State) ->
 	     [] -> {menubar, {action, Name}};
 	     [[KeyComb]|_] -> wings_io_wx:make_key_event(KeyComb)
 	 end,
-    %% io:format("ME ~p~n",[ME]),
     wings ! ME,
     {noreply, State};
 
-handle_event(#wx{obj=Obj, event=#wxMouse{type=enter_window}},
-	     #state{windows=#{ch:=Root}} = State) ->
-    % io:format("~s Type ~p ~p ~p~n",[Label, Type, ABG, PBG]),
+handle_event(#wx{event=#wxMouse{type=enter_window}, userData={win, Obj}},
+	     #state{windows=#{ch:=Root}, active=Active} = State) ->
     case find_win(Obj, Root) of
 	false ->
 	    {noreply, update_active(undefined, State)};
+	#win{name=Active} -> %% Already active
+	    {noreply, State};
 	#win{name=Name} when ?IS_GEOM(Name) ->
 	    {noreply, State}; % handled by wings_wm
 	#win{name=Name} ->
@@ -1005,13 +1005,11 @@ make_internal_win(Parent, #win{title=Label, win=Child, ps=#{close:=Close, move:=
 	_ -> ignore
     end,
     Top = wxBoxSizer:new(?wxVERTICAL),
-    BorderB = ?wxLEFT bor ?wxRIGHT bor ?wxUP,
-    wxSizer:add(Top, Bar, [{proportion, 0}, {flag, ?wxEXPAND bor BorderB}, {border, 2}]),
+    wxSizer:add(Top, Bar, [{proportion, 0}, {flag, ?wxEXPAND}, {border, 2}]),
     wxWindow:reparent(Child, Win), %% Send event here
-    BorderC = ?wxLEFT bor ?wxRIGHT bor ?wxDOWN,
-    wxSizer:add(Top, Child,  [{proportion, 1}, {flag, ?wxEXPAND bor BorderC}, {border, 2}]),
+    wxSizer:add(Top, Child,  [{proportion, 1}, {flag, ?wxEXPAND}, {border, 2}]),
     wxWindow:setSizer(Win, Top),
-    wxWindow:connect(Win, enter_window),
+    wxWindow:connect(Bar, enter_window, [{userData, {win, Win}}]),
     Move andalso [wxWindow:connect(W, Ev, [{userData, {move, Win}}])
 		  || Ev <- [left_down, left_up, motion], W <- [Bar,ST]],
     WinC#win{frame=Win, bar=Wins}.

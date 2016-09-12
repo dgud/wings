@@ -201,6 +201,7 @@ init([Frame, _Ps, SS]) ->
     end,
     wxWindow:connect(LC, command_list_end_label_edit),
     wxWindow:connect(LC, size, [{skip, true}]),
+    wxWindow:connect(LC, enter_window, [{userData,{win,Panel}}]),
     {Panel, #state{lc=LC, shown=Shown, ss=SS, sel=none}}.
 
 handle_event(#wx{event=#wxList{type=command_list_item_activated, itemIndex=Indx}},
@@ -244,6 +245,10 @@ handle_event(#wx{event=#wxCommand{type=command_right_click}}, State) ->
     {noreply, State};
 handle_event(#wx{event=#wxList{type=command_list_item_right_click}}, State) ->
     invoke_menu(State),
+    {noreply, State};
+
+handle_event(#wx{event=#wxMouse{type=enter_window}}=Ev, State) ->
+    wings_frame ! Ev,
     {noreply, State};
 
 handle_event(#wx{} = Ev, State) ->
