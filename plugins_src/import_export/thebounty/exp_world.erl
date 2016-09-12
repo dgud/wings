@@ -49,6 +49,8 @@ export_background(F, Attr) ->
                     println(F,
                         "\t<ibl_samples ival=\"~w\"/>",[proplists:get_value(ibl_samples, Attr, 16)]),
                     println(F,
+                        "\t<power fval=\"~.4f\"/>",[proplists:get_value(ibl_power, Attr)]),
+                    println(F,
                         "\t<with_diffuse bval=\"~s\"/>",[proplists:get_value(to_diffuse, Attr, false)]),
                     println(F,
                         "\t<with_caustic bval=\"~s\"/>",[proplists:get_value(to_caustic, Attr, false)]);
@@ -93,8 +95,6 @@ export_texture_background(F, Attr) ->
     println(F, "<background name=\"world_background\">"),
     println(F, "\t<type sval=\"textureback\"/>"),
     println(F,
-        "\t<power fval=\"~w\"/>",[proplists:get_value(background_power, Attr)]),
-    println(F,
         "\t<mapping sval=\"~s\"/>",[format(proplists:get_value(ibl_mapping, Attr))]),
     println(F,
         "\t<rotation fval=\"~.3f\"/>",[proplists:get_value(ibl_rotation, Attr, 180.0)]),
@@ -106,7 +106,7 @@ export_sunsky_backgrounds(F, Bg, OpenGL, Attr) ->
     %!---------------------------
     %! common sunsky's values
     %!---------------------------
-    BgLight = proplists:get_value(background_light, Attr, false),
+    BgLight = proplists:get_value(sky_light, Attr, false),
 
     println(F, "<background name=\"world_background\">"),
     println(F, "\t<type sval=\"~s\"/>",[format(Bg)]),
