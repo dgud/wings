@@ -238,7 +238,7 @@ export_translucent_shader(F, Name, Mat, ExportDir, Attr) ->
     println(F,
         "\t<glossy_reflect fval=\"~.10f\"/>",[proplists:get_value(glossy_reflect, Attr, 0.0)]),
     println(F,
-        "\t<sss_transmit fval=\"~.10f\"/>",[proplists:get_value(sss_translucency, Attr, ?DEF_SSS_TRANSLUCENCY)]), % sure??
+        "\t<sss_transmit fval=\"~.10f\"/>",[proplists:get_value(sss_translucency, Attr, 0.75)]),
     println(F,
         "\t<exponent fval=\"~.10f\"/>",[proplists:get_value(exponent, Attr, ?DEF_EXPONENT)]),
 
@@ -269,11 +269,7 @@ export_glass_shaders(F, Name, Mat, ExportDir, Attr, GlassType) ->
 
     export_rgb(F, filter_color, proplists:get_value(transmitted, Attr, DefTransmitted)),
 
-    DefAbsorptionColor = def_absorption_color(proplists:get_value(diffuse, OpenGL)),
-
-    AbsorptionColor =  proplists:get_value(absorption_color, Attr, DefAbsorptionColor),
-
-    export_rgb(F, absorption, proplists:get_value(absorption_color, Attr, AbsorptionColor)),
+    export_rgb(F, absorption, proplists:get_value(absorption_color, Attr, {0.9, 0.9, 0.9})),
 
     println(F, "\t<absorption_dist fval=\"~.10f\"/>",[proplists:get_value(absorption_dist, Attr, 1.0)]),
     println(F, "\t<transmit_filter fval=\"~.10f\"/>",[proplists:get_value(transmit_filter, Attr, 1.0)]),
