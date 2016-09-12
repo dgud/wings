@@ -330,6 +330,9 @@ wings_console_event(#state{ctrl=Ctrl} = State, #wx{event=#wxSize{size={W0,H0}}})
     W=W0-6, H=H0-5,
     wings_pref:set_value(console_width, W div CW),
     wings_pref:set_value(console_height, H div CH),
+    State;
+wings_console_event(State, #wx{event=#wxMouse{}}=Ev) ->
+    wings_frame ! Ev,
     State.
 
 wings_console_request(State0, {window, WxEnv, Win, Font}) ->
@@ -374,7 +377,8 @@ wc_open_window(#state{lines=Lines}=State, Win, Font) ->
     wxWindow:setForegroundColour(Ctrl, wings_color:rgb4bv(wings_pref:get_value(console_text_color))),
     wxTextCtrl:appendText(Ctrl, [[Line,$\n] || Line <- queue:to_list(Lines)]),
     wxWindow:connect(Ctrl, destroy, [{skip, true}]),
-    wxFrame:connect(Ctrl, size, [{skip, true}]),
+    wxWindow:connect(Ctrl, size, [{skip, true}]),
+    wxWindow:connect(Ctrl, enter_window, [{userData, {win, Ctrl}}]),
     {State#state{win=Win, ctrl=Ctrl}, {ok, Ctrl}}.
 
 %%% Other support functions

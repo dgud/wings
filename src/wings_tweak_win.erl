@@ -93,7 +93,7 @@ tweak_tool(Button, Modifiers) ->
 %% Window in new (frame) process %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
--record(state, {name, shown, mode, menu, prev, cols}).
+-record(state, {me, name, shown, mode, menu, prev, cols}).
 
 init([Frame, Name, {Mode, Menus}]) ->
     Panel = wxPanel:new(Frame, [{style, ?wxBORDER_SIMPLE}]),
@@ -116,13 +116,18 @@ init([Frame, Name, {Mode, Menus}]) ->
     wxSizer:add(Main, Sizer, [{proportion, 1}, {border, 5}, {flag, ?wxALL}]),
     wxSizer:addSpacer(Main, 5),
     wxPanel:setSizer(Panel, Main),
+    wxPanel:connect(Panel, enter_window),
     wxSizer:fit(Main, Panel),
     ?GET(top_frame) =:= Frame orelse wxSizer:setSizeHints(Main, Frame),
-    {Panel, #state{name=Name, shown=Entries, cols=Cols, mode=Mode, menu=Menus}}.
+    {Panel, #state{me=Panel, name=Name, shown=Entries, cols=Cols, mode=Mode, menu=Menus}}.
 
-handle_event(#wx{id=Id, obj=_Obj, event=#wxMouse{type=enter_window}},
-	     #state{name=Name, shown=Entries, prev=_Prev} = State) ->
-    wings_status:message(Name, wings_menu:entry_msg(Id, Entries)),
+handle_event(#wx{id=Id, obj=Obj, event=#wxMouse{type=enter_window}}=Ev,
+	     #state{me=Me, name=Name, shown=Entries, prev=_Prev} = State) ->
+    case wings_util:wxequal(Obj, Me) of
+	true ->  wings_status:message(Name, "");
+	false -> wings_status:message(Name, wings_menu:entry_msg(Id, Entries))
+    end,
+    wings_frame ! Ev#wx{userData={win, Me}},
     {noreply, State#state{prev=line}};
 handle_event(#wx{id=Id, event=#wxMouse{}=ME},
 	     #state{name=Name, shown=Entries} = State) ->

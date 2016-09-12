@@ -272,7 +272,7 @@ init([Frame, {W,_}, _Ps, Cols0]) ->
 	wxWindow:setSizer(Win, BorderSz),
 	wxScrolledWindow:setScrollRate(Win, 0, ?BOX_H+?BORD),
 	wxWindow:connect(Win, size, [{skip, true}]),
-	wxFrame:connect(Frame, activate),
+	wxWindow:connect(Win, enter_window, [{userData, {win, Win}}]),
 	{Win, #state{self=self(), win=Win, sz=Sz,
 		     cols=Cols, bsz=BSz, empty=Empty}}
     catch _:Reason ->
@@ -280,7 +280,11 @@ init([Frame, {W,_}, _Ps, Cols0]) ->
     end.
 
 %%%%%%%%%%%%%%%%%%%%%%%
-
+handle_event(#wx{event=#wxMouse{type=enter_window}}=Ev, State) ->
+    Msg = help(),
+    wings_status:message(palette, Msg),
+    wings_frame ! Ev,
+    {noreply, State};
 handle_event(#wx{event=#wxMouse{type=left_down}}, State) ->
     {noreply, State};
 handle_event(#wx{id=Id, event=#wxMouse{type=left_up, controlDown=true}},
@@ -331,21 +335,6 @@ handle_event(#wx{event=#wxSize{size=Sz}}, #state{timer=TRef} = State) ->
     TRef =/= undefined andalso timer:cancel(TRef),
     {ok, Timer} = timer:send_after(150, {resize, Sz}),
     {noreply, State#state{timer=Timer}};
-handle_event(#wx{event=#wxActivate{active=Active}}, State) ->
-    case Active of
-	true ->
-	    L = wings_msg:button_format(?__(1,"Assign color to selection")),
-	    MR = wings_msg:button_format([],
-					 ?__(2,"Edit color"),
-					 ?__(3,"Show menu")),
-	    Mods = wings_msg:free_modifier(),
-	    ModName = wings_msg:mod_name(Mods),
-	    CL = [ModName,$+,wings_msg:button_format(?__(4,"Clear color"))],
-	    Msg = wings_msg:join([L,CL,MR]),
-	    wings_status:message(palette, Msg);
-	false -> ignore
-    end,
-    {noreply, State};
 handle_event(_Ev, State) ->
     %% io:format("~p:~p Got unexpected event ~p~n", [?MODULE,?LINE, _Ev]),
     {noreply, State}.
@@ -474,6 +463,16 @@ terminate(_Reason, _) ->
     normal.
 
 %%%%%%%%%%%%%%%%%%%%%%
+
+help() -> 
+    L = wings_msg:button_format(?__(1,"Assign color to selection")),
+    MR = wings_msg:button_format([],
+				 ?__(2,"Edit color"),
+				 ?__(3,"Show menu")),
+    Mods = wings_msg:free_modifier(),
+    ModName = wings_msg:mod_name(Mods),
+    CL = [ModName,$+,wings_msg:button_format(?__(4,"Clear color"))],
+    wings_msg:join([L,CL,MR]).
 
 resize({W,H}, #state{cols=Cols0, bsz={BW,BH}, empty=Empty, win=Win, sz=Sizer} = State) ->
     Cols1 = del_trailing(Cols0),

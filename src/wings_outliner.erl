@@ -301,7 +301,7 @@ init([Frame,  _Ps, Os]) ->
     wxSizer:add(Szr, TC, [{proportion,1}, {flag, ?wxEXPAND}]),
     wxPanel:setSizer(Panel, Szr),
     {Shown,IMap} = update_object(Os, TC, IL, IMap0),
-    wxWindow:connect(Panel, enter_window),
+    wxWindow:connect(TC, enter_window, [{userData, {win, Panel}}]),
     {Panel, #state{top=Panel, szr=Szr, tc=TC, os=Os, shown=Shown, il=IL, imap=IMap}}.
 
 handle_sync_event(#wx{event=#wxTree{type=command_tree_begin_label_edit, item=Indx}}, From,
@@ -396,11 +396,12 @@ handle_event(#wx{event=#wxTree{type=command_tree_item_activated, item=Indx}},
     end,
     {noreply, State};
 
-handle_event(#wx{event=#wxMouse{type=enter_window}}, State) ->
+handle_event(#wx{event=#wxMouse{type=enter_window}}=Ev, State) ->
     Msg = wings_msg:button_format(?__(1,"Select"), [],
 				  ?__(2,"Show outliner menu (if selection)"
 				      " or creation menu (if no selection)")),
     wings_status:message(?MODULE, Msg),
+    wings_frame ! Ev,
     {noreply, State};
 
 handle_event(#wx{} = _Ev, State) ->
@@ -414,7 +415,6 @@ handle_call(_Req, _From, State) ->
 handle_cast({new_state, Os}, #state{tc=TC, il=IL, imap=IMap0} = State) ->
     {Shown,IMap} = update_object(Os, TC, IL, IMap0),
     {noreply, State#state{os=Os, shown=Shown, imap=IMap}};
-
 handle_cast(quit, State) ->
     {noreply, State};
 handle_cast(_Req, State) ->
@@ -431,6 +431,7 @@ handle_info(parent_changed,
 	    wxSizer:replace(Szr, TC0, TC),
 	    wxSizer:recalcSizes(Szr),
 	    wxWindow:destroy(TC0),
+	    wxWindow:connect(TC, enter_window, [{userData, {win, Top}}]),
 	    {Shown,_} = update_object(Os, TC, IL, IMap),
 	    {noreply, State#state{tc=TC, shown=Shown}};
 	_ ->
