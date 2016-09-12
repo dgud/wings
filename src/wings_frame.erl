@@ -330,9 +330,16 @@ handle_event(#wx{id=Id, event=#wxCommand{type=command_menu_selected}}, State) ->
     {noreply, State};
 
 handle_event(#wx{event=#wxMouse{type=enter_window}, userData={win, Obj}},
-	     #state{windows=#{ch:=Root}, active=Active} = State) ->
+	     #state{windows=#{ch:=Root, loose:=Loose}, active=Active} = State) ->
     case find_win(Obj, Root) of
 	false ->
+	    case [Win || Win <- maps:values(Loose), wings_util:wxequal(Win#win.win, Obj)] of
+		[#win{name=Name}] when not ?IS_GEOM(Name) ->
+		    wings ! {wm, {active, Name}},
+		    wings_status:active(Name);
+		_ ->
+		    ignore
+	    end,
 	    {noreply, update_active(undefined, State)};
 	#win{name=Active} -> %% Already active
 	    {noreply, State};
@@ -340,6 +347,7 @@ handle_event(#wx{event=#wxMouse{type=enter_window}, userData={win, Obj}},
 	    {noreply, State}; % handled by wings_wm
 	#win{name=Name} ->
 	    wings ! {wm, {active, Name}},
+	    wings_status:active(Name),
 	    {noreply, update_active(Name, State)}
     end;
 
@@ -453,6 +461,7 @@ handle_cast({got_focus, Window, Props}, #state{toolbar=TB0}=State) ->
     [Fun(view, Key, Value) || {Key, Value} <- Props, is_boolean(Value)],
     ModeRest = proplists:get_value(mode_restriction, Props, none),
     TB = wings_toolbar:update({active, Window, ModeRest}, TB0),
+    wings_status:active(Window),
     {noreply, update_active(Window, State#state{toolbar=TB})};
 handle_cast({init_menus, Frame}, State) ->
     case os:type() of

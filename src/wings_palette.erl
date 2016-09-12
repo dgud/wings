@@ -273,6 +273,7 @@ init([Frame, {W,_}, _Ps, Cols0]) ->
 	wxScrolledWindow:setScrollRate(Win, 0, ?BOX_H+?BORD),
 	wxWindow:connect(Win, size, [{skip, true}]),
 	wxWindow:connect(Win, enter_window, [{userData, {win, Win}}]),
+	wings_status:message(palette, help()),
 	{Win, #state{self=self(), win=Win, sz=Sz,
 		     cols=Cols, bsz=BSz, empty=Empty}}
     catch _:Reason ->
@@ -281,8 +282,6 @@ init([Frame, {W,_}, _Ps, Cols0]) ->
 
 %%%%%%%%%%%%%%%%%%%%%%%
 handle_event(#wx{event=#wxMouse{type=enter_window}}=Ev, State) ->
-    Msg = help(),
-    wings_status:message(palette, Msg),
     wings_frame ! Ev,
     {noreply, State};
 handle_event(#wx{event=#wxMouse{type=left_down}}, State) ->
