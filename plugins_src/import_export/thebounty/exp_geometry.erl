@@ -52,11 +52,11 @@ export_object_1(F, NameStr, Mesh0=#e3d_mesh{he=He0}, DefaultMaterial, MatPs, Id)
     Volume_Minmax_Z = proplists:get_value(volume_minmax_z, Attr, ?DEF_VOLUME_MINMAX_Z),
     Lightportal_Power = proplists:get_value(lightportal_power, Attr, ?DEF_LIGHTPORTAL_POWER),
     Lightportal_Samples = proplists:get_value(lightportal_samples, Attr, ?DEF_LIGHTPORTAL_SAMPLES),
-    Lightportal_Diffusephotons = proplists:get_value(lightportal_diffusephotons, Attr, ?DEF_LIGHTPORTAL_DIFFUSEPHOTONS),
-    Lightportal_Causticphotons = proplists:get_value(lightportal_causticphotons, Attr, ?DEF_LIGHTPORTAL_CAUSTICPHOTONS),
+    %Lightportal_Diffusephotons = proplists:get_value(lightportal_diffusephotons, Attr, ?DEF_LIGHTPORTAL_DIFFUSEPHOTONS),
+    %Lightportal_Causticphotons = proplists:get_value(lightportal_causticphotons, Attr, false),
     Lightportal_Photon_Only = proplists:get_value(lightportal_photon_only, Attr, ?DEF_LIGHTPORTAL_PHOTON_ONLY),
-    Meshlight_Power = proplists:get_value(meshlight_power, Attr, ?DEF_MESHLIGHT_POWER),
-    Meshlight_Samples = proplists:get_value(meshlight_samples, Attr, ?DEF_MESHLIGHT_SAMPLES),
+    %Meshlight_Power = proplists:get_value(meshlight_power, Attr, ?DEF_MESHLIGHT_POWER),
+    %Meshlight_Samples = proplists:get_value(meshlight_samples, Attr, ?DEF_MESHLIGHT_SAMPLES),
     Meshlight_Color = proplists:get_value(meshlight_color, Attr, ?DEF_MESHLIGHT_COLOR),
 
     Meshlight_Double_Sided = proplists:get_value(meshlight_double_sided, Attr, ?DEF_MESHLIGHT_DOUBLE_SIDED),
@@ -93,18 +93,17 @@ export_object_1(F, NameStr, Mesh0=#e3d_mesh{he=He0}, DefaultMaterial, MatPs, Id)
 
     %% Add Export Object Name End
 
-    HasUV = case Tx of
-                []-> "false";
-                _ ->
-                    "true"
-
-            end,
+    HasUV = 
+        case Tx of
+            []-> "false";
+            _ ->
+                "true"
+        end,
 
     case Object_Type of
         mesh ->
             println(F," "),
-            println(F, "<mesh id=\"~w\" vertices=\"~w\" faces=\"~w\" has_uv=\"~s\" type=\"0\">",[Id,length(Vs),length(Fs),HasUV]),
-            println(F," ");
+            println(F, "<mesh id=\"~w\" vertices=\"~w\" faces=\"~w\" has_uv=\"~s\" type=\"0\">",[Id,length(Vs),length(Fs),HasUV]);
 
         volume ->
             println(F, "<volumeregion name=\"volumename\">"),
@@ -143,33 +142,30 @@ export_object_1(F, NameStr, Mesh0=#e3d_mesh{he=He0}, DefaultMaterial, MatPs, Id)
 
 
         meshlight ->
-            %println(F," "),
+            %println(F," "),  
             println(F, "<light name=\"~s\">",[NameStr]),
 
-            export_rgb(F, color, proplists:get_value(meshlight_color, Attr, Meshlight_Color)),
+            export_rgb(F, color, proplists:get_value(meshlight_color, Attr, {0.9,0.9,0.9})),
 
-            println(F, "\t<object ival= \"~w\"/>",[Id]),
-            println(F, "<\tpower fval=\"~.10f\"/>",[Meshlight_Power]),
-            println(F, "\t<samples ival=\"~w\"/>",[Meshlight_Samples]),
             println(F, "\t<double_sided bval=\"~s\"/>",[Meshlight_Double_Sided]),
+            println(F, "\t<object ival= \"~w\"/>",[Id]),
+            println(F, "\t<power fval=\"~.10f\"/>",[proplists:get_value(meshlight_power, Attr, 1.0)]),
+            println(F, "\t<samples ival=\"~w\"/>",[proplists:get_value(meshlight_samples, Attr, 16)]),
             println(F, "\t<type sval=\"~s\"/>",[Object_Type]),
             println(F, "</light>"),
-            println(F," "),
-            println(F, "\t<mesh id=\"~w\" type=\"0\">",[Id]),
-            println(F," ");
+            println(F, "\n<mesh id=\"~w\" vertices=\"~w\" faces=\"~w\" has_uv=\"~s\" type=\"0\">",[Id,length(Vs),length(Fs),HasUV]);
 
         lightportal ->
-            println(F," "),
-            println(F, "<light name=\"~s\">",[NameStr]),
-            println(F, "<type sval=\"bgPortalLight\"/>"),
-            println(F, "<power fval=\"~.10f\"/>",[Lightportal_Power]),
-            println(F, "<samples ival=\"~w\"/>",[Lightportal_Samples]),
-            println(F, "<object ival= \"~w\"/>",[Id]),
-            println(F, "<with_diffuse bval=\"~s\"/>",[Lightportal_Diffusephotons]),
-            println(F, "<with_caustic bval=\"~s\"/>",[Lightportal_Causticphotons]),
-            println(F, "<photon_only bval=\"~s\"/>",[Lightportal_Photon_Only]),
-            println(F," ")
-
+            println(F, "\n<light name=\"~s\">",[NameStr]),
+            println(F, "\t<object ival= \"~w\"/>",[Id]),
+            println(F, "\t<photon_only bval=\"~s\"/>",[Lightportal_Photon_Only]),
+            println(F, "\t<power fval=\"~.10f\"/>",[Lightportal_Power]),
+            println(F, "\t<samples ival=\"~w\"/>",[Lightportal_Samples]),
+            println(F, "\t<type sval=\"bgPortalLight\"/>"),
+            println(F, "\t<with_caustic bval=\"~s\"/>",[format(proplists:get_value(lightportal_causticphotons, Attr, false))]),
+            println(F, "\t<with_diffuse bval=\"~s\"/>",[format(proplists:get_value(lightportal_diffusephotons, Attr, false))]),
+            println(F, "</light>"),
+            println(F, "\n<mesh id=\"~w\" vertices=\"~w\" faces=\"~w\" has_uv=\"~s\" type=\"256\">",[Id,length(Vs),length(Fs),HasUV])
     end,
 
     export_vertices(F, Vs),
@@ -187,28 +183,17 @@ export_object_1(F, NameStr, Mesh0=#e3d_mesh{he=He0}, DefaultMaterial, MatPs, Id)
     export_faces(F, Fs, DefaultMaterial, list_to_tuple(Tx), list_to_tuple(Vc)),
 
     case Object_Type of
-        mesh ->
-            println(F," "),
-            println(F, "</mesh>\n");
-
         volume ->
-            println(F," "),
             println(F, "</volumeregion>\n");
 
-        meshlight ->
-            println(F," "),
-            println(F, "</mesh>\n");
-
-        lightportal ->
-            println(F," "),
-            println(F, "</light>\n")
+        _ ->
+            println(F, "</mesh>\n")
     end,
 
     case Autosmooth of
-        false ->
-            println(F, "");
         true ->
-            println(F, "<smooth ID=\"~w\" angle=\"~.3f\"/>", [Id,AutosmoothAngle])
+            println(F, "<smooth ID=\"~w\" angle=\"~.3f\"/>", [Id,AutosmoothAngle]);
+        _ -> ok
     end,
 
     io:format(?__(6,"done")++"~n").
