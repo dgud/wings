@@ -988,6 +988,5 @@ predefined_item(_M, _C) ->
     false.
 
 colorB(Pref) when is_atom(Pref) ->
-    wings_color:rgb4bv(wings_pref:get_value(Pref));
-colorB(Col) -> wings_color:rgb4bv(Col).
+    wings_color:rgb4bv(wings_pref:get_value(Pref)).
 

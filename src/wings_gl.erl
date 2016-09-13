@@ -112,8 +112,8 @@ redraw(#wx{obj=Canvas, event=#wxPaint{}},_) ->
     wxPaintDC:destroy(DC),
     %% wings ! #wx{event=#wxPaint{}}; No need activate handle this
     ok;
-redraw(_, _) ->  %% For erase background events
-    wings ! #wx{event=#wxPaint{}}.
+redraw(Ev, _) ->  %% For erase background events
+    wings ! Ev#wx{event=#wxPaint{type=paint}}.
 
 setup_std_events(Canvas) ->
     wxWindow:connect(Canvas, motion),

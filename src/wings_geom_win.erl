@@ -27,7 +27,7 @@
 -include("wings.hrl").
 -import(lists, [foldl/3,keymember/3]).
 
-
+-dialyzer({nowarn_function, gen_event/5}).
 %%%
 %%% Geometry Graph window.
 %%%
@@ -831,7 +831,7 @@ calc_position(Pos, TW, LC) ->
                     %% so we calc column index ourselves
                     {Index, _Flags, _SI} -> Index
                 catch  error:undef ->  %% Erlang-18 and earlier
-                        wxListCtrl:hitTest(LC, Pos, 0)
+                        apply(wxListCtrl, hitTest, [LC, Pos, 0])
                 end,
     case ItemIndex >= 0 of
         true  -> {ItemIndex, column_index(Pos, TW)};

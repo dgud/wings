@@ -195,8 +195,7 @@ title({_,tweak_palette}) ->
 title({_,tweak_magnet}) ->
     ?__(2,"Tweak Magnet");
 title({_,axis_constraint}) ->
-    ?__(3,"Tweak Axis");
-title(_) -> [].
+    ?__(3,"Tweak Axis").
 
 %% Get valid items form the tweak menu for the palettes
 valid_menu_items([separator,{_,cycle_magnet,_}|Menu]) ->

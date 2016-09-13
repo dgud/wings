@@ -68,33 +68,28 @@
 -define(FACE_SZ, (4*4)).
 -define(VERTEX_SZ, ((3*4)+4)).
 -define(LOCK_SZ, 32).
-%%-define(DEFAULT, erlang).
--define(DEFAULT, opencl).
 
 %%%% API %%%%%%%%%
 
 %% Returns opaque data
 init(Plan, Level, We) when is_integer(Level) ->
-    build_data(Plan,Level,We,?DEFAULT);
+    build_data(Plan,Level,We);
 
 init(Plan, #base{level=Level}, We)  ->
-    build_data(Plan,Level,We,?DEFAULT).
+    build_data(Plan,Level,We).
 
 %% Update state with new vertex positions
 update(ChangedVs, Data) ->
-    case ?DEFAULT of 
-	erlang ->  wings_cc_ref:update(ChangedVs, Data);
-	_ ->       update_1(ChangedVs, Data)
-    end.
-    
+    update_1(ChangedVs, Data).
+
 %% Generates a subdivided #vab{}
 gen_vab(Base) ->
     try
-	Data = subdiv(Base, ?DEFAULT),
+	Data = subdiv(Base),
 	gen_vab_1(Data, Base)
     catch
 	exit:{out_of_resources, Wanted, CardMax} ->
-	    io:format(?__(1,"OpenCL subd failed: wanted ~pMB only ~pMB available~n"), 
+	    io:format(?__(1,"OpenCL subd failed: wanted ~pMB only ~pMB available~n"),
 		      [Wanted, CardMax]),
 	    DecBase = decrease_level(Base),
 	    gen_vab(DecBase)
@@ -102,40 +97,29 @@ gen_vab(Base) ->
 %% Generates a subdivided #vab{} from Material Plan
 gen_vab(Plan, Base) ->
     try
-	Data = subdiv(Base, ?DEFAULT),
+	Data = subdiv(Base),
 	gen_vab_1(Plan, Data, Base)
     catch
 	exit:{out_of_resources, Wanted, CardMax} ->
-	    io:format(?__(1,"OpenCL subd failed: wanted ~pMB only ~pMB available~n"), 
+	    io:format(?__(1,"OpenCL subd failed: wanted ~pMB only ~pMB available~n"),
 		      [Wanted, CardMax]),
 	    DecBase = decrease_level(Base),
 	    gen_vab(Plan, DecBase)
     end.
 
 %% Subdivide mesh
-subdiv(Base = #base{level=N, type=Type}, Impl) ->
-    case Impl of
-	opencl ->
-	    {In,Out,CL} = cl_allocate(Base, cl_setup()),
-	    Wait = cl_write_input(Base, In, Out, CL),
-	    subdiv_1(N, In, Out, Type, CL, Wait);
-	erlang ->
-	    wings_cc_ref:subdiv(Base)
-    end.
+subdiv(Base = #base{level=N, type=Type}) ->
+    {In,Out,CL} = cl_allocate(Base, cl_setup()),
+    Wait = cl_write_input(Base, In, Out, CL),
+    subdiv_1(N, In, Out, Type, CL, Wait).
 
 %% Generates a vab (and updates Data)
 %% Returns Vab
 gen_vab_1(Data0, Base) ->
-    case ?DEFAULT of
-	erlang -> create_vab(wings_cc_ref:gen_vab(Data0, Base), Base);
-	opencl -> create_vab(gen_vab_2(Data0, Base), Base)
-    end.
+    create_vab(gen_vab_2(Data0, Base), Base).
 
 gen_vab_1(Plan, Data, Base) ->
-    case ?DEFAULT of
-	erlang -> create_vab(wings_cc_ref:gen_vab(Plan, Data, Base), Base);
-	opencl -> create_vab(gen_vab_2(Plan, Data, Base), Base)
-    end.
+    create_vab(gen_vab_2(Plan, Data, Base), Base).
 
 create_vab({Vs,SNs,{Attrs,Tangents},Edges,MatInfo}, #base{type=Type}) ->
     L = [{vs,Vs},
@@ -218,7 +202,7 @@ update_vs([], _, Bin) -> [Bin].
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-build_data({Type, MatFs}, N, We0, Impl) ->
+build_data({Type, MatFs}, N, We0) ->
     {FMap0, We} = gen_fmap(MatFs, We0),
     FMap  = gb_trees:from_orddict(lists:sort(FMap0)),
     Empty = array:new(),
@@ -233,7 +217,7 @@ build_data({Type, MatFs}, N, We0, Impl) ->
 		 build_data_attrs(FMap0, [], [], StartAcc, Get, Attrs, We)
 	 end,
     B1 = calc_matmap(MatFs, B0#base{type=Type, level=N}),
-    pack_data(B1, Impl).
+    pack_data(B1).
 
 build_data_plain([{F,_}|Fs], Ftab0, Acc0, Get, We) ->
     {Vs, Acc} = wings_face:fold(Get, {[], Acc0}, F, We), %% CCW
@@ -385,11 +369,7 @@ update_vmap(Orig, VM={N,VMap}) ->
 	    {V, VM}
     end.
 
-pack_data(B=#base{e=Etab0, f=Ftab0}, erlang) ->
-    Etab = array:from_list(array:sparse_to_list(Etab0)),
-    Ftab = array:from_list(Ftab0),
-    B#base{e=Etab, f=Ftab};
-pack_data(B0=#base{v=Vtab0, e=Etab0, f=Ftab0}, opencl) ->
+pack_data(B0=#base{v=Vtab0, e=Etab0, f=Ftab0}) ->
     GetFs = fun(Vs, {No, FI, Fs}) ->
 		    Len = length(Vs),
 		    {No+Len, <<FI/binary, No:?I32, Len:?I32>>,
