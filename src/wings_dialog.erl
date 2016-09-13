@@ -660,7 +660,7 @@ setup_hook(#in{key=Key, wx=Ctrl, type=slider, hook=UserHook, data={FromSlider,_}
 				 end}]),
     ok;
 
-setup_hook({Key, #in{wx=Ctrl, type=fontpicker, hook=UserHook}}, Fields) ->
+setup_hook(#in{key=Key, wx=Ctrl, type=fontpicker, hook=UserHook}, Fields) ->
     wxFontPickerCtrl:connect(Ctrl, command_fontpicker_changed,
 			     [{callback, fun(_, Obj) ->
 						 wxEvent:skip(Obj),
@@ -668,6 +668,23 @@ setup_hook({Key, #in{wx=Ctrl, type=fontpicker, hook=UserHook}}, Fields) ->
 						 UserHook(Key, Font, Fields)
 					 end}]),
     UserHook(Key, wxFontPickerCtrl:getSelectedFont(Ctrl), Fields);
+setup_hook(#in{key=Key, wx=Ctrl, type=filepicker, hook=UserHook}, Fields) ->
+    wxFilePickerCtrl:connect(Ctrl, command_filepicker_changed,
+			    [{callback, fun(_, Obj) ->
+						wxEvent:skip(Obj),
+						Font = wxFilePickerCtrl:getPath(Ctrl),
+						UserHook(Key, Font, Fields)
+					end}]),
+    UserHook(Key, wxFilePickerCtrl:getPath(Ctrl), Fields);
+
+setup_hook(#in{key=Key, wx=Ctrl, type=dirpicker, hook=UserHook}, Fields) ->
+    wxDirPickerCtrl:connect(Ctrl, command_dirpicker_changed,
+			   [{callback, fun(_, Obj) ->
+					       wxEvent:skip(Obj),
+					       Font = wxDirPickerCtrl:getPath(Ctrl),
+					       UserHook(Key, Font, Fields)
+				       end}]),
+    UserHook(Key, wxDirPickerCtrl:getPath(Ctrl), Fields);
 setup_hook(#in{key=Key, wx=Ctrl, type=table, hook=UserHook}, Fields) ->
     wxListCtrl:connect(Ctrl, command_list_item_focused,
         [{callback, fun(_, _) ->
@@ -1074,6 +1091,9 @@ build(Ask, {button, {text, Def, Flags}}, Parent, Sizer, In) ->
 		                [{style, What bor ?wxFLP_USE_TEXTCTRL},
 		                    {path, Def},
 		                    {wildcard, Filter}]++StyleEx),
+		            PreviewFun = notify_event_handler_cb(Ask, preview),
+		            wxFilePickerCtrl:connect(Ctrl, command_filepicker_changed,
+						     [{callback, PreviewFun}]),
 		            tooltip(Ctrl, Flags),
 		            add_sizer(filepicker, Sizer, Ctrl, Flags),
 		            Ctrl
@@ -1083,6 +1103,9 @@ build(Ask, {button, {text, Def, Flags}}, Parent, Sizer, In) ->
             Create = fun() ->
 		            Ctrl = wxDirPickerCtrl:new(Parent, ?wxID_ANY,
 		                [{style, ?wxDIRP_DEFAULT_STYLE bor ?wxDIRP_USE_TEXTCTRL}, {path, Def}]++StyleEx),
+			    PreviewFun = notify_event_handler_cb(Ask, preview),
+			    wxDirPickerCtrl:connect(Ctrl, command_dirpicker_changed,
+						     [{callback, PreviewFun}]),
 		            tooltip(Ctrl, Flags),
 		            add_sizer(filepicker, Sizer, Ctrl, Flags),
 		            Ctrl
