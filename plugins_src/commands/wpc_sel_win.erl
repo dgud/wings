@@ -251,14 +251,14 @@ handle_event(#wx{event=#wxMouse{type=enter_window}}=Ev, State) ->
     wings_frame ! Ev,
     {noreply, State};
 
-handle_event(#wx{} = Ev, State) ->
-    io:format("~p:~p Got unexpected event ~p~n", [?WIN_NAME,?LINE, Ev]),
+handle_event(#wx{} = _Ev, State) ->
+    %% io:format("~p:~p Got unexpected event ~p~n", [?WIN_NAME,?LINE, Ev]),
     {noreply, State}.
 
 %%%%%%%%%%%%%%%%%%%%%%
 
-handle_call(Req, _From, State) ->
-    io:format("~p:~p Got unexpected call ~p~n", [?WIN_NAME,?LINE, Req]),
+handle_call(_Req, _From, State) ->
+    %% io:format("~p:~p Got unexpected call ~p~n", [?WIN_NAME,?LINE, Req]),
     {reply, ok, State}.
 
 handle_cast({new_state, #{ssels:=New} = SS}, #state{lc=LC, ss=Old, shown=OS}=State) ->
@@ -280,8 +280,8 @@ handle_cast(_Req, State) ->
     %% io:format("~p:~p Got unexpected cast ~p~n", [?WIN_NAME,?LINE, _Req]),
     {noreply, State}.
 
-handle_info(Msg, State) ->
-    io:format("~p:~p Got unexpected info ~p~n", [?WIN_NAME,?LINE, Msg]),
+handle_info(_Msg, State) ->
+    %% io:format("~p:~p Got unexpected info ~p~n", [?WIN_NAME,?LINE, Msg]),
     {noreply, State}.
 
 %%%%%%%%%%%%%%%%%%%%%%
@@ -290,7 +290,7 @@ code_change(_From, _To, State) ->
     State.
 
 terminate(_Reason, _) ->
-    io:format("terminate: ~p (~p)~n",[?WIN_NAME, _Reason]),
+    %% io:format("terminate: ~p (~p)~n",[?WIN_NAME, _Reason]),
     wings ! {wm, {delete, ?WIN_NAME}},
     normal.
 

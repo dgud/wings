@@ -418,7 +418,7 @@ handle_cast({new_state, Os}, #state{tc=TC, il=IL, imap=IMap0} = State) ->
 handle_cast(quit, State) ->
     {noreply, State};
 handle_cast(_Req, State) ->
-    io:format("~p:~p Got unexpected cast ~p~n", [?MODULE,?LINE, _Req]),
+    %% io:format("~p:~p Got unexpected cast ~p~n", [?MODULE,?LINE, _Req]),
     {noreply, State}.
 
 handle_info(parent_changed,

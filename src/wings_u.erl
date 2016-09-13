@@ -185,9 +185,16 @@ get_rel_path_0([_|T], Acc) ->
 
 
 wings() ->
-    case ?wings_branch of
+    case wings_branch() of
 	"" -> debug("Wings3D");
 	_ -> "Wings3D " ++ ?wings_version ++ " (" ++ ?wings_branch ++ ")"
+    end.
+
+wings_branch() ->
+    %% Fool dialyzer
+    case is_process_alive(self()) of
+        true -> ?wings_branch;
+        false -> ""
     end.
 
 -ifdef(DEBUG).

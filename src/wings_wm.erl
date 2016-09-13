@@ -1164,7 +1164,7 @@ drag_event(#mousebutton{button=B,state=?SDL_RELEASED},
 	    case DropOK of
 		false -> ok;
 		true ->
-		    {{X,Y},{W,H}} = wings_wm:win_rect(dragger),
+		    {X,Y,W,H} = wings_wm:win_rect(dragger),
 		    Ev = {drop,{X + W div 2,Y + H div 2},DropData},
 		    wings_io:putback_event(Ev)
 	    end,

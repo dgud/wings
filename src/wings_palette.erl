@@ -277,7 +277,8 @@ init([Frame, {W,_}, _Ps, Cols0]) ->
 	{Win, #state{self=self(), win=Win, sz=Sz,
 		     cols=Cols, bsz=BSz, empty=Empty}}
     catch _:Reason ->
-	    io:format("CRASH: ~p ~p ~p~n",[?MODULE, Reason, erlang:get_stacktrace()])
+	    io:format("CRASH: ~p ~p ~p~n",[?MODULE, Reason, erlang:get_stacktrace()]),
+            error(Reason)
     end.
 
 %%%%%%%%%%%%%%%%%%%%%%%

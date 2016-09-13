@@ -257,7 +257,7 @@ handle_event(#wx{} = _Ev, State) ->
 hitTest(LC, Pos) ->
     try wxListCtrl:hitTest(LC,Pos) of
         {Index, _, _} -> Index
-    catch error:undef -> wxListCtrl:hitTest(LC,Pos, 0)
+    catch error:undef -> apply(wxListCtrl,hitTest, [LC,Pos, 0])
     end.
 
 %%%%%%%%%%%%%%%%%%%%%%

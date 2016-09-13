@@ -138,27 +138,27 @@ handle_event(#wx{id=Id, event=#wxMouse{}=ME},
     Do = fun(St) -> wings_tweak:command({element(2,Name),Cmd}, St) end,
     wings_wm:psend(Name, {apply, true, Do}),
     {noreply, State};
-handle_event(#wx{} = Ev, State) ->
-    io:format("~p:~p Got unexpected event ~p~n", [?MODULE,?LINE, Ev]),
+handle_event(#wx{} = _Ev, State) ->
+    %% io:format("~p:~p Got unexpected event ~p~n", [?MODULE,?LINE, Ev]),
     {noreply, State}.
 
 %%%%%%%%%%%%%%%%%%%%%%
 
-handle_call(Req, _From, State) ->
-    io:format("~p:~p Got unexpected call ~p~n", [?MODULE,?LINE, Req]),
+handle_call(_Req, _From, State) ->
+    %% io:format("~p:~p Got unexpected call ~p~n", [?MODULE,?LINE, Req]),
     {reply, ok, State}.
 
 handle_cast({update, {_Mode, Menus}}, #state{cols=Cs, shown=Entries0} = State) ->
     update_lines(Menus, Entries0, Cs),
     {noreply, State};
 handle_cast(_Req, State) ->
-    io:format("~p:~p Got unexpected cast ~p~n", [?MODULE,?LINE, _Req]),
+    %% io:format("~p:~p Got unexpected cast ~p~n", [?MODULE,?LINE, _Req]),
     {noreply, State}.
 
 handle_info(parent_changed, State) ->
     {noreply, State};
-handle_info(Msg, State) ->
-    io:format("~p:~p Got unexpected info ~p~n", [?MODULE,?LINE, Msg]),
+handle_info(_Msg, State) ->
+    %% io:format("~p:~p Got unexpected info ~p~n", [?MODULE,?LINE, Msg]),
     {noreply, State}.
 
 %%%%%%%%%%%%%%%%%%%%%%
@@ -167,7 +167,7 @@ code_change(_From, _To, State) ->
     State.
 
 terminate(_Reason, #state{name=Name}) ->
-    io:format("terminate: ~p:~p (~p)~n",[?MODULE, Name, _Reason]),
+    %% io:format("terminate: ~p:~p (~p)~n",[?MODULE, Name, _Reason]),
     wings ! {wm, {delete, Name}},
     normal.
 
@@ -195,8 +195,7 @@ title({_,tweak_palette}) ->
 title({_,tweak_magnet}) ->
     ?__(2,"Tweak Magnet");
 title({_,axis_constraint}) ->
-    ?__(3,"Tweak Axis");
-title(_) -> [].
+    ?__(3,"Tweak Axis").
 
 %% Get valid items form the tweak menu for the palettes
 valid_menu_items([separator,{_,cycle_magnet,_}|Menu]) ->
