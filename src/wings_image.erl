@@ -267,6 +267,7 @@ req(Req, Notify) ->
 
 server(Opt) ->
     register(wings_image, self()),
+    process_flag(trap_exit, true),
     case Opt of
 	wings_not_running ->
 	    put(wings_not_running, true);
@@ -278,6 +279,9 @@ server(Opt) ->
 
 loop(S0) ->
     receive
+	{'EXIT', _Wings, _} ->
+	    %% Time to die
+	    exit(normal);
 	{Client,Ref,Req} ->
 	    case handle(Req, S0) of
 		{{error,_GlErr}=Err,S} ->

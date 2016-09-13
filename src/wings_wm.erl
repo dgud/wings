@@ -709,6 +709,21 @@ dispatch_event(#wx{obj=Obj}=Event) ->
 	_ ->
 	    do_dispatch(get(Obj), Event)
     end;
+dispatch_event({'EXIT', _Pid, normal}) ->
+    ignore;
+dispatch_event({'EXIT', Pid, {Reason, StackTrace}}) ->
+    Found = [Win || #win{name=Win, obj=Obj} <- gb_trees:values(get(wm_windows)),
+		    (catch wx_object:get_pid(Obj)) =:= Pid],
+    Name = case Found of
+	       [WName] -> WName;
+	       _ ->
+		   case process_info(Pid, registered_name) of
+		       [] -> Pid;
+		       {registered_name,Reg} -> Reg
+		   end
+	   end,
+    LogName = wings_u:crash_log(Name, Reason, StackTrace),
+    send(geom, {crash_in_other_window,LogName});
 dispatch_event(Event) ->
     case find_active() of
 	none ->
@@ -912,13 +927,15 @@ handle_event(State, Event, Stk) ->
 	throw:{command_error,Error} ->
 	    wings_u:message(Error),
 	    Stk;
-	  exit:normal ->
+	exit:normal ->
 	    exit(normal);
-	  exit:Exit ->
+	exit:{crash_logged, _}=Reason ->
+	    exit(Reason);
+	exit:Exit ->
 	    [#se{h=CrashHandler}] = pop_all_but_one(Stk),
 	    handle_response(CrashHandler({crash,Exit}), Event,
 			    default_stack(this()));
-	  error:Reason ->
+	error:Reason ->
 	    [#se{h=CrashHandler}] = pop_all_but_one(Stk),
 	    handle_response(CrashHandler({crash,Reason}), Event,
 			    default_stack(this()))
@@ -970,7 +987,7 @@ defer_to_next_handler(Event, [Top|[Next|_]=Stk]) ->
 
 default_stack(Name) ->
     Handler = fun({crash,Crash}) ->
-		      wings_u:win_crash(Crash);
+		      wings_u:win_crash(this(), Crash);
 		 (Other) ->
 		      io:format("Window ~p's crash handler got:\n~p\n",
 				[Name,Other]),

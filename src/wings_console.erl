@@ -60,9 +60,10 @@ start(GroupLeader) when is_pid(GroupLeader) ->
 	    exit(already_started);
 	undefined ->
 	    Starter = self(),
-	    Server = 
-		spawn(
+	    Server =
+		spawn_link(
 		  fun() ->
+			  process_flag(trap_exit, true),
 			  Self = self(),
 			  case catch register(?SERVER_NAME, Self) of
 			      true ->
@@ -203,6 +204,9 @@ server_loop(#state{gmon=Gmon, win=Win}=State) ->
 	#wx{} = WxEvent ->
 	    NewState = wings_console_event(State, WxEvent),
 	    server_loop(NewState);
+	{'EXIT', _, _} ->
+	    %% Wings main process down die
+	    exit(normal);
 	Unknown ->
 	    io:format(?MODULE_STRING++?STR(server_loop,1,":~w Received unknown: ~p~n"),
 		      [?LINE,Unknown]),

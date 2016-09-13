@@ -42,10 +42,10 @@ start_halt([File|_]) ->
 
 spawn_halt(File) ->
     spawn(fun() ->
-          process_flag(trap_exit, true),
-          Wings = do_spawn(File, [link]),
-          halt_loop(Wings)
-      end).
+		  process_flag(trap_exit, true),
+		  Wings = do_spawn(File, [link]),
+		  halt_loop(Wings)
+	  end).
 
 halt_loop(Wings) ->
     %% Handle normal and abnormal termination of the Wings process.
@@ -61,6 +61,10 @@ halt_loop(Wings) ->
 	    Log = wings_u:crash_log(Name, Reason, StkTrace),
 	    io:format("\n\n"),
 	    %% Intentionally not translated.
+	    io:format("Fatal internal error - log written to ~s\n",
+		      [Log]),
+	    ok;
+	{'EXIT',Wings,{crash_logged, Log}} ->
 	    io:format("Fatal internal error - log written to ~s\n",
 		      [Log]),
 	    ok;
@@ -91,6 +95,7 @@ do_spawn(File, Flags) ->
           [{fullsweep_after,16384},{min_heap_size,32*1204}|Flags]).
 
 init(File) ->
+    process_flag(trap_exit, true),
     register(wings, self()),
     erlang:system_flag(backtrace_depth, 25),
     wings_pref:init(),
@@ -1502,11 +1507,23 @@ crash_logger(Crash) ->
     crash_dialog(LogName).
 
 crash_dialog(LogName) ->
-    Parent = wings_dialog:get_dialog_parent(),
-    Str = ?__(1, "Internal error - log written to") ++ " " ++ LogName,
-    Dialog = wxMessageDialog:new(Parent, Str, [{caption,"Internal Error"}]),
-    wxMessageDialog:showModal(Dialog),
-    wings_dialog:reset_dialog_parent(Dialog).
+    Show = fun(Parent) ->
+		   Str = ?__(1, "Internal error - log written to") ++ " " ++ LogName,
+		   Dialog = wxMessageDialog:new(Parent, Str, [{caption,"Internal Error"}]),
+		   wxMessageDialog:showModal(Dialog),
+		   Dialog
+	   end,
+    try true = is_process_alive(whereis(wings_frame)) of
+	true ->
+	    Parent = wings_dialog:get_dialog_parent(),
+	    Dialog = Show(Parent),
+	    wings_dialog:reset_dialog_parent(Dialog),
+	    wxDialog:destroy(Dialog)
+    catch _:_ ->
+	    Dialog = Show(wx:new()),
+	    wxDialog:destroy(Dialog),
+	    exit({crash_logged, LogName})
+    end.
 
 %%%
 %%% Drag & Drop.
