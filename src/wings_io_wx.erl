@@ -468,7 +468,7 @@ make_key_event({Key, Mods}) ->
 	  end,
     ModState = gui_state([Map(Mod) || Mod <- Mods], 0),
     %% io:format("make key {~p, ~p} => ~p ~n",[Key, Mods, ModState]),
-    #keyboard{which=menubar, state=true, unicode=Key, mod=ModState, sym=Key};
+    #keyboard{which=menubar, state=?SDL_PRESSED, unicode=Key, mod=ModState, sym=Key};
 make_key_event(Key) when is_integer(Key) ->
     make_key_event({Key, []}).
 
