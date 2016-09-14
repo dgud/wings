@@ -425,7 +425,7 @@ handle_call(get_overlay, _From, #state{overlay=Overlay}=State) ->
 
 handle_call({update_layout,Contained0}, _From, #state{windows=#{ch:=Split}}=State) ->
     Contained = [C || C = {Type, _, _} <- Contained0, Type=:=split orelse Type=:=split_rev],
-    update_layout(lists:reverse(Contained), Split),
+    update_layout(Contained, Split),
     {reply, ok, State};
 
 handle_call(Req, _From, State) ->
