@@ -79,6 +79,7 @@ sculpt_mode_setup(#st{shapes=Shs}=St0) ->
     Sc = #sculpt{mode=Mode,mir=Mir,str=Str,mag=Mag,rad=Rad,mag_type=MagType,
           locked=Lv,st=St,wst=St,ost=St0},
     wings:mode_restriction([face]),
+    wings_wm:dirty(),
     {seq,push,update_sculpt_handler(Sc)}.
 
 shape_attr(S) ->
@@ -160,7 +161,7 @@ handle_sculpt_event_1(#mousebutton{button=1,x=X,y=Y,state=?SDL_PRESSED},
 		      #sculpt{st=St}=Sc) ->
     do_sculpt(X, Y, Sc#sculpt{wst=St,active=true});
 handle_sculpt_event_1(#mousebutton{button=3,mod=Mod,x=X,y=Y,state=?SDL_RELEASED}, Sc)
-  when Mod band ?CTRL_BITS =/= 0 ->
+  when Mod band ?ALT_BITS =/= 0 ->
     sculpt_menu(X, Y, Sc);
 handle_sculpt_event_1(#keyboard{sym=Sym,mod=Mod,state=?SDL_PRESSED}=Ev, #sculpt{st=St}=Sc) ->
     case is_altkey_magnet_event(Sym,Mod) of
@@ -727,9 +728,10 @@ command_handling(Action, #sculpt{st=St0,mag=Mag}=Sc) ->
       {view,Cmd} ->
           case wings_view:command(Cmd, St0) of
               keep ->
-                  keep;
+		  keep;
               #st{}=St ->
                   wings_draw:refresh_dlists(St),
+		  wings_wm:dirty(),
                   update_sculpt_handler(Sc#sculpt{st=St})
           end;
       {edit,undo_toggle} ->
@@ -764,6 +766,8 @@ command_handling(Action, #sculpt{st=St0,mag=Mag}=Sc) ->
           handle_sculpt_event_0({new_state,St0}, Sc);
       {sculpt,prefs} ->
           prefs(Sc);
+      {edit, {preferences, prefs}} ->
+	  prefs(Sc);
       {sculpt,exit_sculpt} ->
           exit_sculpt(Sc);
       {sculpt,{axis_constraint,Axis}} ->
@@ -782,6 +786,10 @@ command_handling(Action, #sculpt{st=St0,mag=Mag}=Sc) ->
                   wings_wm:dirty(),
                   update_sculpt_handler(Sc)
           end;
+	{window, _} ->
+	    defer;
+	{file, _} ->
+	    defer;
       _ -> keep
     end.
 
@@ -797,6 +805,7 @@ exit_sculpt(#sculpt{mag=Mag,mag_type=MagType,str=Str,rad=Rad,mode=Mode,ost=St0}=
     wings_tweak:toggle_draw(true),
     #sculpt{st=#st{shapes=Shs}}=remove_influence(Sc),
     St = wings_undo:save(St0, St0#st{shapes=Shs}),
+    wings:clear_mode_restriction(),
     wings_wm:later({new_state,St}),
     pop.
 
@@ -817,7 +826,7 @@ help(#sculpt{mag=Mag,rad=Rad,mag_type=MagType,str=Str,mode=Mode}) ->
               Pull++" ("++?__(11,"Hold [Ctrl]: Push")++AddSmooth
         end,
     Sculpt = ?__(1,"L: Sculpt"),
-    Menu = ?__(2,"[Ctrl]+R: Sculpt Menu"),
+    Menu = ?__(2,"[Alt]+R: Sculpt Menu"),
     MagnetType = io_lib:format(?__(3,"Magnet: ~s"),[magtype(MagType)]),
     Radius = ?__(4,"Alt+Drag: Adjust Radius"),
     Strength = ?__(5,"Alt+Scroll(+[Shift]): ")  ++ ?__(6,"Adjust Strength"),

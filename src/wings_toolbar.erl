@@ -30,8 +30,7 @@ update({active, Win, Restr}, #{me:=TB, wins:=Wins}=St) ->
 	    update_selection(TB, Mode, Sh, Restr),
 	    St#{mode:=Mode, sh:=Sh, active:=Win, restr=>Restr}
     end;
-update({selmode, _, Mode, Sh}, #{mode:=Mode, sh:=Sh}=TB) ->
-    TB;
+%% Always keep toogletools upto date
 update({selmode, Win, Mode, Sh}, #{active:=Active, me:=TB, restr:=Restr, wins:=Wins}=St) ->
     case Active of
 	Win ->
@@ -62,7 +61,11 @@ update_selection(TB, Mode, Sh, Restr) ->
 	       Butt =:= Mode orelse button_sh_filter(Butt, Sh)}
 	      || Butt <- All],
     [wxToolBar:toggleTool(TB, Id, State) || {_, Id, State} <- States],
-    [wxToolBar:enableTool(TB, Id, lists:member(Butt, Enabled)) || {Butt, Id, _} <- States].
+    [wxToolBar:enableTool(TB, Id, lists:member(Butt, Enabled)) || {Butt, Id, _} <- States],
+    case Restr of
+	[One] -> [wxToolBar:enableTool(TB, Id, false) || {Butt, Id, _} <- States, Butt =:= One];
+	_ -> ignore
+    end.
 
 button_restrict(Buttons, none) -> Buttons;
 button_restrict(_Buttons, Restr) -> Restr.

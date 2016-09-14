@@ -1588,7 +1588,8 @@ mode_restriction(Modes) ->
     case Modes of
 	none -> wings_wm:erase_prop(Win, mode_restriction);
 	_ ->    wings_wm:set_prop(Win, mode_restriction, Modes)
-    end.
+    end,
+    wings_wm:send(top_frame, {mode_restriction, Modes}).
 
 clear_mode_restriction() ->
     mode_restriction(none).
