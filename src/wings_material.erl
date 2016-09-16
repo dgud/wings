@@ -382,7 +382,8 @@ load_map_1(File0, Dir) ->
 		      [File,file:format_error(Error)]),
 	    none
     end.
-    
+
+add(default, _, #st{}=St) -> St;
 add(Name, Mat0, #st{mat=MatTab}=St) ->
     Mat = sort([{K,sort(L)} || {K,L} <- Mat0]),
     case gb_trees:lookup(Name, MatTab) of
