@@ -345,6 +345,8 @@ camera() ->
     NegativeFormat =
 	case {NegH,NegW} of
 	    {24,36} -> {24,36};
+	    {34,60} -> {34,60};
+	    {45,60} -> {45,60};
 	    {60,60} -> {60,60};
 	    _ -> custom
 	end,
@@ -361,7 +363,7 @@ camera() ->
 	      end,
     Disable = fun(Var, What, Sto) ->
 		      Keys = [negative_height, negative_width],
-		      wings_dialog:enable(Keys, What =/= custom, Sto),
+		      wings_dialog:enable(Keys, What =:= custom, Sto),
 		      FovHook(Var, What, Sto)
 	      end,
     FovHook2 = fun(Var,Val,Sto) -> camera_update_2(Var, Val, Sto) end,
@@ -370,7 +372,10 @@ camera() ->
 	 [{hframe,
 	   [{label,?__(1,"Negative Format")},
 	    {menu,
-	     [{"24x36",{24,36}},{"60x60",{60,60}},{?__(4,"Custom"),custom}],
+	     [{"24x36 [3:2]" ,{24,36}},
+	      {"34x60 [16:9]",{34,60}},
+	      {"45x60 [4:3]" ,{45,60}},
+	      {"60x60 [1:1]" ,{60,60}},{?__(4,"Custom"),custom}],
 	     NegativeFormat,
 	     [{key,negative_format},layout, {hook, Disable}]},
 	    {hframe,
