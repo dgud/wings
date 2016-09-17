@@ -236,10 +236,8 @@ material_result(_Name, Mat0, Res) ->
 % for default material in preferences
 menu_shader() ->
     [{?__(1,"Shiny Diffuse"),shinydiffuse},
-    {?__(2,"Glass"),glass},
-    {?__(3,"Rough Glass"),rough_glass},
-    {?__(4,"Glossy"),glossy},
-    {?__(5,"Coated Glossy"),coatedglossy},
+    {?__(2,"Glass (Rough)"),glass},
+    {?__(4,"Glossy (Coated)"),glossy},
     {?__(6,"Translucent (SSS)"),translucent},
     {?__(7,"Light Material"),lightmat},
     {?__(8,"Blend"),blend_mat}].
@@ -295,7 +293,7 @@ pref_result(Attr, St) ->
 -include("ui_general.erl").
 %!-----------------------------
 
-    
+
 %%% Export and rendering functions
 %%%
 export(Attr, XMLFilename, #e3d_file{objs=Objs, mat=Mats, creator=Creator}) ->
@@ -463,7 +461,7 @@ export(Attr, XMLFilename, #e3d_file{objs=Objs, mat=Mats, creator=Creator}) ->
 
 section(F, Name) ->
     println(F, [io_lib:nl(),"<!-- Section ",Name," -->",io_lib:nl()]).
-    
+
 %%% write material code
 -include("exp_material.erl").
 
@@ -702,22 +700,22 @@ rip_all(KeyTag, List) ->
     rip_all(KeyTag, Keys, List).
 rip_all(KeyTag, [Key | Keys], List) ->
     case rip_keytag(KeyTag, Key) of
-	true ->
-	    {_SetTag, SubTag} = Key,
-	    Value = proplists:get_value(Key, List),
-	    ListNext = proplists:delete(Key, List),
-	    {Found, Remaining} = rip_all(KeyTag, Keys, ListNext),
-	    {[{SubTag, Value} | Found], Remaining};
-	false ->
-	    rip_all(KeyTag, Keys, List)
+    true ->
+        {_SetTag, SubTag} = Key,
+        Value = proplists:get_value(Key, List),
+        ListNext = proplists:delete(Key, List),
+        {Found, Remaining} = rip_all(KeyTag, Keys, ListNext),
+        {[{SubTag, Value} | Found], Remaining};
+    false ->
+        rip_all(KeyTag, Keys, List)
     end;
 rip_all(_K, _KL, List) ->
     {[], List}.
 
 rip_keytag(KeyTag, {SetTag, _}) ->
     case KeyTag of
-	SetTag -> true;
-	_ -> false
+    SetTag -> true;
+    _ -> false
     end;
 rip_keytag(_KT, _ST) ->
     false.

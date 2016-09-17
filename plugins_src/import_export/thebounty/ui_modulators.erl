@@ -42,21 +42,21 @@ menu_distortion_type() ->
 % TODO: change this part of code for generate only the
 % allowed modulators for each material
 %
-modulator_dialogs(Modulators0, Maps) ->
+modulator_dialogs(Modulators0, Maps, MaterialType) ->
     ModCount = length(Modulators0),
     Modulators =
         if (ModCount < ?MAX_MODULATORS) ->
             Modulators0 ++ modulator_add(?MAX_MODULATORS-ModCount);
         true -> Modulators0
         end,
-    [{oframe, modulator_dialogs(Modulators, Maps, 1), 1, [{style, buttons}]}].
+    [{oframe, modulator_dialogs(Modulators, Maps, MaterialType, 1), 1, [{style, buttons}]}].
 
-modulator_dialogs([], _Maps, _M) -> [];
-modulator_dialogs([Modulator|Modulators], Maps, M) ->
-    modulator_dialog(Modulator, Maps, M)++
-    modulator_dialogs(Modulators, Maps, M+1).
+modulator_dialogs([], _Maps, _MaterialType, _M) -> [];
+modulator_dialogs([Modulator|Modulators], Maps, MaterialType, M) ->
+    modulator_dialog(Modulator, Maps, MaterialType, M)++
+    modulator_dialogs(Modulators, Maps, MaterialType, M+1).
 
-modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
+modulator_dialog({modulator,Ps}, Maps, MaterialType, M) when is_list(Ps) ->
     %
     {Enabled,BlendMode,TextureType} = mod_enabled_mode_type(Ps, Maps),
 
@@ -67,15 +67,14 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
     DefValue = proplists:get_value(def_value, Ps, 1.0),
 
     Coordinates = proplists:get_value(coordinates, Ps, global),
-    SizeX = proplists:get_value(size_x, Ps, ?DEF_MOD_SIZE_X),
-    SizeY = proplists:get_value(size_y, Ps, ?DEF_MOD_SIZE_Y),
-    SizeZ = proplists:get_value(size_z, Ps, ?DEF_MOD_SIZE_Z),
+    SizeX = proplists:get_value(size_x, Ps, 1.0),
+    SizeY = proplists:get_value(size_y, Ps, 1.0),
+    SizeZ = proplists:get_value(size_z, Ps, 1.0),
     Projection = proplists:get_value(projection, Ps, plain),
     OffsetX = proplists:get_value(offset_x, Ps, 0.0),
     OffsetY = proplists:get_value(offset_y, Ps, 0.0),
     OffsetZ = proplists:get_value(offset_z, Ps, 0.0),
 
-    % povman: Diffuse = proplists:get_value(diffuse, Ps, ?DEF_MOD_DIFFUSE),
     DiffuseLayer = proplists:get_value(diffuse, Ps, false),
     DiffuseFactor = proplists:get_value(diffuse_factor, Ps, 1.0),
     
@@ -91,14 +90,17 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
     TranslucentLayer = proplists:get_value(translucency, Ps, false),
     TranslucentFactor = proplists:get_value(translucent_factor, Ps, 1.0),
     
-    _GlossyLayer = proplists:get_value(glossy, Ps, false),
-    _GlossyFactor = proplists:get_value(glossy_factor, Ps, 1.0), 
+    GlossyLayer = proplists:get_value(glossy, Ps, false),
+    GlossyFactor = proplists:get_value(glossy_factor, Ps, 1.0), 
     
-    _GlossyReflect = proplists:get_value(glossy_reflect, Ps, false),
-    _GlossyReflectFactor = proplists:get_value(glossy_reflect_factor, Ps, 1.0),
+    GlossyReflectLayer = proplists:get_value(glossy_reflect, Ps, false),
+    GlossyReflectFactor = proplists:get_value(glossy_reflect_factor, Ps, 1.0),
     
     BumpLayer = proplists:get_value(bump, Ps, false),
     BumpFactor = proplists:get_value(bump_factor, Ps, 1.0),
+    
+    BlendLayer = proplists:get_value(blend_amount, Ps, 1.0),
+    BlendFactor = proplists:get_value(bump_factor, Ps, 1.0),
     
     Filename = proplists:get_value(image_filename, Ps, ?DEF_MOD_FILENAME),
     BrowseProps = [{dialog_type, open_dialog},
@@ -124,23 +126,26 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
     CellWeight4 = proplists:get_value(cell_weight4, Ps, ?DEF_MOD_CELL_WEIGHT4),
     MusgraveType = proplists:get_value(musgrave_type, Ps, ?DEF_MOD_MUSGRAVE_TYPE),
 
-    MusgraveNoiseSize = proplists:get_value(musgrave_noisesize, Ps, ?DEF_MOD_MUSGRAVE_NOISESIZE),
+    %MusgraveNoiseSize = proplists:get_value(musgrave_noisesize, Ps, ?DEF_MOD_MUSGRAVE_NOISESIZE),
     MusgraveIntensity = proplists:get_value(musgrave_intensity, Ps, ?DEF_MOD_MUSGRAVE_INTENSITY),
-    MusgraveContrast = proplists:get_value(musgrave_contrast, Ps, ?DEF_MOD_MUSGRAVE_CONTRAST),
+    %MusgraveContrast = proplists:get_value(musgrave_contrast, Ps, 0.1),
     MusgraveLacunarity = proplists:get_value(musgrave_lacunarity, Ps, ?DEF_MOD_MUSGRAVE_LACUNARITY),
     MusgraveOctaves = proplists:get_value(musgrave_octaves, Ps, ?DEF_MOD_MUSGRAVE_OCTAVES),
     DistortionType = proplists:get_value(distortion_type, Ps, ?DEF_MOD_DISTORTION_TYPE),
 
     DistortionIntensity = proplists:get_value(distortion_intensity, Ps, ?DEF_MOD_DISTORTION_INTENSITY),
     DistortionNoiseSize = proplists:get_value(distortion_noisesize, Ps, ?DEF_MOD_DISTORTION_NOISESIZE),
+    
+    %% test
+    MatType = proplists:get_value(mat_type, Ps, MaterialType),
 
     MapsItems = [{atom_to_list(Map),{map,Map}} || {Map,_} <- Maps],
 
     Hook_Enable = fun(Key, Value, Store) ->
         case Key of
             {?TAG,{M,enabled}} ->
-                wings_dialog:enable(?KEY({pnl_mode,M}), Value =:= true, Store),
-                wings_dialog:enable(?KEY({pnl_mod,M}), Value =:= true, Store);
+                wings_dialog:enable(?KEY({pnl_blend_mode,M}), Value =:= true, Store),
+                wings_dialog:enable(?KEY({pnl_modulator,M}), Value =:= true, Store);
             _ -> ok
         end
     end,
@@ -158,18 +163,115 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                 wings_dialog:show(?KEY({pnl_voronoi,M}), Value =:= voronoi, Store),
                 wings_dialog:show(?KEY({pnl_musgrave,M}), Value =:= musgrave, Store),
                 wings_dialog:show(?KEY({pnl_dist_noise,M}), Value =:= distorted_noise, Store),
-                wings_dialog:update(?KEY({pnl_mod,M}), Store);
-            {?TAG, {M, material_type}} ->
-                wings_dialog:show(?KEY({pnl_layer,M}), Value =:= glossy, Store),
-                wings_dialog:update(?KEY({pnl_mod,M}), Store)
+                wings_dialog:update(?KEY({pnl_modulator,M}), Store)
         end
     end,
-
-
+    %
+    InfluenceSlot = 
+        case MaterialType of
+           shinydiffuse ->
+                {hframe, [
+                    {vframe,[
+                        {?__(30,"Diffuse Color"),DiffuseLayer, [key({M,diffuse})]}, % glossy
+                        {?__(31,"Mirror Amount"),MirrorLayer, [key({M,mirror})]},
+                        {?__(32,"Mirror Color"),MirrorColorLayer, [key({M,mirror_color})]}%,
+                        %{?__(33,"Glossy Color"),GlossyLayer, [key({M,glossy})]}
+                    ]},
+                    {vframe,[
+                        {slider,{text,DiffuseFactor,[key({M,diffuse_factor}),range(zero_to_one)]}},
+                        {slider,{text,MirrorFactor,[key({M,mirror_factor}),range(zero_to_one)]}},
+                        {slider,{text,MirrorColorFactor,[key({M,mirror_color_factor}),range(zero_to_one)]}}%,
+                        %{slider,{text,GlossyFactor,[key({M,glossy_factor}),range(zero_to_one)]}}
+                    ]},
+                    {vframe,[
+                        {?__(34,"Transparency "),TransparentLayer,[key({M,transparency})]},
+                        {?__(35,"Translucency "),TranslucentLayer,[key({M,translucency})]},
+                        %{?__(36,"Glossy Reflect"),GlossyReflectLayer,[key({M,glossy_reflect})]},
+                        {?__(37,"Bump Mapping"),BumpLayer,[key({M,bump})]}                                              
+                    ]},
+                    {vframe,[
+                        {slider,{text,TransparentFactor,[key({M,transparent_factor}),range(zero_to_one)]}},
+                        {slider,{text,TranslucentFactor,[key({M,translucent_factor}),range(neg_one_to_one)]}},
+                        %{slider,{text,GlossyReflectFactor,[key({M,glossy_reflect_factor}),range(zero_to_one)]}},
+                        {slider,{text,BumpFactor,[key({M,bump_factor}),range(neg_one_to_one)]}}
+                    ]}
+                ],[{title,"Influence"},{margin,false}]};
+            translucent ->
+                {hframe, [
+                    {vframe,[
+                        {?__(38,"Diffuse Color"),DiffuseLayer, [key({M,diffuse})]},
+                        {?__(39,"Glossy Color"),GlossyLayer, [key({M,glossy})]},
+                        {?__(40,"Transparency "),TransparentLayer,[key({M,transparency})]}
+                    ]},
+                    {vframe,[
+                        {slider,{text,DiffuseFactor,[key({M,diffuse_factor}),range(zero_to_one)]}},
+                        {slider,{text,GlossyFactor,[key({M,glossy_factor}),range(zero_to_one)]}},
+                        {slider,{text,TransparentFactor,[key({M,transparent_factor}),range(zero_to_one)]}}                        
+                    ]},
+                    {vframe,[
+                        {?__(41,"Translucency "),TranslucentLayer,[key({M,translucency})]},
+                        {?__(42,"Bump Mapping"),BumpLayer,[key({M,bump})]}                                              
+                    ]},
+                    {vframe,[
+                        {slider,{text,TranslucentFactor,[key({M,translucent_factor}),range(neg_one_to_one)]}},
+                        {slider,{text,BumpFactor,[key({M,bump_factor}),range(neg_one_to_one)]}}
+                    ]}
+                ],[{title,"Influence"},{margin,false}]};
+            glossy ->
+                {hframe, [
+                    {vframe,[
+                        {?__(43,"Diffuse Color"),DiffuseLayer, [key({M,diffuse})]},
+                        {?__(44,"Glossy Color"),GlossyLayer, [key({M,glossy})]}
+                    ]},
+                    {vframe,[
+                        {slider,{text,DiffuseFactor,[key({M,diffuse_factor}),range(zero_to_one)]}},
+                        {slider,{text,GlossyFactor,[key({M,glossy_factor}),range(zero_to_one)]}}
+                    ]},
+                    {vframe,[
+                        {?__(45,"Glossy Reflect"),GlossyReflectLayer,[key({M,glossy_reflect})]},
+                        {?__(46,"Bump Mapping"),BumpLayer,[key({M,bump})]}                                              
+                    ]},
+                    {vframe,[
+                        {slider,{text,GlossyReflectFactor,[key({M,glossy_reflect_factor}),range(zero_to_one)]}},
+                        {slider,{text,BumpFactor,[key({M,bump_factor}),range(neg_one_to_one)]}}
+                    ]}
+                ],[{title,"Influence"},{margin,false}]};
+            glass ->
+                {hframe, [
+                    {vframe,[
+                        {?__(47,"Mirror Color"),MirrorColorLayer, [key({M,mirror_color})]},
+                        {?__(48,"Bump Mapping"),BumpLayer,[key({M,bump})]}
+                    ]},
+                    {vframe,[
+                        {slider,{text,MirrorFactor,[key({M,mirror_factor}),range(zero_to_one)]}},
+                        {slider,{text,BumpFactor,[key({M,bump_factor}),range(neg_one_to_one)]}}
+                    ]}
+                ],[{title,"Influence"},{margin,false}]};
+                
+            blend ->
+                {hframe, [                    
+                    {vframe,[
+                        {?__(49,"Blend Amount"),BumpLayer,[key({M,bump})]}                                              
+                    ]},
+                    {vframe,[
+                        {slider,{text,BumpFactor,[key({M,bump_factor}),range(neg_one_to_one)]}}
+                    ]}
+                ],[{title,"Influence"},{margin,false}]};
+            _ ->
+                {hframe, [                    
+                    %{vframe,[
+                    %    {?__(42,"Blend Amount"),BumpLayer,[key({M,bump})]}                                              
+                    %]},
+                    %{vframe,[
+                    %    {slider,{text,BumpFactor,[key({M,bump_factor}),range(neg_one_to_one)]}}
+                    %]}
+                ],[{title,"Influence"},{margin,false}]}
+        end,
+    %
     ModFrame =
         {vframe, [
             {hframe, [
-                {?__(6,"Enabled"),Enabled,[key({M,enabled}),{hook,Hook_Enable}]}%,
+                {?__(5,"Enabled"),Enabled,[key({M,enabled}),{hook,Hook_Enable}]}
             ]},
             {vframe,[
                 {vframe,[ % este panel es del key, pnl_mode
@@ -184,10 +286,11 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                     {hframe,[
                         {hframe,[ %test
                         {label,?__(11," Def. Color: ")},{color,DefColor, [key({M,def_color})]},
-                        {label,?__(12," Def. Value:")},{slider,{text,DefValue,[key({M,def_value}), range(zero_to_one)]}}
+                        {label,?__(12," Def. Value:")},
+                        {slider,{text,DefValue,[key({M,def_value}),range(zero_to_one),{width,4}]}}
                         ]} % test
                     ]}
-                ],[key({pnl_mode,M}),{title,"Stencil"},{margin,false},{hook,Hook_Show}]}
+                ],[key({pnl_blend_mode,M}),{title,"Stencil"},{margin,false},{hook,Hook_Show}]}
             ]},
             {vframe, [
                 %!---------------------
@@ -223,39 +326,8 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
 
                     ]}
                 ],[{title,"Texture Mapping"},{margin,false}]},
-                %!-----------------------------------------
-                %! layers to mapping texture
-                %!-----------------------------------------
-                {vframe,[
-                    {hframe,[
-                        {hframe,[
-                            {?__(35,"Diffuse Color"),DiffuseLayer, [key({M,diffuse})]},
-                            {slider,{text,DiffuseFactor,[key({M,diffuse_factor}),range(zero_to_one),{width,5}]}}]}
-                    ]},
-                    {hframe,[
-                        {hframe,[
-                            {?__(36,"Mirror Amount"),MirrorLayer, [key({M,mirror})]},
-                            {slider,{text,fit_range(MirrorFactor,zero_to_one),[key({M,mirror_factor}),range(zero_to_one),{width,5}]}}]}
-                    ]},
-                    {hframe,[
-                        {hframe,[
-                            {?__(37,"Mirror  Color"),MirrorColorLayer, [key({M,mirror_color})]},
-                            {slider,{text,MirrorColorFactor,[key({M,mirror_color_factor}),range(zero_to_one),{width,5}]}}]}
-                    ]},
-                    {hframe,[
-                        {hframe,[
-                            {?__(38,"Transparency "),TransparentLayer,[key({M,transparency})]},
-                            {slider,{text,TransparentFactor,[key({M,transparent_factor}),range(zero_to_one),{width,5}]}}]}
-                    ]},
-                    {hframe,[
-                        {hframe,[{?__(39,"Translucency "),TranslucentLayer,[key({M,translucency})]},
-                        {slider,{text,TranslucentFactor,[key({M,translucent_factor}),range(neg_one_to_one),{width,5}]}}]}
-                    ]},
-                    {hframe,[
-                        {hframe,[{?__(40,"Bump  Mapping"),BumpLayer,[key({M,bump})]},
-                        {slider,{text,BumpFactor,[key({M,bump_factor}),range(neg_one_to_one),{width,5}]}}]}
-                    ]}
-                ],[{title,"Influence"},{margin,false}]},
+                InfluenceSlot,
+                
                 %!-----------------------
                 %! textures
                 %!-----------------------
@@ -389,7 +461,7 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                             panel,
                             {hframe,[
                                 {label,?__(89,"Noise Size")},
-                                {text,MusgraveNoiseSize,[key({M,musgrave_noisesize}),range(musgrave_noisesize)]}
+                                {text,proplists:get_value(musgrave_noisesize, Ps, 0.5),[key({M,musgrave_noisesize}),range(musgrave_noisesize)]}
                             ]},
                             {hframe,[
                                 {label,?__(90,"Intensity")},
@@ -401,15 +473,15 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                         {hframe, [
                             {hframe, [
                                 {label,?__(91,"Contrast (H)")},
-                                {text,MusgraveContrast,[key({M,musgrave_contrast}),range(musgrave_contrast)]}
+                                {text,proplists:get_value(musgrave_contrast, Ps, 0.1),[key({M,musgrave_contrast}),range(musgrave_contrast)]}
                             ]},
                             {hframe, [
                                 {label,?__(92,"Lacunarity")},
-                                {text,MusgraveLacunarity,[key({M,musgrave_lacunarity}),range(musgrave_lacunarity)]}
+                                {text,proplists:get_value(musgrave_lacunarity, Ps, 2.0),[key({M,musgrave_lacunarity}),range(musgrave_lacunarity)]}
                             ]},
                             {hframe, [
                                 {label,?__(93,"Octaves")},
-                                {text,MusgraveOctaves,[key({M,musgrave_octaves}),range(musgrave_octaves)]}
+                                {text,proplists:get_value(musgrave_octaves, Ps, 8.0),[key({M,musgrave_octaves}),range(zero_to_eight)]}
                             ]}
                         ],[{margin,false}]}
                         %% End Musgrave Line 2
@@ -422,15 +494,15 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                             {menu,menu_distortion_type(),DistortionType,[key({M,distortion_type})]},
                             %% End Distorted Noise Type Select
                             {label,?__(94,"Noise Size")},{text,DistortionNoiseSize,[key({M,distortion_noisesize}),range(distortion_noisesize)]},
-                            {label,?__(95,"Distortion")},{text,DistortionIntensity,[key({M,distortion_intendity}),range(distortion_intensity)]}
+                            {label,?__(95,"Distortion")},{text,DistortionIntensity,[key({M,distortion_intensity}),range(distortion_intensity)]}
                         ],[{margin,false}]}
                     ],[key({pnl_dist_noise,M}),{show,false}]}
                 ],[key({pnl_type,M})]}
-            ],[key({pnl_mod,M})]}
+            ],[key({pnl_modulator,M})]}
         ]},
     [{?__(100,"Shader")++" "++integer_to_list(M)++mod_legend(Enabled, BlendMode, TextureType), ModFrame}];
 
-modulator_dialog(_Modulator, _Maps, _) ->
+modulator_dialog(_Modulator, _Maps, _MaterialType, _) ->
     []. % Discard old modulators that anyone may have
 
 mod_enabled_mode_type(Ps, Maps) ->
@@ -474,8 +546,10 @@ process_modulator(Ps) ->
     {[{modulators, Modulators}], Remaning}.
 
 modulator_result_find([], _, Acc) -> Acc;
+
 modulator_result_find([{{Id,Field},Value}|Ps], Id, {Mod, Remaining}) ->
     modulator_result_find(Ps, Id, {Mod ++[{Field,Value}], Remaining});
+    
 modulator_result_find([Item|Ps], Id, {Mod, Remaining}) ->
     modulator_result_find(Ps, Id, {Mod, Remaining ++ [Item]}).
 
@@ -503,6 +577,7 @@ modulator_init(Mode) ->
         {diffuse, false},{diffuse_factor, 1.0},
         {mirror, false},{mirror_factor, 1.0},
         {mirror_color, false},{mirror_color_factor, 1.0},
+        {glossy, false},{glossy_factor, 1.0},
         {transparency, false},{transparent_factor, 1.0},
         {translucency, false},{translucent_factor, 1.0},
         {bump,false},{bump_factor, 1.0},
@@ -527,9 +602,9 @@ modulator_init(Mode) ->
         {cell_weight3,?DEF_MOD_CELL_WEIGHT3},
         {cell_weight4,?DEF_MOD_CELL_WEIGHT4},
         {musgrave_type,?DEF_MOD_MUSGRAVE_TYPE},
-        {musgrave_noisesize,?DEF_MOD_MUSGRAVE_NOISESIZE},
+        {musgrave_noisesize,0.5},
         {musgrave_intensity,?DEF_MOD_MUSGRAVE_INTENSITY},
-        {musgrave_contrast,?DEF_MOD_MUSGRAVE_CONTRAST},
+        {musgrave_contrast,0.1},
         {musgrave_lacunarity,?DEF_MOD_MUSGRAVE_LACUNARITY},
         {musgrave_octaves,?DEF_MOD_MUSGRAVE_OCTAVES},
         {distortion_type,?DEF_MOD_DISTORTION_TYPE},
