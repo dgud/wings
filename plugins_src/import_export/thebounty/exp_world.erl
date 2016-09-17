@@ -80,7 +80,6 @@ export_gradient_background(F, Attr)->
     export_rgb(F, zenith_ground_color,{0.3,0.3,0.3}),
     println(F, "\t<power fval=\"~w\"/>", [proplists:get_value(background_power, Attr, 1.0)]).
 
-
 export_texture_background(F, Attr) ->
     %!-----------------------------------------------
     %! write texture out of background declaration
