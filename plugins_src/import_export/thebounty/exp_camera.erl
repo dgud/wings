@@ -47,7 +47,7 @@ export_camera(F, Attr) ->
         %
         orthographic ->
             println(F,
-                "\t<scale fval=\"~.10f\"/>",[proplists:get_value(lens_ortho_scale, Attr)]);
+                "\t<scale fval=\"~.10f\"/>",[proplists:get_value(lens_scale, Attr)]);
         angular ->
             println(F,
                 "\t<circular bval=\"~s\"/>",[proplists:get_value(lens_circular, Attr)]),

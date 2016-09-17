@@ -74,8 +74,8 @@ light_dialog(_Name, spot, Ps) ->
     SpotType = proplists:get_value(spot_type, Ps, ?DEF_SPOT_TYPE),
     SpotPhotonOnly = proplists:get_value(spot_photon_only, Ps, ?DEF_SPOT_PHOTON_ONLY),
     SpotSoftShadows = proplists:get_value(spot_soft_shadows, Ps, ?DEF_SPOT_SOFT_SHADOWS),
-    SpotBlend = proplists:get_value(spot_blend, Ps, ?DEF_SPOT_BLEND),
-    SpotFuzzyness = proplists:get_value(spot_fuzzyness, Ps, ?DEF_SPOT_FUZZYNESS),
+    SpotBlend = proplists:get_value(spot_blend, Ps, 0.5),
+    SpotFuzzyness = proplists:get_value(spot_fuzzyness, Ps, 0.5),
     SpotIESFilename = proplists:get_value(spot_ies_filename, Ps, ?DEF_SPOT_IES_FILENAME),
     SpotIESSamples = proplists:get_value(spot_ies_samples, Ps, ?DEF_SPOT_IES_SAMPLES),
     BrowsePropsIES = [{dialog_type,open_dialog},{extensions,[{".ies",?__(30,"IES")}]}],
@@ -84,8 +84,8 @@ light_dialog(_Name, spot, Ps) ->
         fun(Key, Value, Store) ->
             case Key of
                 ?KEY(spot_soft_shadows) ->
-                    wings_dialog:enable(?KEY(spot_ies_samples), Value=/=?DEF_SPOT_SOFT_SHADOWS, Store),
-                    wings_dialog:enable(?KEY(spot_fuzzyness), Value=/=?DEF_SPOT_SOFT_SHADOWS, Store)
+                    wings_dialog:enable(?KEY(spot_ies_samples), Value =:= true, Store),
+                    wings_dialog:enable(?KEY(spot_fuzzyness), Value =:= true, Store)
             end
         end,
 
@@ -114,7 +114,7 @@ light_dialog(_Name, spot, Ps) ->
         {vframe, [
             {hframe, [
                 {label,?__(103,"Blend")},
-                {text,SpotBlend,[key(spot_blend),range(spot_blend)]},
+                {text,SpotBlend,[key(spot_blend),range(zero_to_one)]},
                 panel,
                 {?__(104,"Photon Only"),SpotPhotonOnly,[key(spot_photon_only)]},
                 panel
@@ -126,7 +126,7 @@ light_dialog(_Name, spot, Ps) ->
                 {text,SpotIESSamples,[range(spot_ies_samples),key(spot_ies_samples)]},
                 panel,
                 {label,?__(107,"Fuzzyness")},
-                {text,SpotFuzzyness,[range(spot_fuzzyness),key(spot_fuzzyness)]}
+                {text,SpotFuzzyness,[range(zero_to_one),key(spot_fuzzyness)]}
             ]}
         ],[{margin,false}]
         }
@@ -162,7 +162,6 @@ light_dialog(_Name, infinite, Ps) ->
     [
         {vframe, [
             {vframe, [
-                %% se queda ------------------------------------------------------->
                 {hradio, [
                     {?__(110,"Sunlight"),sunlight},
                     {?__(111,"Directional"),directional}
@@ -170,7 +169,7 @@ light_dialog(_Name, infinite, Ps) ->
                 },
                 {hframe, [
                     {hframe, [
-                        {label,?__(112,"Samples ")},{text,SunSamples,[key(sun_samples),range(sun_samples)]}
+                        {label,?__(112,"Samples ")},{text,SunSamples,[key(sun_samples),range(samples)]}
                     ]},
                     panel,
                     {hframe, [

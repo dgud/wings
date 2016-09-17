@@ -12,7 +12,6 @@
 %
 % lights..
 %
-%
 export_light(F, Name, Ps) ->
     case proplists:get_value(visible, Ps, true) of
         true ->
@@ -57,23 +56,21 @@ export_light(F, Name, point, OpenGL, Attr) ->
 %!-------------------------------------------
 export_light(F, Name, infinite, OpenGL, Attr) ->
     Type = proplists:get_value(type, Attr, ?DEF_INFINITE_TYPE),
-    InfiniteTrue = proplists:get_value(infinite_true, Attr, ?DEF_INFINITE_TRUE),
+    IsInfinite = proplists:get_value(infinite_true, Attr, ?DEF_INFINITE_TRUE),
     Power = proplists:get_value(power, Attr, ?DEF_POWER),
     Position = proplists:get_value(position, OpenGL, {0.0,0.0,0.0}),
-    Diffuse = proplists:get_value(diffuse, OpenGL, {1.0,1.0,1.0,1.0}),
-    SunSamples = proplists:get_value(sun_samples, Attr, ?DEF_SUN_SAMPLES),
-    SunAngle = proplists:get_value(sun_angle, Attr, ?DEF_SUN_ANGLE),
+    Diffuse = proplists:get_value(diffuse, OpenGL, {0.9,0.9,0.9,0.9}),
 
     println(F, "<light name=\"~s\">",[Name]),
     println(F, "\t<type sval=\"~w\"/>",[Type]),
     println(F, "\t<power fval=\"~.10f\"/>",[Power]),
     case Type of
         directional ->
-            println(F, "<infinite bval=\"~s\"/>",[InfiniteTrue]),
-            case InfiniteTrue of
+            println(F, "\t<infinite bval=\"~s\"/>",[IsInfinite]),
+            case IsInfinite of
                 false ->
                     println(F,
-                        "<radius fval=\"~.10f\"/>",[proplists:get_value(infinite_radius, Attr, 10.0)]);
+                        "\t<radius fval=\"~.10f\"/>",[proplists:get_value(infinite_radius, Attr, 10.0)]);
                 true -> ok
             end,
             export_pos(F, direction, Position),
@@ -81,8 +78,8 @@ export_light(F, Name, infinite, OpenGL, Attr) ->
 
         % sun light case
         sunlight ->
-            println(F, "\t<samples ival=\"~w\"/>",[SunSamples]),
-            println(F, "\t<angle fval=\"~.3f\"/>",[SunAngle])
+            println(F, "\t<samples ival=\"~w\"/>",[proplists:get_value(samples, Attr, 8)]),
+            println(F, "\t<angle fval=\"~.3f\"/>",[proplists:get_value(sun_angle, Attr, ?DEF_SUN_ANGLE)])
     end,
     export_pos(F, direction, Position),
     export_rgb(F, color, Diffuse),
@@ -109,9 +106,10 @@ export_light(F, Name, spot, OpenGL, Attr) ->
             println(F, "\t<type sval=\"spotlight\"/>"),
             println(F,
                 "\t<photon_only bval=\"~s\"/>",[proplists:get_value(spot_photon_only, Attr, false)]),
-            println(F, "\t<cone_angle fval=\"~.3f\"/>",[ConeAngle]),
             println(F,
-                "\t<blend fval=\"~.3f\"/>",[proplists:get_value(spot_blend, Attr, ?DEF_SPOT_BLEND)]),
+                "\t<cone_angle fval=\"~.3f\"/>",[ConeAngle]),
+            println(F,
+                "\t<blend fval=\"~.3f\"/>",[proplists:get_value(spot_blend, Attr, 0.5)]),
             println(F, "\t<soft_shadows bval=\"~s\"/>",[SpotSoftShadows]),
             println(F,
                 "\t<shadowFuzzyness fval=\"~.3f\"/>",[proplists:get_value(spot_fuzzyness, Attr, 0.5)]),

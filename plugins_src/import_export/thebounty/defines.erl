@@ -24,20 +24,20 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_RENDERER, "thebounty-xml").
 -define(DEF_PLUGINS_PATH, "plugins").
 -define(DEF_OPTIONS, "").
--define(DEF_THREADS_AUTO, true).
--define(DEF_THREADS_NUMBER, 1).
+%-define(DEF_THREADS_AUTO, true).
+%-define(DEF_THREADS_NUMBER, 1).
 -define(DEF_SUBDIVISIONS, 0).
 -define(DEF_KEEP_XML, false).
 -define(DEF_SAVE_ALPHA, false).
 -define(DEF_GAMMA, 2.2).
 -define(DEF_EXPOSURE, 1.4).
--define(DEF_RENDER_FORMAT, tga).
+-define(DEF_RENDER_FORMAT, png).
 -define(DEF_EXR_FLAG_COMPRESSION, exr_none).
 
 %% Shader
 -define(DEF_FRESNEL, false).
 -define(DEF_MATERIAL_TYPE, shinydiffuse).
--define(DEF_TIR, false).
+%-define(DEF_TIR, false).
 -define(DEF_IOR, 1.4).
 -define(DEF_MIN_REFLE, 0.0).
 -define(DEF_OBJECT_TYPE, mesh).
@@ -81,11 +81,11 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_DIFFUSE_REFLECT, 1.0).
 -define(DEF_SPECULAR_REFLECT, 0.0).
 -define(DEF_GLOSSY_REFLECT, 0.01).
--define(DEF_EMIT, 0.0).
+%-define(DEF_EMIT, 0.0).
 -define(DEF_EXPONENT, 50.0).
 -define(DEF_ANISOTROPIC, false).
--define(DEF_ANISOTROPIC_U, 5.0).
--define(DEF_ANISOTROPIC_V, 1500.0).
+-define(DEF_ANISOTROPIC_U, 50.0).
+-define(DEF_ANISOTROPIC_V, 500.0).
 -define(DEF_ROUGHNESS, 0.2).
 -define(DEF_LIGHTMAT_POWER, 0.9).
 -define(DEF_BLEND_MAT1, "blendone").
@@ -278,8 +278,6 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_MOD_OPACITY, 1.0).
 -define(DEF_MOD_DIFFUSE, 1.0).
 -define(DEF_MOD_COLORFACTOR, 1.0).
-%%-define(DEF_MOD_SPECULAR, 0.0).
-%%-define(DEF_MOD_AMBIENT, 0.0).
 -define(DEF_MOD_SHININESS, 1.0).
 -define(DEF_MOD_NORMAL, 0.0).
 -define(DEF_MOD_TEXTURETYPE, clouds).
@@ -321,6 +319,7 @@ range(T) -> {range,range_1(T)}.
 %% generic float ranges
 range_1(zero_to_one)            -> {0.0,1.0};
 range_1(zero_to_five)           -> {0.0,5.0};
+range_1(zero_to_eight)          -> {0.0,8.0};
 range_1(zero_to_ten)            -> {0.0,10.0};
 range_1(zero_to_twenty)         -> {0.0,20.0};
 range_1(neg_one_to_one)         -> {-1.0,1.0};
@@ -385,8 +384,6 @@ range_1(specular_reflect)       -> {0.0,1.0};
 range_1(glossy_reflect)         -> {0.0,1.0};
 range_1(emit)                   -> {0.0,25.0};
 range_1(exponent)               -> {1.0,2000.0};
-range_1(exponent_u)             -> {1.0,2000.0};
-range_1(exponent_v)             -> {1.0,2000.0};
 range_1(roughness)              -> {0.0,1.0};
 range_1(lightmat_power)         -> {0.0,10.0};
 range_1(blend_value)            -> {0.0,1.0};
@@ -395,41 +392,33 @@ range_1(sigma)                  -> {0.0,1.0};
 %% Light ranges
 range_1(power)                  -> {0.0,infinity};
 range_1(bias)                   -> {0.0,1.0};
-%add
 range_1(verbosity_level)        -> {0,3};
 range_1(res)                    -> {0,infinity};
 range_1(radius)                 -> {0,infinity};
 range_1(blur)                   -> {0.0,1.0};
-range_1(samples)                -> {1,infinity};
+range_1(samples)                -> {1,512};
 range_1(spot_ies_samples)       -> {1,512};
-range_1(glow_intensity)         -> {0.0,1.0};
-range_1(glow_offset)            -> {0.0,infinity};
-range_1(spot_blend)             -> {0.0,1.0};
-range_1(spot_fuzzyness)         -> {0.0,1.0};
-range_1(photons)                -> {0,infinity};
-range_1(depth)                  -> {0,infinity};
+range_1(photons)                -> {0,10000000};
+range_1(depth)                  -> {0,12};
 range_1(fixedradius)            -> {0.0,infinity};
 range_1(search)                 -> {0,infinity};
 range_1(cluster)                -> {0.0,infinity};
 range_1(turbidity)              -> {0.0,5.0};
 range_1(angle_threshold)        -> {0.0,1.0};
-range_1(raydepth)               -> {1,infinity};
+range_1(raydepth)               -> {1,12};
 range_1(shadow_depth)           -> {1,64};
-range_1(cache_size)             -> {0.0,infinity};
 range_1(shadow_threshold)       -> {0.0,infinity};
-range_1(cache_search)           -> {3,infinity};
 range_1(exposure_adjust)        -> {0.0,50.0};
 range_1(psamples)               -> {0,infinity};
 range_1(arealight_radius)       -> {0.0,infinity};
 range_1(maxdistance)            -> {0.0,infinity};
 range_1(infinite_radius)        -> {0.0,infinity};
-range_1(sun_samples)            -> {0,infinity};
 range_1(sun_angle)              -> {0.0,80.0};
 
 %backg
 range_1(ibl_rotation)           -> {-180.0,180.0};
 range_1(sky_background_power)   -> {0.0,infinity};
-range_1(background_samples)     -> {0,infinity};
+range_1(background_samples)     -> {0,512};
 range_1(altitude)               -> {0.0,infinity};
 range_1(sun_power)              -> {0.0,infinity};
 
@@ -469,16 +458,16 @@ range_1(volintegr_stepsize)     -> {0.0,100.0};
 range_1(subdivisions)           -> {0,10};
 range_1(threads_number)         -> {1,100};
 range_1(aa_pixelwidth)          -> {1.0,2.0};
-range_1(aa_passes)              -> {0,infinity};
+range_1(aa_passes)              -> {0,1024};
 range_1(aa_threshold)           -> {0.0,1.0};
-range_1(aa_samples)             -> {1,infinity};
+range_1(aa_samples)             -> {1,1024};
 range_1(gamma)                  -> {0.0,infinity};
 range_1(exposure)               -> {0.0,infinity};
 range_1(pixels)                 -> {1,infinity};
-range_1(lens_ortho_scale)       -> {0.0,100.0};
+range_1(lens_scale)             -> {0.0,100.0};
 range_1(lens_max_angle)         -> {0.0,360.0};
 range_1(lens_angle)             -> {0.0,360.0};
-range_1(aperture)               -> {0.0,infinity};
+range_1(aperture)               -> {0.0,360.0};
 range_1(bokeh_rotation)         -> {-180.0,180.0};
 range_1(dof_distance)           -> {0.0,250.0}.
 
