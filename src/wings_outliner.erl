@@ -538,10 +538,9 @@ image_index(#{type:=light}, _IL, Map) ->
     #{light:=Index} = Map,
     {Index, Map};
 image_index(#{type:=image, image:=#e3d_image{filename=FName}}, _IL, Map) ->
-    #{image:=Index0} = Map,
     Index = case FName of
-		none -> Index0+1;
-		_ ->    Index0
+		none -> maps:get(internal_image, Map);
+		_ ->    maps:get(image, Map)
 	    end,
     {Index, Map};
 image_index(#{type:=mat, color:=Col}, IL, Map) ->
@@ -584,7 +583,7 @@ load_icons() ->
 		     small_diffuse,small_gloss,small_bump,small_normal,
 		     material
 		    ]),
-    {IL, #{object=>1, image=>0, light=>2, mat=>3}}.
+    {IL, #{image=>0, internal_image=>1, object=>2, light=>3, mat=>8}}.
 
 mat_bitmap(Col) ->
     {_, _, Orig} = lists:keyfind(material, 1, wings_frame:get_icon_images()),
