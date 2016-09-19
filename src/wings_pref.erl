@@ -829,34 +829,44 @@ init_opengl() ->
 
 update_recent_prefs(Dir) ->
     Recent0 = get_value(recent_prefs,[]),
+    PrevLen = length(Recent0),
     Recent1 = [Dir|lists:delete(Dir,Recent0)],
     Recent = lists:sublist(Recent1, 5),
+    Update = fun(File, N) when N =< PrevLen ->
+                     {_,Pref} = split_dir(lists:reverse(File),[]),
+                     wings_menu:update_menu(file, {load_pref, N}, Pref, recent_pref_help()),
+                     N+1;
+                (_, N) ->
+                     N
+             end,
+    Next = lists:foldl(Update, 1, Recent),
+    case length(Recent) > PrevLen of
+        false -> ok;
+        true -> %% Add the last one
+            {_,Pref} = split_dir(lists:reverse(lists:last(Recent)),[]),
+            wings_menu:update_menu(file, {load_pref, Next},
+                                   {append, -1, Pref},
+                                   recent_pref_help())
+    end,
     set_value(recent_prefs, Recent).
 
 recent_prefs() ->
     Recent = get_value(recent_prefs,[]),
     recent_prefs(Recent,1).
-recent_prefs([Dir|Recent],1) ->
-    case lists:suffix(".pref",Dir) of
-      true ->
-        {_,Pref} = split_dir(lists:reverse(Dir),[]),
-        [separator,{Pref,1,recent_pref_help()}|recent_prefs(Recent,2)];
-      false ->
-        P0 = get_value(recent_prefs),
-        P = P0 -- Dir,
-        set_value(recent_prefs,P),
-        recent_prefs(Recent,1)
-    end;
 recent_prefs([Dir|Recent],N) ->
     case lists:suffix(".pref",Dir) of
-      true ->
-        {_,Pref} = split_dir(lists:reverse(Dir),[]),
-        [{Pref,N,recent_pref_help()}|recent_prefs(Recent,N+1)];
-      false ->
-        P0 = get_value(recent_prefs),
-        P = P0 -- Dir,
-        set_value(recent_prefs,P),
-        recent_prefs(Recent,N)
+        true ->
+            {_,Pref} = split_dir(lists:reverse(Dir),[]),
+            PrefEntries = [{Pref,N,recent_pref_help()}|recent_prefs(Recent,N+1)],
+            case N of
+                1 -> [separator|PrefEntries];
+                _ -> PrefEntries
+            end;
+        false ->
+            P0 = get_value(recent_prefs),
+            P = P0 -- Dir,
+            set_value(recent_prefs,P),
+            recent_prefs(Recent,N)
     end;
 recent_prefs([],_) -> [].
 
