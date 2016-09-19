@@ -257,7 +257,7 @@ material_dialog(_Name, Mat) ->
         fun(Key, Value, Store) ->
             case Key of
                 ?KEY(material_type) ->
-                    wings_dialog:show(?KEY(pnl_diffuse), is_member(Value, [shinydiffuse,glossy]), Store),
+                    wings_dialog:show(?KEY(pnl_diffuse), is_member(Value, [shinydiffuse, glossy, translucent]), Store),
                     wings_dialog:show(?KEY(pnl_transp), Value =:= shinydiffuse, Store),
                     wings_dialog:show(?KEY(pnl_emitt), Value =:= shinydiffuse, Store),
                     wings_dialog:show(?KEY(pnl_mirror), Value =:= shinydiffuse, Store),
@@ -267,7 +267,7 @@ material_dialog(_Name, Mat) ->
                     wings_dialog:show(?KEY(pnl_ior), Value =:= glossy, Store),
                     wings_dialog:show(?KEY(pnl_oren), is_member(Value, [shinydiffuse,glossy]), Store),
                     wings_dialog:show(?KEY(pnl_fresnel), Value =:= shinydiffuse, Store),
-                    
+
                     wings_dialog:show(?KEY(pnl_fl_l), is_member(Value, [glass,rough_glass]), Store),
                     wings_dialog:show(?KEY(pnl_fl), not is_member(Value, [blend_mat,lightmat]), Store),
                     %% Transparency
@@ -286,12 +286,12 @@ material_dialog(_Name, Mat) ->
                     %% Scatter Color & SigmaS Factor
                     wings_dialog:show(?KEY(pnl_sct), Value =:= translucent, Store),
                     %% Diffuse Reflection
-                    wings_dialog:show(?KEY(pnl_dr), is_member(Value, [shinydiffuse,glossy,translucent]), Store),
                     %% Mirror Reflection & Emit Light
                     wings_dialog:show(?KEY(pnl_mr), Value =:= shinydiffuse, Store),
                     %% Glossy Reflection & Exponent
                     wings_dialog:show(?KEY(pnl_gr), Value =:= translucent, Store),
                     
+                    wings_dialog:show(?KEY(pnl_glossy), is_member(Value, [glossy, translucent]), Store),
                     wings_dialog:show(?KEY(pnl_gloss_aniso), Value =:= glossy, Store),
                     %% Roughness
                     wings_dialog:show(?KEY(pnl_rg), Value =:= rough_glass, Store),
@@ -316,7 +316,7 @@ material_dialog(_Name, Mat) ->
                 %!-----------------------
                 {hframe, [
                     {hframe, [
-                        {label, "Diffuse Color "}, {color,DiffuseColor,[key(diffuse_color)]}, panel,
+                        {label, "Diffuse Color "}, {slider,{color,DiffuseColor,[key(diffuse_color)]}}, panel,
                         {label, "Diffuse Reflect"},{slider,{text,DiffuseReflect,[range(zero_to_one),key(diffuse_reflect)]}}
                     ]}
                 ],[key(pnl_diffuse),{show,false},{margin,false}]
@@ -356,28 +356,28 @@ material_dialog(_Name, Mat) ->
                 {vframe, [
                     {hframe, [
                         {label, "Glossy Color"}, {slider, {color,GlossyColor,[key(glossy_color)]}},
-                        panel
-                    ]},
-                    {hframe, [
+                        panel,
                         {label, "Glossy Reflect"},{slider,{text,GlossyReflect,[range(zero_to_one),key(glossy_reflect)]}},
                         panel
                     ]},
+                    {hframe,[
+                        {label, "Exponent"}, {slider, {text,Exponent,[range(exponent),key(exponent)]}},
+                        panel
+                    ],[key(pnl_exponent)]}
+                ],[key(pnl_glossy),{show,false},{margin,false}]},
+                {vframe, [
                     {hframe, [
                         {"Anisotropic",Anisotropic,[key(anisotropic),{hook,Hook_Enable}]}
                     ]},
                     {hframe,[
                         {label, "Exponent U"}, {slider, {text,Exponent_U,[range(exponent),key(anisotropic_u)]}}, panel,
                         {label, "Exponent V"}, {slider, {text,Exponent_V,[range(exponent),key(anisotropic_v),{width,3}]}}, panel
-                    ],[key(pnl_exp_uv)]},
-                    {hframe,[
-                        {label, "Exponent"}, {slider, {text,Exponent,[range(exponent),key(exponent)]}},
-                        panel
-                    ],[key(pnl_exponent)]} 
+                    ],[key(pnl_exp_uv)]}
+                    
                 ],[key(pnl_gloss_aniso),{show,false},{margin,false}]},
                 % fresnel
                 {hframe,[
-                    {"Fresnel Effect",Fresnel,[key(fresnel),{hook,Hook_Enable}]},
-                    panel,
+                    {"Fresnel Effect",Fresnel,[key(fresnel),{hook,Hook_Enable}]}, panel,
                     {hframe, [
                         {label, "IOR"}, {slider, {text,IOR,[range(ior),key(ior),{width,4}]}}
                     ],[key(pnl_ior_fresnel),{margin, false}]}
@@ -395,12 +395,13 @@ material_dialog(_Name, Mat) ->
                     panel,
                     {hframe, [
                         {label, "IOR"}, {slider, {text,MirrorIOR,[range(zero_to_five),key(mirror_ior),{width,4}]}}
-                    ],[key(pnl_ior),{margin,false}]}, 
+                    ],[key(pnl_ior),{margin,false}]},
                     {hframe,[
                         {label, "Mirror Reflect"},
                         {slider, {text,MirrorReflect,[range(zero_to_one),key(mirror_reflect),{width,2}]}}, panel
                     ],[key(pnl_mirror),{margin,false}]}
                 ]},
+                %----------------------------------------------<
                 {hframe, [
                     {vframe, [
                         {label, "Filtered Light"}
@@ -412,9 +413,6 @@ material_dialog(_Name, Mat) ->
                 ],[key(pnl_spec_color),{margin,false}]},
                 %% 7th row
                 {vframe, [
-                    %{label_column, [
-                    %    {"Absorption Color", {slider, {color,SSS_AbsorptionColor,[key(sss_absorption_color)]}}}
-                    %],[key(pnl_abs_sss),{margin,false},{show,false}]},
                     {label_column, [
                         {"Absorption Color", {slider, {color,AbsorptionColor,[key(absorption_color)]}}}
                     ],[key(pnl_abs_reg),{margin,false}]},
@@ -452,19 +450,22 @@ material_dialog(_Name, Mat) ->
                     {"Fake Shadows",FakeShadows,[key(fake_shadows)]}
                 ],[key(pnl_dsp),{show,false},{margin,false}]
                 },
-                {hframe, [
-                    {"Fresnel Effect",Fresnel,[key(fresnel)]}
-                ],[key(pnl_fe),{show,false},{margin,false}]},
-                %% 19th row
                 {label_column, [
                     {"Color", {slider, {color,Lightmat_Color,[key(lightmat_color)]}}},
                     {"Power", {slider, {text,Lightmat_Power,[range(lightmat_power),key(lightmat_power)]}}}
                 ],[key(pnl_lm),{show,false},{margin,false}]},
+                
                 %% 20th row
-                {label_column, [
-                    {"Material 1", {text,Blend_Mat1,[key(blend_mat1)]}},
-                    {"Material 2", {text,Blend_Mat2,[key(blend_mat2)]}},
-                    {"Blend Mix", {slider, {text,Blend_Value,[range(blend_value),key(blend_value)]}}}
+                {vframe, [
+                    {hframe,[
+                        {label, "Material 1"}, {text,Blend_Mat1,[key(blend_mat1)]}, panel
+                    ]},
+                    {hframe,[
+                        {label, "Material 2"}, {text,Blend_Mat2,[key(blend_mat2)]}, panel
+                    ]},
+                    {hframe, [
+                        {label, "Blend Mix"}, {slider, {text,Blend_Value,[range(blend_value),key(blend_value)]}}, panel
+                    ]}
                 ],[key(pnl_bl),{show,false},{margin,false}]}
 
         ],[{title,"Material"},key(pnl_shader), {margin,false}]}
