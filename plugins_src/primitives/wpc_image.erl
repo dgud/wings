@@ -143,21 +143,14 @@ make_image_0({ImageId, {MaxU,MaxV}, {AspX,AspY}}, Arg, Owner, #st{mat=Mat0}=St) 
     Mt = if Transparent==true -> [transparency_ip];
         true -> [] end,
     Mi = [MatId],
-    Fs = [#e3d_face{vs=[0,3,2,1],mat=Mt},
-      #e3d_face{vs=[2,3,7,6],tx=[6,2,3,7],mat=Mi},
-      #e3d_face{vs=[0,4,7,3],mat=Mt},
-      #e3d_face{vs=[1,2,6,5],mat=Mt},
-      #e3d_face{vs=[4,5,6,7],mat=Mt},
-      if Transparent==true -> #e3d_face{vs=[0,1,5,4],mat=Mt};
-      true -> #e3d_face{vs=[0,1,5,4],tx=[4,0,1,5],mat=Mi} end ],
+    Fs = [#e3d_face{vs=[0,1,2,3],tx=[1,0,3,2],mat=Mi},
+      if Transparent==true -> #e3d_face{vs=[3,2,1,0],mat=Mt};
+      true -> #e3d_face{vs=[3,2,1,0],tx=[2,3,0,1],mat=Mi} end ],
 
-    UVs = [{0.0,MaxV},{MaxU,MaxV},{0.0,0.0},{MaxU,0.0},
-           {0.0,0.0},{MaxU,0.0},{0.0,MaxV},{MaxU,MaxV}],
-    HardEdges = [{0,3},{2,3},{1,2},{0,1},{3,7},{6,7},
-                 {2,6},{0,4},{4,7},{4,5},{5,6},{1,5}],
+    UVs = [{0.0,0.0},{0.0,MaxV},{MaxU,MaxV},{MaxU,0.0}],
+    HardEdges = [{0,3},{2,3},{1,2},{0,1}],
     D = 1.0e-3/2,
-    Vs0 = [{-D,-AspY,AspX},{-D,AspY,AspX},{D,AspY,AspX},{D,-AspY,AspX},
-          {-D,-AspY,-AspX},{-D,AspY,-AspX},{D,AspY,-AspX},{D,-AspY,-AspX}],
+    Vs0 = [{-D,AspY,AspX},{-D,-AspY,AspX},{D,-AspY,-AspX},{D,AspY,-AspX}],
 
     Vs=do_new_place(Alignment, if Alignment=:=view -> Owner;
                                 true -> Rotation end, Offset, Vs0),
