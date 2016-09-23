@@ -50,26 +50,68 @@ make_ncube(Arg, _) ->
     X = dict:fetch(xcube, ArgDict)/2,
     Y = dict:fetch(ycube, ArgDict)/2,
     Z = dict:fetch(zcube, ArgDict)/2,
+    Rot_X = dict:fetch(rot_x, ArgDict),
+    Rot_Y = dict:fetch(rot_y, ArgDict),
+    Rot_Z = dict:fetch(rot_z, ArgDict),
+    Mov_X = dict:fetch(mov_x, ArgDict),
+    Mov_Y = dict:fetch(mov_y, ArgDict),
+    Mov_Z = dict:fetch(mov_z, ArgDict),
+    Ground = dict:fetch(ground, ArgDict),
+
     SpherizeFlag = dict:fetch(spherizeflag, ArgDict),
     Verts = ncube_verts(Nres+1),
     Faces = ncube_faces(Nres+1, Nres+1),
     {Vs0, Fs} = clean_indexed_mesh(Verts, Faces),
-    Vs = transform_mesh(SpherizeFlag, {X,Y,Z}, Vs0),
+    Vs2 = transform_mesh(SpherizeFlag, {X,Y,Z}, Vs0),
+    Vs1 = rotate({Rot_X, Rot_Y, Rot_Z}, Vs2),
+    Vs = move({Mov_X, Mov_Y, Mov_Z}, Ground, Vs1),
     {new_shape,cube_str(),Fs,Vs}.
 
 ncube_dialog() ->
     Nres = get_pref(nres, 1),
     SpherizeFlag = get_pref(spherizeflag, false),
+    Hook = fun(Var, Val, Sto) ->
+        case Var of
+            ground ->
+                wings_dialog:enable(mov_y, Val=:=false, Sto);
+            _ -> ok
+        end
+    end,
     [{hframe,
       [{slider, {text, Nres,
 		 [{key,nres},{range,{1,20}}]}}],[{title, ?__(1,"Number of Cuts")}]},
-     {hframe,[{label,wings_s:dir(x)},{text,2.0,[{key,xcube},{range,{0.0,infinity}}]}]},
-     {hframe,[{label,wings_s:dir(y)},{text,2.0,[{key,ycube},{range,{0.0,infinity}}]}]},
-     {hframe,[{label,wings_s:dir(z)},{text,2.0,[{key,zcube},{range,{0.0,infinity}}]}]},
-     {vradio,[{?__(2,"Yes"), true},
-	      {?__(3,"No"), false}],
-      SpherizeFlag,
-      [{key,spherizeflag}, {title, ?__(4,"Spherize")}]}
+        {hframe,[
+            {label_column, [
+                {wings_s:dir(x), {text,2.0,[{key,xcube},{range,{0.0,infinity}}]}},
+                {wings_s:dir(y), {text,2.0,[{key,ycube},{range,{0.0,infinity}}]}},
+                {wings_s:dir(z), {text,2.0,[{key,zcube},{range,{0.0,infinity}}]}}
+            ]}
+        ],[{margin,false}]},
+        {hradio,[{?__(2,"Yes"), true},
+                 {?__(3,"No"), false}],
+                SpherizeFlag, [{key,spherizeflag}, {title, ?__(4,"Spherize")}]},
+        {vframe,[
+            {hframe,[
+                {label_column,
+                 [{wings_util:stringify(rotate),
+                   {label_column, [
+                       {wings_util:stringify(x),{text, 0.0,[{key,rot_x},{range,{-360.0,360.0}}]}},
+                       {wings_util:stringify(y),{text, 0.0,[{key,rot_y},{range,{-360.0,360.0}}]}},
+                       {wings_util:stringify(z),{text, 0.0,[{key,rot_z},{range,{-360.0,360.0}}]}}
+                   ]}
+                  }
+                 ]},
+                {label_column,
+                 [{wings_util:stringify(move),
+                   {label_column, [
+                       {wings_util:stringify(x),{text, 0.0,[{key,mov_x},{range,{-360.0,360.0}}]}},
+                       {wings_util:stringify(y),{text, 0.0,[{key,mov_y},{range,{-360.0,360.0}}]}},
+                       {wings_util:stringify(z),{text, 0.0,[{key,mov_z},{range,{-360.0,360.0}}]}}
+                   ]}
+                  }]}
+            ],[{margin,false}]},
+            {wings_util:stringify(put_on_ground), false, [{key,ground},{hook, Hook}]}
+        ],[{title,""},{margin,false}]}
     ].
 
 ncube_verts(Nres) ->
@@ -130,19 +172,60 @@ make_ngon(Arg, _) ->
     ArgDict = dict:from_list(Arg),
     NumVerts = dict:fetch(numverts, ArgDict),
     Radius = dict:fetch(radius, ArgDict),
-    Vs = ngon_verts(NumVerts, Radius),
+    Rot_X = dict:fetch(rot_x, ArgDict),
+    Rot_Y = dict:fetch(rot_y, ArgDict),
+    Rot_Z = dict:fetch(rot_z, ArgDict),
+    Mov_X = dict:fetch(mov_x, ArgDict),
+    Mov_Y = dict:fetch(mov_y, ArgDict),
+    Mov_Z = dict:fetch(mov_z, ArgDict),
+    Ground = dict:fetch(ground, ArgDict),
+
+    Vs1 = ngon_verts(NumVerts, Radius),
+    Vs0 = rotate({Rot_X, Rot_Y, Rot_Z}, Vs1),
+    Vs = move({Mov_X, Mov_Y, Mov_Z}, Ground, Vs0),
     Fs = ngon_faces(NumVerts),
     {new_shape,?__(2,"N-Gon"),Fs,Vs}.
 
 ngon_dialog() ->
     NumVerts = get_pref(numverts, 5),
     Radius = get_pref(radius, 1.0),
-    [{hframe, [{label, ?__(3,"Number of Verts")},
-	       {slider, {text, NumVerts,
-	       [{key, numverts}, {range, {3, 20}}]}}]},
-     {hframe, [{label, ?__(4,"Radius")},
-	       {slider, {text, Radius,
-	       [{key, radius}, {range, {0.1, 20.0}}]}}]}].
+    Hook = fun(Var, Val, Sto) ->
+        case Var of
+            ground ->
+                wings_dialog:enable(mov_y, Val=:=false, Sto);
+            _ -> ok
+        end
+    end,
+
+    [{vframe, [
+        {label_column, [
+            {?__(3,"Number of Verts"), {slider, {text, NumVerts,
+                                                 [{key, numverts}, {range, {3, 20}}]}}},
+            {?__(4,"Radius"), {slider, {text, Radius, [{key, radius}, {range, {0.1, 20.0}}]}}}]
+        },
+        {vframe,[
+            {hframe,[
+                {label_column,
+                 [{wings_util:stringify(rotate),
+                   {label_column, [
+                       {wings_util:stringify(x),{text, 0.0,[{key,rot_x},{range,{-360.0,360.0}}]}},
+                       {wings_util:stringify(y),{text, 0.0,[{key,rot_y},{range,{-360.0,360.0}}]}},
+                       {wings_util:stringify(z),{text, 0.0,[{key,rot_z},{range,{-360.0,360.0}}]}}
+                   ]}
+                  }
+                 ]},
+                {label_column,
+                 [{wings_util:stringify(move),
+                   {label_column, [
+                       {wings_util:stringify(x),{text, 0.0,[{key,mov_x},{range,{-360.0,360.0}}]}},
+                       {wings_util:stringify(y),{text, 0.0,[{key,mov_y},{range,{-360.0,360.0}}]}},
+                       {wings_util:stringify(z),{text, 0.0,[{key,mov_z},{range,{-360.0,360.0}}]}}
+                   ]}
+                  }]}
+            ],[{margin,false}]},
+            {wings_util:stringify(put_on_ground), false, [{key,ground},{hook, Hook}]}
+        ],[{title,""},{margin,false}]}]
+    }].
 
 ngon_verts(NumVerts, Radius) ->
     Nres = NumVerts,
@@ -168,3 +251,22 @@ get_pref(Key, Def) ->
 % set_pref(KeyVals) ->
 %     wpa:pref_set(?MODULE, KeyVals).
 
+rotate({0.0,0.0,0.0}, Vs) -> Vs;
+rotate({X,Y,Z}, Vs) ->
+    MrX = e3d_mat:rotate(X, {1.0,0.0,0.0}),
+    MrY = e3d_mat:rotate(Y, {0.0,1.0,0.0}),
+    MrZ = e3d_mat:rotate(Z, {0.0,0.0,1.0}),
+    Mr = e3d_mat:mul(MrZ, e3d_mat:mul(MrY, MrX)),
+    [e3d_mat:mul_point(Mr, V) || V <- Vs].
+
+move({0.0,0.0,0.0}, false, Vs) -> Vs;
+move({X,Y,Z}, Ground, Vs0) ->
+    Mt = e3d_mat:translate(X,Y,Z),
+    Vs = [e3d_mat:mul_point(Mt, V) || V <- Vs0],
+    case Ground of
+        true ->
+            {{_,Y1,_},_} = e3d_bv:box(Vs),
+            Mt0= e3d_mat:translate(0.0,-Y1,0.0),
+            [e3d_mat:mul_point(Mt0, V) || V <- Vs];
+        _ -> Vs
+    end.

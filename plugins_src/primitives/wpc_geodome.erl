@@ -41,11 +41,21 @@ make_geodome(Arg, _) ->
     Resolution = dict:fetch(resolution, ArgDict),
     SpherizeFlag = dict:fetch(spherizeflag, ArgDict),
     AlgorithmFlag = dict:fetch(algorithmflag, ArgDict),
+    Rot_X = dict:fetch(rot_x, ArgDict),
+    Rot_Y = dict:fetch(rot_y, ArgDict),
+    Rot_Z = dict:fetch(rot_z, ArgDict),
+    Mov_X = dict:fetch(mov_x, ArgDict),
+    Mov_Y = dict:fetch(mov_y, ArgDict),
+    Mov_Z = dict:fetch(mov_z, ArgDict),
+    Ground = dict:fetch(ground, ArgDict),
+
     {Verts, Faces} = geodome_main(Resolution, AlgorithmFlag, BaseFlag, SpherizeFlag, DomeFlag),
+    Vs0 = rotate({Rot_X, Rot_Y, Rot_Z}, Verts),
+    Vs = move({Mov_X, Mov_Y, Mov_Z}, Ground, Vs0),
     [H|_] = atom_to_list(AlgorithmFlag),
     Name = ?__(2,":GeoDome"),
     ObjName = lists:concat([[H-32], Resolution, Name]),
-    {new_shape, ObjName, Faces, Verts}.
+    {new_shape, ObjName, Faces, Vs}.
 
 dialog() ->
     BaseFlag = get_pref(baseflag, icosahedron),
@@ -53,23 +63,53 @@ dialog() ->
     Resolution = get_pref(resolution, 3),
     SpherizeFlag = get_pref(spherizeflag, true),
     AlgorithmFlag = get_pref(algorithmflag, frequency),
-    [{hframe, [{label, ?__(1,"Resolution")},
-	       {slider, {text, Resolution,
-	       [{key, resolution}, {range, {1, 30}}]}}]},
-     {vradio, [{?__(2,"Frequency (Edge-Cut Subdivision)"), frequency},
+    Hook = fun(Var, Val, Sto) ->
+	case Var of
+	    ground ->
+		wings_dialog:enable(mov_y, Val=:=false, Sto);
+	    _ -> ok
+	end
+    end,
+    [{label_column, [
+	{?__(1,"Resolution"), {slider, {text, Resolution,
+	       [{key, resolution}, {range, {1, 30}}]}}}]},
+     {hradio, [{?__(2,"Frequency (Edge-Cut Subdivision)"), frequency},
 	       {?__(3,"Depth (Recursive Subdivision)"), depth}],
 	       AlgorithmFlag,
 	       [{key,algorithmflag}, {title, ?__(4,"Algorithm/Method of Subdivision")}]},
-     {vradio, [{?__(5,"Icosahedron"), icosahedron},
+     {hradio, [{?__(5,"Icosahedron"), icosahedron},
 	       {?__(6,"Octahedron"), octahedron},
 	       {?__(7,"Tetrahedron"), tetrahedron}],
 	       BaseFlag,
 	       [{key,baseflag}, {title, ?__(8,"Base Type")}]},
-     {vradio, [{?__(9,"Yes"), true},
+     {hradio, [{?__(9,"Yes"), true},
 	       {?__(10,"No"), false}],
 	       SpherizeFlag,
 	       [{key,spherizeflag}, {title, ?__(11,"Spherize")}]},
-     {?__(12,"Generate Half-Dome"), DomeFlag, [{key, domeflag}]}].
+     {?__(12,"Generate Half-Dome"), DomeFlag, [{key, domeflag}]},
+     {vframe,[
+	 {hframe,[
+	     {label_column,
+	      [{wings_util:stringify(rotate),
+		{label_column, [
+		    {wings_util:stringify(x),{text, 0.0,[{key,rot_x},{range,{-360.0,360.0}}]}},
+		    {wings_util:stringify(y),{text, 0.0,[{key,rot_y},{range,{-360.0,360.0}}]}},
+		    {wings_util:stringify(z),{text, 0.0,[{key,rot_z},{range,{-360.0,360.0}}]}}
+		]}
+	       }
+	      ]},
+	     {label_column,
+	      [{wings_util:stringify(move),
+		{label_column, [
+		    {wings_util:stringify(x),{text, 0.0,[{key,mov_x},{range,{-360.0,360.0}}]}},
+		    {wings_util:stringify(y),{text, 0.0,[{key,mov_y},{range,{-360.0,360.0}}]}},
+		    {wings_util:stringify(z),{text, 0.0,[{key,mov_z},{range,{-360.0,360.0}}]}}
+		]}
+	       }]}
+	 ],[{margin,false}]},
+	 {wings_util:stringify(put_on_ground), false, [{key,ground},{hook, Hook}]}
+     ],[{title,""},{margin,false}]}
+    ].
 
 geodome_main(Resolution, AlgorithmFlag, BaseFlag, SpherizeFlag, DomeFlag) ->
     case BaseFlag of
@@ -312,3 +352,22 @@ get_pref(Key, Def) ->
 % set_pref(KeyVals) ->
 %     wpa:pref_set(?MODULE, KeyVals).
 
+rotate({0.0,0.0,0.0}, Vs) -> Vs;
+rotate({X,Y,Z}, Vs) ->
+    MrX = e3d_mat:rotate(X, {1.0,0.0,0.0}),
+    MrY = e3d_mat:rotate(Y, {0.0,1.0,0.0}),
+    MrZ = e3d_mat:rotate(Z, {0.0,0.0,1.0}),
+    Mr = e3d_mat:mul(MrZ, e3d_mat:mul(MrY, MrX)),
+    [e3d_mat:mul_point(Mr, V) || V <- Vs].
+
+move({0.0,0.0,0.0}, false, Vs) -> Vs;
+move({X,Y,Z}, Ground, Vs0) ->
+    Mt = e3d_mat:translate(X,Y,Z),
+    Vs = [e3d_mat:mul_point(Mt, V) || V <- Vs0],
+    case Ground of
+	true ->
+	    {{_,Y1,_},_} = e3d_bv:box(Vs),
+	    Mt0= e3d_mat:translate(0.0,-Y1,0.0),
+	    [e3d_mat:mul_point(Mt0, V) || V <- Vs];
+	_ -> Vs
+    end.
