@@ -38,6 +38,14 @@ make_knot(Arg, _) ->
     ArgDict = dict:from_list(Arg),
     TypeFlag = dict:fetch(typeflag, ArgDict),
     Resolution = dict:fetch(resolution, ArgDict),
+    Rot_X = dict:fetch(rot_x, ArgDict),
+    Rot_Y = dict:fetch(rot_y, ArgDict),
+    Rot_Z = dict:fetch(rot_z, ArgDict),
+    Mov_X = dict:fetch(mov_x, ArgDict),
+    Mov_Y = dict:fetch(mov_y, ArgDict),
+    Mov_Z = dict:fetch(mov_z, ArgDict),
+    Ground = dict:fetch(ground, ArgDict),
+
     case TypeFlag of
 	knot2 -> Knot_Func = fun knot2/1;
 	knot3 -> Knot_Func = fun knot3/1;
@@ -47,21 +55,23 @@ make_knot(Arg, _) ->
     Ures = Resolution,
     Vres = Ures div 10,
     Verts = make_verts(Ures, Vres, Knot_Func),
+    Vs = wings_shapes:transform_obj({Rot_X,Rot_Y,Rot_Z},{Mov_X,Mov_Y,Mov_Z},Ground, Verts),
     Faces = make_faces(Ures, Vres),
-    {new_shape,"knot",Faces,Verts}.
+    {new_shape,"knot",Faces,Vs}.
 
 dialog() ->
     TypeFlag = get_pref(typeflag, knot1),
     Resolution = get_pref(resolution, 80),
-    [{hframe, [{label, "Resolution"},
-	       {slider, {text, Resolution,
-	       [{key, resolution}, {range, {30, 300}}]}}]},
-     {vradio, [{"Type 1", knot1},
+    [{label_column, [
+	{"Resolution", {slider, {text, Resolution, [{key, resolution}, {range, {30, 300}}]}}}
+     ]},
+     {hradio, [{"Type 1", knot1},
 	       {"Type 2", knot2},
 	       {"Type 3", knot3},
 	       {"Type 4", knot4}],
-	       TypeFlag,
-	       [{key,typeflag}, {title, "Knot Type"}]}].
+	       TypeFlag, [{key,typeflag}, {title, "Knot Type"}]},
+     wings_shapes:transform_obj_dlg()
+    ].
 
 make_verts(Ures, Vres, Knot_Func) ->
     Radius = 0.25,
