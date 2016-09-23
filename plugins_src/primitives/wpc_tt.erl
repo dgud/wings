@@ -79,36 +79,36 @@ make_text(Ask, St) when is_atom(Ask) ->
     Bisect = wpa:pref_get(wpc_tt, bisections, 0),
     GbtFonts = process_ttfs(FontDir),
     %% io:format("FontList: ~p\n\n",[gb_trees:to_list(GbtFonts)]),
-    Dlg = [{vframe,
-	    [{hframe,
-	      [{vframe,
-		[{label,?__(2,"Text")},
-		 {label,?__(5,"Number of edge bisections")},
-		 {label,?__(3,"TrueType font")}]},
-	       {vframe,
-		[{text,Text,[{key,{wpc_tt,text}}]},
-		 {slider,{text,Bisect,[{key,{wpc_tt,bisections}},
-				       {range, {0, 3}}]}},
-		 {fontpicker,FontInfo,[{key,{wpc_tt,font}}]}]},
-	       {vframe,[help_button()]}]}]}],
+    Dlg =
+    	[{vframe, [
+	    {hframe,[
+	    	{label, ?__(2,"Text")},
+		{text,Text,[{key,{wpc_tt,text}}]},
+		help_button()
+		]},
+	    {label_column, [
+		{?__(5,"Number of edge bisections"),{slider,{text,Bisect,[{key,{wpc_tt,bisections}},{range,{0,3}}]}}},
+		{?__(3,"TrueType font"), {fontpicker,FontInfo,[{key,{wpc_tt,font}}]}}]},
+	    modify_dlg()],[{margin,false}]
+	 }],
     wings_dialog:dialog(Ask,?__(1,"Create Text"), {preview, Dlg},
-			fun({dialog_preview,[T,N,{_,Ctrl}]=_Res}) ->
+			fun({dialog_preview,[T,N,{_,Ctrl},RX,RY,RZ,MX,MY,MZ,Grnd]=_Res}) ->
 				{_, FPath} = get_font_file(GbtFonts,Ctrl),
-				{preview,{shape,{text,[T,N,{fontdir,FPath}]}},St};
+				{preview,{shape,{text,[T,N,{fontdir,FPath},RX,RY,RZ,MX,MY,MZ,Grnd]}},St};
 			   (cancel) ->
 				St;
-			   ([T,N,{_,WxFont}]=_Res) when is_tuple(WxFont) ->
+			   ([T,N,{_,WxFont},RX,RY,RZ,MX,MY,MZ,Grnd]=_Res) when is_tuple(WxFont) ->
 				{NewFontI, FPath} = get_font_file(GbtFonts,WxFont),
 				wpa:pref_set(wpc_tt, fontname, NewFontI),
 				wpa:pref_set(wpc_tt, text, element(2,T)),
 				wpa:pref_set(wpc_tt, bisections, element(2,N)),
-				{commit,{shape,{text,[T,N,{fontdir,FPath}]}},St}
+				{commit,{shape,{text,[T,N,{fontdir,FPath},RX,RY,RZ,MX,MY,MZ,Grnd]}},St}
 			end);
 
-make_text([{_,T},{_,N},{_,DirFont}], _) ->
+make_text([{_,T},{_,N},{_,DirFont},{_,RX},{_,RY},{_,RZ},{_,MX},{_,MY},{_,MZ},{_,Grnd}], _) ->
     F = filename:basename(DirFont),
     D = filename:dirname(DirFont),
-    gen(F, D, T, N).
+    gen(F, D, T, N, RX, RY, RZ, MX, MY, MZ, Grnd).
 
 help_button() ->
     Title = ?__(1,"Browsing for Fonts on Windows"),
@@ -119,12 +119,65 @@ help() ->
     [?__(1,"Only TrueType fonts can be used and they must be"
 	 "installed in standard operating system directory for fonts.")].
 
-gen(_Font, _Dir, "", _Nsubsteps) ->
+modify_dlg() ->
+    Hook = fun(Var, Val, Sto) ->
+	case Var of
+	    ground ->
+		wings_dialog:enable(mov_y, Val=:=false, Sto);
+	    _ -> ok
+	end
+	   end,
+    {vframe,[
+	{hframe,[
+	    {label_column,
+	     [{wings_util:stringify(rotate),
+	       {label_column, [
+		   {wings_util:stringify(x),{text, 0.0,[{key,rot_x},{range,{-360.0,360.0}}]}},
+		   {wings_util:stringify(y),{text, 0.0,[{key,rot_y},{range,{-360.0,360.0}}]}},
+		   {wings_util:stringify(z),{text, 0.0,[{key,rot_z},{range,{-360.0,360.0}}]}}
+	       ]}
+	      }
+	     ]},
+	    {label_column,
+	     [{wings_util:stringify(move),
+	       {label_column, [
+		   {wings_util:stringify(x),{text, 0.0,[{key,mov_x},{range,{-360.0,360.0}}]}},
+		   {wings_util:stringify(y),{text, 0.0,[{key,mov_y},{range,{-360.0,360.0}}]}},
+		   {wings_util:stringify(z),{text, 0.0,[{key,mov_z},{range,{-360.0,360.0}}]}}
+	       ]}
+	      }]}
+	],[{margin,false}]},
+	{wings_util:stringify(put_on_ground), false, [{key,ground},{hook, Hook}]}
+    ],[{title,""},{margin,false}]}.
+
+rotate({0.0,0.0,0.0}, Vs) -> Vs;
+rotate({X,Y,Z}, Vs) ->
+    MrX = e3d_mat:rotate(X, {1.0,0.0,0.0}),
+    MrY = e3d_mat:rotate(Y, {0.0,1.0,0.0}),
+    MrZ = e3d_mat:rotate(Z, {0.0,0.0,1.0}),
+    Mr = e3d_mat:mul(MrZ, e3d_mat:mul(MrY, MrX)),
+    [e3d_mat:mul_point(Mr, V) || V <- Vs].
+
+move({0.0,0.0,0.0}, false, Vs) -> Vs;
+move({X,Y,Z}, Ground, Vs0) ->
+    Mt = e3d_mat:translate(X,Y,Z),
+    Vs = [e3d_mat:mul_point(Mt, V) || V <- Vs0],
+    case Ground of
+	true ->
+	    {{_,Y1,_},_} = e3d_bv:box(Vs),
+	    Mt0= e3d_mat:translate(0.0,-Y1,0.0),
+	    [e3d_mat:mul_point(Mt0, V) || V <- Vs];
+	_ -> Vs
+    end.
+
+gen(_Font, _Dir, "", _Nsubsteps, _RX, _RY, _RZ, _MX, _MY, _MZ, _Grnd) ->
     keep;
-gen(Font, Dir, Text, Nsubsteps) ->
+gen(Font, Dir, Text, Nsubsteps, RX, RY, RZ, MX, MY, MZ, Grnd) ->
     File = font_file(Font, Dir),
     case catch trygen(File, Text, Nsubsteps) of
-	{new_shape,Name,Fs0,Vs,He} ->
+	{new_shape,Name,Fs0,Vs1,He} ->
+	    Vs0 = rotate({RX, RY, RZ}, Vs1),
+	    Vs = move({MX, MY, MZ}, Grnd, Vs0),
 	    Fs = [#e3d_face{vs=Vsidx} || Vsidx <- Fs0],
 	    Mesh = #e3d_mesh{type=polygon, vs=Vs, fs=Fs, he=He},
 	    {new_shape, Name, #e3d_object{obj=Mesh}, []};

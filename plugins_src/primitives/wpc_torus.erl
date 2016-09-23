@@ -43,53 +43,107 @@ command(_, _) -> next.
 %%% The rest are local functions.
 
 torus_dialog() ->
-    [{hframe,
-        [{vframe,
-           [{label,?__(1,"Sections")},
-            {label,?__(2,"Slices")},
-            {label,?__(3,"Major X Radius")},
-            {label,?__(4,"Major Z Radius")},
-            {label,?__(5,"Minor Radius")}]},
-         {vframe,
-           [{text,16,[{key,sections},{range,{3,infinity}}]},
-            {text,8,[{key,slices},{range,{3,infinity}}]},
-            {text,1.0,[{key,major_x},{range,{0.0,infinity}}]},
-            {text,1.0,[{key,major_z},{range,{0.0,infinity}}]},
-            {text,0.25,[{key,minor_rad},{range,{0.0,infinity}}]}]}]},
-         {vradio,
-           [{?__(6,"Smooth"),smooth},
-            {?__(7,"Lumpy"),lumpy},
-            {?__(8,"Spiral"),spiral}],
-            smooth,
-            [{key,torus_type},{title,?__(9,"Torus Type")}]},
-         {hframe,
-           [{vframe,
-             [{label,?__(10,"Nodes")},
-              {label,?__(11,"Node Height")}]},
-            {vframe,
-             [{text,8,[{key,torus_nodes},{range,{1,infinity}}]},
-              {text,0.25,[{key,node_height},{range,{0.0,infinity}}]}]}]}].
+    Hook = fun(Var, Val, Sto) ->
+	case Var of
+	    ground ->
+		wings_dialog:enable(mov_y, Val=:=false, Sto);
+	    torus_type ->
+		wings_dialog:enable(torus_nodes, Val=/=smooth, Sto),
+	    	wings_dialog:enable(node_height, Val=/=smooth, Sto);
+	    _ -> ok
+	end
+    end,
+    [
+     {label_column,
+	[{?__(1,"Sections"), {text,16,[{key,sections},{range,{3,infinity}}]}},
+	 {?__(2,"Slices"), {text,8,[{key,slices},{range,{3,infinity}}]}},
+	 {?__(3,"Major X Radius"), {text,1.0,[{key,major_x},{range,{0.0,infinity}}]}},
+	 {?__(4,"Major Z Radius"), {text,1.0,[{key,major_z},{range,{0.0,infinity}}]}},
+	 {?__(5,"Minor Radius"), {text,0.25,[{key,minor_rad},{range,{0.0,infinity}}]}}
+	]},
+     {hradio,
+	[{?__(6,"Smooth"),smooth},
+	 {?__(7,"Lumpy"),lumpy},
+	 {?__(8,"Spiral"),spiral}],
+	 smooth, [{key,torus_type},{hook,Hook},{title,?__(9,"Torus Type")}
+	]},
+     {label_column,
+	[{?__(10,"Nodes"), {text,8,[{key,torus_nodes},{range,{1,infinity}}]}},
+	 {?__(11,"Node Height"), {text,0.25,[{key,node_height},{range,{0.0,infinity}}]}}
+	]},
+     {vframe,[
+	 {hframe,[
+	     {label_column,
+	      [{wings_util:stringify(rotate),
+		{label_column, [
+		    {wings_util:stringify(x),{text, 0.0,[{key,rot_x},{range,{-360.0,360.0}}]}},
+		    {wings_util:stringify(y),{text, 0.0,[{key,rot_y},{range,{-360.0,360.0}}]}},
+		    {wings_util:stringify(z),{text, 0.0,[{key,rot_z},{range,{-360.0,360.0}}]}}
+		]}
+	       }
+	      ]},
+	     {label_column,
+	      [{wings_util:stringify(move),
+		{label_column, [
+		    {wings_util:stringify(x),{text, 0.0,[{key,mov_x},{range,{-360.0,360.0}}]}},
+		    {wings_util:stringify(y),{text, 0.0,[{key,mov_y},{range,{-360.0,360.0}}]}},
+		    {wings_util:stringify(z),{text, 0.0,[{key,mov_z},{range,{-360.0,360.0}}]}}
+		]}
+	       }]}
+	 ],[{margin,false}]},
+	 {wings_util:stringify(put_on_ground), false, [{key,ground},{hook, Hook}]}
+     ],[{title,""},{margin,false}]}
+    ].
 
 make_torus(Ask, St) when is_atom(Ask) ->
     Qs = torus_dialog(),
     wings_dialog:dialog_preview({shape,torus}, Ask, ?__(1,"Torus Options"), Qs, St);
-make_torus([{_,Ures},{_,Vres},{_,MajXR},{_,MajZR},{_,MinR},{_,smooth},_,_], _) ->
+make_torus([{_,Ures},{_,Vres},{_,MajXR},{_,MajZR},{_,MinR},{_,smooth},_,_,
+	    {_,Rot_X},{_,Rot_Y},{_,Rot_Z},{_,Mov_X},{_,Mov_Y},{_,Mov_Z},{_,Ground}], _) ->
     Ures0=min_uv_torus_res(Ures),
     Vres0=min_uv_torus_res(Vres),
-    Vs = make_verts(Ures0, Vres0, MajXR, MajZR, MinR, none, none, 1),
+    Vs1 = make_verts(Ures0, Vres0, MajXR, MajZR, MinR, none, none, 1),
+    Vs0 = rotate({Rot_X, Rot_Y, Rot_Z}, Vs1),
+    Vs = move({Mov_X, Mov_Y, Mov_Z}, Ground, Vs0),
     Fs = make_faces(Ures0, Vres0),
     {new_shape,"Torus",Fs,Vs};
-make_torus([{_,Ures},{_,Vres},{_,MajXR},{_,MajZR},{_,MinR},{_,lumpy},{_,Loops},{_,LoopRad}], _) ->
-    Vs = make_verts(Ures, Vres, MajXR, MajZR, MinR, Loops, LoopRad, 2),
+make_torus([{_,Ures},{_,Vres},{_,MajXR},{_,MajZR},{_,MinR},{_,lumpy},{_,Loops},{_,LoopRad},
+	    {_,Rot_X},{_,Rot_Y},{_,Rot_Z},{_,Mov_X},{_,Mov_Y},{_,Mov_Z},{_,Ground}], _) ->
+    Vs1 = make_verts(Ures, Vres, MajXR, MajZR, MinR, Loops, LoopRad, 2),
+    Vs0 = rotate({Rot_X, Rot_Y, Rot_Z}, Vs1),
+    Vs = move({Mov_X, Mov_Y, Mov_Z}, Ground, Vs0),
     Fs = make_faces(Ures, Vres),
     {new_shape,"Lumpy Torus",Fs,Vs};
-make_torus([{_,Ures},{_,Vres},{_,MajXR},{_,MajZR},{_,MinR},{_,spiral},{_,Loops},{_,LoopRad}], _) ->
-    Vs = make_verts(Ures, Vres, MajXR, MajZR, MinR, Loops, LoopRad, 3),
+make_torus([{_,Ures},{_,Vres},{_,MajXR},{_,MajZR},{_,MinR},{_,spiral},{_,Loops},{_,LoopRad},
+	    {_,Rot_X},{_,Rot_Y},{_,Rot_Z},{_,Mov_X},{_,Mov_Y},{_,Mov_Z},{_,Ground}], _) ->
+    Vs1 = make_verts(Ures, Vres, MajXR, MajZR, MinR, Loops, LoopRad, 3),
+    Vs0 = rotate({Rot_X, Rot_Y, Rot_Z}, Vs1),
+    Vs = move({Mov_X, Mov_Y, Mov_Z}, Ground, Vs0),
     Fs = make_faces(Ures, Vres),
     {new_shape,"Spiral Torus",Fs,Vs}.
 
 min_uv_torus_res(Res) when Res =< 3 -> 3;
 min_uv_torus_res(Res) -> Res.
+
+rotate({0.0,0.0,0.0}, Vs) -> Vs;
+rotate({X,Y,Z}, Vs) ->
+    MrX = e3d_mat:rotate(X, {1.0,0.0,0.0}),
+    MrY = e3d_mat:rotate(Y, {0.0,1.0,0.0}),
+    MrZ = e3d_mat:rotate(Z, {0.0,0.0,1.0}),
+    Mr = e3d_mat:mul(MrZ, e3d_mat:mul(MrY, MrX)),
+    [e3d_mat:mul_point(Mr, V) || V <- Vs].
+
+move({0.0,0.0,0.0}, false, Vs) -> Vs;
+move({X,Y,Z}, Ground, Vs0) ->
+    Mt = e3d_mat:translate(X,Y,Z),
+    Vs = [e3d_mat:mul_point(Mt, V) || V <- Vs0],
+    case Ground of
+	true ->
+	    {{_,Y1,_},_} = e3d_bv:box(Vs),
+	    Mt0= e3d_mat:translate(0.0,-Y1,0.0),
+	    [e3d_mat:mul_point(Mt0, V) || V <- Vs];
+	_ -> Vs
+    end.
 
 %%%
 %%% Build Shapes

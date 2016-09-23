@@ -38,6 +38,14 @@ make_knot(Arg, _) ->
     ArgDict = dict:from_list(Arg),
     TypeFlag = dict:fetch(typeflag, ArgDict),
     Resolution = dict:fetch(resolution, ArgDict),
+    Rot_X = dict:fetch(rot_x, ArgDict),
+    Rot_Y = dict:fetch(rot_y, ArgDict),
+    Rot_Z = dict:fetch(rot_z, ArgDict),
+    Mov_X = dict:fetch(mov_x, ArgDict),
+    Mov_Y = dict:fetch(mov_y, ArgDict),
+    Mov_Z = dict:fetch(mov_z, ArgDict),
+    Ground = dict:fetch(ground, ArgDict),
+
     case TypeFlag of
 	knot2 -> Knot_Func = fun knot2/1;
 	knot3 -> Knot_Func = fun knot3/1;
@@ -47,21 +55,52 @@ make_knot(Arg, _) ->
     Ures = Resolution,
     Vres = Ures div 10,
     Verts = make_verts(Ures, Vres, Knot_Func),
+    Vs0 = rotate({Rot_X, Rot_Y, Rot_Z}, Verts),
+    Vs = move({Mov_X, Mov_Y, Mov_Z}, Ground, Vs0),
     Faces = make_faces(Ures, Vres),
-    {new_shape,"knot",Faces,Verts}.
+    {new_shape,"knot",Faces,Vs}.
 
 dialog() ->
     TypeFlag = get_pref(typeflag, knot1),
     Resolution = get_pref(resolution, 80),
-    [{hframe, [{label, "Resolution"},
-	       {slider, {text, Resolution,
-	       [{key, resolution}, {range, {30, 300}}]}}]},
-     {vradio, [{"Type 1", knot1},
+    Hook = fun(Var, Val, Sto) ->
+	case Var of
+	    ground ->
+		wings_dialog:enable(mov_y, Val=:=false, Sto);
+	    _ -> ok
+	end
+	   end,
+    [{label_column, [
+	{"Resolution", {slider, {text, Resolution, [{key, resolution}, {range, {30, 300}}]}}}
+     ]},
+     {hradio, [{"Type 1", knot1},
 	       {"Type 2", knot2},
 	       {"Type 3", knot3},
 	       {"Type 4", knot4}],
-	       TypeFlag,
-	       [{key,typeflag}, {title, "Knot Type"}]}].
+	       TypeFlag, [{key,typeflag}, {title, "Knot Type"}]},
+     {vframe,[
+	 {hframe,[
+	     {label_column,
+	      [{wings_util:stringify(rotate),
+		{label_column, [
+		    {wings_util:stringify(x),{text, 0.0,[{key,rot_x},{range,{-360.0,360.0}}]}},
+		    {wings_util:stringify(y),{text, 0.0,[{key,rot_y},{range,{-360.0,360.0}}]}},
+		    {wings_util:stringify(z),{text, 0.0,[{key,rot_z},{range,{-360.0,360.0}}]}}
+		]}
+	       }
+	      ]},
+	     {label_column,
+	      [{wings_util:stringify(move),
+		{label_column, [
+		    {wings_util:stringify(x),{text, 0.0,[{key,mov_x},{range,{-360.0,360.0}}]}},
+		    {wings_util:stringify(y),{text, 0.0,[{key,mov_y},{range,{-360.0,360.0}}]}},
+		    {wings_util:stringify(z),{text, 0.0,[{key,mov_z},{range,{-360.0,360.0}}]}}
+		]}
+	       }]}
+	 ],[{margin,false}]},
+	 {wings_util:stringify(put_on_ground), false, [{key,ground},{hook, Hook}]}
+     ],[{title,""},{margin,false}]}
+    ].
 
 make_verts(Ures, Vres, Knot_Func) ->
     Radius = 0.25,
@@ -139,3 +178,23 @@ knot4(T) ->
 
 get_pref(Key, Def) ->
     wpa:pref_get(?MODULE, Key, Def).
+
+rotate({0.0,0.0,0.0}, Vs) -> Vs;
+rotate({X,Y,Z}, Vs) ->
+    MrX = e3d_mat:rotate(X, {1.0,0.0,0.0}),
+    MrY = e3d_mat:rotate(Y, {0.0,1.0,0.0}),
+    MrZ = e3d_mat:rotate(Z, {0.0,0.0,1.0}),
+    Mr = e3d_mat:mul(MrZ, e3d_mat:mul(MrY, MrX)),
+    [e3d_mat:mul_point(Mr, V) || V <- Vs].
+
+move({0.0,0.0,0.0}, false, Vs) -> Vs;
+move({X,Y,Z}, Ground, Vs0) ->
+    Mt = e3d_mat:translate(X,Y,Z),
+    Vs = [e3d_mat:mul_point(Mt, V) || V <- Vs0],
+    case Ground of
+	true ->
+	    {{_,Y1,_},_} = e3d_bv:box(Vs),
+	    Mt0= e3d_mat:translate(0.0,-Y1,0.0),
+	    [e3d_mat:mul_point(Mt0, V) || V <- Vs];
+	_ -> Vs
+    end.
