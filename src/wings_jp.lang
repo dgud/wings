@@ -1488,14 +1488,14 @@
     {1,"メニュー内に表示されるあらゆるコマンドには,キーボードショートカット(ホットキー)を割り当てることができます."},
     % "To assign a hotkey to a command:"
     {4,"ホットキーにコマンドを割り当てる方法："},
-    % "1. Open the menu containing the command and highlight the command."
-    {5,"1.コマンドが含まれるメニューを開いて,コマンド項目名をハイライトさせます."},
-    % "2. Press the [Insert] or [/] key."
-    {6,"2.[Insert]キーまたは[/]キーを押してください."},
+    % "1. Press the [Insert] or [/] key."
+    {6,"1.~tsキーまたは~tsキーを押してください."},
+    % "2. Open the menu containing the command and highlight the command."
+    {5,"2.コマンドが含まれるメニューを開いて,コマンド項目名をハイライトさせます."},
     % "4. The information line asks you to press the key that the command should be assigned to."
     {8,"4.情報行には、コマンドを割り当てるために押すべきキーを表示します."},
     % "To delete a hotkey, similarly highlight the command in a menu, and press the [Del] or [\\] key. A dialog box listing all keys bound to the command will appear. Check all hotkeys you want to delete."
-    {9,"ホットキーを削除するには,同じようにメニュー内のコマンド名を強調表示させてから[Del]キーまたは[＼]キーを押してください.すべてのキー対応表がリストされたダイアロボックスが出現するでしょう. そこで削除したいすべてのホットキーを選択してください."}
+    {9,"ホットキーを削除するには,同じようにメニュー内のコマンド名を強調表示させてから~tsキーまたは~tsキーを押してください.すべてのキー対応表がリストされたダイアロボックスが出現するでしょう. そこで削除したいすべてのホットキーを選択してください."}
    ]},
   {edit_prefs,
    [

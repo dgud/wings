@@ -218,6 +218,7 @@ info(Title, Info, _Options) ->
     wxSizer:setSizeHints(Sizer, Panel),
     wxWindow:setSizer(Frame, Sizer),
     wxFrame:show(Frame),
+    wxScrolledWindow:setFocus(Panel),
     keep.
 
 
@@ -599,7 +600,7 @@ setup_hook(#in{key=Key, wx=Ctrl, type=radiobox, hook=UserHook, data=Keys}, Field
 					 UserHook(Key, Sel, Fields)
 				 end}]),
     UserHook(Key, lists:nth(1+wxRadioBox:getSelection(Ctrl),Keys),Fields);
-setup_hook(#in{key=Key, wx=Ctrl, type=text, hook=UserHook, def=Def, validator=Validate}, Fields) ->
+setup_hook(#in{key=Key, wx=Ctrl, type=text, hook=UserHook, wx_ext=Ext, def=Def, validator=Validate}, Fields) ->
     wxWindow:connect(Ctrl, command_text_updated,
 		     [{callback, fun(#wx{event=#wxCommand{cmdString=Str}}, Obj) ->
 					 wxEvent:skip(Obj),
@@ -607,6 +608,27 @@ setup_hook(#in{key=Key, wx=Ctrl, type=text, hook=UserHook, def=Def, validator=Va
 					 UserHook(Key, Val, Fields),
 					 ok
 				 end}]),
+    case Ext of
+	[Slider] ->
+        wxTextCtrl:connect(Ctrl, mousewheel,
+                 [{callback, fun(#wx{event=#wxMouse{type=mousewheel}=EvMouse}, Obj) ->
+                         wxEvent:skip(Obj),
+                         Str = text_wheel_move(Def,wxTextCtrl:getValue(Ctrl),EvMouse),
+                         case Validate(Str) of
+                             {true, Val} ->
+                                 UserHook(Key, Val, Fields),
+                                 ok;
+                             _ -> ok
+                         end
+                     end}]),
+        wxSlider:connect(Slider, scroll_thumbtrack,
+                 [{callback, fun(#wx{event=#wxScroll{commandInt=Val}}, Obj) ->
+                         wxEvent:skip(Obj),
+                         UserHook(Key, Val, Fields),
+                         ok
+                     end}]);
+	_ -> ignore
+    end,
     UserHook(Key,validate(Validate, wxTextCtrl:getValue(Ctrl), Def),Fields);
 setup_hook(#in{key=Key, wx=Ctrl, type=button, hook=UserHook}, Fields) ->
     wxButton:connect(Ctrl, command_button_clicked,
@@ -638,7 +660,7 @@ setup_hook(#in{key=Key, wx=Ctrl, type=slider, hook=UserHook, data={FromSlider,_}
 				 end}]),
     ok;
 
-setup_hook({Key, #in{wx=Ctrl, type=fontpicker, hook=UserHook}}, Fields) ->
+setup_hook(#in{key=Key, wx=Ctrl, type=fontpicker, hook=UserHook}, Fields) ->
     wxFontPickerCtrl:connect(Ctrl, command_fontpicker_changed,
 			     [{callback, fun(_, Obj) ->
 						 wxEvent:skip(Obj),
@@ -646,6 +668,23 @@ setup_hook({Key, #in{wx=Ctrl, type=fontpicker, hook=UserHook}}, Fields) ->
 						 UserHook(Key, Font, Fields)
 					 end}]),
     UserHook(Key, wxFontPickerCtrl:getSelectedFont(Ctrl), Fields);
+setup_hook(#in{key=Key, wx=Ctrl, type=filepicker, hook=UserHook}, Fields) ->
+    wxFilePickerCtrl:connect(Ctrl, command_filepicker_changed,
+			    [{callback, fun(_, Obj) ->
+						wxEvent:skip(Obj),
+						Font = wxFilePickerCtrl:getPath(Ctrl),
+						UserHook(Key, Font, Fields)
+					end}]),
+    UserHook(Key, wxFilePickerCtrl:getPath(Ctrl), Fields);
+
+setup_hook(#in{key=Key, wx=Ctrl, type=dirpicker, hook=UserHook}, Fields) ->
+    wxDirPickerCtrl:connect(Ctrl, command_dirpicker_changed,
+			   [{callback, fun(_, Obj) ->
+					       wxEvent:skip(Obj),
+					       Font = wxDirPickerCtrl:getPath(Ctrl),
+					       UserHook(Key, Font, Fields)
+				       end}]),
+    UserHook(Key, wxDirPickerCtrl:getPath(Ctrl), Fields);
 setup_hook(#in{key=Key, wx=Ctrl, type=table, hook=UserHook}, Fields) ->
     wxListCtrl:connect(Ctrl, command_list_item_focused,
         [{callback, fun(_, _) ->
@@ -838,7 +877,7 @@ build(Ask, {oframe, Tabs, Def, Flags}, Parent, WinSizer, In0)
 		      Out
 	      end,
     In = lists:foldl(AddPage, In0, Tabs),
-    case Def =< length(In) of
+    case 0 < Def andalso Def =< length(In) of
 	true -> wxNotebook:setSelection(NB, Def-1);
 	false -> ignore
     end,
@@ -1052,6 +1091,9 @@ build(Ask, {button, {text, Def, Flags}}, Parent, Sizer, In) ->
 		                [{style, What bor ?wxFLP_USE_TEXTCTRL},
 		                    {path, Def},
 		                    {wildcard, Filter}]++StyleEx),
+		            PreviewFun = notify_event_handler_cb(Ask, preview),
+		            wxFilePickerCtrl:connect(Ctrl, command_filepicker_changed,
+						     [{callback, PreviewFun}]),
 		            tooltip(Ctrl, Flags),
 		            add_sizer(filepicker, Sizer, Ctrl, Flags),
 		            Ctrl
@@ -1061,6 +1103,9 @@ build(Ask, {button, {text, Def, Flags}}, Parent, Sizer, In) ->
             Create = fun() ->
 		            Ctrl = wxDirPickerCtrl:new(Parent, ?wxID_ANY,
 		                [{style, ?wxDIRP_DEFAULT_STYLE bor ?wxDIRP_USE_TEXTCTRL}, {path, Def}]++StyleEx),
+			    PreviewFun = notify_event_handler_cb(Ask, preview),
+			    wxDirPickerCtrl:connect(Ctrl, command_dirpicker_changed,
+						     [{callback, PreviewFun}]),
 		            tooltip(Ctrl, Flags),
 		            add_sizer(filepicker, Sizer, Ctrl, Flags),
 		            Ctrl

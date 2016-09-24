@@ -265,7 +265,7 @@ def_hotkeys(Head) ->
 	    ?__(8,"3. The information line asks you to press the key that the command "
 		"should be assigned to."),
 
-	    io_lib:format(?__(9,"To delete a hotkey, similarly press the"
+	    io_lib:format(?__(9,"To delete a hotkey, similarly press the "
 			      "~ts or ~ts key and "
 			      "select the command in a menu. A dialog box listing all keys "
 			      "bound to the command will appear. "

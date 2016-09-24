@@ -1019,10 +1019,10 @@
    [
     {1,"Jedem Befehl, der in einem Menü erscheint, kann ein Tastatur-Shortcut (Hotkey) zugewiesen werden."},
     {4,"Um einen Befehl einem Hotkey zuzuweisen:"},
-    {5,"1. Öffnen Sie das Menü, dass den Befehl enthält und markieren Sie den Befehl."},
-    {6,"2. Drücken Sie die [Einfg] oder die [/] Taste."},
-    {8,"4. Die Informationszeile fordert Sie auf die Taste zu drücken, der Sie den Befehl zuweisen wollen."},
-    {9,"Um einen Hotkey zu löschen, markieren Sie den Menübefehl auf die gleiche Weise und drücken die Taste [Entf] oder [\\]. Ein Dialogfenster erscheint, das alle an Tasten gebundene Befehle auflistet. Markieren Sie alle Tasten, die Sie löschen wollen."}
+    {6,"1. Drücken Sie die ~ts oder die ~ts Taste."},
+    {5,"2. Öffnen Sie das Menü, dass den Befehl enthält und markieren Sie den Befehl."},
+    {8,"3. Die Informationszeile fordert Sie auf die Taste zu drücken, der Sie den Befehl zuweisen wollen."},
+    {9,"Um einen Hotkey zu löschen, markieren Sie den Menübefehl auf die gleiche Weise und drücken die Taste ~ts oder ~ts. Ein Dialogfenster erscheint, das alle an Tasten gebundene Befehle auflistet. Markieren Sie alle Tasten, die Sie löschen wollen."}
    ]},
   {edit_prefs,
    [

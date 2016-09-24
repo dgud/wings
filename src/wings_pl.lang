@@ -915,9 +915,7 @@
    ]},
   {def_hotkeys,
    [
-    {1,"Dowolna komenda, która pokazuje się w menu może być przypisana do skrótu klawiszowego."},
-    {2,"Aby przyporządkować jakąś opcję do danego klawisza, otwórz menu które zawiera tę komendę i podświetl interesującą cię opcję. Wtedy naciśnij [Insert] lub [/] a zaraz potem klawisz do którego chcesz przyporządkować tę komendę."},
-    {3,"Aby usunąć przyporządkowaną komendę podobnie podświetl interesującą cię opcję i naciśnij klawisz [Del] lub [\\]"}
+    {1,"Dowolna komenda, która pokazuje się w menu może być przypisana do skrótu klawiszowego."}
    ]},
   {edit_prefs,
    [
