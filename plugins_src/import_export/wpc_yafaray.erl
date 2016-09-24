@@ -1,12 +1,12 @@
 %%
 %%  wpc_yafaray.erl
 %%
-%%     YafaRay Plugin User Interface, for YafaRay Core v3.0.3
+%%     YafaRay Plugin User Interface, for YafaRay Core v3.1.0
 %%
 %%  Copyright (c) 2003-2008 Raimo Niskanen
 %%                2013-2015 Code Convertion from Yafray to YafaRay by Bernard Oortman (Wings3d user oort)
 %%                2015 Micheus (porting to use wx dialogs)
-%%                2016 David Bluecame (adaptation for YafaRay Core v3.0.3)
+%%                2016 David Bluecame (adaptation for YafaRay Core v3.1.0)
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -354,6 +354,8 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_BADGE_CUSTOM_ICON_PATH, "").
 -define(DEF_BADGE_DRAW_RENDER_SETTINGS, true).
 -define(DEF_BADGE_DRAW_AA_NOISE_SETTINGS, true).
+-define(DEF_BADGE_FONT_PATH, "").
+-define(DEF_BADGE_FONT_SIZE_FACTOR, 1.0).
 
 %% AA and Noise Control Parameters
 -define(DEF_AA_PASSES, 3).
@@ -537,8 +539,10 @@ range_1(aa_noise_dark_threshold_factor) -> {0.0,1.0};
 range_1(aa_noise_variance_edge_size) -> {4,20};
 range_1(aa_noise_variance_pixels) -> {0,10};
 range_1(aa_noise_clamp_samples) -> {0.0,infinity};
-range_1(aa_noise_clamp_indirect) -> {0.0,infinity}.
+range_1(aa_noise_clamp_indirect) -> {0.0,infinity};
 
+%% Log/Badge Parameters
+range_1(badge_font_size_factor) -> {0.0,4.0}.
 
 %% used to fix old data that now can be out of range and crash Wings3d
 fit_range(Value,Id) ->
@@ -2256,7 +2260,9 @@ export_prefs() ->
         {badge_comments,?DEF_BADGE_COMMENTS},
         {badge_custom_icon_path,?DEF_BADGE_CUSTOM_ICON_PATH},
         {badge_draw_render_settings,?DEF_BADGE_DRAW_RENDER_SETTINGS},
-        {badge_draw_aa_noise_settings,?DEF_BADGE_DRAW_AA_NOISE_SETTINGS}
+        {badge_draw_aa_noise_settings,?DEF_BADGE_DRAW_AA_NOISE_SETTINGS},
+        {badge_font_path,?DEF_BADGE_FONT_PATH},
+        {badge_font_size_factor,?DEF_BADGE_FONT_SIZE_FACTOR}
         ] ++ RenderPass.
 
 f_stop_str(Value) when is_float(Value) ->
@@ -2906,7 +2912,10 @@ export_dialog_qs(Op, Attr) ->
                     {?__(186, "Contact info "), {text, get_pref(badge_contact,Attr), [{key,badge_contact}]}},
                     {?__(187, "Comments "), {text, get_pref(badge_comments,Attr), [{key,badge_comments}]}},
                     {?__(188, "Custom icon path "), {button,{text, get_pref(badge_custom_icon_path,Attr),
-                                                             [{key,badge_custom_icon_path}, {props,BrowseProps}]}}}
+                                                             [{key,badge_custom_icon_path}, {props,BrowseProps}]}}},
+                    {?__(240, "Font size factor"), {text, get_pref(badge_font_size_factor,Attr), [range(badge_font_size_factor), {key,badge_font_size_factor}]}},
+                    {?__(241, "Custom font path "), {button,{text, get_pref(badge_font_path,Attr),
+                                                             [{key,badge_font_path}, {props,BrowseProps}]}}}
                 ]}
             ],[{title,""}, {margin,true}]}
         },
@@ -5777,6 +5786,8 @@ export_logging_badge(F, Attr) ->
     BadgeCustomIconPath = proplists:get_value(badge_custom_icon_path, Attr),
     BadgeDrawRenderSettings = proplists:get_value(badge_draw_render_settings, Attr),
     BadgeDrawAANoiseSettings = proplists:get_value(badge_draw_aa_noise_settings, Attr),
+    Badge_font_path = proplists:get_value(badge_font_path, Attr),
+    Badge_font_size_factor = proplists:get_value(badge_font_size_factor, Attr),
     
     println(F, "<logging_badge name=\"logging_badge\">"),
     println(F, "	<logging_saveLog bval=\"~s\"/>", [LogSaveTxt]),
@@ -5789,6 +5800,8 @@ export_logging_badge(F, Attr) ->
     println(F, "	<logging_customIcon sval=\"~s\"/>", [BadgeCustomIconPath]),
     println(F, "	<logging_drawRenderSettings bval=\"~s\"/>", [BadgeDrawRenderSettings]),
     println(F, "	<logging_drawAANoiseSettings bval=\"~s\"/>", [BadgeDrawAANoiseSettings]),
+    println(F, "	<logging_fontPath sval=\"~s\"/>~n", [Badge_font_path]),
+    println(F, "	<logging_fontSizeFactor fval=\"~.10f\"/>~n", [Badge_font_size_factor]),
     println(F, "</logging_badge>").
 
 
