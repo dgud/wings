@@ -33,15 +33,16 @@ export_prefs() ->
         {z_pass, false},
         {render_format,png},
         {save_alpha, false},
+        {clamp_rgb,false},
         {exr_float, false},
         {exr_flag_compression,?DEF_EXR_FLAG_COMPRESSION},
         {aa_filter_type,?DEF_AA_FILTER_TYPE},
-        {aa_moresamples,?DEF_AA_PASSES },
-        {clamp_rgb,?DEF_CLAMP_RGB},
+        {aa_pixelwidth,1.5},
         {aa_passes,?DEF_AA_PASSES},
         {aa_samples,?DEF_AA_MINSAMPLES},
         {aa_threshold,?DEF_AA_THRESHOLD},
-        {aa_pixelwidth,?DEF_AA_PIXELWIDTH},
+        {aa_moresamples,?DEF_AA_PASSES },
+        {show_pixels, true},
         % lighting
         {lighting_method,?DEF_LIGHTING_METHOD},
         {use_caustics,?DEF_USE_CAUSTICS},
@@ -89,8 +90,8 @@ export_prefs() ->
         {volintegr_optimize,?DEF_VOLINTEGR_OPTIMIZE},
         % camera
         {lens_type,?DEF_LENS_TYPE},
-        {width,?DEF_WIDTH},
-        {height,?DEF_HEIGHT},
+        {width,640},
+        {height,480},
         {lens_scale,?DEF_LENS_ORTHO_SCALE},
         {lens_circular,?DEF_LENS_ANGULAR_CIRCULAR},
         {lens_max_angle,?DEF_LENS_ANGULAR_MAX_ANGLE},
@@ -143,6 +144,9 @@ export_dialog_qs(Op, Attr) ->
         case Key of
             threads_auto ->
                 wings_dialog:enable(?KEY(pnl_threads), Value =:= false, Store);
+            aa_passes ->
+                wings_dialog:enable(?KEY(pnl_moresamples), Value > 1, Store),
+                wings_dialog:enable(?KEY(pnl_pixels), Value > 1, Store);
             use_caustics ->
                 wings_dialog:enable(?KEY(pnl_dl1), Value =:= true, Store);
             do_ao ->
@@ -292,7 +296,7 @@ export_dialog_qs(Op, Attr) ->
                             ], get_pref(verbosity_level,Attr), [{key,verbosity_level}]}
                         ]},
                         {hframe,[
-                            {?__(115, "Draw Params"), get_pref(draw_params,Attr), [{key,draw_params},{width,5}]}
+                            {?__(115, "Draw Parameters"), get_pref(draw_params,Attr), [{key,draw_params},{width,5}]}
                         ]}
                     ]},
                     {vframe,[
@@ -320,15 +324,17 @@ export_dialog_qs(Op, Attr) ->
                             ], get_pref(render_format,Attr), [{key,render_format},{hook,Hook_Enable}]}
                         ]},
                         {hframe, [
-                            {?__(1032, "Save Alpha"), get_pref(save_alpha,Attr), [{key,save_alpha}]}]}
-                        ]}, %panel,
+                            {?__(131, "Save Alpha"), get_pref(save_alpha,Attr), [{key,save_alpha}]},
+                            {?__(132, "Clamp RGB"), get_pref(clamp_rgb,Attr),[{key,clamp_rgb}]}
+                        ]}
+                    ]},
                     {vframe, [
                         {hframe, [
-                            {?__(132, "Float"), get_pref(exr_float,Attr), [{key,exr_float}]},
+                            {?__(133, "Float"), get_pref(exr_float,Attr), [{key,exr_float}]},
                             panel,
-                            {label, ?__(133, "Compression ")},
+                            {label, ?__(134, "Compression ")},
                             {menu,[
-                                {?__(134,"none"),exr_none},
+                                {?__(135,"none"),exr_none},
                                 {"run length",exr_rle},
                                 {"scan line",exr_zlin},
                                 {"scan block",exr_zblo},
@@ -339,42 +345,41 @@ export_dialog_qs(Op, Attr) ->
                             ], get_pref(exr_flag_compression,Attr), [{key,exr_flag_compression}]}
                         ], [key(pnl_exr_option),{enabled,false},{margin,false}]}
                     ]}
-                ],[{title, ?__(135, "Image Output")},{margin,false}]},
+                ],[{title, ?__(136, "Image Output")},{margin,false}]},
                 %!---------------------
                 %% Antialising group
                 %!---------------------
                 {hframe, [
                     {vframe, [
                         {hframe, [
-                            {label, ?__(136, "Method ")},
+                            {label, ?__(137, "Method ")},
                             {menu, [
-                                {?__(137, "Box Filter"), box},
-                                {?__(138, "Gaussian Filter"), gauss},
-                                {?__(139, "Mitchell-Netravali"), mitchell},
-                                {?__(140, "Lanczos Filter"), lanczos}
+                                {?__(138, "Box"), box},
+                                {?__(139, "Gaussian"), gauss},
+                                {?__(140, "Mitchell"), mitchell},
+                                {?__(141, "Lanczos"), lanczos}
                             ], get_pref(aa_filter_type,Attr), [{key,aa_filter_type}]},
                             panel,
                             {hframe, [
-                                {label, ?__(141, "Add. Samples")},{text, get_pref(aa_moresamples,Attr), [{key,aa_moresamples}]}
-                            ]}, panel,
-                            {hframe, [
-                                {?__(142, "Clamp RGB"), get_pref(clamp_rgb,Attr),[{key,clamp_rgb}]}
-                            ]}
+                                {label,?__(142, "Pixelwidth")},{text, get_pref(aa_pixelwidth,Attr),[range(aa_pixelwidth),{key,aa_pixelwidth}]}                                
+                            ],[{margin,false}]}
                         ],[{margin,false}]},
                         {hframe, [
                             {label_column, [
-                                {?__(143, "Passes"),{text, get_pref(aa_passes,Attr),[range(aa_passes),{key,aa_passes}]}},
+                                {?__(143, "Passes"),{text, get_pref(aa_passes,Attr),[range(aa_passes),{key,aa_passes},{hook,Hook_Enable}]}},
                                 {?__(144, "Samples"),{text, get_pref(aa_samples,Attr),[range(aa_samples),{key,aa_samples}]}}
                             ]},
                             {label_column, [
-                                {?__(145, "Threshold"),
-                                    {text, get_pref(aa_threshold,Attr),[range(aa_threshold),{key,aa_threshold}]}},
-                                {?__(146, "Pixelwidth"),
-                                    {text, get_pref(aa_pixelwidth,Attr),[range(aa_pixelwidth),{key,aa_pixelwidth}]}}
-                            ]}
+                                {?__(145, "Threshold"),    {text, get_pref(aa_threshold,Attr),[range(zero_one),{key,aa_threshold}]}},
+                                {?__(146, "Add. Samples"),{text, get_pref(aa_moresamples,Attr),[range(samples),{key,aa_moresamples}]}}                                
+                            ],[key(pnl_moresamples)]},
+                            {vframe, [
+                                {?__(147, "Show pixels"), get_pref(show_pixels,Attr),[{key,show_pixels}]},
+                                {label, ?__(148, "Test ")}
+                            ],[key(pnl_pixels)]}
                         ],[{margin,false}]}
                     ],[{margin,false}]}
-                ],[{title, ?__(147, "Anti-Aliasing")},{margin,false}]}
+                ],[{title, ?__(150, "Anti-Aliasing")},{margin,false}]}
             ]}
         },
 
@@ -473,7 +478,7 @@ export_dialog_qs(Op, Attr) ->
                                     {?__(262,"IRE"),get_pref(sppm_ire,Attr),[{key,sppm_ire}]}
                                 ]}
                             ],[key(pnl_sppm2),{show,false},{margin,false}]},
-                            
+
                         %% 3rd collumn of panels
                         {vframe, [
                             {vframe, [
@@ -654,7 +659,7 @@ export_dialog_qs(Op, Attr) ->
                     wings_dialog:show(?KEY(pnl_add_sun), is_member(Value,[darksky,sunsky]), Store),
 
                     wings_dialog:show(?KEY(pnl_alt_night), Value =:= darksky, Store),
-                    
+
                     wings_dialog:show(?KEY(pnl_bright_night), Value =:= darksky, Store),
 
                     wings_dialog:show(?KEY(pnl_sky), is_member(Value,[darksky,sunsky]), Store),
@@ -689,30 +694,30 @@ export_dialog_qs(Op, Attr) ->
             {vframe, [
                 {hframe, [
                     {label_column, [
-                        {?__(407,"Sky Turbidity"), 
-                            {slider,{text,get_pref(turbidity,Attr),[range(zero_to_five),{key,turbidity}]}}},
+                        {?__(407,"Sky Turbidity"),
+                            {slider,{text,get_pref(turbidity,Attr),[range(zero_five),{key,turbidity}]}}},
                         {?__(408,"Horizon Bright"),
-                            {slider,{text,get_pref(a_var,Attr),[range(zero_to_five),{key,a_var}]}}},
+                            {slider,{text,get_pref(a_var,Attr),[range(zero_five),{key,a_var}]}}},
                         {?__(409,"Horizon Spread"),
-                            {slider,{text,get_pref(b_var,Attr),[range(zero_to_five),{key,b_var}]}}}
+                            {slider,{text,get_pref(b_var,Attr),[range(zero_five),{key,b_var}]}}}
                     ],[{margin,false}]},
                     {label_column, [
                         {?__(410,"Sun Brightness"),
-                            {slider, {text,get_pref(c_var,Attr),[range(zero_to_five),{key,c_var}]}}},
+                            {slider, {text,get_pref(c_var,Attr),[range(zero_five),{key,c_var}]}}},
                         {?__(411,"Sun Distance"),
-                            {slider, {text,get_pref(d_var,Attr),[range(zero_to_five),{key,d_var}]}}},
+                            {slider, {text,get_pref(d_var,Attr),[range(zero_five),{key,d_var}]}}},
                         {?__(412,"Backscatter Light"),
-                            {slider, {text,get_pref(e_var,Attr),[range(zero_to_five),{key,e_var}]}}}
+                            {slider, {text,get_pref(e_var,Attr),[range(zero_five),{key,e_var}]}}}
                     ],[{margin,false}]}
                 ],[key(pnl_sky),{margin,false}]},
             % altitude and night
             {hframe,[
                 {hframe,[
                     {label,?__(413,"Altitude")},
-                        {slider, {text,get_pref(altitude,Attr),[range(zero_to_five),{key,altitude},{width,5}]}},
+                        {slider, {text,get_pref(altitude,Attr),[range(zero_five),{key,altitude},{width,5}]}},
                     panel,
                     {label,?__(414,"Exposure")},
-                        {slider, {text,get_pref(exposure,Attr),[range(zero_to_five),{key,exposure},{width,5}]}}
+                        {slider, {text,get_pref(exposure,Attr),[range(zero_five),{key,exposure},{width,5}]}}
                     ]}
             ],[key(pnl_alt_night),{margin,false}]},
             {hframe,[
@@ -799,7 +804,7 @@ export_dialog_qs(Op, Attr) ->
                 ],[{margin,false}]},% panel,
                 {hframe,[
                     {label,?__(431,"IBL Power")},
-                    {slider, {text,get_pref(ibl_power, Attr),[range(zero_to_one),{key,ibl_power}]}}
+                    {slider, {text,get_pref(ibl_power, Attr),[range(zero_one),{key,ibl_power}]}}
                 ],[key(pnl_ibl_power),{margin,false}]},
                 {hframe,[
                     {label,?__(432,"Samples")},

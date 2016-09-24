@@ -114,7 +114,7 @@ light_dialog(_Name, spot, Ps) ->
         {vframe, [
             {hframe, [
                 {label,?__(103,"Blend")},
-                {text,SpotBlend,[key(spot_blend),range(zero_to_one)]},
+                {text,SpotBlend,[key(spot_blend),range(zero_one)]},
                 panel,
                 {?__(104,"Photon Only"),SpotPhotonOnly,[key(spot_photon_only)]},
                 panel
@@ -126,7 +126,7 @@ light_dialog(_Name, spot, Ps) ->
                 {text,SpotIESSamples,[range(spot_ies_samples),key(spot_ies_samples)]},
                 panel,
                 {label,?__(107,"Fuzzyness")},
-                {text,SpotFuzzyness,[range(zero_to_one),key(spot_fuzzyness)]}
+                {text,SpotFuzzyness,[range(zero_one),key(spot_fuzzyness)]}
             ]}
         ],[{margin,false}]
         }

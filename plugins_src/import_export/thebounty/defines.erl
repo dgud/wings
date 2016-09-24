@@ -149,7 +149,7 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_AO_COLOR, {1.0,1.0,1.0}).
 -define(DEF_AA_PASSES, 3).
 -define(DEF_AA_MINSAMPLES, 1).
--define(DEF_AA_PIXELWIDTH, 1.5).
+%-define(DEF_AA_PIXELWIDTH, 1.5).
 -define(DEF_AA_THRESHOLD, 0.02).
 -define(DEF_CLAMP_RGB, true).
 -define(DEF_AA_FILTER_TYPE, box).
@@ -317,12 +317,19 @@ key(Key) -> {key,?KEY(Key)}.
 range(T) -> {range,range_1(T)}.
 
 %% generic float ranges
-range_1(zero_to_one)            -> {0.0,1.0};
-range_1(zero_to_five)           -> {0.0,5.0};
+range_1(zero_one)               -> {0.0,1.0};
+range_1(zero_five)              -> {0.0,5.0};
 range_1(zero_to_eight)          -> {0.0,8.0};
+range_1(zero_eight)             -> {0.0,8.0};
+range_1(zero_six)               -> {0.0,6.0};
 range_1(zero_to_ten)            -> {0.0,10.0};
+range_1(zero_ten)               -> {0.0,10.0};
 range_1(zero_to_twenty)         -> {0.0,20.0};
+range_1(zero_twenty)            -> {0.0,20.0};
 range_1(neg_one_to_one)         -> {-1.0,1.0};
+range_1(neg_two_two)            -> {-2.0,2.0};
+range_1(one_ten)                -> {1.0,10.0};
+range_1(sss_phase)              -> {-0.99,0.99};
 
 % integer type
 range_1(izero_to_one)            -> {0,1};
@@ -348,30 +355,29 @@ range_1(meshlight_power)        -> {0.0,10000.0};
 range_1(meshlight_samples)      -> {0,512};
 range_1(autosmooth_angle)       -> {0.0,181.0};
 range_1(ior)                    -> {0.0,3.0};
-range_1(glass_ir_depth)         -> {0,32};
 range_1(min_refle)              -> {0.0,1.0};
-range_1(size)                   -> {0.0,1000.0}; %infinity is not a good idea
+range_1(size)                   -> {0.0,1000.0}; 
 range_1(modulation)             -> {-5.0,5.0};
 range_1(mod_colorfactor)        -> {-1.0,1.0};
-range_1(turbulence)             -> {?NONZERO,infinity};
-range_1(scale)                  -> {?NONZERO,infinity};
-range_1(cell_size)              -> {0.0,infinity};
-range_1(intensity)              -> {0.010,infinity};
-range_1(cell_weight1)           -> {-2.0,2.0};
-range_1(cell_weight2)           -> {-2.0,2.0};
-range_1(cell_weight3)           -> {-2.0,2.0};
-range_1(cell_weight4)           -> {-2.0,2.0};
-range_1(musgrave_noisesize)     -> {0.0,infinity};
+range_1(turbulence)             -> {0.0001,1024.0};
+range_1(scale)                  -> {0.0001,1024.0};
+range_1(cell_size)              -> {0.0,1024.0};
+range_1(intensity)              -> {0.010,1024.0};
+%range_1(cell_weight1)           -> {-2.0,2.0};
+%range_1(cell_weight2)           -> {-2.0,2.0};
+%range_1(cell_weight3)           -> {-2.0,2.0};
+%range_1(cell_weight4)           -> {-2.0,2.0};
+range_1(musgrave_noisesize)     -> {0.05,2.0};
 range_1(musgrave_intensity)     -> {0.0,10.0};
 range_1(musgrave_contrast)      -> {0.0,10.0};
-range_1(musgrave_lacunarity)    -> {0.0,10.0};
+range_1(musgrave_lacunarity)    -> {0.0,6.0};
 range_1(musgrave_octaves)       -> {0.0,8.0};
 range_1(distortion_intensity)   -> {0.0,10.0};
-range_1(distortion_noisesize)   -> {0.0,infinity};
-range_1(sharpness)              -> {1.0,infinity};
-range_1(noise_depth)            -> {0,infinity};
-range_1(noise_size)             -> {0.0,infinity};
-range_1(absorption_dist)        -> {0.1,100.0};
+range_1(distortion_noisesize)   -> {0.0001,2.0};
+range_1(sharpness)              -> {1.0,1024.0};
+range_1(noise_depth)            -> {0,1024};
+range_1(noise_size)             -> {0.0,1024.0};
+range_1(absorption_dist)        -> {0.1,1024.0};
 range_1(dispersion_power)       -> {0.0,1.0};
 range_1(dispersion_samples)     -> {1,512};
 range_1(transparency)           -> {0.0,1.0};
@@ -390,37 +396,37 @@ range_1(blend_value)            -> {0.0,1.0};
 range_1(sigma)                  -> {0.0,1.0};
 
 %% Light ranges
-range_1(power)                  -> {0.0,infinity};
+range_1(power)                  -> {0.0,1024.0};
 range_1(bias)                   -> {0.0,1.0};
 range_1(verbosity_level)        -> {0,3};
-range_1(res)                    -> {0,infinity};
-range_1(radius)                 -> {0,infinity};
+range_1(res)                    -> {0,1024};
+range_1(radius)                 -> {0,1024};
 range_1(blur)                   -> {0.0,1.0};
 range_1(samples)                -> {1,512};
 range_1(spot_ies_samples)       -> {1,512};
 range_1(photons)                -> {0,10000000};
 range_1(depth)                  -> {0,12};
-range_1(fixedradius)            -> {0.0,infinity};
-range_1(search)                 -> {0,infinity};
-range_1(cluster)                -> {0.0,infinity};
+range_1(fixedradius)            -> {0.0,1024.0};
+range_1(search)                 -> {0,1024};
+range_1(cluster)                -> {0.0,1024.0};
 range_1(turbidity)              -> {0.0,5.0};
 range_1(angle_threshold)        -> {0.0,1.0};
 range_1(raydepth)               -> {1,12};
 range_1(shadow_depth)           -> {1,64};
-range_1(shadow_threshold)       -> {0.0,infinity};
+range_1(shadow_threshold)       -> {0.0,1024.0};
 range_1(exposure_adjust)        -> {0.0,50.0};
-range_1(psamples)               -> {0,infinity};
-range_1(arealight_radius)       -> {0.0,infinity};
-range_1(maxdistance)            -> {0.0,infinity};
-range_1(infinite_radius)        -> {0.0,infinity};
+range_1(psamples)               -> {0,1024};
+range_1(arealight_radius)       -> {0.0,1024.0};
+range_1(maxdistance)            -> {0.0,1024.0};
+range_1(infinite_radius)        -> {0.0,1024.0};
 range_1(sun_angle)              -> {0.0,80.0};
 
 %backg
 range_1(ibl_rotation)           -> {-180.0,180.0};
-range_1(sky_background_power)   -> {0.0,infinity};
+range_1(sky_background_power)   -> {0.0,1024.0};
 range_1(background_samples)     -> {0,512};
-range_1(altitude)               -> {0.0,infinity};
-range_1(sun_power)              -> {0.0,infinity};
+range_1(altitude)               -> {0.0,1024.0};
+range_1(sun_power)              -> {0.0,1024.0};
 
 %% Render ranges
 range_1(pm_diffuse_photons)     -> {1,100000000};
@@ -431,26 +437,26 @@ range_1(pm_caustic_photons)     -> {1,100000000};
 range_1(pm_caustic_radius)      -> {0.0,100.0};
 range_1(pm_caustic_mix)         -> {1,10000};
 range_1(pm_fg_bounces)          -> {1,20};
-range_1(pm_fg_samples)          -> {1,4096};
+range_1(pm_fg_samples)          -> {1,1024};
 range_1(pt_diffuse_photons)     -> {1,100000000};
 range_1(pt_bounces)             -> {0,50};
 range_1(pt_caustic_radius)      -> {0.0,100.0};
 range_1(pt_caustic_mix)         -> {1,10000};
-range_1(pt_caustic_depth)       -> {0,infinity};
+range_1(pt_caustic_depth)       -> {0,1024};
 range_1(pt_samples)             -> {1,4096};
 range_1(sppm_photons)           -> {1,100000000};
 range_1(sppm_bounces)           -> {0,50};
 range_1(sppm_search)            -> {1,10000};
 range_1(sppm_radius)            -> {0.0,100.0};
 range_1(sppm_times)             -> {0.0,20.0};
-range_1(sppm_passes)            -> {0,infinity};
-range_1(sss_photons)            -> {0,infinity};
+range_1(sppm_passes)            -> {0,1024};
+range_1(sss_photons)            -> {0,10000000};
 range_1(sss_depth)              -> {1.0,50.0};
 range_1(sss_scale)              -> {0.0,100.0};
 range_1(scatter_samples)        -> {0,128};
-range_1(caustic_photons)        -> {0,infinity};
-range_1(caustic_depth)          -> {0,infinity};
-range_1(caustic_mix)            -> {0,infinity};
+range_1(caustic_photons)        -> {0,10000000};
+range_1(caustic_depth)          -> {0,512};
+range_1(caustic_mix)            -> {0,512};
 range_1(caustic_radius)         -> {0.0,1.0};
 range_1(ao_distance)            -> {1.0,100.0};
 range_1(ao_samples)             -> {1.0,128.0};
@@ -461,9 +467,9 @@ range_1(aa_pixelwidth)          -> {1.0,2.0};
 range_1(aa_passes)              -> {0,1024};
 range_1(aa_threshold)           -> {0.0,1.0};
 range_1(aa_samples)             -> {1,1024};
-range_1(gamma)                  -> {0.0,infinity};
-range_1(exposure)               -> {0.0,infinity};
-range_1(pixels)                 -> {1,infinity};
+range_1(gamma)                  -> {0.0,3.0};
+range_1(exposure)               -> {0.0,1024.0};
+range_1(pixels)                 -> {1,1024};
 range_1(lens_scale)             -> {0.0,100.0};
 range_1(lens_max_angle)         -> {0.0,360.0};
 range_1(lens_angle)             -> {0.0,360.0};

@@ -101,7 +101,7 @@ export_render(F, Outfile, Attr) ->
     println(F,
         "\t<tiles_order sval=\"random\"/>"),
     println(F,
-        "\t<show_sam_pix bval=\"true\"/>"),
+        "\t<show_sam_pix bval=\"~s\"/>",[proplists:get_value(show_pixels, Attr)]),
     println(F,
         "\t<volintegrator_name sval=\"volintegr\"/>"),
 

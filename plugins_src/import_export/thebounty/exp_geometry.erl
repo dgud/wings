@@ -52,22 +52,16 @@ export_object_1(F, NameStr, Mesh0=#e3d_mesh{he=He0}, DefaultMaterial, MatPs, Id)
     Volume_Minmax_Z = proplists:get_value(volume_minmax_z, Attr, ?DEF_VOLUME_MINMAX_Z),
     Lightportal_Power = proplists:get_value(lightportal_power, Attr, ?DEF_LIGHTPORTAL_POWER),
     Lightportal_Samples = proplists:get_value(lightportal_samples, Attr, ?DEF_LIGHTPORTAL_SAMPLES),
-    %Lightportal_Diffusephotons = proplists:get_value(lightportal_diffusephotons, Attr, ?DEF_LIGHTPORTAL_DIFFUSEPHOTONS),
-    %Lightportal_Causticphotons = proplists:get_value(lightportal_causticphotons, Attr, false),
-    Lightportal_Photon_Only = proplists:get_value(lightportal_photon_only, Attr, ?DEF_LIGHTPORTAL_PHOTON_ONLY),
-    %Meshlight_Power = proplists:get_value(meshlight_power, Attr, ?DEF_MESHLIGHT_POWER),
-    %Meshlight_Samples = proplists:get_value(meshlight_samples, Attr, ?DEF_MESHLIGHT_SAMPLES),
+    Lightportal_Photon_Only = proplists:get_value(lightportal_photon_only, Attr, false),
     Meshlight_Color = proplists:get_value(meshlight_color, Attr, ?DEF_MESHLIGHT_COLOR),
 
-    Meshlight_Double_Sided = proplists:get_value(meshlight_double_sided, Attr, ?DEF_MESHLIGHT_DOUBLE_SIDED),
+    MeshLightDoubleSided = proplists:get_value(meshlight_double_sided, Attr, false),
     AutosmoothAngle =
         proplists:get_value(autosmooth_angle, Attr, ?DEF_AUTOSMOOTH_ANGLE),
 
     Autosmooth = proplists:get_value(autosmooth, Attr,
                                      if AutosmoothAngle == 0.0 -> false;
                                         true -> ?DEF_AUTOSMOOTH end),
-
-
 
     %% Pre-process mesh
     Mesh1 = #e3d_mesh{} =
@@ -111,13 +105,11 @@ export_object_1(F, NameStr, Mesh0=#e3d_mesh{he=He0}, DefaultMaterial, MatPs, Id)
             case proplists:get_value(volume_type, Attr,  ?DEF_VOLUME_TYPE) of
                 uniformvolume ->
                     println(F, "<type sval=\"UniformVolume\"/>");
-
-
+                    
                 expdensityvolume ->
                     println(F, "\t<type sval=\"ExpDensityVolume\"/>"),
                     println(F, "\t<a fval=\"~.10f\"/>",[Volume_Height]),
                     println(F, "\t<b fval=\"~.10f\"/>",[Volume_Steepness]);
-
 
                 noisevolume ->
                     println(F, "\t<type sval=\"NoiseVolume\"/>"),
@@ -127,7 +119,6 @@ export_object_1(F, NameStr, Mesh0=#e3d_mesh{he=He0}, DefaultMaterial, MatPs, Id)
                     println(F, "\t<texture sval=\"TEmytex\"/>")
 
             end,
-
 
             println(F, "\t<attgridScale ival=\"~w\"/>",[Volume_Attgridscale]),
             println(F, "\t<maxX fval=\"~.10f\"/>",[Volume_Minmax_Z]),
@@ -140,30 +131,36 @@ export_object_1(F, NameStr, Mesh0=#e3d_mesh{he=He0}, DefaultMaterial, MatPs, Id)
             println(F, "\t<sigma_s fval=\"~.10f\"/>",[Volume_Sigma_s]),
             println(F," ");
 
-
         meshlight ->
             %println(F," "),  
             println(F, "<light name=\"~s\">",[NameStr]),
 
             export_rgb(F, color, proplists:get_value(meshlight_color, Attr, {0.9,0.9,0.9})),
 
-            println(F, "\t<double_sided bval=\"~s\"/>",[Meshlight_Double_Sided]),
+            println(F,
+                "\t<double_sided bval=\"~s\"/>",[format(proplists:get_value(meshlight_double_sided, Attr, false))]),
             println(F, "\t<object ival= \"~w\"/>",[Id]),
-            println(F, "\t<power fval=\"~.10f\"/>",[proplists:get_value(meshlight_power, Attr, 1.0)]),
-            println(F, "\t<samples ival=\"~w\"/>",[proplists:get_value(meshlight_samples, Attr, 16)]),
+            println(F,
+                "\t<power fval=\"~.10f\"/>",[proplists:get_value(meshlight_power, Attr, 1.0)]),
+            println(F,
+                "\t<samples ival=\"~w\"/>",[proplists:get_value(meshlight_samples, Attr, 16)]),
             println(F, "\t<type sval=\"~s\"/>",[Object_Type]),
-            println(F, "</light>"),
-            println(F, "\n<mesh id=\"~w\" vertices=\"~w\" faces=\"~w\" has_uv=\"~s\" type=\"0\">",[Id,length(Vs),length(Fs),HasUV]);
+            println(F, "</light>\n"),
+            println(F,
+                "<mesh id=\"~w\" vertices=\"~w\" faces=\"~w\" has_uv=\"~s\" type=\"0\">",[Id,length(Vs),length(Fs),HasUV]);
 
         lightportal ->
             println(F, "\n<light name=\"~s\">",[NameStr]),
             println(F, "\t<object ival= \"~w\"/>",[Id]),
-            println(F, "\t<photon_only bval=\"~s\"/>",[Lightportal_Photon_Only]),
+            println(F,
+                "\t<photon_only bval=\"~s\"/>",[format(proplists:get_value(lightportal_photon_only, Attr, false))]),
             println(F, "\t<power fval=\"~.10f\"/>",[Lightportal_Power]),
             println(F, "\t<samples ival=\"~w\"/>",[Lightportal_Samples]),
             println(F, "\t<type sval=\"bgPortalLight\"/>"),
-            println(F, "\t<with_caustic bval=\"~s\"/>",[format(proplists:get_value(lightportal_causticphotons, Attr, false))]),
-            println(F, "\t<with_diffuse bval=\"~s\"/>",[format(proplists:get_value(lightportal_diffusephotons, Attr, false))]),
+            println(F,
+                "\t<with_caustic bval=\"~s\"/>",[format(proplists:get_value(lightportal_causticphotons, Attr, false))]),
+            println(F,
+                "\t<with_diffuse bval=\"~s\"/>",[format(proplists:get_value(portal_diffusephotons, Attr, false))]),
             println(F, "</light>"),
             println(F, "\n<mesh id=\"~w\" vertices=\"~w\" faces=\"~w\" has_uv=\"~s\" type=\"256\">",[Id,length(Vs),length(Fs),HasUV])
     end,
@@ -173,9 +170,7 @@ export_object_1(F, NameStr, Mesh0=#e3d_mesh{he=He0}, DefaultMaterial, MatPs, Id)
     %% Add Export UV_Vectors Part 1 Start
     case HasUV of
         "false" -> ok;
-        "true" -> println(F, "        "),
-                  println(F, "<!--uv_vectors Quantity=\"~w\" -->",[length(Tx)]),
-                  println(F, "        "),
+        "true" -> println(F, "\t<!--uv_vectors Quantity=\"~w\" -->\n",[length(Tx)]),
                   export_vectors2D(F, Tx)
     end,
     %% Add Export UV_Vectors Part 1 End
@@ -237,7 +232,7 @@ export_faces(F, [#e3d_face{mat=[Mat|_],tx=Tx,vs=[A,B,C],vc=VCols}|T],
     Shader =
         case Mat of
             DefaultMaterial -> ["\t<set_material sval=\"w_",format(Mat),"\"/>"];
-            _ -> ["  <set_material sval=\"w_",format(Mat),"\"/>"]
+            _ -> ["\t<set_material sval=\"w_",format(Mat),"\"/>"]
         end,
 
     UVIndices = case Tx of
@@ -274,7 +269,7 @@ export_faces(F, [#e3d_face{mat=[Mat|_],tx=Tx,vs=[A,B,C],vc=VCols}|T],
                              [length(VCols)]),
                    ""
            end,
-    println(F, [Shader, "        <f a=\"",format(A),
+    println(F, [Shader, "\<f a=\"",format(A),
                 "\" b=\"",format(B),"\" c=\"",format(C),"\"", UVIndices,
                 VCol]),
 
