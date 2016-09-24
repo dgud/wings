@@ -239,7 +239,7 @@ menu_shader() ->
     {?__(2,"Glass (Rough)"),glass},
     {?__(4,"Glossy (Coated)"),glossy},
     {?__(6,"Translucent (SSS)"),translucent},
-    {?__(7,"Light Material"),lightmat},
+    %{?__(7,"Light Material"),lightmat},
     {?__(8,"Blend"),blend_mat}].
 
 pref_dialog(St) ->
@@ -310,9 +310,7 @@ export(Attr, XMLFilename, #e3d_file{objs=Objs, mat=Mats, creator=Creator}) ->
             {true,true} ->
                 {filename:rootname(XMLFilename)++".xml", XMLFilename};
             {true,false} ->
-                {filename:join(ExportDir, ?MODULE_STRING++"-"
-                               ++wings_job:uniqstr()++".xml"),
-                 XMLFilename};
+                {filename:join(ExportDir, ?MODULE_STRING++"-"++wings_job:uniqstr()++".xml"), XMLFilename};
             {false,_} ->
                 {value,{RenderFormat,Ext,_}} =
                     lists:keysearch(RenderFormat, 1, wings_job:render_formats()),
@@ -322,8 +320,7 @@ export(Attr, XMLFilename, #e3d_file{objs=Objs, mat=Mats, creator=Creator}) ->
     io:format(?__(1,"Exporting  to:")++" ~s~n"++
               ?__(2,"for render to:")++" ~s~n", [ExportFile,RenderFile]),
     CreatorChg = re:replace(Creator,"-","_",[global]),
-    %_CameraName = "x_Camera",
-    %_BgName = "x_WorldBackground",
+    %
     Lights = proplists:get_value(lights, Attr, []),
     %%
     println(F,
@@ -335,6 +332,7 @@ export(Attr, XMLFilename, #e3d_file{objs=Objs, mat=Mats, creator=Creator}) ->
     %!----------------------
     % write shaders
     %!----------------------
+    write_default_materials(F),
     MatsGb =
         foldl(fun ({Name,Mat}, Gb) ->
                       export_shader(F, "w_"++format(Name), Mat, ExportDir),
@@ -377,7 +375,6 @@ export(Attr, XMLFilename, #e3d_file{objs=Objs, mat=Mats, creator=Creator}) ->
     %!----------------------
     export_background(F, Attr),
     println(F),
-
 
     %!----------------------
     %! write camera
@@ -455,14 +452,29 @@ export(Attr, XMLFilename, #e3d_file{objs=Objs, mat=Mats, creator=Creator}) ->
             set_var(rendering, true),
         Arguments = PluginsPath++AlphaChannel++OutputFormat,
         OutFile = wings_job:quote(filename:rootname(XMLFilename)),
-        wings_job:render(
-                ExportTS,RenderExec,Arguments++" "++ArgStr++" "++OutFile++" ", PortOpts, Handler)
+        wings_job:render(ExportTS,RenderExec,Arguments++" "++ArgStr++" "++OutFile++" ", PortOpts, Handler)
     end.
 
 section(F, Name) ->
     println(F, [io_lib:nl(),"<!-- Section ",Name," -->",io_lib:nl()]).
 
 %%% write material code
+write_default_materials(F)->
+    println(F, "<material name=\"defaultMat\">"),
+    println(F, "\t<type sval=\"shinydiffusemat\"/>"),
+    println(F, "\t<color r=\"0.9\" g=\"0.9\" b=\"0.9\"/>"),
+    println(F, "</material>\n"),
+    %
+    println(F, "<material name=\"blendone\">"),
+    println(F, "\t<type sval=\"shinydiffusemat\"/>"),
+    println(F, "\t<color r=\"0.789\" g=\"0.713\" b=\"0.794\"/>"),
+    println(F, "</material>\n"),
+    %
+    println(F, "<material name=\"blendtwo\">"),
+    println(F, "\t<type sval=\"glossy\"/>"),
+    println(F, "\t<color r=\"1.0\" g=\"0.513\" b=\"0.594\"/>"),
+    println(F, "</material>\n").
+    
 -include("exp_material.erl").
 
 %% write texture code
