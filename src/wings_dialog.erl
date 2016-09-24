@@ -67,7 +67,7 @@
 %% flag makes the checkbox value and the return value of the field to
 %% be the inverted minimized state (the maximized state ;-).
 %%
-%% {oframe,Fields,Focused[,Flags]}                      -- Overlay frame
+%% {oframe,Fields[,Flags]}                      -- Overlay frame
 %%     Flags = [Flag]
 %%     Flag = {title,String}|{style,Style}|{key,Key}|{hook,Hook}|layout
 %%     Style = menu|buttons  -- menu is default
