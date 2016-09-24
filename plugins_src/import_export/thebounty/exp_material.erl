@@ -24,20 +24,16 @@ export_shader(F, Name, Mat, ExportDir) ->
             export_shinydiffuse_shader(F, Name, Mat, ExportDir, MatAttr);
 
         glossy ->
-            export_glossy_shaders(F, Name, Mat, ExportDir, MatAttr, glossy);
-        coatedglossy ->
-            export_glossy_shaders(F, Name, Mat, ExportDir, MatAttr, coated_glossy);
+            export_glossy_shaders(F, Name, Mat, ExportDir, MatAttr);
 
         translucent ->
             export_translucent_shader(F, Name, Mat, ExportDir, MatAttr);
 
         glass ->
-            export_glass_shaders(F, Name, Mat, ExportDir, MatAttr, glass);
-        rough_glass ->
-            export_glass_shaders(F, Name, Mat, ExportDir, MatAttr, rough_glass);
+            export_glass_shaders(F, Name, Mat, ExportDir, MatAttr);
 
-        lightmat ->
-            export_lightmat_shader(F, Name, Mat, ExportDir, MatAttr);
+        %lightmat ->
+        %    export_lightmat_shader(F, Name, Mat, ExportDir, MatAttr);
 
         blend_mat ->
             ok
@@ -88,14 +84,18 @@ export_shinydiffuse_shader(F, Name, Mat, ExportDir, Attr) ->
     Specular = alpha(proplists:get_value(specular, OpenGL)),
 
     export_rgb(F, color, proplists:get_value(diffuse_color, Attr, DiffuseA)),
+    println(F,
+        "\t<diffuse_reflect fval=\"~.10f\"/>",[proplists:get_value(diffuse_reflect, Attr, 1.0)]),
 
     export_rgb(F, mirror_color, proplists:get_value(mirror_color, Attr, Specular)),
+    println(F,
+        "\t<specular_reflect fval=\"~.10f\"/>",[proplists:get_value(mirror_reflect, Attr, 0.0)]),
 
-    OrenNayar = proplists:get_value(oren_nayar, Attr, false),
-    case OrenNayar of
-        false -> ok;
+    case proplists:get_value(reflect_mode, Attr, lambert) of
+        lambert -> 
+            println(F, "\t<diffuse_brdf sval=\"lambert\"/>");
         _ ->
-            println(F, "\t<diffuse_brdf sval=\"oren_nayar\"/>"),
+            println(F, "\t<diffuse_brdf sval=\"Oren-Nayar\"/>"),
             println(F, "\t<sigma fval=\"~.10f\"/>",[proplists:get_value(sigma, Attr, 0.1)])
     end,
 
@@ -110,10 +110,6 @@ export_shinydiffuse_shader(F, Name, Mat, ExportDir, Attr) ->
     println(F,
         "\t<transparency fval=\"~.10f\"/>",[proplists:get_value(transparency, Attr, 0.0)]),
     println(F,
-        "\t<diffuse_reflect fval=\"~.10f\"/>",[proplists:get_value(diffuse_reflect, Attr, 1.0)]),
-    println(F,
-        "\t<specular_reflect fval=\"~.10f\"/>",[proplists:get_value(mirror_reflect, Attr, 0.0)]),
-    println(F,
         "\t<emit fval=\"~.10f\"/>",[proplists:get_value(emit, Attr, 0.0)]),
 
     %! write each material layer
@@ -122,7 +118,7 @@ export_shinydiffuse_shader(F, Name, Mat, ExportDir, Attr) ->
     println(F, "</material>").
 
 
-export_glossy_shaders(F, Name, Mat, ExportDir, Attr, GlossType) ->
+export_glossy_shaders(F, Name, Mat, ExportDir, Attr) ->
     %!------------------------------------
     %! Export Coated Glossy Material
     %!------------------------------------
@@ -132,6 +128,10 @@ export_glossy_shaders(F, Name, Mat, ExportDir, Attr, GlossType) ->
 
     write_material_textures(F, Name, Maps, ExportDir, Modulators),
 
+    GlossType = case proplists:get_value(coated, Attr, false) of
+        true -> coated_glossy;
+        _ -> glossy
+    end,
     println(F, "<material name=\"~s\">",[Name]),
     println(F, "\t<type sval=\"~s\"/>", [GlossType]),
 
@@ -139,20 +139,19 @@ export_glossy_shaders(F, Name, Mat, ExportDir, Attr, GlossType) ->
     DiffuseA = {_,_,_,Opacity} = proplists:get_value(diffuse, OpenGL),
     Specular = alpha(proplists:get_value(specular, OpenGL)),
 
-    export_rgb(F, color, proplists:get_value(reflected, Attr, Specular)),
+    export_rgb(F, color, proplists:get_value(glossy_color, Attr, Specular)),
 
-    export_rgb(F, diffuse_color, proplists:get_value(mirror_color, Attr, DiffuseA)),
+    export_rgb(F, diffuse_color, proplists:get_value(diffuse_color, Attr, DiffuseA)),
     %
     case GlossType of
         coated_glossy ->
-            export_rgb(F, mirror_color, proplists:get_value(mirror_color, Attr, {0.7, 0.7, 0.7})),
+            export_rgb(F, mirror_color, proplists:get_value(glossy_mirror_color, Attr, {0.7, 0.7, 0.7})),
             println(F,
-                "\t<IOR fval=\"~.10f\"/>",[proplists:get_value(ior, Attr, ?DEF_IOR)]);
+                "\t<IOR fval=\"~.10f\"/>",[proplists:get_value(mirror_ior, Attr, ?DEF_IOR)]);
         _ -> ok
     end,
-    OrenNayar = proplists:get_value(oren_nayar, Attr, ?DEF_OREN_NAYAR),
-    case OrenNayar of
-        false ->
+    case proplists:get_value(reflect_mode, Attr, lambert) of
+        lambert ->
             println(F, "\t<diffuse_brdf sval=\"lambert\"/>");
         _ ->
             println(F, "\t<diffuse_brdf sval=\"Oren-Nayar\"/>"), % TODO: check the right value are exporter
@@ -199,38 +198,37 @@ export_translucent_shader(F, Name, Mat, ExportDir, Attr) ->
     DefTransmitted = def_transmitted(DiffuseA),
 
     % SigmaA
-    SSS_AbsorptionColor = proplists:get_value(sss_absorption_color, Attr, ?DEF_SSS_ABSORPTION_COLOR),
-    % SigmaS
-    ScatterColor = proplists:get_value(scatter_color, Attr, ?DEF_SCATTER_COLOR),
+    export_rgb(F, sigmaA, proplists:get_value(sigmaA_color, Attr, ?DEF_SSS_ABSORPTION_COLOR)),    
 
-    export_rgb(F, glossy_color, proplists:get_value(reflected, Attr, Specular)),
+    export_rgb(F, glossy_color, proplists:get_value(glossy_color, Attr, Specular)),
 
-    export_rgb(F, color, proplists:get_value(transmitted, Attr, DefTransmitted)),
+    export_rgb(F, color, proplists:get_value(diffuse_color, Attr, DefTransmitted)),
 
     export_rgb(F, specular_color, proplists:get_value(sss_specular_color, Attr, ?DEF_SSS_SPECULAR_COLOR)),
+    % need review..
+    %SSS_AbsorptionColor = proplists:get_value(sigmaA_color, Attr, ?DEF_SSS_ABSORPTION_COLOR),
+    %case SSS_AbsorptionColor of
+    %    [ ] -> ok;
+    %    {AbsR,AbsG,AbsB} ->
+    %        AbsD = proplists:get_value(absorption_dist, Attr, ?DEF_ABSORPTION_DIST),
 
-    case SSS_AbsorptionColor of
-        [ ] -> ok;
-        {AbsR,AbsG,AbsB} ->
-            AbsD = proplists:get_value(absorption_dist, Attr, ?DEF_ABSORPTION_DIST),
+    %        export_rgb(F, sigmaA, {-math:log(max(AbsR, ?NONZERO))/AbsD,
+    %                               -math:log(max(AbsG, ?NONZERO))/AbsD,
+    %                               -math:log(max(AbsB, ?NONZERO))/AbsD})
+    %end,
 
-            export_rgb(F, sigmaA, {-math:log(max(AbsR, ?NONZERO))/AbsD,
-                                   -math:log(max(AbsG, ?NONZERO))/AbsD,
-                                   -math:log(max(AbsB, ?NONZERO))/AbsD})
-    end,
+    export_rgb(F, sigmaS, proplists:get_value(scatter_color, Attr, ?DEF_SCATTER_COLOR)),
 
-    export_rgb(F, sigmaS, proplists:get_value(scatter_color, Attr, ScatterColor)),
-
-    DispersionPower =  proplists:get_value(dispersion_power, Attr, 1.0),
-    case DispersionPower of
-        0.0 -> ok;
-        _   ->
-            println(F,
-                "\t<dispersion_samples ival=\"~w\"/>",[proplists:get_value(dispersion_samples, Attr, 16)]),
-            println(F,
-                "\t<dispersion_jitter bval=\"~s\"/>", [format(proplists:get_value(dispersion_jitter, Attr, false))])
-    end,
-    println(F, "\t<IOR fval=\"~.10f\"/>",[proplists:get_value(ior, Attr, 1.3)]),
+    %DispersionPower =  proplists:get_value(dispersion_power, Attr, 1.0),
+    %case DispersionPower of
+    %    0.0 -> ok;
+    %    _   ->
+    %        println(F,
+    %            "\t<dispersion_samples ival=\"~w\"/>",[proplists:get_value(dispersion_samples, Attr, 16)]),
+    %        println(F,
+    %            "\t<dispersion_jitter bval=\"~s\"/>", [format(proplists:get_value(dispersion_jitter, Attr, false))])
+    %end,
+    println(F, "\t<IOR fval=\"~.10f\"/>",[proplists:get_value(sss_ior, Attr, 1.3)]),
     println(F,
         "\t<sigmaS_factor fval=\"~.10f\"/>",[proplists:get_value(sigmas_factor, Attr, 1.0)]),
     println(F,
@@ -238,16 +236,16 @@ export_translucent_shader(F, Name, Mat, ExportDir, Attr) ->
     println(F,
         "\t<glossy_reflect fval=\"~.10f\"/>",[proplists:get_value(glossy_reflect, Attr, 0.0)]),
     println(F,
-        "\t<sss_transmit fval=\"~.10f\"/>",[proplists:get_value(sss_translucency, Attr, 0.75)]),
+        "\t<sss_transmit fval=\"~.10f\"/>",[proplists:get_value(scatter_transmit, Attr, 0.75)]),
     println(F,
-        "\t<exponent fval=\"~.10f\"/>",[proplists:get_value(exponent, Attr, ?DEF_EXPONENT)]),
+        "\t<exponent fval=\"~.10f\"/>",[proplists:get_value(specular_factor, Attr, ?DEF_EXPONENT)]),
 
     write_material_layers(F, Name, Maps, Attr, Modulators),
 
     println(F, "</material>").
 
 
-export_glass_shaders(F, Name, Mat, ExportDir, Attr, GlassType) ->
+export_glass_shaders(F, Name, Mat, ExportDir, Attr) ->
     %!----------------------------------
     %! glass and rough glass materials
     %!----------------------------------
@@ -256,7 +254,11 @@ export_glass_shaders(F, Name, Mat, ExportDir, Attr, GlassType) ->
     Modulators = proplists:get_value(modulators, Attr, def_modulators(Maps)),
 
     write_material_textures(F, Name, Maps, ExportDir, Modulators),
-
+    
+    GlassType = case proplists:get_value(rough, Attr, false) of
+        true -> rough_glass;
+        _ -> glass
+    end,
     println(F, "<material name=\"~s\">",[Name]),
     println(F, "\t<type sval=\"~s\"/>", [GlassType]),
 
@@ -276,14 +278,14 @@ export_glass_shaders(F, Name, Mat, ExportDir, Attr, GlassType) ->
 
     case GlassType of
         rough_glass ->
-            println(F, "\t<roughness fval=\"~.10f\"/>",[proplists:get_value(roughness, Attr, 0.20)]);
+            println(F, "\t<alpha fval=\"~.10f\"/>",[proplists:get_value(roughness, Attr, 0.20)]);
         _ -> ok
     end,
 
     println(F,
         "\t<dispersion_power fval=\"~.10f\"/>",[proplists:get_value(dispersion_power, Attr, 0.0)]),
     println(F,
-        "\t<IOR fval=\"~.10f\"/>",[proplists:get_value(ior, Attr, ?DEF_IOR)]),
+        "\t<IOR fval=\"~.10f\"/>",[proplists:get_value(glass_ior, Attr, ?DEF_IOR)]),
     println(F,
         "\t<fake_shadows bval=\"~s\"/>",[format(proplists:get_value(fake_shadows, Attr, false))]),
 
