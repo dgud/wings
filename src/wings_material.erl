@@ -317,9 +317,9 @@ add_defaults_1(P) ->
     VertexColor = valid_vertex_color(prop_get(vertex_colors, P, ignore)),
     [{diffuse,norm(prop_get(diffuse, P, Def))},
      {ambient,norm(prop_get(ambient, P, Def))},
-     {specular,norm(prop_get(specular, P, Def))},
+     {specular,norm(prop_get(specular, P, {0.0,0.0,0.0,0.0}))},
      {emission,norm(prop_get(emission, P, {0.0,0.0,0.0,0.0}))},
-     {shininess,prop_get(shininess, P, 1.0)},
+     {shininess,prop_get(shininess, P, 0.0)},
      {vertex_colors,VertexColor}].
 
 %% For future compatibility, ignore anything that we don't recognize.
