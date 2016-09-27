@@ -149,11 +149,12 @@ export_modulators(F, Texname, Maps, LayerType, {modulator,Ps}, Attr) ->
     %
     ModeNumber =
         case BlendMode of
-            mix -> "0"; add -> "1"; mul -> "2"; sub -> "3"; scr -> "4";
-            divide -> "5"; dif -> "6"; dar -> "7"; lig -> "8";
-            _ -> ""
+            %mix -> "0"; 
+            add -> 1; mul -> 2; sub -> 3; scr -> 4;
+            divide -> 5; dif -> 6; dar -> 7; lig -> 8;
+            _ -> 0
         end,
-    println(F, "\t\t<mode ival=\"~s\"/>",[ModeNumber]),
+    println(F, "\t\t<mode ival=\"~w\"/>",[ModeNumber]),
     %
     println(F, "\t\t<name sval=\"~s_layer\"/>",[LayerType]), % use the layer type name
     %
@@ -222,11 +223,18 @@ mapping_textures(F, Texname, _Maps, BumpLayer, {modulator,Ps}, _Attr)->
     OffZ = proplists:get_value(offset_z, Ps, 0.0),
     %
     println(F, "\t\t<offset x=\"~w\" y=\"~w\" z=\"~w\"/>",[OffX, OffY, OffZ]),
-    % TODO: create option in UI panel
-    println(F,
-        "\t\t<proj_x ival=\"1\"/>\n"
-        "\t\t<proj_y ival=\"2\"/>\n"
-        "\t\t<proj_z ival=\"3\"/>"),
+    % 
+    Direction = proplists:get_value(direction, Ps, xyz),
+    ProjectionX = case Direction of
+        xyz -> 1; xzy -> 1; yxz -> 2; zxy -> 2; _ -> 3 end,
+    ProjectionY = case Direction of
+        yxz -> 1; yzx -> 1; xyz -> 2; zyx -> 2; _ -> 3 end,
+    ProjectionZ = case Direction of
+        zxy -> 1; zyx -> 1; xzy -> 2; yzx -> 2; _ -> 3 end,
+        
+    println(F, "\t\t<proj_x ival=\"~w\"/>",[ProjectionX]),
+    println(F, "\t\t<proj_y ival=\"~w\"/>",[ProjectionY]),
+    println(F, "\t\t<proj_z ival=\"~w\"/>",[ProjectionZ]),
 
     % for scale texture mapping
     SizeX = proplists:get_value(size_x, Ps, 1.0),
