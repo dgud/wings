@@ -36,8 +36,8 @@ material_dialog(_Name, Mat) ->
     Volume_Minmax_X = proplists:get_value(volume_minmax_x, Attr, ?DEF_VOLUME_MINMAX_X),
     Volume_Minmax_Y = proplists:get_value(volume_minmax_y, Attr, ?DEF_VOLUME_MINMAX_Y),
     Volume_Minmax_Z = proplists:get_value(volume_minmax_z, Attr, ?DEF_VOLUME_MINMAX_Z),
-    Lightportal_Power = proplists:get_value(lightportal_power, Attr, ?DEF_LIGHTPORTAL_POWER),
-    Lightportal_Samples = proplists:get_value(lightportal_samples, Attr, ?DEF_LIGHTPORTAL_SAMPLES),
+    PortalPower = proplists:get_value(portal_power, Attr, ?DEF_LIGHTPORTAL_POWER),
+    PortalSamples = proplists:get_value(portal_samples, Attr, ?DEF_LIGHTPORTAL_SAMPLES),
     PortalDiffusePhotons = proplists:get_value(portal_diffusephotons, Attr, ?DEF_LIGHTPORTAL_DIFFUSEPHOTONS),
     Lightportal_Causticphotons = proplists:get_value(lightportal_causticphotons, Attr, ?DEF_LIGHTPORTAL_CAUSTICPHOTONS),
     Lightportal_Photon_Only = proplists:get_value(lightportal_photon_only, Attr, ?DEF_LIGHTPORTAL_PHOTON_ONLY),
@@ -166,8 +166,8 @@ material_dialog(_Name, Mat) ->
                     ], [key(pnl_mesh_light),{show,false}]},
                     {hframe, [
                         {label_column, [
-                            {?__(53,"Power"), {text,Lightportal_Power,[key(lightportal_power),range(lightportal_power)]}},
-                            {?__(54,"Samples"), {text,Lightportal_Samples,[key(lightportal_samples),range(lightportal_samples)]}},
+                            {?__(53,"Power"), {text,PortalPower,[key(lightportal_power),range(portal_power)]}},
+                            {?__(54,"Samples"), {text,PortalSamples,[key(portal_samples),range(samples)]}},
                             {" ", panel}
                         ]},
                         {vframe, [
@@ -198,7 +198,6 @@ material_dialog(_Name, Mat) ->
     Transmittance = proplists:get_value(transmittance, Attr, ?DEF_TRANSMIT_FILTER),
     IOR =           proplists:get_value(ior, Attr, ?DEF_IOR),
     ReflectMode =   proplists:get_value(reflect_mode, Attr, lambert),
-    OrenNayar =     proplists:get_value(oren_nayar, Attr, ?DEF_OREN_NAYAR),
     Sigma =         proplists:get_value(sigma, Attr, ?DEF_OREN_NAYAR_SIGMA),
     %!------------------------------------------------------------------
     %! Glossy and Coated Glossy Properties.
@@ -229,14 +228,14 @@ material_dialog(_Name, Mat) ->
     %!---------------------------------
     %! Translucent material properties
     %!---------------------------------
-    ScatterColor = proplists:get_value(scatter_color, Attr, ?DEF_SCATTER_COLOR),
-    SigmaAColor = proplists:get_value(sigmaA_color, Attr, ?DEF_SSS_ABSORPTION_COLOR),
-    SigmaSfactor = proplists:get_value(sigmas_factor, Attr, ?DEF_SIGMAS_FACTOR),
+    ScatterColor = proplists:get_value(scatter_color, Attr, {0.738, 0.547, 0.315}),
+    SigmaAColor = proplists:get_value(sigmaA_color, Attr, {0.0002, 0.0028, 0.0163}),
+    SigmaSfactor = proplists:get_value(sigmas_factor, Attr, 1.0),
     ScatterTransmit = proplists:get_value(scatter_transmit, Attr, ?DEF_SSS_TRANSLUCENCY),
     SssSpecularColor = proplists:get_value(sss_specular_color, Attr, ?DEF_SSS_SPECULAR_COLOR),
-    SpecularFactor = proplists:get_value(specular_factor, Attr, 5.0),
+    SpecularFactor = proplists:get_value(specular_factor, Attr, 50.0),
     SSSior = proplists:get_value(sss_ior, Attr, 1.3),
-    SSSPhase = proplists:get_value(sss_phase, Attr, 0.0),
+    SSSPhase = proplists:get_value(sss_phase, Attr, 0.8),
 
     %% Light Material Properties
     %%
@@ -413,11 +412,11 @@ material_dialog(_Name, Mat) ->
                     {vframe,[{label, "Absorption"}, {label,"Abs. Distance"}]},
                     {vframe,[
                         {slider, {color,AbsorptionColor,[key(absorption_color)]}},
-                        {slider, {text,AbsorptionDist,[range(zero_to_ten),key(absorption_dist)]}}
+                        {slider, {text,AbsorptionDist,[range(zero_ten),key(absorption_dist)]}}
                     ]},
                     {vframe, [{label," Dispersion"}, {label, " IOR"}]},
                     {vframe, [
-                        {slider, {text,DispersionPower,[range(zero_to_ten),key(dispersion_power)]}},
+                        {slider, {text,DispersionPower,[range(zero_ten),key(dispersion_power)]}},
                         {slider, {text,GlassIOR,[range(zero_five),key(glass_ior)]}}
                     ]}
                 ],[key(pnl_abs),{margin,false},{show,false}]},
@@ -443,20 +442,20 @@ material_dialog(_Name, Mat) ->
                 %! translucent material options
                 %!
                 {hframe,[
-                    {vframe, [{label,"Specular"},{label,"Exponent"}]},
+                    {vframe, [{label,"Specular"},{label,"Scatter"}]},
                     {vframe, [
                         {slider, {color,SssSpecularColor, [key(sss_specular_color)]}},
-                        {slider, {text,SpecularFactor,[range(exponent),key(specular_factor)]}}]},
-                    {vframe, [{label,"Scatter"},{label,"Factor"}]},
+                        {slider, {color,ScatterColor,[key(scatter_color)]}}]},
+                    {vframe, [{label,"Exponent"},{label,"Factor"}]},
                     {vframe, [
-                        {slider, {color,ScatterColor,[key(scatter_color)]}},
+                        {slider, {text,SpecularFactor,[range(exponent),key(specular_factor)]}},
                         {slider, {text,SigmaSfactor,[range(zero_twenty),key(sigmas_factor)]}}]}
                 ],[key(pnl_spec_color),{show,false},{margin,false}]},
 
                 {hframe, [
-                    {vframe, [{label,  "SigmaA Color"}]},
+                    {vframe, [{label,  "Absorption"}]},
                     {vframe, [{slider, {color,SigmaAColor,[key(sigmaA_color)]}}]},
-                    {vframe, [{label,  "Transmit"}]},
+                    {vframe, [{label,  "Translucency"}]},
                     {vframe, [{slider, {text,ScatterTransmit,[range(zero_one),key(scatter_transmit)]}}]}
                 ],[key(pnl_scatter),{margin,false},{show,false}]},
                 {hframe, [

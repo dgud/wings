@@ -198,7 +198,7 @@ export_translucent_shader(F, Name, Mat, ExportDir, Attr) ->
     DefTransmitted = def_transmitted(DiffuseA),
 
     % SigmaA
-    export_rgb(F, sigmaA, proplists:get_value(sigmaA_color, Attr, ?DEF_SSS_ABSORPTION_COLOR)),    
+    %export_rgb(F, sigmaA, proplists:get_value(sigmaA_color, Attr, ?DEF_SSS_ABSORPTION_COLOR)),    
 
     export_rgb(F, glossy_color, proplists:get_value(glossy_color, Attr, Specular)),
 
@@ -206,16 +206,16 @@ export_translucent_shader(F, Name, Mat, ExportDir, Attr) ->
 
     export_rgb(F, specular_color, proplists:get_value(sss_specular_color, Attr, ?DEF_SSS_SPECULAR_COLOR)),
     % need review..
-    %SSS_AbsorptionColor = proplists:get_value(sigmaA_color, Attr, ?DEF_SSS_ABSORPTION_COLOR),
-    %case SSS_AbsorptionColor of
-    %    [ ] -> ok;
-    %    {AbsR,AbsG,AbsB} ->
-    %        AbsD = proplists:get_value(absorption_dist, Attr, ?DEF_ABSORPTION_DIST),
+    SSS_AbsorptionColor = proplists:get_value(sigmaA_color, Attr, ?DEF_SSS_ABSORPTION_COLOR),
+    case SSS_AbsorptionColor of
+        [ ] -> ok;
+        {AbsR,AbsG,AbsB} ->
+            AbsD = proplists:get_value(absorption_dist, Attr, ?DEF_ABSORPTION_DIST),
 
-    %        export_rgb(F, sigmaA, {-math:log(max(AbsR, ?NONZERO))/AbsD,
-    %                               -math:log(max(AbsG, ?NONZERO))/AbsD,
-    %                               -math:log(max(AbsB, ?NONZERO))/AbsD})
-    %end,
+            export_rgb(F, sigmaA, {-math:log(max(AbsR, ?NONZERO))/AbsD,
+                                   -math:log(max(AbsG, ?NONZERO))/AbsD,
+                                   -math:log(max(AbsB, ?NONZERO))/AbsD})
+    end,
 
     export_rgb(F, sigmaS, proplists:get_value(scatter_color, Attr, ?DEF_SCATTER_COLOR)),
 
@@ -228,6 +228,7 @@ export_translucent_shader(F, Name, Mat, ExportDir, Attr) ->
     %        println(F,
     %            "\t<dispersion_jitter bval=\"~s\"/>", [format(proplists:get_value(dispersion_jitter, Attr, false))])
     %end,
+    
     println(F, "\t<IOR fval=\"~.10f\"/>",[proplists:get_value(sss_ior, Attr, 1.3)]),
     println(F,
         "\t<sigmaS_factor fval=\"~.10f\"/>",[proplists:get_value(sigmas_factor, Attr, 1.0)]),
@@ -238,7 +239,9 @@ export_translucent_shader(F, Name, Mat, ExportDir, Attr) ->
     println(F,
         "\t<sss_transmit fval=\"~.10f\"/>",[proplists:get_value(scatter_transmit, Attr, 0.75)]),
     println(F,
-        "\t<exponent fval=\"~.10f\"/>",[proplists:get_value(specular_factor, Attr, ?DEF_EXPONENT)]),
+        "\t<exponent fval=\"~.10f\"/>",[proplists:get_value(specular_factor, Attr, 500)]),
+    println(F,
+        "\t<g fval=\"~.10f\"/>",[proplists:get_value(sss_phase, Attr, 0.0)]),
 
     write_material_layers(F, Name, Maps, Attr, Modulators),
 
