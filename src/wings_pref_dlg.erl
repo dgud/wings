@@ -1,4 +1,3 @@
-%%		       -*- mode:erlang; encoding:utf-8 -*-
 %%
 %%  wings_pref_dlg.erl --
 %%
@@ -353,15 +352,8 @@ ui_prefs() ->
 		      {?__(53,"Purple Tube"), purpletube}],
     Langs = [{language_name(L),L} || L <- Langs0],
 
-    Bitmap = fun(_Key, What, Store) ->
-		     [wings_dialog:enable(Key, What, Store) ||
-			 Key <- [outliner_geograph_bg, outliner_geograph_text,
-				 outliner_geograph_hl, outliner_geograph_hl_text,
-				 outliner_geograph_disabled]],
-		     ok
-	     end,
     {hframe,
-     [{vframe, 
+     [{vframe,
        [{label_column,
 	 [{?__(12,"Title (Active) Background"), {color,title_active_color}},
 	  {?__(11,"Title (Passive) Background"),{color,title_passive_color}},
@@ -382,9 +374,19 @@ ui_prefs() ->
 	  %% {?__(8,"Dialog (Disabled) Text"),{color,dialog_disabled}},
 	  %% separator,
 	  {?__(29,"Info Line Background"), {color,info_line_bg}},
-	  {?__(30,"Info Line Text"),	 {color,info_line_text}}]},
+	  {?__(30,"Info Line Text"),	 {color,info_line_text}},
+          separator,
+          {?__(35,"Window Background"),      {color, outliner_geograph_bg}},
+          {?__(36,"Window Text"),		{color, outliner_geograph_text}},
+          {?__(37,"Window Highlighter"),	{color, outliner_geograph_hl}},
+          {?__(38,"Window Highlighted Text"),{color, outliner_geograph_hl_text}},
+          {?__(39,"Window Disabled"),	{color, outliner_geograph_disabled}}
+         ]},
 	separator,
-	{?__(24,"Flat Panels"),	         flat_color_panels}],
+	{?__(24,"Flat Panels"),	         flat_color_panels},
+        {menu,InterfaceIcons,interface_icons},
+        {?__(27,"Extended Toolbar Icons"),extended_toolbar}
+       ],
        [{title,?__(13,"Colors")}]},
       {vframe,
        [{hframe,
@@ -405,32 +407,7 @@ ui_prefs() ->
 	      {?__(19,"Background"),{color,console_color}},
 	      {?__(20,"Text"),      {color,console_text_color}}],
 	     [{title,?__(22,"Console")}]}
-	   ]},
-	  {vframe,
-	   [{vframe,
-	     [{?__(32,"Adaptive Icons"), bitmap_icons,
-	       [{info, ?__(33,"Icons in the Outliner and Geometry Graph that allow for further color theming")},
-		{hook, Bitmap}
-	       ]},
-	      {label_column,
-	       [{?__(35,"Background"),      {color, outliner_geograph_bg}},
-		{?__(36,"Text"),		{color, outliner_geograph_text}},
-		{?__(37,"Highlighter"),	{color, outliner_geograph_hl}},
-		{?__(38,"Highlighted Text"),{color, outliner_geograph_hl_text}},
-		{?__(39,"Disabled"),	{color, outliner_geograph_disabled}}],
-	       [{title,?__(13,"Colors")}]}],
-	     [{title,?__(34,"Outliner/Geometry Graph")}]},
-	    {vframe,
-	     [{menu,InterfaceIcons,interface_icons},
-	      {?__(27,"Extended Toolbar Icons"),extended_toolbar}
-	      %% {vframe,
-	      %%  [{?__(46,"Show Menu Toolbar"),menu_toolbar,
-	      %% 	 [{info,?__(41,"Adds a mini toolbar to the tops of the right-click menus")}]},
-	      %% 	{menu,[{?__(44,"Large Icons"),big},{?__(45,"Small Icons"),small}],menu_toolbar_size},
-	      %% 	{?__(47,"Snap mouse"),menu_toolbar_snap_cursor}],
-	      %%  [{title,?__(40,"Menu Toolbar")}]}
-	     ],
-	     [{title,?__(50,"Interface Icons")}]}]}]},
+	   ]}]},
 	{hframe,
 	 [{vframe,
 	   [{?__(25, "Use the OS native color dialog"), color_dialog_native},
