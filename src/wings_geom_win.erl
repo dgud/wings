@@ -431,7 +431,8 @@ init([Frame, {W,_}, _Ps, Name, SS]) ->
 		      lc=LC, shown=Shown, shapes=SS}}.
 
 handle_event(#wx{event=#wxSize{size={W,_}}}, #state{lc=LC}=State) ->
-    TextWidth = max(30,W-3*column_width()-5),
+    %% wxListCtrl:hasScrollbar(LC, ?wxVERTICAL), Always report false
+    TextWidth = max(30,W-4*column_width()), %% One extra for potential scrollbar
     wxListCtrl:setColumnWidth(LC, 0, TextWidth),
     {noreply, State#state{tw=TextWidth}};
 
