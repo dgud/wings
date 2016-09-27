@@ -1500,7 +1500,11 @@ slider_style(Def, {Min, Max})
 		     Step = (Max - Min) / 100,
 		     Min + Percent * Step
 	     end,
-    {0, ToSlider(Def), 100, ?wxSL_HORIZONTAL, ToText, ToSlider}.
+    {0, ToSlider(Def), 100, ?wxSL_HORIZONTAL, ToText, ToSlider};
+slider_style(Def, {Min, Max}=MM) when Min < Max ->
+    if Def < Min -> slider_style(Min,MM);
+       Def > Max -> slider_style(Max,MM)
+    end.
 
 add_sizer(What, Sizer, Ctrl, Opts) ->
     {Proportion0, Border0, Flags0} =
