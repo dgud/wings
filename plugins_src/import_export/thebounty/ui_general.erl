@@ -37,11 +37,8 @@ export_prefs() ->
         {exr_float, false},
         {exr_flag_compression,?DEF_EXR_FLAG_COMPRESSION},
         {aa_filter_type,?DEF_AA_FILTER_TYPE},
-        {aa_pixelwidth,1.5},
-        {aa_passes,?DEF_AA_PASSES},
-        {aa_samples,?DEF_AA_MINSAMPLES},
-        {aa_threshold,?DEF_AA_THRESHOLD},
-        {aa_moresamples,?DEF_AA_PASSES },
+        {aa_pixelwidth,1.5},{aa_passes,1},{aa_samples,2},
+        {aa_threshold,0.05},{aa_moresamples,1},
         {show_pixels, true},
         % lighting
         {lighting_method,?DEF_LIGHTING_METHOD},
@@ -300,12 +297,8 @@ export_dialog_qs(Op, Attr) ->
                         ]}
                     ]},
                     {vframe,[
-                        {hframe,[
-                            {?__(116, "Clay Pass"), get_pref(clay_pass,Attr), [{key,clay_pass}]}%,{width,5}]}
-                        ]},
-                        {hframe,[
-                            {?__(117, "Z-Depth"), get_pref(z_pass,Attr), [{key,z_pass}]}%,{width,5}]}
-                        ]}
+                        {hframe, [{?__(116, "Clay Pass"), get_pref(clay_pass,Attr), [{key,clay_pass}]}]},
+                        {hframe, [{?__(117, "Z-Depth"), get_pref(z_pass,Attr), [{key,z_pass}]}]}
                     ]}
                 ],[{title, ?__(125, "General settings")},{margin,false}]},
 
@@ -366,11 +359,12 @@ export_dialog_qs(Op, Attr) ->
                         ],[{margin,false}]},
                         {hframe, [
                             {label_column, [
-                                {?__(143, "Passes"),{text, get_pref(aa_passes,Attr),[range(aa_passes),{key,aa_passes},{hook,Hook_Enable}]}},
+                                {?__(143, "Passes"),
+                                    {text, get_pref(aa_passes,Attr),[range(aa_passes),{key,aa_passes},{hook,Hook_Enable}]}},
                                 {?__(144, "Samples"),{text, get_pref(aa_samples,Attr),[range(aa_samples),{key,aa_samples}]}}
                             ]},
                             {label_column, [
-                                {?__(145, "Threshold"),    {text, get_pref(aa_threshold,Attr),[range(zero_one),{key,aa_threshold}]}},
+                                {?__(145, "Threshold"),   {text, get_pref(aa_threshold,Attr),[range(zero_one),{key,aa_threshold}]}},
                                 {?__(146, "Add. Samples"),{text, get_pref(aa_moresamples,Attr),[range(samples),{key,aa_moresamples}]}}                                
                             ],[key(pnl_moresamples)]},
                             {vframe, [

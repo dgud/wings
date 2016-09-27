@@ -53,10 +53,9 @@ help(text, {material_dialog,object}) ->
 help(title, {material_dialog,fresnel}) ->
     ?__(15,"TheBounty Material Properties: Fresnel Parameters");
 help(text, {material_dialog,fresnel}) ->
-    [?__(16,"Fresnel Parameters affect how rays reflect off and refract in "
-      "glass-like materials. This is a different light model than the "
-      "OpenGL (Diffuse,Specular,Shininess) model and they do not often "
-      "go well together. "
+    [?__(16,"Fresnel Parameters affect how rays reflect off and refract in glass-like materials. "
+    "This is a different light model than the OpenGL (Diffuse,Specular,Shininess) model and they "
+    "do not often go well together. "
       "A Photon Light must be present to produce Caustics."),
      ?__(17,"Mapping to TheBounty shader parameters:"),
      ?__(18,"Index Of Refraction -> 'ior' -> 1.52 for Glass/Caustics."),
@@ -67,12 +66,10 @@ help(text, {material_dialog,fresnel}) ->
      ?__(23,"Use Default -> Sets 'transmitted' to Diffuse * (1 - Opacity). "
       "This makes a semi-transparent object in OpenGL look the same in "
       "TheBounty provided that Index Of Refraction is 1.1 minimum."),
-     ?__(24,"Grazing Angle Colors -> Use the secondary Reflected and Transmitted "
-      "colors following that show from grazing angles of the material. "
-      "For a glass with green edges set Transmitted to white and "
-      "Grazing Angle Transmitted to green."),
-     ?__(25,"Absorption -> Sets the desired color for white light travelling "
-      "the given distance through the material.")];
+     ?__(24,"Grazing Angle Colors -> Use the secondary Reflected and Transmitted colors following "
+     "that show from grazing angles of the material. For a glass with green edges set Transmitted "
+     "to white and Grazing Angle Transmitted to green."),
+     ?__(25,"Absorption -> Sets the desired color for white light travelling the given distance through the material.")];
 %%
 help(title, {light_dialog,_}) ->
     ?__(26,"TheBounty Light Properties");
@@ -82,39 +79,35 @@ help(text, {light_dialog,Type}) ->
     help(text,{light,Type});
 help(text,{light,point}) ->
     [[{bold,?__(28,"Point Light")}],
-        ?__(29,"A light with rays pointing in every direction. Use for a candle flame, "
-        "gas light, or light bulb. Choose either Point Light or Sphere Light, which has "
-        "the added options of setting the Radius and Samples.")];
+        ?__(29,"A light with rays pointing in every direction. Use for a candle flame, gas light, or light bulb. "
+        "Choose either Point Light or Sphere Light, which has the added options of setting the Radius and Samples.")];
 help(text,{light,spot}) ->
     [[{bold,?__(30,"Spot Light")}],
      ?__(31,"A light with rays focused on a certain area.\n"
-        "Choose either Spotlight or IES. The Photon Only option is good for enhancing "
-        "refractive and reflective caustic patterns. The IES option enables the use of "
-        "IES files to simulate real world lights, which produce uniquely shaped lighting.")];
+        "Choose either Spotlight or IES. The Photon Only option is good for enhancing refractive and reflective caustic patterns. "
+        "The IES option enables the use of IES files to simulate real world lights, which produce uniquely shaped lighting.")];
 help(text,{light,infinite}) ->
     [[{bold,?__(75,"Infinite Light")}],
-        ?__(76,"A distant light with rays pointing in a certain direction. Typically used "
-        "for Sunlight.\n"
-        "Choose either Sunlight or Directional. Combine with the included Sunsky or Darktide "
-        "Sunsky to simulate a sky background. Enable Skylight to emit light from the sky "
-        "background. Enable Real Sun to show a sun disc. The camera must be facing into the "
-        "rays of the infinite light in order to see the sun disc. With Darktide Sunsky, "
-        "enable the Night option to simulate moon light.")];
+        ?__(76,"In TheBounty there are two options to reproduce sun lighting which are Directional and Sun. "
+        "Directional light is a traditional sun light model which produces parallel rays and hard-edged shadows. "
+        "Sun light is a more advanced concept and will help us to get blurred-edged shadows when the shadow itself "
+        "gets away from the casting object, as in real life. The Angle button sets the visible area of the sun. "
+        "Real sun is visible in a cone angle of about 0,5º. A bigger angle mean a bigger sun, as well as softer shadows, "
+        "which could be interesting for dawn or sunset scenes. "
+        "A very big angle can be used to simulate sun light filtered by an overcast sky.")];
 help(text,{light,ambient}) ->
     [[{bold,?__(77,"Ambient Light")}],
-        ?__(78,"A light with rays pointing in every direction and emitting from all "
-        "directions, with no shadows.\n"
-        "Choose between the various Background Light/Environment options to control "
-        "the appearance of the background and lighting. Disable the IBL option if "
-        "no lighting is wanted. The HDRI option enables the use of real world environments "
-        "to reflect onto reflective surfaces. HDRI also produces realistic lighting "
-        "when Enlight is enabled.")];
+        ?__(78,"A light with rays pointing in every direction and emitting from all directions, with no shadows. "
+        "Choose between the various Background Light/Environment options to control the appearance of the background and lighting. "
+        "Disable the IBL option if no lighting is wanted. The HDRI option enables the use of real world environments to "
+        "reflect onto reflective surfaces. HDRI also produces realistic lighting when Enlight is enabled.")];
 help(text,{light,area}) ->
     [[{bold,?__(79,"Area Light")}],
-        ?__(80,"A rectangular light with rays emitting from the entire surface. Use for "
-        "light coming through a window or florescent ceiling lights.\n"
-        "Wings3D objects can be converted to Area Lights with the Object to Area Light "
-        "command. Expect longer render times when using Area Lights.")];
+        ?__(80,"Arealight is a area light type that can produce soft shadows and its shape can be seen in reflective surfaces. "
+        "The arealight shadows need to be sampled several times and interpolated to reduce noise in shadows. "
+        "This type of light takes more time to be computed in contrast with point light types such as spot and point. "
+        "Wings3D objects can be converted to Area Lights with the Object to Area Light command. "
+        "Expect longer render times when using Area Lights.")];
 
 help(title, pref_dialog) ->
     ?__(33,"TheBounty Options");
@@ -140,14 +133,13 @@ help(text, pref_dialog) ->
      ++wings_help:cmd([?__(68,"File"),?__(69,"Render"),?__(70,"TheBounty")])++" "++
      ?__(71,"is the same as for \"Automatic Dialogs\"."),
      %%
-     ?__(72,"Executable: The rendering command for the TheBounty raytrace "
-      "renderer ('c:/TheBounty/bin/TheBounty-xml.exe') that is supposed to "
-      "be found in the executables search path; or, the absolute path of "
-      "that executable."),
+     ?__(72,"Binary folder: The rendering command for the TheBounty raytrace renderer "
+     "('/TheBounty/bin/thebounty-xml.exe') that is supposed to be found in the executables search path; "
+     "or, the absolute path of that executable."),
      %%
-     ?__(73,"TheBounty Plugins Path: The path to the TheBounty plugins folder "
-      "('c:/TheBounty/bin/plugins'). TheBounty will not work without this."),
+     %?__(73,"TheBounty Plugins Path: The path to the TheBounty plugins folder "
+     % "('c:/TheBounty/bin/plugins'). TheBounty will not work without this."),
      %%
-     ?__(74,"Options: Rendering command line options to be inserted between the "
-      "executable and the .xml filename, -dp (add render settings badge) "
-      "-vl (verbosity level, 0=Mute,1=Errors,2=Warnings,3=All)." )].
+     ?__(74,"Options: Rendering command line options to be inserted between"
+     "the executable and the .xml filename, -dp (add render settings badge) "
+     "-vl (verbosity level, 0=Mute,1=Errors,2=Warnings,3=All)." )].

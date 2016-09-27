@@ -259,11 +259,11 @@ pref_dialog(St) ->
                     {?__(2,"Automatic Dialogs"),auto},
                     {?__(3,"Enabled Dialogs"),enabled}
                 ], Dialogs,[{key,dialogs}]},
-                panel%, help_button(pref_dialog)
+                panel, help_button(pref_dialog)
             ]},
             {label_column, [
-                {?__(4,"Executable folder"),
-                    {button,{text,Renderer,[{key,renderer},{width,35},{props,[{dialog_type,dir_dialog}]}]}}},%wings_job:browse_props()]}}},
+                {?__(4,"Binary folder"),
+                    {button,{text,Renderer,[{key,renderer},{width,35},{props,[{dialog_type,dir_dialog}]}]}}},
                 {?__(6,"Options"),
                     {text,Options,[{key,options}]}},
                 {?__(7,"Default Material"),
