@@ -76,7 +76,7 @@ modulator_dialog({modulator,Ps}, Maps, MaterialType, M) when is_list(Ps) ->
     OffsetZ = proplists:get_value(offset_z, Ps, 0.0),
     Direction =  proplists:get_value(direction, Ps, xyz),
     
-    DiffuseLayer = proplists:get_value(diffuse, Ps, false),
+    DiffuseLayer = proplists:get_value(diffuse_layer, Ps, false),
     DiffuseFactor = proplists:get_value(diffuse_factor, Ps, 1.0),
 
     MirrorLayer = proplists:get_value(mirror, Ps, false),
@@ -170,7 +170,7 @@ modulator_dialog({modulator,Ps}, Maps, MaterialType, M) when is_list(Ps) ->
            shinydiffuse ->
                 {hframe, [
                     {vframe,[
-                        {?__(37,"Diffuse     "),DiffuseLayer,     [key({M,diffuse})]},
+                        {?__(37,"Diffuse     "),DiffuseLayer,     [key({M,diffuse_layer})]},
                         {?__(38,"Mirror      "),MirrorLayer,      [key({M,mirror})]},
                         {?__(39,"Mirror Color"),MirrorColorLayer, [key({M,mirror_color})]}
                     ]},
@@ -193,7 +193,7 @@ modulator_dialog({modulator,Ps}, Maps, MaterialType, M) when is_list(Ps) ->
             translucent ->
                 {hframe, [
                     {vframe,[
-                        {?__(43,"Diffuse"),DiffuseLayer, [key({M,diffuse})]},
+                        {?__(43,"Diffuse"),DiffuseLayer, [key({M,diffuse_layer})]},
                         {?__(44,"Glossy"),GlossyLayer, [key({M,glossy})]},
                         {?__(45,"Transparency "),TransparentLayer,[key({M,transparency})]}
                     ]},
@@ -214,7 +214,7 @@ modulator_dialog({modulator,Ps}, Maps, MaterialType, M) when is_list(Ps) ->
             glossy ->
                 {hframe, [
                     {vframe,[
-                        {?__(48,"Diffuse"),DiffuseLayer, [key({M,diffuse})]},
+                        {?__(48,"Diffuse"),DiffuseLayer, [key({M,diffuse_layer})]},
                         {?__(49,"Glossy"),GlossyLayer, [key({M,glossy})]}
                     ]},
                     {vframe,[
@@ -566,7 +566,7 @@ modulator_init(Mode) ->
         {projection, plain},
         {offset_x, 0.0},{offset_y, 0.0},{offset_z, 0.0},
         {direction, xyz},
-        {diffuse, false},{diffuse_factor, 1.0},
+        {diffuse_layer, false},{diffuse_factor, 1.0},
         {mirror, false},{mirror_factor, 1.0},
         {mirror_color, false},{mirror_color_factor, 1.0},
         {glossy, false},{glossy_factor, 1.0},

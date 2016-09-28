@@ -25,7 +25,7 @@ export_modulator(F, Texname, Maps, {modulator,Ps}, Attr) when is_list(Ps) ->
             %!-----------------------------------
             %! TODO: add the rest of layers
             %!-----------------------------------
-            DiffuseLayer = proplists:get_value(diffuse, Ps, false),
+            DiffuseLayer = proplists:get_value(diffuse_layer, Ps, false),
             MirrorLayer = proplists:get_value(mirror, Ps, false),
             MirrorColorLayer = proplists:get_value(mirror_color, Ps, false),
             TransparentLayer = proplists:get_value(transparency, Ps, false),
@@ -178,6 +178,7 @@ export_modulators(F, Texname, Maps, LayerType, {modulator,Ps}, Attr) ->
                 proplists:get_value(mirror_color, Attr, {0.0,0.0,0.0});
             _ -> {0.0,0.0,0.0}
         end,
+    % TODO: create code for stencil and blending modes
     Ulayer = "",
     %
     case Ulayer of
@@ -218,11 +219,11 @@ mapping_textures(F, Texname, _Maps, BumpLayer, {modulator,Ps}, _Attr)->
     println(F,
         "\t\t<name sval=\"~s_map\"/>",[Texname]), % same name of 'input' in 'list_elements'
     %
-    OffX = proplists:get_value(offset_x, Ps, 0.0),
-    OffY = proplists:get_value(offset_y, Ps, 0.0),
-    OffZ = proplists:get_value(offset_z, Ps, 0.0),
+    OffsetX = proplists:get_value(offset_x, Ps, 0.0),
+    OffsetY = proplists:get_value(offset_y, Ps, 0.0),
+    OffsetZ = proplists:get_value(offset_z, Ps, 0.0),
     %
-    println(F, "\t\t<offset x=\"~w\" y=\"~w\" z=\"~w\"/>",[OffX, OffY, OffZ]),
+    println(F, "\t\t<offset x=\"~w\" y=\"~w\" z=\"~w\"/>",[OffsetX, OffsetY, OffsetZ]),
     % 
     Direction = proplists:get_value(direction, Ps, xyz),
     ProjectionX = case Direction of
