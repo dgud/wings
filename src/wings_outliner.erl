@@ -75,6 +75,14 @@ command({assign_texture,Type,Id,Name0}, #st{mat=Mtab}) ->
 	_ -> ignore
     end,
     wings_wm:send(geom, {action,{material,{update,Name,Mat}}});
+command({remove_texture,{Type,Name0}}, #st{mat=Mtab}) ->
+    Name = list_to_atom(Name0),
+    Mat0 = gb_trees:get(Name, Mtab),
+    {Maps0,Mat1} = prop_get_delete(maps, Mat0),
+    Maps = keydelete(Type, 1, Maps0),
+    Mat  = [{maps,Maps}|Mat1],
+    wings_wm:send(geom, {action,{material,{update,Name,Mat}}});
+
 command({duplicate_object,Id}, _) ->
     wings_wm:send(geom, {action,{body,{duplicate_object,[Id]}}});
 command({delete_object,Id}, _) ->
@@ -495,7 +503,7 @@ update_object(Os, TC, IL, Imap0) ->
 		     case maps:get(maps, O, []) of
 			 [] -> {Acc, Imap};
 			 Maps ->
-			     add_maps(Maps, TC, Item, IL, Imap, Os, Acc)
+			     add_maps(Maps, TC, Item, Name, IL, Imap, Os, Acc)
 		     end;
 		 true -> {Acc, Imap}
 		 end
@@ -513,16 +521,17 @@ update_object(Os, TC, IL, Imap0) ->
     wxTreeCtrl:selectItem(TC, Lights),
     Res.
 
-add_maps([{MType,Mid}|Rest], TC, Dir, IL, Imap0, Os,Acc) ->
+add_maps([{MType,Mid}|Rest], TC, Dir, Mat, IL, Imap0, Os,Acc) ->
     case [O || #{type:=image, id:=Id} = O <- Os, Id =:= Mid] of
-	[O = #{name:=MName}] ->
+	[O = #{name:=IMName}] ->
 	    Indx = image_maps_index(MType),
-	    Item = wxTreeCtrl:appendItem(TC, Dir, MName, [{image, Indx}]),
-	    add_maps(Rest, TC, Dir, IL, Imap0, Os, [{Item, O}|Acc]);
-	[] ->
-	    add_maps(Rest, TC, Dir, IL, Imap0, Os, Acc)
+	    Item = wxTreeCtrl:appendItem(TC, Dir, IMName, [{image, Indx}]),
+	    add_maps(Rest, TC, Dir, Mat, IL, Imap0, Os,
+                     [{Item, O#{mat=>{Mat,MType}}}|Acc]);
+        [] ->
+            add_maps(Rest, TC, Dir, IL, Mat, Imap0, Os, Acc)
     end;
-add_maps([], _TC, _Dir, _, Imap, _, Acc) ->
+add_maps([], _TC, _Dir, _Mat, _, Imap, _, Acc) ->
     %% wxTreeCtrl:expand(TC,Dir),
     {Acc, Imap}.
 
@@ -659,29 +668,38 @@ do_menu(#{type:=light, id:=Id}) ->
       ?__(24,"Delete this light")},
      {?__(25,"Rename"),menu_cmd(rename_object, Id),
       ?__(26,"Rename this light")}];
-do_menu(#{type:=image, id:=Id, image:=Im}) ->
-    image_menu(Id, Im).
+do_menu(#{type:=image, id:=Id, image:=Im}=Map) ->
+    image_menu(Id, Im, maps:get(mat, Map, unused)).
 
-image_menu(Id, Im) ->
-    [{?__(1,"Show"),menu_cmd(show_image, Id),
-      ?__(2,"Show the image in a window")}|image_menu_1(Id, Im)].
+image_menu(Id, Im, Mat) ->
+    [{?__(1,"Show"),menu_cmd(show_image, Id),?__(2,"Show the image in a window")}
+     |image_menu_1(Id, Im, Mat)].
 
-%% Currently disabled.
-image_menu_1(Id, #e3d_image{filename=none}) ->
-    [{?__(1,"Make External..."),menu_cmd(make_external, Id)}|common_image_menu(Id)];
-image_menu_1(Id, _) ->
+image_menu_1(Id, #e3d_image{filename=none}, Mat) ->
+    [{?__(1,"Make External..."),menu_cmd(make_external, Id)}
+     |image_menu_2(Id, Mat)];
+image_menu_1(Id, _, Mat) ->
     [{?__(2,"Refresh"),menu_cmd(refresh_image, Id),?__(11,"Update image to the contents of the saved file")},
-     {?__(3,"Make Internal"),menu_cmd(make_internal, Id)}|common_image_menu(Id)].
+     {?__(3,"Make Internal"),menu_cmd(make_internal, Id)}
+     |image_menu_2(Id, Mat)].
 
-common_image_menu(Id) ->
+image_menu_2(Id, unused) ->
+    [separator,
+     {?__(1,"Delete"),menu_cmd(delete_image, Id), ?__(2,"Delete selected image")}
+     |command_image_menu(Id)];
+image_menu_2(Id, {Mat, Type}) ->
+    [separator,
+     {?__(3,"Remove Texture"),menu_cmd(remove_texture, {Type, Mat}),
+      ?__(4,"Remove texture from material")}
+     |command_image_menu(Id)].
+
+command_image_menu(Id) ->
     [separator,
      {?__(1,"Export..."),menu_cmd(export_image, Id),
       ?__(2,"Export the image")},
      separator,
      {?__(3,"Duplicate"),menu_cmd(duplicate_image, Id),
       ?__(4,"Duplicate selected image")},
-     {?__(5,"Delete"),menu_cmd(delete_image, Id),
-      ?__(6,"Delete selected image")},
      {?__(7,"Rename"),menu_cmd(rename_image, Id),
       ?__(8,"Rename selected image")}
     ].

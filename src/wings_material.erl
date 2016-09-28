@@ -659,8 +659,6 @@ edit_dialog(Name, Assign, St=#st{mat=Mtab0}, Mat0) ->
 		      wxWindow:refresh(GLCanvas)
 	      end,
     RHook = {hook, Refresh},
-    Maps0 = show_maps(Mat0, Refresh),
-
     AnyTexture = has_texture(Mat0),
     VtxColMenu = vertex_color_menu(AnyTexture, VertexColors0),
     Qs1 = {vframe,
@@ -679,7 +677,8 @@ edit_dialog(Name, Assign, St=#st{mat=Mtab0}, Mat0) ->
 	       {slider,{text,Shine0, [{range,{0.0,1.0}}, {key,shininess}, RHook]}}},
 	      {?__(6,"Opacity"),
 	       {slider,{text,Opacity0, [{range,{0.0,1.0}}, {key,opacity}, RHook]}}}
-	     ]}|Maps0]
+	     ]}
+           ]
 	  },
     Qs2 = wings_plugin:dialog({material_editor_setup,Name,Mat0}, [{"Wings 3D", Qs1}]),
     Qs = {vframe_dialog,
@@ -690,7 +689,7 @@ edit_dialog(Name, Assign, St=#st{mat=Mtab0}, Mat0) ->
 	       {specular,Spec},
 	       {emission,Emiss},
 	       {vertex_colors,VertexColors},
-	       {shininess,Shine},{opacity,Opacity}|More0]) ->
+	       {shininess,Shine},{opacity,Opacity}|More]) ->
 		  OpenGL = [ask_prop_put(diffuse, Diff, Opacity),
 			    ask_prop_put(ambient, Amb, Opacity),
 			    ask_prop_put(specular, Spec, Opacity),
@@ -698,8 +697,7 @@ edit_dialog(Name, Assign, St=#st{mat=Mtab0}, Mat0) ->
 			    {shininess,Shine},
 			    {vertex_colors,VertexColors}],
 		  Mat1 = keyreplace(opengl, 1, Mat0, {opengl,OpenGL}),
-		  {Mat2,More} = update_maps(Mat1, More0),
-		  {ok,Mat} =  plugin_results(Name, Mat2, More),
+		  {ok,Mat} =  plugin_results(Name, Mat1, More),
 		  Mtab = gb_trees:update(Name, Mat, Mtab0),
 		  maybe_assign(Assign, Name, St#st{mat=Mtab})
 	  end,
@@ -729,54 +727,10 @@ plugin_results(Name, Mat0, Res0) ->
     case wings_plugin:dialog_result({material_editor_result,Name,Mat0}, Res0) of
 	{Mat,[{result,ok}]} -> {ok,Mat};
 	{_,Res} ->
-	    io:format(?__(1,"Material editor plugin(s) left garbage:~n    ~P~n"), 
+	    io:format(?__(1,"Material editor plugin(s) left garbage:~n    ~P~n"),
 		      [Res,20]),
-		      wings_u:error_msg(?__(2,"Plugin(s) left garbage"))
+            wings_u:error_msg(?__(2,"Plugin(s) left garbage"))
     end.
-
-update_maps(Mat0, More0) ->
-    Maps0 = sort(prop_get(maps, Mat0)),
-    {Maps,More} = update_maps_1(More0, Maps0, []),
-    Mat = [{maps,Maps}|keydelete(maps, 1, Mat0)],
-    {Mat,More}.
-
-update_maps_1([false|More], [M|Maps], Acc) ->
-    update_maps_1(More, Maps, [M|Acc]);
-update_maps_1([true|More], [_|Maps], Acc) ->
-    update_maps_1(More, Maps, Acc);
-update_maps_1([{diffuse_tex, _}|More], Maps, Acc) ->
-    update_maps_1(More, Maps, Acc);
-update_maps_1(More, [], Acc) -> {Acc,More}.
-
-show_maps(Mat, Refresh) ->
-    case prop_get(maps, Mat) of
-	[] -> [];
-	Maps ->
-	    MapDisp = [show_map(M, Refresh) || M <- sort(Maps)],
-	    [{vframe,MapDisp,[{title,?__(1,"Textures")}]}]
-    end.
-
-show_map({Type,Image}, Refresh) ->
-    Texture =
-	case wings_image:info(Image) of
-	    none ->
-		[{label,flatten(io_lib:format(?__(1,"~p: <image deleted>"), [Type]))}];
-	    #e3d_image{name=Name,width=W,height=H,bytes_pp=PP} ->
-		Hook = fun(Key, button_pressed, Store) ->
-			       Refresh(Key, button_pressed, Store),
-			       Type =:= diffuse andalso
-				   wings_dialog:set_value(diffuse_tex, false, Store),
-			       wings_dialog:show({texture, Image}, false, Store)
-		       end,
-		Label = flatten(io_lib:format(?__(2,"~p: ~p [~px~px~p]"),
-					      [Type,Name,W,H,PP*8])),
-		Value = case Type of
-			    diffuse -> [{value, true, [{key, diffuse_tex}]}];
-			    _ -> []
-			end,
-		[{label, Label},{button,?__(3,"Delete"), done, [{hook, Hook}]}|Value]
-	end,
-    {hframe, Texture, [{key, {texture, Image}}]}.
 
 ask_prop_get(Key, Props) ->
     {R,G,B,Alpha} = prop_get(Key, Props),
@@ -823,10 +777,7 @@ mat_preview(Canvas, Common, Maps) ->
     Obj = glu:newQuadric(),
     glu:quadricDrawStyle(Obj, ?GLU_FILL),
     glu:quadricNormals(Obj, ?GLU_SMOOTH),
-    UseDiffTex = try wings_dialog:get_value(diffuse_tex, Common)
-		 catch _:_ -> false
-		 end,
-    case apply_texture(UseDiffTex andalso prop_get(diffuse, Maps, false)) of
+    case apply_texture(prop_get(diffuse, Maps, false)) of
 	true ->
 	    glu:quadricTexture(Obj, ?GLU_TRUE);
 	false ->
