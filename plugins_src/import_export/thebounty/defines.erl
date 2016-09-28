@@ -24,24 +24,10 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_RENDERER, "thebounty-xml").
 -define(DEF_PLUGINS_PATH, "plugins").
 -define(DEF_OPTIONS, "").
-%-define(DEF_THREADS_AUTO, true).
-%-define(DEF_THREADS_NUMBER, 1).
--define(DEF_SUBDIVISIONS, 0).
--define(DEF_KEEP_XML, false).
--define(DEF_SAVE_ALPHA, false).
--define(DEF_GAMMA, 2.2).
--define(DEF_EXPOSURE, 1.4).
--define(DEF_RENDER_FORMAT, png).
--define(DEF_EXR_FLAG_COMPRESSION, exr_none).
 
 %% Shader
 -define(DEF_FRESNEL, false).
 -define(DEF_MATERIAL_TYPE, shinydiffuse).
-%-define(DEF_TIR, false).
--define(DEF_IOR, 1.4).
--define(DEF_MIN_REFLE, 0.0).
--define(DEF_OBJECT_TYPE, mesh).
--define(DEF_VOLUME_TYPE, uniformvolume).
 -define(DEF_VOLUME_SIGMA_A, 0.4).
 -define(DEF_VOLUME_SIGMA_S, 0.05).
 -define(DEF_VOLUME_HEIGHT, 0.5).
@@ -71,36 +57,8 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_ABSORPTION_DIST, 3.0).
 -define(DEF_DISPERSION_POWER, 0.0).
 -define(DEF_DISPERSION_SAMPLES, 10).
--define(DEF_DISPERSION_JITTER, false).
--define(DEF_FAKE_SHADOWS, false).
--define(DEF_TRANSPARENCY, 0.0).
--define(DEF_TRANSMIT_FILTER, 1.0).
--define(DEF_TRANSLUCENCY, 0.0).
--define(DEF_SSS_TRANSLUCENCY, 1.0).
--define(DEF_SIGMAS_FACTOR, 1.0).
--define(DEF_DIFFUSE_REFLECT, 1.0).
--define(DEF_SPECULAR_REFLECT, 0.0).
--define(DEF_GLOSSY_REFLECT, 0.01).
-%-define(DEF_EMIT, 0.0).
--define(DEF_EXPONENT, 50.0).
--define(DEF_ANISOTROPIC, false).
--define(DEF_ANISOTROPIC_U, 50.0).
--define(DEF_ANISOTROPIC_V, 500.0).
--define(DEF_ROUGHNESS, 0.2).
--define(DEF_LIGHTMAT_POWER, 0.9).
--define(DEF_BLEND_MAT1, "blendone").
--define(DEF_BLEND_MAT2, "blendtwo").
--define(DEF_BLEND_VALUE, 0.5).
--define(DEF_OREN_NAYAR, false).
--define(DEF_OREN_NAYAR_SIGMA, 0.25).
 
-%% Arealight
--define(DEF_AREALIGHT, false).
--define(DEF_AREALIGHT_SAMPLES, 16).
--define(DEF_AREALIGHT_PSAMPLES, 0).
--define(DEF_DUMMY, false).
--define(DEF_QMC_METHOD, 0).
--define(DEF_AREALIGHT_RADIUS, 1.0).
+
 
 %% Render
 -define(DEF_LIGHTING_METHOD, directlighting).
@@ -175,10 +133,6 @@ key(Key) -> {key,?KEY(Key)}.
 %% Light
 -define(DEF_ATTN_POWER, 10.0).
 -define(DEF_POINT_TYPE, pointlight).
--define(DEF_CAST_SHADOWS, true).
--define(DEF_GLOW_INTENSITY, 0.0).
--define(DEF_GLOW_OFFSET, 0.0).
--define(DEF_GLOW_TYPE, 0).
 
 %% Spotlight
 -define(DEF_SPOT_TYPE, spotlight).
@@ -210,10 +164,7 @@ key(Key) -> {key,?KEY(Key)}.
 
 %% Sunlight
 -define(DEF_POWER, 1.0).
--define(DEF_BACKGROUND_INFINITE, undefined).
--define(DEF_BACKGROUND_AMBIENT, constant).
 -define(DEF_BACKGROUND_COLOR, {0.25,0.25,0.50}).
--define(DEF_CONSTANT_BACK_POWER, 1.0).
 -define(DEF_HORIZON_COLOR, {1.0,1.0,1.0}).
 -define(DEF_ZENITH_COLOR, {0.4,0.5,1.0}).
 -define(DEF_GRADIENT_BACK_POWER, 1.0).
@@ -233,38 +184,6 @@ key(Key) -> {key,?KEY(Key)}.
 
 %% Infinite Light
 -define(DEF_INFINITE_TYPE, sunlight).
--define(DEF_INFINITE_TRUE, true).
--define(DEF_INFINITE_RADIUS, 1.0).
-
-%% Hemilight and Pathlight
--define(DEF_AMBIENT_TYPE, hemilight).
--define(DEF_USE_MAXDISTANCE, false).
--define(DEF_MAXDISTANCE, 1.0).
--define(DEF_BACKGROUND_FILENAME, "").
--define(DEF_BACKGROUND_EXPOSURE_ADJUST, 1.0).
--define(DEF_BACKGROUND_MAPPING, probe).
--define(DEF_BACKGROUND_POWER, 1.0).
--define(DEF_BACKGROUND_PREFILTER, true).
--define(DEF_BACKGROUND_ENLIGHT, false).
--define(DEF_AMBIENT_DIFFUSEPHOTONS, false).
--define(DEF_AMBIENT_CAUSTICPHOTONS, false).
--define(DEF_BACKGROUND_ROTATION, 0.0).
--define(DEF_SAMPLES, 32).
-
-%% Pathlight
--define(DEF_PATHLIGHT_MODE, undefined).
--define(DEF_CACHE, false).
--define(DEF_CACHE_SIZE, 0.01).
--define(DEF_ANGLE_THRESHOLD, 0.2).
--define(DEF_SHADOW_THRESHOLD, 0.3).
--define(DEF_GRADIENT, false).
--define(DEF_SHOW_SAMPLES, false).
-
-%% Global Photonlight
--define(DEF_GLOBALPHOTONLIGHT_PHOTONS, 50000).
--define(DEF_GLOBALPHOTONLIGHT_RADIUS, 1.0).
--define(DEF_GLOBALPHOTONLIGHT_DEPTH, 2).
--define(DEF_GLOBALPHOTONLIGHT_SEARCH, 200).
 
 %% Modulator
 -define(MAX_MODULATORS, 4).
@@ -420,7 +339,7 @@ range_1(sun_angle)              -> {0.0,80.0};
 
 %backg
 range_1(ibl_rotation)           -> {-180.0,180.0};
-range_1(sky_background_power)   -> {0.0,1024.0};
+%range_1(sky_background_power)   -> {0.0,1024.0};
 range_1(background_samples)     -> {0,512};
 range_1(altitude)               -> {0.0,1024.0};
 range_1(sun_power)              -> {0.0,1024.0};

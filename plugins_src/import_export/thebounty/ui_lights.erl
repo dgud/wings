@@ -38,8 +38,8 @@ light_dialog(Name, Ps) ->
 %%% Point Light Dialog
 light_dialog(_Name, point, Ps) ->
     PointLightType = proplists:get_value(type, Ps, ?DEF_POINT_TYPE),
-    ArealightRadius = proplists:get_value(arealight_radius, Ps, ?DEF_AREALIGHT_RADIUS),
-    ArealightSamples = proplists:get_value(arealight_samples, Ps, ?DEF_AREALIGHT_SAMPLES),
+    ArealightRadius = proplists:get_value(arealight_radius, Ps, 1.0),
+    ArealightSamples = proplists:get_value(arealight_samples, Ps, 16),
 
     Hook_Enable =
     fun(Key, Value, Store) ->
@@ -140,8 +140,8 @@ light_dialog(_Name, infinite, Ps) ->
     InfiniteType = proplists:get_value(type, Ps, ?DEF_INFINITE_TYPE),
     SunSamples = proplists:get_value(sun_samples, Ps, ?DEF_SUN_SAMPLES),
     SunAngle = proplists:get_value(sun_angle, Ps, ?DEF_SUN_ANGLE),
-    InfiniteTrue = proplists:get_value(infinite_true, Ps, ?DEF_INFINITE_TRUE),
-    InfiniteRadius = proplists:get_value(infinite_radius, Ps, ?DEF_INFINITE_RADIUS),
+    InfiniteTrue = proplists:get_value(infinite_true, Ps, true),
+    InfiniteRadius = proplists:get_value(infinite_radius, Ps, 1.0),
 
     Hook_Enabled =
     fun(Key, Value, Store) ->

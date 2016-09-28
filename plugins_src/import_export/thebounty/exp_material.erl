@@ -100,7 +100,7 @@ export_shinydiffuse_shader(F, Name, Mat, ExportDir, Attr) ->
     end,
 
     println(F,
-        "\t<IOR fval=\"~.10f\"/>",[proplists:get_value(ior, Attr, ?DEF_IOR)]), % 1.0 ??
+        "\t<IOR fval=\"~.10f\"/>",[proplists:get_value(ior, Attr, 1.4)]),
     println(F,
         "\t<fresnel_effect bval=\"~s\"/>",[format(proplists:get_value(fresnel, Attr, false))]),
     println(F,
@@ -147,7 +147,7 @@ export_glossy_shaders(F, Name, Mat, ExportDir, Attr) ->
         coated_glossy ->
             export_rgb(F, mirror_color, proplists:get_value(glossy_mirror_color, Attr, {0.7, 0.7, 0.7})),
             println(F,
-                "\t<IOR fval=\"~.10f\"/>",[proplists:get_value(mirror_ior, Attr, ?DEF_IOR)]);
+                "\t<IOR fval=\"~.10f\"/>",[proplists:get_value(mirror_ior, Attr, 1.4)]);
         _ -> ok
     end,
     case proplists:get_value(reflect_mode, Attr, lambert) of
@@ -172,7 +172,7 @@ export_glossy_shaders(F, Name, Mat, ExportDir, Attr) ->
                 "\t<exp_v fval=\"~.10f\"/>",[proplists:get_value(anisotropic_v, Attr, 50.0)]);
         _ ->
             println(F,
-                "\t<exponent fval=\"~.10f\"/>",[proplists:get_value(exponent, Attr, ?DEF_EXPONENT)])
+                "\t<exponent fval=\"~.10f\"/>",[proplists:get_value(exponent, Attr, 50.0)])
     end,
 
     write_material_layers(F, Name, Maps, Attr, Modulators),
@@ -288,7 +288,7 @@ export_glass_shaders(F, Name, Mat, ExportDir, Attr) ->
     println(F,
         "\t<dispersion_power fval=\"~.10f\"/>",[proplists:get_value(dispersion_power, Attr, 0.0)]),
     println(F,
-        "\t<IOR fval=\"~.10f\"/>",[proplists:get_value(glass_ior, Attr, ?DEF_IOR)]),
+        "\t<IOR fval=\"~.10f\"/>",[proplists:get_value(glass_ior, Attr, 1.4)]),
     println(F,
         "\t<fake_shadows bval=\"~s\"/>",[format(proplists:get_value(fake_shadows, Attr, false))]),
 

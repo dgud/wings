@@ -158,7 +158,7 @@ command_file(Op, Attr, St) when is_list(Attr) ->
 -record(camera_info, {pos,dir,up,fov}).
 
 do_export(Op, Props0, Attr0, St0) ->
-    SubDiv = proplists:get_value(subdivisions, Attr0, ?DEF_SUBDIVISIONS),
+    SubDiv = proplists:get_value(subdivisions, Attr0, 0),
 
     Props = [{subdivisions,SubDiv}|Props0],
     [{Pos,Dir,Up},Fov] = wpa:camera_info([pos_dir_up,fov]),
@@ -181,7 +181,7 @@ do_export(Op, Props0, Attr0, St0) ->
     wpa:Op(Props, ExportFun, St).
 
 props(render, Attr) ->
-    RenderFormat = proplists:get_value(render_format, Attr, ?DEF_RENDER_FORMAT),
+    RenderFormat = proplists:get_value(render_format, Attr, png),
     {value,{RenderFormat,Ext,Desc}} =  lists:keysearch(RenderFormat, 1, wings_job:render_formats()),
     Title =
         case os:type() of
@@ -300,10 +300,9 @@ export(Attr, XMLFilename, #e3d_file{objs=Objs, mat=Mats, creator=Creator}) ->
     wpa:popup_console(),
     ExportTS = os:timestamp(),
     Render = proplists:get_value(?TAG_RENDER, Attr, false),
-    KeepXML = proplists:get_value(keep_xml, Attr, ?DEF_KEEP_XML),
+    KeepXML = proplists:get_value(keep_xml, Attr, false),
     GuiMode = proplists:get_value(gui_mode, Attr, false),
-    RenderFormat =
-        proplists:get_value(render_format, Attr, ?DEF_RENDER_FORMAT),
+    RenderFormat = proplists:get_value(render_format, Attr, png),
     ExportDir = filename:dirname(XMLFilename),
     {ExportFile,RenderFile} =
         case {Render,KeepXML} of

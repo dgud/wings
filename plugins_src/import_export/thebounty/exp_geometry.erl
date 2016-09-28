@@ -37,7 +37,7 @@ export_object_1(F, NameStr, Mesh0=#e3d_mesh{he=He0}, DefaultMaterial, MatPs, Id)
     Attr = proplists:get_value(?TAG, MatPs, []),
     _OpenGL = proplists:get_value(opengl, MatPs),
     UseHardness = proplists:get_value(use_hardness, Attr, ?DEF_USE_HARDNESS),
-    Object_Type = proplists:get_value(object_type, Attr, ?DEF_OBJECT_TYPE),
+    Object_Type = proplists:get_value(object_type, Attr, mesh),
 
     Volume_Sigma_a = proplists:get_value(volume_sigma_a, Attr, ?DEF_VOLUME_SIGMA_A),
     Volume_Sigma_s = proplists:get_value(volume_sigma_s, Attr, ?DEF_VOLUME_SIGMA_S),
@@ -102,7 +102,7 @@ export_object_1(F, NameStr, Mesh0=#e3d_mesh{he=He0}, DefaultMaterial, MatPs, Id)
         volume ->
             println(F, "<volumeregion name=\"volumename\">"),
 
-            case proplists:get_value(volume_type, Attr,  ?DEF_VOLUME_TYPE) of
+            case proplists:get_value(volume_type, Attr,  uniformvolume) of
                 uniformvolume ->
                     println(F, "<type sval=\"UniformVolume\"/>");
                     
