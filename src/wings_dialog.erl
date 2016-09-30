@@ -1182,6 +1182,8 @@ build(Ask, {menu, Entries, Def, Flags}, Parent, Sizer, In) ->
 		lists:foldl(fun(Choice,N) -> setup_choices(Choice, Ctrl, Def, N) end, 0, Entries),
 		tooltip(Ctrl, Flags),
 		add_sizer(choice, Sizer, Ctrl, Flags),
+		Callback = {callback, notify_event_handler_cb(Ask, preview)},
+		wxCheckBox:connect(Ctrl, command_choice_selected, [Callback]),
 		Ctrl
 	end,
     [#in{key=proplists:get_value(key,Flags), def=Def, hook=proplists:get_value(hook, Flags),

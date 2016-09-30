@@ -568,6 +568,7 @@ not_bad(workmode, _) -> false;
 not_bad(orthogonal_view, _) -> false;
 not_bad(show_memory_used, _) -> false;
 not_bad(show_axes, _) -> false;
+not_bad(show_cam_imageplane, _) -> false;
 not_bad(show_groundplane, _) -> false;
 not_bad(current_view, _) -> false;
 not_bad(camera_fov, _) -> false;

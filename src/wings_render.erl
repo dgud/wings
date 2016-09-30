@@ -52,6 +52,7 @@ render(#st{selmode=Mode}=St) ->
     render_objects(Mode, SceneLights),
     user_clipping_planes(off),
     axis_letters(PM,MM,Yon),
+    show_camera_image_plane(),
     gl:popAttrib(),
     wings_develop:gl_error_check("Rendering scene").
 
@@ -471,6 +472,54 @@ axis_letter_1(I, Yon, Char, Color0, {Start,{Ox,Oy,_,Ow},MM,PM,Viewport}) ->
 	true ->
 	    clip(Ox, Oy, Ow, Px, Py, Pw, Char, Viewport)
     end.
+
+show_camera_image_plane() ->
+    case wings_wm:get_prop(show_cam_imageplane) of
+	false ->
+	    ok;
+	true ->
+	    {WinW,WinH} = wings_wm:win_size(),
+	    CamW = wings_pref:get_value(negative_width),
+	    CamH = wings_pref:get_value(negative_height),
+	    AspRatio = CamW/CamH,
+	    %% it's used only the height as reference because view horizon changes only for height variation
+	    {W,H} = {round(WinH*AspRatio)/2, WinH/2},
+
+	    X1 = (WinW/2.0)-W+5.0,
+	    Y1 = (WinH/2.0)-H+5.0,
+	    X2 = (WinW/2.0)+W-5.0,
+	    Y2 = (WinH/2.0)+H-5.0,
+
+	    Quads = [{X1,Y1,0.0},{X2,Y1,0.0},  			% top
+		     {WinW*1.0,0.0,0.0},{0.0,0.0,0.0},
+		     {X1,Y1,0.0},{0.0,0.0,0.0},			% left
+		     {0.0,WinH*1.0,0.0},{X1,Y2,0.0},
+		     {X1,Y2,0.0},{0.0,WinH*1.0,0.0},		% bottom
+		     {WinW*1.0,WinH*1.0,0.0},{X2*1.0,Y2,0.0},
+		     {X2*1.0,Y2,0.0},{WinW*1.0,WinH*1.0,0.0},	% right
+		     {WinW*1.0,0.0,0.0},{X2,Y1,0.0}],
+	    Poly = << <<X:?F32,Y:?F32,Z:?F32>> || {X,Y,Z} <- Quads >>,
+
+	    Update = fun draw_camera_image_plane/1,
+	    wings_dl:draw(draw_cam_imageplane, {Poly,{X1,Y1,X2,Y2}}, Update)
+    end.
+
+draw_camera_image_plane({Poly,{X1,Y1,X2,Y2}}) ->
+    NoVs = byte_size(Poly) div 12,
+    Draw =
+    fun() ->
+	wings_io:ortho_setup(),
+	gl:enable(?GL_BLEND),
+	gl:blendFunc(?GL_SRC_ALPHA, ?GL_ONE_MINUS_SRC_ALPHA),
+	gl:color4f(0.0, 0.4, 0.8, 0.5),
+	gl:drawArrays(?GL_QUADS, 0, NoVs),
+	gl:color3f(0.0, 0.4, 0.8),
+	gl:lineWidth(2.0),
+	gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_LINE),
+	gl:rectf(X2, Y1, X1, Y2),
+	gl:flush()
+    end,
+    wings_vbo:new(Draw, Poly).
 
 clip(Ox, Oy, Ow, Px, Py, Pw, Char, Viewport) ->
     AxisRay = line(Ox, Oy, Px, Py),

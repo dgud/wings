@@ -185,6 +185,7 @@ window_prop({plugin, _}=Name) ->
 window_prop(_) -> [].
 
 save_geom_props({show_axes,_}=P, Acc) -> [P|Acc];
+save_geom_props({show_cam_imageplane,_}=P, Acc) -> [P|Acc];
 save_geom_props({show_groundplane,_}=P, Acc) -> [P|Acc];
 save_geom_props({show_info_text,_}=P, Acc) -> [P|Acc];
 save_geom_props({current_view,View}, Acc) ->
