@@ -44,53 +44,64 @@ command(_, _) -> next.
 %%%
 
 plane_dialog() ->
-    [{hframe,
-        [{vframe,
-           [{label,?__(1,"Resolution")},
-            {label,?__(2,"Size")},
-            {label,?__(3,"Thickness")}]},
-         {vframe,
-           [{text,40,[{key,resolution},{range,{3,infinity}}]},
-            {text,2.0,[{key,plane_size},{range,{0.0,infinity}}]},
-            {text,0.2,[{key,thickness},{range,{0.0,infinity}}]}]}]},
-         {vradio,
+    Hook = fun(Var, Val, Sto) ->
+        case Var of
+            plane_type ->
+                wings_dialog:enable(waves, Val=/=regular, Sto),
+                wings_dialog:enable(height, (Val=/=regular) and (Val=/=lumpy), Sto),
+                wings_dialog:enable(falloff, Val=:=sombrero, Sto);
+            _ -> ok
+        end
+    end,
+    [{vframe, [
+        {label_column,[
+            {?__(1,"Resolution"), {text,40,[{key,resolution},{range,{3,infinity}}]}},
+            {?__(2,"Size"), {text,2.0,[{key,plane_size},{range,{0.0,infinity}}]}},
+            {?__(3,"Thickness"), {text,0.2,[{key,thickness},{range,{0.0,infinity}}]}}]
+        },
+        {hradio,
            [{?__(4,"Regular"),regular},
             {?__(5,"Lumpy"),lumpy},
             {?__(6,"Wavy"),wavy},
             {?__(7,"Sombrero"),sombrero}],
-            regular,
-            [{key,plane_type},{title,?__(8,"Plane Type")}]},
-         {hframe,
-           [{vframe,
-             [{label,?__(9,"Waves")},
-              {label,?__(10,"Height")},
-              {label,?__(11,"Falloff")}]},
-            {vframe,
-             [{text,4,[{key,waves},{range,{1,infinity}}]},
-              {text,0.4,[{key,height},{range,{0.0,infinity}}]},
-              {text,0.4,[{key,falloff},{range,{0.0,infinity}}]}]}]}].
+            regular, [{key,plane_type},{hook,Hook},{title,?__(8,"Plane Type")}]},
+        {label_column,[
+            {?__(9,"Waves"), {text,4,[{key,waves},{range,{1,infinity}}]}},
+            {?__(10,"Height"), {text,0.4,[{key,height},{range,{0.0,infinity}}]}},
+            {?__(11,"Falloff"), {text,0.4,[{key,falloff},{range,{0.0,infinity}}]}}]
+        },
+        wings_shapes:transform_obj_dlg()]
+     }].
 
 make_plane(Ask, St) when is_atom(Ask) ->
     Qs = plane_dialog(),
     wings_dialog:dialog_preview({shape,plane}, Ask, ?__(1,"Plane Options"), Qs, St);
-make_plane([{_,Nres},{_,Size},{_,Thickness},{_,regular},_,_,_], _) ->
-    Vs = regular_plane_verts(Nres, Size, +Thickness/2) ++
+make_plane([{_,Nres},{_,Size},{_,Thickness},{_,regular},_,_,_,
+            Rot_X, Rot_Y, Rot_Z, Mov_X ,Mov_Y ,Mov_Z ,Ground], _) ->
+    Vs0 = regular_plane_verts(Nres, Size, +Thickness/2) ++
 	 regular_plane_verts(Nres, Size, -Thickness/2),
+    Vs = wings_shapes:transform_obj([Rot_X,Rot_Y,Rot_Z,Mov_X,Mov_Y,Mov_Z,Ground], Vs0),
     Fs = plane_faces(Nres, Nres),
     {new_shape,"Regular Plane",Fs,Vs};
-make_plane([{_,Nres},{_,Size},{_,Thickness},{_,lumpy},{_,Lumps},_,_], _) ->
-    Vs = lumpy_plane_verts(Nres, Size, Lumps, +Thickness/2) ++
+make_plane([{_,Nres},{_,Size},{_,Thickness},{_,lumpy},{_,Lumps},_,_,
+            Rot_X, Rot_Y, Rot_Z, Mov_X ,Mov_Y ,Mov_Z ,Ground], _) ->
+    Vs0 = lumpy_plane_verts(Nres, Size, Lumps, +Thickness/2) ++
 	 lumpy_plane_verts(Nres, Size, Lumps, -Thickness/2),
+    Vs = wings_shapes:transform_obj([Rot_X,Rot_Y,Rot_Z,Mov_X,Mov_Y,Mov_Z,Ground], Vs0),
     Fs = plane_faces(Nres, Nres),
     {new_shape,"Lumpy Plane",Fs,Vs};
-make_plane([{_,Nres},{_,Size},{_,Thickness},{_,wavy},{_,Waves},{_,Height},_], _) ->
-    Vs = wavy_plane_verts(Nres, Size, Waves, Height, +Thickness/2) ++
+make_plane([{_,Nres},{_,Size},{_,Thickness},{_,wavy},{_,Waves},{_,Height},_,
+            Rot_X, Rot_Y, Rot_Z, Mov_X ,Mov_Y ,Mov_Z ,Ground], _) ->
+    Vs0 = wavy_plane_verts(Nres, Size, Waves, Height, +Thickness/2) ++
 	 wavy_plane_verts(Nres, Size, Waves, Height, -Thickness/2),
+    Vs = wings_shapes:transform_obj([Rot_X,Rot_Y,Rot_Z,Mov_X,Mov_Y,Mov_Z,Ground], Vs0),
     Fs = plane_faces(Nres, Nres),
     {new_shape,"Wavy Plane",Fs,Vs};
-make_plane([{_,Nres},{_,Size},{_,Thickness},{_,sombrero},{_,Waves},{_,Height},{_,Falloff}], _) ->
-    Vs = sombrero_plane_verts(Nres, Size, Waves, Falloff, Height, +Thickness/2) ++
+make_plane([{_,Nres},{_,Size},{_,Thickness},{_,sombrero},{_,Waves},{_,Height},{_,Falloff},
+            Rot_X, Rot_Y, Rot_Z, Mov_X ,Mov_Y ,Mov_Z ,Ground], _) ->
+    Vs0 = sombrero_plane_verts(Nres, Size, Waves, Falloff, Height, +Thickness/2) ++
 	 sombrero_plane_verts(Nres, Size, Waves, Falloff, Height, -Thickness/2),
+    Vs = wings_shapes:transform_obj([Rot_X,Rot_Y,Rot_Z,Mov_X,Mov_Y,Mov_Z,Ground], Vs0),
     Fs = plane_faces(Nres, Nres),
     {new_shape,"Sombrero Plane",Fs,Vs}.
 
@@ -168,4 +179,3 @@ plane_faces_back(Ures, Vres) ->
     A = lists:seq(Vres-1, Ures*Vres-1, Vres),
     B = lists:map(fun(X) -> (Ures*Vres)+X end, A),
     [lists:reverse(A) ++ B].
-
