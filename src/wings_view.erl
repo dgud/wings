@@ -33,6 +33,7 @@ menu() ->
      [{?__(1,"Ground Plane"),show_groundplane,?__(2,"Show the ground plane"),
        crossmark(show_groundplane)},
       {?__(3,"Axes"),show_axes,?__(4,"Show the coordinate axes"),crossmark(show_axes)},
+      {?__(78,"Image Plane"),show_cam_imageplane,?__(79,"Show the camera image plane"),crossmark(show_cam_imageplane)},
       {?__(48,"Show Info Text"),show_info_text,
        ?__(49,"Show an informational text at the top of this Geometry window"),
        crossmark(show_info_text)},
@@ -240,8 +241,7 @@ command({shader_set,N}, St) ->
     shader_set(N),
     St;
 command(camera_settings, St) ->
-    camera(),
-    St;
+    camera(St);
 command(Key, St) ->
     toggle_option(Key),
     St.
@@ -331,13 +331,14 @@ sel_mirror_objects(St) ->
 
 
 
--define(RANGE_FOV, {1.0,180.0}).
+-define(RANGE_FOV, {1.0,179.9}).
 -define(RANGE_NEAR_CLIP, {0.01,1000.0}).
 -define(RANGE_FAR_CLIP, {100.0,infinity}).
 -define(RANGE_ZOOM_SLIDER, {-1.0,4.0}).
 -define(RANGE_NEGATIVE_SIZE, {1,infinity}).
+-define(RANGE_LENS_LENGTH_ZOOM, {0.01,infinity}).
 
-camera() ->
+camera(St) ->
     Active = wings_wm:this(),
     View0 = wings_wm:get_prop(Active, current_view),
     NegH = wings_pref:get_value(negative_height),
@@ -360,14 +361,33 @@ camera() ->
     Zoom = pget(zoom, Props),
     ZoomSlider = pget(zoom_slider, Props),
     FovHook = fun(Var,Val,Sto) ->
-		      camera_update_1(Var, Val, Sto)
-	      end,
-    Disable = fun(Var, What, Sto) ->
-		      Keys = [negative_height, negative_width],
-		      wings_dialog:enable(Keys, What =:= custom, Sto),
-		      FovHook(Var, What, Sto)
+		    camera_update_1(Var, Val, Sto)
 	      end,
     FovHook2 = fun(Var,Val,Sto) -> camera_update_2(Var, Val, Sto) end,
+    NegHook = fun(_Var, Val, Sto) ->
+		    case Val of
+			default ->
+			    #view{fov=Fov1,hither=Hither1,yon=Yon1} = DefView = default_view(),
+			    Props =
+				camera_propconv(from_fov,
+						[{negative_height,NegH},{negative_width,NegW},{fov,Fov1}]),
+			    gbupdate([{fov, Fov0},{height, Hither1},{yon, Yon1},
+				      {lens_type, pget(lens_type, Props)},
+				      {lens_length, pget(lens_length, Props)},
+				      {zoom, pget(zoom, Props)},
+				      {zoom_slider, pget(zoom_slider, Props)},
+				      {negative_format,{NegH,NegW}}], Sto),
+			    Keys = [negative_height, negative_width],
+			    wings_dialog:enable(Keys, Val =:= custom, Sto),
+			    wings_dialog:enable(lens_type, Val =/= custom, Sto),
+			    wings_wm:set_prop(Active, current_view, DefView);
+			_ ->
+			    Keys = [negative_height, negative_width],
+			    wings_dialog:enable(Keys, Val =:= custom, Sto),
+			    wings_dialog:enable(lens_type, Val =/= custom, Sto),
+			    FovHook2(lens_type, wings_dialog:get_value(lens_type, Sto), Sto)
+		    end
+	      end,
     LensFrame =
 	{vframe,
 	 [{hframe,
@@ -376,9 +396,11 @@ camera() ->
 	     [{"24x36 [3:2]" ,{24,36}},
 	      {"34x60 [16:9]",{34,60}},
 	      {"45x60 [4:3]" ,{45,60}},
-	      {"60x60 [1:1]" ,{60,60}},{?__(4,"Custom"),custom}],
+	      {"60x60 [1:1]" ,{60,60}},
+	      {?__(4,"Custom"),custom},
+	      {?__(19,"Reset to default"),default}],
 	     NegativeFormat,
-	     [{key,negative_format},layout, {hook, Disable}]},
+	     [{key,negative_format}, {hook, NegHook}]},
 	    {hframe,
 	     [{text, NegH, [{key,negative_height},{range,?RANGE_NEGATIVE_SIZE},
 			    {hook,FovHook}]},
@@ -397,12 +419,12 @@ camera() ->
 	     [{key,lens_type}, {hook,FovHook2}]},
 	    panel,
 	    {label,?__(12,"Length")},
-	    {text,LensLength,[{key,lens_length}, {hook,FovHook2}]}]},
+	    {text,LensLength,[{key,lens_length}, {range,?RANGE_LENS_LENGTH_ZOOM}, {hook,FovHook2}]}]},
 	  {hframe,
 	   [{slider,
 	     [{key,zoom_slider},{range,?RANGE_ZOOM_SLIDER},
 	      {value,ZoomSlider}, {hook,FovHook2}]},
-	    {text, Zoom,[{key,zoom}, {hook,FovHook2}]},
+	    {text, Zoom,[{key,zoom}, {range,?RANGE_LENS_LENGTH_ZOOM}, {hook,FovHook2}]},
 	    {label,?__(13,"x Zoom")}]}],
 	 [{title,?__(14,"Lens")},{minimized,true}]},
     Qs =
@@ -412,25 +434,41 @@ camera() ->
 		    {label,?__(16,"Near Clipping Plane")},
 		    {label,?__(17,"Far Clipping Plane")}]},
 	   {vframe,[{text,Fov0,[{range,?RANGE_FOV},{key,fov},{hook,FovHook}]},
-		    {text,Hither0,[{range,?RANGE_NEAR_CLIP}]},
-		    {text,Yon0,[{range,?RANGE_FAR_CLIP}]}]},
+		    {text,Hither0,[{key,height},{range,?RANGE_NEAR_CLIP}]},
+		    {text,Yon0,[{key,yon},{range,?RANGE_FAR_CLIP}]}]},
 	   {vframe,[help_button(camera_settings_fov),
 		    panel,
 		    panel]}]}],
-    Apply = fun([{negative_format,_},
-		 {negative_height,_},{negative_width,_},
-		 {lens_type,_},{lens_length,_},
-		 {zoom_slider,_},{zoom,_},
-		 {fov,Fov},Hither,Yon]=Ps) ->
-		    {NH,NW} = camera_propconv_negative_format(Ps),
-		    View = View0#view{fov=Fov,hither=Hither,yon=Yon},
-		    wings_wm:set_prop(Active, current_view, View),
-		    wings_pref:set_value(negative_height, NH),
-		    wings_pref:set_value(negative_width, NW),
-		    ignore
-	    end,
+    ShowImgPlane = wings_wm:get_prop(show_cam_imageplane),
+    wings_wm:set_prop(show_cam_imageplane, true),
+    wings_dialog:dialog(?__(18,"Camera Settings"), {preview,Qs},
+			fun
+			    ({dialog_preview,Res}) ->
+				update_camera(Active, View0, Res),
+				{preview,St,St};
+			    (cancel) ->
+				wings_wm:set_prop(Active, show_cam_imageplane, ShowImgPlane),
+				wings_wm:set_prop(Active, current_view, View0),
+				St;
+			    (Res) ->
+				update_camera(Active, View0, Res),
+				wings_wm:set_prop(Active, show_cam_imageplane, ShowImgPlane),
+				{commit,St,St}
+			end).
 
-    wings_dialog:dialog(?__(18,"Camera Settings"), Qs, Apply).
+update_camera(Win, View0, Ps) ->
+    [{negative_format,_},
+     {negative_height,_},{negative_width,_},
+     {lens_type,_},{lens_length,_},
+     {zoom_slider,_},{zoom,_},
+     {fov,Fov},{height,Hither},{yon,Yon}] = Ps,
+
+    {NH,NW} = camera_propconv_negative_format(Ps),
+    View = View0#view{fov=Fov,hither=Hither,yon=Yon},
+    wings_wm:set_prop(Win, current_view, View),
+    wings_pref:set_value(negative_height, NH),
+    wings_pref:set_value(negative_width, NW),
+    ignore.
 
 camera_update_1(Var, Val, Sto) ->
     Props = gbget(lists:delete(Var, [fov,negative_format,
@@ -520,6 +558,33 @@ camera_lens_type({24,36}, LensLength) ->
 	135 -> tele;
 	_ -> custom
     end;
+camera_lens_type(default, LensLength) ->
+    case round(LensLength) of
+	24 -> wide_angle;
+	35 -> moderate_wide_angle;
+	50 -> standard;
+	85 -> short_tele;
+	135 -> tele;
+	_ -> custom
+    end;
+camera_lens_type({34,60}, LensLength) ->
+    case round(LensLength) of
+	35 -> wide_angle;
+	55 -> moderate_wide_angle;
+	80 -> standard;
+	135 -> short_tele;
+	215 -> tele;
+	_ -> custom
+    end;
+camera_lens_type({45,60}, LensLength) ->
+    case round(LensLength) of
+	40 -> wide_angle;
+	60 -> moderate_wide_angle;
+	85 -> standard;
+	150 -> short_tele;
+	235 -> tele;
+	_ -> custom
+    end;
 camera_lens_type({60,60}, LensLength) ->
     case round(LensLength) of
 	40 -> wide_angle;
@@ -538,6 +603,22 @@ camera_lens_length({24,36}, LensType) ->
 	      standard		  -> 50;
 	      short_tele	  -> 85;
 	      tele		  -> 135
+	  end);
+camera_lens_length({34,60}, LensType) ->
+    float(case LensType of
+	      wide_angle	  -> 35;
+	      moderate_wide_angle -> 55;
+	      standard		  -> 80;
+	      short_tele	  -> 135;
+	      tele		  -> 215
+	  end);
+camera_lens_length({45,60}, LensType) ->
+    float(case LensType of
+	      wide_angle	  -> 40;
+	      moderate_wide_angle -> 60;
+	      standard		  -> 85;
+	      short_tele	  -> 150;
+	      tele		  -> 250
 	  end);
 camera_lens_length({60,60}, LensType) ->
     float(case LensType of
@@ -697,6 +778,7 @@ initial_properties() ->
      {clip_plane,false},
      {show_axes,true},
      {show_groundplane,true},
+     {show_cam_imageplane,false},
      {wireframed_objects,gb_sets:empty()},
      {current_view,default_view()},
      {allow_rotation,true},
