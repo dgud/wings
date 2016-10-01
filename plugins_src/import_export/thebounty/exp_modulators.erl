@@ -30,36 +30,49 @@ export_modulator(F, Texname, Maps, {modulator,Ps}, Attr) when is_list(Ps) ->
             MirrorColorLayer = proplists:get_value(mirror_color, Ps, false),
             TransparentLayer = proplists:get_value(transparency, Ps, false),
             TranslucentLayer = proplists:get_value(translucency, Ps, false),
+            GlossyLayer = proplists:get_value(glossy, Ps, false),
+            GlossyReflectLayer = proplists:get_value(glossy_reflect, Ps, false),
             BumpLayer = proplists:get_value(bump, Ps, false),
-
+    
+            % cases..
             case DiffuseLayer of
                 true ->
-                    export_modulators(F, Texname, Maps, diffuse, {modulator,Ps}, Attr);
+                    export_modulators(F, Texname, Maps, diffuse_shader, {modulator,Ps}, Attr);
                 false -> ok
             end,
             case MirrorLayer of
                 true ->
-                    export_modulators(F, Texname, Maps, mirror, {modulator,Ps}, Attr);
+                    export_modulators(F, Texname, Maps, mirror_shader, {modulator,Ps}, Attr);
                 false -> ok
             end,
             case MirrorColorLayer of
                 true ->
-                    export_modulators(F, Texname, Maps, mirror_color, {modulator,Ps}, Attr);
+                    export_modulators(F, Texname, Maps, mirror_color_shader, {modulator,Ps}, Attr);
                 false -> ok
             end,
             case TransparentLayer of
                 true ->
-                     export_modulators(F, Texname, Maps, transparency, {modulator,Ps}, Attr);
+                     export_modulators(F, Texname, Maps, transparency_shader, {modulator,Ps}, Attr);
                 false -> ok
             end,
             case TranslucentLayer of
                 true ->
-                    export_modulators(F, Texname, Maps, translucency, {modulator,Ps}, Attr);
+                    export_modulators(F, Texname, Maps, translucency_shader, {modulator,Ps}, Attr);
+                false -> ok
+            end,
+            case GlossyLayer  of
+                true -> 
+                    export_modulators(F, Texname, Maps, glossy_shader, {modulator,Ps}, Attr);
+                false -> ok
+            end,
+            case GlossyReflectLayer of
+                true ->
+                    export_modulators(F, Texname, Maps, glossy_reflect_shader, {modulator,Ps}, Attr);
                 false -> ok
             end,
             case BumpLayer of
                 true ->
-                    export_modulators(F, Texname, Maps, bump, {modulator,Ps}, Attr);
+                    export_modulators(F, Texname, Maps, bump_shader, {modulator,Ps}, Attr);
                 false -> ok
             end,
 
@@ -67,20 +80,20 @@ export_modulator(F, Texname, Maps, {modulator,Ps}, Attr) when is_list(Ps) ->
             mapping_textures(F, Texname, Maps, BumpLayer, {modulator,Ps}, Attr)
     end.
 
-%
+% 
 export_modulators(F, Texname, Maps, LayerType, {modulator,Ps}, Attr) ->
     %
     {_Enable,BlendMode,TexType} = mod_enabled_mode_type(Ps, Maps),
 
     DoColor =
         case LayerType of
-            diffuse ->  true;
-            mirror_color -> true;
-            glossy_reflect ->  true;
+            diffuse_shader ->  true;
+            glossy_shader ->  true;
+            mirror_color_shader -> true;
             _ -> false
         end,
 
-    println(F, "\t<~s_shader sval=\"~s_layer\"/>",[LayerType,LayerType]),
+    println(F, "\t<~s sval=\"~s_layer\"/>",[LayerType,LayerType]),
 
     %!----------------------------------------------------
     %! entry to element shader list
@@ -91,17 +104,21 @@ export_modulators(F, Texname, Maps, LayerType, {modulator,Ps}, Attr) ->
     %! TODO: lack some 'cases', for glossy and translucent SSS
     Factor =
         case LayerType of
-            diffuse ->  proplists:get_value(diffuse_factor, Ps, 1.0);
+            diffuse_shader ->        proplists:get_value(diffuse_factor, Ps, 1.0);
                 
-            mirror ->   proplists:get_value(mirror_factor, Ps, 1.0);
+            mirror_shader ->         proplists:get_value(mirror_factor, Ps, 1.0);
                 
-            mirror_color -> proplists:get_value(mirror_color_factor, Ps, 1.0);
+            mirror_color_shader ->   proplists:get_value(mirror_color_factor, Ps, 1.0);
                 
-            transparency -> proplists:get_value(transparent_factor, Ps, 1.0);
+            transparency_shader ->   proplists:get_value(transparent_factor, Ps, 1.0);
                 
-            translucency -> proplists:get_value(translucent_factor, Ps, 1.0);
+            translucency_shader ->   proplists:get_value(translucent_factor, Ps, 1.0);
+            
+            glossy_shader ->         proplists:get_value(glossy_factor, Ps, 1.0);
+            
+            glossy_reflect_shader -> proplists:get_value(glossy_reflect_factor, Ps, 1.0);
                 
-            bump -> proplists:get_value(bump_factor, Ps, 1.0);
+            bump_shader ->           proplists:get_value(bump_factor, Ps, 1.0);
                 
             _ -> proplists:get_value(def_value, Ps, 1.0)
         end,
@@ -114,7 +131,7 @@ export_modulators(F, Texname, Maps, LayerType, {modulator,Ps}, Attr) ->
     %
     println(F,"\t\t<~s fval=\"~w\"/>",[FactorType,Factor]),
     %
-    CellType = proplists:get_value(cell_type, Ps, ?DEF_MOD_CELLTYPE),
+    CellType = proplists:get_value(cell_type, Ps, intensity),
     %%--------------------------->
     IsColor = % revise
         case TexType of

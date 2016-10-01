@@ -33,12 +33,8 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_VOLUME_HEIGHT, 0.5).
 -define(DEF_VOLUME_STEEPNESS, 0.2).
 -define(DEF_VOLUME_ATTGRIDSCALE, 3).
--define(DEF_VOLUME_SHARPNESS, 2.0).
 -define(DEF_VOLUME_COVER, 0.05).
 -define(DEF_VOLUME_DENSITY, 1.0).
--define(DEF_VOLUME_MINMAX_X, 2.0).
--define(DEF_VOLUME_MINMAX_Y, 2.0).
--define(DEF_VOLUME_MINMAX_Z, 2.0).
 -define(DEF_LIGHTPORTAL_POWER, 2.0).
 -define(DEF_LIGHTPORTAL_SAMPLES, 24).
 -define(DEF_LIGHTPORTAL_DIFFUSEPHOTONS, false).
@@ -49,7 +45,7 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_MESHLIGHT_COLOR, {1.0,1.0,1.0}).
 -define(DEF_MESHLIGHT_DOUBLE_SIDED, false).
 -define(DEF_USE_HARDNESS, false).
--define(DEF_AUTOSMOOTH, true).
+-define(DEF_AUTOSMOOTH, false).
 -define(DEF_AUTOSMOOTH_ANGLE, 181.0).
 -define(DEF_SSS_ABSORPTION_COLOR, {0.649,0.706,0.655}).
 -define(DEF_SCATTER_COLOR, {0.599,0.680,0.511}).
@@ -57,7 +53,6 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_ABSORPTION_DIST, 3.0).
 -define(DEF_DISPERSION_POWER, 0.0).
 -define(DEF_DISPERSION_SAMPLES, 10).
-
 
 
 %% Render
@@ -107,7 +102,6 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_AO_COLOR, {1.0,1.0,1.0}).
 -define(DEF_AA_PASSES, 3).
 -define(DEF_AA_MINSAMPLES, 1).
-%-define(DEF_AA_PIXELWIDTH, 1.5).
 -define(DEF_AA_THRESHOLD, 0.02).
 -define(DEF_CLAMP_RGB, true).
 -define(DEF_AA_FILTER_TYPE, box).
@@ -266,9 +260,7 @@ range_1(volume_attgridscale)    -> {1,5};
 range_1(volume_sharpness)       -> {1.0,100.0};
 range_1(volume_cover)           -> {0.0,1.0};
 range_1(volume_density)         -> {0.0,1.0};
-range_1(volume_minmax_x)        -> {1.0,1000.0};
-range_1(volume_minmax_y)        -> {1.0,1000.0};
-range_1(volume_minmax_z)        -> {1.0,1000.0};
+range_1(volume_region)          -> {0.5,1000.0};
 range_1(portal_power)           -> {0.0,10000.0};
 range_1(portal_samples)         -> {0,512};
 range_1(meshlight_power)        -> {0.0,10000.0};

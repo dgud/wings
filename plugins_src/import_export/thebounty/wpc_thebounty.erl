@@ -412,12 +412,12 @@ export(Attr, XMLFilename, #e3d_file{objs=Objs, mat=Mats, creator=Creator}) ->
             AlphaChannel =
                 case SaveAlpha of
                     true -> " -a ";
-                    _ ->     " "
+                    _ ->    " "
                 end,
 
             ArgStr = Options++case Options of
                                   [] -> [];
-                                  _ -> " "
+                                  _ ->  " "
                               end
                 ++wings_job:quote(filename:basename(ExportFile)),
             PortOpts = [{cd,filename:dirname(ExportFile)}],

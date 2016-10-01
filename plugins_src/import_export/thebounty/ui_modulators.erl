@@ -76,7 +76,7 @@ modulator_dialog({modulator,Ps}, Maps, MaterialType, M) when is_list(Ps) ->
     OffsetZ = proplists:get_value(offset_z, Ps, 0.0),
     Direction =  proplists:get_value(direction, Ps, xyz),
     
-    DiffuseLayer = proplists:get_value(diffuse_layer, Ps, false),
+    DiffuseLayer = proplists:get_value(diffuse_layer, Ps, true),
     DiffuseFactor = proplists:get_value(diffuse_factor, Ps, 1.0),
 
     MirrorLayer = proplists:get_value(mirror, Ps, false),
