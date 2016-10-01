@@ -53,8 +53,9 @@ menu(X, Y, St) ->
 	    separator,
 	    {?__(12,"Tighten"),tighten,
 	     ?__(13,"Move vertices towards average midpoint")},
-	    {?__(14,"Smooth"),smooth,
-	     ?__(15,"Subdivide all faces to give the object a smoother apperance")},
+	    {?__(14,"Subdivide"),subdiv_fun(),
+	     {?__(15,"Subdivide all faces to give the object a smoother apperance"),[],
+	     ?__(53,"Subdivide all the object's faces")},[]},
 	    {?__(16,"Combine"),combine,
 	     ?__(17,"Combine multiple objects into a single object")},
 	    {?__(18,"Separate"),separate,
@@ -114,6 +115,14 @@ flip_fun(Axis) ->
 	  (2, _Ns) -> {body,{flip,{dup(point),{Axis,{'ASK',[flip_point]}}}}};
 	  (3, _Ns) -> {body,{flip,{dup(global),Axis}}}
 	end.
+
+subdiv_fun() ->
+    fun
+	(1, _Ns) -> {body,smooth};
+	(3, _Ns) -> {body,subdiv};
+	(_, _) -> ignore
+    end.
+
 dup(Type) ->
 %% Return {dup,Type} if Alt is pressed during Flip command, otherwise Type.
     case wings_io:is_modkey_pressed(?ALT_BITS) of
@@ -172,6 +181,8 @@ command(tighten, St) ->
     tighten(St);
 command(smooth, St) ->
     ?SLOW({save_state,smooth(St)});
+command(subdiv, St) ->
+    ?SLOW({save_state,subdiv(St)});
 command(combine, St) ->
     {save_state,combine(St)};
 command(separate, St) ->
@@ -583,7 +594,16 @@ tighten(St) ->
 tighten(_, #we{vp=Vtab}=We, A) ->
     Vs = wings_util:array_keys(Vtab),
     wings_vertex_cmd:tighten(Vs, We, A).
-    
+
+%%%
+%%% The subdiv command.
+%%%
+
+subdiv(St) ->
+    wings_sel:map(fun(_, We) ->
+	wings_subdiv:subdiv(We)
+		  end, St).
+
 %%%
 %%% The Smooth command.
 %%%
@@ -738,13 +758,16 @@ rename(Objects, #st{shapes=Shs}=St) ->
 rename_1(Wes, St) ->
     Qs = rename_qs(Wes),
     wings_dialog:dialog(?__(1,"Rename"), Qs,
-			fun(NewNames) ->
+			fun([[]]) -> ignore;
+			   (NewNames) ->
 				rename_1(NewNames, Wes, St)
 			end).
 
 rename_1(Names, Wes, #st{shapes=Shs}=St) ->
     rename_2(Names, Wes, Shs, St).
 
+rename_2([[]|Ns], [#we{}|Wes], Shs0, St) ->
+    rename_2(Ns, Wes, Shs0, St);
 rename_2([N|Ns], [#we{id=Id}=We|Wes], Shs0, St) ->
     Shs = gb_trees:update(Id, We#we{name=N}, Shs0),
     rename_2(Ns, Wes, Shs, St);

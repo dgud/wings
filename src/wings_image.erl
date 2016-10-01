@@ -12,7 +12,7 @@
 %%
 
 -module(wings_image).
--export([init/1,init_opengl/0,
+-export([init/1,
 	 from_file/1,new/2,new_temp/2,new_hidden/2, create/1,
 	 rename/2,txid/1,info/1,images/0,
 	 screenshot/2,screenshot/1,viewport_screenshot/1,
@@ -35,8 +35,6 @@
 
 init(Opt) ->
     spawn_opt(fun() -> server(Opt) end, [link,{fullsweep_after,0}]).
-
-init_opengl() -> ok.
 
 %%%
 %%% Interface against plug-ins.
@@ -269,6 +267,7 @@ req(Req, Notify) ->
 
 server(Opt) ->
     register(wings_image, self()),
+    process_flag(trap_exit, true),
     case Opt of
 	wings_not_running ->
 	    put(wings_not_running, true);
@@ -280,6 +279,9 @@ server(Opt) ->
 
 loop(S0) ->
     receive
+	{'EXIT', _Wings, _} ->
+	    %% Time to die
+	    exit(normal);
 	{Client,Ref,Req} ->
 	    case handle(Req, S0) of
 		{{error,_GlErr}=Err,S} ->
@@ -712,7 +714,7 @@ window(Id) ->
 	true ->
 	    wings_wm:raise(Name);
 	false ->
-	    wings_image_viewer:new(info(Id)),
+	    wings_image_viewer:new(Name, info(Id)),
 	    keep
     end.
 

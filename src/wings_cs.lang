@@ -876,9 +876,7 @@
    ]},
   {def_hotkeys,
    [
-    {1,"Každému příkazu, který najdete v menu, může být přiřazena klávesová zkratka (hotkey)."},
-    {2,"Pro přiřazení klávesové zkratky k příkazu otevřete menu obsahující příkaz. na rozsvíceném příkazu  stiskněte [Insert] nebo klávesu [/], a poté stiskněte klávesu, kterou chcete danému příkazu přidělit."},
-    {3,"Pro vymazání klávesové zkratky, podobně rozsviťte příkaz v menu, a stiskněte [Del] nebo klávesy [\\]."}
+    {1,"Každému příkazu, který najdete v menu, může být přiřazena klávesová zkratka (hotkey)."}
    ]},
   {edit_prefs,
    [

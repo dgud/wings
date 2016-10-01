@@ -206,8 +206,8 @@ init() ->
     init_history().
 
 %% Display a text window (Info converted to html)
-info(Title, Info, _Options) ->
-    Parent = get_dialog_parent(),
+info(Title, Info, Options) ->
+    Parent = proplists:get_value(parent, Options, get_dialog_parent()),
     Flags  = [{size, {500, 400}}, {style, ?wxCAPTION bor ?wxRESIZE_BORDER bor ?wxCLOSE_BOX}],
     Frame  = wxMiniFrame:new(Parent, ?wxID_ANY, Title, Flags),
     Panel  = wxHtmlWindow:new(Frame, []),
@@ -218,8 +218,8 @@ info(Title, Info, _Options) ->
     wxSizer:setSizeHints(Sizer, Panel),
     wxWindow:setSizer(Frame, Sizer),
     wxFrame:show(Frame),
+    wxScrolledWindow:setFocus(Panel),
     keep.
-
 
 ask_preview(Cmd, Bool, Title, Qs, St) ->
     ask(Bool, Title, preview, Qs, preview_fun(Cmd, St)).
@@ -398,7 +398,11 @@ queries(Qs0) ->
 
 get_dialog_parent() ->
     case ?GET(dialog_parent) of
-	undefined -> ?GET(top_frame);
+	undefined ->
+	    case wings_wm:this_win() of
+		undefined -> ?GET(top_frame);
+		Win -> Win
+	    end;
 	Tuple when element(1, Tuple) =:= wx_ref ->
 	    Tuple
     end.
@@ -457,6 +461,7 @@ enter_dialog(true, PreviewType, Dialog, Fields, Fun) ->
     Op = {push,fun(Ev) -> event_handler(Ev, State) end},
     {TopW,TopH} = wings_wm:top_size(),
     wings_wm:new(dialog_blanket, {0,0,highest}, {TopW,TopH}, Op),
+    wings_wm:grab_focus(dialog_blanket),
     keep.
 
 notify_event_handler(false, _Msg) -> fun() -> ignore end;
@@ -501,10 +506,8 @@ event_handler(preview, #eh{fs=Fields, apply=Fun, owner=Owner}) ->
 	    %%io:format("~p:~p: ~p~n",[?MODULE,?LINE,{preview,[Owner,{action,Action}]}]),
 	    wings_wm:send(Owner, {action,Action})
     end;
-event_handler(#mousebutton{x=X0,y=Y0}=Ev, _) ->
-    {X,Y} = wings_wm:local2global(X0, Y0),
-    Win = wings_wm:geom_below(X, Y),
-    wings_wm:send(Win, {camera,Ev,keep});
+event_handler(#mousebutton{which=Obj}=Ev, _) ->
+    wings_wm:send(wings_wm:wx2win(Obj), {camera,Ev,keep});
 event_handler(#mousemotion{}, _) -> keep;
 event_handler(_Ev, _) ->
     %% io:format("unhandled Ev ~p~n",[_Ev]),
@@ -599,7 +602,7 @@ setup_hook(#in{key=Key, wx=Ctrl, type=radiobox, hook=UserHook, data=Keys}, Field
 					 UserHook(Key, Sel, Fields)
 				 end}]),
     UserHook(Key, lists:nth(1+wxRadioBox:getSelection(Ctrl),Keys),Fields);
-setup_hook(#in{key=Key, wx=Ctrl, type=text, hook=UserHook, def=Def, validator=Validate}, Fields) ->
+setup_hook(#in{key=Key, wx=Ctrl, type=text, hook=UserHook, wx_ext=Ext, def=Def, validator=Validate}, Fields) ->
     wxWindow:connect(Ctrl, command_text_updated,
 		     [{callback, fun(#wx{event=#wxCommand{cmdString=Str}}, Obj) ->
 					 wxEvent:skip(Obj),
@@ -607,6 +610,27 @@ setup_hook(#in{key=Key, wx=Ctrl, type=text, hook=UserHook, def=Def, validator=Va
 					 UserHook(Key, Val, Fields),
 					 ok
 				 end}]),
+    case Ext of
+	[Slider] ->
+        wxTextCtrl:connect(Ctrl, mousewheel,
+                 [{callback, fun(#wx{event=#wxMouse{type=mousewheel}=EvMouse}, Obj) ->
+                         wxEvent:skip(Obj),
+                         Str = text_wheel_move(Def,wxTextCtrl:getValue(Ctrl),EvMouse),
+                         case Validate(Str) of
+                             {true, Val} ->
+                                 UserHook(Key, Val, Fields),
+                                 ok;
+                             _ -> ok
+                         end
+                     end}]),
+        wxSlider:connect(Slider, scroll_thumbtrack,
+                 [{callback, fun(#wx{event=#wxScroll{commandInt=Val}}, Obj) ->
+                         wxEvent:skip(Obj),
+                         UserHook(Key, Val, Fields),
+                         ok
+                     end}]);
+	_ -> ignore
+    end,
     UserHook(Key,validate(Validate, wxTextCtrl:getValue(Ctrl), Def),Fields);
 setup_hook(#in{key=Key, wx=Ctrl, type=button, hook=UserHook}, Fields) ->
     wxButton:connect(Ctrl, command_button_clicked,
@@ -638,7 +662,7 @@ setup_hook(#in{key=Key, wx=Ctrl, type=slider, hook=UserHook, data={FromSlider,_}
 				 end}]),
     ok;
 
-setup_hook({Key, #in{wx=Ctrl, type=fontpicker, hook=UserHook}}, Fields) ->
+setup_hook(#in{key=Key, wx=Ctrl, type=fontpicker, hook=UserHook}, Fields) ->
     wxFontPickerCtrl:connect(Ctrl, command_fontpicker_changed,
 			     [{callback, fun(_, Obj) ->
 						 wxEvent:skip(Obj),
@@ -646,6 +670,23 @@ setup_hook({Key, #in{wx=Ctrl, type=fontpicker, hook=UserHook}}, Fields) ->
 						 UserHook(Key, Font, Fields)
 					 end}]),
     UserHook(Key, wxFontPickerCtrl:getSelectedFont(Ctrl), Fields);
+setup_hook(#in{key=Key, wx=Ctrl, type=filepicker, hook=UserHook}, Fields) ->
+    wxFilePickerCtrl:connect(Ctrl, command_filepicker_changed,
+			    [{callback, fun(_, Obj) ->
+						wxEvent:skip(Obj),
+						Font = wxFilePickerCtrl:getPath(Ctrl),
+						UserHook(Key, Font, Fields)
+					end}]),
+    UserHook(Key, wxFilePickerCtrl:getPath(Ctrl), Fields);
+
+setup_hook(#in{key=Key, wx=Ctrl, type=dirpicker, hook=UserHook}, Fields) ->
+    wxDirPickerCtrl:connect(Ctrl, command_dirpicker_changed,
+			   [{callback, fun(_, Obj) ->
+					       wxEvent:skip(Obj),
+					       Font = wxDirPickerCtrl:getPath(Ctrl),
+					       UserHook(Key, Font, Fields)
+				       end}]),
+    UserHook(Key, wxDirPickerCtrl:getPath(Ctrl), Fields);
 setup_hook(#in{key=Key, wx=Ctrl, type=table, hook=UserHook}, Fields) ->
     wxListCtrl:connect(Ctrl, command_list_item_focused,
         [{callback, fun(_, _) ->
@@ -685,7 +726,9 @@ setup_hook(_What, _) ->
 return_result(Fun, Values, Owner) ->
     case Fun(Values) of
 	ignore ->
-	    ok;
+	    keep;
+	{return, Result} ->
+	    Result;
 	#st{}=St ->
 	    wings_wm:send(Owner, {new_state,St});
 	{commit,#st{}=St0,#st{}=St}->
@@ -696,8 +739,7 @@ return_result(Fun, Values, Owner) ->
 	    wings_wm:send_after_redraw(Owner, {action,Action});
 	Action when is_tuple(Action); is_atom(Action) ->
 	    wings_wm:send(Owner, {action,Action})
-    end,
-    keep.
+    end.
 
 to_label_column(Qs) ->
     lists:map(fun label_col/1, Qs).
@@ -802,8 +844,8 @@ build(Ask, {vframe_dialog, Qs, Flags}, Parent, Sizer, []) ->
 			     BtnHelp = wxButton:new(Dialog,?wxID_HELP),
 			     wxSizer:insert(Ok, 0, BtnHelp, []),
 			     Help = fun(#wx{},_) ->
-                                 info(Title,Content, [{top_frame, Dialog}])
-			     end,
+					    info(Title,Content, [{parent, Dialog}])
+				    end,
 			     wxDialog:connect(Dialog, command_button_clicked,
 			                      [{id, ?wxID_HELP}, {callback,Help}]);
 		         _ -> ignore
@@ -838,8 +880,8 @@ build(Ask, {oframe, Tabs, Def, Flags}, Parent, WinSizer, In0)
 		      Out
 	      end,
     In = lists:foldl(AddPage, In0, Tabs),
-    case Def =< length(In) of
-	true -> wxNotebook:setSelection(NB, Def+1);
+    case 0 < Def andalso Def < length(Tabs) of
+	true  -> wxNotebook:setSelection(NB, Def-1);
 	false -> ignore
     end,
     wxSizer:add(WinSizer, NB, [{proportion, 1},{flag, ?wxEXPAND}]),
@@ -1052,6 +1094,9 @@ build(Ask, {button, {text, Def, Flags}}, Parent, Sizer, In) ->
 		                [{style, What bor ?wxFLP_USE_TEXTCTRL},
 		                    {path, Def},
 		                    {wildcard, Filter}]++StyleEx),
+		            PreviewFun = notify_event_handler_cb(Ask, preview),
+		            wxFilePickerCtrl:connect(Ctrl, command_filepicker_changed,
+						     [{callback, PreviewFun}]),
 		            tooltip(Ctrl, Flags),
 		            add_sizer(filepicker, Sizer, Ctrl, Flags),
 		            Ctrl
@@ -1061,6 +1106,9 @@ build(Ask, {button, {text, Def, Flags}}, Parent, Sizer, In) ->
             Create = fun() ->
 		            Ctrl = wxDirPickerCtrl:new(Parent, ?wxID_ANY,
 		                [{style, ?wxDIRP_DEFAULT_STYLE bor ?wxDIRP_USE_TEXTCTRL}, {path, Def}]++StyleEx),
+			    PreviewFun = notify_event_handler_cb(Ask, preview),
+			    wxDirPickerCtrl:connect(Ctrl, command_dirpicker_changed,
+						     [{callback, PreviewFun}]),
 		            tooltip(Ctrl, Flags),
 		            add_sizer(filepicker, Sizer, Ctrl, Flags),
 		            Ctrl
@@ -1134,6 +1182,8 @@ build(Ask, {menu, Entries, Def, Flags}, Parent, Sizer, In) ->
 		lists:foldl(fun(Choice,N) -> setup_choices(Choice, Ctrl, Def, N) end, 0, Entries),
 		tooltip(Ctrl, Flags),
 		add_sizer(choice, Sizer, Ctrl, Flags),
+		Callback = {callback, notify_event_handler_cb(Ask, preview)},
+		wxCheckBox:connect(Ctrl, command_choice_selected, [Callback]),
 		Ctrl
 	end,
     [#in{key=proplists:get_value(key,Flags), def=Def, hook=proplists:get_value(hook, Flags),
@@ -1192,9 +1242,8 @@ build(Ask, {image, ImageOrFile}, Parent, Sizer, In) ->
     In;
 
 build(Ask, {help, Title, Fun}, Parent, Sizer, In) ->
-    TopFrame = get(top_frame),
     Display = fun(_,_) ->
-		      info(Title, Fun(), [{top_frame, TopFrame}])
+		      info(Title, Fun(), [{parent, Parent}])
 	      end,
     Create = fun() ->
 		     Button = wxButton:new(Parent, ?wxID_HELP),
@@ -1208,12 +1257,10 @@ build(Ask, {help, Title, Fun}, Parent, Sizer, In) ->
 build(Ask, {custom_gl, CW, CH, Fun}, Parent, Sizer, In) ->
     build(Ask, {custom_gl, CW, CH, Fun, []}, Parent, Sizer, In);
 build(Ask, {custom_gl, CW, CH, Fun, Flags}, Parent, Sizer, In) ->
-    Context = wxGLCanvas:getContext(get(gl_canvas)),
+    Context = wxGLCanvas:getContext(?GET(gl_canvas)),
     Create = fun() ->
-		     Canvas = wxGLCanvas:new(Parent, Context,
-					     [{size, {CW,CH}},
-					      {attribList, wings_init:gl_attributes()}
-					     ]),
+		     Ps = [{size, {CW,CH}},wings_gl:attributes()],
+		     Canvas = wxGLCanvas:new(Parent, Context, Ps),
 		     add_sizer(custom, Sizer, Canvas, Flags),
 		     Canvas
 	     end,
@@ -1455,7 +1502,11 @@ slider_style(Def, {Min, Max})
 		     Step = (Max - Min) / 100,
 		     Min + Percent * Step
 	     end,
-    {0, ToSlider(Def), 100, ?wxSL_HORIZONTAL, ToText, ToSlider}.
+    {0, ToSlider(Def), 100, ?wxSL_HORIZONTAL, ToText, ToSlider};
+slider_style(Def, {Min, Max}=MM) when Min < Max ->
+    if Def < Min -> slider_style(Min,MM);
+       Def > Max -> slider_style(Max,MM)
+    end.
 
 add_sizer(What, Sizer, Ctrl, Opts) ->
     {Proportion0, Border0, Flags0} =
@@ -1539,15 +1590,15 @@ text_to_html(Paragraphs) ->
     Html = text_to_html(Paragraphs, Header),
     lists:reverse(["</html>"|Html]).
 
-text_to_html([[_|_] = Paragraph|Ps], Acc) ->
-    text_to_html(Ps, ["</p>", paragraph_to_html(Paragraph), "<p>"|Acc]);
-text_to_html([Table = {table,_,_,_}|Ps], Acc) ->
+text_to_html([{table,_,_,_}=Table|Ps], Acc) ->
     text_to_html(Ps, [table_to_html(Table)|Acc]);
 text_to_html([{bullet, List}|Rest], Acc) ->
-    BulletList = ["</p><ul>",
+    BulletList = ["<ul>",
 		  ["<li>" ++ paragraph_to_html(Item) ++ "</li>" || Item <- List],
-		  "</ul><p>"],
+		  "</ul>"],
     text_to_html(Rest, [BulletList|Acc]);
+text_to_html([Paragraph|Ps], Acc) ->
+    text_to_html(Ps, ["</p>", paragraph_to_html(Paragraph), "<p>"|Acc]);
 text_to_html([], Acc) -> Acc.
 
 paragraph_to_html([$\n|Text]) ->
@@ -1560,6 +1611,10 @@ paragraph_to_html([{ul, Text}|Rest]) ->
     ["<u>", paragraph_to_html(Text), "</u>"| paragraph_to_html(Rest)];
 paragraph_to_html([Table={table, _, _, _}|Rest]) ->
     ["</p>", table_to_html(Table), "<p>" | paragraph_to_html(Rest)];
+paragraph_to_html([{bullet, List}|Rest]) ->
+    ["</p><ul>",
+     ["<li>" ++ paragraph_to_html(Item) ++ "</li>" || Item <- List],
+     "</ul><p>" | paragraph_to_html(Rest)];
 paragraph_to_html([C|Text]) when is_list(C) ->
     [paragraph_to_html(C), paragraph_to_html(Text)];
 paragraph_to_html([]) -> [].

@@ -70,6 +70,8 @@ MODULES= \
 	wings_file \
 	wings_ff_ndo \
 	wings_ff_wings \
+	wings_frame \
+	wings_geom_win \
 	wings_gl \
 	wings_glfont \
 	wings_help \
@@ -77,7 +79,6 @@ MODULES= \
 	wings_image \
 	wings_image_viewer \
 	wings_import \
-	wings_init \
 	wings_io \
 	wings_io_wx \
 	wings_job \
@@ -114,6 +115,7 @@ MODULES= \
 	wings_tesselation \
 	wings_text \
 	wings_tweak \
+	wings_tweak_win \
 	wings_u \
 	wings_undo \
 	wings_util \
@@ -127,8 +129,6 @@ MODULES= \
 	wings_we_build \
 	wings_we_util \
 	wings_wm \
-	wings_wm_menu \
-	wings_wm_toplevel \
 	wpa \
 	ww_color_ctrl \
 	ww_color_slider

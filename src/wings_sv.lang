@@ -648,12 +648,7 @@
     {13," eller "},
     {15," kan det andra snabbkommandot inte användas."}]},
   {def_hotkeys,
-   [{1,"Alla kommandon i menyer kan tilldelas en korttangent."},
-    {2,"För att tilldela en korttangent till ett kommando, öppna menyn som "
-     "kommandot finns i. Med kommandot valt, tryck [Insert] eller [/], och "
-     "sedan på den tangent som du vill tilldela kommando till."},
-    {3,"För att radera en korttangent, välj kommandot i en meny, och tryck "
-     "[Del] eller [\\]."}]},
+   [{1,"Alla kommandon i menyer kan tilldelas en korttangent."}]},
   {edit_prefs,
    [{1,"Redigera"},
     {2,"Inställningar"}]},

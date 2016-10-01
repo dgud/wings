@@ -25,6 +25,9 @@ ICONSETS= \
 
 TARGET_FILES = $(ICONSETS:%=$(EBIN)/wings_icon_%.bundle)
 
+GEN_PS_ICONS=$(wildcard orig/bluecube-assests/*.png)
+PS_ICONS=$(patsubst %,bluecube/%,$(notdir $(GEN_PS_ICONS)))
+
 # ----------------------------------------------------
 # FLAGS
 # ----------------------------------------------------
@@ -37,7 +40,10 @@ ERL_COMPILE_FLAGS += -Werror +debug_info
 
 opt debug: collect_bmp.beam $(TARGET_FILES)
 
-$(EBIN)/wings_icon_%.bundle: ${wildcard %/*.bmp} ${wildcard %/*.tga} collect_bmp.beam about_wings.bmp
+bluecube/%.png: orig/bluecube-assests/%.png
+	mv $? $@
+
+$(EBIN)/wings_icon_%.bundle: %/*.bmp %/*.png collect_bmp.beam about_wings.bmp
 	erl $(ERL_FLAGS) -noinput -run collect_bmp start . $(ESRC)/$* $@ -s erlang halt
 
 clean:
@@ -45,6 +51,7 @@ clean:
 		rm -f $(EBIN)/wings_icon_$$ICONSET.bundle; \
 	done
 	rm -f collect_bmp.beam
+	@echo
 
 %.beam: $(ESRC)/%.erl
 	$(ERLC) $(ERL_COMPILE_FLAGS) -o. $<

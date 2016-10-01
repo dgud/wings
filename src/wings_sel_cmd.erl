@@ -268,10 +268,10 @@ command({ssels, recall_selection}, #st{selmode=Mode,ssels=Ssels}=St0) ->
 	    St = select_group(Key, St0),
 	    {save_state,St}
     end;
-command({ssels,{select_group,saved_selections_cycle_by_mode}}, St) ->
+command({ssels,saved_selections_cycle_by_mode}, _St) ->
     Pref = wings_pref:get_value(saved_selections_cycle_by_mode),
     wings_pref:set_value(saved_selections_cycle_by_mode, not Pref),
-    {save_state,St};
+    keep;
 command({ssels,next_group}, St) ->
     {save_state,cycle_group(next_group, St)};
 command({ssels,prev_group}, St) ->

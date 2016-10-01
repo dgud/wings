@@ -642,11 +642,12 @@
     {15," -kameratilaa, toista oletuskomentoa ei voi käyttää."}]},
   {def_hotkeys,
    [{1,"Kaikkiin valikoissa oleviin komentoihin voidaan liittää pikanäppäin."},
-    {2,"Liittääksesi pikanäppäimen komennolle, avaa valikko jossa kyseinen."
-     "komento on. Komennon ollessa korostettuna, paina [Insert] tai [/], seuraavaksi "
-     "paina näppäintä johon haluat liittää komennon."},
-    {3,"Poistaaksesi pikanäppäimen, korosta komento valikosta, ja paina "
-     "[Del] tai [\\]."}]},
+    {4,"Liittääksesi pikanäppäimen komennolle:"},
+    {6,"1. Paina ~ts tai ~ts, seuraavaksi"},
+    {5,"2. Valitse (tarkoituksenmukainen hiiren painiketta) valikkokohdan komennon"},
+    {8,"3. Tietoa linja pyytää sinua painamaan näppäintä johon haluat liittää komennon."},
+    {9,"Samoin, poistaaksesi pikanäppäimen, paina ~ts tai ~ts ja korosta komento valikosta."
+     "Valintaikkunan tulee näkyviin. Tarkista kaikki pikanäppäimet, jotka haluat poistaa."}]},
   {edit_prefs,
    [{1,"Muokkaa"},
     {2,"Asetukset"}]},

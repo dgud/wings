@@ -568,6 +568,7 @@ not_bad(workmode, _) -> false;
 not_bad(orthogonal_view, _) -> false;
 not_bad(show_memory_used, _) -> false;
 not_bad(show_axes, _) -> false;
+not_bad(show_cam_imageplane, _) -> false;
 not_bad(show_groundplane, _) -> false;
 not_bad(current_view, _) -> false;
 not_bad(camera_fov, _) -> false;
@@ -825,47 +826,48 @@ treat_hotkeys(Res) ->
     end.
 
 init_opengl() ->
-    case wings_io:is_maximized() of
-      false ->
-        {W, H} = wings_wm:top_size(),
-        wings_wm:reinit_opengl(),
-        wings_wm:resize_windows(W, H),
-        wings_wm:dirty();
-      true ->
-        wings_wm:reinit_opengl(),
-        wings_wm:dirty()
-    end.
+    wings_wm:dirty().
 
 update_recent_prefs(Dir) ->
     Recent0 = get_value(recent_prefs,[]),
+    PrevLen = length(Recent0),
     Recent1 = [Dir|lists:delete(Dir,Recent0)],
     Recent = lists:sublist(Recent1, 5),
+    Update = fun(File, N) when N =< PrevLen ->
+                     {_,Pref} = split_dir(lists:reverse(File),[]),
+                     wings_menu:update_menu(file, {load_pref, N}, Pref, recent_pref_help()),
+                     N+1;
+                (_, N) ->
+                     N
+             end,
+    Next = lists:foldl(Update, 1, Recent),
+    case length(Recent) > PrevLen of
+        false -> ok;
+        true -> %% Add the last one
+            {_,Pref} = split_dir(lists:reverse(lists:last(Recent)),[]),
+            wings_menu:update_menu(file, {load_pref, Next},
+                                   {append, -1, Pref},
+                                   recent_pref_help())
+    end,
     set_value(recent_prefs, Recent).
 
 recent_prefs() ->
     Recent = get_value(recent_prefs,[]),
     recent_prefs(Recent,1).
-recent_prefs([Dir|Recent],1) ->
-    case lists:suffix(".pref",Dir) of
-      true ->
-        {_,Pref} = split_dir(lists:reverse(Dir),[]),
-        [separator,{Pref,1,recent_pref_help()}|recent_prefs(Recent,2)];
-      false ->
-        P0 = get_value(recent_prefs),
-        P = P0 -- Dir,
-        set_value(recent_prefs,P),
-        recent_prefs(Recent,1)
-    end;
 recent_prefs([Dir|Recent],N) ->
     case lists:suffix(".pref",Dir) of
-      true ->
-        {_,Pref} = split_dir(lists:reverse(Dir),[]),
-        [{Pref,N,recent_pref_help()}|recent_prefs(Recent,N+1)];
-      false ->
-        P0 = get_value(recent_prefs),
-        P = P0 -- Dir,
-        set_value(recent_prefs,P),
-        recent_prefs(Recent,N)
+        true ->
+            {_,Pref} = split_dir(lists:reverse(Dir),[]),
+            PrefEntries = [{Pref,N,recent_pref_help()}|recent_prefs(Recent,N+1)],
+            case N of
+                1 -> [separator|PrefEntries];
+                _ -> PrefEntries
+            end;
+        false ->
+            P0 = get_value(recent_prefs),
+            P = P0 -- Dir,
+            set_value(recent_prefs,P),
+            recent_prefs(Recent,N)
     end;
 recent_prefs([],_) -> [].
 
@@ -995,11 +997,12 @@ save_pref_category([{windows,Bool}|Options], List, Defaults, St, Acc0) ->
     C2 = lists:keyfind(console_save_lines,1,List),
     C3 = lists:keyfind(console_width,1,List),
     WinSize = lists:keyfind(window_size,1,List),
-    WP = wings:save_windows_1(wings_wm:windows()),
-    Windows = [WinSize,C1,C2,C3|WP],
-    Acc = if Bool -> [{windows,Windows}|Acc0];
-             true -> Acc0 end,
-    NewList = (List--Windows)--[{saved_windows,WP}],
+    WCWF = wings_frame:export_layout(),
+    Windows = [WinSize,C1,C2,C3],
+    Acc = if Bool -> [{saved_windows2,WCWF}|Acc0];
+             true -> Acc0
+          end,
+    NewList = (List--Windows)--[{saved_windows2,WCWF}],
     save_pref_category(Options, NewList,  Defaults--Windows, St, Acc);
 save_pref_category([], _, _, _, Acc) -> Acc.
 
@@ -1011,62 +1014,28 @@ load_pref_category([{pref_directory,Dir}|Options], List, St) ->
 load_pref_category([{_,false}|Options], List, St) ->
     load_pref_category(Options, List, St);
 load_pref_category([{graphical,true}|Options], List, St) ->
-%% Load color preferences
+    %% Load color preferences
     Colors = case lists:keyfind(graphical, 1, List) of
-        {_,C} -> C;
-        false -> []
-    end,
+		 {_,C} -> C;
+		 false -> []
+	     end,
     catch wings_pref_dlg:set_values(Colors, St),
     load_pref_category(Options, List, St);
 load_pref_category([{windows,true}|Options], List, St) ->
-%% Load preference windows and remove any old windows
-    OldWindows = wings:save_windows_1(wings_wm:windows()),
-    case lists:keyfind(windows, 1, List) of
-        {_,Windows0} ->
-            foreach(fun
-              ({_,Prop}=P) when is_integer(Prop) ->
-                ets:insert(wings_state,P);
-              ({window_size,_}=P) ->
-                ets:insert(wings_state,P),
-                init_opengl();
-              (Window) ->
-                Name = element(1,Window),
-                case wings_wm:is_window(Name) of
-                  true when Name =:= geom ->
-                    Props = element(4,Window),
-                    case proplists:get_bool(toolbar_hidden, Props) of
-                      true -> wings_wm:hide({toolbar,geom});
-                      false -> ok
-                    end,
-                    wings:set_geom_props(Props,Name),
-                    Pos = element(2,Window),
-                    Size = element(3,Window),
-                    wings_wm:move(Name,Pos,Size);
-                  true ->
-                    wings_wm:delete(Name),
-                    wings:restore_windows_1([Window], St);
-                  false ->
-                    wings:restore_windows_1([Window], St)
-                end
-            end,Windows0),
-            %% Delete old windows
-            foreach(fun(OldWindow) ->
-                OldName = element(1,OldWindow),
-                case lists:keymember(OldName,1,Windows0) of
-                  false -> wings_wm:delete(OldName);
-                  _ -> ok
-                end
-              end, OldWindows);
-        false -> ok
+    %% Load preference windows and remove any old windows
+    case lists:keyfind(saved_windows2, 1, List) of
+        {saved_windows2, {_WC,_WF} = WCWF} ->
+            wings_frame:import_layout(WCWF, St);
+        _ -> ok
     end,
     load_pref_category(Options, List, St);
-% Load Hotkeys
+%% Load Hotkeys
 load_pref_category([{hotkeys,true}|Options], List, St) ->
     case lists:keyfind(hotkeys, 1, List) of
         {_,Prefs} ->
-          foreach(fun(Hkey) ->
-            ets:insert(wings_state, Hkey)
-          end, clean(Prefs));
+	    foreach(fun(Hkey) ->
+			    ets:insert(wings_state, Hkey)
+		    end, clean(Prefs));
         false -> wings_hotkey:set_default()
     end,
     load_pref_category(Options, List, St);
@@ -1074,9 +1043,9 @@ load_pref_category([{hotkeys,true}|Options], List, St) ->
 load_pref_category([{Other,true}|Options], List, St) ->
     case lists:keyfind(Other, 1, List) of
         {_,Prefs} ->
-          foreach(fun(P) ->
-            ets:insert(wings_state, P)
-          end, clean(Prefs));
+	    foreach(fun(P) ->
+			    ets:insert(wings_state, P)
+		    end, clean(Prefs));
         false -> ok
     end,
     load_pref_category(Options, List, St);

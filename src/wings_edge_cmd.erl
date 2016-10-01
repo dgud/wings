@@ -39,17 +39,18 @@ menu(X, Y, St) ->
 	    wings_menu_util:flatten(),
 	    separator,
 	    cut_line(St),
-	    {?__(6,"Connect"),connect,
-	     ?__(7,"Create a new edge by connecting midpoints of selected edges")},
+	    {?__(6,"Connect"),connect(),
+	     	{?__(7,"Create a new edge by connecting midpoints of selected edges"), [],
+		 ?__(25,"Create a new edge and slides it along neighbor edges")},[]},
 	    {?__(8,"Bevel"),bevel,
 	     ?__(9,"Round off selected edges")},
 	    separator,
 	    {?__(10,"Dissolve"), dslv(),
-		 {?__(11,"Eliminate selected edges"), [],
-		  ?__(50,"Eliminate selected edges and remove remaining isolated verts")},[]},
-		{?__(12,"Collapse"),collapse_fun(),
-	     {?__(13,"Delete edges, replacing them with vertices"), [],
-		  ?__(21,"Delete edges, replacing them with vertices and remove any newly created isolated vertices")},[]},
+		{?__(11,"Eliminate selected edges"), [],
+		 ?__(50,"Eliminate selected edges and remove remaining isolated verts")},[]},
+	    {?__(12,"Collapse"),collapse_fun(),
+	     	{?__(13,"Delete edges, replacing them with vertices"), [],
+		 ?__(21,"Delete edges, replacing them with vertices and remove any newly created isolated vertices")},[]},
 	    separator,
 	    {?__(14,"Hardness"),
 	     {hardness,[{?__(15,"Soft"),soft},
@@ -64,6 +65,12 @@ menu(X, Y, St) ->
 	     ?__(20,"Apply vertex colors to selected edges")}],
     wings_menu:popup_menu(X, Y, edge, Menu).
 
+connect() ->
+    fun
+	(1, _Ns) -> {edge,connect};
+	(3, _Ns) -> {edge,connect_slide};
+	(_, _) -> ignore
+    end.
 dslv() ->
     fun
 	(1, _Ns) -> {edge,dissolve};
@@ -136,6 +143,8 @@ command({cut,Num}, St) ->
     {save_state,cut(Num, St)};
 command(connect, St) ->
     {save_state,connect(St)};
+command(connect_slide, St) ->
+    connect_slide(St);
 command(clean_dissolve, St) ->
     {save_state,wings_shape:update_folders(clean_dissolve(St))};
 command(dissolve, St) ->
@@ -179,6 +188,11 @@ connect(Es0, #we{id=Id}=We0, Acc) ->
     Sel = wings_we:new_items_as_gbset(edge, We1, We2),
     We = wings_edge:dissolve_isolated_vs(Vs, We2),
     {We,[{Id,Sel}|Acc]}.
+
+connect_slide(St1) ->
+    {St0,Sel} = wings_sel:mapfold(fun connect/3, [], St1),
+    St=wings_sel:set(Sel, St0),
+    slide(St).
 
 cut_edges(Es, We) ->
     mapfoldl(fun(Edge, W0) ->
@@ -290,7 +304,7 @@ cut_pick_marker([I], D, Edge, We0, Start, Dir, Char) ->
 		   gl:pushMatrix(),
 		   gl:loadIdentity(),
 		   gl:rasterPos2f(Sx, Sy),
-		   wings_io:draw_char(Char),
+		   wings_io:draw_bitmap(Char),
 		   gl:popMatrix(),
 		   gl:matrixMode(?GL_PROJECTION),
 		   gl:popMatrix(),

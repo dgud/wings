@@ -50,11 +50,20 @@ make_ncube(Arg, _) ->
     X = dict:fetch(xcube, ArgDict)/2,
     Y = dict:fetch(ycube, ArgDict)/2,
     Z = dict:fetch(zcube, ArgDict)/2,
+    Rot_X = dict:fetch(rot_x, ArgDict),
+    Rot_Y = dict:fetch(rot_y, ArgDict),
+    Rot_Z = dict:fetch(rot_z, ArgDict),
+    Mov_X = dict:fetch(mov_x, ArgDict),
+    Mov_Y = dict:fetch(mov_y, ArgDict),
+    Mov_Z = dict:fetch(mov_z, ArgDict),
+    Ground = dict:fetch(ground, ArgDict),
+
     SpherizeFlag = dict:fetch(spherizeflag, ArgDict),
     Verts = ncube_verts(Nres+1),
     Faces = ncube_faces(Nres+1, Nres+1),
     {Vs0, Fs} = clean_indexed_mesh(Verts, Faces),
-    Vs = transform_mesh(SpherizeFlag, {X,Y,Z}, Vs0),
+    Vs1 = transform_mesh(SpherizeFlag, {X,Y,Z}, Vs0),
+    Vs = wings_shapes:transform_obj({Rot_X,Rot_Y,Rot_Z},{Mov_X,Mov_Y,Mov_Z},Ground, Vs1),
     {new_shape,cube_str(),Fs,Vs}.
 
 ncube_dialog() ->
@@ -63,13 +72,17 @@ ncube_dialog() ->
     [{hframe,
       [{slider, {text, Nres,
 		 [{key,nres},{range,{1,20}}]}}],[{title, ?__(1,"Number of Cuts")}]},
-     {hframe,[{label,wings_s:dir(x)},{text,2.0,[{key,xcube},{range,{0.0,infinity}}]}]},
-     {hframe,[{label,wings_s:dir(y)},{text,2.0,[{key,ycube},{range,{0.0,infinity}}]}]},
-     {hframe,[{label,wings_s:dir(z)},{text,2.0,[{key,zcube},{range,{0.0,infinity}}]}]},
-     {vradio,[{?__(2,"Yes"), true},
-	      {?__(3,"No"), false}],
-      SpherizeFlag,
-      [{key,spherizeflag}, {title, ?__(4,"Spherize")}]}
+        {hframe,[
+            {label_column, [
+                {wings_s:dir(x), {text,2.0,[{key,xcube},{range,{0.0,infinity}}]}},
+                {wings_s:dir(y), {text,2.0,[{key,ycube},{range,{0.0,infinity}}]}},
+                {wings_s:dir(z), {text,2.0,[{key,zcube},{range,{0.0,infinity}}]}}
+            ]}
+        ],[{margin,false}]},
+        {hradio,[{?__(2,"Yes"), true},
+                 {?__(3,"No"), false}],
+                SpherizeFlag, [{key,spherizeflag}, {title, ?__(4,"Spherize")}]},
+        wings_shapes:transform_obj_dlg()
     ].
 
 ncube_verts(Nres) ->
@@ -130,19 +143,30 @@ make_ngon(Arg, _) ->
     ArgDict = dict:from_list(Arg),
     NumVerts = dict:fetch(numverts, ArgDict),
     Radius = dict:fetch(radius, ArgDict),
-    Vs = ngon_verts(NumVerts, Radius),
+    Rot_X = dict:fetch(rot_x, ArgDict),
+    Rot_Y = dict:fetch(rot_y, ArgDict),
+    Rot_Z = dict:fetch(rot_z, ArgDict),
+    Mov_X = dict:fetch(mov_x, ArgDict),
+    Mov_Y = dict:fetch(mov_y, ArgDict),
+    Mov_Z = dict:fetch(mov_z, ArgDict),
+    Ground = dict:fetch(ground, ArgDict),
+
+    Vs1 = ngon_verts(NumVerts, Radius),
+    Vs = wings_shapes:transform_obj({Rot_X,Rot_Y,Rot_Z},{Mov_X,Mov_Y,Mov_Z},Ground, Vs1),
     Fs = ngon_faces(NumVerts),
     {new_shape,?__(2,"N-Gon"),Fs,Vs}.
 
 ngon_dialog() ->
     NumVerts = get_pref(numverts, 5),
     Radius = get_pref(radius, 1.0),
-    [{hframe, [{label, ?__(3,"Number of Verts")},
-	       {slider, {text, NumVerts,
-	       [{key, numverts}, {range, {3, 20}}]}}]},
-     {hframe, [{label, ?__(4,"Radius")},
-	       {slider, {text, Radius,
-	       [{key, radius}, {range, {0.1, 20.0}}]}}]}].
+    [{vframe, [
+        {label_column, [
+            {?__(3,"Number of Verts"), {slider, {text, NumVerts,
+                                                 [{key, numverts}, {range, {3, 20}}]}}},
+            {?__(4,"Radius"), {slider, {text, Radius, [{key, radius}, {range, {0.1, 20.0}}]}}}]
+        },
+        wings_shapes:transform_obj_dlg()]
+    }].
 
 ngon_verts(NumVerts, Radius) ->
     Nres = NumVerts,
@@ -164,7 +188,3 @@ clean_indexed_mesh(Verts, Faces) ->
 
 get_pref(Key, Def) ->
     wpa:pref_get(?MODULE, Key, Def).
-
-% set_pref(KeyVals) ->
-%     wpa:pref_set(?MODULE, KeyVals).
-

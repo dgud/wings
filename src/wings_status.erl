@@ -56,17 +56,19 @@ init([Frame]) ->
 handle_event(_Ev, State) ->
     {noreply, State}.
 
-handle_cast({message, Win, Left, Right}, State = #state{sb=SB, prev=Prev, msgs=GB0}) ->
+handle_cast({message, Win, Left, Right}, #state{sb=SB, prev=Prev, msgs=GB0}=State) ->
     GB = case gb_trees:lookup(Win, GB0) of
 	     none ->
 		 gb_trees:insert(Win, {str(Left,""), str(Right,"")}, GB0);
 	     {value, {OldL, OldR}} ->
 		 gb_trees:update(Win, {str(Left, OldL), str(Right, OldR)}, GB0)
 	 end,
-    {noreply, State#state{msgs=GB, prev = update_status(gb_trees:lookup(Win, GB), Prev, SB)}}.
+    {noreply, State#state{msgs=GB, prev=update_status(gb_trees:lookup(Win, GB), Prev, SB)}};
+handle_cast({active, Win}, #state{sb=SB, prev=Prev, msgs=GB}=State) ->
+    {noreply, State#state{prev=update_status(gb_trees:lookup(Win, GB), Prev, SB)}}.
 
 handle_call(_Call, _From, State) ->
-    io:format("Call ~p~n",[_Call]),
+    %% io:format("Call ~p~n",[_Call]),
     {reply, keep, State}.
 
 handle_info(_, State) ->
