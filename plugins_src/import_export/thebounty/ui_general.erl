@@ -35,7 +35,7 @@ export_prefs() ->
         {save_alpha, false},
         {clamp_rgb,false},
         {exr_float, false},
-        {exr_flag_compression,?DEF_EXR_FLAG_COMPRESSION},
+        {exr_flag_compression, exr_none},
         {aa_filter_type,?DEF_AA_FILTER_TYPE},
         {aa_pixelwidth,1.5},{aa_passes,1},{aa_samples,2},
         {aa_threshold,0.05},{aa_moresamples,1},

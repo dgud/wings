@@ -56,7 +56,7 @@ export_light(F, Name, point, OpenGL, Attr) ->
 %!-------------------------------------------
 export_light(F, Name, infinite, OpenGL, Attr) ->
     Type = proplists:get_value(type, Attr, ?DEF_INFINITE_TYPE),
-    IsInfinite = proplists:get_value(infinite_true, Attr, ?DEF_INFINITE_TRUE),
+    IsInfinite = proplists:get_value(infinite_true, Attr, true),
     Power = proplists:get_value(power, Attr, ?DEF_POWER),
     Position = proplists:get_value(position, OpenGL, {0.0,0.0,0.0}),
     Diffuse = proplists:get_value(diffuse, OpenGL, {0.9,0.9,0.9,0.9}),

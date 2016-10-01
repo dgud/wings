@@ -35,21 +35,20 @@ count_equal([H|T], C, K, R) ->
 
 export_object_1(F, NameStr, Mesh0=#e3d_mesh{he=He0}, DefaultMaterial, MatPs, Id) ->
     Attr = proplists:get_value(?TAG, MatPs, []),
-    _OpenGL = proplists:get_value(opengl, MatPs),
-    UseHardness = proplists:get_value(use_hardness, Attr, ?DEF_USE_HARDNESS),
-    Object_Type = proplists:get_value(object_type, Attr, ?DEF_OBJECT_TYPE),
+    OpenGL = proplists:get_value(opengl, MatPs),
+    UseHardness = proplists:get_value(use_hardness, Attr, false),
+    Object_Type = proplists:get_value(object_type, Attr, mesh),
 
     Volume_Sigma_a = proplists:get_value(volume_sigma_a, Attr, ?DEF_VOLUME_SIGMA_A),
     Volume_Sigma_s = proplists:get_value(volume_sigma_s, Attr, ?DEF_VOLUME_SIGMA_S),
-    Volume_Height = proplists:get_value(volume_height, Attr, ?DEF_VOLUME_HEIGHT),
-    Volume_Steepness = proplists:get_value(volume_steepness, Attr, ?DEF_VOLUME_STEEPNESS),
+    %Volume_Height = proplists:get_value(volume_height, Attr, ?DEF_VOLUME_HEIGHT),
     Volume_Attgridscale = proplists:get_value(volume_attgridscale, Attr, ?DEF_VOLUME_ATTGRIDSCALE),
-    Volume_Sharpness = proplists:get_value(volume_sharpness, Attr, ?DEF_VOLUME_SHARPNESS),
     Volume_Cover = proplists:get_value(volume_cover, Attr, ?DEF_VOLUME_COVER),
-    Volume_Density = proplists:get_value(volume_density, Attr, ?DEF_VOLUME_DENSITY),
-    Volume_Minmax_X = proplists:get_value(volume_minmax_x, Attr, ?DEF_VOLUME_MINMAX_X),
-    Volume_Minmax_Y = proplists:get_value(volume_minmax_y, Attr, ?DEF_VOLUME_MINMAX_Y),
-    Volume_Minmax_Z = proplists:get_value(volume_minmax_z, Attr, ?DEF_VOLUME_MINMAX_Z),
+    VolumeX = proplists:get_value(volume_x, Attr, 1.0),
+    VolumeY = proplists:get_value(volume_y, Attr, 1.0),
+    VolumeZ = proplists:get_value(volume_z, Attr, 1.0),
+    VolumeFile = proplists:get_value(volume_file, Attr, ""),
+
     PortalPower = proplists:get_value(portal_power, Attr, ?DEF_LIGHTPORTAL_POWER),
     PortalSamples = proplists:get_value(portal_samples, Attr, ?DEF_LIGHTPORTAL_SAMPLES),
     Lightportal_Photon_Only = proplists:get_value(lightportal_photon_only, Attr, false),
@@ -87,52 +86,58 @@ export_object_1(F, NameStr, Mesh0=#e3d_mesh{he=He0}, DefaultMaterial, MatPs, Id)
 
     %% Add Export Object Name End
 
-    HasUV = 
-        case Tx of
-            []-> "false";
-            _ ->
-                "true"
+    HasUV =  case Tx of
+            []-> false;
+            _ -> true
         end,
 
     case Object_Type of
         mesh ->
             println(F," "),
-            println(F, "<mesh id=\"~w\" vertices=\"~w\" faces=\"~w\" has_uv=\"~s\" type=\"0\">",[Id,length(Vs),length(Fs),HasUV]);
+            println(F, "<mesh id=\"~w\" vertices=\"~w\" faces=\"~w\" has_uv=\"~s\" type=\"0\">",[Id,length(Vs),length(Fs),HasUV]),
+            export_vertices(F, Vs);
 
         volume ->
-            println(F, "<volumeregion name=\"volumename\">"),
+            println(F, "<volumeregion name=\"~s\">",[NameStr]),
 
-            case proplists:get_value(volume_type, Attr,  ?DEF_VOLUME_TYPE) of
+            case proplists:get_value(volume_type, Attr,  uniformvolume) of
                 uniformvolume ->
                     println(F, "<type sval=\"UniformVolume\"/>");
-                    
+
                 expdensityvolume ->
                     println(F, "\t<type sval=\"ExpDensityVolume\"/>"),
-                    println(F, "\t<a fval=\"~.10f\"/>",[Volume_Height]),
-                    println(F, "\t<b fval=\"~.10f\"/>",[Volume_Steepness]);
+                    println(F, "\t<a fval=\"~.10f\"/>",[proplists:get_value(volume_height, Attr, ?DEF_VOLUME_HEIGHT)]),
+                    println(F, "\t<b fval=\"~.10f\"/>",[proplists:get_value(volume_steepness, Attr, 1.0)]);
 
                 noisevolume ->
                     println(F, "\t<type sval=\"NoiseVolume\"/>"),
-                    println(F, "\t<sharpness fval=\"~.10f\"/>",[Volume_Sharpness]),
+                    println(F, "\t<sharpness fval=\"~.10f\"/>",[proplists:get_value(volume_sharpness, Attr, 2.0)]),
                     println(F, "\t<cover fval=\"~.10f\"/>",[Volume_Cover]),
-                    println(F, "\t<density fval=\"~.10f\"/>",[Volume_Density]),
-                    println(F, "\t<texture sval=\"TEmytex\"/>")
+                    println(F, "\t<density fval=\"~.10f\"/>",[proplists:get_value(volume_density, Attr, 1.0)]),
+                    println(F, "\t<texture sval=\"TEmytex\"/>");
 
-            end,
+                gridvolume ->
+                    println(F, "\t<type sval=\"GridVolume\"/>"),
+                    println(F, "\t<density_file sval=\"~s\"/>",[VolumeFile])
+
+            end, %volume type
+
+            Size = proplists:get_value(volume_region_size, Attr, 1.0),
+            MinX = VolumeX - (Size * 0.5), MaxX = VolumeX + (Size * 0.5),
+            MinY = VolumeY - (Size * 0.5), MaxY = VolumeY + (Size * 0.5),
+            MinZ = VolumeZ - (Size * 0.5), MaxZ = VolumeZ + (Size * 0.5),
 
             println(F, "\t<attgridScale ival=\"~w\"/>",[Volume_Attgridscale]),
-            println(F, "\t<maxX fval=\"~.10f\"/>",[Volume_Minmax_Z]),
-            println(F, "\t<maxY fval=\"~.10f\"/>",[Volume_Minmax_X]),
-            println(F, "\t<maxZ fval=\"~.10f\"/>",[Volume_Minmax_Y]),
-            println(F, "\t<minX fval=\"-\~.10f\"/>",[Volume_Minmax_Z]),
-            println(F, "\t<minY fval=\"-\~.10f\"/>",[Volume_Minmax_X]),
-            println(F, "\t<minZ fval=\"-\~.10f\"/>",[Volume_Minmax_Y]),
+            println(F, "\t<maxX fval=\"~.10f\"/>",[MaxZ]),
+            println(F, "\t<maxY fval=\"~.10f\"/>",[MaxX]),
+            println(F, "\t<maxZ fval=\"~.10f\"/>",[MaxY]),
+            println(F, "\t<minX fval=\"~.10f\"/>",[MinZ]),
+            println(F, "\t<minY fval=\"~.10f\"/>",[MinX]),
+            println(F, "\t<minZ fval=\"~.10f\"/>",[MinY]),
             println(F, "\t<sigma_a fval=\"~.10f\"/>",[Volume_Sigma_a]),
-            println(F, "\t<sigma_s fval=\"~.10f\"/>",[Volume_Sigma_s]),
-            println(F," ");
+            println(F, "\t<sigma_s fval=\"~.10f\"/>",[Volume_Sigma_s]);
 
         meshlight ->
-            %println(F," "),  
             println(F, "<light name=\"~s\">",[NameStr]),
 
             export_rgb(F, color, proplists:get_value(meshlight_color, Attr, {0.9,0.9,0.9})),
@@ -162,34 +167,32 @@ export_object_1(F, NameStr, Mesh0=#e3d_mesh{he=He0}, DefaultMaterial, MatPs, Id)
             println(F,
                 "\t<with_diffuse bval=\"~s\"/>",[format(proplists:get_value(portal_diffusephotons, Attr, false))]),
             println(F, "</light>"),
-            println(F, "\n<mesh id=\"~w\" vertices=\"~w\" faces=\"~w\" has_uv=\"~s\" type=\"256\">",[Id,length(Vs),length(Fs),HasUV])
+            println(F,
+                "\n<mesh id=\"~w\" vertices=\"~w\" faces=\"~w\" has_uv=\"~s\" type=\"256\">",[Id,length(Vs),length(Fs),HasUV])
     end,
-
-    export_vertices(F, Vs),
 
     %% Add Export UV_Vectors Part 1 Start
-    case HasUV of
-        "false" -> ok;
-        "true" -> println(F, "\t<!--uv_vectors Quantity=\"~w\" -->\n",[length(Tx)]),
-                  export_vectors2D(F, Tx)
-    end,
-    %% Add Export UV_Vectors Part 1 End
-
-    export_faces(F, Fs, DefaultMaterial, list_to_tuple(Tx), list_to_tuple(Vc)),
-
     case Object_Type of
         volume ->
             println(F, "</volumeregion>\n");
-
         _ ->
-            println(F, "</mesh>\n")
-    end,
+            export_vertices(F, Vs),
+            case HasUV of
+                false -> ok;
+                true -> println(F, "\t<!--uv_vectors Quantity=\"~w\" -->\n",[length(Tx)]),
+                        export_vectors2D(F, Tx)
+            end,
+            %% Add Export UV_Vectors Part 1 End
 
-    case Autosmooth of
-        true ->
-            println(F, "<smooth ID=\"~w\" angle=\"~.3f\"/>", [Id,AutosmoothAngle]);
-        _ -> ok
-    end,
+            export_faces(F, Fs, DefaultMaterial, list_to_tuple(Tx), list_to_tuple(Vc)),
+            println(F, "</mesh>\n"),
+
+            case Autosmooth of
+                true ->
+                    println(F, "<smooth ID=\"~w\" angle=\"~.3f\"/>", [Id,AutosmoothAngle]);
+                _ -> ok
+            end
+        end,
 
     io:format(?__(6,"done")++"~n").
 
@@ -246,7 +249,7 @@ export_faces(F, [#e3d_face{mat=[Mat|_],tx=Tx,vs=[A,B,C],vc=VCols}|T],
                {{},[]} -> "";
                {{},_} ->
                    io:format(?__(3,"WARNING! Face refers to non-existing "
-                                 "vertex colors")++"~n"),
+                                 "vertex colors\n")),
                    "";
                {_,[]} ->
                    %%io:format("WARNING! Face missing vertex colors~n"),
@@ -254,16 +257,16 @@ export_faces(F, [#e3d_face{mat=[Mat|_],tx=Tx,vs=[A,B,C],vc=VCols}|T],
                {_,[VcA,VcB,VcC]} ->
                    {VcAr,VcAg,VcAb} = element(1+VcA, VColT),
                    {VcBr,VcBg,VcBb} = element(1+VcB, VColT),
-                   {VcCr,VcCg,VcCb} = element(1+VcC, VColT),
-                   [io_lib:nl(),"           vcol_a_r=\"",format(VcAr),
-                    "\" vcol_a_g=\"",format(VcAg),
-                    "\" vcol_a_b=\"",format(VcAb),"\"",
-                    io_lib:nl(),"           vcol_b_r=\"",format(VcBr),
-                    "\" vcol_b_g=\"",format(VcBg),
-                    "\" vcol_b_b=\"",format(VcBb),"\"",
-                    io_lib:nl(),"           vcol_c_r=\"",format(VcCr),
-                    "\" vcol_c_g=\"",format(VcCg),
-                    "\" vcol_c_b=\"",format(VcCb),"\""];
+                   {VcCr,VcCg,VcCb} = element(1+VcC, VColT);
+                   %[io_lib:nl(),"           vcol_a_r=\"",format(VcAr),
+                   % "\" vcol_a_g=\"",format(VcAg),
+                   % "\" vcol_a_b=\"",format(VcAb),"\"",
+                    %io_lib:nl(),"           vcol_b_r=\"",format(VcBr),
+                    %"\" vcol_b_g=\"",format(VcBg),
+                    %"\" vcol_b_b=\"",format(VcBb),"\"",
+                    %io_lib:nl(),"           vcol_c_r=\"",format(VcCr),
+                    %"\" vcol_c_g=\"",format(VcCg),
+                    %"\" vcol_c_b=\"",format(VcCb),"\""];
                _ ->
                    io:format(?__(4,"WARNING! Face has ~w =/= 3 vertex colors")++"~n",
                              [length(VCols)]),
