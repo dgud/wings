@@ -76,11 +76,10 @@ plane_dialog() ->
 make_plane(Ask, St) when is_atom(Ask) ->
     Qs = plane_dialog(),
     wings_dialog:dialog_preview({shape,plane}, Ask, ?__(1,"Plane Options"), Qs, St);
-make_plane([{_,Nres},{_,Size},{_,Thickness},{_,regular},_,_,_,
-            Rot_X, Rot_Y, Rot_Z, Mov_X ,Mov_Y ,Mov_Z ,Ground], _) ->
+make_plane([{_,Nres},{_,Size},{_,Thickness},{_,regular},_,_,_|Transf], _) ->
     Vs0 = regular_plane_verts(Nres, Size, +Thickness/2) ++
 	 regular_plane_verts(Nres, Size, -Thickness/2),
-    Vs = wings_shapes:transform_obj([Rot_X,Rot_Y,Rot_Z,Mov_X,Mov_Y,Mov_Z,Ground], Vs0),
+    Vs = wings_shapes:transform_obj(Transf, Vs0),
     Fs = plane_faces(Nres, Nres),
     {new_shape,"Regular Plane",Fs,Vs};
 make_plane([{_,Nres},{_,Size},{_,Thickness},{_,lumpy},{_,Lumps},_,_,
@@ -90,18 +89,17 @@ make_plane([{_,Nres},{_,Size},{_,Thickness},{_,lumpy},{_,Lumps},_,_,
     Vs = wings_shapes:transform_obj([Rot_X,Rot_Y,Rot_Z,Mov_X,Mov_Y,Mov_Z,Ground], Vs0),
     Fs = plane_faces(Nres, Nres),
     {new_shape,"Lumpy Plane",Fs,Vs};
-make_plane([{_,Nres},{_,Size},{_,Thickness},{_,wavy},{_,Waves},{_,Height},_,
-            Rot_X, Rot_Y, Rot_Z, Mov_X ,Mov_Y ,Mov_Z ,Ground], _) ->
+make_plane([{_,Nres},{_,Size},{_,Thickness},{_,wavy},{_,Waves},{_,Height},_|Transf], _) ->
     Vs0 = wavy_plane_verts(Nres, Size, Waves, Height, +Thickness/2) ++
 	 wavy_plane_verts(Nres, Size, Waves, Height, -Thickness/2),
-    Vs = wings_shapes:transform_obj([Rot_X,Rot_Y,Rot_Z,Mov_X,Mov_Y,Mov_Z,Ground], Vs0),
+    Vs = wings_shapes:transform_obj(Transf, Vs0),
     Fs = plane_faces(Nres, Nres),
     {new_shape,"Wavy Plane",Fs,Vs};
-make_plane([{_,Nres},{_,Size},{_,Thickness},{_,sombrero},{_,Waves},{_,Height},{_,Falloff},
-            Rot_X, Rot_Y, Rot_Z, Mov_X ,Mov_Y ,Mov_Z ,Ground], _) ->
+make_plane([{_,Nres},{_,Size},{_,Thickness},{_,sombrero},
+            {_,Waves},{_,Height},{_,Falloff}|Transf], _) ->
     Vs0 = sombrero_plane_verts(Nres, Size, Waves, Falloff, Height, +Thickness/2) ++
 	 sombrero_plane_verts(Nres, Size, Waves, Falloff, Height, -Thickness/2),
-    Vs = wings_shapes:transform_obj([Rot_X,Rot_Y,Rot_Z,Mov_X,Mov_Y,Mov_Z,Ground], Vs0),
+    Vs = wings_shapes:transform_obj(Transf, Vs0),
     Fs = plane_faces(Nres, Nres),
     {new_shape,"Sombrero Plane",Fs,Vs}.
 

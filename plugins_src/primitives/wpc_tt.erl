@@ -106,10 +106,10 @@ make_text(Ask, St) when is_atom(Ask) ->
 				{commit,{shape,{text,[T,N,{fontdir,FPath},RX,RY,RZ,MX,MY,MZ,Grnd]}},St}
 			end);
 
-make_text([{_,T},{_,N},{_,DirFont},{_,RX},{_,RY},{_,RZ},{_,MX},{_,MY},{_,MZ},{_,Grnd}], _) ->
+make_text([{_,T},{_,N},{_,DirFont}|Transf], _) ->
     F = filename:basename(DirFont),
     D = filename:dirname(DirFont),
-    gen(F, D, T, N, RX, RY, RZ, MX, MY, MZ, Grnd).
+    gen(F, D, T, N, Transf).
 
 help_button() ->
     Title = ?__(1,"Browsing for Fonts on Windows"),
@@ -120,13 +120,13 @@ help() ->
     [?__(1,"Only TrueType fonts can be used and they must be"
 	 "installed in standard operating system directory for fonts.")].
 
-gen(_Font, _Dir, "", _Nsubsteps, _RX, _RY, _RZ, _MX, _MY, _MZ, _Grnd) ->
+gen(_Font, _Dir, "", _Nsubsteps, _Transf) ->
     keep;
-gen(Font, Dir, Text, Nsubsteps, RX, RY, RZ, MX, MY, MZ, Grnd) ->
+gen(Font, Dir, Text, Nsubsteps, Transf) ->
     File = font_file(Font, Dir),
     case catch trygen(File, Text, Nsubsteps) of
 	{new_shape,Name,Fs0,Vs0,He} ->
-	    Vs = wings_shapes:transform_obj({RX, RY, RZ},{MX, MY, MZ},Grnd, Vs0),
+	    Vs = wings_shapes:transform_obj(Transf, Vs0),
 	    Fs = [#e3d_face{vs=Vsidx} || Vsidx <- Fs0],
 	    Mesh = #e3d_mesh{type=polygon, vs=Vs, fs=Fs, he=He},
 	    {new_shape, Name, #e3d_object{obj=Mesh}, []};

@@ -111,7 +111,7 @@ tetrahedron(Ask, St) when is_atom(Ask) ->
 	 },
 	 transform_obj_dlg()],
   ask(tetrahedron, Ask, Q, St);
-tetrahedron([L, Rot_X, Rot_Y, Rot_Z, Mov_X, Mov_Y, Mov_Z, Ground], St) ->
+tetrahedron([L|Transf], St) ->
     Xi = L/2.0,
     Hp = sqrt(3.0),
     Li = Xi*Hp,
@@ -125,7 +125,7 @@ tetrahedron([L, Rot_X, Rot_Y, Rot_Z, Mov_X, Mov_Y, Mov_Z, Ground], St) ->
 	   { -Xi, -Yf,     -Zi},
 	   {  Xi, -Yf,     -Zi}],
     %% The string below is intentionally not translated.
-    Vs = transform_obj([Rot_X,Rot_Y,Rot_Z,Mov_X,Mov_Y,Mov_Z,Ground], Vs0),
+    Vs = transform_obj(Transf, Vs0),
     build_shape("tetrahedron", Fs, Vs, St).
 
 octahedron(Ask, St) when is_atom(Ask) ->
@@ -134,11 +134,11 @@ octahedron(Ask, St) when is_atom(Ask) ->
 	 },
 	 transform_obj_dlg()],
     ask(octahedron, Ask, Q, St);
-octahedron([L, Rot_X, Rot_Y, Rot_Z, Mov_X, Mov_Y, Mov_Z, Ground], St) ->
+octahedron([L|Transf], St) ->
     Fs = [[2,4,0],[4,2,1],[4,3,0],[3,4,1],[5,2,0],[2,5,1],[3,5,0],[5,3,1]],
     Vs0 = [{L,0.0,0.0},{-L,0.0,0.0},{0.0,L,0.0},
 	   {0.0,-L,0.0},{0.0,0.0,L},{0.0,0.0,-L}],
-    Vs = transform_obj([Rot_X,Rot_Y,Rot_Z,Mov_X,Mov_Y,Mov_Z,Ground], Vs0),
+    Vs = transform_obj(Transf, Vs0),
     %% The string below is intentionally not translated.
     build_shape("octahedron", Fs, Vs, St).
 
@@ -148,7 +148,7 @@ octotoad(Ask, St) when is_atom(Ask) ->
 	 },
 	 transform_obj_dlg()],
     ask(octotoad, Ask, Q, St);
-octotoad([L, Rot_X, Rot_Y, Rot_Z, Mov_X, Mov_Y, Mov_Z, Ground], St) ->
+octotoad([L|Transf], St) ->
     Fs = [[2,3,1,0],[7,6,4,5],[9,8,0,1],[10,11,3,2],
 	  [12,0,8],[12,14,2,0],[13,9,1],[14,10,2],
 	  [15,3,11],[15,13,1,3],[16,17,5,4],[16,20,12,8],
@@ -170,7 +170,7 @@ octotoad([L, Rot_X, Rot_Y, Rot_Z, Mov_X, Mov_Y, Mov_Z, Ground], St) ->
 	   {-0.556,-0.556,1.668},{-0.556,-0.556,-1.668}],
     Scale = 1.668*(L/2),
     Vs0 = [{X/Scale,Y/Scale,Z/Scale} || {X,Y,Z} <- Vs1],
-    Vs = transform_obj([Rot_X,Rot_Y,Rot_Z,Mov_X,Mov_Y,Mov_Z,Ground], Vs0),
+    Vs = transform_obj(Transf, Vs0),
     %% The string below is intentionally not translated.
     build_shape("octotoad", Fs, Vs, St).
 
@@ -180,7 +180,7 @@ dodecahedron(Ask, St) when is_atom(Ask) ->
 	 ]},
 	 transform_obj_dlg()],
     ask(dodecahedron, Ask, Q, St);
-dodecahedron([L, Rot_X, Rot_Y, Rot_Z, Mov_X, Mov_Y, Mov_Z, Ground], St) ->
+dodecahedron([L|Transf], St) ->
 	 Pn = sqrt(5.0),
 	 Phi = (1.0 + Pn)/2.0,
 	 Li = L/2.0 * Phi,
@@ -197,7 +197,7 @@ dodecahedron([L, Rot_X, Rot_Y, Rot_Z, Mov_X, Mov_Y, Mov_Z, Ground], St) ->
 	   {-Beta,-Alpha,0.0},{-Alpha,0.0,-Beta},{Alpha,0.0,-Beta},
 	   {0.0,Beta,Alpha},{0.0,Beta,-Alpha},{0.0,-Beta,Alpha},
 	   {0.0,-Beta,-Alpha}],
-    Vs = transform_obj([Rot_X,Rot_Y,Rot_Z,Mov_X,Mov_Y,Mov_Z,Ground], Vs0),
+    Vs = transform_obj(Transf, Vs0),
     %% The string below is intentionally not translated.
     build_shape("dodecahedron", Fs, Vs, St).
 
@@ -207,7 +207,7 @@ icosahedron(Ask, St) when is_atom(Ask) ->
 	 ]},
 	 transform_obj_dlg()],
     ask(icosahedron, Ask, Q, St);
-icosahedron([S, Rot_X, Rot_Y, Rot_Z, Mov_X, Mov_Y, Mov_Z, Ground], St) ->
+icosahedron([S|Transf], St) ->
     T2 = pi()/10.0,
     T4 = 2.0 * T2,
     CT4 = cos(T4),
@@ -237,7 +237,7 @@ icosahedron([S, Rot_X, Rot_Y, Rot_Z, Mov_X, Mov_Y, Mov_Z, Ground], St) ->
       { H,  -Z2, S/2.0	},
       {-Cy, -Z2, Cx	},
       {0.0, -Z1, 0.0	}],
-    Vs = transform_obj([Rot_X,Rot_Y,Rot_Z,Mov_X,Mov_Y,Mov_Z,Ground], Vs0),
+    Vs = transform_obj(Transf, Vs0),
     %% The string below is intentionally not translated.
     build_shape("icosahedron", Fs, Vs, St).
 
@@ -258,7 +258,7 @@ cone(Ask, St) when is_atom(Ask) ->
 	 ]},
 	 transform_obj_dlg()],
     ask(cone, Ask, Q, St);
-cone([N,H,Dx,Dy, Rot_X, Rot_Y, Rot_Z, Mov_X, Mov_Y, Mov_Z, Ground], St) ->
+cone([N,H,Dx,Dy|Transf], St) ->
     Hi = H/2.0,
 	 Di = Dx/2.0,
 	 Dj = Dy/2.0,
@@ -266,7 +266,7 @@ cone([N,H,Dx,Dy, Rot_X, Rot_Y, Rot_Z, Mov_X, Mov_Y, Mov_Z, Ground], St) ->
     Lower = lists:seq(0, N-1),
     C = ellipse(N, -Hi, {Di, Dj}),
     Vs0 = C ++ [{0.0,Hi,0.0}],
-    Vs = transform_obj([Rot_X,Rot_Y,Rot_Z,Mov_X,Mov_Y,Mov_Z,Ground], Vs0),
+    Vs = transform_obj(Transf, Vs0),
     Sides = [[N, (I+1) rem N, I] || I <- Ns],
     Fs = [Lower | Sides],
     %% The string below is intentionally not translated.
@@ -303,12 +303,12 @@ sphere(Ask, St) when is_atom(Ask) ->
     	 ]},
 	 transform_obj_dlg()],
     ask(sphere, Ask, Q, St);
-sphere([Ns,Nl,Xr,Yr, Rot_X, Rot_Y, Rot_Z, Mov_X, Mov_Y, Mov_Z, Ground], St) ->
+sphere([Ns,Nl,Xr,Yr|Transf], St) ->
     Xi = Xr/2.0,
     Yi = Yr/2.0,
     Fs = sphere_faces(Ns, Nl),
     Vs0 = sphere_circles(Ns, Nl, Xi, Yi) ++ [{0.0, Xi, 0.0}, {0.0, -Xi, 0.0}],
-    Vs = transform_obj([Rot_X,Rot_Y,Rot_Z,Mov_X,Mov_Y,Mov_Z,Ground], Vs0),
+    Vs = transform_obj(Transf, Vs0),
     %% The string below is intentionally not translated.
     build_shape("sphere", Fs, Vs, St).
 
@@ -321,9 +321,9 @@ grid(Ask, St) when is_atom(Ask) ->
     	 ]},
 	 transform_obj_dlg()],
     ask(grid, Ask, Q, St);
-grid([Rc,Sp,Zp,Ht, Rot_X, Rot_Y, Rot_Z, Mov_X, Mov_Y, Mov_Z, Ground], St) ->
+grid([Rc,Sp,Zp,Ht|Transf], St) ->
     Vs0 = grid_vertices(Rc,Sp,Zp,Ht),
-    Vs = transform_obj([Rot_X,Rot_Y,Rot_Z,Mov_X,Mov_Y,Mov_Z,Ground], Vs0),
+    Vs = transform_obj(Transf, Vs0),
     Fs = grid_faces(Rc),
     %% The string below is intentionally not translated.
     build_shape("grid", Fs, Vs, St).

@@ -45,9 +45,9 @@ make_spiral(Ask, St) when is_atom(Ask) ->
         ]},
 	wings_shapes:transform_obj_dlg()],
     wings_dialog:dialog_preview({shape,spiral}, Ask, ?__(1,"Create Spiral"), Qs, St);
-make_spiral([L,Ns,Nl,Rot_X,Rot_Y,Rot_Z,Mov_X,Mov_Y,Mov_Z,Ground], _) ->
+make_spiral([L,Ns,Nl|Transf], _) ->
     Vs0 = spiral_vertices(Ns, Nl, L),
-    Vs = wings_shapes:transform_obj([Rot_X,Rot_Y,Rot_Z,Mov_X,Mov_Y,Mov_Z,Ground], Vs0),
+    Vs = wings_shapes:transform_obj(Transf, Vs0),
     Fs = spiral_faces(Ns, Nl, L),
     {new_shape,"spiral",Fs,Vs}.
  
@@ -60,9 +60,9 @@ make_spring(Ask, St) when is_atom(Ask) ->
         ]},
 	wings_shapes:transform_obj_dlg()],
     wings_dialog:dialog_preview({shape,spring}, Ask, ?__(1,"Create Spring"), Qs, St);
-make_spring([L,Ns,Nl,Rot_X,Rot_Y,Rot_Z,Mov_X,Mov_Y,Mov_Z,Ground], _) ->
+make_spring([L,Ns,Nl|Transf], _) ->
     Vs0 = spiral_vertices2(Ns, Nl, L),
-    Vs = wings_shapes:transform_obj([Rot_X,Rot_Y,Rot_Z,Mov_X,Mov_Y,Mov_Z,Ground], Vs0),
+    Vs = wings_shapes:transform_obj(Transf, Vs0),
     Fs = spiral_faces(Ns, Nl, L),
     {new_shape,"spring",Fs,Vs}.
 

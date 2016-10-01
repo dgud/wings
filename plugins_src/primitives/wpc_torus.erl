@@ -74,24 +74,23 @@ torus_dialog() ->
 make_torus(Ask, St) when is_atom(Ask) ->
     Qs = torus_dialog(),
     wings_dialog:dialog_preview({shape,torus}, Ask, ?__(1,"Torus Options"), Qs, St);
-make_torus([{_,Ures},{_,Vres},{_,MajXR},{_,MajZR},{_,MinR},{_,smooth},_,_,
-	    Rot_X, Rot_Y, Rot_Z, Mov_X ,Mov_Y ,Mov_Z ,Ground], _) ->
+make_torus([{_,Ures},{_,Vres},{_,MajXR},{_,MajZR},{_,MinR},{_,smooth},_,_|Transf], _) ->
     Ures0=min_uv_torus_res(Ures),
     Vres0=min_uv_torus_res(Vres),
     Vs0 = make_verts(Ures0, Vres0, MajXR, MajZR, MinR, none, none, 1),
-    Vs = wings_shapes:transform_obj([Rot_X,Rot_Y,Rot_Z,Mov_X,Mov_Y,Mov_Z,Ground], Vs0),
+    Vs = wings_shapes:transform_obj(Transf, Vs0),
     Fs = make_faces(Ures0, Vres0),
     {new_shape,"Torus",Fs,Vs};
-make_torus([{_,Ures},{_,Vres},{_,MajXR},{_,MajZR},{_,MinR},{_,lumpy},{_,Loops},{_,LoopRad},
-	    Rot_X, Rot_Y, Rot_Z, Mov_X ,Mov_Y ,Mov_Z ,Ground], _) ->
+make_torus([{_,Ures},{_,Vres},{_,MajXR},{_,MajZR},{_,MinR},{_,lumpy},
+            {_,Loops},{_,LoopRad}|Transf], _) ->
     Vs0 = make_verts(Ures, Vres, MajXR, MajZR, MinR, Loops, LoopRad, 2),
-    Vs = wings_shapes:transform_obj([Rot_X,Rot_Y,Rot_Z,Mov_X,Mov_Y,Mov_Z,Ground], Vs0),
+    Vs = wings_shapes:transform_obj(Transf, Vs0),
     Fs = make_faces(Ures, Vres),
     {new_shape,"Lumpy Torus",Fs,Vs};
-make_torus([{_,Ures},{_,Vres},{_,MajXR},{_,MajZR},{_,MinR},{_,spiral},{_,Loops},{_,LoopRad},
-	    Rot_X, Rot_Y, Rot_Z, Mov_X ,Mov_Y ,Mov_Z ,Ground], _) ->
+make_torus([{_,Ures},{_,Vres},{_,MajXR},{_,MajZR},{_,MinR},{_,spiral},
+            {_,Loops},{_,LoopRad}|Transf], _) ->
     Vs0 = make_verts(Ures, Vres, MajXR, MajZR, MinR, Loops, LoopRad, 3),
-    Vs = wings_shapes:transform_obj([Rot_X,Rot_Y,Rot_Z,Mov_X,Mov_Y,Mov_Z,Ground], Vs0),
+    Vs = wings_shapes:transform_obj(Transf, Vs0),
     Fs = make_faces(Ures, Vres),
     {new_shape,"Spiral Torus",Fs,Vs}.
 
