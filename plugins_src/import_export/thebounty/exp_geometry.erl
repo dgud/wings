@@ -38,26 +38,7 @@ export_object_1(F, NameStr, Mesh0=#e3d_mesh{he=He0}, DefaultMaterial, MatPs, Id)
     OpenGL = proplists:get_value(opengl, MatPs),
     UseHardness = proplists:get_value(use_hardness, Attr, false),
     Object_Type = proplists:get_value(object_type, Attr, mesh),
-
-    Volume_Sigma_a = proplists:get_value(volume_sigma_a, Attr, ?DEF_VOLUME_SIGMA_A),
-    Volume_Sigma_s = proplists:get_value(volume_sigma_s, Attr, ?DEF_VOLUME_SIGMA_S),
-    %Volume_Height = proplists:get_value(volume_height, Attr, ?DEF_VOLUME_HEIGHT),
-    Volume_Attgridscale = proplists:get_value(volume_attgridscale, Attr, ?DEF_VOLUME_ATTGRIDSCALE),
-    Volume_Cover = proplists:get_value(volume_cover, Attr, ?DEF_VOLUME_COVER),
-    VolumeX = proplists:get_value(volume_x, Attr, 1.0),
-    VolumeY = proplists:get_value(volume_y, Attr, 1.0),
-    VolumeZ = proplists:get_value(volume_z, Attr, 1.0),
-    VolumeFile = proplists:get_value(volume_file, Attr, ""),
-
-    PortalPower = proplists:get_value(portal_power, Attr, ?DEF_LIGHTPORTAL_POWER),
-    PortalSamples = proplists:get_value(portal_samples, Attr, ?DEF_LIGHTPORTAL_SAMPLES),
-    Lightportal_Photon_Only = proplists:get_value(lightportal_photon_only, Attr, false),
-    Meshlight_Color = proplists:get_value(meshlight_color, Attr, ?DEF_MESHLIGHT_COLOR),
-
-    MeshLightDoubleSided = proplists:get_value(meshlight_double_sided, Attr, false),
-    AutosmoothAngle =
-        proplists:get_value(autosmooth_angle, Attr, ?DEF_AUTOSMOOTH_ANGLE),
-
+    AutosmoothAngle = proplists:get_value(autosmooth_angle, Attr, 90.0),
     Autosmooth = proplists:get_value(autosmooth, Attr,
                                      if AutosmoothAngle == 0.0 -> false;
                                         true -> ?DEF_AUTOSMOOTH end),
@@ -78,13 +59,9 @@ export_object_1(F, NameStr, Mesh0=#e3d_mesh{he=He0}, DefaultMaterial, MatPs, Id)
     #e3d_mesh{fs=Fs,vs=Vs,vc=Vc,tx=Tx} = e3d_mesh:triangulate(Mesh1),
     io:format(?__(4,"done")++"~n"),
     io:format(?__(5,"Mesh ~s: exporting..."), [NameStr]),
-    %%
 
     %% Add Export Object Name Start
-
     println(F, "<!-- Object Name ~s, Object # ~w -->", [NameStr,Id]),
-
-    %% Add Export Object Name End
 
     HasUV =  case Tx of
             []-> false;
@@ -102,71 +79,79 @@ export_object_1(F, NameStr, Mesh0=#e3d_mesh{he=He0}, DefaultMaterial, MatPs, Id)
 
             case proplists:get_value(volume_type, Attr,  uniformvolume) of
                 uniformvolume ->
-                    println(F, "<type sval=\"UniformVolume\"/>");
+                    println(F, "\t<type sval=\"UniformVolume\"/>");
 
                 expdensityvolume ->
                     println(F, "\t<type sval=\"ExpDensityVolume\"/>"),
-                    println(F, "\t<a fval=\"~.10f\"/>",[proplists:get_value(volume_height, Attr, ?DEF_VOLUME_HEIGHT)]),
+                    println(F, "\t<a fval=\"~.10f\"/>",[proplists:get_value(volume_height, Attr, 0.5)]),
                     println(F, "\t<b fval=\"~.10f\"/>",[proplists:get_value(volume_steepness, Attr, 1.0)]);
 
                 noisevolume ->
                     println(F, "\t<type sval=\"NoiseVolume\"/>"),
                     println(F, "\t<sharpness fval=\"~.10f\"/>",[proplists:get_value(volume_sharpness, Attr, 2.0)]),
-                    println(F, "\t<cover fval=\"~.10f\"/>",[Volume_Cover]),
-                    println(F, "\t<density fval=\"~.10f\"/>",[proplists:get_value(volume_density, Attr, 1.0)]),
+                    println(F, "\t<cover fval=\"~.10f\"/>",    [proplists:get_value(volume_cover, Attr, 0.05]),
+                    println(F, "\t<density fval=\"~.10f\"/>",  [proplists:get_value(volume_density, Attr, 1.0)]),
                     println(F, "\t<texture sval=\"TEmytex\"/>");
 
                 gridvolume ->
                     println(F, "\t<type sval=\"GridVolume\"/>"),
-                    println(F, "\t<density_file sval=\"~s\"/>",[VolumeFile])
+                    println(F, "\t<density_file sval=\"~s\"/>",[format(proplists:get_value(volume_file, Attr, ""))])
 
             end, %volume type
+
+            VolumeX = proplists:get_value(volume_x, Attr, 1.0),
+            VolumeY = proplists:get_value(volume_y, Attr, 1.0),
+            VolumeZ = proplists:get_value(volume_z, Attr, 1.0),
 
             Size = proplists:get_value(volume_region_size, Attr, 1.0),
             MinX = VolumeX - (Size * 0.5), MaxX = VolumeX + (Size * 0.5),
             MinY = VolumeY - (Size * 0.5), MaxY = VolumeY + (Size * 0.5),
             MinZ = VolumeZ - (Size * 0.5), MaxZ = VolumeZ + (Size * 0.5),
 
-            println(F, "\t<attgridScale ival=\"~w\"/>",[Volume_Attgridscale]),
             println(F, "\t<maxX fval=\"~.10f\"/>",[MaxZ]),
             println(F, "\t<maxY fval=\"~.10f\"/>",[MaxX]),
             println(F, "\t<maxZ fval=\"~.10f\"/>",[MaxY]),
             println(F, "\t<minX fval=\"~.10f\"/>",[MinZ]),
             println(F, "\t<minY fval=\"~.10f\"/>",[MinX]),
             println(F, "\t<minZ fval=\"~.10f\"/>",[MinY]),
-            println(F, "\t<sigma_a fval=\"~.10f\"/>",[Volume_Sigma_a]),
-            println(F, "\t<sigma_s fval=\"~.10f\"/>",[Volume_Sigma_s]);
+            println(F, "\t<attgridScale ival=\"~w\"/>",[proplists:get_value(volume_attgridscale, Attr, 1)]),
+            println(F, "\t<sigma_a fval=\"~.10f\"/>",[proplists:get_value(volume_sigma_a, Attr, 0.4)]),
+            println(F, "\t<sigma_s fval=\"~.10f\"/>",[proplists:get_value(volume_sigma_s, Attr, 0.05)]);
 
         meshlight ->
+            % light..
             println(F, "<light name=\"~s\">",[NameStr]),
-
+            println(F, "\t<type sval=\"meshlight\"/>"),
+            println(F, "\t<object ival= \"~w\"/>",[Id]),
             export_rgb(F, color, proplists:get_value(meshlight_color, Attr, {0.9,0.9,0.9})),
-
             println(F,
                 "\t<double_sided bval=\"~s\"/>",[format(proplists:get_value(meshlight_double_sided, Attr, false))]),
-            println(F, "\t<object ival= \"~w\"/>",[Id]),
             println(F,
                 "\t<power fval=\"~.10f\"/>",[proplists:get_value(meshlight_power, Attr, 1.0)]),
             println(F,
                 "\t<samples ival=\"~w\"/>",[proplists:get_value(meshlight_samples, Attr, 16)]),
-            println(F, "\t<type sval=\"~s\"/>",[Object_Type]),
             println(F, "</light>\n"),
+            % mesh object..
             println(F,
                 "<mesh id=\"~w\" vertices=\"~w\" faces=\"~w\" has_uv=\"~s\" type=\"0\">",[Id,length(Vs),length(Fs),HasUV]);
 
         lightportal ->
+            % light...
             println(F, "\n<light name=\"~s\">",[NameStr]),
+            println(F, "\t<type sval=\"bgPortalLight\"/>"),
             println(F, "\t<object ival= \"~w\"/>",[Id]),
             println(F,
                 "\t<photon_only bval=\"~s\"/>",[format(proplists:get_value(lightportal_photon_only, Attr, false))]),
-            println(F, "\t<power fval=\"~.10f\"/>",[PortalPower]),
-            println(F, "\t<samples ival=\"~w\"/>",[PortalSamples]),
-            println(F, "\t<type sval=\"bgPortalLight\"/>"),
+            println(F,
+                "\t<power fval=\"~.10f\"/>",[proplists:get_value(portal_power, Attr, 1.0)]),
+            println(F,
+                "\t<samples ival=\"~w\"/>",[proplists:get_value(portal_samples, Attr, 16)]),
             println(F,
                 "\t<with_caustic bval=\"~s\"/>",[format(proplists:get_value(lightportal_causticphotons, Attr, false))]),
             println(F,
                 "\t<with_diffuse bval=\"~s\"/>",[format(proplists:get_value(portal_diffusephotons, Attr, false))]),
             println(F, "</light>"),
+            % mesh object..
             println(F,
                 "\n<mesh id=\"~w\" vertices=\"~w\" faces=\"~w\" has_uv=\"~s\" type=\"256\">",[Id,length(Vs),length(Fs),HasUV])
     end,
@@ -196,14 +181,11 @@ export_object_1(F, NameStr, Mesh0=#e3d_mesh{he=He0}, DefaultMaterial, MatPs, Id)
 
     io:format(?__(6,"done")++"~n").
 
-
-
 export_vertices(_F, []) ->
     ok;
 export_vertices(F, [Pos|T]) ->
     export_pos(F, p, Pos),
     export_vertices(F, T).
-
 
 
 %% The coordinate system is rotated to make sunsky background
@@ -212,8 +194,7 @@ export_vertices(F, [Pos|T]) ->
 %% Hence Z=South, X=East, Y=Up in Wings coordinates.
 %%
 export_pos(F, Type, {X,Y,Z}) ->
-    println(F, ["\t<",format(Type)," x=\"",format(Z),
-                "\" y=\"",format(X),"\" z=\"",format(Y),"\"/>"]).
+    println(F, ["\t<",format(Type)," x=\"",format(Z),"\" y=\"",format(X),"\" z=\"",format(Y),"\"/>"]).
 
 %%Add Export UV_Vectors Part 2 Start
 
@@ -228,18 +209,12 @@ export_vectors2D(F, [{X, Y} | List])->
 
 export_faces(_F, [], _DefMat, _TxT, _VColT) ->
     ok;
-export_faces(F, [#e3d_face{mat=[Mat|_],tx=Tx,vs=[A,B,C],vc=VCols}|T],
+export_faces(F, [#e3d_face{mat=[Mat|_],tx=Tx,vs=[A,B,C],vc=VCols}|T], DefaultMaterial, TxT, VColT) ->
 
-             DefaultMaterial, TxT, VColT) ->
-
-    Shader =
-        case Mat of
-            DefaultMaterial -> ["\t<set_material sval=\"w_",format(Mat),"\"/>"];
-            _ -> ["\t<set_material sval=\"w_",format(Mat),"\"/>"]
-        end,
+    Shader = ["\t<set_material sval=\"w_",format(Mat),"\"/>\n"],
 
     UVIndices = case Tx of
-                    []-> " uv_a=\"0\" uv_b=\"0\" uv_c=\"0\"/>";
+                    []-> "/>";
                     _ ->
                         {U, V, W} = list_to_tuple(Tx),
                         (io_lib:format(" uv_a=\"~w\" uv_b=\"~w\" uv_c=\"~w\"/>", [U, V, W]))
@@ -248,8 +223,7 @@ export_faces(F, [#e3d_face{mat=[Mat|_],tx=Tx,vs=[A,B,C],vc=VCols}|T],
     VCol = case {VColT,VCols} of
                {{},[]} -> "";
                {{},_} ->
-                   io:format(?__(3,"WARNING! Face refers to non-existing "
-                                 "vertex colors\n")),
+                   io:format(?__(3,"WARNING! Face refers to non-existing vertex colors\n")),
                    "";
                {_,[]} ->
                    %%io:format("WARNING! Face missing vertex colors~n"),
@@ -272,10 +246,7 @@ export_faces(F, [#e3d_face{mat=[Mat|_],tx=Tx,vs=[A,B,C],vc=VCols}|T],
                              [length(VCols)]),
                    ""
            end,
-    println(F, [Shader, "\<f a=\"",format(A),
-                "\" b=\"",format(B),"\" c=\"",format(C),"\"", UVIndices,
-                VCol]),
-
+    println(F, [Shader, "\t\<f a=\"",format(A),"\" b=\"",format(B),"\" c=\"",format(C),"\"", UVIndices, VCol]),
 
     export_faces(F, T, DefaultMaterial, TxT, VColT).
 
