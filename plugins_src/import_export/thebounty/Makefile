@@ -16,7 +16,8 @@
 
 ESRC=.
 WINGS_INTL=../../../intl_tools
-EBIN=D:/apps/wings3d205/lib/wings-2.0.5/plugins/import_export
+#EBIN=D:/apps/wings3d205/lib/wings-2.0.5/plugins/import_export
+EBIN=F:/apps/wings-2.0.5.73.ga4d1/lib/wings-2.0.5.73.ga4d1/plugins/import_export
 ERLC=erlc
 WINGS_SRC=../../../src
 WINGS_EBIN=../../../ebin
@@ -35,7 +36,7 @@ TARGET_FILES= $(MODULES:%=$(EBIN)/%.beam)
 # ----------------------------------------------------
 # FLAGS
 # ----------------------------------------------------
-ERL_COMPILE_FLAGS += -W0 \
+ERL_COMPILE_FLAGS += -W3 \
   -pa $(WINGS_EBIN) -pa $(WINGS_INTL) -I $(WINGS_INTL) \
   -I $(WINGS_SRC) -I $(WINGS_E3D) $(TYPE_FLAGS) +debug_info
 

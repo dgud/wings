@@ -19,7 +19,7 @@
 export_background(F, Attr) ->
     OpenGL = proplists:get_value(opengl,Attr,[]),
     Bg = proplists:get_value(enviroment, Attr, sunsky),
-    BgName = "world_background",
+    %BgName = "world_background",
     case Bg of
         constant ->
             export_constant_background(F, Attr);
@@ -64,7 +64,7 @@ export_constant_background(F, Attr) ->
     %
     println(F, "<background name=\"world_background\">"),
     println(F, "\t<type sval=\"constant\"/>"),
-    BgColor = proplists:get_value(background_color, Attr, {0.8,0.8,0.8}),
+    %BgColor = proplists:get_value(background_color, Attr, {0.8,0.8,0.8}),
     export_rgb(F, color, proplists:get_value(background_color, Attr, {0.8,0.8,0.8})),
     println(F, "\t<power fval=\"~w\"/>", [proplists:get_value(background_power, Attr, 1.0)]).
 
@@ -101,7 +101,7 @@ export_texture_background(F, Attr) ->
         "\t<texture sval=\"world_texture\"/>").
 
 
-export_sunsky_backgrounds(F, Bg, OpenGL, Attr) ->
+export_sunsky_backgrounds(F, Bg, _OpenGL, Attr) ->
     %!---------------------------
     %! common sunsky's values
     %!---------------------------

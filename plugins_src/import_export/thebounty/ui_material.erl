@@ -18,8 +18,8 @@
 
 material_dialog(_Name, Mat) ->
     Maps = proplists:get_value(maps, Mat, []),
-    OpenGL = proplists:get_value(opengl, Mat),
-    DefLightmatColor = def_lightmat_color(proplists:get_value(diffuse, OpenGL)),
+    _OpenGL = proplists:get_value(opengl, Mat),
+    %DefLightmatColor = def_lightmat_color(proplists:get_value(diffuse, OpenGL)),
     Attr = proplists:get_value(?TAG, Mat, []),
     MaterialType = proplists:get_value(material_type, Attr, ?DEF_MATERIAL_TYPE),
 
@@ -45,8 +45,8 @@ material_dialog(_Name, Mat) ->
     % TODO:  sync mesh light and portal light color
     %% Light Material Properties
     %%
-    Lightmat_Color = proplists:get_value(lightmat_color, Attr, DefLightmatColor),
-    Lightmat_Power = proplists:get_value(lightmat_power, Attr, 0.9),
+    %Lightmat_Color = proplists:get_value(lightmat_color, Attr, DefLightmatColor),
+    %Lightmat_Power = proplists:get_value(lightmat_power, Attr, 0.9),
 
     Meshlight_Power = proplists:get_value(meshlight_power, Attr, ?DEF_MESHLIGHT_POWER),
     Meshlight_Samples = proplists:get_value(meshlight_samples, Attr, ?DEF_MESHLIGHT_SAMPLES),
@@ -54,9 +54,9 @@ material_dialog(_Name, Mat) ->
     MeshLightDoubleSided = proplists:get_value(meshlight_double_sided, Attr, ?DEF_MESHLIGHT_DOUBLE_SIDED),
 
     AutosmoothAngle = proplists:get_value(autosmooth_angle, Attr, ?DEF_AUTOSMOOTH_ANGLE),
-    Autosmooth = proplists:get_value(autosmooth, Attr,
-                                     if AutosmoothAngle == 0.0 -> false;
-                                        true -> ?DEF_AUTOSMOOTH end),
+    Autosmooth = proplists:get_value(autosmooth, Attr, AutosmoothAngle =/= 0.0), 
+                                     %if AutosmoothAngle == 0.0 -> false;
+                                     %  true -> ?DEF_AUTOSMOOTH end),
     VolumeFile = proplists:get_value(volume_file, Attr, ""),
     BrowseProps = [{dialog_type, open_dialog},
                     {extensions, [{".df3", "DF3 Volume"}]}],
@@ -520,9 +520,9 @@ material_dialog(_Name, Mat) ->
 alpha({R,G,B,A}) -> {R*A,G*A,B*A}.
 
 %%% Define Lightmat Color
-def_lightmat_color({Dr,Dg,Db,_Da}) ->
-    Dt = 1-0,
-    {Dr*Dt,Dg*Dt,Db*Dt}.
+%def_lightmat_color({Dr,Dg,Db,_Da}) ->
+%    Dt = 1-0,
+%    {Dr*Dt,Dg*Dt,Db*Dt}.
 
 %%% Grab OpenGL Transmitted Default Button
 def_transmitted({Dr,Dg,Db,_Da}) ->

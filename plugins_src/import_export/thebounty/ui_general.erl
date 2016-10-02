@@ -247,7 +247,7 @@ export_dialog_qs(Op, Attr) ->
                                     {?__(103, "GUI mode"), get_pref(gui_mode, Attr),[{key, gui_mode}]}
                                 ]};
                             _ ->
-                                {value, get_pref(keep_xml,Attr), [{key,keep_xml}]},
+                                %{value, get_pref(keep_xml,Attr), [{key,keep_xml}]},
                                 {value, get_pref(gui_mode,Attr), [{key,gui_mode}]}
                         end
                     ],[{margin,false}]}

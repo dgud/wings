@@ -35,13 +35,13 @@ count_equal([H|T], C, K, R) ->
 
 export_object_1(F, NameStr, Mesh0=#e3d_mesh{he=He0}, DefaultMaterial, MatPs, Id) ->
     Attr = proplists:get_value(?TAG, MatPs, []),
-    OpenGL = proplists:get_value(opengl, MatPs),
+    _OpenGL = proplists:get_value(opengl, MatPs),
     UseHardness = proplists:get_value(use_hardness, Attr, false),
     Object_Type = proplists:get_value(object_type, Attr, mesh),
     AutosmoothAngle = proplists:get_value(autosmooth_angle, Attr, 90.0),
-    Autosmooth = proplists:get_value(autosmooth, Attr,
-                                     if AutosmoothAngle == 0.0 -> false;
-                                        true -> ?DEF_AUTOSMOOTH end),
+    Autosmooth = proplists:get_value(autosmooth, Attr, AutosmoothAngle =/= 0.0),
+                                     %if AutosmoothAngle == 0.0 -> false;
+                                     %   true -> ?DEF_AUTOSMOOTH end),
 
     %% Pre-process mesh
     Mesh1 = #e3d_mesh{} =
@@ -53,7 +53,6 @@ export_object_1(F, NameStr, Mesh0=#e3d_mesh{he=He0}, DefaultMaterial, MatPs, Id)
                 M1;
             _ -> Mesh0
         end,
-
 
     io:format(?__(3,"Mesh ~s: triangulating..."), [NameStr]),
     #e3d_mesh{fs=Fs,vs=Vs,vc=Vc,tx=Tx} = e3d_mesh:triangulate(Mesh1),
@@ -71,8 +70,8 @@ export_object_1(F, NameStr, Mesh0=#e3d_mesh{he=He0}, DefaultMaterial, MatPs, Id)
     case Object_Type of
         mesh ->
             println(F," "),
-            println(F, "<mesh id=\"~w\" vertices=\"~w\" faces=\"~w\" has_uv=\"~s\" type=\"0\">",[Id,length(Vs),length(Fs),HasUV]),
-            export_vertices(F, Vs);
+            println(F,
+                "<mesh id=\"~w\" vertices=\"~w\" faces=\"~w\" has_uv=\"~s\" type=\"0\">",[Id,length(Vs),length(Fs),HasUV]);
 
         volume ->
             println(F, "<volumeregion name=\"~s\">",[NameStr]),
@@ -89,7 +88,7 @@ export_object_1(F, NameStr, Mesh0=#e3d_mesh{he=He0}, DefaultMaterial, MatPs, Id)
                 noisevolume ->
                     println(F, "\t<type sval=\"NoiseVolume\"/>"),
                     println(F, "\t<sharpness fval=\"~.10f\"/>",[proplists:get_value(volume_sharpness, Attr, 2.0)]),
-                    println(F, "\t<cover fval=\"~.10f\"/>",    [proplists:get_value(volume_cover, Attr, 0.05]),
+                    println(F, "\t<cover fval=\"~.10f\"/>",    [proplists:get_value(volume_cover, Attr, 0.05)]),
                     println(F, "\t<density fval=\"~.10f\"/>",  [proplists:get_value(volume_density, Attr, 1.0)]),
                     println(F, "\t<texture sval=\"TEmytex\"/>");
 
@@ -162,14 +161,13 @@ export_object_1(F, NameStr, Mesh0=#e3d_mesh{he=He0}, DefaultMaterial, MatPs, Id)
             println(F, "</volumeregion>\n");
         _ ->
             export_vertices(F, Vs),
+            export_faces(F, Fs, DefaultMaterial, list_to_tuple(Tx), list_to_tuple(Vc)),
             case HasUV of
                 false -> ok;
                 true -> println(F, "\t<!--uv_vectors Quantity=\"~w\" -->\n",[length(Tx)]),
                         export_vectors2D(F, Tx)
             end,
-            %% Add Export UV_Vectors Part 1 End
 
-            export_faces(F, Fs, DefaultMaterial, list_to_tuple(Tx), list_to_tuple(Vc)),
             println(F, "</mesh>\n"),
 
             case Autosmooth of
@@ -202,51 +200,25 @@ export_vectors2D(_F, [])->
     ok;
 
 export_vectors2D(F, [{X, Y} | List])->
-    println(F, "<uv u=\"~f\" v=\"~f\"/>", [X, Y]),
+    println(F, "\t<uv u=\"~f\" v=\"~f\"/>", [X, Y]),
     export_vectors2D(F, List).
 
-%%Add Export UV_Vectors Part 2 End
 
 export_faces(_F, [], _DefMat, _TxT, _VColT) ->
     ok;
-export_faces(F, [#e3d_face{mat=[Mat|_],tx=Tx,vs=[A,B,C],vc=VCols}|T], DefaultMaterial, TxT, VColT) ->
+export_faces(F, [#e3d_face{mat=[Mat|_],tx=Tx,vs=[A,B,C],vc=_VCols}|T], DefaultMaterial, TxT, VColT) ->
 
     Shader = ["\t<set_material sval=\"w_",format(Mat),"\"/>\n"],
 
-    UVIndices = case Tx of
-                    []-> "/>";
-                    _ ->
-                        {U, V, W} = list_to_tuple(Tx),
-                        (io_lib:format(" uv_a=\"~w\" uv_b=\"~w\" uv_c=\"~w\"/>", [U, V, W]))
-                end,
+    UVIndices =
+        case Tx of
+            []-> "/>";
+            _ ->
+                 {U, V, W} = list_to_tuple(Tx),
+                 (io_lib:format(" uv_a=\"~w\" uv_b=\"~w\" uv_c=\"~w\"/>", [U, V, W]))
+        end,
 
-    VCol = case {VColT,VCols} of
-               {{},[]} -> "";
-               {{},_} ->
-                   io:format(?__(3,"WARNING! Face refers to non-existing vertex colors\n")),
-                   "";
-               {_,[]} ->
-                   %%io:format("WARNING! Face missing vertex colors~n"),
-                   "";
-               {_,[VcA,VcB,VcC]} ->
-                   {VcAr,VcAg,VcAb} = element(1+VcA, VColT),
-                   {VcBr,VcBg,VcBb} = element(1+VcB, VColT),
-                   {VcCr,VcCg,VcCb} = element(1+VcC, VColT);
-                   %[io_lib:nl(),"           vcol_a_r=\"",format(VcAr),
-                   % "\" vcol_a_g=\"",format(VcAg),
-                   % "\" vcol_a_b=\"",format(VcAb),"\"",
-                    %io_lib:nl(),"           vcol_b_r=\"",format(VcBr),
-                    %"\" vcol_b_g=\"",format(VcBg),
-                    %"\" vcol_b_b=\"",format(VcBb),"\"",
-                    %io_lib:nl(),"           vcol_c_r=\"",format(VcCr),
-                    %"\" vcol_c_g=\"",format(VcCg),
-                    %"\" vcol_c_b=\"",format(VcCb),"\""];
-               _ ->
-                   io:format(?__(4,"WARNING! Face has ~w =/= 3 vertex colors")++"~n",
-                             [length(VCols)]),
-                   ""
-           end,
-    println(F, [Shader, "\t\<f a=\"",format(A),"\" b=\"",format(B),"\" c=\"",format(C),"\"", UVIndices, VCol]),
+    println(F, [Shader, "\t<f a=\"",format(A),"\" b=\"",format(B),"\" c=\"",format(C),"\"", UVIndices]),
 
     export_faces(F, T, DefaultMaterial, TxT, VColT).
 

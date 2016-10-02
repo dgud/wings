@@ -57,7 +57,7 @@ export_light(F, Name, point, OpenGL, Attr) ->
 export_light(F, Name, infinite, OpenGL, Attr) ->
     Type = proplists:get_value(type, Attr, ?DEF_INFINITE_TYPE),
     IsInfinite = proplists:get_value(infinite_true, Attr, true),
-    Power = proplists:get_value(power, Attr, ?DEF_POWER),
+    Power = proplists:get_value(power, Attr, 1.0),
     Position = proplists:get_value(position, OpenGL, {0.0,0.0,0.0}),
     Diffuse = proplists:get_value(diffuse, OpenGL, {0.9,0.9,0.9,0.9}),
 
@@ -79,7 +79,7 @@ export_light(F, Name, infinite, OpenGL, Attr) ->
         % sun light case
         sunlight ->
             println(F, "\t<samples ival=\"~w\"/>",[proplists:get_value(samples, Attr, 8)]),
-            println(F, "\t<angle fval=\"~.3f\"/>",[proplists:get_value(sun_angle, Attr, ?DEF_SUN_ANGLE)])
+            println(F, "\t<angle fval=\"~.3f\"/>",[proplists:get_value(sun_angle, Attr, 0.5)])
     end,
     export_pos(F, direction, Position),
     export_rgb(F, color, Diffuse),
@@ -172,7 +172,7 @@ export_light(F, Name, area, OpenGL, Attr) ->
     %undefined;
 
  % no supported light
-export_light(_F, Name, Type, _OpenGL, Attr) ->
+export_light(_F, Name, Type, _OpenGL, _Attr) ->
     io:format(?__(1,"WARNING: Ignoring unknown light \"~s\" type: ~p")++"~n",
               [Name, format(Type)]).%,
     %undefined.

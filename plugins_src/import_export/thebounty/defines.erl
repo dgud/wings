@@ -386,11 +386,11 @@ range_1(bokeh_rotation)         -> {-180.0,180.0};
 range_1(dof_distance)           -> {0.0,250.0}.
 
 %% used to fix old data that now can be out of range and crash Wings3d
-fit_range(Value,Id) ->
-    {Low,High}=range_1(Id),
-    if Value < Low -> Low;
-        true ->
-            if Value > High -> High;
-                true -> Value
-            end
-    end.
+%fit_range(Value,Id) ->
+%    {Low,High}=range_1(Id),
+%    if Value < Low -> Low;
+%        true ->
+%            if Value > High -> High;
+%                true -> Value
+%            end
+%    end.

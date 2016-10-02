@@ -512,13 +512,13 @@ open(Filename, export) ->
 println(F) ->
     println(F, "").
 
-print(F, DeepString) ->
-    case file:write(F, DeepString) of
-        ok ->
-            ok;
-        Error ->
-            erlang:error(Error, [F,DeepString])
-    end.
+%print(F, DeepString) ->
+%    case file:write(F, DeepString) of
+%        ok ->
+%            ok;
+%        Error ->
+%            erlang:error(Error, [F,DeepString])
+%    end.
 
 println(F, DeepString) ->
     case file:write(F, [DeepString,io_lib:nl()]) of
@@ -528,13 +528,13 @@ println(F, DeepString) ->
             erlang:error(Error, [F,DeepString])
     end.
 
-print(F, Format, Args) ->
-    case file:write(F, io_lib:format(Format, Args)) of
-        ok ->
-            ok;
-        Error ->
-            erlang:error(Error, [F,Format,Args])
-    end.
+%print(F, Format, Args) ->
+%    case file:write(F, io_lib:format(Format, Args)) of
+%        ok ->
+%            ok;
+%        Error ->
+%            erlang:error(Error, [F,Format,Args])
+%    end.
 
 println(F, Format, Args) ->
     case file:write(F, [io_lib:format(Format, Args),io_lib:nl()]) of
@@ -709,6 +709,7 @@ erase_var(Name) ->
 rip_all(KeyTag, List) ->
     Keys = proplists:get_keys(List),
     rip_all(KeyTag, Keys, List).
+    
 rip_all(KeyTag, [Key | Keys], List) ->
     case rip_keytag(KeyTag, Key) of
     true ->
@@ -737,18 +738,6 @@ rip_keytag(_KT, _ST) ->
 zip_lists([], []) -> [];
 zip_lists([H1|T1], [H2|T2]) -> [{H1,H2}|zip_lists(T1, T2)].
 
-
-
-%%% %% {lists:filter(Pred, List),lists:filter(fun(X) -> not Pred(X) end, List)}
-%%% filter2(Pred, List) -> filter2_1(Pred, List, [], []).
-%%% %%
-%%% filter2_1(_Pred, [], True, False) ->
-%%%     {reverse(True),reverse(False)};
-%%% filter2_1(Pred, [H|T], True, False) ->
-%%%     case Pred(H) of
-%%%     true -> filter2_1(Pred, T, [H|True], False);
-%%%     false -> filter2_1(Pred, T, True, [H|False])
-%%%     end.
 
 max(X, Y) when X > Y -> X;
 max(_, Y) -> Y.

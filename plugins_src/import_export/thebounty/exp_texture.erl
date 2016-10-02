@@ -157,14 +157,14 @@ get_map_type(Filepath) ->
         _ -> sys
     end.
 
-images_format() ->
-    ImgInfo = wings_job:render_formats(),
-    lists:foldr(fun(Type,Acc) ->
-        case lists:keyfind(Type,1,ImgInfo) of
-            {_,Ext,Desc} -> Acc ++[{Ext,Desc}];
-            _ -> Acc
-        end
-    end, [{".tiff","Tagged Image File Format"}], [tga,jpg,png,hdr,exr]).
+%images_format() ->
+%    ImgInfo = wings_job:render_formats(),
+%    lists:foldr(fun(Type,Acc) ->
+%        case lists:keyfind(Type,1,ImgInfo) of
+%            {_,Ext,Desc} -> Acc ++[{Ext,Desc}];
+%            _ -> Acc
+%        end
+%   end, [{".tiff","Tagged Image File Format"}], [tga,jpg,png,hdr,exr]).
 
 %%% Ext parameter must include the "." - ex. ".jpg"
 %%% that will replace the extension in case the file name already includes it.

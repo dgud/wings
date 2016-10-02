@@ -32,8 +32,8 @@ export_shader(F, Name, Mat, ExportDir) ->
         glass ->
             export_glass_shaders(F, Name, Mat, ExportDir, MatAttr);
 
-        %lightmat ->
-        %    export_lightmat_shader(F, Name, Mat, ExportDir, MatAttr);
+        lightmat ->
+            export_lightmat_shader(F, Name, Mat, ExportDir, MatAttr);
 
         blend_mat ->
             ok
@@ -80,7 +80,7 @@ export_shinydiffuse_shader(F, Name, Mat, ExportDir, Attr) ->
     println(F, "\t<type sval=\"shinydiffusemat\"/>"),
 
     % for sync viewer object colors (from wings3d color)
-    DiffuseA = {_,_,_,Opacity} = proplists:get_value(diffuse, OpenGL),
+    DiffuseA = {_,_,_,_Opacity} = proplists:get_value(diffuse, OpenGL),
     Specular = alpha(proplists:get_value(specular, OpenGL)),
 
     export_rgb(F, color, proplists:get_value(diffuse_color, Attr, DiffuseA)),
@@ -136,7 +136,7 @@ export_glossy_shaders(F, Name, Mat, ExportDir, Attr) ->
     println(F, "\t<type sval=\"~s\"/>", [GlossType]),
 
     % keep this code for now. Need review
-    DiffuseA = {_,_,_,Opacity} = proplists:get_value(diffuse, OpenGL),
+    DiffuseA = {_,_,_,_Opacity} = proplists:get_value(diffuse, OpenGL),
     Specular = alpha(proplists:get_value(specular, OpenGL)),
 
     export_rgb(F, color, proplists:get_value(glossy_color, Attr, Specular)),
@@ -193,7 +193,7 @@ export_translucent_shader(F, Name, Mat, ExportDir, Attr) ->
     println(F, "<material name=\"~s\">",[Name]),
     println(F, "\t<type sval=\"translucent\"/>"),
 
-    DiffuseA = {_,_,_,Opacity} = proplists:get_value(diffuse, OpenGL),
+    DiffuseA = {_,_,_,_Opacity} = proplists:get_value(diffuse, OpenGL),
     Specular = alpha(proplists:get_value(specular, OpenGL)),
     DefTransmitted = def_transmitted(DiffuseA),
 
@@ -265,7 +265,7 @@ export_glass_shaders(F, Name, Mat, ExportDir, Attr) ->
     println(F, "<material name=\"~s\">",[Name]),
     println(F, "\t<type sval=\"~s\"/>", [GlassType]),
 
-    DiffuseA = {_,_,_,Opacity} = proplists:get_value(diffuse, OpenGL),
+    DiffuseA = {_,_,_,_Opacity} = proplists:get_value(diffuse, OpenGL),
     Specular = alpha(proplists:get_value(specular, OpenGL)),
     DefReflected = Specular,
     DefTransmitted = def_transmitted(DiffuseA),
@@ -310,11 +310,9 @@ export_lightmat_shader(F, Name, Mat, ExportDir, Attr) ->
     println(F, "<material name=\"~s\">",[Name]),
     println(F, "<type sval=\"light_mat\"/>"),
 
-    _DiffuseA = {_,_,_,Opacity} = proplists:get_value(diffuse, OpenGL),
+    _DiffuseA = {_,_,_,_Opacity} = proplists:get_value(diffuse, OpenGL),
 
-    DefLightmatColor = def_lightmat_color(proplists:get_value(diffuse, OpenGL)),
-
-    Lightmat_Color = proplists:get_value(lightmat_color, Attr, DefLightmatColor),
+    Lightmat_Color = proplists:get_value(lightmat_color, Attr, {1.0, 1.0, 1.0}),
 
     export_rgb(F, color, proplists:get_value(lightmat_color, Attr, Lightmat_Color)),
 
@@ -344,7 +342,7 @@ export_shaderblend(F, Name, Mat, ExportDir) ->
 %%% Export Blend Material
 %% need reviewing, render crash.
 
-export_blend_mat_shader(F, Name, Mat, ExportDir, Attr) ->
+export_blend_mat_shader(F, Name, _Mat, _ExportDir, Attr) ->
     %OpenGL = proplists:get_value(opengl, Mat),
     %Maps = proplists:get_value(maps, Mat, []),
     %Modulators = proplists:get_value(modulators, Attr, def_modulators(Maps)),
