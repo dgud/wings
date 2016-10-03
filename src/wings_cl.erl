@@ -45,19 +45,17 @@ is_available() ->
 setup() ->
     Prefered = wings_pref:get_value(cl_type, gpu),
     Other = [gpu,cpu] -- [Prefered],
-    CL = case clu:setup(Prefered) of 
-	     {error, _} -> 
-		 case clu:setup(Other) of
-		     {error, R} -> 
-			 exit({no_opencl_device, R});
-		     Cpu -> 
-		     	 io:format("Using OpenCL via ~p~n",[Other]),
-		     	 Cpu
-		 end;
-	     Gpu ->
-		 io:format("Using OpenCL via ~p~n",[Prefered]),
-		 Gpu
-	 end,
+    {Use,CL} = case clu:setup(Prefered) of
+                   {error, _} ->
+                       case clu:setup(Other) of
+                           {error, R} -> exit({no_opencl_device, R});
+                           Cpu -> {Other, Cpu}
+                       end;
+                   Gpu -> {Prefered, Gpu}
+               end,
+    {ok,PI} = cl:get_platform_info(CL#cl.platform),
+    io:format("Using OpenCL via ~p:Name ~s:VSN: ~s~n",
+              [Use, proplists:get_value(name,PI), proplists:get_value(version,PI)]),
     [Device|_] = CL#cl.devices,
     {ok,Queue} = cl:create_queue(CL#cl.context,Device,[]),
     #cli{context=CL#cl.context, q=Queue, device=Device, cl=CL}.
