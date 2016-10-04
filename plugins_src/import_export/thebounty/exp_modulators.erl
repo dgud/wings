@@ -27,7 +27,7 @@ export_modulator(F, Texname, Maps, {modulator,Ps}, Attr) when is_list(Ps) ->
             %!-----------------------------------
             DiffuseLayer = proplists:get_value(diffuse_layer, Ps, false),
             MirrorLayer = proplists:get_value(mirror, Ps, false),
-            MirrorColorLayer = proplists:get_value(mirror_color, Ps, false),
+            MirrorColorLayer = proplists:get_value(mirror_color_layer, Ps, false),
             TransparentLayer = proplists:get_value(transparency, Ps, false),
             TranslucentLayer = proplists:get_value(translucency, Ps, false),
             GlossyLayer = proplists:get_value(glossy, Ps, false),

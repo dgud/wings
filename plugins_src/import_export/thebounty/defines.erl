@@ -258,7 +258,7 @@ range_1(volume_sigma_a)         -> {0.0,1.0};
 range_1(volume_sigma_s)         -> {0.0,1.0};
 range_1(volume_height)          -> {0.0,1000.0};
 range_1(volume_steepness)       -> {0.0,10.0};
-range_1(volume_attgridscale)    -> {1,5};
+range_1(volume_attgridscale)    -> {1,8};
 range_1(volume_sharpness)       -> {1.0,100.0};
 range_1(volume_cover)           -> {0.0,1.0};
 range_1(volume_density)         -> {0.0,1.0};

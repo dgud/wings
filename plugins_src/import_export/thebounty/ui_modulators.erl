@@ -94,7 +94,7 @@ modulator_dialog({modulator,Ps}, Maps, MaterialType, M) when is_list(Ps) ->
     MirrorLayer = proplists:get_value(mirror, Ps, false),
     MirrorFactor = proplists:get_value(mirror_factor, Ps, 1.0),
 
-    MirrorColorLayer = proplists:get_value(mirror_color, Ps, false),
+    MirrorColorLayer = proplists:get_value(mirror_color_layer, Ps, false),
     MirrorColorFactor = proplists:get_value(mirror_color_factor, Ps, 1.0),
 
     TransparentLayer = proplists:get_value(transparency, Ps, false),
@@ -190,7 +190,7 @@ modulator_dialog({modulator,Ps}, Maps, MaterialType, M) when is_list(Ps) ->
                     {vframe,[
                         {?__(37,"Diffuse     "),DiffuseLayer,     [key({M,diffuse_layer})]},
                         {?__(38,"Mirror      "),MirrorLayer,      [key({M,mirror})]},
-                        {?__(39,"Mirror Color"),MirrorColorLayer, [key({M,mirror_color})]}
+                        {?__(39,"Mirror Color"),MirrorColorLayer, [key({M,mirror_color_layer})]}
                     ]},
                     {vframe,[
                         {slider,{text,DiffuseFactor,    [key({M,diffuse_factor}),range(zero_one)]}},
@@ -251,7 +251,7 @@ modulator_dialog({modulator,Ps}, Maps, MaterialType, M) when is_list(Ps) ->
             glass ->
                 {hframe, [
                     {vframe,[
-                        {?__(52,"Mirror Color"),MirrorColorLayer, [key({M,mirror_color})]},
+                        {?__(52,"Mirror Color"),MirrorColorLayer, [key({M,mirror_color_layer})]},
                         {?__(53,"Bumpmap"),BumpLayer,[key({M,bump})]}
                     ]},
                     {vframe,[
@@ -350,7 +350,7 @@ modulator_dialog({modulator,Ps}, Maps, MaterialType, M) when is_list(Ps) ->
                     ],TextureType,[key({M,texture_type}), {hook,Hook_Show}]}
                 ]},
                 {vframe, [
-                    {vframe, [
+                    {vframe, [ % image texture
                         {hframe, [
                             {hframe, [ {label,?__(68,"File")},
                                 {button,{text,Filename,[key({M,image_filename}),{width,27},{props,BrowseProps}]}},
@@ -598,7 +598,7 @@ modulator_init(Mode) ->
         {stencil, false},
         {negative, false},
         {no_rgb, false},
-        {def_color,?DEF_MOD_DEFCOLOR},
+        {def_color,{1.0,0.0,1.0}},
         {def_value, 1.0},
         {coordinates, global},
         {size_x,1.0},{size_y,1.0},{size_z,1.0},
@@ -607,18 +607,17 @@ modulator_init(Mode) ->
         {direction, xyz},
         {diffuse_layer, false},{diffuse_factor, 1.0},
         {mirror, false},{mirror_factor, 1.0},
-        {mirror_color, false},{mirror_color_factor, 1.0},
+        {mirror_color_layer, false},{mirror_color_factor, 1.0},
         {glossy, false},{glossy_factor, 1.0},
+        {glossy_reflect, false},{glossy_reflect_factor, 1.0},
         {transparency, false},{transparent_factor, 1.0},
         {translucency, false},{translucent_factor, 1.0},
         {bump,false},{bump_factor, 1.0},
         {blend_mask, false},{blend_factor, 0.5},
         {texture_type, clouds},
-        {image_filename, ""},
-        {gamma_input, 2.2},
-        {use_alpha, false},
-        {calc_alpha, false},
-        {flip_axis, false},
+        % image texture parameters
+        {image_filename, ""},{gamma_input, 2.2},{use_alpha, false},
+        {calc_alpha, false},{flip_axis, false},{interpolate, none},
         {extension, repeat},{repeat_x,1},{repeat_y, 1},{even, false},{odd, false},
         {distance,0.0},{crop_minx, 0.0},{crop_miny, 0.0},{crop_maxx, 0.0},{crop_maxy, 0.0},
         %{normal_map, false},
