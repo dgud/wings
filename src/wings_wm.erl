@@ -718,7 +718,7 @@ dispatch_event({'EXIT', Pid, {Reason, StackTrace}}) ->
 	       [WName] -> WName;
 	       _ ->
 		   case process_info(Pid, registered_name) of
-		       [] -> Pid;
+		       undefined -> Pid;
 		       {registered_name,Reg} -> Reg
 		   end
 	   end,
