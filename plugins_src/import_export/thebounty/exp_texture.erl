@@ -16,10 +16,10 @@ export_texture(F, Name, Maps, ExportDir, {modulator,Ps}) when is_list(Ps) ->
             off;
         {true,_,image} ->
             Filename = proplists:get_value(image_filename, Ps, ?DEF_MOD_FILENAME),
-            export_texture(F, Name, image, Filename);
+            export_image_texture(F, Name, Filename, Ps);
         {true,_,jpeg} -> %% Old tag
             Filename = proplists:get_value(image_filename, Ps, ?DEF_MOD_FILENAME),
-            export_texture(F, Name, image, Filename);
+            export_image_texture(F, Name, Filename, Ps);
         {true,_,{map,Map}} ->
             case proplists:get_value(Map, Maps, undefined) of
                 undefined ->
@@ -27,10 +27,11 @@ export_texture(F, Name, Maps, ExportDir, {modulator,Ps}) when is_list(Ps) ->
                 #e3d_image{name=ImageName, filename = FileName}=Image ->
                     case FileName of
                         none ->
-                            MapFile = case get_map_type(ImageName) of
-                                          sys -> ImageName++".png";
-                                          _ -> ImageName
-                                      end,
+                            MapFile =
+                                case get_map_type(ImageName) of
+                                    sys -> ImageName++".png";
+                                    _ -> ImageName
+                                end,
                             Filepath0 = filename:join(ExportDir, MapFile),
                             case e3d_image:save(Image, Filepath0) of
                                 {error, _} -> % file type not supported by Wings3d
@@ -40,17 +41,33 @@ export_texture(F, Name, Maps, ExportDir, {modulator,Ps}) when is_list(Ps) ->
                             end;
                         _ -> Filepath = FileName
                     end,
-                    export_texture(F, Name, image, Filepath)
+                    export_image_texture(F, Name, Filepath, Ps)
             end;
         {true,_,Type} ->
             export_texture(F, Name, Type, Ps)
     end.
 
-export_texture(F, TexName, image, Filename) ->
+export_image_texture(F, TexName, Filename, Ps) ->
     println(F, "<texture name=\"~s\">",[TexName]),
     println(F, "\t<filename sval=\"~s\"/>",[Filename]),
     println(F, "\t<type sval=\"image\"/>"),
-    println(F, "\t</texture>");
+    println(F, "\t<use_alpha bval=\"~s\"/>",[format(proplists:get_value(use_alpha, Ps, false))]),
+    println(F, "\t<calc_alpha bval=\"~s\"/>",[format(proplists:get_value(calc_alpha, Ps, false))]),
+    println(F, "\t<clipping sval=\"~s\"/>",[proplists:get_value(clipping, Ps, repeat)]),
+    println(F, "\t<xrepeat ival=\"~w\"/>",[proplists:get_value(repeat_x, Ps, 1)]),
+    println(F, "\t<yrepeat ival=\"~w\"/>",[proplists:get_value(repeat_y, Ps, 0.0)]),
+    println(F, "\t<cropmax_x fval=\"~.2f\"/>",[proplists:get_value(crop_maxx, Ps, 0.0)]),
+    println(F, "\t<cropmax_y fval=\"~.2f\"/>",[proplists:get_value(crop_maxy, Ps, 0.0)]),
+    println(F, "\t<cropmin_x fval=\"~.2f\"/>",[proplists:get_value(crop_minx, Ps, 0.0)]),
+    println(F, "\t<cropmin_y fval=\"~.2f\"/>",[proplists:get_value(crop_miny, Ps, 0.0)]),
+    println(F, "\t<even_tiles bval=\"~s\"/>",[format(proplists:get_value(even_alpha, Ps, false))]),
+    println(F, "\t<odd_tiles bval=\"~s\"/>",[format(proplists:get_value(odd, Ps, false))]),
+    println(F, "\t<checker_dist fval=\"~.2f\"/>",[proplists:get_value(distance, Ps, 0.0)]),
+    println(F, "\t<interpolate sval=\"~s\"/>",[proplists:get_value(interpolate, Ps, none)]),
+    println(F, "\t<rot90 bval=\"~s\"/>",[proplists:get_value(flip_axis, Ps, false)]),
+    println(F, "\t<normalmap bval=\"false\"/>"),
+    println(F, "\t<gamma fval=\"~.2f\"/>",[proplists:get_value(gamma_input, Ps, 2.2)]),
+    println(F, "\t</texture>").
 
 export_texture(F, Name, Type, Ps) ->
     %

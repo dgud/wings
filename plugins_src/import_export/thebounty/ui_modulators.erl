@@ -17,27 +17,39 @@
 
 
 menu_blend_mode() ->
-    [{?__(105,"Mix"),mix},
-     {?__(106,"Add"),add},
-     {?__(107,"Multiply"),mul},
-     {?__(109,"Subtract"),sub},
-     {?__(110,"Screen"),scr},
-     {?__(111,"Divide"),divide},
-     {?__(112,"Difference"),dif},
-     {?__(113,"Darken"),dar},
-     {?__(114,"Lighten"),lig}].
+    [{?__(120,"Mix"),mix},
+     {?__(121,"Add"),add},
+     {?__(122,"Multiply"),mul},
+     {?__(123,"Subtract"),sub},
+     {?__(124,"Screen"),scr},
+     {?__(125,"Divide"),divide},
+     {?__(126,"Difference"),dif},
+     {?__(127,"Darken"),dar},
+     {?__(128,"Lighten"),lig}].
 
 menu_distortion_type() ->
-   [{?__(87,"Blender-Distort"),blender},
-    {?__(88,"Cellnoise"),cellnoise},
-    {?__(89,"New Perlin"),newperlin},
-    {?__(90,"Perlin"),stdperlin},
-    {?__(91,"Voronoi Crackle"),voronoi_crackle},
-    {?__(92,"Voronoi F1"),voronoi_f1},
-    {?__(93,"Voronoi F2"),voronoi_f2},
-    {?__(94,"Voronoi F3"),voronoi_f3},
-    {?__(95,"Voronoi F4"),voronoi_f4},
-    {?__(96,"Voronoi F1F2"),voronoi_f2f1}].
+   [{?__(129,"Blender-Distort"),blender},
+    {?__(130,"Cellnoise"),cellnoise},
+    {?__(131,"New Perlin"),newperlin},
+    {?__(132,"Perlin"),stdperlin},
+    {?__(133,"Voronoi Crackle"),voronoi_crackle},
+    {?__(134,"Voronoi F1"),voronoi_f1},
+    {?__(135,"Voronoi F2"),voronoi_f2},
+    {?__(136,"Voronoi F3"),voronoi_f3},
+    {?__(137,"Voronoi F4"),voronoi_f4},
+    {?__(138,"Voronoi F1F2"),voronoi_f2f1}].
+
+menu_extension_mode() ->
+    [{?__(139,"Ext: Checked"),checker},
+     {?__(140,"Ext: Repeat"),repeat},
+     {?__(141,"Ext: Clip"),clip},
+     {?__(142,"Ext: Clipcube"),clipcube},
+     {?__(143,"Ext: Extended"),extend}].
+
+menu_interpolate_mode() ->
+    [{?__(144,"Interpolation: None"),none},
+     {?__(145,"Interpolation: Bilinear"),bilinear},
+     {?__(146,"Interpolation: Bicubic"),bicubic}].
 
 % TODO: change this part of code for generate only the
 % allowed modulators for each material
@@ -75,7 +87,7 @@ modulator_dialog({modulator,Ps}, Maps, MaterialType, M) when is_list(Ps) ->
     OffsetY = proplists:get_value(offset_y, Ps, 0.0),
     OffsetZ = proplists:get_value(offset_z, Ps, 0.0),
     Direction =  proplists:get_value(direction, Ps, xyz),
-    
+
     DiffuseLayer = proplists:get_value(diffuse_layer, Ps, true),
     DiffuseFactor = proplists:get_value(diffuse_factor, Ps, 1.0),
 
@@ -107,6 +119,8 @@ modulator_dialog({modulator,Ps}, Maps, MaterialType, M) when is_list(Ps) ->
     BrowseProps = [{dialog_type, open_dialog},
                     {extensions, [{".jpg", "JPEG"}, {".png", "PNG"},{".bmp", "Bitmap"},
                                 {".gif", "GIF"}, {".exr", "EXR"}, {".tiff", "TIFF"}]}],
+    Extension = proplists:get_value(extension,Ps,repeat),
+
     Color1 = proplists:get_value(color1, Ps, ?DEF_MOD_COLOR1),
     Color2 = proplists:get_value(color2, Ps, ?DEF_MOD_COLOR2),
     Depth = proplists:get_value(depth, Ps, ?DEF_MOD_DEPTH),
@@ -161,6 +175,10 @@ modulator_dialog({modulator,Ps}, Maps, MaterialType, M) when is_list(Ps) ->
                 wings_dialog:show(?KEY({pnl_voronoi,M}), Value =:= voronoi, Store),
                 wings_dialog:show(?KEY({pnl_musgrave,M}), Value =:= musgrave, Store),
                 wings_dialog:show(?KEY({pnl_dist_noise,M}), Value =:= distorted_noise, Store),
+                wings_dialog:update(?KEY({pnl_modulator,M}), Store);
+            {?TAG,{M, extension}} ->
+                wings_dialog:show(?KEY({pnl_repeat,M}), Value =:= repeat, Store),
+                wings_dialog:show(?KEY({pnl_checked,M}), Value =:= checker, Store),
                 wings_dialog:update(?KEY({pnl_modulator,M}), Store)
         end
     end,
@@ -319,40 +337,70 @@ modulator_dialog({modulator,Ps}, Maps, MaterialType, M) when is_list(Ps) ->
                 %!-----------------------
                 %! textures
                 %!-----------------------
-                {menu, MapsItems++[
-                    {?__(60,"Image"),image},
-                    {?__(61,"Clouds"),clouds},
-                    {?__(62,"Marble"),marble},
-                    {?__(63,"Wood"),wood},
-                    {?__(64,"Voronoi"),voronoi},
-                    {?__(65,"Musgrave"),musgrave},
-                    {?__(66,"Distorted Noise"),distorted_noise}
-                ],TextureType,[key({M,texture_type}), {hook,Hook_Show}]},
+                {hframe, [
+                    {label,?__(60,"Texture type")},
+                    {menu, MapsItems++[
+                        {?__(61,"Image"),image},
+                        {?__(62,"Clouds"),clouds},
+                        {?__(63,"Marble"),marble},
+                        {?__(64,"Wood"),wood},
+                        {?__(65,"Voronoi"),voronoi},
+                        {?__(66,"Musgrave"),musgrave},
+                        {?__(67,"Distorted Noise"),distorted_noise}
+                    ],TextureType,[key({M,texture_type}), {hook,Hook_Show}]}
+                ]},
                 {vframe, [
-                    {hframe, [
+                    {vframe, [
                         {hframe, [
-                            {label,?__(67,"Filename")},
-                            {button,{text,Filename,[key({M,image_filename}),{width,35},{props,BrowseProps}]}}
-                        ],[key({pnl_image,M}), {show,false}]}
-                    ]},
+                            {hframe, [ {label,?__(68,"File")},
+                                {button,{text,Filename,[key({M,image_filename}),{width,27},{props,BrowseProps}]}},
+                                {label,?__(69,"Gamma Inp.")},
+                                {slider,{text,proplists:get_value(gamma_input,Ps,1.0),[key({M,gamma_input}),range(gamma),{width,5}]}}
+                            ]}
+                        ]},
+                        {hframe, [
+                            {?__(70,"Use Alpha"),proplists:get_value(use_alpha,Ps,false),[key({M,use_alpha})]},panel,
+                            {?__(71,"Calc. Alpha"),proplists:get_value(calc_alpha,Ps,false),[key({M,calc_alpha})]},panel,
+                            {?__(72,"Flip Axis"),proplists:get_value(flip_axis,Ps,false),[key({M,flip_axis})]},
+                            {menu,menu_interpolate_mode(),proplists:get_value(interpolate,Ps,none),[key({M,interpolate})]}
+                        ]},
+                        {hframe, [
+                            {menu,menu_extension_mode(),Extension,[key({M,extension}),{hook,Hook_Show}]},panel,
+                            {hframe, [
+                                {label,?__(73,"Repeat X")},
+                                {text,proplists:get_value(repeat_x,Ps,1),[key({M,repeat_x}),range(ione_twenty),{width,5}]},
+                                panel,{label,?__(74,"Repeat Y")},
+                                {text,proplists:get_value(repeat_y,Ps,1),[key({M,repeat_y}),range(ione_twenty),{width,5}]}
+                            ],[key({pnl_repeat,M}),{margin,false}]},
+                            {hframe, [
+                                {?__(75,"Even "), proplists:get_value(even, Ps, false),[key({M,even})]},
+                                {?__(76,"Odd "), proplists:get_value(odd, Ps, false),[key({M,odd})]},
+                                {label,?__(77,"Distance")},
+                                {text,proplists:get_value(distance,Ps,0.0),[key({M,distance}),range(zero_ten),{width,4}]},
+                                {label,?__(78," Crop Min. XY")},
+                                {text,proplists:get_value(crop_minx,Ps,0.0),[key({M,crop_minx}),range(zero_ten),{width,4}]},
+                                {text,proplists:get_value(crop_miny,Ps,0.0),[key({M,crop_miny}),range(zero_ten),{width,4}]},
+                                {label,?__(79," Crop Max. XY")},
+                                {text,proplists:get_value(crop_maxx,Ps,0.0),[key({M,crop_maxx}),range(zero_ten),{width,4}]},
+                                {text,proplists:get_value(crop_maxy,Ps,0.0),[key({M,crop_maxy}),range(zero_ten),{width,4}]}
+                            ],[key({pnl_checked,M}),{show,false}]}
+                        ]}
+                    ],[key({pnl_image,M}), {margin,false}]},
                     %% Clouds,Marble,Wood Specific Procedurals Line 1
                     {hframe, [
-                        {label,?__(68,"Texture")},{color,Color1,[key({M,color1})]},
-                        panel,
-                        {label,?__(69,"Base")},{color,Color2,[key({M,color2})]},
-                        panel,
-                        {?__(70,"Hard Noise"),Hard,[key({M,hard})]},
+                        {label,?__(80,"Texture")},{color,Color1,[key({M,color1})]}, panel,
+                        {label,?__(81,"Base")},{color,Color2,[key({M,color2})]}, panel,
+                        {?__(82,"Hard Noise"),Hard,[key({M,hard})]},
                         {menu,menu_distortion_type(),NoiseBasis,[key({M,noise_basis})]}
-                    ],[key({pnl_base1,M})]},
+                    ],[key({pnl_base1,M}),{show,false}]},
 
                     %% Clouds,Marble,Wood Specific Procedurals Line 2
                     {hframe, [
                         {hframe, [
-                            {label,?__(71,"Noise Size")},
-                            {text,NoiseSize,[key({M,noise_size}),range(noise_size),{width,4}]}
+                            {label,?__(83,"Noise Size")},{text,NoiseSize,[key({M,noise_size}),range(noise_size),{width,4}]}
                         ]},
                         {hframe, [
-                            {label,?__(72,"Noise Depth")},
+                            {label,?__(84,"Noise Depth")},
                             {text,Depth,[key({M,depth}),range(noise_depth)]}
                         ]}
                     ],[key({pnl_base2,M}),{margin,false},{show,false}]},
@@ -360,7 +408,7 @@ modulator_dialog({modulator,Ps}, Maps, MaterialType, M) when is_list(Ps) ->
                     %% Marble Specific Procedurals
                     {hframe, [
                         {hframe, [
-                            {label,?__(73,"Sharpness")},
+                            {label,?__(85,"Sharpness")},
                             {text,Sharpness,[key({M,sharpness}),range(sharpness),{width,4}]}
                         ],[key({pnl_sharpness,M})]},
                         %],[hook(open, [member,{?TAG,type,M},marble])]},
@@ -368,22 +416,22 @@ modulator_dialog({modulator,Ps}, Maps, MaterialType, M) when is_list(Ps) ->
                         %% Marble,Wood Specific Procedurals
                         {hframe, [
                             {hframe, [
-                                {label,?__(74,"Turbulence")},
+                                {label,?__(86,"Turbulence")},
                                 {text,Turbulence,[key({M,turbulence}),range(turbulence)]}
                             ]},
                             %% Start Shape Select
                             {menu,[
-                                {?__(75,"sin"),"sin"},
-                                {?__(76,"saw"),saw},
-                                {?__(77,"tri"),tri}
+                                {?__(87,"sin"),"sin"},
+                                {?__(88,"saw"),saw},
+                                {?__(89,"tri"),tri}
                             ],Shape,[key({M,shape})]}
                         ],[key({pnl_turb,M}),{margin,false}]},
 
                         %% Wood Specific Procedurals
                         {hframe, [
                             {menu,[
-                                {?__(78,"Rings"),rings},
-                                {?__(79,"Bands"),bands}
+                                {?__(90,"Rings"),rings},
+                                {?__(91,"Bands"),bands}
                             ],WoodType,[key({M,wood_type})]}
                         ],[key({pnl_wood,M})]}
                     ],[key({pnl_base3,M}),{margin,false},{show,false}]},
@@ -394,46 +442,45 @@ modulator_dialog({modulator,Ps}, Maps, MaterialType, M) when is_list(Ps) ->
                         {hframe, [
                             %% Voronoi Cell Type Select
                             {menu,[
-                                {?__(80,"Intensity"),intensity},
-                                {?__(81,"Color"),col1},
-                                {?__(82,"Color+Outline"),col2},
-                                {?__(83,"Color+Outline+Intensity"),col3}
+                                {?__(92,"Intensity"),intensity},
+                                {?__(93,"Color"),col1},
+                                {?__(94,"Color+Outline"),col2},
+                                {?__(95,"Color+Outline+Intensity"),col3}
                             ],CellType,[key({M,cell_type})]},
                             panel,
                             %% Voronoi Cell Shape Select
                             {menu,[
-                                {?__(84,"Actual Distance"),actual},
-                                {?__(85,"Distance Squared"),squared},
-                                {?__(86,"Manhattan"),manhattan},
-                                {?__(87,"Chebychev"),chebychev},
-                                {?__(88,"Minkovsky"),minkovsky}
+                                {?__(96,"Actual Distance"),actual},
+                                {?__(97,"Distance Squared"),squared},
+                                {?__(98,"Manhattan"),manhattan},
+                                {?__(99,"Chebychev"),chebychev},
+                                {?__(100,"Minkovsky"),minkovsky}
                             ],CellShape,[key({M,cell_shape})]}
                         ],[{margin,false}]},
 
                         %% Start Voronoi Line 2
                         {hframe, [
-                            {hframe, [
-                                {label,?__(89,"Cell Size")},{text,CellSize,[key({M,cell_size}),range(cell_size),{width,5}]}
+                            {hframe, [ {label,?__(101,"Cell Size")},
+                                {text,CellSize,[key({M,cell_size}),range(cell_size),{width,5}]}
                             ]},
-                            {hframe, [
-                                {label,?__(90,"Intensity")},{text,Intensity,[key({M,intensity}),range(intensity),{width,5}]}
+                            {hframe, [ {label,?__(102,"Intensity")},
+                                {text,Intensity,[key({M,intensity}),range(intensity),{width,5}]}
                             ]}
                         ],[{margin,false}]},
-                        %% End Voronoi Line 2
 
                         %% Start Voronoi Line 3
                         {hframe, [
-                            {hframe, [
-                                {label,?__(91,"W1")},{text,CellWeight1,[key({M,cell_weight1}),range(neg_two_two),{width,5}]}
+                            {hframe, [ {label,?__(103,"W1")},
+                                {text,CellWeight1,[key({M,cell_weight1}),range(neg_two_two),{width,5}]}
                             ]},
-                            {hframe, [
-                                {label,?__(92,"W2")},{text,CellWeight2,[key({M,cell_weight2}),range(neg_two_two),{width,5}]}
+                            {hframe, [ {label,?__(104,"W2")},
+                                {text,CellWeight2,[key({M,cell_weight2}),range(neg_two_two),{width,5}]}
                             ]},
-                            {hframe, [
-                                {label,?__(93,"W3")},{text,CellWeight3,[key({M,cell_weight3}),range(neg_two_two),{width,5}]}
+                            {hframe, [ {label,?__(405,"W3")},
+                                {text,CellWeight3,[key({M,cell_weight3}),range(neg_two_two),{width,5}]}
                             ]},
-                            {hframe, [
-                                {label,?__(94,"W4")},{text,CellWeight4,[key({M,cell_weight4}),range(neg_two_two),{width,5}]}
+                            {hframe, [ {label,?__(106,"W4")},
+                                {text,CellWeight4,[key({M,cell_weight4}),range(neg_two_two),{width,5}]}
                             ]}
                         ],[{margin,false}]}
                         %% End Voronoi Line 3
@@ -444,54 +491,46 @@ modulator_dialog({modulator,Ps}, Maps, MaterialType, M) when is_list(Ps) ->
                         {hframe,[
                             %% Start Musgrave Type Select
                             {menu,[
-                                {?__(95,"Multifractal"),multifractal},
-                                {?__(96,"Ridged"),ridgedmf},
-                                {?__(97,"Hybrid"),hybridmf},
-                                {?__(98,"FBM"),fBm}
+                                {?__(107,"Multifractal"),multifractal},
+                                {?__(108,"Ridged"),ridgedmf},
+                                {?__(109,"Hybrid"),hybridmf},
+                                {?__(110,"FBM"),fBm}
                             ],MusgraveType,[key({M,musgrave_type})]},
                             panel,
-                            {hframe,[
-                                {label,?__(99,"Noise Size")},
+                            {hframe,[ {label,?__(111,"Noise Size")},
                                 {text,proplists:get_value(musgrave_noisesize, Ps, 0.5),[key({M,musgrave_noisesize}),range(musgrave_noisesize)]}
                             ]},
-                            {hframe,[
-                                {label,?__(100,"Intensity")},
+                            {hframe,[ {label,?__(112,"Intensity")},
                                 {text,MusgraveIntensity,[key({M,musgrave_intensity}),range(zero_to_ten)]}
                             ]}
                         ],[{margin,false}]},
 
                         %% Start Musgrave Line 2
                         {hframe, [
-                            {hframe, [
-                                {label,?__(101,"Contrast (H)")},
+                            {hframe, [ {label,?__(113,"Contrast (H)")},
                                 {text,proplists:get_value(musgrave_contrast, Ps, 0.1),[key({M,musgrave_contrast}),range(musgrave_contrast)]}
                             ]},
-                            {hframe, [
-                                {label,?__(102,"Lacunarity")},
+                            {hframe, [ {label,?__(114,"Lacunarity")},
                                 {text,proplists:get_value(musgrave_lacunarity, Ps, 2.0),[key({M,musgrave_lacunarity}),range(zero_six)]}
                             ]},
-                            {hframe, [
-                                {label,?__(103,"Octaves")},
+                            {hframe, [ {label,?__(115,"Octaves")},
                                 {text,proplists:get_value(musgrave_octaves, Ps, 8.0),[key({M,musgrave_octaves}),range(zero_eight)]}
                             ]}
                         ],[{margin,false}]}
-                        %% End Musgrave Line 2
-                    ],[key({pnl_musgrave,M})]},
+                    ],[key({pnl_musgrave,M}),{show,false}]},
 
                     %% Start Distorted Noise Specific Procedurals
                     {vframe, [
                         {hframe, [
-                            %% Distorted Noise Type Select
                             {menu,menu_distortion_type(),DistortionType,[key({M,distortion_type})]},
-                            %% End Distorted Noise Type Select
-                            {label,?__(104,"Noise Size")},{text,DistortionNoiseSize,[key({M,distortion_noisesize}),range(distortion_noisesize)]},
-                            {label,?__(105,"Distortion")},{text,DistortionIntensity,[key({M,distortion_intensity}),range(zero_to_ten)]}
+                            {label,?__(116,"Noise Size")},{text,DistortionNoiseSize,[key({M,distortion_noisesize}),range(distortion_noisesize)]},
+                            {label,?__(117,"Distortion")},{text,DistortionIntensity,[key({M,distortion_intensity}),range(zero_to_ten)]}
                         ],[{margin,false}]}
                     ],[key({pnl_dist_noise,M}),{show,false}]}
                 ],[key({pnl_type,M})]}
             ],[key({pnl_modulator,M})]}
         ]},
-    [{?__(110,"Shader")++" "++integer_to_list(M)++mod_legend(Enabled, BlendMode, TextureType), ModFrame}];
+    [{?__(119,"Shader")++" "++integer_to_list(M)++mod_legend(Enabled, BlendMode, TextureType), ModFrame}];
 
 modulator_dialog(_Modulator, _Maps, _MaterialType, _) ->
     []. % Discard old modulators that anyone may have
@@ -574,8 +613,15 @@ modulator_init(Mode) ->
         {translucency, false},{translucent_factor, 1.0},
         {bump,false},{bump_factor, 1.0},
         {blend_mask, false},{blend_factor, 0.5},
-        {texture_type,?DEF_MOD_TEXTURETYPE},
-        {image_filename,?DEF_MOD_FILENAME},
+        {texture_type, clouds},
+        {image_filename, ""},
+        {gamma_input, 2.2},
+        {use_alpha, false},
+        {calc_alpha, false},
+        {flip_axis, false},
+        {extension, repeat},{repeat_x,1},{repeat_y, 1},{even, false},{odd, false},
+        {distance,0.0},{crop_minx, 0.0},{crop_miny, 0.0},{crop_maxx, 0.0},{crop_maxy, 0.0},
+        %{normal_map, false},
         {color1,?DEF_MOD_COLOR1},
         {color2,?DEF_MOD_COLOR2},
         {hard,?DEF_MOD_HARD},

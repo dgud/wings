@@ -243,6 +243,7 @@ range_1(zero_twenty)            -> {0.0,20.0};
 range_1(neg_one_to_one)         -> {-1.0,1.0};
 range_1(neg_two_two)            -> {-2.0,2.0};
 range_1(one_ten)                -> {1.0,10.0};
+range_1(one_three)              -> {1.0,3.0};
 range_1(sss_phase)              -> {-0.99,0.99};
 
 % integer type
@@ -250,6 +251,7 @@ range_1(izero_to_one)            -> {0,1};
 range_1(izero_to_five)           -> {0,5};
 range_1(izero_to_ten)            -> {0,10};
 range_1(izero_to_twenty)         -> {0,20};
+range_1(ione_twenty)             -> {1,20};
 
 %% Material ranges
 range_1(volume_sigma_a)         -> {0.0,1.0};
@@ -375,7 +377,7 @@ range_1(aa_pixelwidth)          -> {1.0,2.0};
 range_1(aa_passes)              -> {0,1024};
 range_1(aa_threshold)           -> {0.0,1.0};
 range_1(aa_samples)             -> {1,1024};
-range_1(gamma)                  -> {0.0,3.0};
+range_1(gamma)                  -> {1.0,3.0};
 range_1(exposure)               -> {0.0,1024.0};
 range_1(pixels)                 -> {1,1024};
 range_1(lens_scale)             -> {0.0,100.0};

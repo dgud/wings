@@ -40,8 +40,6 @@ export_object_1(F, NameStr, Mesh0=#e3d_mesh{he=He0}, DefaultMaterial, MatPs, Id)
     Object_Type = proplists:get_value(object_type, Attr, mesh),
     AutosmoothAngle = proplists:get_value(autosmooth_angle, Attr, 90.0),
     Autosmooth = proplists:get_value(autosmooth, Attr, AutosmoothAngle =/= 0.0),
-                                     %if AutosmoothAngle == 0.0 -> false;
-                                     %   true -> ?DEF_AUTOSMOOTH end),
 
     %% Pre-process mesh
     Mesh1 = #e3d_mesh{} =
@@ -59,7 +57,7 @@ export_object_1(F, NameStr, Mesh0=#e3d_mesh{he=He0}, DefaultMaterial, MatPs, Id)
     io:format(?__(4,"done")++"~n"),
     io:format(?__(5,"Mesh ~s: exporting..."), [NameStr]),
 
-    %% Add Export Object Name Start
+    %% Add export object name
     println(F, "<!-- Object Name ~s, Object # ~w -->", [NameStr,Id]),
 
     HasUV =  case Tx of
@@ -69,7 +67,6 @@ export_object_1(F, NameStr, Mesh0=#e3d_mesh{he=He0}, DefaultMaterial, MatPs, Id)
 
     case Object_Type of
         mesh ->
-            println(F," "),
             println(F,
                 "<mesh id=\"~w\" vertices=\"~w\" faces=\"~w\" has_uv=\"~s\" type=\"0\">",[Id,length(Vs),length(Fs),HasUV]);
 
@@ -155,7 +152,7 @@ export_object_1(F, NameStr, Mesh0=#e3d_mesh{he=He0}, DefaultMaterial, MatPs, Id)
                 "\n<mesh id=\"~w\" vertices=\"~w\" faces=\"~w\" has_uv=\"~s\" type=\"256\">",[Id,length(Vs),length(Fs),HasUV])
     end,
 
-    %% Add Export UV_Vectors Part 1 Start
+    %%
     case Object_Type of
         volume ->
             println(F, "</volumeregion>\n");
