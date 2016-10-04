@@ -170,7 +170,7 @@ init([Frame, _Ps, SS]) ->
     Panel = wxPanel:new(Frame),
     wxPanel:setFont(Panel, ?GET(system_font_wx)),
     Szr = wxBoxSizer:new(?wxVERTICAL),
-    Style = ?wxLC_REPORT bor ?wxLC_NO_HEADER bor ?wxLC_EDIT_LABELS,
+    Style = ?wxLC_REPORT bor ?wxLC_NO_HEADER bor ?wxLC_EDIT_LABELS bor ?wxLC_SINGLE_SEL,
     LC = wxListCtrl:new(Panel, [{style, Style}]),
     wxListCtrl:setBackgroundColour(LC, BG),
     wxListCtrl:setForegroundColour(LC, FG),
@@ -276,6 +276,14 @@ handle_cast({new_state, #{ssels:=New} = SS}, #state{lc=LC, ss=Old, shown=OS}=Sta
 	    ignore
     end,
     {noreply, State#state{lc=LC, shown=Shown, ss=SS}};
+handle_cast({ssels,deselect}, #state{lc=LC}=State) ->
+    Sel = wxListCtrl:getNextItem(LC, -1, [{state,?wxLIST_STATE_SELECTED}]),
+    if Sel >= 0 ->
+	%% remove any selection so the context menues can be properly processed
+	wxListCtrl:setItemState(LC, Sel, 0, ?wxLIST_STATE_SELECTED);
+    true -> ok
+    end,
+    {noreply, State#state{sel=none}};
 handle_cast(_Req, State) ->
     %% io:format("~p:~p Got unexpected cast ~p~n", [?WIN_NAME,?LINE, _Req]),
     {noreply, State}.
@@ -367,18 +375,22 @@ invoke_menu(Indx, #{sel:=GeomHaveSel}, Shown, LC) ->
     SelIndex = get_selection(LC),
     Current = array:get(Indx, Shown),
     Delete = group_del_menu(Current),
-    if SelIndex =:= Indx, GeomHaveSel =:= false ->
-	    Delete;
-       SelIndex =:= Indx ->
-	    group_basic_menu(Current) ++
-		[separator|group_ins_menu()] ++
-		[separator|Delete];
-       SelIndex =:= none, GeomHaveSel ->
+    if SelIndex =:= none, GeomHaveSel ->
 	    group_ins_menu();
        SelIndex =:= none ->
 	    ignore;
+       SelIndex =:= Indx, GeomHaveSel =:= false ->
+	    Delete;
+       SelIndex =:= Indx ->
+	    group_basic_menu(Current) ++
+		[separator|group_bool_menu({-1,"current selection"}, array:get(SelIndex, Shown))] ++
+		[separator|group_ins_menu()] ++
+		[group_replace_menu(array:get(SelIndex, Shown))] ++
+		[separator|Delete];
        true ->
-	    group_bool_menu(Current, array:get(SelIndex, Shown))
+	   group_basic_menu(Current) ++
+	    [separator|group_bool_menu(Current, array:get(SelIndex, Shown))] ++
+	    [separator|group_replace_menu(array:get(SelIndex, Shown))]
     end.
 
 group_ins_menu() ->
@@ -396,6 +408,11 @@ group_basic_menu({_,SrcName}=SrcId) ->
       ?__(6,"Add current selection to group \"")++SrcName++"\""},
      {?__(7,"Subtract from Group"), menu_cmd(subtract_from_group,SrcId),
       ?__(8,"Subtract current selection from group \"")++SrcName++"\""}].
+
+group_replace_menu(none) -> [];
+group_replace_menu({_,DstName}=DstId) ->
+    [{?__(26,"Replace Group"), menu_cmd(replace_group,DstId),
+      ?__(4,"Replace group \"")++DstName++"\" with current selection"}].
 
 group_bool_menu(none,_) -> [];
 group_bool_menu(_,none) -> [];
