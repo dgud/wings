@@ -286,6 +286,8 @@ command({ssels,{intersect_group,Id}}, St) ->
     {save_state,intersect_group(Id, St)};
 command({ssels,{add_to_group,Id}}, St) ->
     {save_state,add_to_group(Id, St)};
+command({ssels,{replace_group,Id}}, St) ->
+    {save_state,replace_group(Id, St)};
 command({ssels,{subtract_from_group,Id}}, St) ->
     {save_state,subtract_from_group(Id, St)};
 command({new_group_name, Name}, St) ->
@@ -571,6 +573,23 @@ add_to_group({Mode,_}=Key, #st{ssels=Ssels}=St) ->
     #st{sel=Sel} = possibly_convert(Mode, St),
     Ssel = union(Ssel1, Sel),
     save_group(Key, Ssel, St).
+
+replace_group({_,Name}=Key, #st{ssels=Ssels0, selmode=Mode, sel=Sel}=St) ->
+    case Key of
+	{Mode,Name} ->	% same mode - no need to check for name duplication
+	    Ssels = gb_trees:update(Key, Sel, Ssels0);
+	_ ->
+	    NewKey =
+		case gb_trees:is_defined({Mode,Name}, Ssels0) of
+		    true ->
+			Names = [Name0 || {Mode0,Name0} <- gb_trees:keys(Ssels0), Mode0=:=Mode],
+			{Mode, wings_util:unique_name(Name, Names)};
+		    false ->
+			{Mode, Name}
+		end,
+	    Ssels = gb_trees:insert(NewKey, Sel, gb_trees:delete(Key, Ssels0))
+    end,
+    St#st{ssels=Ssels}.
 
 subtract_from_group({Mode,_}=Key, #st{ssels=Ssels}=St) ->
     Ssel0 = gb_trees:get(Key, Ssels),
