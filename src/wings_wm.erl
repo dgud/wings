@@ -1060,7 +1060,7 @@ wm_event({callback,Cb}) ->
 %%%
 
 find_active() ->
-    case grabbed_focus_window() of
+    case menubar_focus() of
  	undefined -> geom_below(wx_misc:getMousePosition());
  	Focus -> Focus
     end.
