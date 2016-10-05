@@ -30,7 +30,6 @@ clear(St) ->
     St#st{sel=[],sh=false}.
 
 reset(#st{selmode=Mode}=St) ->
-    wings_wm:psend({plugin, sel_groups}, {ssels,deselect}),
     case Mode of
 	body -> St#st{selmode=face,sel=[],sh=true};
 	_ -> St#st{sel=[],sh=true}

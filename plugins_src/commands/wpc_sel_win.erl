@@ -93,10 +93,10 @@ change_state(Window, SelSt) ->
 
 forward_event(redraw, _Window, _St) -> keep;
 forward_event({current_state, _,_}, _Window, _St) -> keep;
-forward_event({current_state, St}, Window, SelSt0) ->
+forward_event({current_state, #st{sel=Sel}=St}, Window, SelSt0) ->
     case (SelSt = get_sel_state(St)) =:= SelSt0 of
 	true  -> ignore;
-	false -> wx_object:cast(Window, {new_state,SelSt})
+	false -> wx_object:cast(Window, {new_state,{SelSt, Sel=:=[]}})
     end,
     {replace, change_state(Window, SelSt)};
 forward_event({apply, false, Fun}, _Window, _SelSt) ->
@@ -261,7 +261,7 @@ handle_call(_Req, _From, State) ->
     %% io:format("~p:~p Got unexpected call ~p~n", [?WIN_NAME,?LINE, Req]),
     {reply, ok, State}.
 
-handle_cast({new_state, #{ssels:=New} = SS}, #state{lc=LC, ss=Old, shown=OS}=State) ->
+handle_cast({new_state, {#{ssels:=New} = SS, Reset}}, #state{lc=LC, ss=Old, shown=OS}=State) ->
     Shown = update_sels(New, Old, OS, LC),
     case SS of
 	#{sh:=false, mode:=Mode} ->
@@ -273,17 +273,10 @@ handle_cast({new_state, #{ssels:=New} = SS}, #state{lc=LC, ss=Old, shown=OS}=Sta
 		    wxListCtrl:ensureVisible(LC, Index)
 	    end;
 	_ ->
+	    reset_selection(Reset, LC),
 	    ignore
     end,
     {noreply, State#state{lc=LC, shown=Shown, ss=SS}};
-handle_cast({ssels,deselect}, #state{lc=LC}=State) ->
-    Sel = wxListCtrl:getNextItem(LC, -1, [{state,?wxLIST_STATE_SELECTED}]),
-    if Sel >= 0 ->
-	%% remove any selection so the context menues can be properly processed
-	wxListCtrl:setItemState(LC, Sel, 0, ?wxLIST_STATE_SELECTED);
-    true -> ok
-    end,
-    {noreply, State#state{sel=none}};
 handle_cast(_Req, State) ->
     %% io:format("~p:~p Got unexpected cast ~p~n", [?WIN_NAME,?LINE, _Req]),
     {noreply, State}.
@@ -303,6 +296,15 @@ terminate(_Reason, _) ->
     normal.
 
 %%%%%%%%%%%%%%%%%%%%%%
+
+reset_selection(false, _) -> ok;
+reset_selection(true, LC) ->
+    Sel = wxListCtrl:getNextItem(LC, -1, [{state,?wxLIST_STATE_SELECTED}]),
+    if Sel >= 0 ->
+	%% remove any selection so the context menues can be properly processed
+	wxListCtrl:setItemState(LC, Sel, 0, ?wxLIST_STATE_SELECTED);
+	true -> ok
+    end.
 
 update_sels(New, #{ssels:=New}, OS, _LC) ->
     OS;
