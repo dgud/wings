@@ -113,8 +113,16 @@ wxImage_to_e3d(Wx) ->
 		      order = upper_left
 		     },
     case wxImage:hasAlpha(Wx) of
-	true -> e3d_image:add_alpha(E3d0, wxImage:getAlpha(Wx));
-	false -> E3d0
+	true ->
+            e3d_image:add_alpha(E3d0, wxImage:getAlpha(Wx));
+	false ->
+            case wxImage:hasMask(Wx) of
+                true ->
+                    wxImage:initAlpha(Wx),
+                    e3d_image:add_alpha(E3d0, wxImage:getAlpha(Wx));
+                false ->
+                    E3d0
+            end
     end.
 
 %%%
