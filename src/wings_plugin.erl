@@ -389,6 +389,7 @@ manager_command({edit,plugin_manager}, St) ->
     Fun = fun(Res) -> 
 		  Disabled = [M || {M,false} <- Res],
 		  ?SET(wings_plugins, Ps -- Disabled),
+		  update_menus(Cps, Disabled),
 		  update_disabled(Disabled, St)
 	  end,
     Dialog = mk_dialog(Cps, false),
@@ -405,6 +406,46 @@ update_disabled(Disabled, St) ->
 	    wings_pref:set_value(disabled_plugins, Disabled),
 	    St#st{repeatable=ignore}
     end.
+
+update_menus(Ps, Disabled) ->
+    DisabledS = sets:from_list(Disabled),
+    ToUpdate =
+	lists:foldr(fun({Category, Plugins}, Acc) ->
+	    PluginsS = sets:from_list(Plugins),
+	    case sets:to_list(sets:intersection(PluginsS,DisabledS)) of
+		[] -> Acc;
+		Acc0 -> Acc ++[{Category,Acc0}]
+	    end
+	end, [], Ps),
+    update_plugin_menus(ToUpdate).
+
+update_plugin_menus([]) -> ignore;
+update_plugin_menus(Cps) ->
+    lists:foldr(fun({Category, Ms}, _) ->
+	[update_menu_category(Category, M) || M <- Ms]
+    end, [], Cps),
+    ok.
+
+update_menu_category(_, []) -> ignore;
+update_menu_category(_, M) ->
+    Items = collect_menus([{file,render},{file,import},{file,export},{file,export_selected},
+			   {edit},{view},{select},{tools},{window},{help}], M),
+    [delete_menu_item(Item) || Item <- Items].
+
+
+delete_menu_item({{Menu},{_,SubMenu,_}}) ->
+    delete_menu_item(Menu, SubMenu, ignore);
+delete_menu_item({{Menu},{_,{SubMenu,_}}}) ->
+    delete_menu_item(Menu, SubMenu, ignore);
+delete_menu_item({{Menu,SubMenu},{_,Tag}}) ->
+    delete_menu_item(Menu, SubMenu, Tag);
+delete_menu_item({{Menu,SubMenu},{_,Tag,_}}) ->
+    delete_menu_item(Menu, SubMenu, {Tag,true}).
+
+delete_menu_item(Menu, SubMenu, ignore) ->
+    wings_menu:update_menu(Menu,SubMenu, delete);
+delete_menu_item(Menu, SubMenu, Tag) ->
+    wings_menu:update_menu(Menu, {SubMenu, Tag}, delete).
 
 mk_dialog(Cs, _Min) ->
     [{oframe,mk_dialog_1(Cs),1,[{style,buttons}]}].

@@ -147,7 +147,6 @@ maybe_append(Condition, Menu, PluginMenu) ->
 is_plugin_active(Condition) ->
     case Condition of
         export -> get_var(dialogs);
-        edit -> get_var(dialogs);
         render -> get_var(renderer)
     end.
 
@@ -159,7 +158,7 @@ menu({file,export_selected}, Menu) ->
 menu({file,render}, Menu) ->
     maybe_append(render, Menu, menu_entry(render));
 menu({edit,plugin_preferences}, Menu) ->
-    Menu++menu_entry(pref);
+    Menu ++ menu_entry(pref);
 menu(_, Menu) ->
     Menu.
 
@@ -212,20 +211,21 @@ command(_Spec, _St) ->
 
 %%% Material / Light Dialogs
 dialog({material_editor_setup, Name, Mat}, Dialog) ->
-    maybe_append(edit, Dialog, material_dialog(Name, Mat));
-dialog({material_editor_result, Name, Mat}, Res) ->
     case get_var(dialogs) of
-        false -> {Mat, Res};
-        _ -> material_result(Name, Mat, Res)
+        false-> Dialog;
+        _ -> Dialog++[{?__(1,"POV-Ray"), material_dialog(Name, Mat)}]
     end;
 dialog({light_editor_setup, Name, Ps}, Dialog) ->
     case get_var(dialogs) of
         false -> Dialog;
         _ ->
-            case light_dialog(Name, Ps) of
-                [] -> Dialog;
-                POVDlg -> Dialog ++ [{?__(1,"POV-Ray"), POVDlg}]
-            end
+            POVDlg = light_dialog(Name, Ps),
+            Dialog ++ [{?__(1,"POV-Ray"), {vframe, POVDlg}}]
+    end;
+dialog({material_editor_result, Name, Mat}, Res) ->
+    case get_var(dialogs) of
+        false -> {Mat, Res};
+        _ -> material_result(Name, Mat, Res)
     end;
 dialog({light_editor_result, Name, Ps}, Res) ->
     case get_var(dialogs) of
@@ -2655,21 +2655,19 @@ material_dialog(_Name, Mat) ->
 			     TxtNormal], 1, [{style, buttons}]}
 		  ], [{title, ?__(97, "Texture")},key(texture_minimized)]}
         },
-    [{
-        ?__(100,"POV-Ray"),
-        {vframe, [
-	      {?__(1, "Exclude Material Definition (requires external definition)"),
-	       proplists:get_value(ghost_material, PovRay, false), [key(ghost_material),{hook,Hook_Show}]},
-	      {vframe, [
-			{oframe, [
-				  QsFinish,
-				  QsReflection,
-				  QsInterior,
-				  QsPhotons,
-				  QsTexture], 1, [{style, buttons}]}
-		       ], [{title, ?__(98, "POV-Ray Options")}, key(pnl_material), {show,true}]}
-	     ]}
-    }].
+
+    {vframe, [
+          {?__(1, "Exclude Material Definition (requires external definition)"),
+           proplists:get_value(ghost_material, PovRay, false), [key(ghost_material),{hook,Hook_Show}]},
+          {vframe, [
+                    {oframe, [
+                              QsFinish,
+                              QsReflection,
+                              QsInterior,
+                              QsPhotons,
+                              QsTexture], 1, [{style, buttons}]}
+          ], [{title, ?__(98, "POV-Ray Options")}, key(pnl_material), {show,true}]}
+    ]}.
 enumerate_image_maps([]) ->
     [];
 enumerate_image_maps([{MapType, _I} | Maps]) ->
@@ -2781,12 +2779,7 @@ light_dialog(Name, Light) ->
     end,
     case Type of
         ambient -> % [];
-            LightExt =
-                case light_dialog(Name, Type, PovRay) of
-                    [] -> [];
-                    LightExt0 -> [{vframe, LightExt0}]
-                end,
-            {vframe, LightExt};
+            [{vframe, light_dialog(Name, Type, PovRay)}];
         _ ->
             LightBase = [
                 {hframe, [
@@ -2829,7 +2822,7 @@ light_dialog(Name, Light) ->
                     [] -> [];
                     LightExt0 -> [separator, {vframe, LightExt0}]
                 end,
-            {vframe, LightBase++LightExt}
+            LightBase++LightExt
     end.
 light_dialog(_Name, spot, PovRay) ->
     [

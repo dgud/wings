@@ -378,8 +378,8 @@ camera(St) ->
 				      {zoom_slider, pget(zoom_slider, Props)},
 				      {negative_format,{NegH,NegW}}], Sto),
 			    Keys = [negative_height, negative_width],
-			    wings_dialog:enable(Keys, Val =:= custom, Sto),
-			    wings_dialog:enable(lens_type, Val =/= custom, Sto),
+			    wings_dialog:enable(Keys, false, Sto),
+			    wings_dialog:enable(lens_type, true, Sto),
 			    wings_wm:set_prop(Active, current_view, DefView);
 			_ ->
 			    Keys = [negative_height, negative_width],
@@ -550,15 +550,6 @@ camera_propconv_negative_format(Props) ->
     end.
 
 camera_lens_type({24,36}, LensLength) ->
-    case round(LensLength) of
-	24 -> wide_angle;
-	35 -> moderate_wide_angle;
-	50 -> standard;
-	85 -> short_tele;
-	135 -> tele;
-	_ -> custom
-    end;
-camera_lens_type(default, LensLength) ->
     case round(LensLength) of
 	24 -> wide_angle;
 	35 -> moderate_wide_angle;
