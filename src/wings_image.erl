@@ -746,10 +746,15 @@ draw_image(X, Y, W, H, TxId) ->
 %%%
 
 create_image() ->
-    Qs = [{hframe, [{vframe,[{label, ?__(1,"Width")},
-			     {label, ?__(2,"Height")}]},
-		    {vframe,[{text, 256,[{range,{8,1024}}]},
-			     {text, 256,[{range,{8,1024}}]}]}]},
+    Def = wings_pref:get_value(current_directory),
+    Ps = [{extensions,image_formats()},{multiple,false}],
+    Flags = [{props, Ps}],
+    Qs = [{label_column,
+           [{?__(0,"Import"), {button, {text, Def, Flags}}},
+            separator,
+            {?__(1,"Width"), {text, 256,[{range,{8,1024}}]}},
+            {?__(2,"Height"),{text, 256,[{range,{8,1024}}]}}
+           ]},
 	  {vradio,
 	   [{?__(4,"Grid"),grid},
 	    {?__(5,"Checkerboard"),checkerboard},
@@ -759,8 +764,13 @@ create_image() ->
 	    {?__(9,"Black"),black}],
 	   grid, [{title, ?__(3,"Pattern")}]}],
     wings_dialog:dialog(?__(10,"Create Image"), Qs,
-			fun([W,H,Pattern]) ->
-				create_image_1(Pattern, W, H),
+			fun([File, W,H,Pattern]) ->
+                                case filelib:is_regular(File) of
+                                    true  ->
+                                        from_file(File);
+                                    false ->
+                                        create_image_1(Pattern, W, H)
+                                end,
 				ignore
 			end).
 
