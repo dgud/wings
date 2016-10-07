@@ -67,7 +67,7 @@ mac_release(BuildRoot, WingsVsn) ->
     ResourceFiles = ["wings3d.icns","wings_doc.icns"],
     [copy(F, Resources) || F <- ResourceFiles],
     copy("InfoPlist.strings", filename:join(Resources, "English.lproj")),
-    release_otp(Resources),
+    release_otp(Resources, undefined),
     run("codesign", ["-s","Developer ID",Root]),
     ok = file:set_cwd(code:lib_dir(wings)),
     MakeDmg = filename:join([code:lib_dir(wings),"macosx","make_dmg"]),
@@ -79,7 +79,7 @@ unix_release(BuildRoot, WingsVsn) ->
     {unix,Flavor} = os:type(),
     Name = "wings-" ++ WingsVsn ++ "-" ++ atom_to_list(Flavor),
     Root = filename:join(BuildRoot, Name),
-    release_otp(Root),
+    release_otp(Root, undefined),
     ok = file:set_cwd(UnixDir),
     copy("wings.appdata.xml", Root),
 
@@ -95,14 +95,15 @@ unix_release(BuildRoot, WingsVsn) ->
     ok.
 
 win_release(Root, WingsVsn) ->
-    release_otp(Root),
     BitSize = erlang:system_info(wordsize)*8,
+    release_otp(Root, BitSize),
     VcVersion = setup_vcredist(BitSize, Root),
     WinDir = filename:join(code:lib_dir(wings), "win32"),
     ok = file:set_cwd(WinDir),
     WinFiles = [nsi_file(BitSize), "Wings3D.exe", "wings.ico",
 		"install.ico", "uninstall.ico"],
     [copy(File, Root) || File <- WinFiles],
+    check_build_target("Wings3D.exe", BitSize),
     ok = file:set_cwd(Root),
     run(makensis, ["/DREDIST_DLL_VERSION="++VcVersion,
 		   "/DWINGS_VERSION="++WingsVsn,
@@ -135,10 +136,10 @@ redist_version_ok(Current, Required) ->
 nsi_file(32) -> "wings.nsi";
 nsi_file(64) -> "wings64.nsi".
 
-release_otp(TargetDir0) ->
+release_otp(TargetDir0, BitSize) ->
     TargetDir = filename:absname(TargetDir0),
     Lib = filename:join(TargetDir, "lib"),
-    [copy_app(App, Lib) || App <- wings_apps()],
+    [copy_app(App, Lib, BitSize) || App <- wings_apps()],
     copy_erts(TargetDir),
     ok.
 
@@ -173,7 +174,7 @@ copy_erts(TargetDir, {BinExecFiles, ErtsExecFiles}) ->
     copy("start.boot", TargetBin),
     ok.
 
-copy_app(App0, Lib) ->
+copy_app(App0, Lib, BitSize) ->
     AppDir = code:lib_dir(App0),
     ok = file:set_cwd(AppDir),
     ok = file:set_cwd(".."),
@@ -190,11 +191,14 @@ copy_app(App0, Lib) ->
 				Res = filelib:wildcard(Wc) ++ Acc,
 				Res
 			end, [], Wcs),
-    _ = [copy(File, Lib) || File <- Files],
+    _ = [copy(File, Lib, BitSize) || File <- Files],
     fix_app_version(App0, Lib),
     ok.
 
-copy(Source, Target0) ->
+copy(S, T) ->
+    copy(S, T, undefined).
+
+copy(Source, Target0, BitSize) ->
     Target = filename:join(Target0, Source),
     ok = filelib:ensure_dir(Target),
     try
@@ -217,6 +221,7 @@ copy(Source, Target0) ->
 			ok;
 		    _ ->
 			%% Strip all executable files.
+                        check_build_target(Target, BitSize),
 			strip(Target)
 		end
 	end
@@ -287,6 +292,14 @@ get_data(Port, Sofar) ->
 
 wings_apps() ->
     [cl,kernel,stdlib,wings,wx,xmerl].
+
+check_build_target(_File, undefined) -> true;
+check_build_target(File, Bits) ->
+    case re:run(os:cmd("file " ++ File), "x86-64")  of
+        {match, _} when Bits =:= 64 -> true;
+        nomatch when Bits =:= 32 -> true;
+        _ -> error({badtarget, Bits, File})
+    end.
 
 fatal(Format, Args) ->
     throw({fatal,["release: "|io_lib:format(Format, Args)]}).

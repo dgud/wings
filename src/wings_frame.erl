@@ -12,7 +12,7 @@
 -module(wings_frame).
 
 -export([top_menus/0, make_win/2, register_win/3, close/1, set_focus/1,set_title/2,
-	 export_layout/0, import_layout/2, update_layout/1,
+	 export_layout/0, import_layout/2,
 	 get_overlay/0, overlay_draw/3, overlay_hide/1,
 	 get_icon_images/0, get_colors/0]).
 
@@ -108,9 +108,6 @@ export_layout() ->
     Free = [AddProps(Win) || Win <- Free0, save_window(element(1,Win))],
     {Contained, Free}.
 
-update_layout(Contained) ->
-    wx_object:call(?MODULE, {update_layout,Contained}).
-
 get_icon_images() ->
     wx_object:call(?MODULE, get_images).
 
@@ -144,7 +141,7 @@ validate_pos(_, _, _) -> {-1, -1}.
 import_layout({Contained, Free}, St) ->
     reset_layout(),
     Contained =/= [] andalso imp_layout(Contained, [], undefined, St),
-    update_layout(Contained),
+    wx_object:call(?MODULE, {update_layout,Contained}),
     _ = [restore_window(Win, St) || Win <- Free],
     ok.
 
@@ -432,18 +429,6 @@ handle_call({update_layout,Contained0}, _From, #state{windows=#{ch:=Split}}=Stat
 handle_call(Req, _From, State) ->
     io:format("~p:~p Got unexpected call ~p~n", [?MODULE,?LINE, Req]),
     {reply, ok, State}.
-
-update_layout([{_,Mode,Permille}|Contained], #split{obj=Obj, mode=Mode, w1=W10, w2=W20}) ->
-    {W,H} = wxWindow:getClientSize(Obj),
-    Pos =
-	case Mode of
-	    splitVertically   -> round(W * Permille / 1000);
-	    splitHorizontally -> round(H * Permille / 1000)
-	end,
-    wxSplitterWindow:setSashPosition(Obj, Pos),
-    update_layout(Contained, W10),
-    update_layout(Contained, W20);
-update_layout(_, _) -> ok.
 
 %%%%%%%%%%%%%%%%%%%%%%
 handle_cast({selmode, _, _, _}=Sel, #state{toolbar=TB}=State) ->
@@ -1081,6 +1066,18 @@ export_contained(#split{mode=undefined, w2=undefined}) ->
 export_contained(Root) ->
     Path = find_path(geom, Root),
     lists:reverse(tree_to_list(Root, Path, [])).
+
+update_layout([{_Wh,Mode,Permille}|Contained], #split{obj=Obj, mode=Mode, w1=W10, w2=W20}) ->
+    {W,H} = wxWindow:getClientSize(Obj),
+    Pos =
+	case Mode of
+	    splitVertically   -> round(W * Permille / 1000);
+	    splitHorizontally -> round(H * Permille / 1000)
+	end,
+    wxSplitterWindow:setSashPosition(Obj, Pos),
+    Cont = update_layout(Contained, W10),
+    update_layout(Cont, W20);
+update_layout(_, Cont) -> Cont.
 
 tree_to_list(#split{obj=Obj, mode=Mode,w1=W1,w2=W2}, Path0, Acc0) ->
     SashPos = wxSplitterWindow:getSashPosition(Obj),

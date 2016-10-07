@@ -436,17 +436,26 @@ handle_event(#wx{event=#wxSize{size={W,_}}}, #state{lc=LC}=State) ->
     wxListCtrl:setColumnWidth(LC, 0, TextWidth),
     {noreply, State#state{tw=TextWidth}};
 
-handle_event(#wx{event=#wxList{type=single, col=1}}, State) ->
-    {noreply, State}; %% Ignore Mouse 1
-handle_event(#wx{event=#wxList{itemIndex=Indx, col=Col}},
+handle_event(#wx{event=#wxList{type=Type, itemIndex=Indx, col=Col}},
 	     #state{lc=LC, name=Name, shown=Shown} = State)
   when (Col =:= 1) orelse (Indx =:= -1) ->
-    {shape, Id} = get_id(Indx, Shown),
-    Menus = object_menu(Id),
-    #wxMouseState{x=X,y=Y} = wx_misc:getMouseState(),
-    Cmd = fun(_) -> wings_menu:popup_menu(LC, {X,Y}, objects, Menus) end,
-    wings_wm:psend(Name, {apply, false, Cmd}),
-    {noreply, State};
+    case Type of
+        single -> {noreply, State};
+        all    -> {noreply, State};
+        folder when Indx =:= -1 ->
+            Menus = folder_menu(?NO_FLD),
+            #wxMouseState{x=X,y=Y} = wx_misc:getMouseState(),
+            Cmd = fun(_) -> wings_menu:popup_menu(LC, {X,Y}, objects, Menus) end,
+            wings_wm:psend(Name, {apply, false, Cmd}),
+            {noreply, State};
+        folder ->
+            {shape, Id} = get_id(Indx, Shown),
+            Menus = object_menu(Id),
+            #wxMouseState{x=X,y=Y} = wx_misc:getMouseState(),
+            Cmd = fun(_) -> wings_menu:popup_menu(LC, {X,Y}, objects, Menus) end,
+            wings_wm:psend(Name, {apply, false, Cmd}),
+            {noreply, State}
+    end;
 handle_event(#wx{event=#wxList{type=command_list_end_label_edit, itemIndex=Indx}},
 	     #state{lc=LC, name=Name, shown=Shown, shapes=SS} = State) ->
     NewName = wxListCtrl:getItemText(LC, Indx),
@@ -504,6 +513,14 @@ handle_event(#wx{event=#wxTree{type=command_tree_item_menu, item=Indx, pointDrag
     Menus = folder_menu(Folder),
     Pos = wxWindow:clientToScreen(TC, Pos0),
     Cmd = fun(_) -> wings_menu:popup_menu(TC, Pos, objects, Menus) end,
+    wings_wm:psend(Name, {apply, false, Cmd}),
+    {noreply, State};
+
+handle_event(#wx{obj=TC, event=#wxCommand{type=command_right_click}},
+             #state{tc=TC, name=Name} = State) ->
+    Menus = folder_menu(?NO_FLD),
+    #wxMouseState{x=X,y=Y} = wx_misc:getMouseState(),
+    Cmd = fun(_) -> wings_menu:popup_menu(TC, {X,Y}, objects, Menus) end,
     wings_wm:psend(Name, {apply, false, Cmd}),
     {noreply, State};
 
@@ -760,14 +777,15 @@ connect_events(TC, LC) ->
     wxWindow:connect(LC, size, [{skip, true}]),
     %% See handle_sync_event below for the following callbacks
     wxWindow:connect(LC, left_up, [callback]),
+    wxWindow:connect(LC, right_up, [callback]),
     case os:type() of
     	{win32,_} ->
-    	    %% list_item_right_click does not work outside of items
-    	    %% on windows use this instead
-	    wxWindow:connect(LC, command_left_click, [callback]),
-    	    wxWindow:connect(LC, command_right_click, [callback]);
+            %% list_item_right_click does not work outside of items
+            %% on windows catched by right|left_up above
+            wxWindow:connect(TC, command_right_click, []), %% Menu in empty tree area
+            wxWindow:connect(LC, command_list_item_right_click, [callback]),
+            wxWindow:connect(LC, command_left_click, [callback]);
     	_ ->
-	    wxWindow:connect(LC, right_up, [callback]),
     	    ok
     end,
     ok.
@@ -806,7 +824,7 @@ event_info(#wxCommand{type=command_left_click}, LC) ->
     #wxMouseState{x=SX,y=SY} = wx_misc:getMouseState(),
     Pos = wxListCtrl:screenToClient(LC, {SX,SY}),
     {ok, single, Pos};
-event_info(#wxCommand{type=command_right_click}, LC) ->
+event_info(#wxList{type=command_list_item_right_click}, LC) ->
     #wxMouseState{x=SX,y=SY} = wx_misc:getMouseState(),
     Pos = wxListCtrl:screenToClient(LC, {SX,SY}),
     {ok, folder, Pos};
@@ -815,8 +833,6 @@ event_info(#wxMouse{type=left_up, x=X,y=Y}, _) ->
 event_info(#wxMouse{type=right_up, x=X,y=Y}, _LC) ->
     {ok, folder, {X,Y}}.
 
-gen_event(_which, _, {_, -1}, _, _) ->
-    ok;
 gen_event(_Which, true, {ItemIndex, Col}, Pid, WX) ->
     Pid ! WX#wx{event=#wxList{type=all, itemIndex=ItemIndex, col=Col}},
     ok;

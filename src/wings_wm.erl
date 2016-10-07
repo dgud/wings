@@ -718,7 +718,7 @@ dispatch_event({'EXIT', Pid, {Reason, StackTrace}}) ->
 	       [WName] -> WName;
 	       _ ->
 		   case process_info(Pid, registered_name) of
-		       [] -> Pid;
+		       undefined -> Pid;
 		       {registered_name,Reg} -> Reg
 		   end
 	   end,
@@ -1060,7 +1060,7 @@ wm_event({callback,Cb}) ->
 %%%
 
 find_active() ->
-    case grabbed_focus_window() of
+    case menubar_focus() of
  	undefined -> geom_below(wx_misc:getMousePosition());
  	Focus -> Focus
     end.

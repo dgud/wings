@@ -505,8 +505,8 @@ pack_source(#{accessor:=#{offset:=0, stride:=Stride}, array:=List}=Source) ->
 
 make_mesh(#{id:=Id, polys:=Polys}=Geom) ->
     %% io:format("~p~n",[Geom]),
-    Mesh0 = lists:foldl(fun pick_mesh/2, #e3d_mesh{type=undefined}, Polys),
-    Mesh1 = pick_source(Mesh0, Geom),
+    {Type,Mesh0} = lists:foldl(fun pick_mesh/2, {undefined, #e3d_mesh{}}, Polys),
+    Mesh1 = pick_source(Mesh0#e3d_mesh{type=Type}, Geom),
     {Id,Mesh1}.
 
 pick_source(#e3d_mesh{vs=Vs, vc=VC, tx=Tx, ns=Ns}=M, Geom) ->
@@ -518,9 +518,9 @@ pick_src_1([$#|Src], Geom) ->
     #{array:=Data} = maps:get({source, Src}, Geom),
     Data.
 
-pick_mesh(#{input:=In, p:=P, type:=Type}, #e3d_mesh{type=MT, fs=MFs}=Mesh0) ->
+pick_mesh(#{input:=In, p:=P, type:=Type}, {MT, #e3d_mesh{fs=MFs}=Mesh0}) ->
     Mesh = pick_mesh_1(In, Mesh0),
-    Mesh#e3d_mesh{type=mesh_type(MT, Type), fs=P++MFs}.
+    {mesh_type(MT, Type), Mesh#e3d_mesh{fs=P++MFs}}.
 
 pick_mesh_1([#{semantic:="POSITION", source:=Src}|In], #e3d_mesh{vs=OldSrc}=M) ->
     case OldSrc of
