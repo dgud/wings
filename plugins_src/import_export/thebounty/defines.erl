@@ -245,6 +245,7 @@ range_1(neg_two_two)            -> {-2.0,2.0};
 range_1(one_ten)                -> {1.0,10.0};
 range_1(one_three)              -> {1.0,3.0};
 range_1(sss_phase)              -> {-0.99,0.99};
+range_1(lightpower)             -> {1.0,128.0};
 
 % integer type
 range_1(izero_to_one)            -> {0,1};

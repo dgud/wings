@@ -17,39 +17,39 @@
 
 
 menu_blend_mode() ->
-    [{?__(120,"Mix"),mix},
-     {?__(121,"Add"),add},
-     {?__(122,"Multiply"),mul},
-     {?__(123,"Subtract"),sub},
-     {?__(124,"Screen"),scr},
+    [{?__(130,"Mix"),mix},
+     {?__(131,"Add"),add},
+     {?__(132,"Multiply"),mul},
+     {?__(133,"Subtract"),sub},
+     {?__(134,"Screen"),scr},
      {?__(125,"Divide"),divide},
-     {?__(126,"Difference"),dif},
-     {?__(127,"Darken"),dar},
-     {?__(128,"Lighten"),lig}].
+     {?__(136,"Difference"),dif},
+     {?__(137,"Darken"),dar},
+     {?__(138,"Lighten"),lig}].
 
 menu_distortion_type() ->
-   [{?__(129,"Blender-Distort"),blender},
-    {?__(130,"Cellnoise"),cellnoise},
-    {?__(131,"New Perlin"),newperlin},
-    {?__(132,"Perlin"),stdperlin},
-    {?__(133,"Voronoi Crackle"),voronoi_crackle},
-    {?__(134,"Voronoi F1"),voronoi_f1},
-    {?__(135,"Voronoi F2"),voronoi_f2},
-    {?__(136,"Voronoi F3"),voronoi_f3},
-    {?__(137,"Voronoi F4"),voronoi_f4},
-    {?__(138,"Voronoi F1F2"),voronoi_f2f1}].
+   [{?__(139,"Blender-Distort"),blender},
+    {?__(140,"Cellnoise"),cellnoise},
+    {?__(141,"New Perlin"),newperlin},
+    {?__(142,"Perlin"),stdperlin},
+    {?__(143,"Voronoi Crackle"),voronoi_crackle},
+    {?__(144,"Voronoi F1"),voronoi_f1},
+    {?__(145,"Voronoi F2"),voronoi_f2},
+    {?__(146,"Voronoi F3"),voronoi_f3},
+    {?__(147,"Voronoi F4"),voronoi_f4},
+    {?__(148,"Voronoi F1F2"),voronoi_f2f1}].
 
 menu_extension_mode() ->
-    [{?__(139,"Ext: Checked"),checker},
-     {?__(140,"Ext: Repeat"),repeat},
-     {?__(141,"Ext: Clip"),clip},
-     {?__(142,"Ext: Clipcube"),clipcube},
-     {?__(143,"Ext: Extended"),extend}].
+    [{?__(149,"Ext: Checked"),checker},
+     {?__(150,"Ext: Repeat"),repeat},
+     {?__(151,"Ext: Clip"),clip},
+     {?__(152,"Ext: Clipcube"),clipcube},
+     {?__(153,"Ext: Extended"),extend}].
 
 menu_interpolate_mode() ->
-    [{?__(144,"Interpolation: None"),none},
-     {?__(145,"Interpolation: Bilinear"),bilinear},
-     {?__(146,"Interpolation: Bicubic"),bicubic}].
+    [{?__(154,"Interpolation: None"),none},
+     {?__(155,"Interpolation: Bilinear"),bilinear},
+     {?__(156,"Interpolation: Bicubic"),bicubic}].
 
 % TODO: change this part of code for generate only the
 % allowed modulators for each material
@@ -141,11 +141,7 @@ modulator_dialog({modulator,Ps}, Maps, MaterialType, M) when is_list(Ps) ->
     CellWeight4 = proplists:get_value(cell_weight4, Ps, ?DEF_MOD_CELL_WEIGHT4),
     MusgraveType = proplists:get_value(musgrave_type, Ps, ?DEF_MOD_MUSGRAVE_TYPE),
 
-    %MusgraveNoiseSize = proplists:get_value(musgrave_noisesize, Ps, ?DEF_MOD_MUSGRAVE_NOISESIZE),
     MusgraveIntensity = proplists:get_value(musgrave_intensity, Ps, ?DEF_MOD_MUSGRAVE_INTENSITY),
-    %MusgraveContrast = proplists:get_value(musgrave_contrast, Ps, 0.1),
-    %MusgraveLacunarity = proplists:get_value(musgrave_lacunarity, Ps, ?DEF_MOD_MUSGRAVE_LACUNARITY),
-    %MusgraveOctaves = proplists:get_value(musgrave_octaves, Ps, ?DEF_MOD_MUSGRAVE_OCTAVES),
     DistortionType = proplists:get_value(distortion_type, Ps, ?DEF_MOD_DISTORTION_TYPE),
 
     DistortionIntensity = proplists:get_value(distortion_intensity, Ps, ?DEF_MOD_DISTORTION_INTENSITY),
@@ -166,7 +162,7 @@ modulator_dialog({modulator,Ps}, Maps, MaterialType, M) when is_list(Ps) ->
         case Key of
             {?TAG,{M, texture_type}} ->
                 wings_dialog:show(?KEY({pnl_image,M}), Value =:= image, Store),
-                wings_dialog:show(?KEY({pnl_base1,M}), not is_member(Value,[image, voronoi]), Store),
+                wings_dialog:show(?KEY({pnl_base1,M}), is_member(Value,[clouds,marble,wood,musgrave,distorted_noise]), Store),
                 wings_dialog:show(?KEY({pnl_base2,M}), is_member(Value,[clouds,marble,wood]), Store),
                 wings_dialog:show(?KEY({pnl_base3,M}), is_member(Value,[marble,wood]), Store),
                 wings_dialog:show(?KEY({pnl_sharpness,M}), Value =:= marble, Store),
@@ -175,6 +171,7 @@ modulator_dialog({modulator,Ps}, Maps, MaterialType, M) when is_list(Ps) ->
                 wings_dialog:show(?KEY({pnl_voronoi,M}), Value =:= voronoi, Store),
                 wings_dialog:show(?KEY({pnl_musgrave,M}), Value =:= musgrave, Store),
                 wings_dialog:show(?KEY({pnl_dist_noise,M}), Value =:= distorted_noise, Store),
+                wings_dialog:show(?KEY({pnl_blend,M}), Value =:= blend, Store),
                 wings_dialog:update(?KEY({pnl_modulator,M}), Store);
             {?TAG,{M, extension}} ->
                 wings_dialog:show(?KEY({pnl_repeat,M}), Value =:= repeat, Store),
@@ -338,14 +335,15 @@ modulator_dialog({modulator,Ps}, Maps, MaterialType, M) when is_list(Ps) ->
                 %! textures
                 %!-----------------------
                 {hframe, [
-                    {label,?__(60,"Texture type")},
+                    {label,?__(59,"Texture type")},
                     {menu, MapsItems++[
-                        {?__(61,"Image"),image},
-                        {?__(62,"Clouds"),clouds},
-                        {?__(63,"Marble"),marble},
-                        {?__(64,"Wood"),wood},
-                        {?__(65,"Voronoi"),voronoi},
-                        {?__(66,"Musgrave"),musgrave},
+                        {?__(60,"Image"),image},
+                        {?__(61,"Clouds"),clouds},
+                        {?__(62,"Marble"),marble},
+                        {?__(63,"Wood"),wood},
+                        {?__(64,"Voronoi"),voronoi},
+                        {?__(65,"Musgrave"),musgrave},
+                        {?__(66,"Blend"),blend},
                         {?__(67,"Distorted Noise"),distorted_noise}
                     ],TextureType,[key({M,texture_type}), {hook,Hook_Show}]}
                 ]},
@@ -381,8 +379,8 @@ modulator_dialog({modulator,Ps}, Maps, MaterialType, M) when is_list(Ps) ->
                                 {text,proplists:get_value(crop_minx,Ps,0.0),[key({M,crop_minx}),range(zero_ten),{width,4}]},
                                 {text,proplists:get_value(crop_miny,Ps,0.0),[key({M,crop_miny}),range(zero_ten),{width,4}]},
                                 {label,?__(79," Crop Max. XY")},
-                                {text,proplists:get_value(crop_maxx,Ps,0.0),[key({M,crop_maxx}),range(zero_ten),{width,4}]},
-                                {text,proplists:get_value(crop_maxy,Ps,0.0),[key({M,crop_maxy}),range(zero_ten),{width,4}]}
+                                {text,proplists:get_value(crop_maxx,Ps,1.0),[key({M,crop_maxx}),range(one_ten),{width,4}]},
+                                {text,proplists:get_value(crop_maxy,Ps,1.0),[key({M,crop_maxy}),range(one_ten),{width,4}]}
                             ],[key({pnl_checked,M}),{show,false}]}
                         ]}
                     ],[key({pnl_image,M}), {margin,false}]},
@@ -390,7 +388,7 @@ modulator_dialog({modulator,Ps}, Maps, MaterialType, M) when is_list(Ps) ->
                     {hframe, [
                         {label,?__(80,"Texture")},{color,Color1,[key({M,color1})]}, panel,
                         {label,?__(81,"Base")},{color,Color2,[key({M,color2})]}, panel,
-                        {?__(82,"Hard Noise"),Hard,[key({M,hard})]},
+                        {?__(82,"Soft/Hard Noise"),Hard,[key({M,hard})]},
                         {menu,menu_distortion_type(),NoiseBasis,[key({M,noise_basis})]}
                     ],[key({pnl_base1,M}),{show,false}]},
 
@@ -515,6 +513,12 @@ modulator_dialog({modulator,Ps}, Maps, MaterialType, M) when is_list(Ps) ->
                             ]},
                             {hframe, [ {label,?__(115,"Octaves")},
                                 {text,proplists:get_value(musgrave_octaves, Ps, 8.0),[key({M,musgrave_octaves}),range(zero_eight)]}
+                            ]}, % gain, offset
+                            {hframe, [ {label,?__(116,"Gain")},
+                                {text,proplists:get_value(gain, Ps, 8.0),[key({M,gain}),range(zero_eight)]}
+                            ]},
+                            {hframe, [ {label,?__(117,"Offset")},
+                                {text,proplists:get_value(musgrave_offset, Ps, 8.0),[key({M,musgrave_offset}),range(zero_eight)]}
                             ]}
                         ],[{margin,false}]}
                     ],[key({pnl_musgrave,M}),{show,false}]},
@@ -523,14 +527,21 @@ modulator_dialog({modulator,Ps}, Maps, MaterialType, M) when is_list(Ps) ->
                     {vframe, [
                         {hframe, [
                             {menu,menu_distortion_type(),DistortionType,[key({M,distortion_type})]},
-                            {label,?__(116,"Noise Size")},{text,DistortionNoiseSize,[key({M,distortion_noisesize}),range(distortion_noisesize)]},
-                            {label,?__(117,"Distortion")},{text,DistortionIntensity,[key({M,distortion_intensity}),range(zero_to_ten)]}
+                            {label,?__(118,"Noise Size")},{text,DistortionNoiseSize,[key({M,distortion_noisesize}),range(distortion_noisesize)]},
+                            {label,?__(119,"Distortion")},{text,DistortionIntensity,[key({M,distortion_intensity}),range(zero_to_ten)]}
                         ],[{margin,false}]}
-                    ],[key({pnl_dist_noise,M}),{show,false}]}
+                    ],[key({pnl_dist_noise,M}),{show,false}]},
+                    {vframe, [
+                        {menu,[
+                            {?__(120,"Progr: Linear"),lin},
+                            {?__(121,"Progr: Radial"),radial}
+                        ],proplists:get_value(progression, Ps, lin),[key({M,progression})]}
+                    ],[key({pnl_blend,M}),{show,false}]}
+                    
                 ],[key({pnl_type,M})]}
             ],[key({pnl_modulator,M})]}
         ]},
-    [{?__(119,"Shader")++" "++integer_to_list(M)++mod_legend(Enabled, BlendMode, TextureType), ModFrame}];
+    [{?__(170,"Shader")++" "++integer_to_list(M)++mod_legend(Enabled, BlendMode, TextureType), ModFrame}];
 
 modulator_dialog(_Modulator, _Maps, _MaterialType, _) ->
     []. % Discard old modulators that anyone may have
@@ -619,7 +630,7 @@ modulator_init(Mode) ->
         {image_filename, ""},{gamma_input, 2.2},{use_alpha, false},
         {calc_alpha, false},{flip_axis, false},{interpolate, none},
         {extension, repeat},{repeat_x,1},{repeat_y, 1},{even, false},{odd, false},
-        {distance,0.0},{crop_minx, 0.0},{crop_miny, 0.0},{crop_maxx, 0.0},{crop_maxy, 0.0},
+        {distance,0.0},{crop_minx, 0.0},{crop_miny, 0.0},{crop_maxx, 1.0},{crop_maxy, 1.0},
         %{normal_map, false},
         {color1,?DEF_MOD_COLOR1},
         {color2,?DEF_MOD_COLOR2},
@@ -643,7 +654,7 @@ modulator_init(Mode) ->
         {musgrave_noisesize,0.5},
         {musgrave_intensity,?DEF_MOD_MUSGRAVE_INTENSITY},
         {musgrave_contrast,0.1},
-        {musgrave_lacunarity,?DEF_MOD_MUSGRAVE_LACUNARITY},
+        {musgrave_lacunarity,2.0},
         {musgrave_octaves,?DEF_MOD_MUSGRAVE_OCTAVES},
         {distortion_type,?DEF_MOD_DISTORTION_TYPE},
         {distortion_noisesize,?DEF_MOD_DISTORTION_NOISESIZE},

@@ -511,7 +511,7 @@ export_dialog_qs(Op, Attr) ->
                                     {?__(271, "Scale"),{text, get_pref(sss_scale,Attr), [{key,sss_scale},range(sss_scale)]}},
                                     {?__(272, "SingleScatter Samples"),{text, get_pref(scatter_samples,Attr), [{key,scatter_samples},range(scatter_samples)]}}
                                 ]}
-                            ],[key(pnl_sss_opt), {margin,false}]}
+                            ],[key(pnl_sss_opt), {margin,false},{show,false}]}
                         ],[{title, ?__(273, "SubSurface Scattering")},{margin,false}]}
                     ],[key(pnl_sss)]}
                 ],[{title, ""}]},

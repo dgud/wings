@@ -13,8 +13,11 @@
 %
 %  Export material shader modulators
 %  TO DO:
-%  Finish some parts related with Stencil modes
-%  Review texture projection like XYZ, or XZY
+%  Finish some parts related with Stencil modes.
+
+%  Done!!
+%  Review texture projection like XYZ, or XZY.
+%  Fix blend material texture mask layer.
 
 export_modulator(F, Texname, Maps, {modulator,Ps}, Attr) when is_list(Ps) ->
     %
@@ -33,8 +36,9 @@ export_modulator(F, Texname, Maps, {modulator,Ps}, Attr) when is_list(Ps) ->
             GlossyLayer = proplists:get_value(glossy, Ps, false),
             GlossyReflectLayer = proplists:get_value(glossy_reflect, Ps, false),
             BumpLayer = proplists:get_value(bump, Ps, false),
+            BlendLayer = proplists:get_value(blend_mask, Ps, false),
     
-            % cases..
+            % cases...
             case DiffuseLayer of
                 true ->
                     export_modulators(F, Texname, Maps, diffuse_shader, {modulator,Ps}, Attr);
@@ -75,6 +79,11 @@ export_modulator(F, Texname, Maps, {modulator,Ps}, Attr) when is_list(Ps) ->
                     export_modulators(F, Texname, Maps, bump_shader, {modulator,Ps}, Attr);
                 false -> ok
             end,
+            case BlendLayer of
+                true ->
+                    export_modulators(F, Texname, Maps, mask, {modulator,Ps}, Attr);
+                false -> ok
+            end,
 
             % when all layers are written , then mapping
             mapping_textures(F, Texname, Maps, BumpLayer, {modulator,Ps}, Attr)
@@ -92,7 +101,7 @@ export_modulators(F, Texname, Maps, LayerType, {modulator,Ps}, Attr) ->
             mirror_color_shader -> true;
             _ -> false
         end,
-
+    % for blend mat: <mask sval="mask_layer0"/>
     println(F, "\t<~s sval=\"~s_layer\"/>",[LayerType,LayerType]),
 
     %!----------------------------------------------------
@@ -101,7 +110,7 @@ export_modulators(F, Texname, Maps, LayerType, {modulator,Ps}, Attr) ->
     println(F,"\t<list_element>"),
 
     %! layer factor amount controlled with 'Factor Modulator' slider in UI
-    %! TODO: lack some 'cases', for glossy and translucent SSS
+    %! TODO: lack some 'cases', for translucent SSS 
     Factor =
         case LayerType of
             diffuse_shader ->        proplists:get_value(diffuse_factor, Ps, 1.0);
@@ -119,6 +128,8 @@ export_modulators(F, Texname, Maps, LayerType, {modulator,Ps}, Attr) ->
             glossy_reflect_shader -> proplists:get_value(glossy_reflect_factor, Ps, 1.0);
                 
             bump_shader ->           proplists:get_value(bump_factor, Ps, 1.0);
+           
+            mask ->                  proplists:get_value(blend_factor, Ps, 1.0);
                 
             _ -> proplists:get_value(def_value, Ps, 1.0)
         end,
@@ -259,8 +270,7 @@ mapping_textures(F, Texname, _Maps, BumpLayer, {modulator,Ps}, _Attr)->
     SizeY = proplists:get_value(size_y, Ps, 1.0),
     SizeZ = proplists:get_value(size_z, Ps, 1.0),
     %
-    println(F,
-        "\t\t<scale x=\"~w\" y=\"~w\" z=\"~w\"/>",[SizeX, SizeY, SizeZ]),
+    println(F, "\t\t<scale x=\"~w\" y=\"~w\" z=\"~w\"/>",[SizeX, SizeY, SizeZ]),
 
     % texture coordinates type
     println(F, "\t\t<texco sval=\"~s\"/>",[proplists:get_value(coordinates, Ps, global)]),

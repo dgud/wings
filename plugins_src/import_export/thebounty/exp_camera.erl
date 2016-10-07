@@ -11,15 +11,22 @@
 %%
 
 export_camera(F, Attr) ->
-    %
+    %! new mode before call export camera..
+    %#camera_info{fov = Fov} = proplists:lookup(camera_info, Attr),
+    %Depth = (float(Height) / 2.0) / math:tan((Fov / 2.0) * math:pi() / 180.0),
+    %CorrectedFOV = 2.0 * math:atan((float(Width) / 2.0) / Depth) * 180.0 / math:pi(),
+    %! inside export camera function
+    %#camera_info{pos = Pos, dir = Dir, up = Up} = proplists:lookup(camera_info, Attr),
+    %{Dx, Dy, Dz} = Dir,
+    %{Px, Py, Pz} = Pos,    
+    %! end
     #camera_info{pos=Pos,dir=Dir,up=Up,fov=Fov} = proplists:lookup(camera_info, Attr),
     Width = proplists:get_value(width, Attr),
     Height = proplists:get_value(height, Attr),
     LensType = proplists:get_value(lens_type, Attr),
-    Ro = math:pi()/180.0,
-    %% Fov is vertical angle from lower to upper border.
-    %% TheBounty focal plane is 1 unit wide.
-    FocalDist = 0.5 / ((Width/Height) * math:tan(limit_fov(Fov)*0.5 * Ro)),
+    %Ro = math:pi()/180.0,
+    %% Fov is vertical angle from lower to upper border. TheBounty focal plane is 1 unit wide.
+    FocalDist = 0.5 / ((Width/Height) * math:tan(limit_fov(Fov)*0.5 * math:pi()/180.0)),
     Aperture = proplists:get_value(aperture, Attr),
 
     println(F, "<camera name=\"camera\">"),

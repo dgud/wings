@@ -46,6 +46,7 @@ menu({file,render}, Menu) ->
     maybe_append(render, Menu, menu_entry(render));
 menu({edit,plugin_preferences}, Menu) ->
     Menu++menu_entry(pref);
+    %maybe_append(edit, Menu, menu_entry(pref)); % new from micheus repo..
 menu(_, Menu) ->
     Menu.
 
@@ -202,7 +203,7 @@ props(export_selected, _Attr) ->
     {Title,File} =
         case os:type() of
             {win32,_} -> {"Export Selected","TheBounty File"};
-            _Other    -> {?__(4,"Export Selected"),?__(5,"Bounty File")}
+            _Other    -> {?__(4,"Export Selected"),?__(5,"TheBounty File")}
         end,
     [{title,Title},{ext,".xml"},{ext_desc,File}].
 
@@ -214,7 +215,6 @@ props(export_selected, _Attr) ->
 %%--------------------------------------------------------------------------------------------
 
 %% modulators def move to ui_material.erl
-
 
 material_result(_Name, Mat0, Res) ->
     %% take the Material settings
@@ -239,7 +239,6 @@ menu_shader() ->
     {?__(2,"Glass (Rough)"),glass},
     {?__(4,"Glossy (Coated)"),glossy},
     {?__(6,"Translucent (SSS)"),translucent},
-    %{?__(7,"Light Material"),lightmat},
     {?__(8,"Blend"),blend_mat}].
 
 pref_dialog(St) ->
@@ -341,7 +340,8 @@ export(Attr, XMLFilename, #e3d_file{objs=Objs, mat=Mats, creator=Creator}) ->
     %%
     %*  MatsBlend =
     foldl(fun ({Name,Mat}, Gb) ->
-                  export_shaderblend(F, "w_"++format(Name), Mat, ExportDir),
+                  export_shaderblend(F, format(Name), Mat, ExportDir),
+                  %export_shaderblend(F, "w_"++format(Name), Mat, ExportDir), % old..
                   println(F),
                   gb_trees:insert(Name, Mat, Gb)
           end, gb_trees:empty(), Mats),
@@ -350,7 +350,7 @@ export(Attr, XMLFilename, #e3d_file{objs=Objs, mat=Mats, creator=Creator}) ->
     %% Micheus Code for Meshlights Even Better
     section(F, "Objects"),
     foldr(fun (#e3d_object{name=Name,obj=Mesh}, Id) ->
-                  export_object(F, "w_"++format(Name), Mesh, MatsGb, Id),
+                  export_object(F, format(Name), Mesh, MatsGb, Id),
                   println(F),
                   Id+1
           end, 1, Objs),
@@ -369,9 +369,9 @@ export(Attr, XMLFilename, #e3d_file{objs=Objs, mat=Mats, creator=Creator}) ->
                 end
             end, [], Lights)),
 
-    %!----------------------
-    % environment background
-    %!----------------------
+    %!------------------------
+    %! environment background
+    %!------------------------
     export_background(F, Attr),
     println(F),
 
@@ -381,8 +381,11 @@ export(Attr, XMLFilename, #e3d_file{objs=Objs, mat=Mats, creator=Creator}) ->
     export_camera(F, Attr),
     println(F),
 
-    %% test:  split integrator code
+    %!----------------------
+    %! write integrators
+    %!----------------------
     export_integrator(F, Attr),
+    
     %!------------------------
     %! write render options
     %!------------------------
@@ -464,12 +467,12 @@ write_default_materials(F)->
     println(F, "\t<color r=\"0.9\" g=\"0.9\" b=\"0.9\"/>"),
     println(F, "</material>\n"),
     %
-    println(F, "<material name=\"blendone\">"),
+    println(F, "<material name=\"w_blendone\">"),
     println(F, "\t<type sval=\"shinydiffusemat\"/>"),
     println(F, "\t<color r=\"0.789\" g=\"0.713\" b=\"0.794\"/>"),
     println(F, "</material>\n"),
     %
-    println(F, "<material name=\"blendtwo\">"),
+    println(F, "<material name=\"w_blendtwo\">"),
     println(F, "\t<type sval=\"glossy\"/>"),
     println(F, "\t<color r=\"1.0\" g=\"0.513\" b=\"0.594\"/>"),
     println(F, "</material>\n").
@@ -491,7 +494,6 @@ write_default_materials(F)->
 -include("exp_camera.erl").
 
 -include("exp_world.erl").
-
 
 -include("exp_integrator.erl").
 
