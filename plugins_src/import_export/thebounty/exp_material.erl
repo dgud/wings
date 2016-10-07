@@ -32,9 +32,6 @@ export_shader(F, Name, Mat, ExportDir) ->
         glass ->
             export_glass_shaders(F, Name, Mat, ExportDir, MatAttr);
 
-        lightmat ->
-            export_lightmat_shader(F, Name, Mat, ExportDir, MatAttr);
-
         blend_mat ->
             ok
     end.
@@ -297,33 +294,9 @@ export_glass_shaders(F, Name, Mat, ExportDir, Attr) ->
 
     println(F, "</material>").
 
-%%% Export Light Material%%%
-
-export_lightmat_shader(F, Name, Mat, ExportDir, Attr) ->
-    OpenGL = proplists:get_value(opengl, Mat),
-    Maps = proplists:get_value(maps, Mat, []),
-    Modulators = proplists:get_value(modulators, Attr, def_modulators(Maps)),
-
-    % unsure if this material allow textures..
-    write_material_textures(F, Name, Maps, ExportDir, Modulators),
-
-    println(F, "<material name=\"~s\">",[Name]),
-    println(F, "<type sval=\"light_mat\"/>"),
-
-    _DiffuseA = {_,_,_,_Opacity} = proplists:get_value(diffuse, OpenGL),
-
-    Lightmat_Color = proplists:get_value(lightmat_color, Attr, {1.0, 1.0, 1.0}),
-
-    export_rgb(F, color, proplists:get_value(lightmat_color, Attr, Lightmat_Color)),
-
-    println(F, "\t<power fval=\"~.10f\"/>",[proplists:get_value(lightmat_power, Attr, 1.0)]),
-
-    % unsure about if this material allow layers..
-    write_material_layers(F, Name, Maps, Attr, Modulators),
-
-    println(F, "</material>").
-
-%%% Start Blend Materials Export
+%!-----------------------
+%! write Blend material
+%!-----------------------
 
 export_shaderblend(F, Name, Mat, ExportDir) ->
     Attr = proplists:get_value(?TAG, Mat, []),
@@ -342,31 +315,31 @@ export_shaderblend(F, Name, Mat, ExportDir) ->
 %%% Export Blend Material
 %% need reviewing, render crash.
 
-export_blend_mat_shader(F, Name, _Mat, _ExportDir, Attr) ->
-    %OpenGL = proplists:get_value(opengl, Mat),
-    %Maps = proplists:get_value(maps, Mat, []),
-    %Modulators = proplists:get_value(modulators, Attr, def_modulators(Maps)),
-    %foldl(fun ({modulator,Ps}=M, N) when is_list(Ps) ->
-    %              case export_texture(F, [Name,$_,format(N)],
-    %                                  Maps, ExportDir, M) of
-    %                  off -> N+1;
-    %                  ok ->
-    %                      println(F),
-    %                      N+1
-    %              end;
-    %          (_, N) ->
-    %              N % Ignore old modulators
-    %      end, 1, Modulators),
+export_blend_mat_shader(F, Name, Mat, ExportDir, Attr) ->
+    Maps = proplists:get_value(maps, Mat, []),
+    Modulators = proplists:get_value(modulators, Attr, def_modulators(Maps)),
+    
+    write_material_textures(F, Name, Maps, ExportDir, Modulators),
+    %
+    BlendOne = proplists:get_value(blend_mat1, Attr),
+    BlendTwo = proplists:get_value(blend_mat2, Attr),
+    MatBase = format(Name),
+    
+    Mat1 = case BlendOne of MatBase -> "blendone";  "" -> "blendone"; _ -> BlendOne end,
+    
+    Mat2 = case BlendTwo of MatBase -> "blendtwo"; Mat1 -> "blendtwo"; "" -> "blendtwo"; _ -> BlendTwo end,
 
-    println(F, "<material name=\"~s\">",[Name]),
+    println(F, "<material name=\"""w_""\~s\">",[Name]),
 
     println(F, "\t<type sval=\"blend_mat\"/>"),
 
-    println(F,
-        "\t<material1 sval=\"""w_""\~s\"/>",[proplists:get_value(blend_mat1, Attr, "blendone")]),
-    println(F,
-        "\t<material2 sval=\"""w_""\~s\"/>",[proplists:get_value(blend_mat2, Attr, "blendtwo")]),
-    println(F,
-        "\t<blend_value fval=\"~.4f\"/>",[proplists:get_value(blend_value, Attr, 0.5)]),
-
+    println(F, "\t<material1 sval=\"""w_""\~s\"/>",[Mat1]),
+    
+    println(F, "\t<material2 sval=\"""w_""\~s\"/>",[Mat2]),
+    
+    println(F, "\t<blend_value fval=\"~.4f\"/>",[proplists:get_value(blend_value, Attr, 0.5)]),
+    
+    % loop for export modulators / layers
+    write_material_layers(F, Name, Maps, Attr, Modulators),
+    
     println(F, "</material>").
