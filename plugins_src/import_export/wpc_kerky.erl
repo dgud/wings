@@ -127,7 +127,6 @@ maybe_append(Condition, Menu, PluginMenu) ->
 is_plugin_active(Condition) ->
     case Condition of
         export -> get_var(dialogs);
-        edit -> get_var(dialogs);
         render -> get_var(renderer)
     end.
 
@@ -139,7 +138,7 @@ menu({file,export_selected}, Menu) ->
 menu({file,render}, Menu) ->
     maybe_append(render, Menu, menu_entry(render));
 menu({edit, plugin_preferences}, Menu) ->
-    Menu++menu_entry(pref);
+    Menu ++ menu_entry(pref);
 menu(_, Menu) ->
     Menu.
 
