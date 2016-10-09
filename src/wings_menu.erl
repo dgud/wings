@@ -648,6 +648,10 @@ update_menu(Menu, Item, delete, _) ->
 	false -> ok;
 	Id ->
 	    case ets:lookup(wings_menus, Id) of
+		[#menu{object=SubMenu,type=submenu}] ->
+		    ParentName = menu_parent_id(Menu, Item),
+		    remove_submenu(ParentName,SubMenu),
+		    ok;
 		[#menu{object=MenuItem}] ->
 		    ParentMenu = wxMenuItem:getMenu(MenuItem),
 		    true = wxMenu:delete(ParentMenu, Id),
@@ -731,6 +735,13 @@ update_menu_hotkey(Action, HotKeyStr) ->
 	    end
     end.
 
+menu_parent_id(Menu, Item) ->
+    menu_parent_id_0(Item, [Menu]).
+menu_parent_id_0({Menu, {Item,_}}, Acc) ->
+    menu_parent_id_0(Item, Acc ++[Menu]);
+menu_parent_id_0({Menu, _}, Acc) ->Acc ++[Menu];
+menu_parent_id_0(_Menu, Acc) -> Acc.
+
 menu_item_id(Menu, Item) ->
     case predefined_item(Menu, Item) of
 	Id when is_integer(Id) ->
@@ -743,9 +754,50 @@ menu_item_id(Menu, Item) ->
 			[#menu{wxid=Id}] -> Id;
 			[] -> false
 		    end;
-		[] -> false
+		[] ->  %% find for submenu root (level 0)
+		    case ets:match_object(wings_menus, #menu{name=[Item,Menu],type=submenu, _='_'}) of
+			[#menu{wxid=Id}] -> Id;
+		    	_ -> false
+		    end
 	    end
     end.
+
+remove_submenu(ParentName, Menu) ->
+    case ets:match_object(wings_menus, #menu{name=ParentName,type=submenu, _='_'}) of
+	[#menu{object=ParentMenu}] ->
+	    Items = [X || X <- wxMenu:getMenuItems(ParentMenu)],
+	    ToRemove0 = [{Item,wxMenuItem:getSubMenu(Item)} || Item <- Items],
+	    [wxMenu:delete(ParentMenu,Root) || {Root,SubMenu} <- ToRemove0, SubMenu =:= Menu];
+	_ -> ignore
+    end,
+    remove_submenu(Menu).
+
+remove_submenu({wx_ref,0,_,[]}) -> ignore;
+remove_submenu([]) -> ignore;
+remove_submenu(Menu) ->
+    Menu0 =
+	if is_list(Menu) -> Menu;
+	true -> [Menu]
+	end,
+    lists:foldr(fun(Item, Acc)->
+		    case Item of
+			{wx_ref,0,_,_} -> ignore;
+			{_,_,wxMenuItem,_} ->
+			    remove_submenu(wxMenuItem:getSubMenu(Item)),
+			    ParentMenu = wxMenuItem:getMenu(Item),
+			    wxMenu:delete(ParentMenu,Item);
+			{_,_,wxMenu,_} ->
+			    remove_submenu(wxMenu:getMenuItems(Item)),
+			    wxMenu:destroy(Item)
+		    end,
+		    case ets:match_object(wings_menus, #menu{object=Item,_='_'}) of
+			[#menu{wxid=Id}] -> ets:delete(wings_menus, Id);
+			_ -> ok
+		    end,
+		    Acc
+		end, [], Menu0).
+
+
 
 setup_hotkey(MI, Cmd) ->
     case lists:member($\t, Cmd) of

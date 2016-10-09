@@ -420,11 +420,9 @@ update_menus(Ps, Disabled) ->
     update_plugin_menus(ToUpdate).
 
 update_plugin_menus([]) -> ignore;
-update_plugin_menus(Cps) ->
-    lists:foldr(fun({Category, Ms}, _) ->
-	[update_menu_category(Category, M) || M <- Ms]
-    end, [], Cps),
-    ok.
+update_plugin_menus([{Category, Ms}|Cps]) ->
+    [update_menu_category(Category, M) || M <- Ms],
+    update_plugin_menus(Cps).
 
 update_menu_category(_, []) -> ignore;
 update_menu_category(_, M) ->
