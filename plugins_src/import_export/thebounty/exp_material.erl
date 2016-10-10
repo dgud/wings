@@ -89,7 +89,7 @@ export_shinydiffuse_shader(F, Name, Mat, ExportDir, Attr) ->
         "\t<specular_reflect fval=\"~.10f\"/>",[proplists:get_value(mirror_reflect, Attr, 0.0)]),
 
     case proplists:get_value(reflect_mode, Attr, lambert) of
-        lambert -> 
+        lambert ->
             println(F, "\t<diffuse_brdf sval=\"lambert\"/>");
         _ ->
             println(F, "\t<diffuse_brdf sval=\"Oren-Nayar\"/>"),
@@ -195,7 +195,7 @@ export_translucent_shader(F, Name, Mat, ExportDir, Attr) ->
     DefTransmitted = def_transmitted(DiffuseA),
 
     % SigmaA
-    %export_rgb(F, sigmaA, proplists:get_value(sigmaA_color, Attr, ?DEF_SSS_ABSORPTION_COLOR)),    
+    %export_rgb(F, sigmaA, proplists:get_value(sigmaA_color, Attr, ?DEF_SSS_ABSORPTION_COLOR)),
 
     export_rgb(F, glossy_color, proplists:get_value(glossy_color, Attr, Specular)),
 
@@ -225,7 +225,7 @@ export_translucent_shader(F, Name, Mat, ExportDir, Attr) ->
     %        println(F,
     %            "\t<dispersion_jitter bval=\"~s\"/>", [format(proplists:get_value(dispersion_jitter, Attr, false))])
     %end,
-    
+
     println(F, "\t<IOR fval=\"~.10f\"/>",[proplists:get_value(sss_ior, Attr, 1.3)]),
     println(F,
         "\t<sigmaS_factor fval=\"~.10f\"/>",[proplists:get_value(sigmas_factor, Attr, 1.0)]),
@@ -254,7 +254,7 @@ export_glass_shaders(F, Name, Mat, ExportDir, Attr) ->
     Modulators = proplists:get_value(modulators, Attr, def_modulators(Maps)),
 
     write_material_textures(F, Name, Maps, ExportDir, Modulators),
-    
+
     GlassType = case proplists:get_value(rough, Attr, false) of
         true -> rough_glass;
         _ -> glass
@@ -312,21 +312,21 @@ export_shaderblend(F, Name, Mat, ExportDir) ->
         _ -> ok
     end.
 
-%%% Export Blend Material
+%% Export Blend Material
 %% need reviewing, render crash.
 
 export_blend_mat_shader(F, Name, Mat, ExportDir, Attr) ->
     Maps = proplists:get_value(maps, Mat, []),
     Modulators = proplists:get_value(modulators, Attr, def_modulators(Maps)),
-    
+
     write_material_textures(F, Name, Maps, ExportDir, Modulators),
     %
     BlendOne = proplists:get_value(blend_mat1, Attr),
     BlendTwo = proplists:get_value(blend_mat2, Attr),
     MatBase = format(Name),
-    
+
     Mat1 = case BlendOne of MatBase -> "blendone";  "" -> "blendone"; _ -> BlendOne end,
-    
+
     Mat2 = case BlendTwo of MatBase -> "blendtwo"; Mat1 -> "blendtwo"; "" -> "blendtwo"; _ -> BlendTwo end,
 
     println(F, "<material name=\"""w_""\~s\">",[Name]),
@@ -334,12 +334,12 @@ export_blend_mat_shader(F, Name, Mat, ExportDir, Attr) ->
     println(F, "\t<type sval=\"blend_mat\"/>"),
 
     println(F, "\t<material1 sval=\"""w_""\~s\"/>",[Mat1]),
-    
+
     println(F, "\t<material2 sval=\"""w_""\~s\"/>",[Mat2]),
-    
+
     println(F, "\t<blend_value fval=\"~.4f\"/>",[proplists:get_value(blend_value, Attr, 0.5)]),
-    
+
     % loop for export modulators / layers
     write_material_layers(F, Name, Maps, Attr, Modulators),
-    
+
     println(F, "</material>").

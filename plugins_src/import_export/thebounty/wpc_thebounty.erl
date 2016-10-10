@@ -385,7 +385,7 @@ export(Attr, XMLFilename, #e3d_file{objs=Objs, mat=Mats, creator=Creator}) ->
     %! write integrators
     %!----------------------
     export_integrator(F, Attr),
-    
+
     %!------------------------
     %! write render options
     %!------------------------
@@ -476,7 +476,7 @@ write_default_materials(F)->
     println(F, "\t<type sval=\"glossy\"/>"),
     println(F, "\t<color r=\"1.0\" g=\"0.513\" b=\"0.594\"/>"),
     println(F, "</material>\n").
-    
+
 -include("exp_material.erl").
 
 %% write texture code
@@ -711,7 +711,7 @@ erase_var(Name) ->
 rip_all(KeyTag, List) ->
     Keys = proplists:get_keys(List),
     rip_all(KeyTag, Keys, List).
-    
+
 rip_all(KeyTag, [Key | Keys], List) ->
     case rip_keytag(KeyTag, Key) of
     true ->

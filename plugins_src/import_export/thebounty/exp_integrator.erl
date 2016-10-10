@@ -45,7 +45,7 @@ export_integrator(F, Attr) ->
             case Do_AO of
                 true ->
                     println(F, "\t<AO_distance fval=\"~.10f\"/>",[proplists:get_value(ao_distance, Attr, 1.0)]),
-                    println(F, "\t<AO_samples fval=\"~.10f\"/>",[proplists:get_value(ao_samples, Attr, 16.0)]),
+                    println(F, "\t<AO_samples ival=\"~w\"/>",[proplists:get_value(ao_samples, Attr, 16)]),
                     export_rgb(F, "AO_color", proplists:get_value(ao_color, Attr));
                 false -> ok
             end;

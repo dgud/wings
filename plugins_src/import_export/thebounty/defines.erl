@@ -35,7 +35,6 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_VOLUME_ATTGRIDSCALE, 3).
 -define(DEF_VOLUME_COVER, 0.05).
 -define(DEF_VOLUME_DENSITY, 1.0).
--define(DEF_LIGHTPORTAL_POWER, 2.0).
 -define(DEF_LIGHTPORTAL_SAMPLES, 24).
 -define(DEF_LIGHTPORTAL_DIFFUSEPHOTONS, false).
 -define(DEF_LIGHTPORTAL_CAUSTICPHOTONS, false).
@@ -90,7 +89,7 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_SSS_PHOTONS, 1000).
 -define(DEF_SSS_DEPTH, 10.0).
 -define(DEF_SSS_SCALE, 2.0).
--define(DEF_SSS_SINGLESCATTER_SAMPLES, 32).
+%-define(DEF_SSS_SINGLESCATTER_SAMPLES, 32).
 -define(DEF_USE_CAUSTICS, false).
 -define(DEF_CAUSTIC_PHOTONS, 900000).
 -define(DEF_CAUSTIC_DEPTH, 10).
@@ -98,7 +97,7 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_CAUSTIC_RADIUS, 0.5).
 -define(DEF_DO_AO, false).
 -define(DEF_AO_DISTANCE, 1.0).
--define(DEF_AO_SAMPLES, 16.0).
+-define(DEF_AO_SAMPLES, 16).
 -define(DEF_AO_COLOR, {1.0,1.0,1.0}).
 -define(DEF_AA_PASSES, 3).
 -define(DEF_AA_MINSAMPLES, 1).
@@ -271,7 +270,7 @@ range_1(meshlight_samples)      -> {0,512};
 range_1(autosmooth_angle)       -> {0.0,181.0};
 range_1(ior)                    -> {0.0,3.0};
 range_1(min_refle)              -> {0.0,1.0};
-range_1(size)                   -> {0.0,1000.0}; 
+range_1(size)                   -> {0.0,1000.0};
 range_1(modulation)             -> {-5.0,5.0};
 range_1(mod_colorfactor)        -> {-1.0,1.0};
 range_1(turbulence)             -> {0.0001,1024.0};
@@ -370,7 +369,7 @@ range_1(caustic_depth)          -> {0,512};
 range_1(caustic_mix)            -> {0,512};
 range_1(caustic_radius)         -> {0.0,1.0};
 range_1(ao_distance)            -> {1.0,100.0};
-range_1(ao_samples)             -> {1.0,128.0};
+range_1(ao_samples)             -> {1,128};
 range_1(volintegr_stepsize)     -> {0.0,100.0};
 range_1(subdivisions)           -> {0,10};
 range_1(threads_number)         -> {1,100};

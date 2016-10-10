@@ -86,7 +86,7 @@ export_texture(F, Name, Type, Ps) ->
 
         clouds ->
             %% <depth, hard, noise_type, size
-            println(F, 
+            println(F,
                 "\t<depth ival=\"~w\"/>", [proplists:get_value(depth, Ps, ?DEF_MOD_DEPTH)]),
             println(F,
                 "\t<hard bval=\"~s\"/>",[format(proplists:get_value(hard, Ps, false))]),
@@ -152,11 +152,11 @@ export_texture(F, Name, Type, Ps) ->
 
         musgrave ->
             %% <H, gain, intensity, lacunarity, musgrave_type, noise_type, octaves, offset, size
-            println(F, 
+            println(F,
                 "\t<H fval=\"~.6f\"/>",[proplists:get_value(musgrave_contrast, Ps, 0.1)]),
-            println(F, 
+            println(F,
                 "\t<gain fval=\"~.6f\"/>",[proplists:get_value(gain, Ps, 1.0)]),
-            println(F, 
+            println(F,
                 "\t<intensity fval=\"~.6f\"/>",[proplists:get_value(musgrave_intensity, Ps, 2.0)]),
             println(F,
                 "\t<lacunarity fval=\"~.6f\"/>",[proplists:get_value(musgrave_lacunarity, Ps, 2.0)]),

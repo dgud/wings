@@ -80,7 +80,7 @@ export_prefs() ->
         {sss_photons,?DEF_SSS_PHOTONS},
         {sss_depth,?DEF_SSS_DEPTH},
         {sss_scale,?DEF_SSS_SCALE},
-        {scatter_samples,?DEF_SSS_SINGLESCATTER_SAMPLES},
+        {scatter_samples,32},
         {volintegr_type,?DEF_VOLINTEGR_TYPE},
         {volintegr_adaptive,?DEF_VOLINTEGR_ADAPTIVE},
         {volintegr_stepsize,?DEF_VOLINTEGR_STEPSIZE},
@@ -258,8 +258,8 @@ export_dialog_qs(Op, Attr) ->
                 %----------------------------
                 {hframe, [
                     {label_column, [
-                        {?__(105, "Raydepth "),
-                            {text, get_pref(raydepth,Attr),[range(raydepth),{key,raydepth},{width,5}]}},
+                        %{?__(105, "Raydepth "),
+                        %    {text, get_pref(raydepth,Attr),[range(raydepth),{key,raydepth},{width,5}]}},
                         {?__(106, "Gamma Out"),
                             {text, get_pref(gamma,Attr),[range(gamma),{key,gamma},{width,5}]}}
                     ]},
@@ -381,160 +381,169 @@ export_dialog_qs(Op, Attr) ->
     %! Lighting group tab 200 ->
     %!----------------------------------------
     Lighting =
-        {?__(200, "Lighting"),
+    {?__(200, "Lighting"),
+        {vframe, [
             {vframe, [
-                {vframe, [
-                    {hframe,[
-                        {menu, [
-                            {?__(201, "Direct Light"), directlighting},
-                            {?__(202, "Photon Mapping"), photonmapping},
-                            {?__(203, "Path Tracing"), pathtracing},
-                            {?__(204, "Bidirectional Path Tracing"), bidirectional},
-                            {?__(205, "SPPM"),sppm}
-                        ], get_pref(lighting_method,Attr), [{key,lighting_method}, {hook,Hook_Show}]}
-                    ]},
-                    %% Start Direct Lighting Menu Section
-                    {hframe,[
-                        %% 1st collunm of panels
-                        {vframe, [
-                            {hframe,[
-                                {?__(206, "Caustics"), get_pref(use_caustics,Attr), [{key,use_caustics},{hook,Hook_Enable},{show,false}]}
-                            ]},
-                            {label_column, [
-                                {?__(207, "Photons"),{text, get_pref(caustic_photons,Attr), [range(caustic_photons),{key,caustic_photons}]}},
-                                {?__(208, "Depth"),{text, get_pref(caustic_depth,Attr), [range(caustic_depth),{key,caustic_depth}]}},
-                                {?__(209, "Mix"),{text, get_pref(caustic_mix,Attr), [range(caustic_mix),{key,caustic_mix}]}},
-                                {?__(210, "Radius"),{text, get_pref(caustic_radius,Attr), [range(caustic_radius),{key,caustic_radius}]}}
-                            ], [key(pnl_dl1)]}
-                        ], [key(pnl_caustics),{show,false},{magin,false}]
-                        },
-                        {label_column, [
-                            {?__( 211, "Photons"),{text, get_pref(pm_diffuse_photons,Attr), [range(pm_diffuse_photons),{key,pm_diffuse_photons}]}},
-                            {?__(212, "Bounces"),{text, get_pref(pm_bounces,Attr), [range(pm_bounces),{key,pm_bounces}]}},
-                            {?__(213, "Search"),{text, get_pref(pm_search,Attr), [range(pm_search),{key,pm_search}]}},
-                            {?__(214, "Diffuse Radius"),{text, get_pref(pm_diffuse_radius,Attr), [range(pm_diffuse_radius),{key,pm_diffuse_radius}]}}
-                        ], [key(pnl_pm1)]
-                        },
-                        {label_column, [
-                            {?__( 215, "Photons"),{text, get_pref(pt_diffuse_photons,Attr), [range(pt_diffuse_photons),{key,pt_diffuse_photons}]}},
-                            {?__(216, "Bounces"),{text, get_pref(pt_bounces,Attr), [range(pt_bounces),{key,pt_bounces}]}}
-                        ], [key(pnl_pt1),{show,false}]
-                        },
-                        {label_column, [
-                            {?__( 217, "Photons"),{text,get_pref(sppm_photons,Attr),[range(sppm_photons),{key,sppm_photons}]}},
-                            {?__(218, "Bounces"),{text,get_pref(sppm_bounces,Attr),[range(sppm_bounces),{key,sppm_bounces}]}},
-                            {?__(219, "Search"),{text,get_pref(sppm_search,Attr),[range(sppm_search),{key,sppm_search}]}},
-                            {?__( 220, "Radius"),{text,get_pref(sppm_radius,Attr),[range(sppm_radius),{key,sppm_radius}]}}
-                        ], [key(pnl_sppm1),{show,false}]},
-
-                        %% 2nd collumn of panels
-%                        {vframe, [
+                {hframe,[
+                    {menu, [
+                        {?__(201, "Direct Light"), directlighting},
+                        {?__(202, "Photon Mapping"), photonmapping},
+                        {?__(203, "Path Tracing"), pathtracing},
+                        {?__(204, "Bidirectional Path Tracing"), bidirectional},
+                        {?__(205, "SPPM"),sppm}
+                    ], get_pref(lighting_method,Attr), [{key,lighting_method}, {hook,Hook_Show}]}
+                ]},
+                {hframe,[{hframe,[
+                    {label, "Recursive Raytracing"},
+                    {slider,{text, get_pref(raydepth,Attr),[range(raydepth),{key,raydepth}]}}
+                ]}],[{margin,false}]},
+                    %
+                %% Start Direct Lighting Menu Section
+                {hframe,[
+                    % 1st collunm of panels
+                    {vframe, [
+                        {hframe,[
+                            {"Caustics", get_pref(use_caustics,Attr), [{key,use_caustics},{hook,Hook_Enable}]}
+                        ]},
+                        {hframe, [
+                            {vframe, [{label, "Photons "},{label,"Bounces" },{label,"Mixed"},{label,"Radius"}]},
                             {vframe, [
-                                {hframe, [
-                                    {?__(95, "Ambient Occlusion"), get_pref(do_ao,Attr), [{key,do_ao},{hook,Hook_Enable}]}
-                                ]},
-                                {label_column, [
-                                    {?__(97, "AO Distance"),{text, get_pref(ao_distance,Attr), [range(ao_distance),{key,ao_distance}]}},
-                                    {?__(98, "AO Samples"),{text, get_pref(ao_samples,Attr), [range(ao_samples),{key,ao_samples}]}},
-                                    {?__(99, "AO Color"),{color, get_pref(ao_color,Attr), [{key,ao_color}]}}
-                                ], [key(pnl_use_ao)]}
-                            ], [key(pnl_ao),{show,false},{magin,false}]
-                            },
-                            {label_column, [
-                                {?__(225, "Caustic Photons"),{text, get_pref(pm_caustic_photons,Attr), [range(pm_caustic_photons),{key,pm_caustic_photons}]}},
-                                {?__(226, "Caustic Radius"),{text, get_pref(pm_caustic_radius,Attr), [range(pm_caustic_radius),{key,pm_caustic_radius}]}},
-                                {?__(227, "Caustic Mix"),{text, get_pref(pm_caustic_mix,Attr), [range(pm_caustic_mix),{key,pm_caustic_mix}]}}
-                            ],[key(pnl_pm2)]
-                            },
-                            {vframe,[
-                                {hframe,[
-                                    {label, ?__(245, "Caustic Type ")},
-                                    {menu, [
-                                        {?__(253, "path"), path},
-                                        {?__(254, "photons"), photons},
-                                        {?__(255, "both"), both},
-                                        {?__(256, "none"), none}
-                                    ], get_pref(pt_caustic_type,Attr), [{key,pt_caustic_type}]}
-                                ]},
-                                {label_column, [
-                                    {?__(257, "Caustic Radius"),{text, get_pref(pt_caustic_radius,Attr), [{key,pt_caustic_radius},range(pt_caustic_radius)]}},
-                                    {?__(258, "Caustic Mix"),{text, get_pref(pt_caustic_mix,Attr), [{key,pt_caustic_mix},range(pt_caustic_mix)]}},
-                                    {?__(259, "Caustic Depth"),{text, get_pref(pt_caustic_depth,Attr), [{key,pt_caustic_depth},range(pt_caustic_depth)]}}
-                                ],[{margin,false}]}
-                            ],[key(pnl_pt2),{show,false}]
-                            },
-                            {vframe,[
-                                {label_column, [
-                                    {?__(260, "Times"),{text,get_pref(sppm_times,Attr),[{key,sppm_times},range(sppm_times)]}},
-                                    {?__(261, "Passes"),{text,get_pref(sppm_passes,Attr),[{key,sppm_passes}, range(sppm_passes)]}}
-                                ]},
-                                {hframe,[
-                                    {?__(262,"IRE"),get_pref(sppm_ire,Attr),[{key,sppm_ire}]}
-                                ]}
-                            ],[key(pnl_sppm2),{show,false},{margin,false}]},
-
-                        %% 3rd collumn of panels
-                        {vframe, [
+                                {text, get_pref(caustic_photons,Attr),[range(photons),{key,caustic_photons},{width,6}]},
+                                {text, get_pref(caustic_depth,Attr),[range(caustic_depth),{key,caustic_depth},{width,6}]},
+                                {text, get_pref(caustic_mix,Attr), [range(caustic_mix),{key,caustic_mix},{width,6}]},
+                                {text, get_pref(caustic_radius,Attr),[range(caustic_radius),{key,caustic_radius},{width,6}]}
+                            ]}
+                        ],[key(pnl_dl1)]}
+                    ],[key(pnl_caustics),{show,false},{magin,false}]},
+                    
+                    {vframe, [
+                        {hframe,[
+                            {vframe, [{label, "Photons"},{label, "Bounces"},{label, "Search"},{label, "Radius"}]},
                             {vframe, [
-                                {vframe,[
-                                    {?__(263, "Final Gather"), get_pref(pm_use_fg,Attr), [{key,pm_use_fg},{hook,Hook_Enable}]}
-                                ],[{border,1}]},
-                                {vframe, [
-                                    {label_column, [
-                                        {?__(264, "FG Bounces"),{text, get_pref(pm_fg_bounces,Attr), [{key,pm_fg_bounces},range(pm_fg_bounces)]}},
-                                        {?__(265, "FG Samples"),{text, get_pref(pm_fg_samples,Attr), [{key,pm_fg_samples},range(pm_fg_samples)]}}
-                                    ],[{margin,false}]
-                                    },
-                                    {vframe,[
-                                        {?__(266, "Show Map"), get_pref(pm_fg_show_map,Attr), [{key,pm_fg_show_map}]}
-                                    ],[{border,1}]}
-                                ], [key(pnl_use_fg),[{margin,false}]]
-                                }
-                            ], [key(pnl_pm3)]},
-                            {label_column, [
-                                {?__(267, "Path Samples"),{text, get_pref(pt_samples,Attr), [{key,pt_samples},range(pt_samples)]}}
-                            ], [key(pnl_pt3)]}
-                        ], [{margin,false}]}
-                    ],[key(pnl_light)]},
+                                {text, get_pref(pm_diffuse_photons,Attr), [range(photons),{key,pm_diffuse_photons}]},
+                                {text, get_pref(pm_bounces,Attr), [range(pm_bounces),{key,pm_bounces}]},
+                                {text, get_pref(pm_search,Attr), [range(pm_search),{key,pm_search}]},
+                                {text, get_pref(pm_diffuse_radius,Attr), [range(pm_diffuse_radius),{key,pm_diffuse_radius}]}
+                            ]}
+                        ]}
+                    ], [key(pnl_pm1)]},                        
+                    {vframe, [
+                        {hframe,[
+                            {vframe, [{label,"Photons"},{label, "Bounces"}]},
+                            {vframe, [
+                                {text, get_pref(pt_diffuse_photons,Attr), [range(photons),{key,pt_diffuse_photons}]},
+                                {text, get_pref(pt_bounces,Attr), [range(pt_bounces),{key,pt_bounces}]}
+                            ]}
+                        ]}
+                    ], [key(pnl_pt1),{show,false}]
+                    },
+                    {vframe, [
+                        {hframe, [{label, "Photons"},{text,get_pref(sppm_photons,Attr),[range(photons),{key,sppm_photons}]}]},
+                        {hframe, [{label, "Bounces"},{text,get_pref(sppm_bounces,Attr),[range(sppm_bounces),{key,sppm_bounces}]}]},
+                        {hframe, [{label, "Search "},{text,get_pref(sppm_search,Attr),[range(sppm_search),{key,sppm_search}]}]},
+                        {hframe, [{label, "Radius "},{text,get_pref(sppm_radius,Attr),[range(sppm_radius),{key,sppm_radius}]}]}
+                    ], [key(pnl_sppm1),{show,false}]},
 
+                    %% 2nd collumn of panels
+                    {vframe, [
+                        {hframe, [{"Ambient Occlusion", get_pref(do_ao,Attr), [{key,do_ao},{hook,Hook_Enable}]}]},
+                        {label_column, [
+                            {?__(97, "AO Distance"),{text, get_pref(ao_distance,Attr), [range(ao_distance),{key,ao_distance}]}},
+                            {?__(98, "AO Samples"),{text, get_pref(ao_samples,Attr), [range(ao_samples),{key,ao_samples}]}},
+                            {?__(99, "AO Color"),{color, get_pref(ao_color,Attr), [{key,ao_color}]}}
+                        ], [key(pnl_use_ao)]}
+                    ], [key(pnl_ao),{show,false},{magin,false}]
+                    },
+                    {label_column, [
+                        {?__(225, "Caustic Photons"),{text, get_pref(pm_caustic_photons,Attr), [range(photons),{key,pm_caustic_photons}]}},
+                        {?__(226, "Caustic Radius"),{text, get_pref(pm_caustic_radius,Attr), [range(pm_caustic_radius),{key,pm_caustic_radius}]}},
+                        {?__(227, "Caustic Mix"),{text, get_pref(pm_caustic_mix,Attr), [range(pm_caustic_mix),{key,pm_caustic_mix}]}}
+                    ],[key(pnl_pm2)]
+                    },
+                    {vframe,[
+                        {hframe,[
+                             {label, ?__(245, "Caustic Type ")},
+                             {menu, [
+                                {?__(253, "path"), path},
+                                {?__(254, "photons"), photons},
+                                {?__(255, "both"), both},
+                                {?__(256, "none"), none}
+                            ], get_pref(pt_caustic_type,Attr), [{key,pt_caustic_type}]}
+                        ]},
+                        {label_column, [
+                            {?__(257, "Caustic Radius"),{text, get_pref(pt_caustic_radius,Attr), [{key,pt_caustic_radius},range(pt_caustic_radius)]}},
+                            {?__(258, "Caustic Mix"),{text, get_pref(pt_caustic_mix,Attr), [{key,pt_caustic_mix},range(pt_caustic_mix)]}},
+                            {?__(259, "Caustic Depth"),{text, get_pref(pt_caustic_depth,Attr), [{key,pt_caustic_depth},range(pt_caustic_depth)]}}
+                        ],[{margin,false}]}
+                    ],[key(pnl_pt2),{show,false}]
+                    },
+                    {vframe,[
+                        {label_column, [
+                            {?__(260, "Times"),{text,get_pref(sppm_times,Attr),[{key,sppm_times},range(sppm_times),{width,6}]}},
+                            {?__(261, "Passes"),{text,get_pref(sppm_passes,Attr),[{key,sppm_passes}, range(sppm_passes)]}}
+                        ]},
+                        {hframe,[
+                            {?__(262,"IRE"),get_pref(sppm_ire,Attr),[{key,sppm_ire}]}
+                        ]}
+                    ],[key(pnl_sppm2),{show,false},{margin,false}]},
+
+                    %% 3rd collumn of panels
                     {vframe, [
                         {vframe, [
-                            {hframe,[
-                                {?__(268, "Enabled"), get_pref(use_sss,Attr), [{key,use_sss},{hook,Hook_Enable}]}
-                            ]},
-                            {hframe, [
+                            {vframe,[
+                                {?__(263, "Final Gather"), get_pref(pm_use_fg,Attr), [{key,pm_use_fg},{hook,Hook_Enable}]}
+                            ],[{border,1}]},
+                            {vframe, [
                                 {label_column, [
-                                    {?__(269, "Photons"),{text, get_pref(sss_photons,Attr), [{key,sss_photons},range(sss_photons)]}},
-                                    {?__(270, "Depth"),{text, get_pref(sss_depth,Attr), [{key,sss_depth},range(sss_depth)]}}
-                                ]},
-                                {label_column, [
-                                    {?__(271, "Scale"),{text, get_pref(sss_scale,Attr), [{key,sss_scale},range(sss_scale)]}},
-                                    {?__(272, "SingleScatter Samples"),{text, get_pref(scatter_samples,Attr), [{key,scatter_samples},range(scatter_samples)]}}
-                                ]}
-                            ],[key(pnl_sss_opt), {margin,false},{show,false}]}
-                        ],[{title, ?__(273, "SubSurface Scattering")},{margin,false}]}
-                    ],[key(pnl_sss)]}
-                ],[{title, ""}]},
+                                    {?__(264, "FG Bounces"),{text, get_pref(pm_fg_bounces,Attr), [{key,pm_fg_bounces},range(pm_fg_bounces)]}},
+                                    {?__(265, "FG Samples"),{text, get_pref(pm_fg_samples,Attr), [{key,pm_fg_samples},range(pm_fg_samples)]}}
+                                ],[{margin,false}]
+                                },
+                                {vframe,[
+                                    {?__(266, "Show Map"), get_pref(pm_fg_show_map,Attr), [{key,pm_fg_show_map}]}
+                                ],[{border,1}]}
+                            ], [key(pnl_use_fg),[{margin,false}]]
+                            }
+                        ], [key(pnl_pm3)]},
+                        {label_column, [
+                            {?__(267, "Path Samples"),{text, get_pref(pt_samples,Attr), [{key,pt_samples},range(pt_samples)]}}
+                        ], [key(pnl_pt3)]}
+                    ], [{margin,false}]}
+                ],[key(pnl_light)]},
 
-                %% Volumetrics group
+                {vframe, [
+                    {vframe, [
+                        {hframe, [{"Enabled", get_pref(use_sss,Attr), [{key,use_sss},{hook,Hook_Enable}]}]},
+                        {hframe, [
+                            {label_column, [
+                                {?__(269, "Photons"),{text, get_pref(sss_photons,Attr), [{key,sss_photons},range(sss_photons)]}},
+                                {?__(270, "Depth"),{text, get_pref(sss_depth,Attr), [{key,sss_depth},range(sss_depth)]}}
+                            ]},
+                            {label_column, [
+                                {?__(271, "Scale"),{text, get_pref(sss_scale,Attr), [{key,sss_scale},range(sss_scale)]}},
+                                {?__(272, "Scatter Samples"),{text, get_pref(scatter_samples,Attr), [{key,scatter_samples},range(scatter_samples)]}}
+                            ]}
+                        ],[key(pnl_sss_opt),{margin,false}]}
+                    ],[{title, ?__(273, "SubSurface Scattering")},{margin,false}]}
+                ],[key(pnl_sss)]}
+            ],[{title, ""}]},
+
+            %% Volumetrics group
+            {hframe, [
+                {menu, [
+                    {?__(280, "None"), none},
+                    {?__(281, "SingleScatter"), singlescatterintegrator}
+                ], get_pref(volintegr_type,Attr), [{key,volintegr_type},{hook,Hook_Show}]},
+                panel,
                 {hframe, [
-                    {menu, [
-                        {?__(280, "None"), none},
-                        {?__(281, "SingleScatter"), singlescatterintegrator}
-                    ], get_pref(volintegr_type,Attr), [{key,volintegr_type},{hook,Hook_Show}]},
-                    panel,
-                    {hframe, [
-                        {?__(282, "Adaptive"), get_pref(volintegr_adaptive,Attr), [{key,volintegr_adaptive}]},
-                        panel,
-                        {label, ?__(283, "StepSize")},
-                        panel,
-                        {text, get_pref(volintegr_stepsize,Attr), [{key,volintegr_stepsize},range(volintegr_stepsize)]},
-                        panel,
-                        {?__(284, "Optimize"), get_pref(volintegr_optimize,Attr),[{key,volintegr_optimize}]}
-                    ], [key(pnl_volumetric)]}
-                ],[{title, ?__(285, "Volumetrics")}]}
-            ],[{margin,false}]}
-        },
+                    {"Adaptive", get_pref(volintegr_adaptive,Attr), [{key,volintegr_adaptive}]}, 
+                    panel, {label, "StepSize"},
+                    {text, get_pref(volintegr_stepsize,Attr), [{key,volintegr_stepsize},range(volintegr_stepsize)]},
+                    panel, {"Optimize", get_pref(volintegr_optimize,Attr),[{key,volintegr_optimize}]}
+                ], [key(pnl_volumetric)]}
+            ],[{title, ?__(285, "Volumetrics")}]}
+        ],[{margin,false}]}
+    },
 
     Camera =
         {?__(300, "Camera") ,
@@ -687,132 +696,116 @@ export_dialog_qs(Op, Attr) ->
             %!------------------------------------
             {vframe, [
                 {hframe, [
-                    {label_column, [
-                        {?__(407,"Sky Turbidity"),
-                            {slider,{text,get_pref(turbidity,Attr),[range(zero_five),{key,turbidity}]}}},
-                        {?__(408,"Horizon Bright"),
-                            {slider,{text,get_pref(a_var,Attr),[range(zero_five),{key,a_var}]}}},
-                        {?__(409,"Horizon Spread"),
-                            {slider,{text,get_pref(b_var,Attr),[range(zero_five),{key,b_var}]}}}
-                    ],[{margin,false}]},
-                    {label_column, [
-                        {?__(410,"Sun Brightness"),
-                            {slider, {text,get_pref(c_var,Attr),[range(zero_five),{key,c_var}]}}},
-                        {?__(411,"Sun Distance"),
-                            {slider, {text,get_pref(d_var,Attr),[range(zero_five),{key,d_var}]}}},
-                        {?__(412,"Backscatter Light"),
-                            {slider, {text,get_pref(e_var,Attr),[range(zero_five),{key,e_var}]}}}
-                    ],[{margin,false}]}
-                ],[key(pnl_sky),{margin,false}]},
-            % altitude and night
-            {hframe,[
-                {hframe,[
-                    {label,?__(413,"Altitude")},
-                        {slider, {text,get_pref(altitude,Attr),[range(zero_five),{key,altitude},{width,5}]}},
-                    panel,
-                    {label,?__(414,"Exposure")},
-                        {slider, {text,get_pref(exposure,Attr),[range(zero_five),{key,exposure},{width,5}]}}
+                    {vframe, [{label,"Turbidity"},{label,"Hor. Bright"},{label,"Hor. Spread"}]},
+                    {vframe, [
+                        {slider,{text,get_pref(turbidity,Attr),[range(zero_five),{key,turbidity}]}},                        
+                        {slider,{text,get_pref(a_var,Attr),[range(zero_five),{key,a_var}]}},                        
+                        {slider,{text,get_pref(b_var,Attr),[range(zero_five),{key,b_var}]}}]},
+                    {vframe, [{label,"Sun Bright"},{label,"Sun Distance"},{label,"Back Light"}]},
+                    {vframe, [
+                        {slider, {text,get_pref(c_var,Attr),[range(zero_five),{key,c_var}]}},                        
+                        {slider, {text,get_pref(d_var,Attr),[range(zero_five),{key,d_var}]}},                        
+                        {slider, {text,get_pref(e_var,Attr),[range(zero_five),{key,e_var}]}}
                     ]}
-            ],[key(pnl_alt_night),{margin,false}]},
-            {hframe,[
+                ],[key(pnl_sky),{margin,false}]},
+                % altitude and night
                 {hframe,[
-                    {?__(415,"Night"),get_pref(night, Attr),[{key,night}]},
-                panel,
-                {label,?__(416,"Sky brightness")},
-                    {slider, {text,get_pref(bright,Attr),[range(zero_to_ten),{key,bright},{width,5}]}}
-                ]}
-            ],[key(pnl_bright_night),{margin,false}]},
+                    {vframe, [{label, "Altitude"}]},
+                    {vframe, [{slider, {text,get_pref(altitude,Attr),[range(zero_five),{key,altitude}]}}]},panel,
+                    {vframe, [{label, "Exposure"}]},
+                    {vframe, [{slider, {text,get_pref(exposure,Attr),[range(zero_five),{key,exposure}]}}]}
+                ],[key(pnl_alt_night),{margin,false}]},
+                {hframe,[
+                    {hframe, [
+                        {"Night",get_pref(night, Attr),[{key,night}]}, panel,
+                        {label, "Sky brightness"},
+                        {slider, {text,get_pref(bright,Attr),[range(zero_to_ten),{key,bright},{width,5}]}}
+                    ]}
+                ],[key(pnl_bright_night),{margin,false}]},
 
-            {hframe,[
                 {hframe,[
-                    {?__(417,"Add Sun    "),get_pref(add_sun, Attr),[{key,add_sun},{hook,WHook_Enabled}]}]},
-                {hframe,[
-                    {label,?__(418,"Sun Power")},
-                    {slider, {text, get_pref(sun_power, Attr),[range(zero_to_ten),{key,sun_power},{width,5}]}}
-                ],[key(pnl_sun_power),{margin,false}]},
-                panel,
-                {hframe,[
-                    {label,?__(419,"Sun Samples")},
-                        {slider, {text,get_pref(sun_samples, Attr),[range(samples),{key,sun_samples}]}}
-                ],[key(pnl_sun_samples),{margin,false}]
-                }
-            ],[key(pnl_add_sun),{margin,true}]},
-            %panel,
-            {hframe,[
-                {hframe,[
-                    {?__(420,"Add Skylight"),get_pref(sky_light, Attr),[{key,sky_light},{hook,WHook_Enabled}]}
-                ]},
-                {hframe,[
-                    {label,?__(421," Sky Power")},
-                        {slider, {text,get_pref(background_power, Attr),[range(zero_to_ten),{key,background_power},{width,5}]}}
-                ],[key(pnl_sky_power),{margin,false}]},
-                panel,
-                {hframe,[
-                    {label,?__(422,"Sky Samples")},
-                        {slider, {text,get_pref(background_samples, Attr),[range(samples),{key,background_samples}]}}
-                ],[key(pnl_sky_samples),{margin,false}]
-                }
-            ],[key(pnl_bkg_power),{margin,false}]},
-            %!----------------------
-            %! texture background
-            %!----------------------
-            {vframe, [
-                {hframe, [
-                    {label,?__(423,"HDRI File")},
-                    {button,{text,get_pref(back_filename, Attr),[{key,back_filename},{props,BrowsePropsHDRI}]}},
-                    panel
-                ],[{margin,false}]},
-                panel,
-                {hframe,[
-                    {label,?__(424,"Rotation")},
-                    {slider, {text,get_pref(ibl_rotation, Attr),[range(ibl_rotation),{key,ibl_rotation}]}},
+                    {hframe, [{"Real Sun ",get_pref(add_sun, Attr),[{key,add_sun},{hook,WHook_Enabled}]}]},
+                    {hframe, [
+                        {label, "Power"},
+                        {slider, {text, get_pref(sun_power, Attr),[range(zero_to_ten),{key,sun_power},{width,5}]}}
+                    ],[key(pnl_sun_power),{margin,false}]},
                     panel,
-                    {menu, [
-                        {?__(425,"Mapping Angular"),angular},
-                        {?__(426,"Mapping Spherical"),spherical}
-                    ], get_pref(ibl_mapping, Attr), [{key,ibl_mapping}]},
-                    panel
-                ],[{margin,false}]}
-            ],[key(pnl_file),{margin,false}]},
-            %!------------------------
-            %! Constant Background
-            %!------------------------
-            {hframe, [
-                {label,?__(427,"Color")},
-                {color,get_pref(background_color, Attr),[{key,background_color}]}
-            ],[key(pnl_const),{margin,false}]},
-            %!------------------------
-            %! Gradient Background
-            %!------------------------
-            {hframe,[
-                {label,?__(428,"Horizon Color")},
-                {color,get_pref(horizon_color, Attr),[{key,horizon_color}]},
-                panel,
-                {label,?__(429,"Zenith Color")},
-                {color,get_pref(zenith_color, Attr),[{key,zenith_color}]}
-            ],[key(pnl_gradient),{margin,false}]},
-            %% Common parameters
-            {hframe,[
+                    {hframe,[
+                        {label,"Samples"},{slider, {text,get_pref(sun_samples, Attr),[range(samples),{key,sun_samples}]}}
+                    ],[key(pnl_sun_samples),{margin,false}]}
+                ],[key(pnl_add_sun),{margin,true}]},
+                %panel,
                 {hframe,[
-                    {?__(430,"Use IBL"),get_pref(use_ibl, Attr),[{key,use_ibl},{hook,WHook_Enabled}]}
-                ],[{margin,false}]},% panel,
+                    {hframe, [{"Sky Light", get_pref(sky_light, Attr),[{key,sky_light},{hook,WHook_Enabled}]}]},
+                    {hframe, [
+                        {label," Power"},
+                        {slider, {text,get_pref(background_power, Attr),[range(zero_ten),{key,background_power},{width,5}]}}
+                    ],[key(pnl_sky_power),{margin,false}]},
+                    panel,
+                    {hframe,[
+                        {label,"Samples"},
+                        {slider, {text,get_pref(background_samples, Attr),[range(samples),{key,background_samples}]}}
+                    ],[key(pnl_sky_samples),{margin,false}]
+                    }
+                ],[key(pnl_bkg_power),{margin,false}]},
+                %!----------------------
+                %! texture background
+                %!----------------------
+                {vframe, [
+                    {hframe, [
+                        {label,"HDRI File"},
+                        {button,{text,get_pref(back_filename, Attr),[{key,back_filename},{props,BrowsePropsHDRI},{width, 25}]}},
+                        panel
+                    ],[{margin,false}]},
+                    panel,
+                    {hframe,[
+                        {label,"Rotation"},
+                        {slider, {text,get_pref(ibl_rotation, Attr),[range(ibl_rotation),{key,ibl_rotation}]}},
+                        panel,
+                        {menu, [
+                            {?__(425,"Mapping Angular"),angular},
+                            {?__(426,"Mapping Spherical"),spherical}
+                        ], get_pref(ibl_mapping, Attr), [{key,ibl_mapping}]},
+                        panel
+                    ],[{margin,false}]}
+                ],[key(pnl_file),{margin,false}]},
+                %!------------------------
+                %! Constant Background
+                %!------------------------
+                {hframe, [
+                    {label,"Color"},{color,get_pref(background_color, Attr),[{key,background_color}]}
+                ],[key(pnl_const),{margin,false}]},
+                %!------------------------
+                %! Gradient Background
+                %!------------------------
                 {hframe,[
-                    {label,?__(431,"IBL Power")},
-                    {slider, {text,get_pref(ibl_power, Attr),[range(zero_one),{key,ibl_power}]}}
-                ],[key(pnl_ibl_power),{margin,false}]},
+                    {label,"Horizon Color"},{color,get_pref(horizon_color, Attr),[{key,horizon_color}]},
+                    panel,
+                    {label,"Zenith Color"}, {color,get_pref(zenith_color, Attr),[{key,zenith_color}]}
+                ],[key(pnl_gradient),{margin,false}]},
+                %% Common parameters
                 {hframe,[
-                    {label,?__(432,"Samples")},
-                    {slider, {text,get_pref(ibl_samples, Attr),[range(samples),{key,ibl_samples}]}},
-                    panel
-                ],[key(pnl_ibl_samples),{margin,false}]}
-            ],[key(panel_ibl),{margin,false}]},
-            %! influence of background light
-            {hframe, [
-                {?__(433,"Diffuse Photons"),get_pref(to_diffuse, Attr),[{key,to_diffuse}]},
-                panel,
-                {?__(434,"Caustic Photons"),get_pref(to_caustic, Attr),[{key,to_caustic}]}
-            ],[key(pnl_enlight_photons),{margin,false}]}
-        ],[key(pnl_background),{margin,false}]}
+                    {hframe,[
+                        {"Use IBL",get_pref(use_ibl, Attr),[{key,use_ibl},{hook,WHook_Enabled}]}
+                    ],[{margin,false}]},% panel,
+                    {hframe,[
+                        {label,"IBL Power"},{slider, {text,get_pref(ibl_power, Attr),[range(zero_one),{key,ibl_power}]}}
+                    ],[key(pnl_ibl_power),{margin,false}]},
+                    {hframe,[
+                        panel,
+                        {label,"Samples"},{slider, {text,get_pref(ibl_samples, Attr),[range(samples),{key,ibl_samples}]}},
+                        panel
+                    ],[key(pnl_ibl_samples),{margin,false}]}
+                ],[key(panel_ibl),{margin,false}]},
+                %! influence of background light
+                {hframe, [
+                    {"Affect Diffuse Photons",get_pref(to_diffuse, Attr),[{key,to_diffuse}]},
+                    panel,
+                    {"Affect Caustic Photons",get_pref(to_caustic, Attr),[{key,to_caustic}]}
+                ],[key(pnl_enlight_photons),{margin,false}]}
+                
+            ],[key(pnl_background),{margin,false}]}
+            
         ],[{title, ?__(450, "Environment")},{margin,false}]}
     },
 

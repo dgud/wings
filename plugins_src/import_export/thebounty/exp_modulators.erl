@@ -40,48 +40,39 @@ export_modulator(F, Texname, Maps, {modulator,Ps}, Attr) when is_list(Ps) ->
     
             % cases...
             case DiffuseLayer of
-                true ->
-                    export_modulators(F, Texname, Maps, diffuse_shader, {modulator,Ps}, Attr);
+                true  -> export_modulators(F, Texname, Maps, diffuse_shader, {modulator,Ps}, Attr);
                 false -> ok
             end,
             case MirrorLayer of
-                true ->
-                    export_modulators(F, Texname, Maps, mirror_shader, {modulator,Ps}, Attr);
+                true  -> export_modulators(F, Texname, Maps, mirror_shader, {modulator,Ps}, Attr);
                 false -> ok
             end,
             case MirrorColorLayer of
-                true ->
-                    export_modulators(F, Texname, Maps, mirror_color_shader, {modulator,Ps}, Attr);
+                true  -> export_modulators(F, Texname, Maps, mirror_color_shader, {modulator,Ps}, Attr);
                 false -> ok
             end,
             case TransparentLayer of
-                true ->
-                     export_modulators(F, Texname, Maps, transparency_shader, {modulator,Ps}, Attr);
+                true  -> export_modulators(F, Texname, Maps, transparency_shader, {modulator,Ps}, Attr);
                 false -> ok
             end,
             case TranslucentLayer of
-                true ->
-                    export_modulators(F, Texname, Maps, translucency_shader, {modulator,Ps}, Attr);
+                true  -> export_modulators(F, Texname, Maps, translucency_shader, {modulator,Ps}, Attr);
                 false -> ok
             end,
             case GlossyLayer  of
-                true -> 
-                    export_modulators(F, Texname, Maps, glossy_shader, {modulator,Ps}, Attr);
+                true  -> export_modulators(F, Texname, Maps, glossy_shader, {modulator,Ps}, Attr);
                 false -> ok
             end,
             case GlossyReflectLayer of
-                true ->
-                    export_modulators(F, Texname, Maps, glossy_reflect_shader, {modulator,Ps}, Attr);
+                true  -> export_modulators(F, Texname, Maps, glossy_reflect_shader, {modulator,Ps}, Attr);
                 false -> ok
             end,
-            case BumpLayer of
-                true ->
-                    export_modulators(F, Texname, Maps, bump_shader, {modulator,Ps}, Attr);
+            case BumpLayer of 
+                true  -> export_modulators(F, Texname, Maps, bump_shader, {modulator,Ps}, Attr);
                 false -> ok
             end,
-            case BlendLayer of
-                true ->
-                    export_modulators(F, Texname, Maps, mask, {modulator,Ps}, Attr);
+            case BlendLayer of 
+                true  -> export_modulators(F, Texname, Maps, mask, {modulator,Ps}, Attr);
                 false -> ok
             end,
 

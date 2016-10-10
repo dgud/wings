@@ -18,7 +18,7 @@ export_camera(F, Attr) ->
     %! inside export camera function
     %#camera_info{pos = Pos, dir = Dir, up = Up} = proplists:lookup(camera_info, Attr),
     %{Dx, Dy, Dz} = Dir,
-    %{Px, Py, Pz} = Pos,    
+    %{Px, Py, Pz} = Pos,
     %! end
     #camera_info{pos=Pos,dir=Dir,up=Up,fov=Fov} = proplists:lookup(camera_info, Attr),
     Width = proplists:get_value(width, Attr),

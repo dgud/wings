@@ -18,7 +18,7 @@
 
 material_dialog(_Name, Mat) ->
     Maps = proplists:get_value(maps, Mat, []),
-    _OpenGL = proplists:get_value(opengl, Mat),
+    OpenGL = proplists:get_value(opengl, Mat),
     %DefLightmatColor = def_lightmat_color(proplists:get_value(diffuse, OpenGL)),
     Attr = proplists:get_value(?TAG, Mat, []),
     MaterialType = proplists:get_value(material_type, Attr, ?DEF_MATERIAL_TYPE),
@@ -37,7 +37,7 @@ material_dialog(_Name, Mat) ->
     VolumePosY = proplists:get_value(volume_y, Attr, 1.0),
     VolumePosZ = proplists:get_value(volume_z, Attr, 1.0),
     VolumeRegionSize = proplists:get_value(volume_region_size, Attr, 2.0),
-    PortalPower = proplists:get_value(portal_power, Attr, ?DEF_LIGHTPORTAL_POWER),
+    PortalPower = proplists:get_value(portal_power, Attr, 2.0),
     PortalSamples = proplists:get_value(portal_samples, Attr, ?DEF_LIGHTPORTAL_SAMPLES),
     PortalDiffusePhotons = proplists:get_value(portal_diffusephotons, Attr, ?DEF_LIGHTPORTAL_DIFFUSEPHOTONS),
     PortalCausticphotons = proplists:get_value(portal_causticphotons, Attr, ?DEF_LIGHTPORTAL_CAUSTICPHOTONS),
@@ -48,7 +48,7 @@ material_dialog(_Name, Mat) ->
     LightmatColor = proplists:get_value(lightmat_color, Attr, {1.0, 1.0, 1.0}),
     LightmatPower = proplists:get_value(lightmat_power, Attr, 0.9),
     LightmatSamples = proplists:get_value(lightmat_samples, Attr, ?DEF_MESHLIGHT_SAMPLES),
-    LightmatDoubleSided = proplists:get_value(lightmat_double_sided, Attr, ?DEF_MESHLIGHT_DOUBLE_SIDED),
+    LightmatDoubleSided = proplists:get_value(lightmat_double_sided, Attr, false),
 
     AutosmoothAngle = proplists:get_value(autosmooth_angle, Attr, ?DEF_AUTOSMOOTH_ANGLE),
     Autosmooth = proplists:get_value(autosmooth, Attr, AutosmoothAngle =/= 0.0),
@@ -127,36 +127,36 @@ material_dialog(_Name, Mat) ->
                                 {button,{text,VolumeFile,[key(volume_file),{width,30},{props,BrowseProps}]}}
                             ],[key(pnl_vol), {margin,false}]},
                             {hframe, [
-                                {label, ?__(31,"Absorption")},
+                                {label, "Absorption"},
                                 {text,VolumeSigmaA,[range(volume_sigma_a),key(volume_sigma_a),{width,6}]},panel,
-                                {label, ?__(32,"Scatter")},
+                                {label, "Scatter"},
                                 {text,VolumeSigmaS,[range(volume_sigma_s),key(volume_sigma_s),{width,6}]},panel,
-                                {label, ?__(33,"AttgridScale")},
+                                {label, "AttgridScale"},
                                 {text,Volume_Attgridscale,[range(volume_attgridscale),key(volume_attgridscale),{width,6}]}
                             ]},
                             %% Start ExpDensity Volume - ONLY
                             {hframe, [
-                                {label, ?__(34,"Vol. Height")},{text,Volume_Height,[range(volume_height),key(volume_height)]},panel,
-                                {label, ?__(35,"Steepness")}, {text,Volume_Steepness,[range(volume_steepness),key(volume_steepness)]}
+                                {label, "Vol. Height"},{text,Volume_Height,[range(volume_height),key(volume_height)]},panel,
+                                {label, "Steepness"}, {text,Volume_Steepness,[range(volume_steepness),key(volume_steepness)]}
                             ], [key(pnl_density_volume),{show,false}]},
 
                             %% Start Noise Volume - ONLY
                             {hframe, [
-                                {label, ?__(36,"Sharpness ")},{text,VolumeSharpness,[range(volume_sharpness),key(volume_sharpness),{width,6}]},
-                                panel,{label, ?__(37,"Cover ")}, {text,VolumeCover,[range(volume_cover),key(volume_cover),{width,6}]},
-                                panel,{label, ?__(38,"Density ")}, {text,VolumeDensity,[range(volume_density),key(volume_density),{width,6}]}
+                                {label, "Sharpness "},{text,VolumeSharpness,[range(volume_sharpness),key(volume_sharpness),{width,6}]},
+                                panel,{label, "Cover "}, {text,VolumeCover,[range(volume_cover),key(volume_cover),{width,6}]},
+                                panel,{label, "Density "}, {text,VolumeDensity,[range(volume_density),key(volume_density),{width,6}]}
                             ], [key(pnl_noise_volume)]},
                             %% End Noise Volume - ONLY
 
                             {hframe, [
-                                {label,?__(39,"Position X ")},{text,VolumePosX,[range(volume_region),key(volume_x),{width,6}]},
+                                {label, "Position X "},{text,VolumePosX,[range(volume_region),key(volume_x),{width,6}]},
                                 panel,
-                                {label,?__(40,"Position Y")},{text,VolumePosY,[range(volume_region),key(volume_y),{width,6}]},
+                                {label, "Position Y"},{text,VolumePosY,[range(volume_region),key(volume_y),{width,6}]},
                                 panel,
-                                {label,?__(41,"Position Z")},{text,VolumePosZ,[range(volume_region),key(volume_z),{width,6}]}
+                                {label, "Position Z"},{text,VolumePosZ,[range(volume_region),key(volume_z),{width,6}]}
                             ],[{margin,false}]},
-                            {hframe,[ 
-                                {label,?__(42,"Region Size")},
+                            {hframe,[
+                                {label, "Region Size"},
                                 {slider,{text,VolumeRegionSize,[range(volume_region),key(volume_region_size)]}}
                             ]}
                         ],[key(pnl_volume_type),{margin,false}]}
@@ -164,7 +164,7 @@ material_dialog(_Name, Mat) ->
                     %!--------------------
                     %! meshlight
                     %!--------------------
-                    {vframe, [ 
+                    {vframe, [
                         {hframe, [{label,"Power"}, {slider,{text,LightmatPower,[range(lightpower),key(lightmat_power)]}}]},
                         {hframe, [{label,"Samples"},{slider,{text,LightmatSamples,[range(samples),key(lightmat_samples)]}}]}
                     ], [key(pnl_mesh_light),{show,false}]},
@@ -347,8 +347,8 @@ material_dialog(_Name, Mat) ->
                     {vframe, [{label, "Reflectance model:"}]},
                     {vframe, [
                         {menu,[
-                            {?__(80,"Lambert"),lambert},
-                            {?__(81,"Oren-Nayar"),oren_nayar}
+                            {"Lambert",lambert},
+                            {"Oren-Nayar",oren_nayar}
                         ],ReflectMode,[key(reflect_mode),{hook,Hook_Enable}]}
                     ]}, panel,
                     {vframe, [{label,"Sigma"}],[key(pnl_sig)]},

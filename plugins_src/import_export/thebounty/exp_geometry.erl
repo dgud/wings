@@ -83,7 +83,9 @@ export_geometry(F, NameStr, Mesh0=#e3d_mesh{he=He0}, DefaultMaterial, MatPs, Id)
                     println(F, "\t<sharpness fval=\"~.10f\"/>",[proplists:get_value(volume_sharpness, Attr, 2.0)]),
                     println(F, "\t<cover fval=\"~.10f\"/>",    [proplists:get_value(volume_cover, Attr, 0.05)]),
                     println(F, "\t<density fval=\"~.10f\"/>",  [proplists:get_value(volume_density, Attr, 1.0)]),
-                    println(F, "\t<texture sval=\"TEmytex\"/>");
+                    %! small hard coded for test :). 
+                    %! This code asume that the noise texture are in the first slot.
+                    println(F, "\t<texture sval=\"w_~s\"/>",[format(NameStr)++"_1"]);
                     % TODO:  texture noise don't work atm..
 
                 gridvolume ->
@@ -232,7 +234,6 @@ export_faces(F, [#e3d_face{mat=[Mat|_],tx=Tx,vs=[A,B,C],vc=_VCols}|T], ObjectTyp
 
     println(F, "\t<set_material sval=\"w_~s\"/>",[format(Material)]),
     println(F, "\t<f a=\"~w\" b=\"~w\" c=\"~w\"~s",[A,B,C,UVIndices]),
-    %println(F, [Shader, "\t<f a=\"",format(A),"\" b=\"",format(B),"\" c=\"",format(C),"\"", UVIndices]), % old..
 
     export_faces(F, T, ObjectType, NameStr, DefaultMaterial, TxT, VColT).
 

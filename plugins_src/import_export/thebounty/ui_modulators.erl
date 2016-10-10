@@ -537,7 +537,7 @@ modulator_dialog({modulator,Ps}, Maps, MaterialType, M) when is_list(Ps) ->
                             {?__(121,"Progr: Radial"),radial}
                         ],proplists:get_value(progression, Ps, lin),[key({M,progression})]}
                     ],[key({pnl_blend,M}),{show,false}]}
-                    
+
                 ],[key({pnl_type,M})]}
             ],[key({pnl_modulator,M})]}
         ]},
