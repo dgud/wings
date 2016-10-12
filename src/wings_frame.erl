@@ -35,6 +35,11 @@
 -define(IS_SPLIT(WinProp), (element(1, WinProp) =:= split
 			    orelse element(1, WinProp) =:= split_rev)).
 
+-define(wxID_OSX_HIDE, 5250).
+-define(wxID_OSX_HIDEOTHERS, 5251).
+-define(wxID_OSX_SHOWALL, 5252).
+-define(wxID_OSX_MENU_LAST, 5255).
+
 %% API  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 start() ->
@@ -312,12 +317,21 @@ make_splash(Canvas, Imgs) ->
 
 handle_event(#wx{obj=Win, event=#wxMove{}}, State) ->
     #wxMouseState{x=X,y=Y} = MS = wx_misc:getMouseState(),
+    %% io:format("Move ~p ~p ~p ~n", [Win, X,Y]),
     {noreply, preview_attach(stopped_moving(MS), {X,Y}, Win, State)};
 
 handle_event(#wx{userData={move,Win}, event=Ev}, #state{windows=Wins0} = State) ->
     Wins = detach_window(Ev, Win, Wins0),
     {noreply, State#state{windows=Wins}};
 
+handle_event(#wx{id=OSX, event=#wxCommand{type=command_menu_selected}},
+	     #state{windows=#{frame:=Frame}}=State) when
+      ?wxID_OSX_HIDE =< OSX, OSX =< ?wxID_OSX_MENU_LAST ->
+    case OSX of
+	?wxID_OSX_HIDE -> wxFrame:iconize(Frame);
+	_ -> ignore
+    end,
+    {noreply, State};
 handle_event(#wx{id=Id, event=#wxCommand{type=command_menu_selected}}, State) ->
     Name = wings_menu:id_to_name(Id),
     ME = case ets:match(wings_state, {{bindkey,'$1'}, Name, '_'}) of
@@ -451,7 +465,11 @@ handle_cast({got_focus, Window, Props}, #state{toolbar=TB0}=State) ->
     {noreply, update_active(Window, State#state{toolbar=TB})};
 handle_cast({init_menus, Frame}, State) ->
     case os:type() of
-	{_, darwin} -> init_menubar(Frame);
+	{_, darwin} ->
+	    _MB = init_menubar(Frame),
+	    %io:format("HO ~p~n", [wxMenuBar:findItem(MB, ?wxID_OSX_HIDEOTHERS)]),
+	    %io:format("SA ~p~n", [wxMenuBar:findItem(MB, ?wxID_OSX_SHOWALL)]),
+	    ok;
 	_ -> ignore
     end,
     {noreply, State};
@@ -1155,10 +1173,9 @@ init_menubar(Frame) ->
     try
 	wings_menu:setup_menus(MB, top_menus()),
 	wxFrame:setMenuBar(Frame, MB),
-	ok
+	erase(wm_active),
+	MB
     catch _ : Reason ->
 	    io:format("CRASH ~p ~p~n",[Reason, erlang:get_stacktrace()]),
 	    error(Reason)
-    end,
-    erase(wm_active),
-    ok.
+    end.
