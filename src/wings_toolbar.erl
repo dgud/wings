@@ -95,8 +95,8 @@ init(Frame, Icons) ->
 
 buttons() ->
     Os = os:type(),
-    [make_button(open, normal, "wxART_FILE_OPEN"),
-     make_button(save, normal, "wxART_FILE_SAVE"),
+    [make_button(open, normal, os(Os, "wxART_FILE_OPEN")),
+     make_button(save, normal, os(Os, "wxART_FILE_SAVE")),
      make_button(undo, normal, os(Os, "wxART_UNDO")),
      make_button(redo, normal, os(Os, "wxART_REDO")),
      separator,
@@ -110,10 +110,10 @@ buttons() ->
      make_button(show_groundplane, toggle), make_button(show_axes, toggle)].
 
 os({unix, linux}, Art) -> Art;
-os(_, _) -> undefined.
+os(_, Art) -> {fallback, Art}.
 
 make_button(Name, Type) ->
-    make_button(Name, Type, undefined).
+    make_button(Name, Type, {fallback, undefined}).
 
 make_button(Name, Type, Art) ->
     Id = wings_menu:predefined_item(toolbar, Name),
@@ -136,11 +136,15 @@ icon_name(show_groundplane) -> groundplane;
 icon_name(show_axes) -> axes;
 icon_name(Name) -> Name.
 
-make_bitmap(#{name:=Name,art:=undefined}=B, Imgs) ->
-    {_,_,Image} = lists:keyfind(icon_name(Name), 1, Imgs),
-    Bm = wxBitmap:new(Image),
-    true = wxBitmap:ok(Bm),
-    B#{bm=>Bm};
+make_bitmap(#{name:=Name,art:={fallback, Art}}=B, Imgs) ->
+    case lists:keyfind(icon_name(Name), 1, Imgs) of
+        {_,_,Image} ->
+            Bm = wxBitmap:new(Image),
+            true = wxBitmap:ok(Bm),
+            B#{bm=>Bm};
+        false when Art =/= undefined ->
+            make_bitmap(B#{art:=Art}, Imgs)
+    end;
 make_bitmap(#{art:=Art}=B, Images) ->
     BM = wxArtProvider:getBitmap(Art, [{client, "wxART_TOOLBAR"}]),
     case BM == ?wxNullBitmap of
