@@ -53,6 +53,10 @@ menu() ->
 	    [{?__(101,"Second"),2},
 	     {?__(102,"Third"),3},
 	     {?__(103,"Nth..."),true}]}},
+	{?__(109,"Every Nth Loop"),{nth_edge_loop,
+	    [{?__(101,"Second"),2},
+	     {?__(102,"Third"),3},
+	     {?__(103,"Nth..."),true}]}},
 	separator,
 	{?__(14,"Previous Edge Loop"),
 	 prev_edge_loop,?__(15,"Select the previous edge loop")},
@@ -202,6 +206,8 @@ command({edge_loop,edge_link_incr}, St) ->
     {save_state,wings_edge_loop:select_link_incr(St)};
 command({edge_loop,{nth_edge_ring,N}}, St) ->
     select_nth_ring(N, St);
+command({edge_loop,{nth_edge_loop,N}}, St) ->
+    select_nth_loop(N, St);
 command({edge_loop,edge_ring}, St) ->
     {save_state,wings_edge:select_edge_ring(St)};
 command({edge_loop,edge_ring_incr}, St) ->
@@ -1712,4 +1718,16 @@ select_nth_ring([N], #st{selmode=edge}=St) ->
 select_nth_ring(N, #st{selmode=edge}=St) ->
     {save_state,wings_edge:select_nth_ring(N,St)};
 select_nth_ring(_, St) ->
+    {save_state,St}.
+
+select_nth_loop(true, #st{selmode=edge}=St) ->
+    Qs = [{label,?__(1,"Interval")},
+	  {text,2,[{range,{1,1000}}]}],
+    wings_dialog:dialog_preview({select,edge_loop,nth_edge_loop}, true,
+				?__(2,"Select Every Nth Edge Ring"), [{hframe,Qs}], St);
+select_nth_loop([N], #st{selmode=edge}=St) ->
+    {save_state,wings_edge:select_nth_loop(N,St)};
+select_nth_loop(N, #st{selmode=edge}=St) ->
+    {save_state,wings_edge:select_nth_loop(N,St)};
+select_nth_loop(_, St) ->
     {save_state,St}.
