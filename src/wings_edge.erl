@@ -22,6 +22,7 @@
 	 hardness/3,
 	 patch_edge/4,patch_edge/5,
 	 select_nth_ring/2,
+	 select_nth_loop/2,
 	 length/2
 	]).
 
@@ -981,3 +982,32 @@ nth_ring_5(_,_,Edges0,stop,_,Edges1,OrigEs) ->
       true -> Edges0;
       false -> Edges1
     end.
+
+%%%% Select every nth loop
+
+select_nth_loop(0, St) -> St;
+select_nth_loop(N, #st{selmode=edge}=St) ->
+    St0 = wings_edge_loop:stoppable_sel_loop(St),
+    Sel = wings_sel:fold(fun(Edges, #we{id=Id}=We, SelAcc) ->
+			    SelLoop = nth_loop(gb_sets:to_list(Edges), N),
+			    Sel0 = wings_we:visible_edges(gb_sets:from_list(SelLoop), We),
+			    [{Id,Sel0}|SelAcc]
+			 end, [], St0),
+    St#st{sel=Sel};
+select_nth_loop(_N, St) ->
+    St.
+
+nth_loop([], _) -> [];
+nth_loop([E|Edges], N) ->
+    nth_loop_1(Edges, N, [E]).
+
+nth_loop_1([], _, Acc) -> Acc;
+nth_loop_1([_|Edges0], N, Acc) ->
+    case nth_loop_2(Edges0, N-1) of
+	[] -> Acc;
+	[E|Edges] -> nth_loop_1(Edges, N, Acc++[E])
+    end.
+
+nth_loop_2([], _) -> [];
+nth_loop_2(Edges, 1) -> Edges;
+nth_loop_2([_|Edges], N) -> nth_loop_2(Edges, N-1).
