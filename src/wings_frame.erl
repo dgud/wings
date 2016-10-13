@@ -285,7 +285,7 @@ init(_Opts) ->
 	wxSizer:setSizeHints(Sizer, win(Top)),
 	wxFrame:setSizer(Frame, Sizer),
 
-	wxWindow:connect(Frame, close_window),
+	wxWindow:connect(Frame, close_window, [{callback, fun terminate_frame/2}]),
 	wxWindow:connect(Frame, command_menu_selected, []),
 	wxWindow:connect(Frame, activate, []),
 	case os:type() of
@@ -373,9 +373,6 @@ handle_event(#wx{event=#wxActivate{active=Active}}=Ev, State) ->
 
 handle_event(#wx{obj=Obj, event=#wxClose{}}, #state{windows=Wins}=State) ->
     case Wins of
-	#{frame:=Obj} ->
-	    wings ! {quit},
-	    {noreply, State};
 	#{loose:=#{Obj:=#win{name=Name, win=Win}}=Loose} ->
 	    try wx_object:get_pid(Win) of
 		_Pid  ->
@@ -527,6 +524,17 @@ terminate(_Reason, #state{windows=#{frame:=Frame}}) ->
     %% io:format("~p: terminate: ~p~n",[?MODULE, _Reason]),
     catch wxFrame:destroy(Frame),
     normal.
+
+terminate_frame(_Ev, CB) ->
+    %% always veto if we can, solves hanging on Mac
+    %% that wants answer or a direct quit
+    case wxCloseEvent:canVeto(CB) of
+	true -> wxCloseEvent:veto(CB);
+	false -> ok
+    end,
+    wings ! quit,
+    ok.
+
 
 %%%%%%%%%%%%%%%%%%%%%%
 %% Window Management

@@ -144,11 +144,15 @@ release_otp(TargetDir0, BitSize) ->
     ok.
 
 copy_erts(TargetDir) ->
+    VDeps = case erlang:system_info(otp_release) of
+		"18" -> ["child_setup"];
+		_ -> ["erl_child_setup"]
+	    end,
     Files = case os:type() of
 		{unix,_} ->
 		    %% Do not copy to erts-VSN/bin, then the start scripts must find
 		    %% erts-VSN in start script
-		    {["beam.smp","child_setup","erlexec","inet_gethost"], []};
+		    {["beam.smp","erlexec","inet_gethost"|VDeps], []};
 		{win32,nt} ->
 		    %% To get Windows working without install, erts-VSN must exist
 		    {["erl.exe", "werl.exe"],
