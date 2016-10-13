@@ -138,10 +138,10 @@ build_command(Name, Names, true) ->
 build_command(Name, Names, false) ->
     build_command(Name, Names).
 
-build_names(Term, Acc) when not is_tuple(Term) -> Acc;
-build_names({_,Term2}, Acc) when is_boolean(Term2) -> Acc;
+build_names(Term, Acc) when not is_tuple(Term) -> lists:reverse(Acc);
+build_names({_,Term2}, Acc) when is_boolean(Term2) -> lists:reverse(Acc);
 build_names({Term1,Term2}, Acc) ->
-    build_names(Term2, [Term1]++Acc).
+    build_names(Term2, [Term1|Acc]).
 
 have_option_box(Ps) ->
     proplists:is_defined(option, Ps).
@@ -648,6 +648,9 @@ update_menu(Menu, Item, delete, _) ->
 	false -> ok;
 	Id ->
 	    case ets:lookup(wings_menus, Id) of
+		[#menu{type=submenu}=SubMenu] ->
+		    remove_submenu(SubMenu),
+		    ok;
 		[#menu{object=MenuItem}] ->
 		    ParentMenu = wxMenuItem:getMenu(MenuItem),
 		    true = wxMenu:delete(ParentMenu, Id),
@@ -664,7 +667,7 @@ update_menu(Menu, Item, {append, Pos0, Cmd0}, Help) ->
 		fun(SubMenu, Name) ->
 		    Pos =
 			if Pos0 >= 0 -> min(wxMenu:getMenuItemCount(SubMenu), Pos0);
-			true -> wxMenu:getMenuItemCount(SubMenu)
+                           true -> wxMenu:getMenuItemCount(SubMenu)
 			end,
 		    MO = wxMenu:insert(SubMenu, Pos, -1, [{text, Cmd0}]),
 		    Id = wxMenuItem:getId(MO),
@@ -731,6 +734,11 @@ update_menu_hotkey(Action, HotKeyStr) ->
 	    end
     end.
 
+parent_menu(This) when is_list(This) ->
+    Parent = lists:droplast(This),
+    [#menu{}=PMenu] = ets:match_object(wings_menus, #menu{name=Parent,type=submenu, _='_'}),
+    PMenu.
+
 menu_item_id(Menu, Item) ->
     case predefined_item(Menu, Item) of
 	Id when is_integer(Id) ->
@@ -743,9 +751,24 @@ menu_item_id(Menu, Item) ->
 			[#menu{wxid=Id}] -> Id;
 			[] -> false
 		    end;
-		[] -> false
-	    end
+		[] ->  %% find for submenu root (level 0)
+                    ItemP = case is_tuple(Item) of
+                                true -> Item;
+                                false -> {Item, ignore}
+                            end,
+                    MenuPath = build_names(ItemP, [Menu]),
+                    case ets:match_object(wings_menus, #menu{name=MenuPath,type=submenu, _='_'}) of
+                        [#menu{wxid=Id}] -> Id;
+                        _ -> false
+                    end
+            end
     end.
+
+remove_submenu(#menu{object=SubMenu, name=Name, wxid=SubId}) ->
+    #menu{object=ParentMenu} = parent_menu(Name),
+    wxMenu:delete(ParentMenu, SubId),
+    ets:delete(wings_menus, SubId),
+    wxMenu:destroy(SubMenu).
 
 setup_hotkey(MI, Cmd) ->
     case lists:member($\t, Cmd) of
@@ -878,8 +901,8 @@ create_menu([#menu{type=separator}|Rest], Id, Names, Menu) ->
 create_menu([#menu{type=submenu, desc=Desc, name={Name,SubMenu0}, help=Help}=ME0|Rest], Id, Names, Menu)
   when is_list(SubMenu0) ->
     {SMenu, NextId} = setup_menu([Name|Names], Id, SubMenu0),
-    wxMenu:append(Menu, ?wxID_ANY, Desc, SMenu, [{help, Help}]),
-    ME=ME0#menu{name=[Name|Names], object=SMenu, wxid=NextId},
+    wxMenu:append(Menu, NextId, Desc, SMenu, [{help, Help}]),
+    ME=ME0#menu{name=lists:reverse([Name|Names]), object=SMenu, wxid=NextId},
     true = ets:insert(wings_menus, ME),
     create_menu(Rest, NextId+1, Names, Menu);
 create_menu([MenuEntry|Rest], Id, Names, Menu) ->
