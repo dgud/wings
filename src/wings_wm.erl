@@ -651,10 +651,15 @@ dispatch_event(#mousemotion{which=Obj}=Event) ->
 	{grabbed, Grab} ->
 	    do_dispatch(Grab, Event);
 	Focused when Win =/= none ->
+            TimeEv = {wm, {timer_active, Win, Focused}},
 	    case get(wm_timer) of
 		undefined ->
-		    put(wm_timer, wings_io:set_timer(300, {wm, {timer_active, Win, Focused}}));
-		_ -> ignore
+		    put(wm_timer, {Win, wings_io:set_timer(300, TimeEv)});
+                {Win, _} ->
+                    ignore;
+                {_, Ref} ->
+                    wings_io:cancel_timer(Ref),
+                    put(wm_timer, {Win, wings_io:set_timer(300, TimeEv)})
 	    end,
 	    do_dispatch(Win, Event);
 	_ ->
@@ -1015,9 +1020,11 @@ wm_event({timer_active, Name, Prev}) ->
     erase(wm_timer),
     case get(wm_focus) of
 	Prev ->
-	    case find_active() of
-		Name -> update_focus(Name);
-		_ -> ignore
+	    case grabbed_focus_window() =:= undefined andalso
+                geom_below(wx_misc:getMousePosition())
+            of
+                Name -> update_focus(Name);
+                _ -> ignore
 	    end;
 	_ -> ignore
     end;
