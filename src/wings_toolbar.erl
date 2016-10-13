@@ -149,7 +149,7 @@ make_bitmap(#{art:=Art}=B, Images) ->
     BM = wxArtProvider:getBitmap(Art, [{client, "wxART_TOOLBAR"}]),
     case BM == ?wxNullBitmap of
 	true -> %% Load our backup bitmap
-	    make_bitmap(B#{art:=undefined}, Images);
+	    make_bitmap(B#{art:={fallback,undefined}}, Images);
 	false ->
 	    B#{bm=>BM}
     end;

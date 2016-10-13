@@ -286,6 +286,11 @@ read_events(Eq0, Prev, Wait) ->
 		end,
 	    F(),
 	    read_events(Eq0, Prev, 0);
+        {'_wxe_error_', Op, Error} ->
+            [{_,{M,F,A}}] = ets:lookup(wx_debug_info,Op),
+	    Msg = io_lib:format("~p in ~w:~w/~w", [Error, M, F, A]),
+	    wxe_master ! {wxe_driver, error, Msg},
+            read_events(Eq0, Prev, Wait);
 	External ->
 	    read_events(q_in(External, q_in(Prev, Eq0)), undefined, 0)
     after Wait ->

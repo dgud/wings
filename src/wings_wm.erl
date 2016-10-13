@@ -640,8 +640,9 @@ dispatch_matching(Filter) ->
     %% now returns the events in same order as in the queue,
     %% we must do a reverse here.
     Evs = reverse(Evs0),
-    foreach(fun dispatch_event/1, Evs).
+    lists:all(fun dispatch_event/1, Evs).
 
+-spec dispatch_event(_) -> boolean().
 dispatch_event(#mousemotion{which=Obj}=Event) ->
     Win = wx2win(Obj),
     case get_focus_window() of
@@ -657,7 +658,7 @@ dispatch_event(#mousemotion{which=Obj}=Event) ->
 	    end,
 	    do_dispatch(Win, Event);
 	_ ->
-	    ignore
+	    true
     end;
 dispatch_event(#mousebutton{which=Obj}=Event) ->
     Win = update_focus(wx2win(Obj)),
@@ -678,10 +679,11 @@ dispatch_event(#wx{event=#wxActivate{active=Active}}) ->
     case Active of
 	true ->
 	    update_focus(menubar_focus()),
-	    dirty();
+	    dirty(),
+            true;
 	false ->
 	    update_focus(none),
-	    ignore
+	    true
     end;
 dispatch_event(#wx{obj=Obj, event=#wxSize{size={W,H}}}) ->
     ?CHECK_ERROR(),
@@ -690,18 +692,23 @@ dispatch_event(#wx{obj=Obj, event=#wxSize{size={W,H}}}) ->
 	    #win{name=Name} = Geom0 = get_window_data(Obj),
 	    Geom = Geom0#win{x=0,y=0,w=W,h=H},
 	    put_window_data(Name, Geom),
-	    dirty();
+	    dirty(),
+            true;
 	false ->
-	    ignore
+	    true
     end;
 dispatch_event(quit) ->
-    foreach(fun(Name) -> send(Name, quit) end, gb_trees:keys(get(wm_windows)));
+    foreach(fun(Name) -> send(Name, quit) end, gb_trees:keys(get(wm_windows))),
+    true;
 dispatch_event({wm,WmEvent}) ->
-    wm_event(WmEvent);
+    wm_event(WmEvent),
+    true;
 dispatch_event(Ev = {external,_}) ->
-    send(geom,Ev);
+    send(geom,Ev),
+    true;
 dispatch_event(#wx{event=#wxPaint{}}) ->
-    dirty();
+    dirty(),
+    true;
 dispatch_event(#wx{obj=Obj}=Event) ->
     case get_focus_window() of
 	{grabbed, Grab} ->
@@ -710,7 +717,7 @@ dispatch_event(#wx{obj=Obj}=Event) ->
 	    do_dispatch(get(Obj), Event)
     end;
 dispatch_event({'EXIT', _Pid, normal}) ->
-    ignore;
+    true;
 dispatch_event({'EXIT', Pid, {Reason, StackTrace}}) ->
     Found = [Win || #win{name=Win, obj=Obj} <- gb_trees:values(get(wm_windows)),
 		    (catch wx_object:get_pid(Obj)) =:= Pid],
@@ -723,12 +730,14 @@ dispatch_event({'EXIT', Pid, {Reason, StackTrace}}) ->
 		   end
 	   end,
     LogName = wings_u:crash_log(Name, Reason, StackTrace),
-    send(geom, {crash_in_other_window,LogName});
+    send(geom, {crash_in_other_window,LogName}),
+    true;
 dispatch_event(Event) ->
     case find_active() of
 	none ->
 	    io:format("~p:~p: Dropped Event ~p~n",[?MODULE,?LINE,Event]),
-	    update_focus(none);
+	    update_focus(none),
+            true;
 	Active ->
 	    do_dispatch(Active, Event)
     end.
@@ -785,16 +794,18 @@ do_dispatch(Active, Ev) ->
     case lookup_window_data(Active) of
 	none ->
 	    io:format("~p:~p: Dropped Event ~p: ~p~n",[?MODULE,?LINE, Active, Ev]),
-	    ok;
+	    false;
 	Win0 ->
 	    case send_event(Win0, Ev) of
 		#win{name=Name,stk=delete} ->
 		    %% io:format("~p:~p delete~n",[?MODULE,?LINE]),
-		    delete(Name);
+                    delete(Name),
+                    false;
 		#win{stk=[]} ->
-		    ok;
+		    true;
 		Win ->
-		    put_window_data(Active, Win)
+                    put_window_data(Active, Win),
+                    true
 	    end
     end.
 
@@ -821,8 +832,10 @@ redraw_win({Name, #win{w=W,h=H,obj=Obj}}) ->
 			      N =:= Name;
 			 (_) -> false
 		      end),
-    do_dispatch(Name, redraw),
-    DoSwap andalso wxGLCanvas:swapBuffers(Obj).
+    case do_dispatch(Name, redraw) =/= deleted andalso DoSwap of
+        false -> ok;
+        true  -> wxGLCanvas:swapBuffers(Obj)
+    end.
 
 use_opengl(undefined) -> false;
 use_opengl(Obj) -> wx:getObjectType(Obj) =:= wxGLCanvas.
@@ -871,14 +884,9 @@ send_event(#win{z=Z}=Win, redraw) when Z < 0 ->
     Win;
 send_event(#win{name=Name,w=W,h=H,stk=[Se|_]=Stk0,obj=Obj}, Ev0)
   when Obj =/= undefined ->
-    ViewPort = {0,0,W,H},
     case use_opengl(Obj) of
-	true ->
-	    case put(wm_viewport, ViewPort) of
-		ViewPort -> ok;
-		_ -> gl:viewport(0, 0, W, H)
-	    end;
-	false -> ignore
+        true ->  put(wm_viewport, {0,0,W,H});
+        false -> ignore
     end,
     OldActive = put(wm_active, Name),
     Ev = translate_event(Ev0),

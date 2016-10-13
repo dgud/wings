@@ -801,6 +801,7 @@ close_win(Win, #state{windows=#{ch:=Tree,loose:=Loose,szr:=Szr}=Wins}=State) ->
 	    case lists:keyfind(Win, #win.win, maps:values(Loose)) of
 		#win{frame=Frame} = _Win ->
 		    wxMiniFrame:destroy(Frame),
+                    _ = wxWindow:findFocus(), %% Sync the destroy
 		    State#state{windows=Wins#{loose:=maps:remove(Frame, Loose)}};
 		false ->
 		    %% wxWindow:destroy(Win),
@@ -820,17 +821,20 @@ close_window(Delete, Split, Other, GrandP, Szr) ->
 	    wxWindow:reparent(win(Other), win(GrandP)),
 	    wxSplitterWindow:unsplit(win(GrandP), [{toRemove, Delete}]),
 	    wxWindow:destroy(Delete),
+            _ = wxWindow:findFocus(), %% Sync the destroy
 	    {ok, GrandP#split{mode=undefined, w1=Other, w2=undefined}};
 	Split when is_record(Other, split) ->
 	    Frame = wxWindow:getParent(win(GrandP)),
 	    wxWindow:reparent(win(Other), Frame),
 	    wxSizer:replace(Szr, win(GrandP), win(Other)),
 	    wxWindow:destroy(win(GrandP)),
+            _ = wxWindow:findFocus(), %% Sync the destroy
 	    {ok, Other};
 	#split{} ->
 	    wxWindow:reparent(win(Other), win(GrandP)),
 	    wxSplitterWindow:replaceWindow(win(GrandP), win(Split), win(Other)),
 	    wxWindow:destroy(win(Split)),
+            _ = wxWindow:findFocus(), %% Sync the destroy
 	    {ok, Other}
     end.
 

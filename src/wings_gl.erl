@@ -88,8 +88,11 @@ window(Parent, Context, Connect, Show) ->
 
 connect_events(Canvas) ->
     %% Re-attaches the OpenGL Context to Window when is [re] created/showed
-    wxWindow:connect(Canvas, create, [{callback, fun(_, _) -> wxGLCanvas:setCurrent(Canvas) end}]),
-    wxWindow:connect(Canvas, show, [{callback, fun(_, _) -> catch wxGLCanvas:setCurrent(Canvas) end}]),
+    wxWindow:connect(Canvas, create,
+                     [{callback, fun(_, _) -> wxGLCanvas:setCurrent(Canvas) end}]),
+    wxWindow:connect(Canvas, show,
+                     [{callback, fun(#wx{event=#wxShow{show=Show}}, _) ->
+                                         Show andalso (catch wxGLCanvas:setCurrent(Canvas)) end}]),
     case os:type() of
 	{unix, _} ->
 	    wxWindow:connect(Canvas, paint, [{skip, true}]),
