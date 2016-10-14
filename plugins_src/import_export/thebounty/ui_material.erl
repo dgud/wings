@@ -18,7 +18,7 @@
 
 material_dialog(_Name, Mat) ->
     Maps = proplists:get_value(maps, Mat, []),
-    OpenGL = proplists:get_value(opengl, Mat),
+    _OpenGL = proplists:get_value(opengl, Mat),
     %DefLightmatColor = def_lightmat_color(proplists:get_value(diffuse, OpenGL)),
     Attr = proplists:get_value(?TAG, Mat, []),
     MaterialType = proplists:get_value(material_type, Attr, ?DEF_MATERIAL_TYPE),
