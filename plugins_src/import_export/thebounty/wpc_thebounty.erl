@@ -27,7 +27,7 @@
 
 %%%
 %% start split code to include files
--include("defines.erl").
+-include("thebounty/defines.erl").
 
 %% Exported plugin callback functions
 %%
@@ -211,7 +211,7 @@ props(export_selected, _Attr) ->
 %%%
 %%% Dialogues and results: Material
 %%--------------------------------------------------------------------------------------------
--include("ui_material.erl").
+-include("thebounty/ui_material.erl").
 %%--------------------------------------------------------------------------------------------
 
 %% modulators def move to ui_material.erl
@@ -226,12 +226,12 @@ material_result(_Name, Mat0, Res) ->
 %%-----------------------------
 % split modulators code
 %%-----------------------------
--include("ui_modulators.erl").
+-include("thebounty/ui_modulators.erl").
 
 %%%
 %%% Split Ligth dialogs
 %!-----------------------------
--include("ui_lights.erl").
+-include("thebounty/ui_lights.erl").
 %------------------------------
 % for default material in preferences
 menu_shader() ->
@@ -289,7 +289,7 @@ pref_result(Attr, St) ->
 
 %%%
 %!-----------------------------
--include("ui_general.erl").
+-include("thebounty/ui_general.erl").
 %!-----------------------------
 
 
@@ -477,27 +477,27 @@ write_default_materials(F)->
     println(F, "\t<color r=\"1.0\" g=\"0.513\" b=\"0.594\"/>"),
     println(F, "</material>\n").
 
--include("exp_material.erl").
+-include("thebounty/exp_material.erl").
 
 %% write texture code
--include("exp_texture.erl").
+-include("thebounty/exp_texture.erl").
 
 %% split material modulators
--include("exp_modulators.erl").
+-include("thebounty/exp_modulators.erl").
 
 % split geometry
--include("exp_geometry.erl").
+-include("thebounty/exp_geometry.erl").
 
 % split light code
--include("exp_light.erl").
+-include("thebounty/exp_light.erl").
 
--include("exp_camera.erl").
+-include("thebounty/exp_camera.erl").
 
--include("exp_world.erl").
+-include("thebounty/exp_world.erl").
 
--include("exp_integrator.erl").
+-include("thebounty/exp_integrator.erl").
 
--include("exp_render.erl").
+-include("thebounty/exp_render.erl").
 
 
 %%% Noisy file output functions. Fail if anything goes wrong.
@@ -755,5 +755,5 @@ print_mesh(#e3d_mesh{type=T,vs=Vs,vc=Vc,tx=Tx,ns=Ns,fs=Fs,he=He,matrix=M}) ->
 %%---------------------------------------------------
 %% split tooltip help text to file
 %%--------------------------------------------------
--include("ui_help.erl").
+-include("thebounty/ui_help.erl").
 
