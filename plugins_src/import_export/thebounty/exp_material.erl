@@ -249,7 +249,7 @@ export_glass_shaders(F, Name, Mat, ExportDir, Attr) ->
     %!----------------------------------
     %! glass and rough glass materials
     %!----------------------------------
-    OpenGL = proplists:get_value(opengl, Mat),
+    %OpenGL = proplists:get_value(opengl, Mat),
     Maps = proplists:get_value(maps, Mat, []),
     Modulators = proplists:get_value(modulators, Attr, def_modulators(Maps)),
 
@@ -262,14 +262,9 @@ export_glass_shaders(F, Name, Mat, ExportDir, Attr) ->
     println(F, "<material name=\"~s\">",[Name]),
     println(F, "\t<type sval=\"~s\"/>", [GlassType]),
 
-    DiffuseA = {_,_,_,_Opacity} = proplists:get_value(diffuse, OpenGL),
-    Specular = alpha(proplists:get_value(specular, OpenGL)),
-    DefReflected = Specular,
-    DefTransmitted = def_transmitted(DiffuseA),
+    export_rgb(F, mirror_color, proplists:get_value(mirror_color, Attr, {0.9, 0.9, 0.9})),
 
-    export_rgb(F, mirror_color, proplists:get_value(reflected, Attr, DefReflected)),
-
-    export_rgb(F, filter_color, proplists:get_value(transmitted, Attr, DefTransmitted)),
+    export_rgb(F, filter_color, proplists:get_value(filter_color, Attr, {0.9, 0.9, 0.9})),
 
     export_rgb(F, absorption, proplists:get_value(absorption_color, Attr, {0.9, 0.9, 0.9})),
 
