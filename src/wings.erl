@@ -258,7 +258,7 @@ open_file(File0) ->
 	    ignore;
        true ->
 	    timer:sleep(200), %% For splash screen :-)
-	    wings_wm:send_after_redraw(geom, {open_file,USFile})
+	    wings_wm:send_after_redraw(geom, {open_file,File})
     end.
 
 init_opengl(St) ->
