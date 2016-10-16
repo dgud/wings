@@ -714,6 +714,9 @@ dispatch_event(Ev = {external,_}) ->
 dispatch_event(#wx{event=#wxPaint{}}) ->
     dirty(),
     true;
+dispatch_event(parent_changed) ->
+    dirty(),
+    true;
 dispatch_event(#wx{obj=Obj}=Event) ->
     case get_focus_window() of
 	{grabbed, Grab} ->

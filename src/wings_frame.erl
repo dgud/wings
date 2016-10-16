@@ -621,7 +621,7 @@ attach_floating(true, Overlay, #{op:=#{mwin:=Frame, mpath:=Path}, loose:=Loose}=
 	    After = fun() ->
 			    timer:sleep(200),
 			    wings_io:reset_video_mode_for_gl(0,0),
-			    catch wx_object:get_pid(Win) ! parent_changed
+                            inform_parent_changed(Win)
 		    end,
 	    wings_io:lock(whereis(wings), DoWhileLocked, After)
     end;
@@ -878,7 +878,7 @@ detach_window(#wxMouse{type=motion, leftDown=true, x=X,y=Y}, OldFrame,
 	    {NewWin, Root} = wings_io:lock(whereis(wings), WhileLocked),
 	    check_tree(Root, maps:get(ch, State)),
 	    #win{frame=Frame,win=W1}=NewWin,
-	    catch wx_object:get_pid(W1) ! parent_changed,
+            inform_parent_changed(W1),
 	    wxWindow:captureMouse(Bar),
 	    State#{action:=detach_move,
 		   op:=Op#{frame=>Frame, disp=>Displace},
@@ -965,6 +965,11 @@ make_external_win(Parent, Child, {X0,Y0, W, H} = _Dim, Label) ->
     wxWindow:update(Child),
     wxWindow:show(Frame),
     Frame.
+
+inform_parent_changed(Win) ->
+    try wx_object:get_pid(Win) ! parent_changed
+    catch _:_ -> wings ! parent_changed
+    end.
 
 split(left)  -> {splitVertically, first};
 split(right) -> {splitVertically, second};
