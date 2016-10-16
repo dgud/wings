@@ -309,7 +309,6 @@ init([Frame,  _Ps, Os]) ->
     wxSizer:add(Szr, TC, [{proportion,1}, {flag, ?wxEXPAND}]),
     wxPanel:setSizer(Panel, Szr),
     {Shown,IMap} = update_object(Os, TC, IL, IMap0),
-    wxWindow:connect(TC, enter_window, [{userData, {win, Panel}}]),
     Msg = wings_msg:button_format(?__(1,"Select"), [],
 				  ?__(2,"Show outliner menu (if selection)"
 				      " or creation menu (if no selection)")),
@@ -379,7 +378,7 @@ handle_event(#wx{event=#wxTree{type=command_tree_end_label_edit, item=Indx}},
     {noreply, State};
 
 handle_event(#wx{event=#wxTree{type=command_tree_end_drag, item=Indx, pointDrag=Pos0}},
-	     #state{shown=Tree, drag=Drag, tc=TC} = State) ->
+	     #state{shown=Tree, drag={Drag,_}, tc=TC} = State) ->
     wings_io:set_cursor(arrow),
     case lists:keyfind(Indx, 1, Tree) of
 	{_, #{type:=mat} = Mat} when Drag =/= undefined ->
@@ -412,6 +411,15 @@ handle_event(#wx{event=#wxMouse{type=enter_window}}=Ev, State) ->
     wings_frame ! Ev,
     {noreply, State};
 
+handle_event(#wx{event=#wxMouse{type=motion, x=X,y=Y}} = _Ev,
+             #state{tc=TC, drag={Obj,_}=Drag}=State)
+  when Drag =/= undefined ->
+    {MaxX,MaxY} = wxWindow:getSize(TC),
+    if 0 > X; X > MaxX -> {noreply, State#state{drag={Obj,0}}};
+       0 < Y, Y < MaxY -> {noreply, State#state{drag={Obj,0}}};
+       true -> {noreply, State#state{drag=scroll_window(Y, TC, Drag)}}
+    end;
+
 handle_event(#wx{} = _Ev, State) ->
     %%io:format("~p:~p Got unexpected event ~p~n", [?MODULE,?LINE, _Ev]),
     {noreply, State}.
@@ -439,14 +447,13 @@ handle_info(parent_changed,
 	    wxSizer:replace(Szr, TC0, TC),
 	    wxSizer:recalcSizes(Szr),
 	    wxWindow:destroy(TC0),
-	    wxWindow:connect(TC, enter_window, [{userData, {win, Top}}]),
 	    {Shown,_} = update_object(Os, TC, IL, IMap),
 	    {noreply, State#state{tc=TC, shown=Shown}};
 	_ ->
 	    {noreply, State}
     end;
 handle_info({drag, Obj}, State) ->
-    {noreply, State#state{drag=Obj}};
+    {noreply, State#state{drag={Obj, 0}}};
 handle_info(_Msg, State) ->
     %% io:format("~p:~p Got unexpected info ~p~n", [?MODULE,?LINE, _Msg]),
     {noreply, State}.
@@ -474,6 +481,8 @@ make_tree(Parent, #{bg:=BG, text:=FG}, IL) ->
     wxWindow:connect(TC, command_tree_begin_drag, [callback]),
     wxWindow:connect(TC, command_tree_end_drag, []),
     wxWindow:connect(TC, command_tree_item_activated, []),
+    wxWindow:connect(TC, enter_window, [{userData, {win, Parent}}]),
+    wxWindow:connect(TC, motion),
     case os:type() of
 	{win32, _} ->
 	    wxWindow:connect(TC, command_tree_item_menu, [{skip, false}]),
@@ -482,6 +491,22 @@ make_tree(Parent, #{bg:=BG, text:=FG}, IL) ->
 	    wxWindow:connect(TC, right_up, [{skip, true}])
     end,
     TC.
+
+scroll_window(Y, TC, {Obj, Prev}) ->
+    Diff = abs(Y - Prev),
+    Scroll = if
+                 0 >= Y, Y < Prev, Diff > 3 -> wxWindow:scrollLines(TC, -1);
+                 0 < Y,  Y > Prev, Diff > 3 -> wxWindow:scrollLines(TC, 1);
+                 true -> false
+             end,
+    case Scroll of
+        true ->
+            wxTreeCtrl:refresh(TC),
+            wxTreeCtrl:update(TC),
+            {Obj, Y};
+        false ->
+            {Obj, Prev}
+    end.
 
 update_object(Os, TC, IL, Imap0) ->
     Sorted = [{{order(T), wings_util:cap(N)},O} || #{type:=T,name:=N} = O <- Os],
@@ -519,6 +544,8 @@ update_object(Os, TC, IL, Imap0) ->
     wxTreeCtrl:expand(TC, Images),
     wxTreeCtrl:setItemBold(TC, Images),
     wxTreeCtrl:selectItem(TC, Lights),
+    wxTreeCtrl:refresh(TC),
+    wxTreeCtrl:update(TC),
     Res.
 
 add_maps([{MType,Mid}|Rest], TC, Dir, Mat, IL, Imap0, Os,Acc) ->
