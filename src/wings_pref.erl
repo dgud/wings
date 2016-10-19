@@ -479,6 +479,7 @@ defaults() ->
      %% User interface preferences.
      {interface_icons,bluecube},
      {aa_edges,false},
+     {show_toolbar, true},
      {extended_toolbar,true},
      {bitmap_icons, false},
      {menu_toolbar, true},
