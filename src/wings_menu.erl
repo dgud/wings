@@ -290,6 +290,7 @@ popup_events(Dialog, Panel, Entries, Magnet, Previous, Ns, Owner) ->
 		{false, outside} when What =:= right_up ->
 		    Pos = wxWindow:clientToScreen(Dialog,{X,Y}),
 		    wxPopupTransientWindow:position(Dialog, Pos, {0,0}),
+                    wings_wm:psend(Owner, redraw),
 		    popup_events(Dialog, Panel, Entries, Magnet, Previous, Ns, Owner);
 		{false, _} ->
 		    popup_events(Dialog, Panel, Entries, Magnet, Previous, Ns, Owner);
