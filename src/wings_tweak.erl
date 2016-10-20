@@ -362,7 +362,7 @@ handle_initial_event(Ev, What, St, T) ->
     enter_tweak_handler(Ev, What, St, T).
 
 enter_tweak_handler(Ev, What, St, #tweak{id={Action,_},st=#st{sel=Sel}=St0}=T) ->
-    wings_io:change_event_handler(?SDL_KEYUP, false),
+    wings_io:change_event_handler(?SDL_KEYUP, true),
     wings_wm:grab_focus(),
     case wings_io:is_grabbed() of
 	true -> ok;
