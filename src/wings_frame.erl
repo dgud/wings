@@ -583,10 +583,16 @@ preview_attach(false, Pos, Frame,
 	    overlay_draw(Overlay, Rect, 170),
 	    State#state{windows=setup_timer(Frame, Path, delete_timer(Wins))}
     end;
-preview_attach(_MouseDown, _Pos, _Frame, State) ->
-    %% There comes an initial move event when window is created
-    %% ignore that
-    State.
+preview_attach(StoppedMove, _Pos, _Frame, #state{windows=Wins, overlay=Overlay}=State) ->
+    case StoppedMove of
+        ignore ->
+            overlay_hide(Overlay),
+            State#state{windows=delete_timer(Wins)};
+        _ ->
+            %% There comes an initial move event when window is created
+            %% ignore that
+            State
+    end.
 
 preview_rect({Obj, Path}, Frame) ->
     Dir = lists:last(Path),
@@ -636,9 +642,10 @@ attach_floating(true, Overlay, #{op:=#{mwin:=Frame, mpath:=Path}, loose:=Loose}=
 		    end,
 	    wings_io:lock(whereis(wings), DoWhileLocked, After)
     end;
-attach_floating(_B, _, State) ->
+attach_floating(_B, Overlay, State) ->
     %% Spurious Move events on windows
-    State.
+    overlay_hide(Overlay),
+    State#{action:=undefined, op:=undefined}.
 
 attach_window({_,Path}=Split, WinFrame, NewWin, #{frame:=TopFrame, szr:=Szr, ch:=Child} = State) ->
     Attach = fun() ->
@@ -705,9 +712,12 @@ reparent(Child, #split{obj=Obj}) ->
     wxWindow:reparent(win(Child), Obj),
     Child.
 
-stopped_moving(#wxMouseState{leftDown=L, middleDown=M, rightDown=R}=_MS) ->
+stopped_moving(#wxMouseState{leftDown=L, middleDown=M, rightDown=R, shiftDown=Shift}=_MS) ->
     %% io:format("~p ~p ~p ~p~n",[L, M, R, _MS]),
-    not (L orelse M orelse R).
+    case Shift of
+        true  -> ignore;
+        false -> not (L orelse M orelse R)
+    end.
 
 get_split_path(ScreenPos, #{ch:=Child}) ->
     get_split_path(ScreenPos, Child, []).
