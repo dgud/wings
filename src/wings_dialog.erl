@@ -398,21 +398,27 @@ queries(Qs0) ->
 
 get_dialog_parent() ->
     case ?GET(dialog_parent) of
-	undefined ->
+	[Tuple|_] when element(1, Tuple) =:= wx_ref ->
+	    Tuple;
+        _ -> %% undefined or []
 	    case wings_wm:this_win() of
 		undefined -> ?GET(top_frame);
 		Win -> Win
-	    end;
-	Tuple when element(1, Tuple) =:= wx_ref ->
-	    Tuple
+	    end
     end.
 
 set_dialog_parent(Dialog) ->
-    ?SET(dialog_parent, Dialog).
+    Prev = case ?GET(dialog_parent) of
+               undefined  -> [];
+               Stack -> Stack
+           end,
+    %io:format("Set parent ~p ~p~n",[Dialog,Prev]),
+    ?SET(dialog_parent, [Dialog|Prev]).
 
 reset_dialog_parent(Dialog) ->
-    Parent = wxWindow:getParent(Dialog),
-    ?SET(dialog_parent, Parent).
+    [Dialog|Stack] = ?GET(dialog_parent),
+    %io:format("Reset parent ~p => ~p~n",[Dialog, Stack]),
+    ?SET(dialog_parent, Stack).
 
 enter_dialog(false, _, _, Fields, Fun) -> % No dialog return def values
     Values = get_output(default, Fields),
@@ -759,6 +765,7 @@ build_dialog(AskType, Title, Qs) ->
 				  _ -> ?wxFRAME_FLOAT_ON_PARENT
 			      end,
 		     Style  =  Style0 bor ?wxDEFAULT_DIALOG_STYLE bor ?wxRESIZE_BORDER,
+                     %% io:format("Parent ~p ~p ~n", [Parent, ?GET(dialog_parent)]),
 		     Dialog = wxDialog:new(Parent, ?wxID_ANY, Title, [{style, Style}]),
 		     Panel  = wxPanel:new(Dialog, []),
 		     wxPanel:setFont(Panel, ?GET(system_font_wx)),
