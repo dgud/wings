@@ -14,7 +14,7 @@
 -module(wings_s).
 -export([yes/0,no/0,cancel/0,accept/0,
 	 lmb/0,mmb/0,rmb/0,scroll/0,
-	 modkey/1,shift/0,ctrl/0,alt/0,command/0,
+	 modkey/1,mac_mod/1,shift/0,ctrl/0,alt/0,command/0,
 	 key/1,dir/1,dir_axis/1,
 	 camera_mode/1]).
 
@@ -54,7 +54,12 @@ modkey(alt) -> alt();
 modkey(command) -> command().
 
 %% Returns key name within square brackets.
-key(Key) -> [$[,key_1(Key),$]].
+key(Key) ->
+    case os:type() of
+	{unix, darwin} -> [key_1(Key)];
+	_ -> [$[,key_1(Key),$]]
+    end.
+
 
 key_1(shift) -> shift();
 key_1(ctrl) -> ctrl();
