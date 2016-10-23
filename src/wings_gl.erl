@@ -94,6 +94,8 @@ connect_events(Canvas) ->
                      [{callback, fun(#wx{event=#wxShow{show=Show}}, _) ->
                                          Show andalso (catch wxGLCanvas:setCurrent(Canvas)) end}]),
     case os:type() of
+	{unix, darwin} ->
+	    wxWindow:connect(Canvas, paint, [{callback, fun redraw/2}]);
 	{unix, _} ->
 	    wxWindow:connect(Canvas, paint, [{skip, true}]),
 	    ok;
@@ -113,7 +115,7 @@ redraw(#wx{obj=Canvas, event=#wxPaint{}},_) ->
     %% Must do a PaintDC and destroy it
     DC = wxPaintDC:new(Canvas),
     wxPaintDC:destroy(DC),
-    %% wings ! #wx{event=#wxPaint{}}; No need activate handle this
+    wings ! #wx{event=#wxPaint{}},
     ok;
 redraw(Ev, _) ->  %% For erase background events
     wings ! Ev#wx{event=#wxPaint{type=paint}}.

@@ -258,7 +258,7 @@ open_file(File0) ->
 	    ignore;
        true ->
 	    timer:sleep(200), %% For splash screen :-)
-	    wings_wm:send_after_redraw(geom, {open_file,USFile})
+	    wings_wm:send_after_redraw(geom, {open_file,File})
     end.
 
 init_opengl(St) ->
@@ -1516,15 +1516,15 @@ crash_dialog(LogName) ->
 		   wxMessageDialog:showModal(Dialog),
 		   Dialog
 	   end,
-    try true = is_process_alive(whereis(wings_frame)) of
-	true ->
-	    Parent = wings_dialog:get_dialog_parent(),
-	    Dialog = Show(Parent),
-	    wings_dialog:reset_dialog_parent(Dialog),
-	    wxDialog:destroy(Dialog)
+    try
+        true = is_process_alive(whereis(wings_frame)),
+        Parent = wings_dialog:get_dialog_parent(),
+        Dialog = Show(Parent),
+        wings_dialog:reset_dialog_parent(Dialog),
+        wxDialog:destroy(Dialog)
     catch _:_ ->
-	    Dialog = Show(wx:new()),
-	    wxDialog:destroy(Dialog),
+	    Dlog = Show(wx:new()),
+	    wxDialog:destroy(Dlog),
 	    exit({crash_logged, LogName})
     end.
 

@@ -385,6 +385,7 @@ ui_prefs() ->
 	separator,
 	{?__(24,"Flat Panels"),	         flat_color_panels},
         {menu,InterfaceIcons,interface_icons},
+        {?__(47,"Show Toolbar"), show_toolbar},
         {?__(27,"Extended Toolbar Icons"),extended_toolbar}
        ],
        [{title,?__(13,"Colors")}]},
@@ -575,6 +576,8 @@ smart_set_value_1(Key, Val, St) ->
 		    Str=?__(2,"The change to the interface icons will take\n"
 			    "effect the next time Wings 3D is started."),
 		    wings_u:message(Str);
+                show_toolbar ->
+                    wings_frame:show_toolbar(Val);
 		extended_toolbar ->
 		    delayed_set_value(Key, OldVal, Val),
 		    Str = ?__(2,"The change to the interface icons will take\n"

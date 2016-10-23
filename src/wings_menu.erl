@@ -290,6 +290,7 @@ popup_events(Dialog, Panel, Entries, Magnet, Previous, Ns, Owner) ->
 		{false, outside} when What =:= right_up ->
 		    Pos = wxWindow:clientToScreen(Dialog,{X,Y}),
 		    wxPopupTransientWindow:position(Dialog, Pos, {0,0}),
+                    wings_wm:psend(Owner, redraw),
 		    popup_events(Dialog, Panel, Entries, Magnet, Previous, Ns, Owner);
 		{false, _} ->
 		    popup_events(Dialog, Panel, Entries, Magnet, Previous, Ns, Owner);
@@ -877,9 +878,9 @@ name_for_hotkey(Name, Ns, Fun) when is_function(Fun) ->
     end;
 name_for_hotkey(Name, _, _) -> Name.
 
-get_hotkey(1,[HK1, _, _]) -> HK1;
-get_hotkey(2,[_, HK2, _]) -> HK2;
-get_hotkey(3,[_, _, HK3]) -> HK3;
+get_hotkey(1,{HK1, _, _}) -> HK1;
+get_hotkey(2,{_, HK2, _}) -> HK2;
+get_hotkey(3,{_, _, HK3}) -> HK3;
 get_hotkey(1,HK) -> HK;
 get_hotkey(_,_) -> "".
 
@@ -889,7 +890,7 @@ format_hotkeys([#menu{hk=[HK1,HK2,HK3]}=H|T], Style) ->
     Hotkey1 = wings_hotkey:format_hotkey(HK1, Style),
     Hotkey2 = wings_hotkey:format_hotkey(HK2, Style),
     Hotkey3 = wings_hotkey:format_hotkey(HK3, Style),
-    [H#menu{hk=[Hotkey1, Hotkey2, Hotkey3]}|format_hotkeys(T, Style)];
+    [H#menu{hk={Hotkey1, Hotkey2, Hotkey3}}|format_hotkeys(T, Style)];
 format_hotkeys([#menu{hk=HK0}=H|T], Style) ->
     Hotkey = wings_hotkey:format_hotkey(HK0, Style),
     [H#menu{hk=Hotkey}|format_hotkeys(T, Style)];
@@ -942,7 +943,7 @@ menu_item(#menu{desc=Desc0, name=Name, help=Help, opts=Props, hk=HotKey}=ME, Par
     true = ets:insert(wings_menus, ME#menu{name=Cmd,object=MI, wxid=MenuId, type=Type}),
     {MI, Check}.
 
-menu_item_desc(Desc, []) ->
+menu_item_desc(Desc, {[],[],[]}) ->
     Desc;
 menu_item_desc(Desc, HotKey) ->
     %% Quote to avoid Windows stealing keys.
