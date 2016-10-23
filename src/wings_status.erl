@@ -95,7 +95,7 @@ update_status({value, Text = {_, Right}}, _Prev, SB) ->
 			      {win32, nt} -> 40;
 			      _ -> 10
 			  end,
-		  min(TW+Extra, WW div 3)
+		  min(TW+Extra, WW div 2)
 	  end,
     wxStatusBar:setStatusWidths(SB, [-1, RSz]),
     set_status(Text, SB).
@@ -110,4 +110,14 @@ set_status(Msgs={Left, Right}, SB) ->
     Msgs.
 
 str(undefined, Old) -> Old;
-str(New, _) -> wings_menu:str_clean(New).
+str(New, _) -> str_clean(New).
+
+str_clean([Char|Cs]) when is_integer(Char) ->
+    [Char|str_clean(Cs)];
+str_clean([List|Cs]) when is_list(List) ->
+    [str_clean(List)|str_clean(Cs)];
+str_clean([{bold,Str}|Cs]) ->
+    [$*,str_clean(Str),$*|str_clean(Cs)];
+str_clean([{_,Str}|Cs]) ->
+    [str_clean(Str)|str_clean(Cs)];
+str_clean([]) -> [].
