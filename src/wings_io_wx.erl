@@ -214,7 +214,10 @@ is_grabbed() ->
     end.
 
 warp(Win, X, Y) ->
-    wxWindow:warpPointer(Win, X, Y).
+    case get(mouse_last_pos) of
+	{X,Y} -> ignore; %% We are already there avoid extra events
+	_ -> wxWindow:warpPointer(Win, X, Y)
+    end.
 
 %%% Memory
 get_buffer(Size,Type) ->
@@ -295,7 +298,8 @@ read_events(Eq0, Prev, Wait) ->
 	    read_events(q_in(External, q_in(Prev, Eq0)), undefined, 0)
     after Wait ->
 	    case read_one(q_in(Prev, Eq0)) of
-		{#wx{event=#wxMouse{type=motion}} = Ev, Eq} ->
+		{#wx{event=#wxMouse{type=motion,x=X,y=Y}} = Ev, Eq} ->
+		    put(mouse_last_pos, {X,Y}),
 		    {wx_translate(Ev),Eq};
 		{empty, Eq} ->
 		    read_events(Eq, undefined, infinity);
