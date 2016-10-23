@@ -4,10 +4,9 @@
 %%  Contact: thebountyrenderer@gmail.com
 %%  See AUTHORS.txt for a complete list of authors.
 %%
-%%  This program is free software; you can redistribute it and/or modify
-%%  it under the terms of the GNU GPL as published by the FSF;
-%%  either version 2 of the License, or (at your option) any later version.
-%%  See the GNU General Public License for more details.
+%%  See the file "license.terms" for information on usage and redistribution
+%%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+%%
 %%
 
 %!-------------------------------------
@@ -18,7 +17,7 @@
 
 material_dialog(_Name, Mat) ->
     Maps = proplists:get_value(maps, Mat, []),
-    _OpenGL = proplists:get_value(opengl, Mat),
+    OpenGL = proplists:get_value(opengl, Mat),
     %DefLightmatColor = def_lightmat_color(proplists:get_value(diffuse, OpenGL)),
     Attr = proplists:get_value(?TAG, Mat, []),
     MaterialType = proplists:get_value(material_type, Attr, ?DEF_MATERIAL_TYPE),

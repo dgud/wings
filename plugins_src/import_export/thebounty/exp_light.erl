@@ -3,10 +3,9 @@
 %%  Copyright (C) 2015 - 2016 Pedro Alcaide, aka povmaniac.
 %%  Contact: thebountyrenderer@gmail.com
 %%
-%%  This program is free software; you can redistribute it and/or modify
-%%  it under the terms of the GNU GPL as published by the FSF;
-%%  either version 2 of the License, or (at your option) any later version.
-%%  See the include GNU General Public License file for more details.
+%%  See the file "license.terms" for information on usage and redistribution
+%%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+%%
 %%
 
 %

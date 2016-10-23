@@ -4,10 +4,9 @@
 %%  Contact: thebountyrenderer@gmail.com
 %%  See AUTHORS.txt for a complete list of authors.
 %%
-%%  This program is free software; you can redistribute it and/or modify
-%%  it under the terms of the GNU GPL as published by the FSF;
-%%  either version 2 of the License, or (at your option) any later version.
-%%  See the GNU General Public License for more details.
+%%  See the file "license.terms" for information on usage and redistribution
+%%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+%%
 %%
 
 export_shader(F, Name, Mat, ExportDir) ->
@@ -249,7 +248,7 @@ export_glass_shaders(F, Name, Mat, ExportDir, Attr) ->
     %!----------------------------------
     %! glass and rough glass materials
     %!----------------------------------
-    %OpenGL = proplists:get_value(opengl, Mat),
+    OpenGL = proplists:get_value(opengl, Mat),
     Maps = proplists:get_value(maps, Mat, []),
     Modulators = proplists:get_value(modulators, Attr, def_modulators(Maps)),
 
@@ -262,9 +261,14 @@ export_glass_shaders(F, Name, Mat, ExportDir, Attr) ->
     println(F, "<material name=\"~s\">",[Name]),
     println(F, "\t<type sval=\"~s\"/>", [GlassType]),
 
-    export_rgb(F, mirror_color, proplists:get_value(mirror_color, Attr, {0.9, 0.9, 0.9})),
+    DiffuseA = {_,_,_,_Opacity} = proplists:get_value(diffuse, OpenGL),
+    Specular = alpha(proplists:get_value(specular, OpenGL)),
+    DefReflected = Specular,
+    DefTransmitted = def_transmitted(DiffuseA),
 
-    export_rgb(F, filter_color, proplists:get_value(filter_color, Attr, {0.9, 0.9, 0.9})),
+    export_rgb(F, mirror_color, proplists:get_value(reflected, Attr, DefReflected)),
+
+    export_rgb(F, filter_color, proplists:get_value(transmitted, Attr, DefTransmitted)),
 
     export_rgb(F, absorption, proplists:get_value(absorption_color, Attr, {0.9, 0.9, 0.9})),
 
