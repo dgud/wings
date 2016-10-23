@@ -943,8 +943,8 @@ menu_item(#menu{desc=Desc0, name=Name, help=Help, opts=Props, hk=HotKey}=ME, Par
     true = ets:insert(wings_menus, ME#menu{name=Cmd,object=MI, wxid=MenuId, type=Type}),
     {MI, Check}.
 
-menu_item_desc(Desc, {[],[],[]}) ->
-    Desc;
+menu_item_desc(Desc, {[],[],[]}) -> Desc;
+menu_item_desc(Desc, []) -> Desc;
 menu_item_desc(Desc, HotKey) ->
     %% Quote to avoid Windows stealing keys.
     case os:type() of
