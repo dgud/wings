@@ -418,6 +418,11 @@ set_dialog_parent(Dialog) ->
 reset_dialog_parent(Dialog) ->
     [Dialog|Stack] = ?GET(dialog_parent),
     %io:format("Reset parent ~p => ~p~n",[Dialog, Stack]),
+    case Stack of
+	[Next|_] ->
+	    wxDialog:raise(Next);
+	[] -> ok
+    end,
     ?SET(dialog_parent, Stack).
 
 enter_dialog(false, _, _, Fields, Fun) -> % No dialog return def values
@@ -761,12 +766,12 @@ build_dialog(AskType, Title, Qs) ->
     wx:batch(fun() ->
 		     Parent = get_dialog_parent(),
 		     Style0 = case os:type() of
-				  {unix, darwin} -> ?wxSTAY_ON_TOP;
+				  %{unix, darwin} -> ?wxSTAY_ON_TOP;
 				  _ -> ?wxFRAME_FLOAT_ON_PARENT
 			      end,
 		     Style  =  Style0 bor ?wxDEFAULT_DIALOG_STYLE bor ?wxRESIZE_BORDER,
-                     %% io:format("Parent ~p ~p ~n", [Parent, ?GET(dialog_parent)]),
 		     Dialog = wxDialog:new(Parent, ?wxID_ANY, Title, [{style, Style}]),
+                     %io:format("~p (~p) Parent ~p~n", [Title, Dialog, Parent]),
 		     Panel  = wxPanel:new(Dialog, []),
 		     wxPanel:setFont(Panel, ?GET(system_font_wx)),
 		     Top    = wxBoxSizer:new(?wxVERTICAL),

@@ -214,6 +214,7 @@ is_grabbed() ->
     end.
 
 warp(Win, X, Y) ->
+    put(mouse_warp, {X,Y}),
     wxWindow:warpPointer(Win, X, Y).
 
 %%% Memory
@@ -269,8 +270,11 @@ read_events(Eq0) ->
 
 read_events(Eq0, Prev, Wait) ->
     receive
-	#wx{event=#wxMouse{type=motion}} = Ev ->
-	    read_events(Eq0, Ev, 0+1);
+	#wx{event=#wxMouse{type=motion,x=X,y=Y}} = Ev ->
+	    case erase(mouse_warp) of
+		{X,Y} -> read_events(Eq0, Prev, Wait);
+		_ ->  read_events(Eq0, Ev, 0+1)
+	    end;
 	#wx{} = Ev ->
 	    read_events(q_in(Ev, q_in(Prev, Eq0)), undefined, 0);
 	{timeout,Ref,{event,Event}} when is_reference(Ref) ->

@@ -277,7 +277,7 @@ popup_events(Dialog, Panel, Entries, Magnet, Previous, Ns, Owner) ->
 			  setup_colors(Obj, colorB(menu_hilite),colorB(menu_hilited_text))
 		  end,
 	    Line = wx:batch(Set),
-	    wings_wm:psend(Owner, {message, entry_msg(Id, Entries)}),
+	    wings_status:message(Owner, entry_msg(Id, Entries), ""),
 	    popup_events(Dialog, Panel, Entries, Magnet, Line, Ns, Owner);
 	#wx{id=Id0, event=Ev=#wxMouse{y=Y, x=X}} ->
 	    Id = case Id0 > 0 orelse find_active_panel(Panel, X, Y) of
@@ -354,9 +354,6 @@ popup_event_handler({click, Id, Click, Ns}, {Parent,Owner}=Own, Entries0) ->
 	    Entries = wx_popup_menu(Parent, {X,Y}, Names, Menus, MagnetClick, Owner),
 	    {replace, fun(Ev) -> popup_event_handler(Ev, Own, Entries) end}
     end;
-popup_event_handler({message, Msg}, _Owner, _) ->
-    wings_wm:message(Msg, ""),
-    keep;
 popup_event_handler(redraw,_,_) ->
     defer;
 popup_event_handler(#mousemotion{},_,_) -> defer;
@@ -943,8 +940,8 @@ menu_item(#menu{desc=Desc0, name=Name, help=Help, opts=Props, hk=HotKey}=ME, Par
     true = ets:insert(wings_menus, ME#menu{name=Cmd,object=MI, wxid=MenuId, type=Type}),
     {MI, Check}.
 
-menu_item_desc(Desc, {[],[],[]}) ->
-    Desc;
+menu_item_desc(Desc, {[],[],[]}) -> Desc;
+menu_item_desc(Desc, []) -> Desc;
 menu_item_desc(Desc, HotKey) ->
     %% Quote to avoid Windows stealing keys.
     case os:type() of

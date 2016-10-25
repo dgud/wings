@@ -550,8 +550,7 @@ update_magnet_handler(T) ->
 	false -> wings_draw:update_sel_dlist()
     end,
     wings_wm:dirty(),
-    {replace,fun(Ev) ->
-		     handle_magnet_event(Ev, T)end}.
+    {replace,fun(Ev) -> handle_magnet_event(Ev, T)end}.
 
 handle_magnet_event(redraw, #tweak{st=St}=T) ->
     redraw(St),
@@ -563,7 +562,6 @@ handle_magnet_event(#mousemotion{x=X},#tweak{ox=OX, oy=OY}=T0) ->
     DX = X-OX, %since last move X
     wings_io:warp(OX,OY),
     T = adjust_magnet_radius(DX,T0),
-    wings_wm:dirty(),
     update_magnet_handler(T);
 %% If something is pressed during magnet radius adjustment, save changes
 %% and begin new event.
@@ -684,11 +682,11 @@ begin_magnet_adjustment_fun(#dlo{src_sel={Mode,Els},src_we=We}=D, SelElem) ->
     end;
 begin_magnet_adjustment_fun(D, _) -> D.
 
-adjust_magnet_radius(MouseMovement, #tweak{mag_rad=Falloff0,st=St}=T0) ->
+adjust_magnet_radius(MouseMovement, #tweak{mag_rad=Falloff0}=T0) ->
     case Falloff0 + MouseMovement * wings_pref:get_value(tweak_mag_adj_sensitivity) of
         Falloff when Falloff > 0 ->
-            T0#tweak{mag_rad=Falloff,st=St};
-        _otherwise -> T0#tweak{st=St}
+            T0#tweak{mag_rad=Falloff};
+        _otherwise -> T0
     end.
 
 in_drag_adjust_magnet_radius(MouseMovement, #tweak{mag_rad=Falloff0}=T) ->
