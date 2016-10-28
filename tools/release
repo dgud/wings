@@ -264,10 +264,21 @@ strip(File) ->
     end.
 
 get_vsn(VsnFile, VsnVar) ->
-    {ok,Bin} = file:read_file(VsnFile),
-    Re = "^" ++ VsnVar ++ "\\s*=\\s*(\\S+)\\s*$",
-    {match,[Vsn]} = re:run(Bin, Re, [multiline,{capture,all_but_first,binary}]),
-    binary_to_list(Vsn).
+    case file:read_file(VsnFile) of
+        {ok,Bin} ->
+            Re = "^" ++ VsnVar ++ "\\s*=\\s*(\\S+)\\s*$",
+            {match,[Vsn]} = re:run(Bin, Re, [multiline,{capture,all_but_first,binary}]),
+            binary_to_list(Vsn);
+        {error, enoent} ->
+            DirPath = filename:dirname(VsnFile),
+            DirName = filename:basename(DirPath),
+            Appfile = filename:join([filename:dirname(VsnFile), ebin, DirName ++ ".app"]),
+            io:format("Reading: ~p~n",[Appfile]),
+            {ok, List} = file:consult(Appfile),
+            {_, _AppName, AppDefs} = lists:keyfind(application, 1, List),
+            {_, Vsn} = lists:keyfind(vsn, 1, AppDefs),
+            Vsn
+    end.
 
 run(Prog0, Args) ->
     Prog = case os:find_executable(Prog0) of
