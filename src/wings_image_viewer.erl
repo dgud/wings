@@ -69,6 +69,7 @@ init([Frame, Ref, Image, Opts]) ->
     wxPanel:connect(Panel, motion),
     wxPanel:connect(Panel, erase_background), %% WIN32 only?
     wxPanel:connect(Panel, paint, [callback]),
+    wxPanel:connect(Panel, enter_window, [{userData, {win, Panel}}]),
     wxFrame:show(Frame),
     %% wxFrame:createStatusBar(Frame),
     %% wxFrame:setStatusText(Frame, io_lib:format("Scale: ~w%", [100])),
@@ -139,6 +140,10 @@ handle_event(#wx{event=#wxMouse{type=motion}}, State=#state{}) ->
 
 handle_event(#wx{event=#wxMouse{type=left_down,x=X,y=Y}}, State) ->
     {noreply, State#state{prev={X,Y}}};
+
+handle_event(#wx{event=#wxMouse{type=enter_window}}=Ev, State) ->
+    wings_frame ! Ev,
+    {noreply, State};
 
 handle_event(#wx{event=#wxErase{}}, State) ->
     {noreply, State}.

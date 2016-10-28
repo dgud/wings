@@ -262,7 +262,7 @@ insert_hilite_dl_1(#dlo{open=Open,src_we=#we{id=Id}=We}=D,
 	       true ->
 		   Draw0
 	   end,
-    D#dlo{hilite=Draw};
+    D#dlo{hilite={Mode, Draw}};
 insert_hilite_dl_1(#dlo{hilite=none}=D, _, _, _) -> D;
 insert_hilite_dl_1(D, _, _, _) -> D#dlo{hilite=none}.
 

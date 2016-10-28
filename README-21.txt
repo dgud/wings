@@ -1,3 +1,36 @@
+--- 2.1.1 --------------------------------------------
+
+- Fixed starting wings with file argument, either double clicking
+  on wings file on windows or dragging file to wings app on mac.
+  Reported by sandman. [dgud]
+
+- Auto scroll outliner when dragging images.
+  Suggested by oxo. [dgud]
+
+- Add show/hide toolbar option in preferences.
+  Reported by Fonte Boa. [dgud]
+
+- Tweak magnet adjust did not stop when key was released.
+  Reported by Fonte Boa. [dgud]
+
+- Press shift to disable docking window when moving.
+  Suggested by many. [dgud]
+
+- Rework drawing edges and selection to fix problems on some
+  graphic cards and drivers, i.e. Macs with old Intel gfx cards.
+  Debugged by tkdb [dgud]
+
+- Indicate used magnet type, and fix status bar issues on Mac.
+  Reported by tkbd. [dgud]
+
+- Improved dialog handling on Mac. [dgud]
+
+- Improve camera and mouse drag performance. [dgud]
+
+- Various redraw & refresh improvements. [dgud]
+
+--- 2.1 ---------------------------------------------
+
 - Large gui rewrite
   Convert all windows to be real windows instead of OpenGL drawn.
   Windows can be attached and detached from main window.
