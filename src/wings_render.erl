@@ -325,9 +325,10 @@ wire(#we{id=Id}) ->
     W = wings_wm:get_prop(wireframed_objects),
     gb_sets:is_member(Id, W).
 
-sel_need_matrix_push(#dlo{sel=none}) -> false;
-sel_need_matrix_push(#dlo{src_sel={edge,_}}) -> true;
+sel_need_matrix_push(#dlo{src_sel={edge,_}})   -> true;
 sel_need_matrix_push(#dlo{src_sel={vertex,_}}) -> true;
+sel_need_matrix_push(#dlo{hilite={edge,_}})    -> true;
+sel_need_matrix_push(#dlo{hilite={vertex,_}})  -> true;
 sel_need_matrix_push(_) -> false.
 
 draw_sel(#dlo{sel=none}) -> ok;
@@ -373,7 +374,8 @@ draw_vertices(#dlo{src_we=#we{perm=P},vs=VsDlist}, vertex) when ?IS_SELECTABLE(P
     wings_dl:call(VsDlist);
 draw_vertices(_, _) -> ok.
 
-draw_hilite(#dlo{hilite=DL}) ->
+draw_hilite(#dlo{hilite=none}) -> ok;
+draw_hilite(#dlo{hilite={_Mode,DL}}) ->
     wings_dl:call(DL).
 
 draw_orig_sel(#dlo{orig_sel=none}) -> ok;

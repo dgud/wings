@@ -311,7 +311,7 @@ cut_pick_marker([I], D, Edge, We0, Start, Dir, Char) ->
 		   gl:popAttrib()
 	   end,
     {We,_} = wings_edge:fast_cut(Edge, Pos, We0),
-    D#dlo{hilite={call_in_this_win,wings_wm:this(),Draw},src_we=We};
+    D#dlo{hilite={edge, {call_in_this_win,wings_wm:this(),Draw}},src_we=We};
 cut_pick_marker({finish,[I]}, D0, Edge, We, Start, Dir, Char) ->
     D = cut_pick_marker([I], D0, Edge, We, Start, Dir, Char),
     D#dlo{vs=none,hilite=none}.
