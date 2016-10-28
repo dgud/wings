@@ -29,8 +29,9 @@ author_to_nick(Author) ->
 
 extract_notes(Log) ->
     Commits = break_into_commits(Log),
-    {ok,Re} = re:compile("Author:\s*([^\n]*).*?\n\\s*NOTE:(.*?)$",
-			 [dotall]),
+    {ok,Re} = re:compile("Author:\s*([^\n]*).*?\n\\s*N[Oo][Tt][Ee]:(.*?)$",
+     			 [dotall]),
+
     Notes = filter_commits(Commits, Re),
     [format_note(Au, N) || [Au,N] <- Notes],
     ok.
