@@ -36,7 +36,7 @@ export_modulator(F, Texname, Maps, {modulator,Ps}, Attr) when is_list(Ps) ->
             GlossyReflectLayer = proplists:get_value(glossy_reflect, Ps, false),
             BumpLayer = proplists:get_value(bump, Ps, false),
             BlendLayer = proplists:get_value(blend_mask, Ps, false),
-    
+
             % cases...
             case DiffuseLayer of
                 true  -> export_modulators(F, Texname, Maps, diffuse_shader, {modulator,Ps}, Attr);
@@ -66,11 +66,11 @@ export_modulator(F, Texname, Maps, {modulator,Ps}, Attr) when is_list(Ps) ->
                 true  -> export_modulators(F, Texname, Maps, glossy_reflect_shader, {modulator,Ps}, Attr);
                 false -> ok
             end,
-            case BumpLayer of 
+            case BumpLayer of
                 true  -> export_modulators(F, Texname, Maps, bump_shader, {modulator,Ps}, Attr);
                 false -> ok
             end,
-            case BlendLayer of 
+            case BlendLayer of
                 true  -> export_modulators(F, Texname, Maps, mask, {modulator,Ps}, Attr);
                 false -> ok
             end,
@@ -79,7 +79,7 @@ export_modulator(F, Texname, Maps, {modulator,Ps}, Attr) when is_list(Ps) ->
             mapping_textures(F, Texname, Maps, BumpLayer, {modulator,Ps}, Attr)
     end.
 
-% 
+%
 export_modulators(F, Texname, Maps, LayerType, {modulator,Ps}, Attr) ->
     %
     {_Enable,BlendMode,TexType} = mod_enabled_mode_type(Ps, Maps),
@@ -100,27 +100,27 @@ export_modulators(F, Texname, Maps, LayerType, {modulator,Ps}, Attr) ->
     println(F,"\t<list_element>"),
 
     %! layer factor amount controlled with 'Factor Modulator' slider in UI
-    %! TODO: lack some 'cases', for translucent SSS 
+    %! TODO: lack some 'cases', for translucent SSS
     Factor =
         case LayerType of
             diffuse_shader ->        proplists:get_value(diffuse_factor, Ps, 1.0);
-                
+
             mirror_shader ->         proplists:get_value(mirror_factor, Ps, 1.0);
-                
+
             mirror_color_shader ->   proplists:get_value(mirror_color_factor, Ps, 1.0);
-                
+
             transparency_shader ->   proplists:get_value(transparent_factor, Ps, 1.0);
-                
+
             translucency_shader ->   proplists:get_value(translucent_factor, Ps, 1.0);
-            
+
             glossy_shader ->         proplists:get_value(glossy_factor, Ps, 1.0);
-            
+
             glossy_reflect_shader -> proplists:get_value(glossy_reflect_factor, Ps, 1.0);
-                
+
             bump_shader ->           proplists:get_value(bump_factor, Ps, 1.0);
-           
+
             mask ->                  proplists:get_value(blend_factor, Ps, 1.0);
-                
+
             _ -> proplists:get_value(def_value, Ps, 1.0)
         end,
     %% Try use value or color
@@ -167,7 +167,7 @@ export_modulators(F, Texname, Maps, LayerType, {modulator,Ps}, Attr) ->
     %
     ModeNumber =
         case BlendMode of
-            %mix -> "0"; 
+            %mix -> "0";
             add -> 1; mul -> 2; sub -> 3; scr -> 4;
             divide -> 5; dif -> 6; dar -> 7; lig -> 8;
             _ -> 0
@@ -242,7 +242,7 @@ mapping_textures(F, Texname, _Maps, BumpLayer, {modulator,Ps}, _Attr)->
     OffsetZ = proplists:get_value(offset_z, Ps, 0.0),
     %
     println(F, "\t\t<offset x=\"~w\" y=\"~w\" z=\"~w\"/>",[OffsetX, OffsetY, OffsetZ]),
-    % 
+    %
     Direction = proplists:get_value(direction, Ps, xyz),
     ProjectionX = case Direction of
         xyz -> 1; xzy -> 1; yxz -> 2; zxy -> 2; _ -> 3 end,
@@ -250,7 +250,7 @@ mapping_textures(F, Texname, _Maps, BumpLayer, {modulator,Ps}, _Attr)->
         yxz -> 1; yzx -> 1; xyz -> 2; zyx -> 2; _ -> 3 end,
     ProjectionZ = case Direction of
         zxy -> 1; zyx -> 1; xzy -> 2; yzx -> 2; _ -> 3 end,
-        
+
     println(F, "\t\t<proj_x ival=\"~w\"/>",[ProjectionX]),
     println(F, "\t\t<proj_y ival=\"~w\"/>",[ProjectionY]),
     println(F, "\t\t<proj_z ival=\"~w\"/>",[ProjectionZ]),

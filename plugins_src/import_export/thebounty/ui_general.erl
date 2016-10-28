@@ -353,7 +353,7 @@ export_dialog_qs(Op, Attr) ->
                             ], get_pref(aa_filter_type,Attr), [{key,aa_filter_type}]},
                             panel,
                             {hframe, [
-                                {label,?__(142, "Pixelwidth")},{text, get_pref(aa_pixelwidth,Attr),[range(aa_pixelwidth),{key,aa_pixelwidth}]}                                
+                                {label,?__(142, "Pixelwidth")},{text, get_pref(aa_pixelwidth,Attr),[range(aa_pixelwidth),{key,aa_pixelwidth}]}
                             ],[{margin,false}]}
                         ],[{margin,false}]},
                         {hframe, [
@@ -364,7 +364,7 @@ export_dialog_qs(Op, Attr) ->
                             ]},
                             {label_column, [
                                 {?__(145, "Threshold"),   {text, get_pref(aa_threshold,Attr),[range(zero_one),{key,aa_threshold}]}},
-                                {?__(146, "Add. Samples"),{text, get_pref(aa_moresamples,Attr),[range(samples),{key,aa_moresamples}]}}                                
+                                {?__(146, "Add. Samples"),{text, get_pref(aa_moresamples,Attr),[range(samples),{key,aa_moresamples}]}}
                             ],[key(pnl_moresamples)]},
                             {vframe, [
                                 {?__(147, "Show pixels"), get_pref(show_pixels,Attr),[{key,show_pixels}]},
@@ -414,7 +414,7 @@ export_dialog_qs(Op, Attr) ->
                             ]}
                         ],[key(pnl_dl1)]}
                     ],[key(pnl_caustics),{show,false},{magin,false}]},
-                    
+
                     {vframe, [
                         {hframe,[
                             {vframe, [{label, "Photons"},{label, "Bounces"},{label, "Search"},{label, "Radius"}]},
@@ -425,7 +425,7 @@ export_dialog_qs(Op, Attr) ->
                                 {text, get_pref(pm_diffuse_radius,Attr), [range(pm_diffuse_radius),{key,pm_diffuse_radius}]}
                             ]}
                         ]}
-                    ], [key(pnl_pm1)]},                        
+                    ], [key(pnl_pm1)]},
                     {vframe, [
                         {hframe,[
                             {vframe, [{label,"Photons"},{label, "Bounces"}]},
@@ -535,7 +535,7 @@ export_dialog_qs(Op, Attr) ->
                 ], get_pref(volintegr_type,Attr), [{key,volintegr_type},{hook,Hook_Show}]},
                 panel,
                 {hframe, [
-                    {"Adaptive", get_pref(volintegr_adaptive,Attr), [{key,volintegr_adaptive}]}, 
+                    {"Adaptive", get_pref(volintegr_adaptive,Attr), [{key,volintegr_adaptive}]},
                     panel, {label, "StepSize"},
                     {text, get_pref(volintegr_stepsize,Attr), [{key,volintegr_stepsize},range(volintegr_stepsize)]},
                     panel, {"Optimize", get_pref(volintegr_optimize,Attr),[{key,volintegr_optimize}]}
@@ -697,13 +697,13 @@ export_dialog_qs(Op, Attr) ->
                 {hframe, [
                     {vframe, [{label,"Turbidity"},{label,"Hor. Bright"},{label,"Hor. Spread"}]},
                     {vframe, [
-                        {slider,{text,get_pref(turbidity,Attr),[range(zero_five),{key,turbidity}]}},                        
-                        {slider,{text,get_pref(a_var,Attr),[range(zero_five),{key,a_var}]}},                        
+                        {slider,{text,get_pref(turbidity,Attr),[range(zero_five),{key,turbidity}]}},
+                        {slider,{text,get_pref(a_var,Attr),[range(zero_five),{key,a_var}]}},
                         {slider,{text,get_pref(b_var,Attr),[range(zero_five),{key,b_var}]}}]},
                     {vframe, [{label,"Sun Bright"},{label,"Sun Distance"},{label,"Back Light"}]},
                     {vframe, [
-                        {slider, {text,get_pref(c_var,Attr),[range(zero_five),{key,c_var}]}},                        
-                        {slider, {text,get_pref(d_var,Attr),[range(zero_five),{key,d_var}]}},                        
+                        {slider, {text,get_pref(c_var,Attr),[range(zero_five),{key,c_var}]}},
+                        {slider, {text,get_pref(d_var,Attr),[range(zero_five),{key,d_var}]}},
                         {slider, {text,get_pref(e_var,Attr),[range(zero_five),{key,e_var}]}}
                     ]}
                 ],[key(pnl_sky),{margin,false}]},
@@ -802,9 +802,9 @@ export_dialog_qs(Op, Attr) ->
                     panel,
                     {"Affect Caustic Photons",get_pref(to_caustic, Attr),[{key,to_caustic}]}
                 ],[key(pnl_enlight_photons),{margin,false}]}
-                
+
             ],[key(pnl_background),{margin,false}]}
-            
+
         ],[{title, ?__(450, "Environment")},{margin,false}]}
     },
 

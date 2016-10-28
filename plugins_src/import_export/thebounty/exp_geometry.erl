@@ -82,7 +82,7 @@ export_geometry(F, NameStr, Mesh0=#e3d_mesh{he=He0}, DefaultMaterial, MatPs, Id)
                     println(F, "\t<sharpness fval=\"~.10f\"/>",[proplists:get_value(volume_sharpness, Attr, 2.0)]),
                     println(F, "\t<cover fval=\"~.10f\"/>",    [proplists:get_value(volume_cover, Attr, 0.05)]),
                     println(F, "\t<density fval=\"~.10f\"/>",  [proplists:get_value(volume_density, Attr, 1.0)]),
-                    %! small hard coded for test :). 
+                    %! small hard coded for test :).
                     %! This code asume that the noise texture are in the first slot.
                     println(F, "\t<texture sval=\"w_~s\"/>",[format(NameStr)++"_1"]);
                     % TODO:  texture noise don't work atm..

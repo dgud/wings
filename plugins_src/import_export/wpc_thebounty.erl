@@ -443,7 +443,7 @@ export(Attr, XMLFilename, #e3d_file{objs=Objs, mat=Mats, creator=Creator}) ->
                     % atm, not GUI option under Linux or OSX
                     _ -> format(Renderer)++"/thebounty-xml"
                 end,
-            PluginsPath = "-pp "++format(Renderer)++"/plugins",
+            PluginsPath = "-pp "++wings_job:quote(format(Renderer)++"/plugins"),
             OutputFormat =
                 case RenderFormat of
                     "" -> "-f png";

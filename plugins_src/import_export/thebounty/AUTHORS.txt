@@ -1,4 +1,8 @@
 %%
+%%  This file is part of TheBounty exporter for Wings3D 2.0.1 or above.
+%%  Copyright (C) 2013-2016 Pedro Alcaide, aka povmaniac.
+%%  Contact: thebountyrenderer@gmail.com
+%%
 %%  Thebounty exporter is based on YafaRay Plugin User Interface.
 %%  Use the part of code from Micheus to use wxWidgets dialogs.
 %%
