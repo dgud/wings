@@ -1107,17 +1107,15 @@ toggle_lights() ->
 			 D#dlo{work=none,smooth=none,
 			       proxy_data=wings_proxy:invalidate(PD, dl)}
 		 end, []),
-    Lights = case wings_pref:get_value(number_of_lights) of
-		 1 -> 2;
-		 2 -> 1
-	     end,
-    wings_menu:update_menu(view, toggle_lights, 
-			   one_of(Lights == 1, 
+    Lights0 = wings_pref:get_value(number_of_lights),
+    wings_menu:update_menu(view, toggle_lights,
+			   one_of(Lights0 == 1,
 				  ?__(2,"Two Lights"),
-				  ?__(1,"One Light")),
-			   one_of(Lights == 1, 
+				  ?__(1,"Use Hemisphere Light")),
+			   one_of(Lights0 == 1,
 				  ?__(4,"Use two work lights"),
-				  ?__(3,"Use one work light"))),
+				  ?__(3,"Use a simple sky light simulation"))),
+    Lights = 1 + (2 + Lights0) rem 2,
     wings_pref:set_value(number_of_lights, Lights).
 
 shader_set(N) ->
