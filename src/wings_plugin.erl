@@ -426,8 +426,10 @@ update_plugin_menus([{Category, Ms}|Cps]) ->
 
 update_menu_category(_, []) -> ignore;
 update_menu_category(_, M) ->
-    Items = collect_menus([{file,render},{file,import},{file,export},{file,export_selected},
-			   {edit},{view},{select},{tools},{window},{help}], M),
+    Items = collect_menus([{file,render},{file,import},
+                           {file,export},{file,export_selected},
+			   {edit},{edit,plugin_preferences},
+                           {view},{select},{tools},{window},{help}], M),
     [delete_menu_item(Item) || Item <- Items].
 
 

@@ -138,7 +138,7 @@ build_command(Name, Names, true) ->
 build_command(Name, Names, false) ->
     build_command(Name, Names).
 
-build_names(Term, Acc) when not is_tuple(Term) -> lists:reverse(Acc);
+build_names(Term, Acc) when not is_tuple(Term) -> lists:reverse([Term|Acc]);
 build_names({_,Term2}, Acc) when is_boolean(Term2) -> lists:reverse(Acc);
 build_names({Term1,Term2}, Acc) ->
     build_names(Term2, [Term1|Acc]).
@@ -713,7 +713,7 @@ update_menu_enabled(Menu, Item, Enabled)
 	false -> ignore;
 	Id ->
 	    [#menu{object=MI}] = ets:lookup(wings_menus, Id),
-	    case wxMenuItem:isCheckable(MI) of 
+	    case wxMenuItem:isCheckable(MI) of
 		true  -> wxMenuItem:check(MI, [{check,Enabled}]);
 		false -> wxMenuItem:enable(MI, [{enable, Enabled}])
 	    end
@@ -750,11 +750,7 @@ menu_item_id(Menu, Item) ->
 			[] -> false
 		    end;
 		[] ->  %% find for submenu root (level 0)
-                    ItemP = case is_tuple(Item) of
-                                true -> Item;
-                                false -> {Item, ignore}
-                            end,
-                    MenuPath = build_names(ItemP, [Menu]),
+                    MenuPath = build_names(Item, [Menu]),
                     case ets:match_object(wings_menus, #menu{name=MenuPath,type=submenu, _='_'}) of
                         [#menu{wxid=Id}] -> Id;
                         _ -> false
