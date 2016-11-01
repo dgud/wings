@@ -37,25 +37,35 @@ command(_, _) -> next.
 %%% The rest are local functions.
 
 make_spiral(Ask, St) when is_atom(Ask) ->
-    Qs = [{?__(2,"Loops"),2,[{range,{1,32}}]},
-          {?__(3,"Segments"),16,[{range,{3,128}}]},
-          {?__(4,"Sections"),8,[{range,{2,64}}]}],
-    wings_dialog:ask_preview({shape,spiral}, Ask, ?__(1,"Create Spiral"), Qs, St);
-make_spiral([L,Ns,Nl], _) ->
-    Vs = spiral_vertices(Ns, Nl, L),
+    Qs = [
+        {label_column, [
+            {?__(2,"Loops"), {text, 2,[{range,{1,32}}]}},
+            {?__(3,"Segments"), {text, 16,[{range,{3,128}}]}},
+            {?__(4,"Sections"), {text, 8,[{range,{2,64}}]}}
+        ]},
+	wings_shapes:transform_obj_dlg()],
+    wings_dialog:dialog_preview({shape,spiral}, Ask, ?__(1,"Create Spiral"), Qs, St);
+make_spiral([L,Ns,Nl|Transf], _) ->
+    Vs0 = spiral_vertices(Ns, Nl, L),
+    Vs = wings_shapes:transform_obj(Transf, Vs0),
     Fs = spiral_faces(Ns, Nl, L),
     {new_shape,"spiral",Fs,Vs}.
  
 make_spring(Ask, St) when is_atom(Ask) ->
-    Qs = [{?__(2,"Loops"),2,[{range,{1,32}}]},
-          {?__(3,"Segments"),16,[{range,{3,128}}]},
-          {?__(4,"Sections"),8,[{range,{2,64}}]}],
-    wings_dialog:ask_preview({shape,spring}, Ask, ?__(1,"Create Spring"), Qs, St);
-make_spring([L,Ns,Nl], _) ->
-    Vs = spiral_vertices2(Ns, Nl, L),
+    Qs = [
+        {label_column, [
+            {?__(2,"Loops"), {text, 2,[{range,{1,32}}]}},
+            {?__(3,"Segments"), {text, 16,[{range,{3,128}}]}},
+            {?__(4,"Sections"), {text, 8,[{range,{2,64}}]}}
+        ]},
+	wings_shapes:transform_obj_dlg()],
+    wings_dialog:dialog_preview({shape,spring}, Ask, ?__(1,"Create Spring"), Qs, St);
+make_spring([L,Ns,Nl|Transf], _) ->
+    Vs0 = spiral_vertices2(Ns, Nl, L),
+    Vs = wings_shapes:transform_obj(Transf, Vs0),
     Fs = spiral_faces(Ns, Nl, L),
     {new_shape,"spring",Fs,Vs}.
-    
+
 spiral_faces(Ns0, Nl, L) ->
     Nl2= Nl*2,
     Ns = Ns0*L,

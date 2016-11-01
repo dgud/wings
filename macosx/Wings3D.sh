@@ -1,5 +1,7 @@
 #!/bin/sh
-ROOTDIR=$(dirname "$0")
+pushd `dirname $0` > /dev/null
+ROOTDIR=`pwd -P`
+popd > /dev/null
 ROOTDIR=$(dirname "$ROOTDIR")/Resources
 BINDIR=$ROOTDIR/bin
 EMU=beam

@@ -65,11 +65,8 @@
 -define(ACTIVE_TX, wings_io_active_tx).
 
 -record(io,
-	{tex=[],				%Textures.
-	 grab_count=0,				%Number of grabs.
-	 key_up=false,                          %Subscribed to key_up
-	 cursors,				%Mouse cursors.
-	 raw_icons				%Raw icon bundle.
+	{grab_stack=[],				%Grab stack.
+	 key_up=false                          %Subscribed to key_up
 	}).
 
 -define(EVENT_QUEUE, wings_io_event_queue).
@@ -101,6 +98,7 @@
 %% Example: runtime fonts
 -define(GET(Key), wings_pref:get_value({temp, Key})).
 -define(SET(Key,Value), wings_pref:set_value({temp, Key}, Value)).
+-define(DELETE(Key), wings_pref:delete_value({temp, Key})).
 
 %%
 %% Types.

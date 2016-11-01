@@ -15,7 +15,7 @@
 
 -define(NEED_OPENGL, 1).
 -define(NEED_ESDL, 1).
--include_lib("wings.hrl").
+-include_lib("wings/src/wings.hrl").
 
 -import(lists, [foldl/3,sort/1,reverse/1,member/2]).
 
@@ -67,7 +67,6 @@ command({sculpt,_}, St) -> St;
 command(_,_) -> next.
 
 sculpt_mode_setup(#st{shapes=Shs}=St0) ->
-    Active = wings_wm:this(),
     wings_tweak:toggle_draw(false),
     St = wings_undo:init(St0#st{selmode=face,sel=[],sh=false}),
     Mir = mirror_info(Shs, []),
@@ -80,7 +79,7 @@ sculpt_mode_setup(#st{shapes=Shs}=St0) ->
     Sc = #sculpt{mode=Mode,mir=Mir,str=Str,mag=Mag,rad=Rad,mag_type=MagType,
           locked=Lv,st=St,wst=St,ost=St0},
     wings:mode_restriction([face]),
-    wings_wm:callback(fun() -> wings_u:menu_restriction(Active, [view]) end),
+    wings_wm:dirty(),
     {seq,push,update_sculpt_handler(Sc)}.
 
 shape_attr(S) ->
@@ -148,10 +147,10 @@ handle_sculpt_event_1({note,menu_aborted}, Sc) ->
 handle_sculpt_event_1(#mousemotion{x=X,y=Y}, #sculpt{active=true}=Sc) ->
     do_sculpt(X, Y, Sc);
 handle_sculpt_event_1(#mousebutton{state=?SDL_RELEASED},
-  #sculpt{st=St,wst=St,active=true}=Sc) ->
+		      #sculpt{st=St,wst=St,active=true}=Sc) ->
     update_sculpt_handler(Sc#sculpt{id=none,active=false});
 handle_sculpt_event_1(#mousebutton{state=?SDL_RELEASED},
-  #sculpt{active=true}=Sc) ->
+		      #sculpt{active=true}=Sc) ->
     #sculpt{st=#st{shapes=Shs},wst=St0} =Sc0=clear_influence(Sc),
     St = wings_undo:save(St0, St0#st{shapes=Shs}),
     wings_draw:refresh_dlists(St),
@@ -159,24 +158,23 @@ handle_sculpt_event_1(#mousebutton{state=?SDL_RELEASED},
     wings_wm:dirty(), % it was necessary when I tested in a Intel video card
     update_sculpt_handler(Sc0#sculpt{id=none,st=St,wst=St,active=false});
 handle_sculpt_event_1(#mousebutton{button=1,x=X,y=Y,state=?SDL_PRESSED},
-  #sculpt{st=St}=Sc) ->
+		      #sculpt{st=St}=Sc) ->
     do_sculpt(X, Y, Sc#sculpt{wst=St,active=true});
 handle_sculpt_event_1(#mousebutton{button=3,mod=Mod,x=X,y=Y,state=?SDL_RELEASED}, Sc)
-  when Mod band ?CTRL_BITS =/= 0 ->
+  when Mod band ?ALT_BITS =/= 0 ->
     sculpt_menu(X, Y, Sc);
 handle_sculpt_event_1(#keyboard{sym=Sym,mod=Mod,state=?SDL_PRESSED}=Ev, #sculpt{st=St}=Sc) ->
     case is_altkey_magnet_event(Sym,Mod) of
-      true ->
-        {_,X,Y} = wings_wm:local_mouse_state(),
-        case wings_pick:do_pick(X,Y,St) of
-          {_, _, _} ->
-              {GX,GY} = wings_wm:local2global(X, Y),
-              adjust_magnet(GX, GY, Sc);
-          none ->
-              keep
-        end;
-      _ ->
-        handle_key(Sym, Ev, Sc)
+	true ->
+	    {_,X,Y} = wings_wm:local_mouse_state(),
+	    case wings_pick:do_pick(X,Y,St) of
+		{_, _, _} ->
+		    adjust_magnet(X, Y, Sc);
+		none ->
+		    keep
+	    end;
+	_ ->
+	    handle_key(Sym, Ev, Sc)
     end;
 handle_sculpt_event_1({action,Action}, Sc) ->
     command_handling(Action, Sc);
@@ -201,7 +199,7 @@ handle_sculpt_event_1(_,_) ->
 
 adjust_magnet(X, Y, Sc) ->
     wings_io:grab(),
-    wings_io:change_event_handler(?SDL_KEYUP, ?SDL_ENABLE),
+    wings_io:change_event_handler(?SDL_KEYUP, true),
     update_magnet_handler(X, Y, Sc).
 
 update_magnet_handler(X, Y, Sc) ->
@@ -215,9 +213,8 @@ handle_magnet_event(redraw, X, Y, #sculpt{st=St}=Sc) ->
     help(Sc),
     draw_magnet(X, Y, Sc),
     update_magnet_handler(X, Y, Sc);
-handle_magnet_event(#mousemotion{x=X, y=Y}, X0, Y0, Sc0) ->
-    {GX,_} = wings_wm:local2global(X, Y),
-    DX = GX-X0, %since last move X
+handle_magnet_event(#mousemotion{x=X}, X0, Y0, Sc0) ->
+    DX = X-X0, %since last move X
     wings_io:warp(X0,Y0),
     Sc = adjust_magnet_radius(DX, Sc0),
     update_magnet_handler(X0, Y0, Sc);
@@ -240,7 +237,7 @@ handle_magnet_event(_, X, Y, Sc) ->
     end_magnet_event(X, Y, Sc).
 
 end_magnet_event(X, Y, #sculpt{str=Str}=Sc) ->
-    wings_io:change_event_handler(?SDL_KEYUP, ?SDL_IGNORE),
+    wings_io:change_event_handler(?SDL_KEYUP, false),
     wings_pref:set_value(sculpt_strength, Str),
     wings_io:ungrab(X, Y),
     wings_wm:dirty(),
@@ -292,22 +289,21 @@ strength_increment() ->
 %%%
 
 draw_magnet(X, Y, #sculpt{rad=Rad,str=Str,st=#st{shapes=Shs}=St}) ->
-    {LX,LY} = wings_wm:global2local(X, Y),
-    {Xm,Ym,Zm} = case wings_pick:raw_pick(LX, LY, St#st{selmode=face,sel=[],sh=false}) of
-      {_,Side,{Id,Face}} ->
-          #we{mirror=Mir}=We = gb_trees:get(Id, Shs),
-          Point = wings_face:center(Face, We),
-          case Side of
-              mirror ->
-                  Mnorm = wings_face:normal(Mir, We),
-                  PointOnPlane = wings_face:center(Mir, We),
-                  Dist = dist_along_vector(Point, PointOnPlane, Mnorm),
-                  e3d_vec:add_prod(Point, Mnorm, Dist * -2);
-              original -> Point
-          end;
-      none ->
-          {0.0,0.0,0.0}
-    end,
+    {Xm,Ym,Zm} = case wings_pick:raw_pick(X, Y, St#st{selmode=face,sel=[],sh=false}) of
+		     {_,Side,{Id,Face}} ->
+			 #we{mirror=Mir}=We = gb_trees:get(Id, Shs),
+			 Point = wings_face:center(Face, We),
+			 case Side of
+			     mirror ->
+				 Mnorm = wings_face:normal(Mir, We),
+				 PointOnPlane = wings_face:center(Mir, We),
+				 Dist = dist_along_vector(Point, PointOnPlane, Mnorm),
+				 e3d_vec:add_prod(Point, Mnorm, Dist * -2);
+			     original -> Point
+			 end;
+		     none ->
+			 {0.0,0.0,0.0}
+		 end,
     gl:pushAttrib(?GL_ALL_ATTRIB_BITS),
     gl:disable(?GL_DEPTH_TEST),
     gl:enable(?GL_BLEND),
@@ -732,9 +728,10 @@ command_handling(Action, #sculpt{st=St0,mag=Mag}=Sc) ->
       {view,Cmd} ->
           case wings_view:command(Cmd, St0) of
               keep ->
-                  keep;
+		  keep;
               #st{}=St ->
                   wings_draw:refresh_dlists(St),
+		  wings_wm:dirty(),
                   update_sculpt_handler(Sc#sculpt{st=St})
           end;
       {edit,undo_toggle} ->
@@ -769,6 +766,8 @@ command_handling(Action, #sculpt{st=St0,mag=Mag}=Sc) ->
           handle_sculpt_event_0({new_state,St0}, Sc);
       {sculpt,prefs} ->
           prefs(Sc);
+      {edit, {preferences, prefs}} ->
+	  prefs(Sc);
       {sculpt,exit_sculpt} ->
           exit_sculpt(Sc);
       {sculpt,{axis_constraint,Axis}} ->
@@ -787,6 +786,10 @@ command_handling(Action, #sculpt{st=St0,mag=Mag}=Sc) ->
                   wings_wm:dirty(),
                   update_sculpt_handler(Sc)
           end;
+	{window, _} ->
+	    defer;
+	{file, _} ->
+	    defer;
       _ -> keep
     end.
 
@@ -802,6 +805,7 @@ exit_sculpt(#sculpt{mag=Mag,mag_type=MagType,str=Str,rad=Rad,mode=Mode,ost=St0}=
     wings_tweak:toggle_draw(true),
     #sculpt{st=#st{shapes=Shs}}=remove_influence(Sc),
     St = wings_undo:save(St0, St0#st{shapes=Shs}),
+    wings:clear_mode_restriction(),
     wings_wm:later({new_state,St}),
     pop.
 
@@ -822,7 +826,7 @@ help(#sculpt{mag=Mag,rad=Rad,mag_type=MagType,str=Str,mode=Mode}) ->
               Pull++" ("++?__(11,"Hold [Ctrl]: Push")++AddSmooth
         end,
     Sculpt = ?__(1,"L: Sculpt"),
-    Menu = ?__(2,"[Ctrl]+R: Sculpt Menu"),
+    Menu = ?__(2,"[Alt]+R: Sculpt Menu"),
     MagnetType = io_lib:format(?__(3,"Magnet: ~s"),[magtype(MagType)]),
     Radius = ?__(4,"Alt+Drag: Adjust Radius"),
     Strength = ?__(5,"Alt+Scroll(+[Shift]): ")  ++ ?__(6,"Adjust Strength"),
@@ -895,9 +899,9 @@ set_values([]) -> ok.
 %%%
 
 sculpt_menu(X0, Y0, Sc) ->
-    {X,Y} =  wings_wm:local2global(X0, Y0),
+    Pos = wings_wm:local2screen({X0, Y0}),
     Menu = sculpt_menu(Sc),
-    wings_menu:popup_menu(X, Y, sculpt, Menu).
+    wings_menu:popup_menu(wings_wm:this_win(), Pos, sculpt, Menu).
 
 sculpt_menu(#sculpt{mag=Mag,mag_type=MagType,mode=Mode}) ->
     [{mode(pull)++"/"++mode(push),pull,?__(4,"Activate the Pull/Push sculpt tool"),crossmark(Mode, pull)},

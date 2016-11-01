@@ -38,8 +38,8 @@ format_hotkey({bindkey,_Mode,Hotkey}, Style) ->
     format_hotkey(Hotkey, Style);
 format_hotkey(Hotkey, Style) ->
     case Hotkey of
-	[] ->
-	    [];
+	[] -> [];
+	[_|_] -> Hotkey;
 	{C,Mods} ->
 	    modname(Mods, Style) ++ vkeyname(C);
 	_ ->
@@ -440,7 +440,7 @@ mac_modname_wx([]) -> [].
 mac_modname(Mods0) ->
     Mods1 = [{mac_mod_sortkey(M),M} || M <- Mods0],
     Mods2 = sort(Mods1),
-    [wings_s:modkey(M) || {_,M} <- Mods2].
+    [wings_s:mac_mod(M) || {_,M} <- Mods2].
 
 mac_mod_sortkey(shift) -> 1;
 mac_mod_sortkey(alt) -> 2;

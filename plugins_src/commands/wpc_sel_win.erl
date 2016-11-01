@@ -3,7 +3,7 @@
 %%
 %%     This module implements the selection commands in a window.
 %%
-%%  Copyright (c) 2012 Micheus
+%%  Copyright (c) 2016 Micheus, Dan Gudmundsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -15,37 +15,31 @@
 -export([init/0,menu/2,command/2,win_data/1]).
 -export([window/1,window/5]).
 
--define(NEED_ESDL, 1).
--define(NEED_OPENGL, 1).
--define(WIN_NAME, {plugin,sel_groups}).
--include("wings.hrl").
+-export([init/1,
+	 handle_call/3, handle_cast/2, handle_event/2, handle_info/2,
+	 code_change/3, terminate/2
+	]).
+
+-define(WIN_NAME, {plugin, sel_groups}).
+-include_lib("wings/src/wings.hrl").
 
 %%%
 %%% Selection groups window.
 %%%
--record(ost,
-	{st,					%Current St.
-	 n,					    %Number of objects.
-	 first,					%First object to show.
-	 os,					%All objects.
-	 active,				%Number of active object.
-	 tracking,				%Number of mouse tracked object.
-	 lh					    %Line height.
-	}).
 
 init() -> true.
 
 menu({window}, Menu) -> Menu++[sel_group_menu()];
-menu({select}, Menu) -> 
+menu({select}, Menu) ->
     PatchMenu = fun({String, {ssels, List}}) ->
 			{String, {ssels, List++[separator, sel_group_menu()]}};
 		   (Entry) -> Entry
 		end,
     [PatchMenu(Entry) || Entry <- Menu];
-menu(_,Menu) -> 
+menu(_,Menu) ->
     Menu.
 
-sel_group_menu() ->	
+sel_group_menu() ->
 	 {?__(1,"Manage Selection Groups"), sel_groups_win,
 	  ?__(2,"Shows the selection groups window")}.
 
@@ -66,8 +60,8 @@ command(_,_) ->
 %% it returns: {Name, {Horiz alignment, Custom_data}}
 %% horiz alignment should be either "left" or "right"
 %% custom data is used to store windows properties and custom data - it should be parsed in window/5
-win_data(?WIN_NAME=Name) ->
-    {Name, {right,[{rollup, wings_wm:win_rollup(Name)}]}}.
+win_data(?WIN_NAME) ->
+    {?WIN_NAME, {right,[]}}.
 
 window(St) ->
     case wings_wm:is_window(?WIN_NAME) of
@@ -75,279 +69,57 @@ window(St) ->
 	    wings_wm:raise(?WIN_NAME),
 	    keep;
 	false ->
-	    {{DeskX,DeskY},{_DeskW,DeskH}} = wings_wm:win_rect(desktop),
+	    {_DeskW,DeskH} = wings_wm:top_size(),
 	    W = 18*?CHAR_WIDTH,
-	    Pos = {DeskX+5,DeskY+105},
+	    Pos  = {5, 5},
 	    Size = {W,DeskH div 3},
-	    window(?WIN_NAME, Pos, Size, [], St),
-	    keep
+	    window(?WIN_NAME, Pos, Size, [], St)
     end.
 
-window(?WIN_NAME, Pos, Size, CtmData, St) ->
-	Ps = CtmData,
-    Ost = #ost{first=0,lh=18,n=0,active=-1,tracking=-1},
-    Current = {current_state,St},
-    Op = {seq,push,event(Current, Ost)},
-    Props = [{display_lists,geom_display_lists}],
-    wings_wm:toplevel(?WIN_NAME, title(), Pos, Size,
-		      [{sizeable,?PANE_COLOR},closable,vscroller,{anchor,ne},
-		       {properties,Props}|Ps], Op).
+window(?WIN_NAME, Pos, Size, Ps0, St) ->
+    Sel = get_sel_state(St),
+    {Frame,Ps} = wings_frame:make_win(title(), [{size, Size}, {pos, Pos}|Ps0]),
+    Window = wx_object:start_link(?MODULE, [Frame, Ps, Sel], []),
+    Fs = [{display_data, geom_display_lists}|Ps],
+    wings_wm:toplevel(?WIN_NAME, Window, Fs, {push,change_state(Window, Sel)}),
+    keep.
 
-get_event(Ost) ->
-    {replace,fun(Ev) -> event(Ev, Ost) end}.
+%%%%%%%% Selection Window internals %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Inside wings (process)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-event(redraw, Ost) ->
-    wings_io:ortho_setup(),
-    {W,H} = wings_wm:win_size(),
-    case wings_pref:get_value(bitmap_icons) of
-        false -> wings_io:border(0, 0, W-1, H-1, ?PANE_COLOR);
-        true ->
-          wings_io:blend(wings_pref:get_value(outliner_geograph_bg),
-            fun(Color) ->
-              wings_io:border(0, 0, W-1, H-1, Color)
-            end)
+change_state(Window, SelSt) ->
+    fun(Ev) -> forward_event(Ev, Window, SelSt) end.
+
+forward_event(redraw, _Window, _St) -> keep;
+forward_event({current_state, _,_}, _Window, _St) -> keep;
+forward_event({current_state, #st{sel=Sel}=St}, Window, SelSt0) ->
+    case (SelSt = get_sel_state(St)) =:= SelSt0 of
+	true  -> ignore;
+	false -> wx_object:cast(Window, {new_state,{SelSt, Sel=:=[]}})
     end,
-    draw_objects(Ost),
-    keep;
-event({action,{sel_groups,Cmd}}, Ost) ->
+    {replace, change_state(Window, SelSt)};
+forward_event({apply, false, Fun}, _Window, _SelSt) ->
+    %% Apply ops from window in wings process
+    Fun();
+forward_event({action,{sel_groups,Cmd}}, _Window, _St0) ->
     case Cmd of
-    {rename_group,Id} ->
-        rename(Id);
-    {delete_groups,Mode} ->
-        delete_groups(Mode);
-    {new_group,_} ->
-        wings_wm:send(geom, {action,{select,{ssels,new_group}}});
-    _ ->
-        wings_wm:send(geom, {action,{select,{ssels,Cmd}}})
-    end,
-    get_event(Ost);
-event(resized, Ost) ->
-    update_scroller(Ost),
-    keep;
-event(close, _) ->
-    delete;
-event(lost_focus, Ost) ->
-    get_event(Ost#ost{active=-1,tracking=-1});
-event(got_focus, _) ->
-    Msg = wings_msg:button_format(?__(1,"Select"), [],
-				  ?__(2,"Shows selection groups menu")),
-    wings_wm:message(Msg),
-    keep;
-event({current_state,St}, Ost0) ->
-    Ost = update_state(St, Ost0),
-    update_scroller(Ost),
-    get_event(Ost);
-event(#mousemotion{y=Y}, Ost) ->
-    wings_wm:dirty(),
-    get_event(Ost#ost{tracking=active_object(Y,Ost)});
-event(#mousebutton{button=1,y=Y,state=?SDL_PRESSED}, #ost{active=Act}=Ost)
-  when Act >= 0 ->
-    case active_object(Y, Ost) of
-	Act ->
-	    wings_wm:grab_focus(),
-	    get_event(Ost#ost{tracking=Act});
+	{rename_group,Id} ->
+	    rename(Id);
+	{delete_groups,Mode} ->
+	    delete_groups(Mode);
+	{new_group,_} ->
+	    wings_wm:send(geom, {action,{select,{ssels,new_group}}});
 	_ ->
-	    get_event(Ost)
-    end;
-event(#mousebutton{button=1,y=Y,state=?SDL_RELEASED}, 
-            #ost{active=Act0,st=#st{selmode=SelMode,sh=Sh,ssels=Ssels}}=Ost) ->
-    wings_wm:release_focus(),
-    case active_object(Y, Ost) of
-	Act0 ->  keep;
-	Act ->
-	  if Act=/=-1 ->
-	      Objs=objs_by_mode(Sh,SelMode,gb_trees:keys(Ssels)),
-	      Id=act_to_key(Objs,Act),
-	      wings_wm:send(geom, {action,{select,{ssels,{select_group,Id}}}});
-      true -> ok
-	  end,
-	  wings_wm:dirty(),
-	  get_event(Ost#ost{active=Act})
-    end;
-event(#mousebutton{button=4,state=?SDL_RELEASED}, Ost) ->
-    zoom_step(-1*lines(Ost) div 4, Ost);
-event(#mousebutton{button=5,state=?SDL_RELEASED}, Ost) ->
-    zoom_step(lines(Ost) div 4, Ost);
-event(#mousebutton{y=Y0}=Ev, #ost{active=Act}=Ost) ->
-    case wings_menu:is_popup_event(Ev) of
-	no -> keep;
-	{yes,X,Y,_} -> do_menu(Act, X, Y, Y0, Ost)
-    end;
-event(scroll_page_up, Ost) ->
-    zoom_step(-lines(Ost), Ost);
-event(scroll_page_down, Ost) ->
-    zoom_step(lines(Ost), Ost);
-event(Ev, Ost) ->
-    case wings_hotkey:event(Ev) of
-	{select,Cmd}=Act when Cmd=:=deselect; Cmd=:=vertex; Cmd=:=edge; Cmd=:=face ->
-	    wings_wm:send(geom, {action,Act}),
-	    wings_wm:dirty(),
-	    get_event(Ost#ost{active=-1,tracking=-1});
-	_ -> keep
-    end.
-
-%% none group selected (-1) and there isn't any selection in Geo
-do_menu(-1, X, Y, Y0 ,#ost{st=#st{sh=Sh,ssels=Ssels,sel=[],selmode=SelMode}}=Ost) ->
-	case gb_trees:is_empty(Ssels) of
-	  true -> keep;
-	  _ ->
-	    Objs=objs_by_mode(Sh,SelMode,gb_trees:keys(Ssels)),
-	    case active_object(Y0, Ost) of % check for item under mouse pointer
-	      -1 -> keep;
-	      Act0 ->
-	        Menu=group_del_menu(act_to_key(Objs,Act0)),
-	        wings_menu:popup_menu(X, Y, sel_groups, Menu)
-	    end
-	end;
-%% none group selected (-1) and there is a selection in Geo
-do_menu(-1, X, Y, Y0, #ost{st=#st{sh=Sh,ssels=Ssels,selmode=SelMode}}=Ost) ->
-    Objs=objs_by_mode(Sh,SelMode,gb_trees:keys(Ssels)),
-    Act0=active_object(Y0, Ost), % check for item under mouse pointer
-    Menu1=if
-      Objs =/= [] ->
-        Id=act_to_key(Objs,Act0),
-        group_ins_menu()++group_del_menu(Id)++group_bool_menu({cur_sel,?__(1,"current selection")},Id);
-      true -> group_ins_menu()
+	    wings_wm:send(geom, {action,{select,{ssels,Cmd}}})
     end,
-    Menu2 = group_basic_menu(act_to_key(Objs,Act0)),
-    Menu = Menu1++Menu2, 
-	wings_menu:popup_menu(X, Y, sel_groups, Menu);
-%% there is a group selected (Act)
-do_menu(Act, X, Y, Y0, #ost{active=Act0,st=#st{sh=Sh,ssels=Ssels,selmode=SelMode}}=Ost) ->
-    Objs=objs_by_mode(Sh,SelMode,gb_trees:keys(Ssels)),
-    Id=act_to_key(Objs,Act),
-    Menu0 = group_del_menu(Id),
-    Menu1 = case active_object(Y0, Ost) of
-        Act0 -> [];
-        Act1 -> group_bool_menu(Id,act_to_key(Objs,Act1))
-	end,
-    Menu = Menu0++Menu1, 
-	wings_menu:popup_menu(X, Y, sel_groups, Menu).
+    keep;
+forward_event(Ev, Window, _) ->
+    wx_object:cast(Window, Ev),
+    keep.
 
-group_ins_menu() ->
-	[{?__(1,"New Group..."),menu_cmd(new_group,0),?__(2,"Create a new selection group")}].
-group_del_menu(none) -> [];
-group_del_menu({_,SrcName}=SrcId) -> 
-	[{?__(20,"Rename"), menu_cmd(rename_group,SrcId), ?__(21,"Rename group \"")++SrcName++"\""},
-	 {?__(3,"Delete Group"), menu_cmd(delete_group,SrcId), ?__(4,"Delete group \"")++SrcName++"\""},
-	 separator,
-	 {?__(22,"Delete All"), menu_cmd(delete_groups,all), ?__(23,"Delete all groups")},
-	 {?__(24,"Remove Invalid Groups"), menu_cmd(delete_groups,invalid), ?__(25,"Removes all invalid groups")}].
-group_basic_menu(none) -> [];
-group_basic_menu({_,SrcName}=SrcId) ->
-    [separator,
-     {?__(5,"Add to Group"), menu_cmd(add_to_group,SrcId),
-          ?__(6,"Add current selection to group \"")++SrcName++"\""},
-     {?__(7,"Subtract from Group"), menu_cmd(subtract_from_group,SrcId),
-          ?__(8,"Subtract current selection from group \"")++SrcName++"\""}].
-
-group_bool_menu(none,_) -> [];
-group_bool_menu(_,none) -> [];
-group_bool_menu({_,SrcName},{_,DstName}=DstId) ->
-    [separator,
- 	 {?__(11,"Union Group"), menu_cmd(union_group,DstId),
-	     ?__(12,"Union group \"")++SrcName++?__(13,"\" with \"")++DstName++"\""},
-	 {?__(14,"Subtract Group"), menu_cmd(subtract_group,DstId),
-	     ?__(15,"Subtract group \"")++DstName++?__(16,"\" from \"")++SrcName++"\""},
-	 {?__(17,"Intersect Group"), menu_cmd(intersect_group,DstId),
-	     ?__(18,"Intersect group \"")++SrcName++?__(19,"\" with \"")++DstName++"\""}].
-
-menu_cmd(Cmd, Id) ->
-    {'VALUE',{Cmd,Id}}.
-
-
-%%%
-%%% Updating the state.
-%%%
-
-update_state(#st{selmode=SelMode}=St, #ost{st=St0,active=Act0,first=OldFirst}=Ost0) ->
-    Act=case St0 of
-      #st{selmode=SelMode0} ->
-        if 
-        SelMode=/=SelMode0 -> -1;
-        true -> Act0 
-        end;
-      _ -> Act0  % undefined
-    end,
-    #ost{first=First0} = Ost = update_state_1(St, Ost0#ost{active=Act}),
-    case clamp(First0, Ost) of
-	  OldFirst -> Ost;
-	  First ->
-	    wings_wm:dirty(),
-	    Ost#ost{first=First}
-    end.
-
-update_state_1(St, Ost) ->
-    update_state_2(St, Ost).
-
-update_state_2(#st{ssels=SSels,sh=Sh,selmode=SelMode}=St, #ost{os=Objs0,active=Act0}=Ost) ->
-    Objs=objs_by_mode(Sh,SelMode,gb_trees:keys(SSels)),
-    case Objs of
-	Objs0 -> ok;
-	_ -> wings_wm:dirty()
-    end,
-    N = length(Objs),
-    Act = if
-	      Act0 >= N -> N-1;
-	      true -> Act0
-	  end,
-    Ost#ost{st=St,os=Objs,n=N,active=Act}.
-
-update_scroller(#ost{n=0}) ->
-    Name = wings_wm:this(),
-    wings_wm:set_knob(Name, 0.0, 1.0);
-update_scroller(#ost{first=First,n=N}=Ost) ->
-    Name = wings_wm:this(),
-    Lines = lines(Ost),
-    wings_wm:set_knob(Name, First/N, Lines/N).
-
-objs_by_mode(false,SelMode,Keys) ->
-    objs_by_mode(SelMode,Keys);
-objs_by_mode(true,_,Keys) ->
-    Sv=objs_by_mode(vertex,Keys),
-    Se=objs_by_mode(edge,Keys),
-    Sf=objs_by_mode(face,Keys),
-    Sl=lists:append(Sv,lists:append(Se,Sf)),
-    Sl.
-
-objs_by_mode(SelMode,Keys) ->
-    Keys0=lists:keysort(1,Keys),
-    Sel=lists:foldl(fun({SM,_}=Item,Acc) when SM=:=SelMode -> [Acc,Item];
-                         (_,Acc)-> Acc
-                      end, [], Keys0),
-    lists:flatten(Sel).
-
-act_to_key(_,-1) -> none;
-act_to_key(Objs,Act) ->
-    lists:nth(Act+1, Objs).
-
-zoom_step(Step, #ost{first=First0}=Ost0) ->
-    case clamp(First0+Step, Ost0) of
-	First0 -> keep;
-	First ->
-	    wings_wm:dirty(),
-	    Ost = Ost0#ost{first=First},
-	    update_scroller(Ost),
-	    get_event(Ost)
-    end.
-
-clamp(F, #ost{n=N}=Ost) ->
-    Max = case N-lines(Ost) of
-	      Neg when Neg < 0 -> 0;
-	      Other -> Other
-	  end,
-    if
-	F < 0 -> 0;
-	F > Max -> Max;
-	true -> F
-    end.
-    
-lines(#ost{lh=Lh}) ->
-    {_,_,_,H} = wings_wm:viewport(),
-    H div Lh.
-
-title() ->
-    ?__(1,"Selection Groups").
+get_sel_state(#st{selmode=Mode, sh=Sh, ssels=SavedSels, sel=Sel}) ->
+    #{mode=>Mode, sh=>Sh, ssels=>gb_trees:keys(SavedSels), sel=> Sel=/= []}.
 
 rename({_,OldName}=Id) ->
     Qs = [{vframe,
@@ -359,13 +131,14 @@ rename({_,OldName}=Id) ->
               {text,"",[]}]}
            ]}],
     wings_dialog:dialog(?__(1,"Rename"), Qs,
-    fun([NewName]) ->
+    fun([[]]) -> ignore;
+       ([NewName]) ->
         wings_wm:send(geom, {action,{select,{ssels,{rename_group,{Id,NewName}}}}})
     end).
 
 rename_group({Mode,_}=Key, Name, #st{ssels=Ssels0}=St) ->
     Ssel = gb_trees:get(Key, Ssels0),
-    Ssels = gb_trees:insert({Mode,Name}, Ssel, Ssels0),   
+    Ssels = gb_trees:insert({Mode,Name}, Ssel, Ssels0),
     St#st{ssels=gb_trees:delete(Key,Ssels)}.
 
 delete_groups(all) ->
@@ -386,76 +159,282 @@ delete_groups(invalid) ->
 delete_all_groups(#st{}=St) ->
     St#st{ssels=gb_trees:empty()}.
 
-active_object(Y0, #ost{lh=Lh,first=First,n=N}) ->
-    case Y0 - top_of_first_object() of
-	Y when Y < 0 -> -1;
-	Y1 ->
-	    case Y1 div Lh of
-		Y when First+Y < N ->
-		    First+Y;
-		_ -> -1
-	    end
-    end.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Window in new (frame) process %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-draw_objects(#ost{os=Objs0,first=First,lh=Lh,active=Active,tracking=Trk,n=N0}=Ost) ->
-    {W,_H} = wings_wm:win_size(),
-    Objs = lists:nthtail(First, Objs0),
-    Lines = lines(Ost),
-    N = case N0-First of
-	    N1 when N1 < Lines -> N1;
-	    _ -> Lines
-	end,
-	Y=Lh-2,
-    draw_objects_1(N, Objs, Ost, W, Active-First, Y),
-    if
-      Trk=/=-1 ->
-        Y0=Y+(Trk*Lh),
-        draw_frame(18,Y0-?CHAR_HEIGHT,W-2,Y0+4);
-      true -> ok
-    end.
+-record(state, {lc, shown, sel, ss}).
 
-draw_objects_1(0, _, _, _, _, _) -> ok;
-draw_objects_1(N, [{SMode,Name}|Objs], #ost{lh=Lh}=Ost, R, Active, Y) ->
-    Col1 = wings_pref:get_value(menu_text),
-    Col2 = wings_pref:get_value(selected_color),
-    Cube = wings_shape:cube_bitmap(),
-    Icon=case SMode of
-      vertex -> wings_shape:vertex_sel_cube_bitmap();
-      edge -> wings_shape:edge_sel_cube_bitmap();
-      _ -> wings_shape:face_sel_cube_bitmap()
+init([Frame, _Ps, SS]) ->
+    #{bg:=BG, text:=FG} = wings_frame:get_colors(),
+    Panel = wxPanel:new(Frame),
+    wxPanel:setFont(Panel, ?GET(system_font_wx)),
+    Szr = wxBoxSizer:new(?wxVERTICAL),
+    Style = ?wxLC_REPORT bor ?wxLC_NO_HEADER bor ?wxLC_EDIT_LABELS bor ?wxLC_SINGLE_SEL,
+    LC = wxListCtrl:new(Panel, [{style, Style}]),
+    wxListCtrl:setBackgroundColour(LC, BG),
+    wxListCtrl:setForegroundColour(LC, FG),
+    wxSizer:add(Szr, LC, [{proportion,1}, {flag, ?wxEXPAND}]),
+    IconImgs = wings_frame:get_icon_images(),
+    wxListCtrl:assignImageList(LC, load_icons(IconImgs), ?wxIMAGE_LIST_SMALL),
+    wxListCtrl:insertColumn(LC, 0, "", [{width, ?wxLIST_AUTOSIZE_USEHEADER}]),
+    Shown = update_sels(maps:get(ssels, SS), [], [], LC),
+    wxPanel:setSizer(Panel, Szr),
+
+    Self = self(),
+    IgnoreForPopup = fun(Ev,_) ->
+			     case wx_misc:getMouseState() of
+				 #wxMouseState{rightDown=true} -> ignore;
+				 _ -> Self ! Ev
+			     end
+		     end,
+    wxWindow:connect(LC, command_list_item_selected, [{callback, IgnoreForPopup}]),
+    wxWindow:connect(LC, command_list_item_activated),
+    wxWindow:connect(LC, right_up),
+    case os:type() of
+	{win32,nt} ->
+	    %% Mouse right_up does not arrive on items in windows
+            wxWindow:connect(LC, command_list_item_right_click);
+	_ ->
+	    ok
     end,
+    wxWindow:connect(LC, command_list_end_label_edit),
+    wxWindow:connect(LC, size, [{skip, true}]),
+    wxWindow:connect(LC, enter_window, [{userData,{win,Panel}}]),
+    {Panel, #state{lc=LC, shown=Shown, ss=SS, sel=none}}.
 
-    B = wings_pref:get_value(bitmap_icons),
-    case Active =:= 0 of
-    true when B ->
-      gl:color3fv(wings_pref:get_value(outliner_geograph_hl)),
-      gl:recti(18, Y-?CHAR_HEIGHT, R-2, Y+4),
-      gl:color3fv(wings_pref:get_value(outliner_geograph_hl_text));
+handle_event(#wx{event=#wxList{type=command_list_item_activated, itemIndex=Indx}},
+ 	     #state{shown=Shown} = State) ->
+    Id = array:get(Indx, Shown),
+    wings_wm:psend(geom, {action,{select,{ssels,{select_group,Id}}}}),
+    {noreply, State#state{sel=Indx}};
+
+handle_event(#wx{event=#wxList{type=command_list_end_label_edit, itemIndex=Indx}},
+	     #state{shown=Shown, lc=LC, ss=SS} = State) ->
+    Id = array:get(Indx, Shown),
+    NewName = wxListCtrl:getItemText(LC, Indx),
+    if NewName =/= [] ->
+	case Id of
+	    {_, NewName} -> ignore;
+	    _ -> wings_wm:psend(geom, {action,{select,{ssels,{rename_group,{Id,NewName}}}}})
+	end;
     true ->
-      gl:color3f(0.0, 0.0, 0.5),
-      gl:recti(18, Y-?CHAR_HEIGHT, R-2, Y+4),
-      gl:color3f(1.0, 1.0, 1.0);
-    false -> ok
+	Items = maps:get(ssels, SS),
+	{_, Old} = lists:nth(Indx+1, Items),
+	wxListCtrl:setItemText(LC, Indx, Old)
     end,
-    wings_io:text_at(20, Y, Name),
-    gl:color3fv(e3d_vec:mul(Col1,0.6)),
-	draw_icon(2,Y+2,Cube),
-    gl:color3fv(Col2),
-	draw_icon(2,Y+2,Icon),
-    gl:color3b(0, 0, 0),
-    draw_objects_1(N-1, Objs, Ost, R, Active-1, Y+Lh).
+    {noreply, State};
 
-draw_frame(X1, Y1, X2, Y2) ->
-    gl:'begin'(?GL_LINE_LOOP),
-    gl:vertex2i(X1+1, Y1+1),
-    gl:vertex2i(X2, Y1),
-    gl:vertex2i(X2, Y2),
-    gl:vertex2i(X1, Y2),
-    gl:vertex2i(X1+1, Y1), % force x1,y1 corner (dot) be drawn
-    gl:'end'().
+handle_event(#wx{event=#wxSize{size={Width,_}}}, #state{lc=LC}=State) ->
+    wxListCtrl:setColumnWidth(LC, 0, Width-20),
+    {noreply, State};
 
-draw_icon(X, Y, Bitmap) ->
-    wings_shape:draw_bitmap_16(X, Y, Bitmap).
+handle_event(#wx{event=#wxList{type=command_list_item_selected, itemIndex=Sel}},
+	     #state{shown=Shown} = State) ->
+    case Sel of
+	-1 -> none;
+	Indx ->
+	    Id = array:get(Indx, Shown),
+	    wings_wm:psend(geom, {action,{select,{ssels,{select_group,Id}}}})
+    end,
+    {noreply, State#state{sel=Sel}};
 
-top_of_first_object() ->
-    0.
+handle_event(#wx{event=#wxMouse{type=right_up}}, State) ->
+    invoke_menu(State),
+    {noreply, State};
+handle_event(#wx{event=#wxList{type=command_list_item_right_click}}, State) ->
+    invoke_menu(State),
+    {noreply, State};
+
+handle_event(#wx{event=#wxMouse{type=enter_window}}=Ev, State) ->
+    wings_frame ! Ev,
+    {noreply, State};
+
+handle_event(#wx{} = _Ev, State) ->
+    %% io:format("~p:~p Got unexpected event ~p~n", [?WIN_NAME,?LINE, Ev]),
+    {noreply, State}.
+
+%%%%%%%%%%%%%%%%%%%%%%
+
+handle_call(_Req, _From, State) ->
+    %% io:format("~p:~p Got unexpected call ~p~n", [?WIN_NAME,?LINE, Req]),
+    {reply, ok, State}.
+
+handle_cast({new_state, {#{ssels:=New} = SS, Reset}},
+            #state{lc=LC, ss=Old, shown=OS, sel=OldSel}=State) ->
+    Shown = update_sels(New, Old, OS, LC),
+    case SS of
+	#{sh:=false, mode:=Mode} ->
+	    try array:map(fun(Index, {M, _}) when M =:= Mode ->
+				  throw({first, Index});
+			     (_, M) -> M
+			  end, Shown)
+	    catch {first, Index} ->
+		    wxListCtrl:ensureVisible(LC, Index)
+	    end;
+	_ ->
+	    reset_selection(Reset, LC),
+	    ignore
+    end,
+    Sel = case Shown of
+              OS -> OldSel;
+              _  -> %% Groups have been deleted or added
+                  reset_selection(true, LC),
+                  none
+          end,
+    {noreply, State#state{lc=LC, shown=Shown, ss=SS, sel=Sel}};
+handle_cast(_Req, State) ->
+    %% io:format("~p:~p Got unexpected cast ~p~n", [?WIN_NAME,?LINE, _Req]),
+    {noreply, State}.
+
+handle_info(_Msg, State) ->
+    %% io:format("~p:~p Got unexpected info ~p~n", [?WIN_NAME,?LINE, Msg]),
+    {noreply, State}.
+
+%%%%%%%%%%%%%%%%%%%%%%
+
+code_change(_From, _To, State) ->
+    State.
+
+terminate(_Reason, _) ->
+    %% io:format("terminate: ~p (~p)~n",[?WIN_NAME, _Reason]),
+    wings ! {wm, {delete, ?WIN_NAME}},
+    normal.
+
+%%%%%%%%%%%%%%%%%%%%%%
+
+reset_selection(false, _) -> ok;
+reset_selection(true, LC) ->
+    Sel = wxListCtrl:getNextItem(LC, -1, [{state,?wxLIST_STATE_SELECTED}]),
+    if Sel >= 0 ->
+	%% remove any selection so the context menues can be properly processed
+	wxListCtrl:setItemState(LC, Sel, 0, ?wxLIST_STATE_SELECTED);
+	true -> ok
+    end.
+
+update_sels(New, #{ssels:=New}, OS, _LC) ->
+    OS;
+update_sels(New, _Old, OldShown, LC) ->
+    Sorted0 = lists:sort([{image_idx(Type),S}|| {Type,_} = S <- New]),
+    Sorted = [S || {_, S} <- Sorted0],
+    case array:from_list(Sorted) of
+	OldShown ->
+	    OldShown;
+	Arr ->
+	    Add = fun({Image,{_,Name}}, Id) ->
+			  wxListCtrl:insertItem(LC, Id, Name, Image),
+			  Id+1
+		  end,
+	    wxListCtrl:deleteAllItems(LC),
+	    wx:foldl(Add, 0, Sorted0),
+	    Arr
+    end.
+
+get_selection(LC) ->
+    case wxListCtrl:getSelectedItemCount(LC) of
+	0 -> none;
+	1 ->
+	    Opts = [{geometry,?wxLIST_NEXT_ALL}, {state, ?wxLIST_STATE_SELECTED}],
+	    wxListCtrl:getNextItem(LC, -1, Opts)
+    end.
+
+load_icons(Imgs) ->
+    IL = wxImageList:new(16,16),
+    Add = fun(Name) ->
+		  {_, _Sz, Img} = lists:keyfind(Name, 1, Imgs),
+		  true = wxImage:ok(Img),
+		  Small = wxImage:scale(Img, 16, 16, [{quality, ?wxIMAGE_QUALITY_NORMAL}]),
+		  wxImageList:add(IL, wxBitmap:new(Small)),
+		  wxImage:destroy(Small)
+	  end,
+    wx:foreach(Add, [vertex, edge, face, body]),
+    IL.
+
+image_idx(vertex) -> 0;
+image_idx(edge) -> 1;
+image_idx(face) -> 2;
+image_idx(body) -> 3.
+
+invoke_menu(#state{sel=Indx, lc=LC, shown=Shown, ss=SS}) ->
+    case invoke_menu(Indx, SS, Shown, LC) of
+	ignore ->
+	    ignore;
+	Menus ->
+	    Pos = wx_misc:getMousePosition(),
+	    Cmd = fun() -> wings_menu:popup_menu(LC, Pos, sel_groups, Menus) end,
+	    wings_wm:psend(?WIN_NAME, {apply, false, Cmd})
+    end.
+
+invoke_menu(none, #{sel:=false}, Shown, LC) ->
+    case array:size(Shown) of
+	0 -> ignore;
+	_ ->
+	    case get_selection(LC) of
+		none -> ignore;
+		Sel -> group_del_menu(array:get(Sel, Shown))
+	    end
+    end;
+invoke_menu(none, SS, Shown, LC) ->
+    case get_selection(LC) of
+	none -> group_ins_menu();
+	Indx -> invoke_menu(Indx, SS, Shown, LC)
+    end;
+invoke_menu(Indx, #{sel:=GeomHaveSel}, Shown, LC) ->
+    SelIndex = get_selection(LC),
+    Current = array:get(Indx, Shown),
+    Delete = group_del_menu(Current),
+    if SelIndex =:= none, GeomHaveSel ->
+	    group_ins_menu();
+       SelIndex =:= none ->
+	    ignore;
+       SelIndex =:= Indx, GeomHaveSel =:= false ->
+	    Delete;
+       SelIndex =:= Indx ->
+	    group_basic_menu(Current) ++
+		[separator|group_bool_menu({-1,"current selection"}, array:get(SelIndex, Shown))] ++
+		[separator|group_ins_menu()] ++
+		[group_replace_menu(array:get(SelIndex, Shown))] ++
+		[separator|Delete];
+       true ->
+	   group_basic_menu(Current) ++
+	    [separator|group_bool_menu(Current, array:get(SelIndex, Shown))] ++
+	    [separator|group_replace_menu(array:get(SelIndex, Shown))]
+    end.
+
+group_ins_menu() ->
+	[{?__(1,"New Group..."),menu_cmd(new_group,0),?__(2,"Create a new selection group")}].
+group_del_menu(none) -> [];
+group_del_menu({_,SrcName}=SrcId) ->
+	[{?__(20,"Rename"), menu_cmd(rename_group,SrcId), ?__(21,"Rename group \"")++SrcName++"\""},
+	 {?__(3,"Delete Group"), menu_cmd(delete_group,SrcId), ?__(4,"Delete group \"")++SrcName++"\""},
+	 separator,
+	 {?__(22,"Delete All"), menu_cmd(delete_groups,all), ?__(23,"Delete all groups")},
+	 {?__(24,"Remove Invalid Groups"), menu_cmd(delete_groups,invalid), ?__(25,"Removes all invalid groups")}].
+group_basic_menu(none) -> [];
+group_basic_menu({_,SrcName}=SrcId) ->
+    [{?__(5,"Add to Group"), menu_cmd(add_to_group,SrcId),
+      ?__(6,"Add current selection to group \"")++SrcName++"\""},
+     {?__(7,"Subtract from Group"), menu_cmd(subtract_from_group,SrcId),
+      ?__(8,"Subtract current selection from group \"")++SrcName++"\""}].
+
+group_replace_menu(none) -> [];
+group_replace_menu({_,DstName}=DstId) ->
+    [{?__(26,"Replace Group"), menu_cmd(replace_group,DstId),
+      ?__(4,"Replace group \"")++DstName++"\" with current selection"}].
+
+group_bool_menu(none,_) -> [];
+group_bool_menu(_,none) -> [];
+group_bool_menu({_,SrcName},{_,DstName}=DstId) ->
+    [	 {?__(11,"Union Group"), menu_cmd(union_group,DstId),
+	     ?__(12,"Union group \"")++SrcName++?__(13,"\" with \"")++DstName++"\""},
+	 {?__(14,"Subtract Group"), menu_cmd(subtract_group,DstId),
+	     ?__(15,"Subtract group \"")++DstName++?__(16,"\" from \"")++SrcName++"\""},
+	 {?__(17,"Intersect Group"), menu_cmd(intersect_group,DstId),
+	     ?__(18,"Intersect group \"")++SrcName++?__(19,"\" with \"")++DstName++"\""}].
+
+menu_cmd(Cmd, Id) ->
+    {'VALUE',{Cmd,Id}}.
+
+title() ->
+    ?__(1,"Selection Groups").
+

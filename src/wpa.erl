@@ -216,7 +216,7 @@ dialog_template(Mod, import) ->
 dialog_template(Mod, export) ->
     FileTypes = [{lists:flatten([Val," (*",Key,")"]),Key} ||
 		    {Key,Val} <- image_formats()],
-    DefFileType = pref_get(Mod, default_filetype, ".bmp"),
+    DefFileType = pref_get(Mod, default_filetype, ".png"),
     {vframe,
      [{?__(1,"Swap Y and Z Axes"),pref_get(Mod, swap_y_z, false),
        [{key,swap_y_z}]},

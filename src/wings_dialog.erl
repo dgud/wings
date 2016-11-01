@@ -206,8 +206,8 @@ init() ->
     init_history().
 
 %% Display a text window (Info converted to html)
-info(Title, Info, _Options) ->
-    Parent = get_dialog_parent(),
+info(Title, Info, Options) ->
+    Parent = proplists:get_value(parent, Options, get_dialog_parent()),
     Flags  = [{size, {500, 400}}, {style, ?wxCAPTION bor ?wxRESIZE_BORDER bor ?wxCLOSE_BOX}],
     Frame  = wxMiniFrame:new(Parent, ?wxID_ANY, Title, Flags),
     Panel  = wxHtmlWindow:new(Frame, []),
@@ -220,7 +220,6 @@ info(Title, Info, _Options) ->
     wxFrame:show(Frame),
     wxScrolledWindow:setFocus(Panel),
     keep.
-
 
 ask_preview(Cmd, Bool, Title, Qs, St) ->
     ask(Bool, Title, preview, Qs, preview_fun(Cmd, St)).
@@ -399,17 +398,32 @@ queries(Qs0) ->
 
 get_dialog_parent() ->
     case ?GET(dialog_parent) of
-	undefined -> ?GET(top_frame);
-	Tuple when element(1, Tuple) =:= wx_ref ->
-	    Tuple
+	[Tuple|_] when element(1, Tuple) =:= wx_ref ->
+	    Tuple;
+        _ -> %% undefined or []
+	    case wings_wm:this_win() of
+		undefined -> ?GET(top_frame);
+		Win -> Win
+	    end
     end.
 
 set_dialog_parent(Dialog) ->
-    ?SET(dialog_parent, Dialog).
+    Prev = case ?GET(dialog_parent) of
+               undefined  -> [];
+               Stack -> Stack
+           end,
+    %io:format("Set parent ~p ~p~n",[Dialog,Prev]),
+    ?SET(dialog_parent, [Dialog|Prev]).
 
 reset_dialog_parent(Dialog) ->
-    Parent = wxWindow:getParent(Dialog),
-    ?SET(dialog_parent, Parent).
+    [Dialog|Stack] = ?GET(dialog_parent),
+    %io:format("Reset parent ~p => ~p~n",[Dialog, Stack]),
+    case Stack of
+	[Next|_] ->
+	    wxDialog:raise(Next);
+	[] -> ok
+    end,
+    ?SET(dialog_parent, Stack).
 
 enter_dialog(false, _, _, Fields, Fun) -> % No dialog return def values
     Values = get_output(default, Fields),
@@ -458,6 +472,7 @@ enter_dialog(true, PreviewType, Dialog, Fields, Fun) ->
     Op = {push,fun(Ev) -> event_handler(Ev, State) end},
     {TopW,TopH} = wings_wm:top_size(),
     wings_wm:new(dialog_blanket, {0,0,highest}, {TopW,TopH}, Op),
+    wings_wm:grab_focus(dialog_blanket),
     keep.
 
 notify_event_handler(false, _Msg) -> fun() -> ignore end;
@@ -502,10 +517,8 @@ event_handler(preview, #eh{fs=Fields, apply=Fun, owner=Owner}) ->
 	    %%io:format("~p:~p: ~p~n",[?MODULE,?LINE,{preview,[Owner,{action,Action}]}]),
 	    wings_wm:send(Owner, {action,Action})
     end;
-event_handler(#mousebutton{x=X0,y=Y0}=Ev, _) ->
-    {X,Y} = wings_wm:local2global(X0, Y0),
-    Win = wings_wm:geom_below(X, Y),
-    wings_wm:send(Win, {camera,Ev,keep});
+event_handler(#mousebutton{which=Obj}=Ev, _) ->
+    wings_wm:send(wings_wm:wx2win(Obj), {camera,Ev,keep});
 event_handler(#mousemotion{}, _) -> keep;
 event_handler(_Ev, _) ->
     %% io:format("unhandled Ev ~p~n",[_Ev]),
@@ -724,7 +737,9 @@ setup_hook(_What, _) ->
 return_result(Fun, Values, Owner) ->
     case Fun(Values) of
 	ignore ->
-	    ok;
+	    keep;
+	{return, Result} ->
+	    Result;
 	#st{}=St ->
 	    wings_wm:send(Owner, {new_state,St});
 	{commit,#st{}=St0,#st{}=St}->
@@ -735,8 +750,7 @@ return_result(Fun, Values, Owner) ->
 	    wings_wm:send_after_redraw(Owner, {action,Action});
 	Action when is_tuple(Action); is_atom(Action) ->
 	    wings_wm:send(Owner, {action,Action})
-    end,
-    keep.
+    end.
 
 to_label_column(Qs) ->
     lists:map(fun label_col/1, Qs).
@@ -752,11 +766,12 @@ build_dialog(AskType, Title, Qs) ->
     wx:batch(fun() ->
 		     Parent = get_dialog_parent(),
 		     Style0 = case os:type() of
-				  {unix, darwin} -> ?wxSTAY_ON_TOP;
+				  %{unix, darwin} -> ?wxSTAY_ON_TOP;
 				  _ -> ?wxFRAME_FLOAT_ON_PARENT
 			      end,
 		     Style  =  Style0 bor ?wxDEFAULT_DIALOG_STYLE bor ?wxRESIZE_BORDER,
 		     Dialog = wxDialog:new(Parent, ?wxID_ANY, Title, [{style, Style}]),
+                     %io:format("~p (~p) Parent ~p~n", [Title, Dialog, Parent]),
 		     Panel  = wxPanel:new(Dialog, []),
 		     wxPanel:setFont(Panel, ?GET(system_font_wx)),
 		     Top    = wxBoxSizer:new(?wxVERTICAL),
@@ -841,8 +856,8 @@ build(Ask, {vframe_dialog, Qs, Flags}, Parent, Sizer, []) ->
 			     BtnHelp = wxButton:new(Dialog,?wxID_HELP),
 			     wxSizer:insert(Ok, 0, BtnHelp, []),
 			     Help = fun(#wx{},_) ->
-                                 info(Title,Content, [{top_frame, Dialog}])
-			     end,
+					    info(Title,Content, [{parent, Dialog}])
+				    end,
 			     wxDialog:connect(Dialog, command_button_clicked,
 			                      [{id, ?wxID_HELP}, {callback,Help}]);
 		         _ -> ignore
@@ -877,8 +892,8 @@ build(Ask, {oframe, Tabs, Def, Flags}, Parent, WinSizer, In0)
 		      Out
 	      end,
     In = lists:foldl(AddPage, In0, Tabs),
-    case 0 < Def andalso Def =< length(In) of
-	true -> wxNotebook:setSelection(NB, Def-1);
+    case 0 < Def andalso Def < length(Tabs) of
+	true  -> wxNotebook:setSelection(NB, Def-1);
 	false -> ignore
     end,
     wxSizer:add(WinSizer, NB, [{proportion, 1},{flag, ?wxEXPAND}]),
@@ -1179,6 +1194,8 @@ build(Ask, {menu, Entries, Def, Flags}, Parent, Sizer, In) ->
 		lists:foldl(fun(Choice,N) -> setup_choices(Choice, Ctrl, Def, N) end, 0, Entries),
 		tooltip(Ctrl, Flags),
 		add_sizer(choice, Sizer, Ctrl, Flags),
+		Callback = {callback, notify_event_handler_cb(Ask, preview)},
+		wxCheckBox:connect(Ctrl, command_choice_selected, [Callback]),
 		Ctrl
 	end,
     [#in{key=proplists:get_value(key,Flags), def=Def, hook=proplists:get_value(hook, Flags),
@@ -1237,9 +1254,8 @@ build(Ask, {image, ImageOrFile}, Parent, Sizer, In) ->
     In;
 
 build(Ask, {help, Title, Fun}, Parent, Sizer, In) ->
-    TopFrame = get(top_frame),
     Display = fun(_,_) ->
-		      info(Title, Fun(), [{top_frame, TopFrame}])
+		      info(Title, Fun(), [{parent, Parent}])
 	      end,
     Create = fun() ->
 		     Button = wxButton:new(Parent, ?wxID_HELP),
@@ -1253,12 +1269,10 @@ build(Ask, {help, Title, Fun}, Parent, Sizer, In) ->
 build(Ask, {custom_gl, CW, CH, Fun}, Parent, Sizer, In) ->
     build(Ask, {custom_gl, CW, CH, Fun, []}, Parent, Sizer, In);
 build(Ask, {custom_gl, CW, CH, Fun, Flags}, Parent, Sizer, In) ->
-    Context = wxGLCanvas:getContext(get(gl_canvas)),
+    Context = wxGLCanvas:getContext(?GET(gl_canvas)),
     Create = fun() ->
-		     Canvas = wxGLCanvas:new(Parent, Context,
-					     [{size, {CW,CH}},
-					      {attribList, wings_init:gl_attributes()}
-					     ]),
+		     Ps = [{size, {CW,CH}},wings_gl:attributes()],
+		     Canvas = wxGLCanvas:new(Parent, Context, Ps),
 		     add_sizer(custom, Sizer, Canvas, Flags),
 		     Canvas
 	     end,
@@ -1500,7 +1514,11 @@ slider_style(Def, {Min, Max})
 		     Step = (Max - Min) / 100,
 		     Min + Percent * Step
 	     end,
-    {0, ToSlider(Def), 100, ?wxSL_HORIZONTAL, ToText, ToSlider}.
+    {0, ToSlider(Def), 100, ?wxSL_HORIZONTAL, ToText, ToSlider};
+slider_style(Def, {Min, Max}=MM) when Min < Max ->
+    if Def < Min -> slider_style(Min,MM);
+       Def > Max -> slider_style(Max,MM)
+    end.
 
 add_sizer(What, Sizer, Ctrl, Opts) ->
     {Proportion0, Border0, Flags0} =
@@ -1584,15 +1602,15 @@ text_to_html(Paragraphs) ->
     Html = text_to_html(Paragraphs, Header),
     lists:reverse(["</html>"|Html]).
 
-text_to_html([[_|_] = Paragraph|Ps], Acc) ->
-    text_to_html(Ps, ["</p>", paragraph_to_html(Paragraph), "<p>"|Acc]);
-text_to_html([Table = {table,_,_,_}|Ps], Acc) ->
+text_to_html([{table,_,_,_}=Table|Ps], Acc) ->
     text_to_html(Ps, [table_to_html(Table)|Acc]);
 text_to_html([{bullet, List}|Rest], Acc) ->
-    BulletList = ["</p><ul>",
+    BulletList = ["<ul>",
 		  ["<li>" ++ paragraph_to_html(Item) ++ "</li>" || Item <- List],
-		  "</ul><p>"],
+		  "</ul>"],
     text_to_html(Rest, [BulletList|Acc]);
+text_to_html([Paragraph|Ps], Acc) ->
+    text_to_html(Ps, ["</p>", paragraph_to_html(Paragraph), "<p>"|Acc]);
 text_to_html([], Acc) -> Acc.
 
 paragraph_to_html([$\n|Text]) ->
@@ -1605,6 +1623,10 @@ paragraph_to_html([{ul, Text}|Rest]) ->
     ["<u>", paragraph_to_html(Text), "</u>"| paragraph_to_html(Rest)];
 paragraph_to_html([Table={table, _, _, _}|Rest]) ->
     ["</p>", table_to_html(Table), "<p>" | paragraph_to_html(Rest)];
+paragraph_to_html([{bullet, List}|Rest]) ->
+    ["</p><ul>",
+     ["<li>" ++ paragraph_to_html(Item) ++ "</li>" || Item <- List],
+     "</ul><p>" | paragraph_to_html(Rest)];
 paragraph_to_html([C|Text]) when is_list(C) ->
     [paragraph_to_html(C), paragraph_to_html(Text)];
 paragraph_to_html([]) -> [].

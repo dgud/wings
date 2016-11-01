@@ -13,10 +13,9 @@
 
 -module(wings_u).
 -export([error_msg/1,error_msg/2,message/1,debug/1,
-	 get_matrices/2,
-	 geom_windows/0,menu_restriction/2,
+	 get_matrices/2, geom_windows/0,
 	 yes_no/2,yes_no/3,yes_no_cancel/3,
-	 export_we/2,win_crash/1,crash_log/2,crash_log/3,
+	 export_we/2,win_crash/1,win_crash/2,crash_log/2,crash_log/3,
 	 pretty_filename/1,relative_path_name/2,caption/1,win32_special_folder/2]).
 
 -define(NEED_OPENGL, 1).
@@ -39,14 +38,6 @@ message(Message) ->
 	  [{label,Message}],
 	  [{buttons,[ok]}]},
     wings_dialog:dialog("", Qs, fun(_) -> ignore end).
-
-menu_restriction(Win, Allowed) ->
-    case wings_wm:get_menubar(Win) of
-	none -> wings_wm:menubar(Win, []);
-	Mb0 ->
-	    Mb = [Item || {_,Name,_}=Item <- Mb0, member(Name, Allowed)],
-	    wings_wm:menubar(Win, Mb)
-    end.
 
 geom_windows() ->
     geom_windows_1(wings_wm:windows()).
@@ -91,7 +82,10 @@ export_we(Name, #st{shapes=Shs}) ->
     end.
 
 win_crash(Reason) ->
-    LogName = crash_log(wings_wm:this(), Reason),
+    win_crash(wings_wm:this(), Reason).
+
+win_crash(Window, Reason) ->
+    LogName = crash_log(Window, Reason),
     wings_wm:send(geom, {crash_in_other_window,LogName}).
 
 crash_log(WinName, Reason) ->
@@ -99,7 +93,7 @@ crash_log(WinName, Reason) ->
     crash_log(WinName, Reason, StackTrace).
 
 crash_log(WinName, Reason, StackTrace) ->
-    wings_pb:cancel(),
+    catch wings_pb:cancel(),
     LogFileDir = log_file_dir(),
     LogName = filename:absname("wings_crash.dump", LogFileDir),
     F = open_log_file(LogName),
@@ -194,9 +188,16 @@ get_rel_path_0([_|T], Acc) ->
 
 
 wings() ->
-    case ?wings_branch of
+    case wings_branch() of
 	"" -> debug("Wings3D");
 	_ -> "Wings3D " ++ ?wings_version ++ " (" ++ ?wings_branch ++ ")"
+    end.
+
+wings_branch() ->
+    %% Fool dialyzer
+    case is_process_alive(self()) of
+        true -> ?wings_branch;
+        false -> ""
     end.
 
 -ifdef(DEBUG).

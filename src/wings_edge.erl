@@ -22,6 +22,7 @@
 	 hardness/3,
 	 patch_edge/4,patch_edge/5,
 	 select_nth_ring/2,
+	 select_nth_loop/2,
 	 length/2
 	]).
 
@@ -981,3 +982,30 @@ nth_ring_5(_,_,Edges0,stop,_,Edges1,OrigEs) ->
       true -> Edges0;
       false -> Edges1
     end.
+
+%%%% Select every nth loop
+
+select_nth_loop(0, St) -> St;
+select_nth_loop(N, #st{selmode=edge}=St0) ->
+    St = wings_edge_loop:stoppable_sel_loop(St0),
+    Sel = wings_sel:fold(fun(Edges, #we{id=Id}=We, SelAcc) ->
+                                 Links = wings_edge_loop:edge_links(Edges, We),
+                                 SelLoop = nth_loop(Links, N-1, []),
+                                 Sel0 = wings_we:visible_edges(gb_sets:from_list(SelLoop), We),
+                                 [{Id,Sel0}|SelAcc]
+			 end, [], St),
+    St#st{sel=lists:sort(Sel)};
+select_nth_loop(_N, St) ->
+    St.
+
+nth_loop([], _, Acc) -> Acc;
+nth_loop([Es|Links], N, Acc) ->
+    nth_loop(Links, N, nth_loop_1(Es, N, Acc)).
+
+nth_loop_1([{Last,_,_}], _, Acc) -> [Last|Acc];
+nth_loop_1([{E,_,_}|Es], N, Acc) ->
+    nth_loop_1(skip_n(Es, N), N, [E|Acc]).
+
+skip_n([_]=Es, _) -> Es;
+skip_n(Edges,  0) -> Edges;
+skip_n([_|Edges], N) -> skip_n(Edges, N-1).

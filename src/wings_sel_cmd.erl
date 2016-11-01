@@ -53,6 +53,10 @@ menu() ->
 	    [{?__(101,"Second"),2},
 	     {?__(102,"Third"),3},
 	     {?__(103,"Nth..."),true}]}},
+	{?__(109,"Every Nth Loop"),{nth_edge_loop,
+	    [{?__(101,"Second"),2},
+	     {?__(102,"Third"),3},
+	     {?__(103,"Nth..."),true}]}},
 	separator,
 	{?__(14,"Previous Edge Loop"),
 	 prev_edge_loop,?__(15,"Select the previous edge loop")},
@@ -202,6 +206,8 @@ command({edge_loop,edge_link_incr}, St) ->
     {save_state,wings_edge_loop:select_link_incr(St)};
 command({edge_loop,{nth_edge_ring,N}}, St) ->
     select_nth_ring(N, St);
+command({edge_loop,{nth_edge_loop,N}}, St) ->
+    select_nth_loop(N, St);
 command({edge_loop,edge_ring}, St) ->
     {save_state,wings_edge:select_edge_ring(St)};
 command({edge_loop,edge_ring_incr}, St) ->
@@ -268,10 +274,10 @@ command({ssels, recall_selection}, #st{selmode=Mode,ssels=Ssels}=St0) ->
 	    St = select_group(Key, St0),
 	    {save_state,St}
     end;
-command({ssels,{select_group,saved_selections_cycle_by_mode}}, St) ->
+command({ssels,saved_selections_cycle_by_mode}, _St) ->
     Pref = wings_pref:get_value(saved_selections_cycle_by_mode),
     wings_pref:set_value(saved_selections_cycle_by_mode, not Pref),
-    {save_state,St};
+    keep;
 command({ssels,next_group}, St) ->
     {save_state,cycle_group(next_group, St)};
 command({ssels,prev_group}, St) ->
@@ -286,6 +292,8 @@ command({ssels,{intersect_group,Id}}, St) ->
     {save_state,intersect_group(Id, St)};
 command({ssels,{add_to_group,Id}}, St) ->
     {save_state,add_to_group(Id, St)};
+command({ssels,{replace_group,Id}}, St) ->
+    {save_state,replace_group(Id, St)};
 command({ssels,{subtract_from_group,Id}}, St) ->
     {save_state,subtract_from_group(Id, St)};
 command({new_group_name, Name}, St) ->
@@ -571,6 +579,23 @@ add_to_group({Mode,_}=Key, #st{ssels=Ssels}=St) ->
     #st{sel=Sel} = possibly_convert(Mode, St),
     Ssel = union(Ssel1, Sel),
     save_group(Key, Ssel, St).
+
+replace_group({_,Name}=Key, #st{ssels=Ssels0, selmode=Mode, sel=Sel}=St) ->
+    case Key of
+	{Mode,Name} ->	% same mode - no need to check for name duplication
+	    Ssels = gb_trees:update(Key, Sel, Ssels0);
+	_ ->
+	    NewKey =
+		case gb_trees:is_defined({Mode,Name}, Ssels0) of
+		    true ->
+			Names = [Name0 || {Mode0,Name0} <- gb_trees:keys(Ssels0), Mode0=:=Mode],
+			{Mode, wings_util:unique_name(Name, Names)};
+		    false ->
+			{Mode, Name}
+		end,
+	    Ssels = gb_trees:insert(NewKey, Sel, gb_trees:delete(Key, Ssels0))
+    end,
+    St#st{ssels=Ssels}.
 
 subtract_from_group({Mode,_}=Key, #st{ssels=Ssels}=St) ->
     Ssel0 = gb_trees:get(Key, Ssels),
@@ -1693,4 +1718,16 @@ select_nth_ring([N], #st{selmode=edge}=St) ->
 select_nth_ring(N, #st{selmode=edge}=St) ->
     {save_state,wings_edge:select_nth_ring(N,St)};
 select_nth_ring(_, St) ->
+    {save_state,St}.
+
+select_nth_loop(true, #st{selmode=edge}=St) ->
+    Qs = [{label,?__(1,"Interval")},
+	  {text,2,[{range,{1,1000}}]}],
+    wings_dialog:dialog_preview({select,edge_loop,nth_edge_loop}, true,
+				?__(2,"Select Every Nth Edge Ring"), [{hframe,Qs}], St);
+select_nth_loop([N], #st{selmode=edge}=St) ->
+    {save_state,wings_edge:select_nth_loop(N,St)};
+select_nth_loop(N, #st{selmode=edge}=St) ->
+    {save_state,wings_edge:select_nth_loop(N,St)};
+select_nth_loop(_, St) ->
     {save_state,St}.

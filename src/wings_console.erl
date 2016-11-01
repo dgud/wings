@@ -60,9 +60,10 @@ start(GroupLeader) when is_pid(GroupLeader) ->
 	    exit(already_started);
 	undefined ->
 	    Starter = self(),
-	    Server = 
-		spawn(
+	    Server =
+		spawn_link(
 		  fun() ->
+			  process_flag(trap_exit, true),
 			  Self = self(),
 			  case catch register(?SERVER_NAME, Self) of
 			      true ->
@@ -128,9 +129,27 @@ code_change() -> req(code_change).
 %%% Scrollable console window.
 %%%
 
-do_window(Name, _Ps) ->
-    {ok, Window} = req({window, wings_io:get_process_option(), []}),
-    wings_wm:new(Name, Window, {push, fun(_) -> keep end}).
+do_window(Name, Opts) ->
+    Title = ?STR(wc_open_window,1,"Wings3D Log"),
+    Font = ?GET(console_font_wx),
+    Size = case proplists:get_value(size, Opts) of
+	       undefined ->
+		   Width0  = wings_pref:get_value(console_width),
+		   Height0 = wings_pref:get_value(console_height),
+		   {CW,CH,_,_} = wxWindow:getTextExtent(?GET(top_frame), "W", [{theFont,Font}]),
+		   W = max(3 + (Width0*CW) + 3, 400),
+		   H = max(1 + (Height0*CH) + 4, 100),
+		   {W,H};
+	       SavedSize ->
+		   SavedSize
+	   end,
+    Pos = case proplists:get_value(pos, Opts) of
+	      undefined -> {-1, -1};
+	      SavedPos -> SavedPos
+	  end,
+    {Win, Ps} = wings_frame:make_win(Title, [{size, Size}, {pos, Pos}|Opts]),
+    {ok, Window} = req({window, wings_io:get_process_option(), Win, Font}),
+    wings_wm:toplevel(Name, Window, Ps, {push, fun(Ev) -> req({event, Ev}), keep end}).
 
 %%% I/O server ----------------------------------------------------------------
 
@@ -185,6 +204,9 @@ server_loop(#state{gmon=Gmon, win=Win}=State) ->
 	#wx{} = WxEvent ->
 	    NewState = wings_console_event(State, WxEvent),
 	    server_loop(NewState);
+	{'EXIT', _, _} ->
+	    %% Wings main process down die
+	    exit(normal);
 	Unknown ->
 	    io:format(?MODULE_STRING++?STR(server_loop,1,":~w Received unknown: ~p~n"),
 		      [?LINE,Unknown]),
@@ -304,24 +326,34 @@ put_chars_1([Line|NLs], Lines, Cnt, Save) ->
 %%% Wings console requests
 %%%
 
-wings_console_event(State, #wx{event=#wxClose{}}) ->
-    wings ! {external, fun(_) -> wings_wm:delete(?WIN_NAME) end},
+wings_console_event(State, #wx{event=#wxWindowDestroy{}}) ->
+    wings ! {wm, {delete, ?WIN_NAME}},
     State#state{win=undefined, ctrl=undefined};
 wings_console_event(#state{ctrl=Ctrl} = State, #wx{event=#wxSize{size={W0,H0}}}) ->
     {CW,CH,_,_} = wxWindow:getTextExtent(Ctrl, "W"),
     W=W0-6, H=H0-5,
     wings_pref:set_value(console_width, W div CW),
     wings_pref:set_value(console_height, H div CH),
+    State;
+wings_console_event(State, #wx{event=#wxMouse{}}=Ev) ->
+    wings_frame ! Ev,
     State.
 
-wings_console_request(State0, {window, WxEnv, Opts}) ->
+wings_console_request(State0, {window, WxEnv, Win, Font}) ->
     wings_io:set_process_option(WxEnv),
-    wc_open_window(State0, Opts);
+    wc_open_window(State0, Win, Font);
 wings_console_request(State, {setopts,Opts}) ->
     wc_setopts(State, Opts);
 wings_console_request(State, {getopts,Opts}) ->
     wc_getopts(State, Opts, []);
 wings_console_request(State, get_state) ->
+    {State,State};
+wings_console_request(State, {event, Ev}) ->
+    case Ev of
+	close -> wings ! {wm, {delete, ?WIN_NAME}};
+	_ -> %% io:format("~p: Got ~p~n",[?MODULE, Ev]),
+	    ignore
+    end,
     {State,State};
 wings_console_request(State, Request) ->
     {State,{error,{request,Request}}}.
@@ -340,36 +372,18 @@ wc_getopts(#state{save_lines=SaveLines}=State, [save_lines|Opts], R) ->
 wc_getopts(State, _, _) ->
     {State,{error,badarg}}.
 
-wc_open_window(#state{lines=Lines}=State, Opts) ->
-    Title = ?STR(wc_open_window,1,"Wings3D Log"),
-    Font = ?GET(console_font_wx),
-    Size = case proplists:get_value(size, Opts) of
-	       undefined ->
-		   Width0  = wings_pref:get_value(console_width),
-		   Height0 = wings_pref:get_value(console_height),
-		   {CW,CH,_,_} = wxWindow:getTextExtent(?GET(top_frame), "W", [{theFont,Font}]),
-		   W = max(3 + (Width0*CW) + 3, 400),
-		   H = max(1 + (Height0*CH) + 4, 100),
-		   {W,H};
-	       SavedSize ->
-		   SavedSize
-	   end,
-    Pos = case proplists:get_value(pos, Opts) of
-	      undefined -> {-1, -1};
-	      SavedPos -> SavedPos
-	  end,
-    Win = wxFrame:new(?GET(top_frame), ?wxID_ANY, Title, [{size, Size}, {pos, Pos}]),
-    Style = ?wxTE_MULTILINE bor ?wxTE_READONLY bor ?wxTE_RICH2,
-    Ctrl = wxTextCtrl:new(Win, ?wxID_ANY, [{style, Style}]),
+wc_open_window(#state{lines=Lines}=State, Win, Font) ->
+    TStyle = ?wxTE_MULTILINE bor ?wxTE_READONLY bor ?wxTE_RICH2,
+    Ctrl = wxTextCtrl:new(Win, ?wxID_ANY, [{style, TStyle}]),
 
     wxWindow:setFont(Ctrl, Font),
     wxWindow:setBackgroundColour(Ctrl, wings_color:rgb4bv(wings_pref:get_value(console_color))),
     wxWindow:setForegroundColour(Ctrl, wings_color:rgb4bv(wings_pref:get_value(console_text_color))),
     wxTextCtrl:appendText(Ctrl, [[Line,$\n] || Line <- queue:to_list(Lines)]),
-    wxFrame:show(Win),
-    wxFrame:connect(Win, close_window, [{skip, true}]),
-    wxFrame:connect(Win, size, [{skip, true}]),
-    {State#state{win=Win, ctrl=Ctrl}, {ok, Win}}.
+    wxWindow:connect(Ctrl, destroy, [{skip, true}]),
+    wxWindow:connect(Ctrl, size, [{skip, true}]),
+    wxWindow:connect(Ctrl, enter_window, [{userData, {win, Ctrl}}]),
+    {State#state{win=Win, ctrl=Ctrl}, {ok, Ctrl}}.
 
 %%% Other support functions
 %%%

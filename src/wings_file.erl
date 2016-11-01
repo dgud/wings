@@ -58,16 +58,17 @@ import_filename_1(Ps0, Cont) ->
     This = wings_wm:this(),
     Dir = wings_pref:get_value(current_directory),
     String = case os:type() of
-        {win32,_} -> "Import";
-        _Other    -> ?__(1,"Import")
-    end,
+		 {win32,_} -> "Import";
+		 _Other    -> ?__(1,"Import")
+	     end,
     Ps = Ps0 ++ [{title,String},{directory,Dir}],
     Fun = fun(Name0) ->
-          Name=test_unc_path(Name0),
+		  Name=test_unc_path(Name0),
 		  case catch Cont(Name) of
 		      {command_error,Error} ->
 			  wings_u:message(Error);
 		      #st{}=St ->
+			  set_cwd(dirname(Name)),
 			  wings_wm:send(This, {new_state,St});
 		      Tuple when is_tuple(Tuple) ->
 			  wings_wm:send(This, {action,Tuple});
@@ -92,11 +93,12 @@ export_filename_1(Prop0, Cont) ->
     Dir = wings_pref:get_value(current_directory),
     Prop = Prop0 ++ [{directory,Dir}],
     Fun = fun(Name0) ->
-          Name=test_unc_path(Name0),
+		  Name=test_unc_path(Name0),
 		  case catch Cont(Name) of
 		      {command_error,Error} ->
 			  wings_u:message(Error);
 		      #st{}=St ->
+			  set_cwd(dirname(Name)),
 			  wings_wm:send(This, {new_state,St});
 		      Tuple when is_tuple(Tuple) ->
 			  wings_wm:send(This, {action,Tuple});
@@ -563,7 +565,7 @@ init_autosave() ->
 	    Op = {seq,push,get_autosave_event(make_ref(), #st{saved=auto})},
 	    wings_wm:new(Name, {0,0,1}, {0,0}, Op),
 	    wings_wm:hide(Name),
-	    wings_wm:set_prop(Name, display_lists, geom_display_lists)
+	    wings_wm:set_dd(Name, geom_display_lists)
     end,
     wings_wm:send(Name, start_timer).
 

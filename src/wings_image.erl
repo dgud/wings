@@ -12,7 +12,7 @@
 %%
 
 -module(wings_image).
--export([init/1,init_opengl/0,
+-export([init/1,
 	 from_file/1,new/2,new_temp/2,new_hidden/2, create/1,
 	 rename/2,txid/1,info/1,images/0,
 	 screenshot/2,screenshot/1,viewport_screenshot/1,
@@ -35,8 +35,6 @@
 
 init(Opt) ->
     spawn_opt(fun() -> server(Opt) end, [link,{fullsweep_after,0}]).
-
-init_opengl() -> ok.
 
 %%%
 %%% Interface against plug-ins.
@@ -115,8 +113,16 @@ wxImage_to_e3d(Wx) ->
 		      order = upper_left
 		     },
     case wxImage:hasAlpha(Wx) of
-	true -> e3d_image:add_alpha(E3d0, wxImage:getAlpha(Wx));
-	false -> E3d0
+	true ->
+            e3d_image:add_alpha(E3d0, wxImage:getAlpha(Wx));
+	false ->
+            case wxImage:hasMask(Wx) of
+                true ->
+                    wxImage:initAlpha(Wx),
+                    e3d_image:add_alpha(E3d0, wxImage:getAlpha(Wx));
+                false ->
+                    E3d0
+            end
     end.
 
 %%%
@@ -269,6 +275,7 @@ req(Req, Notify) ->
 
 server(Opt) ->
     register(wings_image, self()),
+    process_flag(trap_exit, true),
     case Opt of
 	wings_not_running ->
 	    put(wings_not_running, true);
@@ -280,6 +287,9 @@ server(Opt) ->
 
 loop(S0) ->
     receive
+	{'EXIT', _Wings, _} ->
+	    %% Time to die
+	    exit(normal);
 	{Client,Ref,Req} ->
 	    case handle(Req, S0) of
 		{{error,_GlErr}=Err,S} ->
@@ -712,7 +722,7 @@ window(Id) ->
 	true ->
 	    wings_wm:raise(Name);
 	false ->
-	    wings_image_viewer:new(info(Id)),
+	    wings_image_viewer:new(Name, info(Id)),
 	    keep
     end.
 
@@ -736,10 +746,15 @@ draw_image(X, Y, W, H, TxId) ->
 %%%
 
 create_image() ->
-    Qs = [{hframe, [{vframe,[{label, ?__(1,"Width")},
-			     {label, ?__(2,"Height")}]},
-		    {vframe,[{text, 256,[{range,{8,1024}}]},
-			     {text, 256,[{range,{8,1024}}]}]}]},
+    Def = wings_pref:get_value(current_directory),
+    Ps = [{extensions,image_formats()},{multiple,false}],
+    Flags = [{props, Ps}],
+    Qs = [{label_column,
+           [{?__(0,"Import"), {button, {text, Def, Flags}}},
+            separator,
+            {?__(1,"Width"), {text, 256,[{range,{8,1024}}]}},
+            {?__(2,"Height"),{text, 256,[{range,{8,1024}}]}}
+           ]},
 	  {vradio,
 	   [{?__(4,"Grid"),grid},
 	    {?__(5,"Checkerboard"),checkerboard},
@@ -749,8 +764,13 @@ create_image() ->
 	    {?__(9,"Black"),black}],
 	   grid, [{title, ?__(3,"Pattern")}]}],
     wings_dialog:dialog(?__(10,"Create Image"), Qs,
-			fun([W,H,Pattern]) ->
-				create_image_1(Pattern, W, H),
+			fun([File, W,H,Pattern]) ->
+                                case filelib:is_regular(File) of
+                                    true  ->
+                                        from_file(File);
+                                    false ->
+                                        create_image_1(Pattern, W, H)
+                                end,
 				ignore
 			end).
 

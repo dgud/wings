@@ -19,17 +19,17 @@
 -include("wings.hrl").
 
 -ifdef(USE_WX).
--export([init/1, quit/0, version_info/0,
+-export([init/0, quit/0, version_info/0,
 	 set_cursor/1,hourglass/0,eyedropper/0,
 	 get_mouse_state/0, is_modkey_pressed/1, is_key_pressed/1,
 	 get_buffer/2, read_buffer/3, get_bin/1,
-	 is_maximized/0, maximize/0, set_title/1, set_icon/1,
+	 is_maximized/0, maximize/0, set_title/1, set_icon/2,
 	 get_process_option/0,set_process_option/1
 	]).
 -export([batch/1, foreach/2]).
 -export([change_event_handler/2, read_events/1]).
--export([reset_grab/0,grab/0,ungrab/2,is_grabbed/0,warp/2]).
--export([reset_video_mode_for_gl/2, swapBuffers/0]).
+-export([reset_grab/0,grab/1,ungrab/2,is_grabbed/0,warp/3]).
+-export([reset_video_mode_for_gl/2]).
 
 -export([make_key_event/1]).
 
@@ -37,17 +37,17 @@
 
 -import(wings_io, [put_state/1, get_state/0]).
 
-init(Icons) ->
+init() ->
     Cursors = build_cursors(),
-    put_state(#io{raw_icons=Icons,cursors=Cursors}).
+    ?SET(cursors, Cursors).
 
 quit() ->
-    Frame = get(top_frame),
+    Frame = ?GET(top_frame),
     wxFrame:destroy(Frame),
     wx:destroy().
 
 get_process_option() ->
-    Canvas = get(gl_canvas),
+    Canvas = ?GET(gl_canvas),
     What = [{wx:get_env(), Canvas}],
     What.
 set_process_option([{Env, Canvas}]) ->
@@ -58,12 +58,11 @@ set_process_option([{Env, Canvas}]) ->
 batch(Fun) ->  wx:batch(Fun).
 foreach(Fun, List) -> wx:foreach(Fun, List).
 
-
 is_maximized() ->
-    wxTopLevelWindow:isMaximized(get(top_frame)).
+    wxTopLevelWindow:isMaximized(?GET(top_frame)).
 
 maximize() ->
-    wxTopLevelWindow:maximize(get(top_frame)).
+    wxTopLevelWindow:maximize(?GET(top_frame)).
 
 reset_video_mode_for_gl(_W, _H) ->
     %% Needed on mac for some reason
@@ -72,17 +71,14 @@ reset_video_mode_for_gl(_W, _H) ->
     ok.
 
 set_title(Title) ->
-    wxTopLevelWindow:setTitle(get(top_frame), Title).
+    wxTopLevelWindow:setTitle(?GET(top_frame), Title).
 
-set_icon(IconBase) ->
+set_icon(Frame, IconBase) ->
     Bmp = wxImage:new(IconBase ++ ".png"),
     Bitmap = wxBitmap:new(Bmp),
     Icon = wxIcon:new(),
     wxIcon:copyFromBitmap(Icon, Bitmap),
-    wxFrame:setIcon(get(top_frame), Icon).
-
-swapBuffers() ->
-    wxGLCanvas:swapBuffers(get(gl_canvas)).
+    wxFrame:setIcon(Frame, Icon).
 
 version_info() ->
     Ver = io_lib:format("~p.~p.~p.~p",
@@ -126,7 +122,7 @@ blank(PreDef) ->
     end.
 
 set_cursor(CursorId) ->
-    #io{cursors=Cursors} = get_state(),
+    Cursors = ?GET(cursors),
     Cursor = proplists:get_value(CursorId, Cursors),
     wx_misc:setCursor(Cursor),
     put(active_cursor, CursorId),
@@ -135,12 +131,11 @@ set_cursor(CursorId) ->
 get_mouse_state() ->
     wx:batch(fun() ->
 		     MS = wx_misc:getMouseState(),
-		     #wxMouseState{x=X0, y=Y0,  %% integer()
+		     #wxMouseState{x=X, y=Y,  %% integer()
 				   leftDown=Left,
 				   middleDown=Middle,
 				   rightDown=Right %% bool()
 				  } = MS,
-		     {X,Y} = wxWindow:screenToClient(get(gl_canvas), {X0,Y0}),
 		     {gui_state([{Left,   ?SDL_BUTTON_LMASK},
 				 {Middle, ?SDL_BUTTON_MMASK},
 				 {Right,  ?SDL_BUTTON_RMASK}], 0), X, Y}
@@ -173,52 +168,54 @@ reset_grab() ->
     reset_grab(true).
 
 reset_grab(Release) ->
-    Io = get_state(),
-    put_state(Io#io{grab_count=0}),
-    %%sdl_mouse:showCursor(true),
+    case get_state() of
+	#io{grab_stack=[]} -> ignore;
+	#io{grab_stack=[Win|_]} = Io ->
+	    put_state(Io#io{grab_stack=[]}),
+	    Release andalso wxWindow:releaseMouse(Win)
+    end,
     put(wm_cursor, arrow),
-    set_cursor(arrow),
-    Release andalso wxWindow:releaseMouse(get(gl_canvas)).
+    set_cursor(arrow).
 
-grab() ->
+grab(Win) ->
     %%io:format("Grab mouse~n", []),
-    #io{grab_count=Cnt} = Io = get_state(),
-    %%sdl_mouse:showCursor(false),
-    put(wm_cursor, blank),
-    set_cursor(blank),
-    do_grab(Cnt),
-    put_state(Io#io{grab_count=Cnt+1}).
-
-do_grab(0) ->
-    wxWindow:captureMouse(get(gl_canvas));
-do_grab(_N) -> ok.
+    case get_state() of
+	#io{grab_stack=[]} = Io ->
+	    put(wm_cursor, blank),
+	    set_cursor(blank),
+	    wxWindow:captureMouse(Win),
+	    put_state(Io#io{grab_stack=[Win]});
+	#io{grab_stack=[Win|_]=Stack} = Io ->
+	    put_state(Io#io{grab_stack=[Win|Stack]});
+	#io{grab_stack=[Other|_]} ->
+	    exit({mouse_grabbed_by_other_window,Other,Win})
+    end.
 
 ungrab(X, Y) ->
     %%io:format("UNGRAB mouse~n", []),
     case get_state() of
-	#io{grab_count=0} -> no_grab;
-	#io{grab_count=Cnt}=Io ->
-	    put_state(Io#io{grab_count=Cnt-1}),
-	    case Cnt-1 of
-		0 ->
-		    wxWindow:releaseMouse(get(gl_canvas)),
-		    warp(X, Y),
-		    put(wm_cursor, arrow),
-		    set_cursor(arrow),
-		    no_grab;
-		_ ->
-		    still_grabbed
-	    end
+	#io{grab_stack=[]} -> no_grab;
+	#io{grab_stack=[Win]}=Io ->
+	    wxWindow:releaseMouse(Win),
+	    warp(Win, X, Y),
+	    put(wm_cursor, arrow),
+	    set_cursor(arrow),
+	    put_state(Io#io{grab_stack=[]}),
+	    no_grab;
+	#io{grab_stack=[_Win|Stack]}=Io ->
+	    put_state(Io#io{grab_stack=Stack}),
+	    still_grabbed
     end.
 
 is_grabbed() ->
     case get_state() of
-	#io{grab_count=0} -> false;
+	#io{grab_stack=[]} -> false;
 	_ -> true
     end.
 
-warp(X, Y) ->
-    wxWindow:warpPointer(get(top_frame), X, Y).
+warp(Win, X, Y) ->
+    put(mouse_warp, {X,Y}),
+    wxWindow:warpPointer(Win, X, Y).
 
 %%% Memory
 get_buffer(Size,Type) ->
@@ -246,14 +243,14 @@ get_bin(Buff) ->
 %%% Input.
 %%%
 
-change_event_handler(?SDL_KEYUP, ?SDL_ENABLE) ->
+change_event_handler(?SDL_KEYUP, true) ->
     case get_state() of
-	#io{key_up=true} -> false;
+	#io{key_up=true} -> ok;
 	Io -> put_state(Io#io{key_up=true})
     end;
-change_event_handler(?SDL_KEYUP, ?SDL_IGNORE) ->
+change_event_handler(?SDL_KEYUP, false) ->
     case get_state() of
-	#io{key_up=false} -> false;
+	#io{key_up=false} -> ok;
 	Io -> put_state(Io#io{key_up=false})
     end.
 
@@ -273,18 +270,37 @@ read_events(Eq0) ->
 
 read_events(Eq0, Prev, Wait) ->
     receive
-	#wx{event=#wxMouse{type=motion} = Ev} ->
-	    read_events(Eq0, Ev, 0);
+	#wx{event=#wxMouse{type=motion,x=X,y=Y}} = Ev ->
+	    case erase(mouse_warp) of
+		{X,Y} -> read_events(Eq0, Prev, Wait);
+		_ ->  read_events(Eq0, Ev, 0+1)
+	    end;
 	#wx{} = Ev ->
 	    read_events(q_in(Ev, q_in(Prev, Eq0)), undefined, 0);
 	{timeout,Ref,{event,Event}} when is_reference(Ref) ->
 	    {Event, q_in(Prev, Eq0)};
+	{lock, Pid} -> %% Order ?
+	    Pid ! {locked, self()},
+	    F = fun GetUnlock () ->
+			receive {unlock, Pid, Fun} -> Fun()
+			after 2000 ->
+				io:format("~p: waiting for unlock from ~p~n", [self(), Pid]),
+				GetUnlock()
+			end
+		end,
+	    F(),
+	    read_events(Eq0, Prev, 0);
+        {'_wxe_error_', Op, Error} ->
+            [{_,{M,F,A}}] = ets:lookup(wx_debug_info,Op),
+	    Msg = io_lib:format("~p in ~w:~w/~w", [Error, M, F, A]),
+	    wxe_master ! {wxe_driver, error, Msg},
+            read_events(Eq0, Prev, Wait);
 	External ->
 	    read_events(q_in(External, q_in(Prev, Eq0)), undefined, 0)
     after Wait ->
 	    case read_one(q_in(Prev, Eq0)) of
-		{#wxMouse{type=motion} = Ev, Eq} ->
-		    get_motion(Ev, Eq); % Throw old motions
+		{#wx{event=#wxMouse{type=motion}} = Ev, Eq} ->
+		    {wx_translate(Ev),Eq};
 		{empty, Eq} ->
 		    read_events(Eq, undefined, infinity);
 		{Ev, Eq} ->
@@ -297,11 +313,6 @@ q_in(Ev, Eq) -> queue:in(Ev, Eq).
 
 read_one(Eq0) ->
     case queue:out(Eq0) of
-	{{value,#wxMouse{type=motion}=Event},Eq} ->
-	    case put(prev_mouse, Event) of
-		Event -> read_one(Eq);
-		_ -> {Event, Eq}
-	    end;
 	{{value,#wx{event=#wxKey{type=key_up}}=Event},Eq} ->
 	    case get_state() of
 		#io{key_up=true} -> {Event, Eq};
@@ -313,23 +324,15 @@ read_one(Eq0) ->
 	    Empty
     end.
 
-get_motion(Motion, Eq0) ->
-    case read_one(Eq0) of
-	{New=#wxMouse{type=motion},Eq} ->
-	    get_motion(New, Eq);
-	_Other ->
-	    {wx_translate(Motion),Eq0}
-    end.
-
 % Resize window causes all strange of events and order
 % on different platforms
-filter_resize(#wx{event=#wxSize{}}=Ev0, Eq0) ->
+filter_resize(#wx{obj=Obj, event=#wxSize{}}=Ev0, Eq0) ->
     case queue:out(Eq0) of
 	{{value, #wx{event=#wxPaint{}}}, Eq} ->
 	    filter_resize(Ev0, Eq);
-	{{value, #wx{event=#wxSize{}}=Ev}, Eq} ->
+	{{value, #wx{obj=Obj, event=#wxSize{}}=Ev}, Eq} ->
 	    filter_resize(Ev, Eq);
-	{{value, #wx{event=#wxActivate{}}}, Eq} ->
+	{{value, #wx{event=#wxActivate{active=true}}}, Eq} ->
 	    filter_resize(Ev0, Eq);
 	_ ->
 	    {wx_translate(Ev0), Eq0}
@@ -340,7 +343,7 @@ filter_resize(#wx{event=#wxPaint{}}=Ev0, Eq0) ->
 	    filter_resize(Ev0, Eq);
 	{{value, #wx{event=#wxSize{}}=Ev}, Eq} ->
 	    filter_resize(Ev, Eq);
-	{{value, #wx{event=#wxActivate{}}}, Eq} ->
+	{{value, #wx{event=#wxActivate{active=true}}}, Eq} ->
 	    filter_resize(Ev0, Eq);
 	_ ->
 	    {wx_translate(Ev0), Eq0}
@@ -351,8 +354,6 @@ filter_resize(#wx{event=#wxActivate{}}=Ev0, Eq0) ->
 	{{value, #wx{event=#wxPaint{}}}, Eq} ->
 	    filter_resize(Ev0, Eq);
 	{{value, #wx{event=#wxSize{}}=Ev}, Eq} ->
-	    filter_resize(Ev, Eq);
-	{{value, #wx{event=#wxActivate{}}=Ev}, Eq} ->
 	    filter_resize(Ev, Eq);
 	_ ->
 	    {wx_translate(Ev0), Eq0}
@@ -365,44 +366,26 @@ wx_translate(Event) ->
     %%erlang:display(R),
     R.
 
-wx_translate_1(Ev=#wxMouse{}) ->
-    sdl_mouse(Ev); % Motion
-wx_translate_1(#wx{event=Ev=#wxMouse{}}) ->
+wx_translate_1(#wx{event=#wxMouse{}}=Ev) ->
     sdl_mouse(Ev); % Mouse Buttons
-wx_translate_1(#wx{event=Ev=#wxKey{}}) ->
+wx_translate_1(#wx{event=#wxKey{}}=Ev) ->
     R = sdl_key(Ev),
     %% erlang:display({sdlkey, R}),
     R;
-wx_translate_1(#wx{event=#wxPaint{}}) ->
-    #expose{active=true};
-wx_translate_1(#wx{event=#wxSize{size={W,H}}}) ->
-    #resize{w=W,h=H};
-wx_translate_1(#wx{id=Id, event=#wxCommand{type=command_menu_selected}}) ->
-    Name = wings_menu:id_to_name(Id),
-    ME = case ets:match(wings_state, {{bindkey,'$1'}, Name, '_'}) of
-	     [] -> {menubar, {action, Name}};
-	     [[KeyComb]|_] -> make_key_event(KeyComb)
-	 end,
-    %% io:format("ME ~p~n",[ME]),
-    ME;
 wx_translate_1(#wx{event={wxMouseCaptureLost, _}}) ->
     reset_grab(false),
     grab_lost;
-wx_translate_1(#wx{event=#wxActivate{active=Active}}) ->
-    Active == true andalso wxWindow:setFocus(get(gl_canvas)),
-    #expose{active=Active};
-wx_translate_1(#wx{event=#wxClose{}}) ->
-    {quit};
 wx_translate_1(Ev) ->
     Ev.
 
-sdl_mouse(M=#wxMouse{type=Type,
-		     x = X, y = Y,
-		     leftDown=Left, middleDown=Middle, rightDown=Right,
-		     controlDown = Ctrl, shiftDown = Shift,
-		     altDown = Alt,      metaDown = Meta,
-		     wheelRotation=Wheel
-		    }) ->
+sdl_mouse(M=#wx{obj=Obj,
+		event=#wxMouse{ type=Type,
+				x = X, y = Y,
+				leftDown=Left, middleDown=Middle, rightDown=Right,
+				controlDown = Ctrl, shiftDown = Shift,
+				altDown = Alt,      metaDown = Meta,
+				wheelRotation=Wheel
+			      }}) ->
     ModState = translate_modifiers(Shift, Ctrl, Alt, Meta),
     case Type of
 	motion ->
@@ -410,29 +393,29 @@ sdl_mouse(M=#wxMouse{type=Type,
 		     {Middle, ?SDL_BUTTON_MMASK},
 		     {Right,  ?SDL_BUTTON_RMASK}],
 	    MouseState = gui_state(Mouse, 0),
-	    #mousemotion{which=0, state=MouseState, mod=ModState,
+	    #mousemotion{which=Obj, state=MouseState, mod=ModState,
 			 x=X,y=Y, xrel=0, yrel=0};
 	left_down ->
 	    #mousebutton{button=?SDL_BUTTON_LEFT, state=?SDL_PRESSED,
-			 which=0, mod=ModState, x=X,y=Y};
+			 which=Obj, mod=ModState, x=X,y=Y};
 	left_up ->
 	    #mousebutton{button=?SDL_BUTTON_LEFT, state=?SDL_RELEASED,
-			 which=0, mod=ModState, x=X,y=Y};
+			 which=Obj, mod=ModState, x=X,y=Y};
 	middle_down ->
 	    #mousebutton{button=?SDL_BUTTON_MIDDLE, state=?SDL_PRESSED,
-			 which=0, mod=ModState, x=X,y=Y};
+			 which=Obj, mod=ModState, x=X,y=Y};
 	middle_up ->
 	    #mousebutton{button=?SDL_BUTTON_MIDDLE, state=?SDL_RELEASED,
-			 which=0, mod=ModState, x=X,y=Y};
+			 which=Obj, mod=ModState, x=X,y=Y};
 	right_down ->
 	    #mousebutton{button=?SDL_BUTTON_RIGHT, state=?SDL_PRESSED,
-			 which=0, mod=ModState, x=X,y=Y};
+			 which=Obj, mod=ModState, x=X,y=Y};
 	right_up ->
 	    #mousebutton{button=?SDL_BUTTON_RIGHT, state=?SDL_RELEASED,
-			 which=0, mod=ModState, x=X,y=Y};
+			 which=Obj, mod=ModState, x=X,y=Y};
 	left_dclick ->
 	    #mousebutton{button=?SDL_BUTTON_LEFT, state=?SDL_PRESSED,
-			 which=0, mod=ModState, x=X,y=Y};
+			 which=Obj, mod=ModState, x=X,y=Y};
 
 	mousewheel ->
 	    Butt = case Wheel > 0 of
@@ -440,14 +423,14 @@ sdl_mouse(M=#wxMouse{type=Type,
 		       false -> ?SDL_BUTTON_X2
 		   end,
 	    #mousebutton{button=Butt, state=?SDL_RELEASED,
-			 which=0, mod=ModState, x=X,y=Y};
+			 which=Obj, mod=ModState, x=X,y=Y};
 	enter_window -> M;
 	leave_window -> M
     end.
 
-sdl_key(#wxKey{type=Type,controlDown = Ctrl, shiftDown = Shift,
-	       altDown = Alt, metaDown = Meta,
-	       keyCode = Code, uniChar = Uni0, rawCode = Raw}) ->
+sdl_key(#wx{obj=Obj, event=#wxKey{type=Type,controlDown = Ctrl, shiftDown = Shift,
+				  altDown = Alt, metaDown = Meta,
+				  keyCode = Code, uniChar = Uni0, rawCode = Raw}}) ->
     ModState = translate_modifiers(Shift, Ctrl, Alt, Meta),
 
     %% key_down events are always uppercase
@@ -464,7 +447,7 @@ sdl_key(#wxKey{type=Type,controlDown = Ctrl, shiftDown = Shift,
 		 end,
     %% io:format("EV ~p: ~p ~p ~p ~p ~p ~p => ~p ~p ~n",
     %% 	      [Type, Ctrl, Shift, Alt, Meta, Code, Uni0, Sym, Uni]),
-    #keyboard{which=0, state=Pressed, scancode=Raw, unicode=Uni,
+    #keyboard{which=Obj, state=Pressed, scancode=Raw, unicode=Uni,
 	      mod=ModState, sym=Sym}.
 
 translate_modifiers(Shift, Ctrl, Alt, Meta) ->
@@ -494,7 +477,7 @@ make_key_event({Key, Mods}) ->
 	  end,
     ModState = gui_state([Map(Mod) || Mod <- Mods], 0),
     %% io:format("make key {~p, ~p} => ~p ~n",[Key, Mods, ModState]),
-    #keyboard{which=menubar, state=true, unicode=Key, mod=ModState, sym=Key};
+    #keyboard{which=menubar, state=?SDL_PRESSED, unicode=Key, mod=ModState, sym=Key};
 make_key_event(Key) when is_integer(Key) ->
     make_key_event({Key, []}).
 

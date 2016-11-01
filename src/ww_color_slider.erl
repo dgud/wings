@@ -13,13 +13,15 @@
 -behaviour(wx_object).
 %% Callbacks
 -export([init/1, terminate/2, code_change/3,
-	 handle_event/2, handle_cast/2, handle_info/2,
+	 handle_sync_event/3, handle_event/2, handle_cast/2, handle_info/2,
 	 handle_call/3]).
 
 %% API
--export([new/3, new/4, getColor/1, setColor/2]).
+-export([new/3, new/4, getColor/1, setColor/2, connect/2, connect/3]).
 
--compile(export_all).
+-ifdef(DEBUG).
+-export([test/0]). % Test
+-endif.
 
 new(Parent, Id, Col) ->
     new(Parent, Id, Col, []).
@@ -184,11 +186,11 @@ handle_event(#wx{event=#wxMouse{type=motion, x=X}},
 
 handle_event(#wx{event=#wxMouse{type=left_down, x=X}},
 	     #state{this=This, mode=Mode, curr=Curr, capture=false} = State0) ->
-    wxPanel:setFocus(This),
+    %% wxPanel:setFocus(This),  %% crashes on win64 when in autouv..
     wxPanel:captureMouse(This),
     State = State0#state{curr=slider_pos(This, X, Mode, Curr), capture=true},
     [apply_callback(H, get_curr_color(State)) || H <- State#state.handlers],
-    {noreply, State};
+    {noreply, State#state{focus=true}};
 handle_event(#wx{event=#wxMouse{type=left_up}},
 	     #state{this=This, capture=Captured} = State) ->
     Captured andalso wxPanel:releaseMouse(This),
@@ -334,7 +336,7 @@ rgb() ->
 alpha() ->
     <<0,0,171,188,186,176,198,224,226,226,227,242,132,0,0,0,168,252,255,255,255,255,255,255,255,255,255,219,33,0,0,184,255,255,255,255,255,255,255,255,255,255,253,126,0,0,184,255,255,255,249,182,200,251,255,255,255,255,119,0,0,184,255,255,255,130,5,12,118,255,255,255,255,142,0,0,184,254,255,255,5,0,1,16,255,255,255,255,140,0,4,184,244,255,255,5,1,0,47,255,255,255,254,127,0,0,184,244,255,255,13,0,0,51,255,255,255,255,119,0,0,184,254,255,255,11,0,0,32,255,255,255,254,119,0,0,184,254,255,255,44,0,1,40,255,255,255,255,119,0,0,184,244,255,255,44,0,0,16,255,255,255,255,119,0,0,184,243,255,255,51,0,0,27,255,255,255,255,119,0,0,184,244,255,255,93,0,0,58,255,255,255,255,119,0,0,119,254,255,255,162,1,1,159,255,255,255,255,119,0,0,130,255,255,255,247,167,165,246,255,255,255,255,124,0,0,119,184,255,255,255,255,255,255,255,255,255,255,119,0,0,0,119,184,255,255,255,255,255,255,255,254,184,0,0,0,2,0,119,184,255,255,255,255,255,253,217,0,22,0,0,0,5,0,119,184,255,255,253,226,155,17,0,0,0,0,0,0,0,2,119,184,255,184,94,3,0,0,0,0>>.
 
-
+-ifdef(DEBUG).
 test() ->
     process_flag(trap_exit, true),
     Pid = spawn_link(fun() -> run_test() end),
@@ -371,4 +373,4 @@ run_test() ->
     exit(ok).
 
 rgb({R,G,B,_}) -> {R/255, G/255, B/255}.
-
+-endif.

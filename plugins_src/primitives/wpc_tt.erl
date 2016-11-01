@@ -79,36 +79,37 @@ make_text(Ask, St) when is_atom(Ask) ->
     Bisect = wpa:pref_get(wpc_tt, bisections, 0),
     GbtFonts = process_ttfs(FontDir),
     %% io:format("FontList: ~p\n\n",[gb_trees:to_list(GbtFonts)]),
-    Dlg = [{vframe,
-	    [{hframe,
-	      [{vframe,
-		[{label,?__(2,"Text")},
-		 {label,?__(5,"Number of edge bisections")},
-		 {label,?__(3,"TrueType font")}]},
-	       {vframe,
-		[{text,Text,[{key,{wpc_tt,text}}]},
-		 {slider,{text,Bisect,[{key,{wpc_tt,bisections}},
-				       {range, {0, 3}}]}},
-		 {fontpicker,FontInfo,[{key,{wpc_tt,font}}]}]},
-	       {vframe,[help_button()]}]}]}],
+    Dlg =
+    	[{vframe, [
+	    {hframe,[
+	    	{label, ?__(2,"Text")},
+		{text,Text,[{key,{wpc_tt,text}}]},
+		help_button()
+		]},
+	    {label_column, [
+		{?__(5,"Number of edge bisections"),{slider,{text,Bisect,[{key,{wpc_tt,bisections}},{range,{0,3}}]}}},
+		{?__(3,"TrueType font"), {fontpicker,FontInfo,[{key,{wpc_tt,font}}]}}]},
+	    wings_shapes:transform_obj_dlg()
+	],[{margin,false}]
+	 }],
     wings_dialog:dialog(Ask,?__(1,"Create Text"), {preview, Dlg},
-			fun({dialog_preview,[T,N,{_,Ctrl}]=_Res}) ->
+			fun({dialog_preview,[T,N,{_,Ctrl},RX,RY,RZ,MX,MY,MZ,Grnd]=_Res}) ->
 				{_, FPath} = get_font_file(GbtFonts,Ctrl),
-				{preview,{shape,{text,[T,N,{fontdir,FPath}]}},St};
+				{preview,{shape,{text,[T,N,{fontdir,FPath},RX,RY,RZ,MX,MY,MZ,Grnd]}},St};
 			   (cancel) ->
 				St;
-			   ([T,N,{_,WxFont}]=_Res) when is_tuple(WxFont) ->
+			   ([T,N,{_,WxFont},RX,RY,RZ,MX,MY,MZ,Grnd]=_Res) when is_tuple(WxFont) ->
 				{NewFontI, FPath} = get_font_file(GbtFonts,WxFont),
 				wpa:pref_set(wpc_tt, fontname, NewFontI),
 				wpa:pref_set(wpc_tt, text, element(2,T)),
 				wpa:pref_set(wpc_tt, bisections, element(2,N)),
-				{commit,{shape,{text,[T,N,{fontdir,FPath}]}},St}
+				{commit,{shape,{text,[T,N,{fontdir,FPath},RX,RY,RZ,MX,MY,MZ,Grnd]}},St}
 			end);
 
-make_text([{_,T},{_,N},{_,DirFont}], _) ->
+make_text([{_,T},{_,N},{_,DirFont}|Transf], _) ->
     F = filename:basename(DirFont),
     D = filename:dirname(DirFont),
-    gen(F, D, T, N).
+    gen(F, D, T, N, Transf).
 
 help_button() ->
     Title = ?__(1,"Browsing for Fonts on Windows"),
@@ -119,12 +120,13 @@ help() ->
     [?__(1,"Only TrueType fonts can be used and they must be"
 	 "installed in standard operating system directory for fonts.")].
 
-gen(_Font, _Dir, "", _Nsubsteps) ->
+gen(_Font, _Dir, "", _Nsubsteps, _Transf) ->
     keep;
-gen(Font, Dir, Text, Nsubsteps) ->
+gen(Font, Dir, Text, Nsubsteps, Transf) ->
     File = font_file(Font, Dir),
     case catch trygen(File, Text, Nsubsteps) of
-	{new_shape,Name,Fs0,Vs,He} ->
+	{new_shape,Name,Fs0,Vs0,He} ->
+	    Vs = wings_shapes:transform_obj(Transf, Vs0),
 	    Fs = [#e3d_face{vs=Vsidx} || Vsidx <- Fs0],
 	    Mesh = #e3d_mesh{type=polygon, vs=Vs, fs=Fs, he=He},
 	    {new_shape, Name, #e3d_object{obj=Mesh}, []};

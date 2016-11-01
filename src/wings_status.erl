@@ -56,17 +56,19 @@ init([Frame]) ->
 handle_event(_Ev, State) ->
     {noreply, State}.
 
-handle_cast({message, Win, Left, Right}, State = #state{sb=SB, prev=Prev, msgs=GB0}) ->
+handle_cast({message, Win, Left, Right}, #state{sb=SB, prev=Prev, msgs=GB0}=State) ->
     GB = case gb_trees:lookup(Win, GB0) of
 	     none ->
 		 gb_trees:insert(Win, {str(Left,""), str(Right,"")}, GB0);
 	     {value, {OldL, OldR}} ->
 		 gb_trees:update(Win, {str(Left, OldL), str(Right, OldR)}, GB0)
 	 end,
-    {noreply, State#state{msgs=GB, prev = update_status(gb_trees:lookup(Win, GB), Prev, SB)}}.
+    {noreply, State#state{msgs=GB, prev=update_status(gb_trees:lookup(Win, GB), Prev, SB)}};
+handle_cast({active, Win}, #state{sb=SB, prev=Prev, msgs=GB}=State) ->
+    {noreply, State#state{prev=update_status(gb_trees:lookup(Win, GB), Prev, SB)}}.
 
 handle_call(_Call, _From, State) ->
-    io:format("Call ~p~n",[_Call]),
+    %% io:format("Call ~p~n",[_Call]),
     {reply, keep, State}.
 
 handle_info(_, State) ->
@@ -93,7 +95,7 @@ update_status({value, Text = {_, Right}}, _Prev, SB) ->
 			      {win32, nt} -> 40;
 			      _ -> 10
 			  end,
-		  min(TW+Extra, WW div 3)
+		  min(TW+Extra, WW div 2)
 	  end,
     wxStatusBar:setStatusWidths(SB, [-1, RSz]),
     set_status(Text, SB).
@@ -108,4 +110,14 @@ set_status(Msgs={Left, Right}, SB) ->
     Msgs.
 
 str(undefined, Old) -> Old;
-str(New, _) -> wings_menu:str_clean(New).
+str(New, _) -> str_clean(New).
+
+str_clean([Char|Cs]) when is_integer(Char) ->
+    [Char|str_clean(Cs)];
+str_clean([List|Cs]) when is_list(List) ->
+    [str_clean(List)|str_clean(Cs)];
+str_clean([{bold,Str}|Cs]) ->
+    [$*,str_clean(Str),$*|str_clean(Cs)];
+str_clean([{_,Str}|Cs]) ->
+    [str_clean(Str)|str_clean(Cs)];
+str_clean([]) -> [].

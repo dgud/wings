@@ -41,16 +41,16 @@
 
 init() ->
     ets:new(wings_seen_plugins, [named_table,public,ordered_set]),
-    put(wings_plugins, []),
+    ?SET(wings_plugins, []),
     put(wings_ui, def_ui_plugin()),
     case try_dir(wings_util:lib_dir(wings), "plugins") of
 	none -> ok;
 	PluginDir -> init_dir(PluginDir)
     end,
     wings_pref:set_default(disabled_plugins, []),
-    AllPlugins = get(wings_plugins),
+    AllPlugins = ?GET(wings_plugins),
     put(wings_all_plugins, AllPlugins),
-    put(wings_plugins, AllPlugins -- wings_pref:get_value(disabled_plugins)),
+    ?SET(wings_plugins, AllPlugins -- wings_pref:get_value(disabled_plugins)),
     ok.
 
 call_ui(What) ->
@@ -59,7 +59,7 @@ call_ui(What) ->
 
 menu(Name, Menu0) ->
     Menu = manager_menu(Name, Menu0),
-    menu_1(get(wings_plugins), Name, Menu).
+    menu_1(?GET(wings_plugins), Name, Menu).
 
 menu_1([M|Ps], Name, Menu0) ->
     case catch M:menu(Name, Menu0) of
@@ -73,7 +73,7 @@ menu_1([], _Name, Menu) -> Menu.
 
 
 dialog(Dialog, Ps) when is_list(Ps) ->
-    dialog_1(Dialog, Ps, get(wings_plugins)).
+    dialog_1(Dialog, Ps, ?GET(wings_plugins)).
 
 dialog_1(Dialog, Ps, [M|Tail]) ->
     case catch M:dialog(Dialog, Ps) of
@@ -104,7 +104,7 @@ check_dialog([{Name, []}|Rest], Mod)
 check_dialog([], _) -> [].
 
 dialog_result(Dialog, Ps) when is_tuple(Dialog), is_list(Ps) ->
-    dialog_result1(Dialog, Ps, get(wings_plugins)).
+    dialog_result1(Dialog, Ps, ?GET(wings_plugins)).
 
 dialog_result1(Dialog, Ps, [M|Tail]) ->
     case catch M:dialog(Dialog, Ps) of
@@ -124,7 +124,7 @@ dialog_result1(Dialog, Ps, []) ->
     {element(tuple_size(Dialog), Dialog),Ps}.
 
 command(Cmd, St) ->
-    Ps = get(wings_plugins),
+    Ps = ?GET(wings_plugins),
     case manager_command(Cmd, St) of
 	next -> command(Ps, Cmd, St);
 	Other ->
@@ -175,7 +175,7 @@ init_plugin(user_interface, M) ->
 init_plugin(_, M) ->
     case catch M:init() of
 	true ->
-	    put(wings_plugins, [M|get(wings_plugins)]);
+	    ?SET(wings_plugins, [M|?GET(wings_plugins)]);
 	false ->
 	    ok;
 	Other ->
@@ -388,7 +388,8 @@ manager_command({edit,plugin_manager}, St) ->
     Cps = wings_util:rel2fam(Cps0),
     Fun = fun(Res) -> 
 		  Disabled = [M || {M,false} <- Res],
-		  put(wings_plugins, Ps -- Disabled),
+		  ?SET(wings_plugins, Ps -- Disabled),
+		  update_menus(Cps, Disabled),
 		  update_disabled(Disabled, St)
 	  end,
     Dialog = mk_dialog(Cps, false),
@@ -406,6 +407,44 @@ update_disabled(Disabled, St) ->
 	    St#st{repeatable=ignore}
     end.
 
+update_menus(Ps, Disabled) ->
+    DisabledS = sets:from_list(Disabled),
+    ToUpdate =
+	lists:foldr(fun({Category, Plugins}, Acc) ->
+	    PluginsS = sets:from_list(Plugins),
+	    case sets:to_list(sets:intersection(PluginsS,DisabledS)) of
+		[] -> Acc;
+		Acc0 -> Acc ++[{Category,Acc0}]
+	    end
+	end, [], Ps),
+    update_plugin_menus(ToUpdate).
+
+update_plugin_menus([]) -> ignore;
+update_plugin_menus([{Category, Ms}|Cps]) ->
+    [update_menu_category(Category, M) || M <- Ms],
+    update_plugin_menus(Cps).
+
+update_menu_category(_, []) -> ignore;
+update_menu_category(_, M) ->
+    Items = collect_menus([{file,render},{file,import},{file,export},{file,export_selected},
+			   {edit},{view},{select},{tools},{window},{help}], M),
+    [delete_menu_item(Item) || Item <- Items].
+
+
+delete_menu_item({{Menu},{_,SubMenu,_}}) ->
+    delete_menu_item(Menu, SubMenu, ignore);
+delete_menu_item({{Menu},{_,{SubMenu,_}}}) ->
+    delete_menu_item(Menu, SubMenu, ignore);
+delete_menu_item({{Menu,SubMenu},{_,Tag}}) ->
+    delete_menu_item(Menu, SubMenu, Tag);
+delete_menu_item({{Menu,SubMenu},{_,Tag,_}}) ->
+    delete_menu_item(Menu, SubMenu, {Tag,true}).
+
+delete_menu_item(Menu, SubMenu, ignore) ->
+    wings_menu:update_menu(Menu,SubMenu, delete);
+delete_menu_item(Menu, SubMenu, Tag) ->
+    wings_menu:update_menu(Menu, {SubMenu, Tag}, delete).
+
 mk_dialog(Cs, _Min) ->
     [{oframe,mk_dialog_1(Cs),1,[{style,buttons}]}].
 
@@ -418,7 +457,7 @@ plugin_modules(C, Ms) ->
 	       ?__(2,"(a disbled plug-in does not show up in menus)")},
 	  {proportion, 1}],
     {vframe,
-     [{hframe, [{atom_to_list(M), member(M, get(wings_plugins)), [{key,M}|Ps]},
+     [{hframe, [{atom_to_list(M), member(M, ?GET(wings_plugins)), [{key,M}|Ps]},
 		plugin_info(C,M)]}
       || M <- Ms]}.
 
@@ -661,7 +700,7 @@ check_plugin_against_flag(Flag, PData, Plugin, Acc) ->
 % It allows wings.erl module get/set the plugin window/s information (if there is/are any)
 % See wpc_sel_win.erl as an example.
 get_win_data(WinName) ->
-    Ps = get(wings_plugins),
+    Ps = ?GET(wings_plugins),
     get_win_data_1(Ps, WinName).
 
 %% win_data/1 function allows many plugin's windows to be saved.
@@ -674,7 +713,7 @@ get_win_data_1([M|Ps], WinName) ->
 get_win_data_1([], _) -> none.
 
 restore_window(M, WinName, Pos, Size, CtmData, St) ->
-    Ps = get(wings_plugins),
+    Ps = ?GET(wings_plugins),
     case module_found(M,Ps) of
 	true ->
 	    catch M:window(WinName, Pos, Size, CtmData, St),

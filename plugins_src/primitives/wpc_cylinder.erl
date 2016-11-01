@@ -41,34 +41,32 @@ command(_, _) -> next.
 %%%
 
 cylinder_dialog() ->
-    [{hframe,
-        [{vframe,
-           [{label,?__(1,"Sections")},
-            {label,?__(2,"Height")},
-            separator,
-            {label,?__(3,"Top X Radius")},
-            {label,?__(4,"Top Z Radius")},
-            separator,
-            {label,?__(5,"Bottom X Radius")},
-            {label,?__(6,"Bottom Z Radius")}]},
-         {vframe,
-           [{text,16,[{key,sections},{range,{3,infinity}}]},
-            {text,2.0,[{key,height},{range,{0.0,infinity}}]},
-            separator,
-            {text,1.0,[{key,top_x},{range,{0.0,infinity}}]},
-            {text,1.0,[{key,top_z},{range,{0.0,infinity}}]},
-            separator,
-            {text,1.0,[{key,bottom_x},{range,{0.0,infinity}}]},
-            {text,1.0,[{key,bottom_z},{range,{0.0,infinity}}]}]}]},
-        separator,
-        {vradio,
-           [{cylinder(),cylinder},
-            {?__(8,"Tube"),tube},
-            {?__(9,"Gear"),gear}],
-            cylinder,
-            [{key,cylinder_type},{title,?__(10,"Cylinder Type")}]},
-            {hframe,[{label,?__(11,"Thickness")},
-            {text,0.25,[{key,thickness},{range,{0.0,infinity}}]}]}].
+    Hook = fun(Var, Val, Sto) ->
+	case Var of
+	    cylinder_type ->
+		wings_dialog:enable(thickness, Val=/=cylinder, Sto);
+	    _ -> ok
+	end
+    end,
+
+    [{label_column, [
+	{?__(1,"Sections"), {text,16,[{key,sections},{range,{3,infinity}}]}},
+	{?__(2,"Height"), {text,2.0,[{key,height},{range,{0.0,infinity}}]}},
+	{" ", separator},
+	{?__(3,"Top X Radius"), {text,1.0,[{key,top_x},{range,{0.0,infinity}}]}},
+	{?__(4,"Top Z Radius"), {text,1.0,[{key,top_z},{range,{0.0,infinity}}]}},
+	{" ", separator},
+	{?__(5,"Bottom X Radius"), {text,1.0,[{key,bottom_x},{range,{0.0,infinity}}]}},
+	{?__(6,"Bottom Z Radius"), {text,1.0,[{key,bottom_z},{range,{0.0,infinity}}]}}]
+     },
+     {hradio, [
+	{cylinder(),cylinder},
+	{?__(8,"Tube"),tube},
+	{?__(9,"Gear"),gear}],
+		cylinder, [{key,cylinder_type},{hook, Hook},{title,?__(10,"Cylinder Type")}]},
+     {label_column,[
+	 {?__(11,"Thickness"), {text,0.25,[{key,thickness},{range,{0.0,infinity}}]}}]},
+     wings_shapes:transform_obj_dlg()].
 
 make_cylinder(Arg, St) when is_atom(Arg) ->
     Qs = cylinder_dialog(),
@@ -83,24 +81,29 @@ make_cylinder(Arg, _St) ->
     BotX = dict:fetch(bottom_x, ArgDict),
     BotZ = dict:fetch(bottom_z, ArgDict),
     Thickness = dict:fetch(thickness, ArgDict),
+    Modify = [{dict:fetch(rot_x, ArgDict), dict:fetch(rot_y, ArgDict), dict:fetch(rot_z, ArgDict)},
+	      {dict:fetch(mov_x, ArgDict), dict:fetch(mov_y, ArgDict), dict:fetch(mov_z, ArgDict)},
+	      dict:fetch(ground, ArgDict)],
+
     Type = dict:fetch(cylinder_type, ArgDict),
     case Type of
         cylinder ->
-            make_cylinder(Sections, TopX, TopZ, BotX, BotZ, Height);
+            make_cylinder(Sections, TopX, TopZ, BotX, BotZ, Height, Modify);
         tube ->
-            make_tube(Sections, TopX, TopZ, BotX, BotZ, Height, Thickness);
+            make_tube(Sections, TopX, TopZ, BotX, BotZ, Height, Thickness, Modify);
         gear ->
             [Min|_] = lists:sort([TopX, TopZ, BotX, BotZ]),
             Thickness1 = min(Min, Thickness),
-            make_gear(Sections, TopX, TopZ, BotX, BotZ, Height, Thickness1)
+            make_gear(Sections, TopX, TopZ, BotX, BotZ, Height, Thickness1, Modify)
     end.
 
 %%%
 %%% Cylinder
 %%%
 
-make_cylinder(Sections, TopX, TopZ, BotX, BotZ, Height) ->
-    Vs = cylinder_verts(Sections, TopX, TopZ, BotX, BotZ, Height),
+make_cylinder(Sections, TopX, TopZ, BotX, BotZ, Height, [Rot, Mov, Ground]) ->
+    Vs0 = cylinder_verts(Sections, TopX, TopZ, BotX, BotZ, Height),
+    Vs = wings_shapes:transform_obj(Rot,Mov,Ground, Vs0),
     Fs = cylinder_faces(Sections),
     {new_shape,cylinder(),Fs,Vs}.
 
@@ -123,9 +126,10 @@ cylinder_faces(N) ->
 %%% Gear
 %%%
 
-make_gear(Sections0, TopX, TopZ, BotX, BotZ, Height, ToothHeight) ->
+make_gear(Sections0, TopX, TopZ, BotX, BotZ, Height, ToothHeight, [Rot, Mov, Ground]) ->
     Sections = (Sections0 div 2)*2,
-    Vs = gear_verts(Sections, TopX, TopZ, BotX, BotZ, Height, ToothHeight),
+    Vs0 = gear_verts(Sections, TopX, TopZ, BotX, BotZ, Height, ToothHeight),
+    Vs = wings_shapes:transform_obj(Rot,Mov,Ground, Vs0),
     Fs = gear_faces(Sections),
     {new_shape,?__(1,"Gear"),Fs,Vs}.
 
@@ -163,8 +167,9 @@ gear_faces(Nres) ->
 %%% Tube
 %%%
 
-make_tube(Sections, TopX, TopZ, BotX, BotZ, Height, Thickness) ->
-    Vs = tube_verts(Sections, TopX, TopZ, BotX, BotZ, Height, Thickness),
+make_tube(Sections, TopX, TopZ, BotX, BotZ, Height, Thickness, [Rot, Mov, Ground]) ->
+    Vs0 = tube_verts(Sections, TopX, TopZ, BotX, BotZ, Height, Thickness),
+    Vs = wings_shapes:transform_obj(Rot,Mov,Ground, Vs0),
     Fs = tube_faces(Sections),
     {new_shape,?__(1,"Tube"),Fs,Vs}.
 
@@ -202,4 +207,3 @@ zip_lists_2e(A, B) ->	      % Both lists must be equal in length
     [HA1,HA2 | TA] = A,       % and must have an even number of elements
     [HB1,HB2 | TB] = B,
     lists:flatten([[HA1,HA2,HB1,HB2] | zip_lists_2e(TA, TB)]).
-
