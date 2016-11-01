@@ -213,7 +213,13 @@ copy(Source, Target0, BitSize) ->
 		ok = file:write_file(Target, Stripped),
 		%% Only allow read access.
 		ok = file:write_file_info(Target, #file_info{mode=8#444});
-	    _ ->
+            ".lang" ->
+                {ok,_} = file:copy(Source, Target),
+                ok = file:write_file_info(Target, #file_info{mode=8#444});
+            ".png" ->
+                {ok,_} = file:copy(Source, Target),
+                ok = file:write_file_info(Target, #file_info{mode=8#444});
+	    Ext ->
 		%% Could be an executable file. Make sure that we preserve
 		%% the execution bit. Always turn off the write bit.
 		{ok,_} = file:copy(Source, Target),
@@ -221,7 +227,7 @@ copy(Source, Target0, BitSize) ->
 		Info = Info0#file_info{mode=Mode band 8#555},
 		ok = file:write_file_info(Target, Info),
 		case Mode band 8#111 of
-		    0 ->
+		    0 when Ext =/= ".dll" ->
 			ok;
 		    _ ->
 			%% Strip all executable files.
