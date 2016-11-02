@@ -138,8 +138,12 @@ build_command(Name, Names, true) ->
 build_command(Name, Names, false) ->
     build_command(Name, Names).
 
-build_names(Term, Acc) when not is_tuple(Term) -> lists:reverse([Term|Acc]);
-build_names({_,Term2}, Acc) when is_boolean(Term2) -> lists:reverse(Acc);
+build_names(Term, Acc)
+  when not is_tuple(Term) ->
+    lists:reverse([Term|Acc]);
+build_names({Term,Term2}, Acc)
+  when is_boolean(Term2) ->
+    lists:reverse([Term|Acc]);
 build_names({Term1,Term2}, Acc) ->
     build_names(Term2, [Term1|Acc]).
 
@@ -677,7 +681,8 @@ update_menu(Menu, Item, {append, Pos0, Cmd0}, Help) ->
 		    is_list(Help) andalso wxMenuItem:setHelp(MO, Help)
 		end,
 
-	    Names = build_names(Item, [Menu]),
+	    Names0 = build_names(Item, [Menu]),
+	    Names = lists:droplast(Names0),
 	    case ets:match_object(wings_menus, #menu{name=Names, _ = '_'}) of
 		[#menu{object=SubMenu}] ->
 		    AddItem(SubMenu, build_command(Item, [Menu]));
