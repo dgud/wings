@@ -18,8 +18,8 @@
 {auv, auv_bbpos3d}.                 % Use bounding box for positions
 %% Uses these uniforms:
 %% {uniform, Type, VarID in shader, DefaultValue, StringInGUI}
-{uniform, color, "color1", {0.08,0.3,0.27,0.0}, "Base color"}.
-{uniform, color, "color2", {0.95,0.95,0.95,0.0}, "Bright color"}.
+{uniform, color, "color1", {0.08,0.3,0.27,1.0}, "Base color"}.
+{uniform, color, "color2", {0.95,0.95,0.95,1.0}, "Bright color"}.
 {uniform, bool, "exchange", false, "Exchange colors"}.
 {uniform, {slider,0.0,100.0}, "brightness", 50.0, "Brightness (%)"}.
 {uniform, {slider,0.0,100.0}, "density", 50.0, "Density (%)"}.

@@ -87,5 +87,5 @@ void main( void ) {
 
 	finalColor += color ;
 
-	gl_FragColor = vec4(finalColor, 1.0-blend);
+	gl_FragColor = vec4(finalColor, blend);
 }

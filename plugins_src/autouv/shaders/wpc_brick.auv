@@ -19,9 +19,9 @@
 {auv, auv_texsz}.               % vec2 width and height
 %% Uses these uniforms:
 %% {uniform, Type, VarID in shader, DefaultValue, StringInGUI}
-{uniform, color, "colorBrick", {0.5,0.26,0.2,0.0}, "Base Color"}.
+{uniform, color, "colorBrick", {0.5,0.26,0.2,1.0}, "Base Color"}.
 {uniform, {slider,0.0,300.0}, "scalex", 15.0, "Horiz. scale (%)"}.
 {uniform, {slider,0.0,300.0}, "scaley", 15.0, "Vert. scale (%)"}.
-{uniform, color, "colorMortar", {0.58,0.52,0.46,0.0}, "Mortar color"}.
+{uniform, color, "colorMortar", {0.58,0.52,0.46,1.0}, "Mortar color"}.
 {uniform, {slider,0.0,300.0}, "scaleMortar", 10.0, "Mortar scale (%)"}.
 

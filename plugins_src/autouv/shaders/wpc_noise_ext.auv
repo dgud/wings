@@ -23,8 +23,8 @@
                                  {"Rustry",2},{"Burn",3},{"Cloud",4},
                                  {"Concret",5},{"Pullover Pattern",6},{"Psychedelic",7},
                                  {"Granite",8},{"Perlin Noise (Blurred)",9}]}.
-{uniform, color, "color1", {0.12,0.03,0.019,0.0}, "Color 1"}.
-{uniform, color, "color2", {1.0,0.67,0.48,0.0}, "Color 2"}.
+{uniform, color, "color1", {0.12,0.03,0.019,1.0}, "Color 1"}.
+{uniform, color, "color2", {1.0,0.67,0.48,1.0}, "Color 2"}.
 {uniform, bool, "exchange", false, "Exchange colors"}.
 {uniform, {slider,0.0,200.0}, "frequency", 10.0, "Frequency"}.
 {uniform, {slider,-360.0,360.0}, "rotx", 0.0, "Rotate X"}.

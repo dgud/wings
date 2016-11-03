@@ -114,8 +114,8 @@ void main( void ) {
   }
 
   if (mixmode == 0) {
-    gl_FragColor = vec4(c1.rgb*d + c2.rgb*(1.0-d), 1.0-min(c1.a*(1.0-d)+c2.a*d,1.0));
+    gl_FragColor = vec4(c1.rgb*d + c2.rgb*(1.0-d), c1.a*d+c2.a*(1.0-d));
   } else if (mixmode == 1) {
-    gl_FragColor = vec4(c1.rgb*d + c2.rgb*(1.0-d), min(d+c2.a*(1.0-d),1.0));
+    gl_FragColor = vec4(c1.rgb*d + c2.rgb*(1.0-d), d);
   }
 }

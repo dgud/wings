@@ -417,11 +417,11 @@ void main( void ) {
 
     if (mixmode == 0) {
         if (type == 3) {  // Burn
-            gl_FragColor = vec4(c2.rgb*d + c1.rgb*(1.0-d), 1.0-min(c1.a*(1.0-d)+c2.a*d,1.0));
+            gl_FragColor = vec4(c2.rgb*d + c1.rgb*(1.0-d), c1.a*(1.0-d)+c2.a);
         } else {
-            gl_FragColor = vec4(c2.rgb*d + c1.rgb*(1.0-d), 1.0-min(c1.a*(1.0-d)+c2.a*d,1.0));
+            gl_FragColor = vec4(c2.rgb*d + c1.rgb*(1.0-d), c1.a*(1.0-d)+c2.a*d);
         }
     } else if (mixmode == 1) {
-        gl_FragColor = vec4(c2.rgb*d + c1.rgb*(1.0-d), min(d+c2.a*(1.0-d),1.0));
+        gl_FragColor = vec4(c2.rgb*d + c1.rgb*(1.0-d), d);
     }
 }

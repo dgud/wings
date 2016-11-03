@@ -21,8 +21,8 @@
 %% {uniform, Type, VarID in shader, DefaultValue, StringInGUI}
 {uniform, menu, "type", "Tree Trunk", [{"Tree Trunk",0},{"Wood (Perlin noise)",1},
                                        {"Wood (Simplex noise)",2}]}.
-{uniform, color, "liteWood", {0.85,0.58,0.20,0.0}, "Lite Background"}.
-{uniform, color, "darkWood", {0.50,0.27,0.10,0.0}, "Dark Rings (Perlin/Simplex)"}.
+{uniform, color, "liteWood", {0.85,0.58,0.20,1.0}, "Lite Background"}.
+{uniform, color, "darkWood", {0.50,0.27,0.10,1.0}, "Dark Rings (Perlin/Simplex)"}.
 {uniform, bool, "exchange", false, "Exchange colors (Perlin/Simplex)"}.
 {uniform, {slider,0.0,200.0}, "frequency", 10.0, "Frequency"}.
 {uniform, {slider,0.0,200.0}, "noiseScale",10.0, "Noise Scale"}.

@@ -20,8 +20,8 @@
 %% Uses these uniforms:
 %% {uniform, Type, VarID in shader, DefaultValue, StringInGUI}
 {uniform, menu, "type", "Checker", [{"Checker",0},{"Dots",1},{"Pixelated",2}]}.
-{uniform, color, "color1", {0.24,0.3,0.01,0.0}, "Color 1"}.
-{uniform, color, "color2", {0.0022,0.0778,0.1066,0.0}, "Color 2"}.
+{uniform, color, "color1", {0.24,0.3,0.01,1.0}, "Color 1"}.
+{uniform, color, "color2", {0.0022,0.0778,0.1066,1.0}, "Color 2"}.
 {uniform, bool, "exchange", false, "Exchange colors"}.
 {uniform, {slider,0.0,200.0}, "bright", 80.0, "Bright (%)"}.
 {uniform, {slider,0.0,500.0}, "frequency", 20.0, "Frequency"}.

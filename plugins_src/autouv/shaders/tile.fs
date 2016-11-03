@@ -39,6 +39,6 @@ void main( void ) {
 	} else {
 	    color = colorTile.rgba;
 	}
-	gl_FragColor = vec4(vec3(color.rgb),1.0-color.a);
+	gl_FragColor = color;
 }
 

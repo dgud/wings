@@ -19,8 +19,8 @@
 {auv, auv_texsz}.                   % vec2 width and height
 %% Uses these uniforms:  
 %% {uniform, Type, VarID in shader, DefaultValue, StringInGUI}
-{uniform, color, "color1", {0.8,0.5,0.5,0.0}, "Color 1"}.
-{uniform, color, "color2", {0.1,0.1,0.5,0.0}, "Color 2"}.
+{uniform, color, "color1", {0.8,0.5,0.5,1.0}, "Color 1"}.
+{uniform, color, "color2", {0.1,0.1,0.5,1.0}, "Color 2"}.
 {uniform, {slider,0.000,100.0}, "thickness", 15.0, "Thickness (%)"}.
 {uniform, {slider,0.0,360.0}, "angle", 60.0, "Angle"}.
 {uniform, {slider,0.0,100.0}, "frequency", 20.0, "Frequency"}.

@@ -291,8 +291,8 @@ void main(void) {
   }
 
   if (type == 0) {
-    gl_FragColor = vec4(vec3(liteWood-(d1 *0.6 *ringDarkness)-(d2 *0.3 *ringDarkness)), 1.0-liteWood.a);
+    gl_FragColor = vec4(vec3(liteWood-(d1 *0.6 *ringDarkness)-(d2 *0.3 *ringDarkness)), liteWood.a);
   } else {
-    gl_FragColor = mix(vec4(c2.rgb,1.0-c2.a), vec4(c1.rgb,1.0-c1.a), lpr);
+    gl_FragColor = mix(c2, c1, lpr);
   }
 }
