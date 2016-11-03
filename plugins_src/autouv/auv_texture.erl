@@ -1194,14 +1194,14 @@ compile_shaders(Passes, Available) ->
 	  end, [], Passes).
 		   
 compile_shader(Id, {value,#sh{name=Name,vs=VsF,fs=FsF}}, Acc) ->
-    try 
+    try
 	Vs = wings_gl:compile(vertex, read_file(VsF)),
         Fs = wings_gl:compile(fragment, read_file(FsF)),
         Prog = wings_gl:link_prog([Vs,Fs]),
 	io:format("AUV: Shader ´~s´ ok~n", [Name]),
 	[{Id,Prog}|Acc]
     catch throw:What ->
-	    io:format("AUV: Error ~s ~n",[What]),
+	    io:format("AUV: Error ~p ~s ~n",[Name, What]),
 	    Acc;
 	_:Err ->
 	    Stack = erlang:get_stacktrace(),

@@ -390,7 +390,7 @@ void main( void ) {
         d = woolen_yarn(pos);
     } else if (type == 7) {    // psychedelic
         d = cnoise(pos*snoise(pos));
-        d = (d -int(d));
+        d = (d - floor(d));
         d = clamp(abs(d),0.0,1.0);
     } else if (type == 8) {    // Granite
         d = fbm2(1.0,0.5,pos,6);
