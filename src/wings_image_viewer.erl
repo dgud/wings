@@ -141,7 +141,8 @@ handle_event(#wx{event=#wxMouse{type=motion}}, State=#state{}) ->
 handle_event(#wx{event=#wxMouse{type=left_down,x=X,y=Y}}, State) ->
     {noreply, State#state{prev={X,Y}}};
 
-handle_event(#wx{event=#wxMouse{type=enter_window}}=Ev, State) ->
+handle_event(#wx{event=#wxMouse{type=enter_window}}=Ev, #state{panel=Panel}=State) ->
+    wxWindow:setFocus(Panel),
     wings_frame ! Ev,
     {noreply, State};
 
