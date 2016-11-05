@@ -60,7 +60,8 @@
  	 n,         % Normal            (binary) Optional
 	 bi,        % BiNormal          (binary) Optional
 	 bb,        % BoundingBox 3D pos
-	 vc        % Vertex colors     (binary)
+         vc,        % Vertex colors     (binary)
+         vbo        % Vbo               (binary)
 	}).
 
 -record(chart, 
@@ -310,10 +311,9 @@ get_texture(St = #st{bb=#uvstate{}}, {Options,Shaders}) ->
 %% Texture Rendering
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-render_image(#ts{uv=UVpos,pos=Pos,n=Ns,bi=BiNs,vc=Vc}=Geom,
-	     Passes, #opt{texsz={TexW,TexH}}, Reqs) ->
+render_image(Geom0, Passes, #opt{texsz={TexW,TexH}}, Reqs) ->
     gl:pushAttrib(?GL_ALL_ATTRIB_BITS),
-    
+
     Current = wings_wm:viewport(),
     UsingFbo = setup_fbo(TexW,TexH),
     {W0,H0} = if not UsingFbo ->
@@ -326,64 +326,68 @@ render_image(#ts{uv=UVpos,pos=Pos,n=Ns,bi=BiNs,vc=Vc}=Geom,
     {H,Hd} = calc_texsize(H0, TexH),
 %%    io:format("Get texture sz ~p ~p ~n", [{W,Wd},{H,Hd}]),
     set_viewport({0,0,W,H}),
-    %% Load Pointers
-    gl:vertexPointer(2, ?GL_FLOAT, 0, UVpos),
-    case lists:member(normal, Reqs) of
-	true -> gl:normalPointer(?GL_FLOAT, 0, Ns);
-	false -> ignore
-    end,
-
-    gl:colorPointer(3, ?GL_FLOAT, 0, Vc),
-    case have_shaders() of
-	false -> ignore;
-	true  -> 
- 	    gl:clientActiveTexture(?GL_TEXTURE1),
- 	    gl:texCoordPointer(3,?GL_FLOAT,0,Pos),
- 	    gl:clientActiveTexture(?GL_TEXTURE0)
-    end,
-    case lists:member(binormal, Reqs) of
-	true -> 	    
-	    gl:clientActiveTexture(?GL_TEXTURE2),
-	    gl:texCoordPointer(4,?GL_FLOAT,0,BiNs),
-	    gl:clientActiveTexture(?GL_TEXTURE0);
-	false ->
-	    ignore
-    end,
-
-    try 
-        Dl = fun() ->
-		     foreach(fun(Pass) -> 
-				     if not UsingFbo -> 
-					     Pass(Geom,undefined);
-					true ->
-					     fill_bg_tex(UsingFbo),
-					     Pass(Geom,UsingFbo)
-				     end
-			     end,
-			     Passes) 
-	     end,
+    Geom = make_vbo(Geom0, Reqs),
+    try
+        Do = fun(Pass) ->
+                     if not UsingFbo ->
+                             Pass(Geom,undefined);
+                        true ->
+                             fill_bg_tex(UsingFbo),
+                             Pass(Geom,UsingFbo)
+                     end
+             end,
+        Dl = fun() -> foreach(Do, Passes) end,
 	ImageBins = get_texture(0, Wd, 0, Hd, {W,H}, Dl, UsingFbo,[]),
 	ImageBin = merge_texture(ImageBins, Wd, Hd, W*3, H, []),
-	if not UsingFbo -> 
+	if not UsingFbo ->
 		#e3d_image{image=ImageBin,width=TexW,height=TexH};
-	   true -> 
+	   true ->
 		#e3d_image{image=ImageBin,width=TexW,height=TexH,
 			   type=r8g8b8a8,bytes_pp=4}
 	end
     catch _:What ->
 	    Where = erlang:get_stacktrace(),
 	    exit({What,Where})
-    after 
-	case UsingFbo of 
-	  false -> ignore;
-	  #sh_conf{fbo_d=DeleteMe} -> DeleteMe()
-      end,
-      set_viewport(Current),
-      gl:readBuffer(?GL_BACK),
-      gl:popAttrib(),
-      gl:blendEquationSeparate(?GL_FUNC_ADD, ?GL_FUNC_ADD),
-      gl:clear(?GL_COLOR_BUFFER_BIT bor ?GL_DEPTH_BUFFER_BIT),
-      ?ERROR    
+    after
+	case UsingFbo of
+            false -> ignore;
+            #sh_conf{fbo_d=DeleteMe} -> DeleteMe()
+        end,
+        wings_vbo:delete(Geom#ts.vbo),
+        set_viewport(Current),
+        gl:readBuffer(?GL_BACK),
+        gl:popAttrib(),
+        gl:blendEquationSeparate(?GL_FUNC_ADD, ?GL_FUNC_ADD),
+        gl:clear(?GL_COLOR_BUFFER_BIT bor ?GL_DEPTH_BUFFER_BIT),
+        ?ERROR
+    end.
+
+make_vbo(#ts{uv=UV}=Ts, Reqs) ->
+    {Layout, Bin} = make_bin_normal(Ts, Reqs, [{vertex2d, 0, 0}], UV),
+    Ts#ts{vbo=wings_vbo:new(dynamic, Bin, {predefined, Layout})}.
+
+make_bin_normal(#ts{n=Ns}=Ts, Reqs, Layout, Bin) ->
+    case lists:member(normal, Reqs) of
+	true  -> make_bin_color(Ts, Reqs, [{normal, 0, byte_size(Bin)}|Layout],
+                                <<Bin/binary, Ns/binary>>);
+	false -> make_bin_color(Ts, Reqs, Layout, Bin)
+    end.
+
+make_bin_color(#ts{vc=Vc}=Ts, Reqs, Layout, Bin) ->
+    make_bin_pos3d(Ts, Reqs, [{color, 0, byte_size(Bin)}|Layout], <<Bin/binary, Vc/binary>>).
+
+make_bin_pos3d(#ts{pos=Pos}=Ts, Reqs, Layout, Bin) ->
+    case have_shaders() of
+        true  -> make_bin_binormal(Ts, Reqs, [{{tex,1,3}, 0, byte_size(Bin)}|Layout],
+                                   <<Bin/binary, Pos/binary>>);
+	false -> make_bin_binormal(Ts, Reqs, Layout, Bin)
+    end.
+
+make_bin_binormal(#ts{bi=BiNs}, Reqs, Layout, Bin) ->
+    case lists:member(binormal, Reqs) of
+	true -> {lists:reverse([{{tex,2,4}, 0, byte_size(Bin)}|Layout]),
+                 <<Bin/binary, BiNs/binary>>};
+	false -> {lists:reverse(Layout), Bin}
     end.
 
 %%%%%%%%% FBO stuff
@@ -404,13 +408,11 @@ error_msg(Line) ->
     end.
 
 draw_texture_square() ->
-    gl:'begin'(?GL_QUADS),
-    gl:texCoord2f(0.0,0.0), gl:vertex2f(0.0,0.0),
-    gl:texCoord2f(1.0,0.0), gl:vertex2f(1.0,0.0),
-    gl:texCoord2f(1.0,1.0), gl:vertex2f(1.0,1.0),
-    gl:texCoord2f(0.0,1.0), gl:vertex2f(0.0,1.0),
-    gl:'end'().
-
+    VertexUvQ = << 0.0:?F32,0.0:?F32, 0.0:?F32,0.0:?F32,
+                   1.0:?F32,0.0:?F32, 1.0:?F32,0.0:?F32,
+                   1.0:?F32,1.0:?F32, 1.0:?F32,1.0:?F32,
+                   0.0:?F32,1.0:?F32, 0.0:?F32,1.0:?F32>>,
+    wings_vbo:draw(fun() -> gl:drawArrays(?GL_QUADS, 0, 4) end, VertexUvQ, [vertex2d, uv]).
 
 fill_bg_tex(#sh_conf{fbo_w=Prev}) ->
     gl:drawBuffer(?GL_COLOR_ATTACHMENT1_EXT),
@@ -853,14 +855,16 @@ pass({auv_edges, [auv_edges,all_edges,Color,Width,_UseMat]},_) ->
 	      Draw = fun(#fs{vse=Vs}) ->
 			     Patched = vs_lines(Vs,hd(Vs)),
 			     wings_gl:drawElements(?GL_LINES,length(Patched),
-					     ?GL_UNSIGNED_INT,Patched)
-			     end,
+                                                   ?GL_UNSIGNED_INT,Patched)
+                     end,
 	      foreach(Draw,Fs)
       end,
-    fun(#ts{charts=Charts},_) ->  
-	    gl:disable(?GL_DEPTH_TEST),	    
+    fun(#ts{vbo={call,_,{vbo,Vbo}}, charts=Charts},_) ->
+	    gl:disable(?GL_DEPTH_TEST),
 	    gl:color3fv(Color),
 	    gl:lineWidth(Width),
+            gl:bindBuffer(?GL_ARRAY_BUFFER, Vbo),
+            gl:vertexPointer(2, ?GL_FLOAT, 0, 0),
 	    gl:enableClientState(?GL_VERTEX_ARRAY),
 	    foreach(R, Charts),
 	    gl:disableClientState(?GL_VERTEX_ARRAY)
@@ -870,9 +874,11 @@ pass({auv_edges, [auv_edges,border_edges,Color,Width,UseMat]},_) ->
 	       Es = foldl(fun([A,B,_],Acc) -> [A,B|Acc] end, [], Es0),
 	       wings_gl:drawElements(?GL_LINES,length(Es),?GL_UNSIGNED_INT,Es)
        end,
-    fun(#ts{charts=Charts},_) ->  
+    fun(#ts{vbo={call,_,{vbo,Vbo}}, charts=Charts},_) ->
 	    gl:color3fv(Color),
 	    gl:lineWidth(Width),
+            gl:bindBuffer(?GL_ARRAY_BUFFER, Vbo),
+            gl:vertexPointer(2, ?GL_FLOAT, 0, 0),
 	    gl:enableClientState(?GL_VERTEX_ARRAY),
 	    gl:disable(?GL_DEPTH_TEST),
 	    case UseMat of
@@ -889,24 +895,16 @@ pass({auv_edges, _},Sh) ->
     pass({auv_edges, ?OPT_EDGES},Sh);
 
 pass({auv_faces,[_]},_) ->
-    fun(#ts{charts=Charts}, _) ->
+    fun(#ts{vbo={call,EnableVbo,{vbo,_Vbo}}, charts=Charts}, _) ->
 	    gl:disable(?GL_DEPTH_TEST),
 	    gl:disable(?GL_ALPHA_TEST),
-	    gl:enable(?GL_BLEND),	   
+	    gl:enable(?GL_BLEND),
 	    gl:blendFunc(?GL_SRC_ALPHA, ?GL_ONE_MINUS_SRC_ALPHA),
-	    gl:enableClientState(?GL_VERTEX_ARRAY),
-	    gl:clientActiveTexture(?GL_TEXTURE0),
-	    gl:enableClientState(?GL_COLOR_ARRAY),
 	    R = fun(#fs{vs=Vs}) ->
-			wings_gl:drawElements(?GL_TRIANGLES,length(Vs),
-					?GL_UNSIGNED_INT,Vs)
+			wings_gl:drawElements(?GL_TRIANGLES,length(Vs),?GL_UNSIGNED_INT,Vs)
 		end,
-	    gl:disable(?GL_TEXTURE_2D),
-	    foreach(fun(#chart{fs=Fs}) -> foreach(R, Fs) end, Charts),
-	    gl:disable(?GL_TEXTURE_2D),
-	    gl:disableClientState(?GL_VERTEX_ARRAY),
-	    gl:disableClientState(?GL_COLOR_ARRAY),
-	    gl:disableClientState(?GL_TEXTURE_COORD_ARRAY)
+	    All = fun() -> foreach(fun(#chart{fs=Fs}) -> foreach(R, Fs) end, Charts) end,
+            EnableVbo(All)
     end;
 pass({auv_faces, _},Sh) ->
     pass({auv_faces,?OPT_FACES},Sh);
@@ -927,15 +925,15 @@ shader_pass(_,false,_) ->
 shader_pass(false,_,_) ->
     io:format("AUV: Not shader found skipped ~p~n", [?LINE]),
     ignore;
-shader_pass({value,#sh{id=Id, args=Args,tex_units=TexUnits,reqs=Reqs}},
+shader_pass({value,#sh{id=Id, args=Args, tex_units=TexUnits}},
 	    {value,{_,Prog}}, [{shader,Id}|Opts]) ->
-    fun(Ts = #ts{charts=Charts},Config) ->
+    fun(Ts = #ts{vbo={call,EnableVbo,_}, charts=Charts}, Config) ->
 	    gl:disable(?GL_DEPTH_TEST),
 	    gl:disable(?GL_ALPHA_TEST),
 	    gl:enable(?GL_BLEND),
 	    gl:blendFunc(?GL_SRC_ALPHA, ?GL_ONE_MINUS_SRC_ALPHA),
 	    gl:useProgram(Prog),
-	    try 
+	    try
 		Conf = Config#sh_conf{prog=Prog,ts=Ts},
 		PerChartUniF = shader_uniforms(reverse(Args),Opts,Conf),
 		case send_texture(reverse(Args),Opts) of
@@ -943,49 +941,35 @@ shader_pass({value,#sh{id=Id, args=Args,tex_units=TexUnits,reqs=Reqs}},
 			gl:enable(?GL_TEXTURE_2D),
 			gl:disable(?GL_BLEND),
 			draw_texture_square();
-		    _ -> 
-			gl:enableClientState(?GL_VERTEX_ARRAY),
-			gl:clientActiveTexture(?GL_TEXTURE1),
-			gl:enableClientState(?GL_TEXTURE_COORD_ARRAY),
-			case lists:member(binormal,Reqs) of
-			    true -> 
-				gl:clientActiveTexture(?GL_TEXTURE2),
-				gl:enableClientState(?GL_TEXTURE_COORD_ARRAY);
-			    false -> ignore
-			end,
-			case lists:member(normal,Reqs) of
-			    true ->
-				gl:enableClientState(?GL_NORMAL_ARRAY);
-			    false -> ignore
-			end,
-			foreach(fun(Chart = #chart{fs=Fas}) -> 
-					PerFaceUniF = sh_uniforms(PerChartUniF,Chart,Conf),
-					R = fun(Face = #fs{vs=Vss}) ->			    
-						    sh_uniforms(PerFaceUniF,Face,Conf),
-						    wings_gl:drawElements(?GL_TRIANGLES,length(Vss),
-								    ?GL_UNSIGNED_INT,Vss)
-					    end,
-					foreach(R,Fas) 
-				end,
-				Charts)
-		end
-	    catch throw:What ->
-		    io:format("AUV: ERROR ~s ~n",[What]);
+		    _ ->
+                        DC = fun(Chart = #chart{fs=Fas}) ->
+                                     PerFaceUniF = sh_uniforms(PerChartUniF,Chart,Conf),
+                                     R = fun(Face = #fs{vs=Vss}) ->
+                                                 sh_uniforms(PerFaceUniF,Face,Conf),
+                                                 wings_gl:drawElements(?GL_TRIANGLES,length(Vss),
+                                                                       ?GL_UNSIGNED_INT,Vss)
+                                         end,
+                                     foreach(R,Fas)
+                             end,
+                        EnableVbo(fun() -> foreach(DC, Charts) end)
+                end
+            catch throw:What ->
+                    io:format("AUV: ERROR ~s ~n",[What]);
 		_:What ->
 		    Stack = erlang:get_stacktrace(),
 		    io:format("AUV: Internal ERROR ~p:~n~p ~n",[What,Stack])
 	    after
-	      gl:useProgram(0),
-	      gl:disable(?GL_TEXTURE_2D),
-	      gl:disableClientState(?GL_VERTEX_ARRAY),
-	      gl:disableClientState(?GL_NORMAL_ARRAY),
-	      gl:clientActiveTexture(?GL_TEXTURE2),
-	      gl:disableClientState(?GL_TEXTURE_COORD_ARRAY),
-	      gl:clientActiveTexture(?GL_TEXTURE1),
-	      gl:disableClientState(?GL_TEXTURE_COORD_ARRAY),
-	      gl:clientActiveTexture(?GL_TEXTURE0),
-	      disable_tex_units(TexUnits),
-	      gl:activeTexture(?GL_TEXTURE0)
+                gl:useProgram(0),
+                gl:disable(?GL_TEXTURE_2D),
+                gl:disableClientState(?GL_VERTEX_ARRAY),
+                gl:disableClientState(?GL_NORMAL_ARRAY),
+                gl:clientActiveTexture(?GL_TEXTURE2),
+                gl:disableClientState(?GL_TEXTURE_COORD_ARRAY),
+                gl:clientActiveTexture(?GL_TEXTURE1),
+                gl:disableClientState(?GL_TEXTURE_COORD_ARRAY),
+                gl:clientActiveTexture(?GL_TEXTURE0),
+                disable_tex_units(TexUnits),
+                gl:activeTexture(?GL_TEXTURE0)
 	    end
     end.
 

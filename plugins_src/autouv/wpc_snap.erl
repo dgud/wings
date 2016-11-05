@@ -15,8 +15,8 @@
 
 -define(NEED_OPENGL, 1).
 
--include("wings.hrl").
--include("e3d_image.hrl").
+-include_lib("wings/src/wings.hrl").
+-include_lib("wings/e3d/e3d_image.hrl").
 
 -define(HUGE, 1.0E307).
 
@@ -252,7 +252,6 @@ draw_image(Image,_St) ->
     gl:bindTexture(?GL_TEXTURE_2D, Image),
     gl:texEnvi(?GL_TEXTURE_ENV, ?GL_TEXTURE_ENV_MODE, ?GL_MODULATE),
 
-    gl:'begin'(?GL_QUADS),
     gl:color4f(1.0, 1.0, 1.0, 0.55),   %%Semitransparant
     {_,_,W,H} = wings_wm:viewport(),
     {Xs,Ys,Xe,Ye} = {0.0,0.0,1.0,1.0},
@@ -265,22 +264,23 @@ draw_image(Image,_St) ->
     Xrange = (X*Size)/2,
     Yrange = (Y*Size)/2,
 
-    plot_uv({Tx/2,Ty/2},{-Sx*Xrange,-Sy*Yrange},Center,Rot),
-    gl:vertex2f(Xs,Ys),
-    plot_uv({Tx/2,Ty/2},{Sx*Xrange,-Sy*Yrange},Center,Rot),
-    gl:vertex2f(Xe,Ys),
-    plot_uv({Tx/2,Ty/2},{Sx*Xrange,Sy*Yrange},Center,Rot),
-    gl:vertex2f(Xe,Ye),
-    plot_uv({Tx/2,Ty/2},{-Sx*Xrange,Sy*Yrange},Center,Rot),
-    gl:vertex2f(Xs,Ye),
-
-    gl:'end'(),
+    Vs = [{Xs,Ys}, {Xe,Ys}, {Xe,Ye}, {Xs,Ye}],
+    UVs = [plot_uv({Tx/2,Ty/2},{-Sx*Xrange,-Sy*Yrange},Center,Rot),
+           plot_uv({Tx/2,Ty/2},{Sx*Xrange,-Sy*Yrange},Center,Rot),
+           plot_uv({Tx/2,Ty/2},{Sx*Xrange,Sy*Yrange},Center,Rot),
+           plot_uv({Tx/2,Ty/2},{-Sx*Xrange,Sy*Yrange},Center,Rot)],
+    List = zip(UVs, Vs),
+    wings_vbo:draw(fun() -> gl:drawArrays(?GL_QUADS, 0, 4) end, List, [uv, vertex2d]),
     gl:popAttrib().
+
+zip([V|Vs], [UV|UVs]) ->
+    [V,UV|zip(Vs,UVs)];
+zip([], []) -> [].
 
 plot_uv({Tx,Ty},{OffX0,OffY0},Center,Degree) ->
     {OffX,OffY}=rotate(Degree, {OffX0,OffY0}),
     {TxX,TyY}=rotate(Degree, {Tx,Ty}),
-    gl:texCoord2f(TxX+(Center+OffX),TyY+(Center+OffY)).
+    {TxX+(Center+OffX),TyY+(Center+OffY)}.
 
 rotate(Dgree0, {X,Y}) ->
     Dgree=(math:pi()/180.0*-Dgree0),
