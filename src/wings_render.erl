@@ -405,7 +405,7 @@ draw_orig_sel_1(_, DlistSel) ->
     gl:color4f(R0, G0, B0, 0.5),
     gl:enable(?GL_POLYGON_OFFSET_FILL),
     gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_FILL),
-    polygonOffset(2.0),
+    polygonOffset(1.0),
     wings_dl:call(DlistSel),
     gl:disable(?GL_POLYGON_OFFSET_FILL).
 
