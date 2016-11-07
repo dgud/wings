@@ -316,8 +316,11 @@ render_image(#ts{uv=UVpos,pos=Pos,n=Ns,bi=BiNs,vc=Vc}=Geom,
     
     Current = wings_wm:viewport(),
     UsingFbo = setup_fbo(TexW,TexH),
-    {W0,H0} = if not UsingFbo -> wings_wm:top_size();
-		 true -> {TexW,TexH}
+    {W0,H0} = if not UsingFbo ->
+                      wings_wm:top_size();
+		 true ->
+                      gl:blendEquationSeparate(?GL_FUNC_ADD, ?GL_MAX),
+                      {TexW,TexH}
 	      end,
     {W,Wd} = calc_texsize(W0, TexW),
     {H,Hd} = calc_texsize(H0, TexH),
@@ -378,6 +381,7 @@ render_image(#ts{uv=UVpos,pos=Pos,n=Ns,bi=BiNs,vc=Vc}=Geom,
       set_viewport(Current),
       gl:readBuffer(?GL_BACK),
       gl:popAttrib(),
+      gl:blendEquationSeparate(?GL_FUNC_ADD, ?GL_FUNC_ADD),
       gl:clear(?GL_COLOR_BUFFER_BIT bor ?GL_DEPTH_BUFFER_BIT),
       ?ERROR    
     end.
@@ -411,6 +415,7 @@ draw_texture_square() ->
 fill_bg_tex(#sh_conf{fbo_w=Prev}) ->
     gl:drawBuffer(?GL_COLOR_ATTACHMENT1_EXT),
     gl:bindTexture(?GL_TEXTURE_2D, Prev),
+    gl:texEnvi(?GL_TEXTURE_ENV, ?GL_TEXTURE_ENV_MODE, ?GL_REPLACE),
     gl:enable(?GL_TEXTURE_2D),
     gl:disable(?GL_BLEND),
     draw_texture_square(),
