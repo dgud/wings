@@ -1511,16 +1511,16 @@ crash_logger(Crash) ->
 
 crash_dialog(LogName) ->
     Show = fun(Parent) ->
-		   Str = ?__(1, "Internal error - log written to") ++ " " ++ LogName,
-		   Dialog = wxMessageDialog:new(Parent, Str, [{caption,"Internal Error"}]),
-		   wxMessageDialog:showModal(Dialog),
-		   Dialog
+                   Str1 = ?__(1, "Internal error - log written to") ++ " " ++ LogName,
+                   Str2 = ?__(2, "\nNow might be a good time to save your work and restart Wings3D"),
+                   Dialog = wxMessageDialog:new(Parent, Str1 ++ Str2, [{caption,"Internal Error"}]),
+                   wxMessageDialog:showModal(Dialog),
+                   Dialog
 	   end,
     try
         true = is_process_alive(whereis(wings_frame)),
         Parent = wings_dialog:get_dialog_parent(),
         Dialog = Show(Parent),
-        wings_dialog:reset_dialog_parent(Dialog),
         wxDialog:destroy(Dialog)
     catch _:_ ->
 	    Dlog = Show(wx:new()),
