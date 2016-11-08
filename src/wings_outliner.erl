@@ -482,7 +482,7 @@ make_tree(Parent, #{bg:=BG, text:=FG}, IL) ->
     wxWindow:connect(TC, command_tree_end_drag, []),
     wxWindow:connect(TC, command_tree_item_activated, []),
     wxWindow:connect(TC, enter_window, [{userData, {win, Parent}}]),
-    wxWindow:connect(TC, motion),
+    wxWindow:connect(TC, motion, [{skip, true}]),
     case os:type() of
 	{win32, _} ->
 	    wxWindow:connect(TC, command_tree_item_menu, [{skip, false}]),
