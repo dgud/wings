@@ -28,13 +28,14 @@
 init() -> true.
 
 menu({shape}, []) ->
-    torus_menu();
-menu({shape}, [H|Menu]) ->
-    [H|torus_menu()] ++ Menu;
+    [torus_menu()];
+menu({shape}, Menu0) ->
+    {P1, P2} = lists:splitwith(fun({_, cone, _, _}) -> false; (_) -> true end, Menu0),
+    P1 ++ [torus_menu()|P2];
 menu(_, Menu) -> Menu.
 
 torus_menu() ->
-    [{?__(1,"Torus"),torus,?__(2,"Create a torus"),[option]}].
+    {?__(1,"Torus"),torus,?__(2,"Create a torus"),[option]}.
 
 command({shape,{torus,Ask}}, St) -> make_torus(Ask, St);
 
