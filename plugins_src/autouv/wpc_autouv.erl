@@ -1878,13 +1878,17 @@ draw_background(#st{bb=#uvstate{matname=MatName,st=St,bg_img=Image}}) ->
     gl:color3f(1.0, 1.0, 1.0),			%Clear
     case get({?MODULE,show_background}) of
 	false -> ok;
-	_ -> 
+	_ ->
 	    Tx = case get_texture(MatName,St) of
 		     false -> wings_image:txid(Image);
 		     DiffId -> wings_image:txid(DiffId)
 		 end,
-	    gl:enable(?GL_TEXTURE_2D),
-	    gl:bindTexture(?GL_TEXTURE_2D, Tx)
+            case Tx of
+                none -> ignore; %% Avoid crash if TexImage is deleted
+                Tx ->
+                    gl:enable(?GL_TEXTURE_2D),
+                    gl:bindTexture(?GL_TEXTURE_2D, Tx)
+            end
     end,
     gl:'begin'(?GL_QUADS),
     gl:texCoord2f(0.0, 0.0),    gl:vertex3f(0.0, 0.0, -0.99999),

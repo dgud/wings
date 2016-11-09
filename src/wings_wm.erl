@@ -934,11 +934,7 @@ handle_event(State, Event, Stk) ->
 	    #se{h=Handler} -> Handler(Event);
 	    Handler when is_function(Handler) -> Handler()
 	end of
-	Res ->
-	    case State of #se{h=H} -> H;
-		H when is_function(H) -> H
-	    end,
-	    handle_response(Res, Event, Stk)
+	Res -> handle_response(Res, Event, Stk)
     catch
 	throw:{command_error,Error} ->
 	    wings_u:message(Error),
