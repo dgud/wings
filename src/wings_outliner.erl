@@ -106,6 +106,9 @@ command({make_internal,Id}, _) ->
     make_internal(Id);
 command({make_external,Id}, _) ->
     make_external(Id);
+command({create_normal_map,Params}, _) ->
+    create_normal_map(Params),
+    keep;
 command({export_image,Id}, _) ->
     export_image(Id);
 command(Cmd, _) ->
@@ -722,6 +725,9 @@ image_menu_2(Id, {Mat, Type}) ->
 
 command_image_menu(Id) ->
     [separator,
+     {?__(9,"Create Normal Map"),create_normal_map_fun(Id),
+      {?__(10,"Creates a normal map for the image"),[],?__(11,"Creates a normal map for the image with parameters")},[opt]},
+     separator,
      {?__(1,"Export..."),menu_cmd(export_image, Id),
       ?__(2,"Export the image")},
      separator,
@@ -741,6 +747,30 @@ handle_drop(#{type:=image, id:=Id}, #{type:=mat, name:=Name}) ->
 
 tx_cmd(Type, Id, Mat) ->
     {'VALUE',{assign_texture,Type,Id,Mat}}.
+
+create_normal_map({ask,Id}) ->
+    wings_dialog:dialog(?__(1,"Normalmap"),
+                        [{label_column, [{?__(2,"Bumpiness"), {text, 4.0, [{key,scale}, {range,{0.1,100.0}}]}}]},
+                         {?__(3,"Invert X"), false, [{key,invx}]},
+                         {?__(4,"Invert Y"), false, [{key,invy}]}],
+                        fun(Res) ->
+                                [{scale,Scale},{invx,InvX},{invy,InvY}] = Res,
+                                create_normal_map_0(Id, #{scale=>Scale,inv_x=>InvX,inv_y=>InvY}),
+                                keep
+                        end);
+create_normal_map(Id) ->
+    create_normal_map_0(Id, #{}).
+
+create_normal_map_0(Id, Params) ->
+    SrcIm = wings_image:info(Id),
+    #e3d_image{name=Name} = Im = e3d_image:height2normal(SrcIm, Params),
+    wings_image:new(Name, Im).
+
+create_normal_map_fun(Id) ->
+    fun (1, _) -> button_menu_cmd(create_normal_map, Id);
+	(3, _) ->button_menu_cmd(create_normal_map, {ask,Id});
+	(_,_) -> ignore
+    end.
 
 select_menu(Name) ->
     fun(1, _Ns) ->

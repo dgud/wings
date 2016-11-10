@@ -414,8 +414,8 @@ create_bump(Id, BumpId, #ist{images=Images0}) ->
 		_ ->
 		    %% Scale ?? 4 is used in the only example I've seen.
 		    Img = e3d_image:convert(maybe_scale(E3D), r8g8b8, 1, lower_left),
-		    {#e3d_image{width=W,height=H,image=Bits},MipMaps} 
-			= e3d_image:height2normal(Img, 4, true),
+		    {#e3d_image{width=W,height=H,image=Bits},MipMaps}
+			= e3d_image:height2normal(Img, #{scale=>4.0}, true),
 		    [TxId] = gl:genTextures(1),
 		    gl:bindTexture(?GL_TEXTURE_2D, TxId),
 		    gl:texImage2D(?GL_TEXTURE_2D,0,?GL_RGB,W,H,0,?GL_RGB,
