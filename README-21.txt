@@ -1,3 +1,16 @@
+--- 2.1.3 --------------------------------------------
+- Fix dragging images in outliner on mac and linux [dgud]
+
+- Add torus to correct place in menu when in Snap Image mode
+  We can't add it to the second place when auv_snap image is activated,
+  the torus comes in mixed with the snap commands. [dgud]
+
+- Fix octotoad scaling during creation, report by tkbd. [dgud]
+
+- Fix hotkey handling of keys F1-F15, reported by Fonteboa [dgud]
+
+- Fix displaying selections in secondary selection mode, reported by tkbd [dgud]
+
 --- 2.1.1 --------------------------------------------
 
 - Fixed starting wings with file argument, either double clicking
