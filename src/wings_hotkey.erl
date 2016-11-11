@@ -138,32 +138,45 @@ event_handler(#keyboard{sym=27}, _) ->
     wings_wm:dirty(),
     pop;
 
-event_handler(Ev = #keyboard{unicode=UC}, #cs{op=bind, action=Cmd})
-  when Cmd =/= undefined, UC =/= 0 ->
-    case wings_hotkey:event(Ev, Cmd) of
-	next ->
-	    case hotkeys_by_commands([Cmd]) of
-		[] -> do_bind(Ev, Cmd);
-		Hotkeys ->
-		    HKs = ["[" ++ Hotkey ++"]" || {_, Hotkey, _, _} <- Hotkeys],
-		    Q = ?__(3,"This command is already bound to ") ++ string:join(HKs, ", ") ++
-			?__(4," hotkey. Do you want to re-define it?"),
-		    wings_u:yes_no(Q, fun() ->
-					[wings_hotkey:unbind(Key) || {Key, _, _, _} <- Hotkeys],
-					do_bind(Ev, Cmd)
-				      end)
-	    end;
-	OtherCmd ->
-	    C = wings_util:stringify(OtherCmd),
-	    Q = ?__(1,"This key is already bound to the ") ++ C ++
-		?__(2," command. Do you want to re-define it?"),
-	    wings_u:yes_no(Q, fun() -> do_bind(Ev, Cmd) end)
-    end,
-    wings_wm:dirty(),
-    pop;
+event_handler(Ev = #keyboard{}, #cs{op=bind, action=Cmd})
+  when Cmd =/= undefined ->
+    case disallow_bind(Ev) of
+        true ->
+            io:format("Disallow ~p~n",[Ev]),
+            keep;
+        false ->
+            io:format("Allow ~p~n",[Ev]),
+            case event(Ev, Cmd) of
+                next ->
+                    case hotkeys_by_commands([Cmd]) of
+                        [] -> do_bind(Ev, Cmd);
+                        Hotkeys ->
+                            HKs = ["[" ++ Hotkey ++"]" || {_, Hotkey, _, _} <- Hotkeys],
+                            Q = ?__(3,"This command is already bound to ") ++ string:join(HKs, ", ") ++
+                                ?__(4," hotkey. Do you want to re-define it?"),
+                            wings_u:yes_no(Q, fun() ->
+                                                      [wings_hotkey:unbind(Key) || {Key, _, _, _} <- Hotkeys],
+                                                      do_bind(Ev, Cmd)
+                                              end)
+                    end;
+                OtherCmd ->
+                    C = wings_util:stringify(OtherCmd),
+                    Q = ?__(1,"This key is already bound to the ") ++ C ++
+                        ?__(2," command. Do you want to re-define it?"),
+                    wings_u:yes_no(Q, fun() -> do_bind(Ev, Cmd) end)
+            end,
+            wings_wm:dirty(),
+            pop
+    end;
 
 event_handler(_Ev, _) ->
     keep.
+
+disallow_bind(#keyboard{unicode=UC}) when UC =/= 0 -> false;
+disallow_bind(#keyboard{sym=Sym}) when ?SDLK_F1 =< Sym, Sym =< ?SDLK_F15 -> false;
+disallow_bind(#keyboard{sym=Sym}) when ?SDLK_KP0 =< Sym, Sym =< ?SDLK_KP_EQUALS -> false;
+disallow_bind(#keyboard{sym=Sym}) when ?SDLK_HOME =< Sym, Sym =< ?SDLK_PAGEDOWN -> false;
+disallow_bind(_) -> true.
 
 do_unbind(Action) ->
     case hotkeys_by_commands([Action]) of
