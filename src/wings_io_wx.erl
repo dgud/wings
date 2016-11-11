@@ -476,8 +476,12 @@ make_key_event({Key, Mods}) ->
 	     (command) -> {true, ?KMOD_META}
 	  end,
     ModState = gui_state([Map(Mod) || Mod <- Mods], 0),
-    %% io:format("make key {~p, ~p} => ~p ~n",[Key, Mods, ModState]),
-    #keyboard{which=menubar, state=?SDL_PRESSED, unicode=Key, mod=ModState, sym=Key};
+    Uni = case wx_key_map(sdl_key_map(Key)) of
+              undefined -> Key;
+              _Other -> 0
+          end,
+    %io:format("make key {~p, ~p} => ~p ~p ~n",[Key, Mods, Uni, ModState]),
+    #keyboard{which=menubar, state=?SDL_PRESSED, sym=Key, mod=ModState, unicode=Uni};
 make_key_event(Key) when is_integer(Key) ->
     make_key_event({Key, []}).
 

@@ -142,10 +142,8 @@ event_handler(Ev = #keyboard{}, #cs{op=bind, action=Cmd})
   when Cmd =/= undefined ->
     case disallow_bind(Ev) of
         true ->
-            io:format("Disallow ~p~n",[Ev]),
             keep;
         false ->
-            io:format("Allow ~p~n",[Ev]),
             case event(Ev, Cmd) of
                 next ->
                     case hotkeys_by_commands([Cmd]) of
