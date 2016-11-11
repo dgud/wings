@@ -404,7 +404,6 @@ defaults() ->
      {force_ortho_along_axis,false},
      {body_hilite,true},
      {auto_rotate_angle,1.0},
-     {auto_rotate_delay,60},
      {autosave,true},
      {autosave_time,10},
      {active_vector_size,1.0},

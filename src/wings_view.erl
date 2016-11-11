@@ -219,7 +219,7 @@ command(auto_rotate, St) ->
     auto_rotate(St);
 command(rotate_left, St) ->
     #view{azimuth=Az0} = View = current(),
-    Az = Az0 + wings_pref:get_value(auto_rotate_angle),
+    Az = Az0 + ?GET(auto_rotate),
     set_current(View#view{azimuth=Az}),
     St;
 command(align_to_selection, St) ->
@@ -647,7 +647,8 @@ pget(Key, Props) -> proplists:get_value(Key, Props).
 
 auto_rotate(St) ->
     auto_rotate_help(),
-    Delay = wings_pref:get_value(auto_rotate_delay),
+    Delay = 16,
+    ?SET(auto_rotate, min(0.1333, 0.0333+wings_pref:get_value(auto_rotate_angle)/5)),
     Tim = #tim{delay=Delay,st=St},
     Active = wings_wm:this(),
     {W,H} = wings_wm:win_size(Active),
@@ -675,12 +676,17 @@ auto_rotate_event_1(redraw, Tim) ->
 auto_rotate_event_1(#mousemotion{}, _) -> keep;
 auto_rotate_event_1(got_focus, _) -> keep;
 auto_rotate_event_1(#mousebutton{state=?SDL_PRESSED}, _) -> keep;
-auto_rotate_event_1(#keyboard{}=Kb, #tim{delay=Delay}=Tim) ->
+auto_rotate_event_1(#keyboard{}=Kb, Tim) ->
+    Deg = ?GET(auto_rotate),
+    Incr = max(0.1, abs(Deg)*0.1),
     case wings_hotkey:event(Kb) of
 	{select,more} ->
-	    get_event(Tim#tim{delay=Delay-10});
+            ?SET(auto_rotate, min(15,  Deg+Incr)),
+            get_event(Tim);
 	{select,less} ->
-	    get_event(Tim#tim{delay=Delay+10});
+            Deg = ?GET(auto_rotate),
+            ?SET(auto_rotate, max(-15, Deg-Incr)),
+	    get_event(Tim);
 	_ ->
 	    keep
     end;
@@ -709,8 +715,8 @@ auto_rotate_help() ->
     Message = wings_msg:join([Msg1,Msg2,P,M]),
     wings_wm:message(Message).
 
-set_auto_rotate_timer(#tim{delay=Delay}=Tim) when Delay < 0 ->
-    set_auto_rotate_timer(Tim#tim{delay=0});
+set_auto_rotate_timer(#tim{delay=Delay}=Tim) when Delay < 16 ->
+    set_auto_rotate_timer(Tim#tim{delay=16});
 set_auto_rotate_timer(#tim{delay=Delay}=Tim0) ->
     Timer = wings_io:set_timer(Delay, {action, {view,rotate_left}}),
     Tim = Tim0#tim{timer=Timer},
