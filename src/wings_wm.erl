@@ -795,6 +795,7 @@ update_focus(Active) ->
 		    Active
 	    end;
 	Win ->
+	    do_dispatch(Active, got_focus),
 	    Win
     end.
 

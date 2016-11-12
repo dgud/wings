@@ -332,8 +332,6 @@ filter_resize(#wx{obj=Obj, event=#wxSize{}}=Ev0, Eq0) ->
 	    filter_resize(Ev0, Eq);
 	{{value, #wx{obj=Obj, event=#wxSize{}}=Ev}, Eq} ->
 	    filter_resize(Ev, Eq);
-	{{value, #wx{event=#wxActivate{active=true}}}, Eq} ->
-	    filter_resize(Ev0, Eq);
 	_ ->
 	    {wx_translate(Ev0), Eq0}
     end;
@@ -343,20 +341,9 @@ filter_resize(#wx{event=#wxPaint{}}=Ev0, Eq0) ->
 	    filter_resize(Ev0, Eq);
 	{{value, #wx{event=#wxSize{}}=Ev}, Eq} ->
 	    filter_resize(Ev, Eq);
-	{{value, #wx{event=#wxActivate{active=true}}}, Eq} ->
-	    filter_resize(Ev0, Eq);
 	_ ->
 	    {wx_translate(Ev0), Eq0}
 
-    end;
-filter_resize(#wx{event=#wxActivate{}}=Ev0, Eq0) ->
-    case queue:out(Eq0) of
-	{{value, #wx{event=#wxPaint{}}}, Eq} ->
-	    filter_resize(Ev0, Eq);
-	{{value, #wx{event=#wxSize{}}=Ev}, Eq} ->
-	    filter_resize(Ev, Eq);
-	_ ->
-	    {wx_translate(Ev0), Eq0}
     end;
 filter_resize(Event, Eq) ->
     {wx_translate(Event), Eq}.

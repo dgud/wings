@@ -33,7 +33,7 @@
 %%-compile(export_all).
 
 -record(in, {key, type, def, wx, wx_ext=[], validator, data, hook, output=true}).
--record(eh, {fs, apply, prev_parent, owner, type, pid}).
+-record(eh, {fs, apply, prev_parent, owner, type, pid, dialog}).
 
 %%
 %% Syntax of Qs.
@@ -468,7 +468,7 @@ enter_dialog(true, PreviewType, Dialog, Fields, Fun) ->
 			     end
 		     end),
     State = #eh{fs=Fields, apply=Fun, owner=wings_wm:this(),
-		type=PreviewType, pid=Pid},
+		type=PreviewType, pid=Pid, dialog=Dialog},
     Op = {push,fun(Ev) -> event_handler(Ev, State) end},
     {TopW,TopH} = wings_wm:top_size(),
     wings_wm:new(dialog_blanket, {0,0,highest}, {TopW,TopH}, Op),
@@ -520,6 +520,10 @@ event_handler(preview, #eh{fs=Fields, apply=Fun, owner=Owner}) ->
 event_handler(#mousebutton{which=Obj}=Ev, _) ->
     wings_wm:send(wings_wm:wx2win(Obj), {camera,Ev,keep});
 event_handler(#mousemotion{}, _) -> keep;
+event_handler(got_focus, #eh{dialog=Dialog}) ->
+    %% wxWidgets MacOSX workaround to keep dialog on top
+    wxWindow:raise(Dialog),
+    keep;
 event_handler(_Ev, _) ->
     %% io:format("unhandled Ev ~p~n",[_Ev]),
     keep.
