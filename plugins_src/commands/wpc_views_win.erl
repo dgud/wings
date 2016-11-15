@@ -148,7 +148,7 @@ init([Frame, _Ps, VS]) ->
     Panel = wxPanel:new(Frame),
     wxPanel:setFont(Panel, ?GET(system_font_wx)),
     Szr = wxBoxSizer:new(?wxVERTICAL),
-    Style = ?wxLC_REPORT bor ?wxLC_NO_HEADER bor ?wxLC_EDIT_LABELS,
+    Style = ?wxLC_REPORT bor ?wxLC_NO_HEADER bor ?wxLC_EDIT_LABELS bor ?wxLC_SINGLE_SEL,
     LC = wxListCtrl:new(Panel, [{style, Style}]),
     wxListCtrl:setBackgroundColour(LC, BG),
     wxListCtrl:setForegroundColour(LC, FG),
