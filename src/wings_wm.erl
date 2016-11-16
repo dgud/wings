@@ -821,7 +821,7 @@ do_dispatch(Active, Ev) ->
 redraw_all() ->
     %% Remove late buffers clear due to problems with ATI cards when AA.
     Windows = keysort(2, gb_trees:to_list(get(wm_windows))),
-    wings_io:foreach(fun redraw_win/1, Windows),
+    foreach(fun redraw_win/1, Windows),
     calc_stats(),
     clean(),
     wings_io:set_cursor(get(wm_cursor)),
