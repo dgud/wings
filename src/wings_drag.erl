@@ -653,11 +653,11 @@ handle_drag_event_2({camera,Ev,NextEv}, #drag{st=St}) ->
 handle_drag_event_2(Event, #drag{st=St}=Drag0) ->
     case wings_hotkey:event(Event,St) of
 	next ->
-	    get_drag_event(Drag0);
+	    get_drag_event_1(Drag0);
 	{view,quick_preview} ->
-	    get_drag_event(Drag0);
+	    get_drag_event_1(Drag0);
 	{view,smooth_proxy} ->
-	    get_drag_event(Drag0);
+	    get_drag_event_1(Drag0);
 	{view,Cmd} ->
 	    wings_view:command(Cmd, St),
 	    Drag = view_changed(Drag0),
