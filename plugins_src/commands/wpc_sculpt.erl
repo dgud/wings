@@ -13,6 +13,8 @@
 -export([init/0,menu/2,command/2]).
 -export([update_dlist/3,draw/4,get_data/3]).
 
+-export([sculpt_menu/3]).
+
 -define(NEED_OPENGL, 1).
 -define(NEED_ESDL, 1).
 -include_lib("wings/src/wings.hrl").
@@ -786,6 +788,8 @@ command_handling(Action, #sculpt{st=St0,mag=Mag}=Sc) ->
                   wings_wm:dirty(),
                   update_sculpt_handler(Sc)
           end;
+	{hotkey, Cmd} ->
+	    wings_hotkey:command({Cmd,Sc}, St0);
 	{window, _} ->
 	    defer;
 	{file, _} ->

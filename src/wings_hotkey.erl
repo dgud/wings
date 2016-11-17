@@ -89,11 +89,16 @@ lookup(Ev, Cmd) ->
 %%% Binding and unbinding of keys.
 %%%
 
--record(cs, {info, st, op, action}).
+-record(cs, {info, st, sc, op, action}).
 
-command(Cmd, St) ->
+command(Cmd0, St) ->
     Str = ?__(1, "Select an menu item to bind/unbind a hotkey"),
-    Cs = #cs{info=Str, st=St, op=Cmd},
+    {Cmd, Sc} =
+    case Cmd0 of
+	{_,_} -> Cmd0;
+	_ -> {Cmd0, none}
+    end,
+    Cs = #cs{info=Str, st=St, op=Cmd, sc=Sc},
     wings_wm:message(Str),
     {push, fun(Ev) -> event_handler(Ev, Cs) end}.
 
@@ -119,7 +124,7 @@ event_handler(Ev0=#keyboard{which=menubar},
     wings_wm:dirty(),
     {replace,fun(Ev) -> event_handler(Ev, CS#cs{action=Action}) end};
 
-event_handler(Ev0= #mousebutton{}, #cs{info=Str, st=St}) ->
+event_handler(Ev0= #mousebutton{}, #cs{info=Str, st=St, sc=Sc}) ->
     case wings_menu:is_popup_event(Ev0) of
         no ->
 	    wings_wm:message(Str),
@@ -128,7 +133,10 @@ event_handler(Ev0= #mousebutton{}, #cs{info=Str, st=St}) ->
         {yes,Xglobal,Yglobal,Mod} ->
             TweakBits = wings_msg:free_rmb_modifier(),
             case Mod band TweakBits =/= 0 of
-		true ->  wings_tweak:menu(Xglobal, Yglobal);
+		true ->  case Sc of
+			     none -> wings_tweak:menu(Xglobal, Yglobal);
+			     _ -> wpc_sculpt:sculpt_menu(Xglobal, Yglobal, Sc)
+			 end;
 		false -> wings:popup_menu(Xglobal, Yglobal, St)
             end
     end;
