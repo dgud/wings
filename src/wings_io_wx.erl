@@ -271,9 +271,12 @@ read_events(Eq0) ->
 read_events(Eq0, Prev, Wait) ->
     receive
 	#wx{event=#wxMouse{type=motion,x=X,y=Y}} = Ev ->
-	    case erase(mouse_warp) of
-		{X,Y} -> read_events(Eq0, Prev, Wait);
-		_ ->  read_events(Eq0, Ev, 0+1)
+	    case get(mouse_warp) of
+		{X,Y} ->
+                    erase(mouse_warp),
+                    read_events(Eq0, Prev, Wait);
+                _ ->
+                    read_events(Eq0, Ev, 5)
 	    end;
 	#wx{} = Ev ->
 	    read_events(q_in(Ev, q_in(Prev, Eq0)), undefined, 0);
