@@ -29,7 +29,7 @@
 	 unique_name/2,
 	 is_name_masked/2,
 	 lib_dir/1,
-	 tc/3,
+	 tc/3, profile_start/0, profile_stop/0,
 	 limit/2]).
 
 -define(NEED_OPENGL, 1).
@@ -249,6 +249,19 @@ tc(Fun,Mod,Line) ->
     After = os:timestamp(),
     io:format("~p:~p: Time: ~p\n", [Mod, Line, timer:now_diff(After,Before)]),
     R.
+
+profile_start() ->
+    fprof:trace(start),
+    ok.
+profile_stop() ->
+    fprof:trace(stop),
+    spawn_link(fun() ->
+                       File = "fprof.analysis",
+                       fprof:profile(),
+                       fprof:analyse([{dest, File}, {cols, 120}]),
+                       io:format("Analysis in: ~p~n", [filename:absname(File)])
+               end),
+    ok.
 
 limit(Val, {'-infinity',infinity}) -> Val;
 limit(Val, {Min,infinity}) when Val < Min -> Min;
