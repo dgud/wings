@@ -1294,13 +1294,22 @@ shape_info(We) when ?IS_LIGHT(We) ->
     wings_light:info(We);
 shape_info(#we{id=Id,name=Name,fs=Ftab,es=Etab,vp=Vtab}=We) ->
     Faces = gb_trees:size(Ftab),
-    Edges = wings_util:array_entries(Etab),
-    Vertices = wings_util:array_entries(Vtab),
-    wings_util:format(?__(new_object_info,
-			  "Object ~p \"~s\" has ~p polygons, "
-			  "~p edges, ~p vertices~s~s."),
-              [Id,Name,Faces,Edges,Vertices,
-	       vtx_attributes(We),hole_info(We)]).
+    case array:size(Etab) < 50000 of
+        true ->
+            Edges = wings_util:array_entries(Etab),
+            Vertices = wings_util:array_entries(Vtab),
+            Format = ?__(new_object_info,
+                         "Object ~p \"~s\" has ~p polygons, "
+                         "~p edges, ~p vertices~s~s.");
+        false ->
+            Edges = array:size(Etab),
+            Vertices = array:size(Vtab),
+            Format = ?__(new_object_info2,
+                         "Object ~p \"~s\" has ~p polygons, "
+                         "~~~p edges, ~~~p vertices~s~s.")
+    end,
+    wings_util:format(Format,[Id,Name,Faces,Edges,Vertices,
+                              vtx_attributes(We),hole_info(We)]).
 
 vtx_attributes(We) ->
     case wings_va:any_attributes(We) of
@@ -1322,8 +1331,14 @@ shape_info(Objs, Shs) ->
 shape_info([{Id,_}|Objs], Shs, On, Vn, En, Fn) ->
     #we{fs=Ftab,es=Etab,vp=Vtab} = gb_trees:get(Id, Shs),
     Faces = gb_trees:size(Ftab),
-    Edges = wings_util:array_entries(Etab),
-    Vertices = wings_util:array_entries(Vtab),
+    case array:size(Etab) < 50000 of
+        true ->
+            Edges = wings_util:array_entries(Etab),
+            Vertices = wings_util:array_entries(Vtab);
+        false ->
+            Edges = array:size(Etab),
+            Vertices = array:size(Vtab)
+    end,
     shape_info(Objs, Shs, On+1, Vn+Vertices, En+Edges, Fn+Faces);
 shape_info([], _Shs, N, Vertices, Edges, Faces) ->
     io_lib:format(?__(2,
