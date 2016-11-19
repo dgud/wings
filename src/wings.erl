@@ -86,13 +86,17 @@ halt_loop(Wings) ->
 do_spawn(File) ->
     do_spawn(File, []).
 
-do_spawn(File, Flags) ->
+do_spawn(File, Flags0) ->
     %% Set a minimal heap size to avoiding garbage-collecting
     %% all the time. Don't set it too high to avoid keeping binaries
     %% too long.
     Fun = fun() -> init(File) end,
-    spawn_opt(erlang, apply, [Fun,[]],
-          [{fullsweep_after,16384},{min_heap_size,32*1204}|Flags]).
+    Flags1 = case erlang:system_info(version) >= "8.1" of
+                 true -> [{message_queue_data, off_heap}|Flags0];
+                 false -> Flags0
+             end,
+    Flags = [{fullsweep_after,16384},{min_heap_size,32*1204}|Flags1],
+    spawn_opt(erlang, apply, [Fun,[]], Flags).
 
 init(File) ->
     process_flag(trap_exit, true),
