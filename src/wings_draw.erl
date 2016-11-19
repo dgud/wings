@@ -347,12 +347,12 @@ update_fun_2(proxy, D, St) ->
 %%%% Check if plugins using the Pst need a draw list updated.
 update_fun_2({plugin,{Plugin,{_,_}=Data}},#dlo{plugins=Pdl}=D,St) ->
     case lists:keytake(Plugin,1,Pdl) of
-	    false ->
-		  Plugin:update_dlist(Data,D,St);
-	    {_,{Plugin,{_,none}},Pdl0} ->
-	      Plugin:update_dlist(Data,D#dlo{plugins=Pdl0},St);
-		_ -> D
-	end;
+        false ->
+            Plugin:update_dlist(Data,D,St);
+        {_,{Plugin,{_,none}},Pdl0} ->
+            Plugin:update_dlist(Data,D#dlo{plugins=Pdl0},St);
+        _ -> D
+    end;
 
 update_fun_2(_, D, _) -> D.
 
@@ -482,13 +482,17 @@ update_sel_all(#dlo{src_we=#we{fs=Ftab}}=D) ->
 update_face_sel(Fs0, #dlo{src_we=We,vab=#vab{face_vs=Vs,face_map=Map}=Vab}=D)
   when Vs =/= none ->
     Fs = wings_we:visible(Fs0, We),
+    %% Collect = fun(Face, {Ss,Es}) ->
+    %%                   SE = {Start,NoElements} = array:get(Face, Map),
+    %%                   {[Start|Ss], [NoElements|Es]}
+    %%           end,
+    %% {Start,NoElements} = lists:foldl(Collect, {[],[]}, lists:reverse(Fs)),
+    SN = [array:get(Face, Map) || Face <- Fs],
     F = fun() ->
 		wings_draw_setup:enable_pointers(Vab, []),
-		[begin
-		     {Start,NoElements} = array:get(Face, Map),
-		     gl:drawArrays(?GL_TRIANGLES, Start, NoElements)
-		 end || Face <- Fs],
-		wings_draw_setup:disable_pointers(Vab, [])
+                %gl:multiDrawArrays(?GL_TRIANGLES, Start, NoElements),
+                [gl:drawArrays(?GL_TRIANGLES, S, N) || {S,N} <- SN],
+                wings_draw_setup:disable_pointers(Vab, [])
 	end,
     Sel = {call,F,Vab},
     D#dlo{sel=Sel};
