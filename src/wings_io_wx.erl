@@ -179,7 +179,7 @@ reset_grab(Release) ->
 
 grab(Win) ->
     %%io:format("Grab mouse~n", []),
-    %%wings_util:profile_start(),
+    %%wings_util:profile_start(eprof),
     case get_state() of
 	#io{grab_stack=[]} = Io ->
 	    put(wm_cursor, blank),
@@ -194,7 +194,7 @@ grab(Win) ->
 
 ungrab(X, Y) ->
     %%io:format("UNGRAB mouse~n", []),
-    %%wings_util:profile_stop(),
+    %% wings_util:profile_stop(eprof),
     case get_state() of
 	#io{grab_stack=[]} -> no_grab;
 	#io{grab_stack=[Win]}=Io ->

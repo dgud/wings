@@ -29,7 +29,7 @@
 	 unique_name/2,
 	 is_name_masked/2,
 	 lib_dir/1,
-	 tc/3, profile_start/0, profile_stop/0,
+	 tc/3, profile_start/1, profile_stop/1,
 	 limit/2]).
 
 -define(NEED_OPENGL, 1).
@@ -250,18 +250,32 @@ tc(Fun,Mod,Line) ->
     io:format("~p:~p: Time: ~p\n", [Mod, Line, timer:now_diff(After,Before)]),
     R.
 
-profile_start() ->
+profile_start(fprof) ->
     fprof:trace(start),
+    ok;
+profile_start(eprof) ->
+    eprof:start(),
+    profiling = eprof:start_profiling([self()]),
     ok.
-profile_stop() ->
+
+profile_stop(fprof) ->
     fprof:trace(stop),
     spawn_link(fun() ->
                        File = "fprof.analysis",
                        fprof:profile(),
                        fprof:analyse([{dest, File}, {cols, 120}]),
-                       io:format("Analysis in: ~p~n", [filename:absname(File)])
+                       io:format("Analysis in: ~p~n", [filename:absname(File)]),
+                       eprof:stop()
                end),
-    ok.
+    ok;
+profile_stop(eprof) ->
+    eprof:stop_profiling(),
+    spawn_link(fun() ->
+                       File = "eprof.analysis",
+                       eprof:log(File),
+                       eprof:analyze(),
+                       io:format("Analysis in: ~p~n", [filename:absname(File)])
+               end).
 
 limit(Val, {'-infinity',infinity}) -> Val;
 limit(Val, {Min,infinity}) when Val < Min -> Min;
