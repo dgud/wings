@@ -96,9 +96,9 @@
 
 %% Use for non saved global gui resources, avoids the dictionary
 %% Example: runtime fonts
--define(GET(Key), wings_pref:get_value({temp, Key})).
--define(SET(Key,Value), wings_pref:set_value({temp, Key}, Value)).
--define(DELETE(Key), wings_pref:delete_value({temp, Key})).
+-define(GET(Key), wings_wm:get_value(Key)).
+-define(SET(Key,Value), wings_wm:set_value(Key, Value)).
+-define(DELETE(Key), wings_wm:delete_value(Key)).
 
 %%
 %% Types.

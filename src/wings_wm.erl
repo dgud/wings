@@ -52,6 +52,8 @@
 	 get_dd/0, get_dd/1, set_dd/2
 	]).
 
+-export([get_value/1, set_value/2, delete_value/1]).
+
 -define(NEED_OPENGL, 1).
 -define(NEED_ESDL, 1).
 -include("wings.hrl").
@@ -551,6 +553,20 @@ local_mouse_state() ->
     {B,X0,Y0} = wings_io:get_mouse_state(),
     {X,Y} = screen2local({X0, Y0}),
     {B,X,Y}.
+
+get_value(Key) ->
+    case get(Key) of
+        undefined -> wings_pref:get_value({temp, Key});
+        Val -> Val
+    end.
+
+set_value(Key,Val) ->
+    put(Key, Val),
+    wings_pref:set_value({temp, Key}, Val).
+
+delete_value(Key) ->
+    erase(Key),
+    wings_pref:delete_value({temp, Key}).
 
 new_props(Win, Props0) ->
     Props = gb_trees:from_orddict(Props0),
