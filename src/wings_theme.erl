@@ -101,8 +101,8 @@ native_theme() ->
 
 native({What=background_color, _}, linux, _) ->
     {What, {0.8,0.8,0.8}};
-native({What=menu_color, menu}, linux, Ver) ->
-    native({What, menubar}, linux, Ver);
+native({What=menu_color, menu}, linux, _Ver) ->
+    {What, wings_color:rgb4fv(wxSystemSettings:getColour(wx_id(menubar)))};
 native({What, MenuText}, linux, _)
   when MenuText =:= menubar_text; MenuText =:= menutext ->
     {What, case wings_color:rgb_to_hsv(default(menubar)) of
@@ -113,6 +113,10 @@ native({What=menu_hilite, menuhilight}, darwin, Ver) ->
     native({What, highlight}, darwin, Ver);
 native({What, activecaption}, darwin, Ver) ->
     native({What, btnhighlight}, darwin, Ver);
+native({What=outliner_geograph_bg, Suggestion}, _, _) ->
+    {What, wings_color:rgb4fv(wxSystemSettings:getColour(wx_id(Suggestion)))};
+native({What=menu_color, Suggestion}, nt, _) ->
+    {What, wings_color:rgb4fv(wxSystemSettings:getColour(wx_id(Suggestion)))};
 native({What, Suggestion}, _, _) ->
     {What, default(Suggestion)}.
 
