@@ -276,7 +276,7 @@ rec_events(Eq0, Prev, Wait) ->
                     rec_events(Eq0, Ev, 5)
 	    end;
 	#wx{} = Ev ->
-	    q_in(Ev, q_in(Prev, Eq0));
+	    rec_events(q_in(Ev, q_in(Prev, Eq0)), undefined, 0);
 	{timeout,Ref,{event,Event}} when is_reference(Ref) ->
 	    q_in(Event, q_in(Prev, Eq0));
 	{lock, Pid} -> %% Order ?
