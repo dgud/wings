@@ -206,6 +206,7 @@ render_plain(#dlo{work=Faces,edges=Edges,open=Open,
 	    end,
 	    gl:lineWidth(edge_width(SelMode)),
 	    gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_LINE),
+            gl:depthFunc(?GL_LEQUAL),
 	    case Wire andalso wings_wm:get_prop(show_wire_backfaces) of
 		true ->
 		    gl:disable(?GL_CULL_FACE),
@@ -213,7 +214,9 @@ render_plain(#dlo{work=Faces,edges=Edges,open=Open,
 		    gl:enable(?GL_CULL_FACE);
 		false ->
 		    wings_dl:call(Edges)
-	    end
+	    end,
+            gl:depthFunc(?GL_LESS),
+            ok
     end,
     render_plain_rest(D, Wire, SelMode, PM);
 render_plain(#dlo{src_we=We}=D, SelMode, PM, SceneLights) ->
@@ -228,23 +231,25 @@ render_plain_rest(#dlo{}=D, Wire, SelMode, PM) ->
     NeedPush = sel_need_matrix_push(D),
     gl:matrixMode(?GL_PROJECTION),
     gl:pushMatrix(),
-    NeedPush andalso non_polygon_offset(1.0, PM),
-    draw_hilite(D),
+    non_polygon_offset(1.0, PM),
+    gl:depthFunc(?GL_LEQUAL),
+    draw_hard_edges(D, SelMode),
+    draw_vertices(D, SelMode),
+    draw_normals(D),
+    NeedPush orelse gl:popMatrix(),
     case Wire of
 	true ->
 	    gl:disable(?GL_CULL_FACE),
-	    draw_sel(D),
 	    draw_orig_sel(D),
+	    draw_sel(D),
 	    gl:enable(?GL_CULL_FACE);
 	false ->
-	    draw_sel(D),
-	    draw_orig_sel(D)
+            draw_orig_sel(D),
+	    draw_sel(D)
     end,
-    NeedPush orelse non_polygon_offset(1.0, PM),
-    draw_vertices(D, SelMode),
-    draw_hard_edges(D, SelMode),
-    draw_normals(D),
-    gl:popMatrix(),
+    draw_hilite(D),
+    gl:depthFunc(?GL_LESS),
+    NeedPush andalso gl:popMatrix(),
     gl:matrixMode(?GL_MODELVIEW),
     draw_plugins(plain,D,SelMode). %% arbitrary placement in the grand scheme of things
 
@@ -297,6 +302,7 @@ render_smooth(#dlo{work=Work,edges=Edges,smooth=Smooth0,transparent=Trans0,
     gl:depthMask(?GL_TRUE),
     disable_lighting(),
     gl:shadeModel(?GL_FLAT),
+    gl:depthFunc(?GL_LEQUAL),
     case wire(We) of
 	true when Proxy =:= false ->
 	    gl:color3fv(wings_pref:get_value(edge_color)),
@@ -314,9 +320,10 @@ render_smooth(#dlo{work=Work,edges=Edges,smooth=Smooth0,transparent=Trans0,
             non_polygon_offset(1.0, PM);
        true -> false
     end,
-    draw_hilite(D),
-    draw_sel(D),
     draw_orig_sel(D),
+    draw_sel(D),
+    draw_hilite(D),
+    gl:depthFunc(?GL_LESS),
     NeedPush andalso gl:popMatrix(),
     gl:matrixMode(?GL_MODELVIEW),
     draw_plugins(smooth,D,none).
