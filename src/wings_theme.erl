@@ -101,6 +101,10 @@ native_theme() ->
 
 native({What=background_color, _}, linux, _) ->
     {What, {0.8,0.8,0.8}};
+native({What=outliner_geograph_bg, _}, _, _) ->
+    {What, {0.94,0.94,0.94,1.0}};
+native({What=menu_color, _}, nt, _) ->
+    {What, {0.94,0.94,0.94,1.0}};
 native({What=menu_color, menu}, linux, Ver) ->
     native({What, menubar}, linux, Ver);
 native({What, MenuText}, linux, _)
