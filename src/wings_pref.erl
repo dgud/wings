@@ -656,13 +656,6 @@ pref({load,Request,St}) ->
     case Request of
 	custom_theme ->
 	    pref(load);
-	olive_theme ->
-	    LegacyColors = wings_theme:legacy_colors(),
-	    Defaults = defaults(),
-	    Colors = colors(LegacyColors, Defaults),
-	    load_pref_category([{graphical,true}],[{graphical,Colors}],St),
-	    init_opengl(),
-	    keep;
 	Theme when is_atom(Theme) ->
 	    Colors = wings_theme:Theme(),
 	    load_pref_category([{graphical,true}],[{graphical,Colors}],St),
