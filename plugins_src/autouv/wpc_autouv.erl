@@ -646,10 +646,10 @@ handle_event_3({action,{auv,quit}}, _St) ->
     cleanup_before_exit(),
     delete;
 handle_event_3({action,{{auv,_},Cmd}}, St) ->
-%%    io:format("Cmd ~p ~n", [Cmd]),
+    %%    io:format("Cmd ~p ~n", [Cmd]),
     handle_command(Cmd, St);
 handle_event_3({action,{auv,Cmd}}, St) ->
-%%    io:format("Cmd ~p ~n", [Cmd]),
+    %%    io:format("Cmd ~p ~n", [Cmd]),
     handle_command(Cmd, St);
 handle_event_3({action,{select,show_all}}, #st{bb=#uvstate{st=GeomSt,id=Id}}) ->
     wings_wm:send({autouv,Id}, {add_faces,object,GeomSt}),
@@ -671,7 +671,7 @@ handle_event_3({action,{view,toggle_background}}, _) ->
     put({?MODULE,show_background},not Old),
     wings_wm:dirty();
 
-handle_event_3({action,Ev}=Act, St) ->
+handle_event_3({action,Ev}=Act, #st{selmode=AUVSel, bb=#uvstate{st=#st{selmode=GSel}}}=St) ->
     case Ev of  %% Keyboard shortcuts end up here (I believe)
 	{_, {move,_}} ->
 	    handle_command(move,St);
@@ -690,17 +690,17 @@ handle_event_3({action,Ev}=Act, St) ->
 	    wings_view:command(aim, St1),
 	    get_event(St);
 	{view,highlight_aim} ->
-        #st{sel=Sel} = St,
-        case  Sel =:= [] of
-          true ->
+            #st{sel=Sel} = St,
+            case  Sel =:= [] of
+                true ->
 		    St1 = fake_selection(St),
-            wings_view:command(aim, St1),
-            get_event(St);
-          false ->
-            {{_,Cmd},St1} = wings:highlight_aim_setup(St),
-            wings_view:command(Cmd,St1),
-            get_event(St)
-        end;
+                    wings_view:command(aim, St1),
+                    get_event(St);
+                false ->
+                    {{_,Cmd},St1} = wings:highlight_aim_setup(St),
+                    wings_view:command(Cmd,St1),
+                    get_event(St)
+            end;
 	{view,Cmd} when Cmd == frame ->
 	    wings_view:command(Cmd,St),
 	    get_event(St);
@@ -710,10 +710,16 @@ handle_event_3({action,Ev}=Act, St) ->
 	    repeat(args, St);
 	{edit,repeat_drag} ->
 	    repeat(drag, St);
-	_ ->
-	    wings_wm:send_after_redraw(geom, Act),
-	    %% io:format("Miss Action ~P~n", [Ev, 20]),
-	    keep
+        _ when AUVSel =:= GSel ->
+            wings_wm:send_after_redraw(geom, Act),
+            keep;
+        {body, _} -> keep;
+        {face, _} -> keep;
+        {edge, _} -> keep;
+        {vertex,_} -> keep;
+        _ ->
+            wings_wm:send_after_redraw(geom, Act),
+            keep
     end;
 handle_event_3(got_focus, _) ->
     Msg1 = wings_msg:button_format(?__(1,"Select")),
