@@ -793,6 +793,7 @@ command_1({edit,{preferences,Pref}}, St) ->
     wings_pref_dlg:command(Pref, St);
 command_1({edit,{theme,Theme}}, St) ->
     wings_pref:pref({load,Theme,St}),
+    wings_frame:update_theme(),
     keep;
 
 %% Select menu.
