@@ -1,3 +1,27 @@
+--- 2.1.4 --------------------------------------------
+- Fix crash in autouv when doing geometry changes from the autouv
+  window via keyboard shortcuts. Now the commands only work if selection
+  mode is the same in both windows. Reported by Fonte Boa. [dgud]
+
+- Bridge-RMB was crashing for two faces selected in the same object.
+  Thanks to Fonte Boa. [Micheus]
+
+- After select multiple views and activate the RMB Wings3d crashes.
+  Thanks Fonte Boa [micheus]
+
+- It was impossible to define hotkeys in Sculpt mode.
+  Thanks to Fonte Boa. [Micheus]
+
+- Performance improvements. [dgud]
+
+- Selection display in ortho mode (and autouv).
+  Reported by Loefet and kugelfang. [dgud]
+
+- Fix olive green theme, report by tkbd. [dgud]
+
+- Fix crash at start if username contained unicode chars,
+  reported by rcrichfl. [dgud]
+
 --- 2.1.3 --------------------------------------------
 - Fix dragging images in outliner on mac and linux [dgud]
 
