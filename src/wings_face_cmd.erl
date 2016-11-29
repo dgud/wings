@@ -841,7 +841,27 @@ bridge_ref(#st{shapes=Shps, sel=[{IdA,FsA},{IdB,FsB}]}=St) ->
     WeB = gb_trees:get(IdB,Shps),
     VsA = wings_face:to_vertices(FsA, WeA),
     VsB = wings_face:to_vertices(FsB, WeB),
-    wings:ask(bridge_selection({IdA,VsA}, {IdB,VsB}), St, fun bridge_ref/2).
+    wings:ask(bridge_selection({IdA,VsA}, {IdB,VsB}), St, fun bridge_ref/2);
+bridge_ref(#st{shapes=Shps,sel=[{Id,Faces0}]}=St) ->
+    case gb_sets:to_list(Faces0) of
+	[FsA,FsB] ->
+	    We = gb_trees:get(Id, Shps),
+	    VsA = wings_face:to_vertices([FsA], We),
+	    VsB = wings_face:to_vertices([FsB], We),
+	    wings:ask(bridge_selection({Id,VsA}, {Id,VsB}), St, fun bridge_ref/2);
+	FaceSel ->
+	    We0 = gb_trees:get(Id, Shps),
+	    case wings_sel:face_regions(FaceSel, We0) of
+		[_,_] ->
+		    We = wings_dissolve:faces(FaceSel, We0),
+		    Faces = wings_we:new_items_as_gbset(face, We0, We),
+		    Shapes = gb_trees:update(Id, We, Shps),
+		    bridge_ref(St#st{shapes=Shapes,sel=[{Id,Faces}]});
+		_ -> bridge_error()
+	    end
+    end;
+bridge_ref(_St) ->
+    bridge_error().
 
 bridge_ref(Reference, St) ->
     {save_state,wings_shape:recreate_folder_system(bridge(Reference, St))}.
@@ -855,41 +875,60 @@ bridge_selection({IdA,VsA}, {IdB,VsB}) ->
 	      (check, #st{sel=[]}) ->
 		  {none, Desc1};
 	      (check, #st{sel=[{Id,Vs}]}=_St) when Id =:= IdA; Id =:= IdB ->
-		  V =
-		  case Id of
-		      IdA -> bridge_sel_validate(Vs,VsA);
-		      IdB -> bridge_sel_validate(Vs,VsB)
-		  end,
-		  if V =:= false -> {none, Desc2};
-		      true -> {none, []}
+		  case gb_sets:to_list(Vs) of
+		      [Va,Vb] ->
+			  VsA0 = gb_sets:insert(Va ,gb_sets:empty()),
+			  VsB0 = gb_sets:insert(Vb ,gb_sets:empty()),
+			  case sel_validate(VsA, VsB, VsA0, VsB0) of
+			      fail -> {none, Desc2};
+			      _ -> {none, []}
+			  end;
+		      _ -> {none, Desc2}
 		  end;
 	      (check, #st{sel=[{IdA0,VsA0},{IdB0,VsB0}]}=_St)
 		  when IdA0 =:= IdA; IdB0 =:= IdB; IdA0 =:= IdB; IdB0 =:= IdA ->
 
-		  Aa = bridge_sel_validate(VsA0,VsA),
-		  Bb = bridge_sel_validate(VsB0,VsB),
-		  Ab = bridge_sel_validate(VsA0,VsB),
-		  Ba = bridge_sel_validate(VsB0,VsA),
-		  case {Aa,Bb,Ab,Ba} of
-		      {Va,Vb,false,false} when Va =/= false, Vb =/= false -> {none, []};
-		      {false,false,Vb,Va} when Vb =/= false, Va =/= false -> {none, []};
-		      _ -> {none, Desc2}
+		  case sel_validate(VsA, VsB, VsA0, VsB0) of
+		      fail -> {none, Desc2};
+		      _ -> {none, []}
 		  end;
 	      (check, _St) ->
 		  {none, Desc3};
-	      (exit, {_,_,#st{sel=[{_,VsA0},{_,VsB0}]=Sel}}) ->
-		  Aa = bridge_sel_validate(VsA0,VsA),
-		  Bb = bridge_sel_validate(VsB0,VsB),
-		  Ba = bridge_sel_validate(VsB0,VsA),
-		  Ab = bridge_sel_validate(VsA0,VsB),
-		  case {Aa,Bb,Ba, Ab} of
-		      {false,_,false,_} -> error;
-		      {_,false,_,false} -> error;
-		      _ -> {result,Sel}
+	      (exit, {_,_,#st{sel=[{Id,Vs0}]}}) when Id =:= IdA; Id =:= IdB ->
+		  case gb_sets:to_list(Vs0) of
+		      [Va,Vb]=Vs ->
+			  VsA0 = gb_sets:insert(Va ,gb_sets:empty()),
+			  VsB0 = gb_sets:insert(Vb ,gb_sets:empty()),
+			  case sel_validate(VsA, VsB, VsA0, VsB0) of
+			      normal -> {result,Vs};
+			      invert -> {result,[Vb,Va]};
+			      _ -> error
+			  end;
+		      _ -> error
+		  end;
+	      (exit, {_,_,#st{sel=[{IdA0,VsA0},{IdB0,VsB0}]=Sel}}) ->
+		  case sel_validate(VsA, VsB, VsA0, VsB0) of
+		      normal -> {result,Sel};
+		      invert -> {result,[{IdA0,VsB0},{IdB0,VsA0}]};
+		      _ -> error
 		  end;
 	      (exit,_) -> error
 	  end,
     {[{Fun,Desc}],[],[],[vertex]}.
+
+sel_validate(VsA, VsB, VsA0, VsB0) ->
+    Res =
+	{bridge_sel_validate(VsA0,VsA),
+	 bridge_sel_validate(VsB0,VsB),
+	 bridge_sel_validate(VsA0,VsB),
+	 bridge_sel_validate(VsB0,VsA)},
+    case Res of
+	{Va,Vb,false,false} when is_integer(Va), is_integer(Vb) -> normal;
+	{false,false,Va,Vb} when is_integer(Va), is_integer(Vb) -> invert;
+	{Va,Vb,Va0,Vb0} when is_integer(Va), is_integer(Vb), is_integer(Va0), is_integer(Vb0) -> normal;
+	{Va0,Vb0,Va,Vb} when is_integer(Va), is_integer(Vb), is_integer(Va0), is_integer(Vb0) -> invert;
+	_ -> fail
+    end.
 
 bridge_sel_validate(Vs, VsList) ->
     case gb_sets:to_list(Vs) of
@@ -965,8 +1004,10 @@ bridge_1(Reference, FaceA, VsA, FaceB, VsB, #we{vp=Vtab}=We) ->
 		    bridge_error(?__(3,"Faces must not be neighbors."));
 		false ->
 		    case Reference of
-			[VsAr,VsBr] -> bridge_ref(FaceA, VsAr, FaceB, VsBr, We);
-			_ -> bridge(FaceA, VsA, FaceB, VsB, We)
+			[VsAr,VsBr] ->
+			    bridge_ref(FaceA, VsAr, FaceB, VsBr, We);
+			_ ->
+			    bridge(FaceA, VsA, FaceB, VsB, We)
 		    end
 	    end
     end.

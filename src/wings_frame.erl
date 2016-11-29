@@ -15,7 +15,7 @@
          show_toolbar/1,
 	 export_layout/0, import_layout/2,
 	 get_overlay/0, overlay_draw/3, overlay_hide/1,
-	 get_icon_images/0, get_colors/0]).
+	 get_icon_images/0, get_colors/0, update_theme/0]).
 
 -export([start/0, forward_event/1]).
 
@@ -123,6 +123,9 @@ get_colors() ->
       hl_bg   => wings_color:rgb4bv(wings_pref:get_value(outliner_geograph_hl)),
       hl_text => wings_color:rgb4bv(wings_pref:get_value(outliner_geograph_hl_text))
      }.
+
+update_theme() ->
+    wx_object:call(?MODULE, update_theme).
 
 close(Win) ->
     wx_object:call(?MODULE, {close, Win}).
@@ -441,6 +444,10 @@ handle_call({update_layout,Contained0}, _From, #state{windows=#{ch:=Split}}=Stat
     update_layout(Contained, Split),
     {reply, ok, State};
 
+handle_call(update_theme, _From, State) ->
+    update_theme(State),
+    {reply, ok, State};
+
 handle_call({show_toolbar, Bool}, _From, #state{windows=#{frame:=Frame}}=State) ->
     TB = wxFrame:getToolBar(Frame),
     wxToolBar:show(TB, [{show, Bool}]),
@@ -569,6 +576,42 @@ update_active(Name, #state{active=Prev, windows=#{ch:=Root}}=State) ->
 	    State#state{active=Name}
     catch _:_ ->
 	    State
+    end.
+
+update_theme(#state{windows=#{ch:=Root,loose:=Loose}, active=Active}) ->
+    update_theme(Root, Active),
+    update_theme(maps:values(Loose), Active),
+    wxWindow:refresh(?GET(top_frame)).
+
+update_theme(#split{w1=#win{}=W1, mode=undefined, w2=undefined}, Active) ->
+    update_theme(W1, Active);
+update_theme(#split{w1=W1, mode=Mode, w2=W2}, Active) when Mode =/= undefined ->
+    update_theme(W1, Active),
+    update_theme(W2, Active);
+%update_theme(#win{name=Name}, _) when ?IS_GEOM(Name) -> ignore;
+update_theme([], _) -> ignore;
+update_theme([#win{}=Win], Active) ->
+    update_theme_0(Win, Active);
+update_theme([#win{}=Win|Wins], Active) ->
+    update_theme_0(Win, Active),
+    update_theme(Wins, Active);
+update_theme(#win{}=Win, Active) ->
+    update_theme_0(Win, Active).
+
+update_theme_0(#win{win=Win, name=WinName, bar=Bar}, Active) ->
+    TBG =
+	case WinName of
+	    Active -> wings_color:rgb4bv(wings_pref:get_value(title_active_color));
+	    _ -> wings_color:rgb4bv(wings_pref:get_value(title_passive_color))
+	end,
+    WBG = wings_color:rgb4bv(wings_pref:get_value(outliner_geograph_bg)),
+
+    WChildren = wxWindow:getChildren(Win),
+    [wxWindow:setBackgroundColour(WChild, WBG) || WChild <- WChildren],
+    case Bar of
+	{TBar,_} ->
+	    wxWindow:setBackgroundColour(TBar, TBG);
+	_ -> ignore
     end.
 
 preview_attach(false, Pos, Frame,
