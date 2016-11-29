@@ -46,7 +46,7 @@ load() ->
             set_value(legacy_colors_checked, true),
             ok;
         PrefFile ->
-            io:format("wings-~s\nReading preferences from: ~s\n",
+            io:format("wings-~s\nReading preferences from: ~ts\n",
                 [?WINGS_VERSION, PrefFile]),
             case local_consult(PrefFile) of
                 {ok,List0} ->
