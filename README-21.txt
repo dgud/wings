@@ -20,7 +20,14 @@
 - Fix olive green theme, report by tkbd. [dgud]
 
 - Fix crash at start if username contained unicode chars,
-  reported by rcrichfl. [dgud]
+  reported by infinder. [dgud]
+
+- In GeometryGraph if user accidentally put the folder name in edit mode and
+  then cancel it Wings3D was displaying a wrong message. Thanks tkbd. [Micheus]
+
+- The Geometry Graph window closes unexpectedly in some folder/item
+  operations. Avoid the crash and its cause should now
+  be appended to Log window. Thanks to tkbd [Micheus]
 
 --- 2.1.3 --------------------------------------------
 - Fix dragging images in outliner on mac and linux [dgud]
