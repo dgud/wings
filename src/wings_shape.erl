@@ -427,6 +427,8 @@ create_folder(Folder, #st{pst=Pst0}=St) ->
     Pst = gb_trees:update(?FOLDERS, {Folder,Fld}, Pst0),
     St#st{pst=Pst}.
 
+rename_folder(OldName, OldName, St) -> St;
+
 rename_folder(OldName, NewName, St0) ->
     #st{pst=Pst0}=St1 = create_folder(NewName, St0),
     {_,Fld0} = gb_trees:get(?FOLDERS, Pst0),
