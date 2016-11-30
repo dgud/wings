@@ -638,9 +638,12 @@ update_folders({Curr, Fld0}, TC) ->
 		 Leaves = lists:map(Add, Sorted),
 		 wxTreeCtrl:expand(TC, Root),
 		 All = [{Root,?NO_FLD}|Leaves],
-		 {Node,_} = lists:keyfind(Curr, 2, All),
-		 wxTreeCtrl:selectItem(TC, Node),
-		 wxTreeCtrl:ensureVisible(TC, Node),
+		 case lists:keyfind(Curr, 2, All) of
+		     {Node,_} ->
+			 wxTreeCtrl:selectItem(TC, Node),
+			 wxTreeCtrl:ensureVisible(TC, Node);
+		     _ -> io:format("Unexpected folder error.\nCurr: ~p\nAll: ~p\n\n",[Curr,All])
+		 end,
 		 All
 	 end,
     wx:batch(Do).
