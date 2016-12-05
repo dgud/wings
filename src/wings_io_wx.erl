@@ -257,12 +257,12 @@ change_event_handler(?SDL_KEYUP, false) ->
     end.
 
 read_events(Eq0) ->
-    case queue:out(Eq0) of
-        {empty, _} ->
+    case queue:is_empty(Eq0) of
+        true ->
             Eq1 = rec_events(Eq0, undefined, 0),
             read_events_q(Eq1);
-        {{value, Ev}, Q} ->
-            {wx_translate(Ev), Q}
+        false ->
+            read_events_q(Eq0)
     end.
 
 rec_events(Eq0, Prev, Wait) ->
