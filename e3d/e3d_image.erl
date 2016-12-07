@@ -167,76 +167,55 @@ bytes_pp(#e3d_image{bytes_pp = Bpp}) ->
 %% Desc: Filter and build a normalmap from a heightmap.
 %%       assumes the heightmap is greyscale.
 height2normal(Image, Scale, GenMipMap) ->
-    NM  = height2normal(Image, Scale),
+    NM  = height2normal(Image, {Scale,false,false}),
     MMs = case GenMipMap of
 	      true -> buildNormalMipmaps(NM);
 	      false -> []
 	  end,
     {NM, MMs}.
 
-%% Func: height2normal(Image, Scale)  
-%% Args: Image = #e3d_image, Scale = number
+%% Func: height2normal(Image, Params)
+%% Args: Image = #e3d_image, Params = {number,boolean,boolean}
 %% Rets: #e3d_image | {error, Reason}
 %% Desc: Filter and build a normalmap from a heightmap.
-%%       assumes the heightmap is greyscale.
-height2normal(Old = #e3d_image{width=W,bytes_pp=B,alignment=A,image=I,name=Name}, Scale) ->
-    Extra = (A - (W*B rem A)) rem A, 
-    RSz  = W*B + Extra,
-    {Row1,Row2,Rest} = 
-	case I of 
-	    <<R1:RSz/binary,R2:RSz/binary,Rt/binary>> ->
-		{R1,R2,Rt};
-	    <<R1:RSz/binary, _/binary>> ->
-		{R1,<<>>,<<>>}
-	end,
-    New = bumps(Row1,Row2,Rest,RSz,B,Row1,Scale,[]),
+%%       the heightmap can be a greyscale or colored image.
+height2normal(Old, Params) ->
+    #e3d_image{width=W,height=H,image=I,name=Name} = e3d_image:convert(Old, g8, 1),
+    New = bumps(H, W, I, Params),
     Old#e3d_image{bytes_pp=3,type=r8g8b8, image=New, alignment=1,
-		  filename=none, name=Name++"bump"}.
-	
-%bumps(Row1,Row2,Rest,RSz,B,First,Acc) ->
-bumps(R1,R2,Rest,RSz,B,First,S,Bump) 
-  when size(Rest) < RSz, size(R2) < RSz ->
-    <<F:8,_/binary>> = R1,
-    Row = bumpmapRow(R1,First,F,B,S,[]),
-    list_to_binary(lists:reverse([Row|Bump]));
-bumps(R1,R2,Rest0,RSz,B,First,S,Bump) ->
-    <<F:8,_/binary>> = R1,
-    Row = bumpmapRow(R1,R2,F,B,S,[]),
-    case Rest0 of 
-	<<R3:RSz/binary,Rest/binary>> ->
-	    bumps(R2,R3,Rest,RSz,B,First,S,[Row|Bump]);
-	_ ->
-	    bumps(R2,<<>>,<<>>,RSz,B,First,S,[Row|Bump])
-    end.
+		  filename=none, name=Name++"_normal"}.
 
-bumpmapRow(R1,<<>>,_,B,_,Br) when size(R1) < B ->
-    list_to_binary(lists:reverse(Br));
-bumpmapRow(R1,R2,F,B,Scale,BR) ->
-    Skip = (B-1)*8,
-    <<C0:8, _:Skip,Row1/binary>> = R1,
-    <<Cy0:8,_:Skip,Row2/binary>> = R2,
-    ToFloat = 1.0/255.0,
-    C = C0*ToFloat,
-    Cx = case Row1 of
-	     <<Cx0:8, _/binary>> ->
-		 Cx0*ToFloat;
-	     <<>> ->
-		 F*ToFloat
-	 end,
-    Cy = Cy0*ToFloat,
-    DCX = Scale * (C-Cx),
-    DCY = Scale * (C-Cy),
-    %% Normalize
-    Sqlen = DCX*DCX+DCY*DCY+1,
-    Recip = 1.0/math:sqrt(Sqlen),
-    Nx = DCY*Recip,
-    Ny = -DCX*Recip,
-    Nz = Recip,
-    %% Pack in RGB
-    RGB = [round(128.0+127.0*Nx),
-	   round(128.0+127.0*Ny),
-	   round(128.0+127.0*Nz)],
-    bumpmapRow(Row1,Row2,F,B,Scale,[RGB|BR]).
+bumps(Rows, Cols, Bin, {Scale,InvX,InvY}) ->
+    Params = {Scale, inv_multiply(InvX), inv_multiply(InvY)},
+    Offset = (Rows-2)*Cols,
+    <<RowFirst:Cols/binary, Bin0/binary>> = Bin,
+    <<_:Offset/binary,RowLast/binary>> = Bin0,
+    bumps_0(Cols, <<RowLast/binary,Bin/binary,RowFirst/binary>>, Params, <<>>).
+
+bumps_0(Cols, Bin0, _, Acc) when size(Bin0) =:= Cols*2 -> Acc;
+bumps_0(Cols, Bin0, Params, Acc) ->
+    Offset = Cols -2,
+    <<RowUp:Cols/binary,Bin/binary>> = Bin0,
+    <<Row:Cols/binary,RowDown:Cols/binary,_/binary>> = Bin,
+    <<Ci,_:Offset/binary,Cf>> = Row,
+    Acc0 = bumpmapRow(<<Cf,Row/binary,Ci>>, RowUp, RowDown, Params, <<>>),
+    bumps_0(Cols, Bin, Params, <<Acc/binary,Acc0/binary>>).
+
+bumpmapRow(<<Cl,Row/binary>>, <<Ru,RowUp/binary>>, <<Rd,RowDown/binary>>, Params, Acc) ->
+    <<_, Cr, _/binary>> = Row,
+    {R,G,B} = bumpmapRGB(Cl, Cr, Ru, Rd, Params),
+    bumpmapRow(Row, RowUp, RowDown, Params, <<Acc/binary, R:8, G:8, B:8>>);
+bumpmapRow(_, <<>>, <<>>, _, NormalRow) -> NormalRow.
+
+bumpmapRGB(Cl, Cr, Ru, Rd, {Scale,MulX,MulY}) ->
+    Z1 = (Cr-Cl)*-1.0*MulX*Scale,
+    Z2 = (Ru-Rd)*MulY*Scale,
+    {Nr,Ng,Nb} =e3d_vec:norm({Z1, Z2, 255.0}),
+    {R0,G0,B0} = {(Nr+1)/2.0,(Ng+1)/2.0,(Nb+1)/2.0},
+    {round(R0 *255), round(G0 *255), round(B0 *255)}.
+
+inv_multiply(true) -> -1.0;
+inv_multiply(_) -> 1.0.
 
 %  buildNormalMipmaps(Image) -> [{Level,W,H,Bin}]
 %  Generates all mipmap levels from an Normalmap
