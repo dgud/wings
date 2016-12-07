@@ -2423,6 +2423,7 @@ edge_fun(EdList, ClBin, Vtab) ->
     gl:bindBuffer(?GL_ARRAY_BUFFER, 0),
     N = byte_size(EdBin) div 12,
     D = fun() ->
+		gl:depthFunc(?GL_LEQUAL),
 		gl:bindBuffer(?GL_ARRAY_BUFFER, VboEs),
 		gl:vertexPointer(3, ?GL_FLOAT, 0, 0),
 		gl:bindBuffer(?GL_ARRAY_BUFFER, VboCl),
@@ -2432,7 +2433,8 @@ edge_fun(EdList, ClBin, Vtab) ->
 		gl:enableClientState(?GL_VERTEX_ARRAY),
 		gl:drawArrays(?GL_LINES, 0, N),
 		gl:disableClientState(?GL_VERTEX_ARRAY),
-		gl:disableClientState(?GL_COLOR_ARRAY)
+		gl:disableClientState(?GL_COLOR_ARRAY),
+		gl:depthFunc(?GL_LESS)
 	end,
     {call,D,[{vbo,VboEs},{vbo,VboCl}]}.
 
