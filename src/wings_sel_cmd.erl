@@ -19,7 +19,8 @@
 -export([init/0,select_all/1]).
 
 -include("wings.hrl").
--import(lists, [map/2,foldl/3,reverse/1,keymember/3,keyfind/3,usort/1]).
+-import(lists, [map/2,foldl/3,reverse/1,member/2,keymember/3,keyfind/3,
+		usort/1,any/2]).
 
 init() ->
     wings_pref:set_default(saved_selections_cycle_by_mode,false).
@@ -1125,7 +1126,6 @@ nonplanar_faces([Tolerance], #st{selmode=Mode}=St0) ->
 oriented_faces(_, #st{selmode=Mode, sel=Sel}) when Mode =/= face; Sel =:= [] ->
     wings_u:error_msg(?__(4,"At least one face must be selected")),
     keep;
-
 oriented_faces(Ask, St) when is_atom(Ask) ->
     Connected = wings_pref:get_value(similar_normals_connected,false),
     {Save,Angle} = case wings_pref:get_value(similar_normals_angle,{false,1.0E-3}) of
@@ -1141,74 +1141,48 @@ oriented_faces(Ask, St) when is_atom(Ask) ->
     Title = ?__(2,"Select Similarly Oriented Faces"),
     Cmd = {select,oriented_faces},
     wings_dialog:dialog_preview(Cmd, Ask, Title, Qs, St);
-
 oriented_faces([Tolerance,Connected,Save], #st{selmode=face, sel=[]}) ->
-    wings_pref:set_value(similar_normals_connected,Connected),
-    wings_pref:set_value(similar_normals_angle,{Save,Tolerance}),
-    wings_u:error_msg(?__(4,"At least one face must be selected"));
-
-oriented_faces([Tolerance,false,Save], St) ->
-    wings_pref:set_value(similar_normals_connected,false),
-    wings_pref:set_value(similar_normals_angle,{Save,Tolerance}),
-    CosTolerance = math:cos(Tolerance * (math:pi() / 180.0)),
-    Normals0 = wings_sel:fold(fun(Faces, We, A) ->
-                [wings_face:normal(F, We) ||
-                    F <- gb_sets:to_list(Faces)] ++ A
-              end, [], St),
-	Normals = lists:usort(Normals0),
-    Sel = fun(Face, We) ->
-          Normal = wings_face:normal(Face,We),
-          any_matching_normal(CosTolerance, Normal, Normals)
-      end,
-    {save_state,wings_sel:make(Sel, face, St)};
-
-oriented_faces([Tolerance,true,Save], St0) ->
+    wings_pref:set_value(similar_normals_connected, Connected),
     wings_pref:set_value(similar_normals_angle, {Save,Tolerance}),
+    wings_u:error_msg(?__(4,"At least one face must be selected"));
+oriented_faces([Tolerance,false,Save], St) ->
+    wings_pref:set_value(similar_normals_connected, false),
+    wings_pref:set_value(similar_normals_angle, {Save,Tolerance}),
+    Normals0 = wings_sel:fold(fun(Faces, We, Acc) ->
+				      collect_normals(Faces, We, Acc)
+			      end, [], St),
+    Normals = lists:usort(Normals0),
+    Pred = matching_normal_pred(Tolerance, Normals),
+    {save_state,wings_sel:make(Pred, face, St)};
+oriented_faces([Tolerance,true,Save], St0) ->
     wings_pref:set_value(similar_normals_connected, true),
-    CosTolerance = math:cos(Tolerance * (math:pi() / 180.0)),
+    wings_pref:set_value(similar_normals_angle, {Save,Tolerance}),
     Sel = wings_sel:fold(
 	    fun(Faces, #we{id=Id}=We, A) ->
-		    Normals0 = gb_sets:fold(
-				 fun(F,Acc) ->
-					 [wings_face:normal(F, We)|Acc]
-				 end, [], Faces),
+		    Normals0 = collect_normals(Faces, We),
 		    Normals = lists:usort(Normals0),
-		    [{Id,norm_search(Faces, Normals, CosTolerance, We, Faces)}|A]
+		    Pred = matching_normal_pred(Tolerance, Normals),
+		    [{Id,find_similar_connected(Pred, Faces, We)}|A]
 	    end, [], St0),
-    wings_sel:set(face, Sel, St0).
+    {save_state,wings_sel:set(face, Sel, St0)}.
 
-norm_search(Faces,Normals,CosTolerance,We,LastSel) ->
-    Fs0 = wings_face:extend_border(LastSel, We),
-    Fs1 = gb_sets:subtract(Fs0,Faces),
-    AddSel = check_face_normals(Fs1,Normals,CosTolerance,We,gb_sets:empty()),
-    case gb_sets:is_empty(AddSel) of
-        true -> Faces;
-        false ->
-            Faces1 = gb_sets:union(AddSel,Faces),
-            norm_search(Faces1,Normals,CosTolerance,We,AddSel)
+matching_normal_pred(Tolerance, Normals) ->
+    CosTolerance = math:cos(Tolerance * (math:pi() / 180.0)),
+    fun(Face, We) ->
+	    N = wings_face:normal(Face, We),
+	    any_matching_normal(CosTolerance, N, Normals)
     end.
 
-check_face_normals(Fs0,Normals,CosTolerance,We,Selection)->
-    case gb_sets:is_empty(Fs0) of
-      true -> Selection;
-      false ->
-        {F,Fs1} = gb_sets:take_smallest(Fs0),
-        Normal = wings_face:normal(F, We),
-        Sel = case any_matching_normal(CosTolerance, Normal, Normals) of
-          true -> gb_sets:add(F,Selection);
-          false -> Selection
-        end,
-        check_face_normals(Fs1,Normals,CosTolerance,We,Sel)
-    end.
+any_matching_normal(CosTolerance, Norm, Normals) ->
+    any(fun(N) -> e3d_vec:dot(N, Norm) >= CosTolerance end, Normals).
 
-any_matching_normal(_,_,[]) ->
-    false;
-any_matching_normal(CosTolerance, Norm, [N|T]) ->
-    Dot = e3d_vec:dot(N, Norm),
-    if
-      Dot >= CosTolerance -> true;
-      true ->  any_matching_normal(CosTolerance, Norm, T)
-    end.
+collect_normals(Faces, We) ->
+    collect_normals(Faces, We, []).
+
+collect_normals(Faces, We, Acc) ->
+    gb_sets:fold(fun(Face, A) ->
+			 [wings_face:normal(Face, We)|A]
+		 end, Acc, Faces).
 
 %%%
 %%% Select faces of the same material.
@@ -1216,7 +1190,6 @@ any_matching_normal(CosTolerance, Norm, [N|T]) ->
 similar_material(_, #st{selmode=Mode, sel=Sel}) when Mode =/= face; Sel =:= [] ->
     wings_u:error_msg(?__(3,"At least one face must be selected")),
     keep; %Wrong mode (invoked through hotkey).
-
 similar_material(Ask, St) when is_atom(Ask) ->
     Connected = wings_pref:get_value(similar_materials_connected, false),
     Mode = wings_pref:get_value(similar_materials, material),
@@ -1228,88 +1201,72 @@ similar_material(Ask, St) when is_atom(Ask) ->
     Title = ?__(4,"Select Faces with the same Material"),
     Cmd = {select,similar_material},
     wings_dialog:dialog_preview(Cmd, Ask, Title, Qs, St);
-
 similar_material([Connected,Mode], #st{selmode=face,sel=[]}) ->
     wings_pref:set_value(similar_materials, Mode),
     wings_pref:set_value(similar_materials_connected, Connected),
     wings_u:error_msg(?__(3,"At least one face must be selected"));
 
 similar_material([false,Mode], St) ->
-    Materials = wings_sel:fold(fun
-       (Faces, We, A) when Mode =:= vertex_color ->
-        gb_sets:fold(fun(F, Acc) ->
-                   [average_colors(F, We)|Acc]
-        end,A,Faces);
-       (Faces, We, A) ->
-               [wings_facemat:face(SelI, We) ||
-                   SelI <- gb_sets:to_list(Faces)] ++ A
-             end, [], St),
-    Sel = fun	
-        (F, We) when Mode =:= vertex_color ->
-          Col = average_colors(F, We),
-          any_matching_material(Col, Materials);
-        (Face, We) ->
-          Mat = wings_facemat:face(Face, We),
-          any_matching_material(Mat, Materials)
-      end,
     wings_pref:set_value(similar_materials, Mode),
     wings_pref:set_value(similar_materials_connected, false),
-    {save_state,wings_sel:make(Sel, face, St)};
-
+    MF = case Mode of
+	     vertex_color -> fun collect_colors/3;
+	     material -> fun collect_materials/3
+	 end,
+    Materials = lists:usort(wings_sel:fold(MF, [], St)),
+    Pred = similar_material_pred(Mode, Materials),
+    {save_state,wings_sel:make(Pred, face, St)};
 similar_material([true,Mode], St0) ->
-    Selection = wings_sel:fold(fun
-        (Faces, #we{id=Id}=We, A) when Mode =:= vertex_color ->
-            AllCols = gb_sets:fold(fun(F, Acc) ->
-                [average_colors(F, We)|Acc]
-            end,A,Faces),
-            Colours = lists:usort(AllCols),
-            [{Id,mat_search(Faces, Colours, We, Mode, Faces)}|A];
-        (Faces, #we{id=Id}=We, A) ->
-            AllMats = [wings_facemat:face(Face, We) || Face <- gb_sets:to_list(Faces)],
-            Materials = lists:usort(AllMats),
-            [{Id,mat_search(Faces, Materials, We, Mode, Faces)}|A]
-    end, [], St0),
-    wings_sel:set(face, Selection, St0).
+    wings_pref:set_value(similar_materials, Mode),
+    wings_pref:set_value(similar_materials_connected, true),
+    F = case Mode of
+	    vertex_color ->
+		fun(Faces, #we{id=Id}=We, A) ->
+			Colors0 = collect_colors(Faces, We),
+			Colors = lists:usort(Colors0),
+			Pred = similar_material_pred(Mode, Colors),
+			[{Id,find_similar_connected(Pred, Faces, We)}|A]
+		end;
+	    material ->
+		fun(Faces, #we{id=Id}=We, A) ->
+			Materials0 = collect_materials(Faces, We),
+			Materials = lists:usort(Materials0),
+			Pred = similar_material_pred(Mode, Materials),
+			[{Id,find_similar_connected(Pred, Faces, We)}|A]
+		end
+	end,
+    Sel = wings_sel:fold(F, [], St0),
+    {save_state,wings_sel:set(face, Sel, St0)}.
+
+similar_material_pred(vertex_color, Colors) ->
+    fun(Face, We) ->
+	    Color = average_colors(Face, We),
+	    member(Color, Colors)
+    end;
+similar_material_pred(material, Materials) ->
+    fun(Face, We) ->
+	    Mat = wings_facemat:face(Face, We),
+	    member(Mat, Materials)
+    end.
+
+collect_colors(Faces, We) ->
+    collect_colors(Faces, We, []).
+
+collect_colors(Faces, We, Acc) ->
+    gb_sets:fold(fun(F, A) ->
+			 [average_colors(F, We)|A]
+		 end, Acc, Faces).
+
+collect_materials(Faces, We) ->
+    collect_materials(Faces, We, []).
+
+collect_materials(Faces, We, Acc) ->
+    gb_sets:fold(fun(F, A) ->
+			 [wings_facemat:face(F, We)|A]
+		 end, Acc, Faces).
 
 average_colors(Face, We) ->
     wings_color:average([C || C <- wings_va:face_attr(color, Face, We)]).
-
-mat_search(Faces,Colours,We,Mode,LastSel) ->
-    Fs0 = wings_face:extend_border(LastSel, We),
-    Fs1 = gb_sets:subtract(Fs0,Faces),
-    AddSel = check_face_colours(Fs1,Colours,We,Mode,gb_sets:empty()),
-    case gb_sets:is_empty(AddSel) of
-        true -> Faces;
-        false ->
-            Faces1 = gb_sets:union(AddSel,Faces),
-            mat_search(Faces1,Colours,We,Mode,AddSel)
-    end.
-
-check_face_colours(Fs0,Colours,We,Mode,Selection)->
-    case gb_sets:is_empty(Fs0) of
-      true -> Selection;
-      false ->
-        {F,Fs1} = gb_sets:take_smallest(Fs0),
-        Colour = face_info(F,We,Mode),
-        Sel = case any_matching_material(Colour,Colours) of
-          true -> gb_sets:add(F,Selection);
-          false -> Selection
-        end,
-        check_face_colours(Fs1,Colours,We,Mode,Sel)
-    end.
-
-face_info(F,We,vertex_color) ->
-    average_colors(F, We);
-face_info(F,We,_Mode) ->
-    wings_facemat:face(F, We).
-
-any_matching_material(_,[]) ->
-    false;
-any_matching_material(Material, [Mat|T]) ->
-    if
-      Material == Mat -> true;
-      true -> any_matching_material(Material, T)
-    end.
 
 %%%
 %%% Select sharp edges
@@ -1731,3 +1688,31 @@ select_nth_loop(N, #st{selmode=edge}=St) ->
     {save_state,wings_edge:select_nth_loop(N,St)};
 select_nth_loop(_, St) ->
     {save_state,St}.
+
+%%%
+%%% Utilities.
+%%%
+
+find_similar_connected(Pred, FaceSel, We) when is_function(Pred, 2) ->
+    find_similar_connected_1(FaceSel, Pred, We, FaceSel).
+
+find_similar_connected_1(Sel0, Pred, We, LastSel0) ->
+    LastSel1 = wings_face:extend_border(LastSel0, We),
+    LastSel2 = gb_sets:subtract(LastSel1, Sel0),
+    LastSel = find_similar_connected_2(LastSel2, Pred, We),
+    case gb_sets:is_empty(LastSel) of
+        true ->
+	    Sel0;
+        false ->
+	    Sel = gb_sets:union(Sel0, LastSel),
+	    find_similar_connected_1(Sel, Pred, We, LastSel)
+    end.
+
+find_similar_connected_2(Sel, Pred, We) ->
+    gb_sets:fold(
+      fun(Face, A) ->
+	      case Pred(Face, We) of
+		  true -> gb_sets:add(Face, A);
+		  false -> A
+	      end
+      end, gb_sets:empty(), Sel).
