@@ -26,6 +26,8 @@
 -include("e3d_image.hrl").
 -import(lists, [keydelete/3]).
 
+-dialyzer({nowarn_function, fake_enter_window/2}).
+
 %%%
 %%% Outliner window.
 %%%
@@ -422,9 +424,13 @@ handle_event(#wx{event=#wxMouse{type=motion, x=X,y=Y}} = _Ev,
        0 < Y, Y < MaxY -> {noreply, State#state{drag={Obj,0}}};
        true -> {noreply, State#state{drag=scroll_window(Y, TC, Drag)}}
     end;
-
-handle_event(#wx{} = _Ev, State) ->
-    %%io:format("~p:~p Got unexpected event ~p~n", [?MODULE,?LINE, _Ev]),
+handle_event(#wx{event=#wxFocus{}}=Ev, #state{top=Obj} = State) ->
+    %% Windows sets focus to the tree each time it is updated
+    %% fake a enter_window event
+    wings_frame ! fake_enter_window(Ev, Obj),
+    {noreply, State};
+handle_event(#wx{event=_Ev}, State) ->
+    %% io:format("~p:~p Got unexpected event ~p~n", [?MODULE,?LINE, _Ev])
     {noreply, State}.
 
 handle_call(_Req, _From, State) ->
@@ -471,6 +477,8 @@ terminate(_Reason, #state{}) ->
     normal.
 
 %%%%%%%%%%%%%%%%%%%%%%
+fake_enter_window(Ev, Obj) ->
+    Ev#wx{event=#wxMouse{type=enter_window}, userData={win, Obj}}.
 
 make_tree(Parent, #{bg:=BG, text:=FG}, IL) ->
     TreeStyle = ?wxTR_EDIT_LABELS bor ?wxTR_HIDE_ROOT bor ?wxTR_HAS_BUTTONS
@@ -479,6 +487,7 @@ make_tree(Parent, #{bg:=BG, text:=FG}, IL) ->
     wxTreeCtrl:setBackgroundColour(TC, BG),
     wxTreeCtrl:setForegroundColour(TC, FG),
     wxTreeCtrl:setImageList(TC, IL),
+    wxWindow:connect(TC, set_focus, [{skip, true}]),
     wxWindow:connect(TC, command_tree_end_label_edit),
     wxWindow:connect(TC, command_tree_begin_label_edit, [callback]),
     wxWindow:connect(TC, command_tree_begin_drag, [callback]),
