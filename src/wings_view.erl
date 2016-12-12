@@ -84,9 +84,8 @@ menu() ->
      [{?__(36,"Scene Lights"),scene_lights,
        ?__(37,"Use the lights defined in the scene"),
        crossmark(scene_lights)},
-      {one_of(L == 1, ?__(38,"Two Lights"),?__(39,"One Light")),toggle_lights,
-       one_of(L == 1, ?__(40,"Use two work lights"),
-       ?__(41,"Use one work light"))},
+      {one_of(L == 1, ?__(38,"Use Camera Light"),?__(39,"Use a camera work Light")),toggle_lights,
+       one_of(L == 1, ?__(40,"Use two work lights"),?__(41,"Use a simple sky light simulation"))},
       separator,
       {?__(31,"Orthographic View"),orthogonal_view,
        ?__(32,"Toggle between orthographic and perspective views"),
@@ -738,7 +737,7 @@ toggle_option(Key0) ->
 	none ->
 	    Prev = wings_pref:get_value(Key, false),
 	    wings_pref:set_value(Key, not Prev),
-	    wings_wm:send(wings_frame, {menu,{view, Key0, not Prev}}),
+	    wings_wm:send(top_frame, {menu,{view, Key0, not Prev}}),
 	    Prev;
 	{value,Bool} ->
 	    wings_wm:set_prop(Key, not Bool),
@@ -1109,6 +1108,11 @@ views_move(J, St, CurrentView, Views) ->
 toggle_lights() ->
     %% Invalidate displaylists so that shader data get set correctly
     %% for materials
+    case wings_pref:get_value(scene_lights, true) of
+        false -> ok;
+        true -> toggle_option(scene_lights)
+    end,
+
     wings_dl:map(fun(#dlo{proxy_data=PD}=D, _) ->
 			 D#dlo{work=none,smooth=none,
 			       proxy_data=wings_proxy:invalidate(PD, dl)}
@@ -1116,10 +1120,10 @@ toggle_lights() ->
     Lights0 = wings_pref:get_value(number_of_lights),
     wings_menu:update_menu(view, toggle_lights,
 			   one_of(Lights0 == 1,
-				  ?__(2,"Two Lights"),
+				  ?__(2,"Use Camera Light"),
 				  ?__(1,"Use Hemisphere Light")),
 			   one_of(Lights0 == 1,
-				  ?__(4,"Use two work lights"),
+				  ?__(4,"Use a camera work light"),
 				  ?__(3,"Use a simple sky light simulation"))),
     Lights = 1 + (2 + Lights0) rem 2,
     wings_pref:set_value(number_of_lights, Lights).

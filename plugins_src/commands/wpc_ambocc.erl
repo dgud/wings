@@ -265,7 +265,10 @@ render_view(Eye, Lookat, Up, Frustum, Viewport, DrawFun) ->
     DrawFun().
 
 create_ambient_light(St) ->
-    wings_pref:set_value(scene_lights, true),
+    case wings_pref:get_value(scene_lights, true) of
+        true -> ok;
+        false -> wings_view:command(scene_lights, St)
+    end,
     SceneLights = wings_light:export(St),
     case proplists:is_defined(ambient(), SceneLights) of
 	true ->
