@@ -1090,10 +1090,9 @@ update_dlist({edge_info,EdgeInfo},#dlo{plugins=Pdl,src_we=#we{vp=Vtab}}=D, _) ->
 	    Str = wings_pref:get_value(sculpt_strength),
 	    ColFac = Str*10,		     % the range of 0..1
 	    ColFrom = col_to_vec(wings_pref:get_value(edge_color)),
-	    ColTo = {1.0*ColFac,0.0*ColFac,1.0}, % from blue to magenta
+	    ColTo = {1.0*ColFac,0.0,1.0}, % from blue to magenta
 	    ColRange = e3d_vec:sub(ColTo, ColFrom),
-	    Lines = prepare_edge_pump(EdgeInfo, Vtab, ColFrom,
-				      ColRange, <<>>),
+	    Lines = prepare_edge_pump(EdgeInfo, Vtab, ColFrom, ColRange, <<>>),
 	    Draw = draw_fun(Lines),
 	    D#dlo{plugins=[{Key,Draw}|Pdl]}
     end.
@@ -1101,7 +1100,9 @@ update_dlist({edge_info,EdgeInfo},#dlo{plugins=Pdl,src_we=#we{vp=Vtab}}=D, _) ->
 draw_fun(Data) ->
     N = byte_size(Data) div (4*3*4),
     F = fun() ->
-		gl:drawArrays(?GL_LINES, 0, N)
+		gl:depthFunc(?GL_LEQUAL),
+		gl:drawArrays(?GL_LINES, 0, N),
+		gl:depthFunc(?GL_LESS)
 	end,
     wings_vbo:new(F, Data, [vertex,color]).
 
