@@ -222,12 +222,12 @@ min_wx({_,_}=Ver) ->
                 [$w,$x,$-,Major,_,Minor|_] ->
                     Version = {Major-$0, Minor-$0},
                     put(wx_version, Version),
-                    Version =< Ver;
-                _ ->
+                    Version >= Ver;
+                _Vsn -> %% erlang src build? assume 19.2 or later
                     true
             end;
         Version ->
-            Version =< Ver
+            Version >= Ver
     end.
 
 %%
