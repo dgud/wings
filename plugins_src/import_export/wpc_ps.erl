@@ -77,22 +77,26 @@ make_ps(Name, Nsubsteps) ->
 try_import_ps(Name, Nsubsteps) ->
     case file:read_file(Name) of
     {ok,<<"%!PS-Adobe",Rest/binary>>} ->
-        Objs = tokenize_bin_ps(Rest),
-        Closedpaths = [ P || P <- Objs, P#path.close == true ],
-        Cntrs = getcontours(Closedpaths),
-        Pas = wpc_tt:findpolyareas(Cntrs),
-        Pas1 = wpc_tt:subdivide_pas(Pas,Nsubsteps),
-        {Vs0,Fs,HEs} = wpc_tt:polyareas_to_faces(Pas1),
-        Center = e3d_vec:average(e3d_vec:bounding_box(Vs0)),
-        Vec = e3d_vec:sub(e3d_vec:zero(),Center),
-        Vs = reverse(center_object(Vec,Vs0)),
-        Efs = [ #e3d_face{vs=X} || X <- Fs],
-        Mesh = #e3d_mesh{type=polygon,vs=Vs,fs=Efs,he=HEs},
-        Obj = #e3d_object{name=Name,obj=Mesh},
-        {ok, #e3d_file{objs=[Obj]}};
+        case tokenize_bin_ps(Rest) of
+            {error,no_token} ->
+                {error,?__(2,"File doesn't have a valid token structure")};
+            Objs ->
+                Closedpaths = [ P || P <- Objs, P#path.close == true ],
+                Cntrs = getcontours(Closedpaths),
+                Pas = wpc_tt:findpolyareas(Cntrs),
+                Pas1 = wpc_tt:subdivide_pas(Pas,Nsubsteps),
+                {Vs0,Fs,HEs} = wpc_tt:polyareas_to_faces(Pas1),
+                Center = e3d_vec:average(e3d_vec:bounding_box(Vs0)),
+                Vec = e3d_vec:sub(e3d_vec:zero(),Center),
+                Vs = reverse(center_object(Vec,Vs0)),
+                Efs = [ #e3d_face{vs=X} || X <- Fs],
+                Mesh = #e3d_mesh{type=polygon,vs=Vs,fs=Efs,he=HEs},
+                Obj = #e3d_object{name=Name,obj=Mesh},
+                {ok, #e3d_file{objs=[Obj]}}
+        end;
     {ok,_} ->
         {error,?__(1,"Not an Adobe PostScript file")};
-        {error,Reason} ->
+    {error,Reason} ->
         {error,file:format_error(Reason)}
     end.
 
@@ -105,8 +109,10 @@ center_object(Vec,Vs) ->
 tokenize_bin_ps(Bin) ->
     Chars = after_end_setup_ps(Bin),
     Toks = tokenize(Chars, []), % seems to be the same as what is needed for .ps
-    Objs = parse_tokens_ps(Toks),
-    Objs.
+    case Toks of
+        [] -> {error,no_token};
+        _ -> parse_tokens_ps(Toks)
+    end.
 
 % skip until after %%Page: 1 1 line, as we currently use nothing before that,
 % then convert rest of binary to list of characters
