@@ -360,12 +360,23 @@ make_edge_dl(Ns) ->
     {Tris,Quads,Polys,PsLens} = make_edge_dl_bin(Ns, <<>>, <<>>, <<>>, []),
     T = vbo_draw_arrays(?GL_TRIANGLES, Tris),
     Q = vbo_draw_arrays(?GL_QUADS, Quads),
-    DP = fun() ->
-		 foldl(fun(Length, Start) ->
-			       gl:drawArrays(?GL_POLYGON, Start, Length),
-			       Length+Start
-		       end, 0, PsLens)
-	 end,
+    DP = case wings_util:min_wx({1,8}) of
+             true ->
+                 {_,Ss,Ls} = foldl(fun(N, {Start, Ss, Ls}) ->
+                                           gl:drawArrays(?GL_POLYGON, Start, N),
+                                           {N+Start, <<Ss/binary, Start:?UI32>>, <<Ls/binary, N:?UI32>>}
+                                   end, {0, <<>>, <<>>}, PsLens),
+                 fun() ->
+                         gl:multiDrawArrays(?GL_POLYGON, Ss, Ls)
+                 end;
+             false ->
+                 fun() ->
+                         foldl(fun(Length, Start) ->
+                                       gl:drawArrays(?GL_POLYGON, Start, Length),
+                                       Length+Start
+                               end, 0, PsLens)
+                 end
+         end,
     P = wings_vbo:new(DP, Polys),
     [T,Q,P].
 
@@ -482,18 +493,26 @@ update_sel_all(#dlo{src_we=#we{fs=Ftab}}=D) ->
 update_face_sel(Fs0, #dlo{src_we=We,vab=#vab{face_vs=Vs,face_map=Map}=Vab}=D)
   when Vs =/= none ->
     Fs = wings_we:visible(Fs0, We),
-    %% Collect = fun(Face, {Ss,Es}) ->
-    %%                   SE = {Start,NoElements} = array:get(Face, Map),
-    %%                   {[Start|Ss], [NoElements|Es]}
-    %%           end,
-    %% {Start,NoElements} = lists:foldl(Collect, {[],[]}, lists:reverse(Fs)),
-    SN = [array:get(Face, Map) || Face <- Fs],
-    F = fun() ->
-		wings_draw_setup:enable_pointers(Vab, []),
-                %gl:multiDrawArrays(?GL_TRIANGLES, Start, NoElements),
-                [gl:drawArrays(?GL_TRIANGLES, S, N) || {S,N} <- SN],
-                wings_draw_setup:disable_pointers(Vab, [])
-	end,
+    F = case wings_util:min_wx({1,8}) of
+            true ->
+                Collect = fun(Face, {Ss,Es}) ->
+                                  {Start,NoElements} = array:get(Face, Map),
+                                  {<<Ss/binary, Start:?UI32>>, <<Es/binary, NoElements:?UI32>>}
+                          end,
+                {Start,NoElements} = lists:foldl(Collect, {<<>>,<<>>}, lists:reverse(Fs)),
+                fun() ->
+                        wings_draw_setup:enable_pointers(Vab, []),
+                        gl:multiDrawArrays(?GL_TRIANGLES, Start, NoElements),
+                        wings_draw_setup:disable_pointers(Vab, [])
+                end;
+            false ->
+                SN = [array:get(Face, Map) || Face <- Fs],
+                fun() ->
+                        wings_draw_setup:enable_pointers(Vab, []),
+                        [gl:drawArrays(?GL_TRIANGLES, S, N) || {S,N} <- SN],
+                        wings_draw_setup:disable_pointers(Vab, [])
+                end
+        end,
     Sel = {call,F,Vab},
     D#dlo{sel=Sel};
 update_face_sel(Fs0, #dlo{src_we=We}=D) ->

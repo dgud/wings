@@ -24,7 +24,7 @@
 	 array_keys/1,array_smallest_key/1,array_greatest_key/1,
 	 array_is_empty/1,array_entries/1,
 	 mapsfind/3,
-	 wxequal/2, wxset_pid/2,
+	 wxequal/2, wxset_pid/2, min_wx/1,
 	 nice_float/1,
 	 unique_name/2,
 	 is_name_masked/2,
@@ -214,6 +214,21 @@ mapsfind(_, _, []) -> false.
 wxequal(#wx_ref{ref=Ref1}, #wx_ref{ref=Ref2}) -> Ref1 =:= Ref2.
 wxset_pid(#wx_ref{}=R, Pid) when is_pid(Pid) ->
     R#wx_ref{state=Pid}.
+
+min_wx({_,_}=Ver) ->
+    case get(wx_version) of
+        undefined ->
+            case filename:basename(code:lib_dir(wx)) of
+                [$w,$x,$-,Major,_,Minor|_] ->
+                    Version = {Major-$0, Minor-$0},
+                    put(wx_version, Version),
+                    Version =< Ver;
+                _ ->
+                    true
+            end;
+        Version ->
+            Version =< Ver
+    end.
 
 %%
 %% Create a unique name by appending digits.
