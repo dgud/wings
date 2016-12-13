@@ -51,18 +51,17 @@ file_dialog(Type, Prop, Title, Cont) ->
                             {style, Type0}]),
     case wxFileDialog:showModal(Dlg) of
         ?wxID_OK ->
-            Dir = wxFileDialog:getDirectory(Dlg),
             File = if Multiple =:= true ->
-                           wxFileDialog:getFilenames(Dlg);
+                           wxFileDialog:getPaths(Dlg);
                       true ->
-                           wxFileDialog:getFilename(Dlg)
+                           wxFileDialog:getPath(Dlg)
                    end,
             wxDialog:destroy(Dlg),
             if Multiple =:= true ->
-                    [wings_wm:psend(Cont(filename:join(Dir, File0)),wings_wm:get_current_state()) || File0 <- File],
+                    [Cont(filename:join([File0])) || File0 <- File],
                     keep;
                true ->
-                    Cont(filename:join(Dir, File))
+                    Cont(filename:join([File]))
             end;
         _Cancel ->
             wxDialog:destroy(Dlg),
