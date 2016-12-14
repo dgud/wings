@@ -440,22 +440,20 @@ connect(Vs0, #we{mirror=MirrorFace}=We) ->
 	  end, We, FaceVs).
 
 connecting_edge(St0) ->
-    {St,Sel} = wings_sel:mapfold(fun connecting_edge/3, [], St0),
-    wings_sel:set(edge, Sel, St).
+    wings_sel:map_update_sel(fun connecting_edge/2, edge, St0).
 
-connecting_edge(Vs0, #we{mirror=MirrorFace, id=Id}=We0, A) ->
+connecting_edge(Vs0, #we{mirror=MirrorFace}=We0) ->
     FaceVs = wings_vertex:per_face(Vs0, We0),
     We1 = lists:foldl(fun({Face,_}, Acc) when Face =:= MirrorFace -> Acc;
 			 ({Face,Vs}, Acc) -> wings_vertex:connect(Face, Vs, Acc)
 		      end, We0, FaceVs),
     Sel = wings_we:new_items_as_gbset(edge, We0, We1),
-    {We1,[{Id,Sel}|A]}.
+    {We1,Sel}.
 
-connect_cuts(St0) ->
-    {St,Sel} = wings_sel:mapfold(fun connect_cuts_fun/3, [], St0),
-    wings_sel:set(edge, Sel, St).
+connect_cuts(St) ->
+    wings_sel:map_update_sel(fun connect_cuts_fun/2, edge, St).
 
-connect_cuts_fun(Vs0, #we{id=Id}=We0, Acc) ->
+connect_cuts_fun(Vs0, We) ->
     case gb_sets:size(Vs0) of
         2 -> ok;
         3 -> ok;
@@ -463,8 +461,7 @@ connect_cuts_fun(Vs0, #we{id=Id}=We0, Acc) ->
     end,
     Vs = gb_sets:to_list(Vs0),
     VsPairs = [{A,B} || A <- Vs, B <- Vs, A < B],
-    {We,Es} = do_connect_cuts(VsPairs, gb_sets:empty(), We0),
-    {We,[{Id,Es}|Acc]}.
+    do_connect_cuts(VsPairs, gb_sets:empty(), We).
 
 do_connect_cuts([{VS0,VE0}|Pairs], Es0, We0) ->
     {We,Es1} = wings_vertex:connect_cut(VS0, VE0, We0),

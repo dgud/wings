@@ -176,22 +176,20 @@ command(vertex_color, St) ->
 %%% The Connect command.
 %%%
 
-connect(St0) ->
-    {St,Sel} = wings_sel:mapfold(fun connect/3, [], St0),
-    wings_sel:set(Sel, St).
+connect(St) ->
+    wings_sel:map_update_sel(fun connect/2, St).
 
-connect(Es0, #we{id=Id}=We0, Acc) ->
+connect(Es0, We0) ->
     Es1 = gb_sets:to_list(Es0),
     Es = remove_nonconnectable(Es1, Es0, We0, []),
     {Vs,We1} = cut_edges(Es, We0),
     We2 = wings_vertex_cmd:connect(Vs, We1),
     Sel = wings_we:new_items_as_gbset(edge, We1, We2),
     We = wings_edge:dissolve_isolated_vs(Vs, We2),
-    {We,[{Id,Sel}|Acc]}.
+    {We,Sel}.
 
-connect_slide(St1) ->
-    {St0,Sel} = wings_sel:mapfold(fun connect/3, [], St1),
-    St=wings_sel:set(Sel, St0),
+connect_slide(St0) ->
+    St = wings_sel:map_update_sel(fun connect/2, St0),
     slide(St).
 
 cut_edges(Es, We) ->
@@ -231,14 +229,13 @@ set_color(Color, St) ->
 %%% The Cut command.
 %%%
 
-cut(N, #st{selmode=edge}=St0) when N > 1 ->
-    {St,Sel} = wings_sel:mapfold(
-		 fun(Edges, #we{id=Id}=We0, Acc) ->
-			 We = cut_edges(Edges, N, We0),
-			 S = wings_we:new_items_as_gbset(vertex, We0, We),
-			 {We,[{Id,S}|Acc]}
-		 end, [], St0),
-    wings_sel:set(vertex, Sel, St);
+cut(N, #st{selmode=edge}=St) when N > 1 ->
+    wings_sel:map_update_sel(
+      fun(Edges, We0) ->
+	      We = cut_edges(Edges, N, We0),
+	      S = wings_we:new_items_as_gbset(vertex, We0, We),
+	      {We,S}
+      end, vertex, St);
 cut(_, St) -> St.
 
 cut_edges(Edges, N, We0) ->

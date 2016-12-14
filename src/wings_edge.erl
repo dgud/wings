@@ -521,16 +521,14 @@ hardness(Edge, hard, Htab) -> gb_sets:add(Edge, Htab).
 %%%
 
 select_region(#st{selmode=edge}=St) ->
-    Sel = wings_sel:fold(fun select_region/3, [], St),
-    wings_sel:set(face, Sel, St);
+    wings_sel:update_sel(fun select_region/2, face, St);
 select_region(St) -> St.
 
-select_region(Edges0, #we{id=Id}=We, Acc) ->
+select_region(Edges0, We) ->
     Part = wings_edge_loop:partition_edges(Edges0, We),
     Edges = select_region_borders(Edges0, We),
-    FaceSel0 = select_region_1(Part, Edges, We, []),
-    FaceSel = gb_sets:from_ordset(wings_we:visible(FaceSel0, We)),
-    [{Id,FaceSel}|Acc].
+    FaceSel = select_region_1(Part, Edges, We, []),
+    gb_sets:from_ordset(wings_we:visible(FaceSel, We)).
 
 select_region_1([[AnEdge|_]|Ps], Edges, #we{es=Etab}=We, Acc) ->
     #edge{lf=Lf,rf=Rf} = array:get(AnEdge, Etab),
@@ -645,25 +643,22 @@ collect_maybe_add(Work, Face, Edges, We, Res) ->
 %%%
 
 select_edge_ring(#st{selmode=edge}=St) ->
-    Sel = wings_sel:fold(fun build_selection/3, [], St),
-    wings_sel:set(Sel, St);
+    wings_sel:update_sel(fun build_selection/2, St);
 select_edge_ring(St) -> St.
 
 select_edge_ring_incr(#st{selmode=edge}=St) ->
-    Sel = wings_sel:fold(fun incr_ring_selection/3, [], St),
-    wings_sel:set(Sel, St);
+    wings_sel:update_sel(fun incr_ring_selection/2, St);
 select_edge_ring_incr(St) -> St.
 
 select_edge_ring_decr(#st{selmode=edge}=St) ->
-    Sel = wings_sel:fold(fun decr_ring_selection/3, [], St),
-    wings_sel:set(Sel, St);
+    wings_sel:update_sel(fun decr_ring_selection/2, St);
 select_edge_ring_decr(St) -> St.
 
 -record(r,{id,l,r,
 	   ls=gb_sets:empty(),
 	   rs=gb_sets:empty()}).
 
-build_selection(Edges, #we{id=Id}=We, ObjAcc) ->
+build_selection(Edges, We) ->
     Init = init_edge_ring([],unknown,Edges,We,0,[]),
     Stops0 = foldl(fun(#r{id=MyId,ls=O},S0) ->
 			   gb_sets:fold(fun(E,S) -> [{E,MyId} | S] end,
@@ -672,7 +667,7 @@ build_selection(Edges, #we{id=Id}=We, ObjAcc) ->
     Stop = gb_trees:from_orddict(lists:sort(Stops0)),
     Sel0 = grow_rings(Init,[],Stop,We,gb_sets:empty()),
     Sel = wings_we:visible_edges(Sel0, We),
-    [{Id,gb_sets:union(Sel,Edges)}|ObjAcc].
+    gb_sets:union(Sel, Edges).
 
 grow_rings([First = #r{id=This}|R0],Rest0,Stop,We,Acc) ->
     case grow_ring1(First,Stop,We) of
@@ -784,12 +779,11 @@ next_edge(Edge, Face, #we{es=Etab})->
         #edge{rf=Face,rtsu=NextEdge} -> NextEdge
     end.
 
-incr_ring_selection(Edges, #we{id=Id}=We, ObjAcc) ->
-    [{Id,gb_sets:fold(
-	   fun(Edge, EdgeAcc) ->
-		   Es = incr_from_edge(Edge, We, EdgeAcc),
-		   wings_we:visible_edges(Es, We)
-	   end, gb_sets:empty(), Edges)}|ObjAcc].
+incr_ring_selection(Edges, We) ->
+    gb_sets:fold(fun(Edge, EdgeAcc) ->
+			 Es = incr_from_edge(Edge, We, EdgeAcc),
+			 wings_we:visible_edges(Es, We)
+		 end, gb_sets:empty(), Edges).
 
 incr_from_edge(Edge, We, Acc) ->
     Selected = gb_sets:add(Edge, Acc),
@@ -803,11 +797,10 @@ incr_from_edge(Edge, We, Acc) ->
 	Right -> gb_sets:add(Right, LeftSet)
     end.
 
-decr_ring_selection(Edges, #we{id=Id} = We, ObjAcc) ->
-    [{Id,gb_sets:fold(
-	   fun(Edge, EdgeAcc) ->
-		   decr_from_edge(Edge, We, Edges, EdgeAcc)
-	   end, Edges, Edges)}|ObjAcc].
+decr_ring_selection(Edges, We) ->
+    gb_sets:fold(fun(Edge, EdgeAcc) ->
+			 decr_from_edge(Edge, We, Edges, EdgeAcc)
+		 end, Edges, Edges).
 
 decr_from_edge(Edge, We, Orig, Acc) ->
     Left = opposing_edge(Edge, We, left),
@@ -879,12 +872,11 @@ patch_edge(Edge, ToEdge, Face, OrigEdge, Etab) ->
 %%%% Select every nth ring
 
 select_nth_ring(N, #st{selmode=edge}=St) ->
-    Sel = wings_sel:fold(fun(Edges, #we{id=Id}=We, ObjAcc) ->
-                EdgeRings = nth_ring_1(Edges, {N,N}, We, Edges, gb_sets:new()),
-                Sel0 = wings_we:visible_edges(EdgeRings, We),
-                [{Id,Sel0}|ObjAcc]
-        end,[],St),
-    wings_sel:set(Sel, St);
+    wings_sel:update_sel(
+      fun(Edges, We) ->
+	      EdgeRings = nth_ring_1(Edges, {N,N}, We, Edges, gb_sets:new()),
+	      wings_we:visible_edges(EdgeRings, We)
+      end, St);
 select_nth_ring(_N, St) ->
     St.
 
@@ -988,13 +980,13 @@ nth_ring_5(_,_,Edges0,stop,_,Edges1,OrigEs) ->
 select_nth_loop(0, St) -> St;
 select_nth_loop(N, #st{selmode=edge}=St0) ->
     St = wings_edge_loop:stoppable_sel_loop(St0),
-    Sel = wings_sel:fold(fun(Edges, #we{id=Id}=We, SelAcc) ->
-                                 Links = wings_edge_loop:edge_links(Edges, We),
-                                 SelLoop = nth_loop(Links, N-1, []),
-                                 Sel0 = wings_we:visible_edges(gb_sets:from_list(SelLoop), We),
-                                 [{Id,Sel0}|SelAcc]
-			 end, [], St),
-    St#st{sel=lists:sort(Sel)};
+    wings_sel:update_sel(
+      fun(Edges, We) ->
+              Links = wings_edge_loop:edge_links(Edges, We),
+              SelLoop0 = nth_loop(Links, N-1, []),
+              SelLoop = gb_sets:from_list(SelLoop0),
+              wings_we:visible_edges(SelLoop, We)
+      end, St);
 select_nth_loop(_N, St) ->
     St.
 

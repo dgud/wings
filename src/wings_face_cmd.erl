@@ -214,9 +214,7 @@ extrude({region, Axis}, St0) ->
 
 %%% Extrude Faces
 extrude_faces(St) ->
-    wings_sel:map(fun(Faces, We) ->
-			  wings_extrude_face:faces(Faces, We)
-		  end, St).
+    wings_sel:map(fun wings_extrude_face:faces/2, St).
 
 %%% Extrude the selected regions.
 extrude_region(St) ->
@@ -347,46 +345,44 @@ extract_2([],_,St) ->
 %%% The Dissolve command.
 %%%
 
-dissolve(St0) ->
-    {St,Sel} = wings_sel:mapfold(fun dissolve_sel/3, [], St0),
-    wings_sel:set(Sel, St).
+dissolve(St) ->
+    wings_sel:map_update_sel(fun dissolve_sel/2, St).
 
-dissolve_sel(Faces, #we{id=Id,fs=Ftab,holes=Holes,mirror=M}=We0, Acc) ->
+dissolve_sel(Faces, #we{fs=Ftab,holes=Holes,mirror=M}=We0) ->
     Mirror = if M =:= none -> 0; true -> 1 end,
     F1 = gb_sets:size(Faces) + length(Holes) + Mirror,
     F2 = gb_trees:size(Ftab),
     case F1 =:= F2 of
-      false ->
-        We = wings_dissolve:faces(Faces, We0),
-        Sel = wings_we:new_items_as_gbset(face, We0, We),
-        {We,[{Id,Sel}|Acc]};
-      true ->
-        {#we{},Acc}
+	false ->
+	    We = wings_dissolve:faces(Faces, We0),
+	    Sel = wings_we:new_items_as_gbset(face, We0, We),
+	    {We,Sel};
+	true ->
+	    {#we{},gb_sets:empty()}
     end.
 
 %%%
 %%% Clean Dissolve
 %%%
 
-clean_dissolve(St0) ->
-    {St,Sel} = wings_sel:mapfold(fun clean_dissolve_sel/3, [], St0),
-    wings_sel:set(Sel, St).
+clean_dissolve(St) ->
+    wings_sel:map_update_sel(fun clean_dissolve_sel/2, St).
 
-clean_dissolve_sel(Faces, #we{id=Id,fs=Ftab,holes=Holes,mirror=M}=We0, Acc) ->
+clean_dissolve_sel(Faces, #we{fs=Ftab,holes=Holes,mirror=M}=We0) ->
     Mirror = if M =:= none -> 0; true -> 1 end,
     F1 = gb_sets:size(Faces) + length(Holes) + Mirror,
     F2 = gb_trees:size(Ftab),
     case F1 =:= F2 of
-      false ->
-         IsolatedVs1 = wings_vertex:isolated(We0),
-         We1 = wings_dissolve:faces(Faces, We0),
-         IsolatedVs2 = wings_vertex:isolated(We1),
-         C = IsolatedVs2 -- IsolatedVs1,
-         We = wings_edge:dissolve_isolated_vs(C, We1),
-         Sel = wings_we:new_items_as_gbset(face, We0, We),
-         {We,[{Id,Sel}|Acc]};
-      true ->
-        {#we{},Acc}
+	false ->
+	    IsolatedVs1 = wings_vertex:isolated(We0),
+	    We1 = wings_dissolve:faces(Faces, We0),
+	    IsolatedVs2 = wings_vertex:isolated(We1),
+	    C = IsolatedVs2 -- IsolatedVs1,
+	    We = wings_edge:dissolve_isolated_vs(C, We1),
+	    Sel = wings_we:new_items_as_gbset(face, We0, We),
+	    {We,Sel};
+	true ->
+	    {#we{},gb_sets:empty()}
     end.
 
 %%%
@@ -394,13 +390,13 @@ clean_dissolve_sel(Faces, #we{id=Id,fs=Ftab,holes=Holes,mirror=M}=We0, Acc) ->
 %%%
 
 intrude(St0) ->
-    {St,Sel} = wings_sel:mapfold(fun intrude/3, [], St0),
-    wings_move:setup(intrude, wings_sel:set(Sel, St)).
+    St = wings_sel:map_update_sel(fun intrude/2, St0),
+    wings_move:setup(intrude, St).
 
-intrude(Faces0, We0, SelAcc) ->
+intrude(Faces0, We0) ->
     We1 = wings_dissolve:faces(Faces0, wings_we:break_mirror(We0)),
     Faces = wings_we:new_items_as_ordset(face, We0, We1),
-    #we{id=Id,es=Etab,fs=Ftab,next_id=Wid} = We1,
+    #we{es=Etab,fs=Ftab,next_id=Wid} = We1,
     RootSet0 = foldl(
 		 fun(F, A) ->
 			 Edge = gb_trees:get(F, Ftab),
@@ -417,7 +413,7 @@ intrude(Faces0, We0, SelAcc) ->
 	false ->
 	    We5 = intrude_bridge(RootSet0, RootSet, We4),
 	    We = restore_mirror(We5, We0),
-	    {We,[{Id,Sel}|SelAcc]};
+	    {We,Sel};
 	true ->
 	    wings_u:error_msg(?__(1,"Intrude does not work with all faces selected."))
     end.
@@ -637,17 +633,16 @@ do_flatten_normal(Faces, Center, We) ->
 %%% The Subdivide command.
 %%%
 
-subdiv(St0) ->
-    {St,Sel} = wings_sel:mapfold(fun subdiv/3, [], St0),
-    wings_sel:set(Sel, St).
+subdiv(St) ->
+    wings_sel:map_update_sel(fun subdiv/2, St).
 
-subdiv(Faces0, #we{id=Id}=We0, Acc) ->
+subdiv(Faces0, We0) ->
     Rs = wings_sel:face_regions(Faces0, We0),
     wings_pb:start(?__(1,"subdividing")),
     We1 = wings_pb:done(subdiv_regions(Rs, 1, length(Rs), We0)),
     NewSelFaces = wings_we:new_items_as_ordset(face, We0, We1),
     We = wings_we:mirror_flatten(We0, We1),
-    {We,[{Id,gb_sets:from_ordset(NewSelFaces)}|Acc]}.
+    {We,gb_sets:from_ordset(NewSelFaces)}.
 
 subdiv_regions([Faces0|Rs], I, N, #we{he=Htab}=We0) ->
     wings_pb:update(I/N, io_lib:format("~p/~p\n", [I,N])),
@@ -664,11 +659,10 @@ subdiv_regions([], _, _, We) -> We.
 %%% The Smooth command.
 %%%
 
-smooth(St0) ->
-    {St,Sel} = wings_sel:mapfold(fun smooth/3, [], St0),
-    wings_sel:set(Sel, St).
+smooth(St) ->
+    wings_sel:map_update_sel(fun smooth/2, St).
 
-smooth(Faces0, #we{id=Id}=We0, Acc) ->
+smooth(Faces0, We0) ->
     Rs = wings_sel:face_regions(Faces0, We0),
     wings_pb:start(?__(1,"smoothing")),
     We1 = wings_pb:done(smooth_regions(Rs, 1, length(Rs), We0)),
@@ -676,7 +670,7 @@ smooth(Faces0, #we{id=Id}=We0, Acc) ->
     NewVs = wings_we:new_items_as_ordset(vertex, We0, We1),
     We2 = smooth_connect(NewVs, NewSelFaces, We1),
     We = wings_we:mirror_flatten(We0, We2),
-    {We,[{Id,gb_sets:from_ordset(NewSelFaces)}|Acc]}.
+    {We,gb_sets:from_ordset(NewSelFaces)}.
 
 smooth_regions([Faces0|Rs], I, N, #we{he=Htab}=We0) ->
     wings_pb:update(I/N, io_lib:format("~p/~p\n", [I,N])),
