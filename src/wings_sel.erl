@@ -15,19 +15,37 @@
 
 -export([clear/1,reset/1,set/2,set/3,
 	 conditional_reset/1,
-	 map/2,fold/3,mapfold/3,
-	 make/3,valid_sel/1,valid_sel/3,
+	 map/2,map_update_sel/2,map_update_sel/3,
+	 update_sel/2,update_sel/3,fold/3,mapfold/3,
+	 new_sel/3,make/3,valid_sel/1,valid_sel/3,
 	 center/1,bbox_center/1,bounding_box/1,bounding_boxes/1,
 	 face_regions/2,strict_face_regions/2,edge_regions/2,
 	 select_object/2,deselect_object/2,
 	 get_all_items/2,get_all_items/3,
 	 inverse_items/3]).
 
+-export_type([edge_set/0,face_set/0,item_set/0]).
+
 -include("wings.hrl").
+-include("e3d.hrl").
+
 -import(lists, [foldl/3,reverse/1,reverse/2,sort/1,keydelete/3,keymember/3]).
+
+-type edge_set() :: gb_sets:set(edge_num()).
+-type face_set() :: gb_sets:set(face_num()).
+
+-type item_id() :: visible_face_num() | edge_num() | vertex_num() | 0.
+-type item_set() :: gb_sets:set(item_id()).
+
+
+-type obj_id() :: non_neg_integer().
+
+-spec clear(#st{}) -> #st{}.
 
 clear(St) ->
     St#st{sel=[],sh=false}.
+
+-spec reset(#st{}) -> #st{}.
 
 reset(#st{selmode=Mode}=St) ->
     case Mode of
@@ -35,15 +53,23 @@ reset(#st{selmode=Mode}=St) ->
 	_ -> St#st{sel=[],sh=true}
     end.
 
+-spec conditional_reset(#st{}) -> #st{}.
+
 conditional_reset(#st{sel=[]}=St) ->
     reset(St);
 conditional_reset(St) ->
     St#st{sel=[],sh=false}.
 
+-spec set(Sel, #st{}) -> #st{} when
+      Sel :: [{item_id(),item_set()}].
+
 set([], St) ->
     clear(St);
 set(Sel, St) ->
     St#st{sel=sort(Sel),sh=false}.
+
+-spec set(sel_mode(), Sel, #st{}) -> #st{} when
+      Sel :: [{item_id(),item_set()}].
 
 set(Mode, [], St) ->
     clear(St#st{selmode=Mode});
@@ -54,56 +80,112 @@ set(Mode, Sel, St) ->
 %%% Map over the selection, modifying the selected objects.
 %%%
 
+-spec map(Fun, #st{}) -> #st{} when
+      Fun :: fun((Items, #we{}) -> #we{}),
+      Items :: item_set().
+
 map(F, #st{shapes=Shs0,sel=Sel}=St) ->
     Shs1 = gb_trees:to_list(Shs0),
     Shs = map_1(F, Sel, Shs1, St, []),
     St#st{shapes=Shs}.
 
-map_1(F, [{Id,Items}|Sel], [{Id,We0}|Shs], St, Acc) ->
-    ?ASSERT(We0#we.id =:= Id),
-    #we{es=Etab} = We = F(Items, We0),
-    case wings_util:array_is_empty(Etab) of
-	true -> map_1(F, Sel, Shs, St, Acc);
-	false -> map_1(F, Sel, Shs, St, [{Id,We}|Acc])
-    end;
-map_1(F, [_|_]=Sel, [Pair|Shs], St, Acc) ->
-    map_1(F, Sel, Shs, St, [Pair|Acc]);
-map_1(_F, [], Shs, _St, Acc) ->
-    gb_trees:from_orddict(reverse(Acc, Shs)).
+%%
+%% Map over the selection, modifying the objects and the selection.
+%%
+
+-spec map_update_sel(Fun, sel_mode(), #st{}) -> #st{} when
+      Fun :: fun((InItems, #we{}) -> {#we{},OutItems}),
+      InItems :: item_set(),
+      OutItems :: item_set().
+
+map_update_sel(F, Mode, St0) when is_function(F, 2) ->
+    St = map_update_sel(F, St0),
+    St#st{selmode=Mode}.
+
+-spec map_update_sel(Fun, #st{}) -> #st{} when
+      Fun :: fun((InItems, #we{}) -> {#we{},OutItems}),
+      InItems :: item_set(),
+      OutItems :: item_set().
+
+map_update_sel(F, St0) when is_function(F, 2) ->
+    MF = fun(Sel0, #we{id=Id}=We0, Acc) ->
+		 {We,Sel} = F(Sel0, We0),
+		 case gb_sets:is_empty(Sel) of
+		     true -> {We,Acc};
+		     false -> {We,[{Id,Sel}|Acc]}
+		 end
+	 end,
+    {St,Sel} = mapfold(MF, [], St0),
+    set(Sel, St).
+
+%%
+%% Map over the selection, modifying the selection.
+%%
+
+-spec update_sel(Fun, sel_mode(), #st{}) -> #st{} when
+      Fun :: fun((InItems, #we{}) -> OutItems),
+      InItems :: item_set(),
+      OutItems :: item_set().
+
+update_sel(F, Mode, St0) when is_function(F, 2) ->
+    St = update_sel(F, St0),
+    St#st{selmode=Mode}.
+
+-spec update_sel(Fun, #st{}) -> #st{} when
+      Fun :: fun((Items, #we{}) -> Items),
+      Items :: gb_sets:set(item_id()).
+
+update_sel(F, #st{sel=Sel0,shapes=Shapes}=St) when is_function(F, 2) ->
+    Sel = update_sel_1(Sel0, F, Shapes),
+    set(Sel, St).
 
 %%%
 %%% Fold over the selection.
 %%%
 
+-spec fold(Fun, Acc0, #st{}) -> Acc1 when
+      Fun :: fun((Items, #we{}, AccIn) -> AccOut),
+      Items :: item_set(),
+      Acc0 :: term(),
+      Acc1 :: term(),
+      AccIn :: term(),
+      AccOut :: term().
+
 fold(F, Acc, #st{sel=Sel,shapes=Shapes}) ->
     fold_1(F, Acc, Shapes, Sel).
-
-fold_1(F, Acc0, Shapes, [{Id,Items}|T]) ->
-    We = gb_trees:get(Id, Shapes),
-    ?ASSERT(We#we.id =:= Id),
-    fold_1(F, F(Items, We, Acc0), Shapes, T);
-fold_1(_F, Acc, _Shapes, []) -> Acc.
 
 %%%
 %%% Map and fold over the selection.
 %%%
+
+-spec mapfold(Fun, Acc0, #st{}) -> Acc1 when
+      Fun :: fun((Items, #we{}, AccIn) -> {#we{},AccOut}),
+      Items :: item_set(),
+      Acc0 :: term(),
+      Acc1 :: term(),
+      AccIn :: term(),
+      AccOut :: term().
 
 mapfold(F, Acc0, #st{shapes=Shs0,sel=Sel}=St) ->
     Shs1 = gb_trees:to_list(Shs0),
     {Shs,Acc} = mapfold_1(F, Acc0, Sel, Shs1, St, []),
     {St#st{shapes=Shs},Acc}.
 
-mapfold_1(F, Acc0, [{Id,Items}|Sel], [{Id,We0}|Shs], St, ShsAcc) ->
-    ?ASSERT(We0#we.id =:= Id),
-    {#we{es=Etab}=We,Acc} = F(Items, We0, Acc0),
-    case wings_util:array_is_empty(Etab) of
-	true -> mapfold_1(F, Acc0, Sel, Shs, St, ShsAcc);
-	false -> mapfold_1(F, Acc, Sel, Shs, St, [{Id,We}|ShsAcc])
-    end;
-mapfold_1(F, Acc, [_|_]=Sel, [Pair|Shs], St, ShsAcc) ->
-    mapfold_1(F, Acc, Sel, Shs, St, [Pair|ShsAcc]);
-mapfold_1(_F, Acc, [], Shs, _St, ShsAcc) ->
-    {gb_trees:from_orddict(reverse(ShsAcc, Shs)),Acc}.
+%%
+%% Construct a new selection based on all visible geometry.
+%%
+%% Light can only be selected in body mode.
+%%
+
+-spec new_sel(Fun, sel_mode(), #st{}) -> #st{} when
+      Fun :: fun((InItems, #we{}) -> OutItems),
+      InItems :: item_set(),
+      OutItems :: item_set().
+
+new_sel(F, Mode, #st{shapes=Shapes}=St) when is_function(F, 2) ->
+    Sel0 = gb_trees:values(Shapes),
+    Sel = new_sel_1(Sel0, F, Mode),
+    St#st{selmode=Mode,sel=Sel}.
 
 %% make(Filter, Mode, St) -> [{Id,ItemGbSet}].
 %%      Mode = body|face|edge|vertex
@@ -113,58 +195,21 @@ mapfold_1(_F, Acc, [], Shs, _St, ShsAcc) ->
 %%  item in each object (where Item is either a face number,
 %%  edge number, vertex number, or 0 depending on Mode).
 %%
-%%  Invisible geometry will not be included in the selection.
-%%  Filter/2 will never be called for invisible faces, while
-%%  invisible edges and vertices will be filtered away after
-%%  the call to Filter/2.
-%%
 
--type filter_fun() :: fun((visible_face_num() | edge_num() | vertex_num() | 0,
-			   #we{}) -> boolean()).
--spec make(filter_fun(), sel_mode(), #st{}) ->
-    #st{sel::[{non_neg_integer(),gb_sets:set()}]}.
+-spec make(Fun, sel_mode(), #st{}) -> #st{} when
+      Fun :: fun((Items, #we{}) -> boolean()),
+      Items :: item_set().
 
-make(Filter, Mode, #st{shapes=Shapes}=St) when is_function(Filter, 2) ->
-    Sel0 = gb_trees:values(Shapes),
-    Sel = make_1(Sel0, Filter, Mode),
-    St#st{selmode=Mode,sel=Sel}.
-
-make_1([#we{perm=Perm}|Shs], Filter, Mode) when ?IS_NOT_SELECTABLE(Perm) ->
-    make_1(Shs, Filter, Mode);
-make_1([We|Shs], Filter, Mode) when ?IS_LIGHT(We) ->
-    make_1(Shs, Filter, Mode);
-make_1([#we{id=Id}=We|Shs], Filter, body) ->
-    case Filter(0, We) of
-	false -> make_1(Shs, Filter, body);
-	true -> [{Id,gb_sets:singleton(0)}|make_1(Shs, Filter, body)]
-    end;
-make_1([#we{id=Id,fs=Ftab}=We|Shs], Filter, face=Mode) ->
-    Faces = gb_trees:keys(Ftab),
-    case [Face || Face <- Faces, Face >= 0, Filter(Face, We)] of
-	[] -> make_1(Shs, Filter, Mode);
-	Sel -> [{Id,gb_sets:from_ordset(Sel)}|make_1(Shs, Filter, Mode)]
-    end;
-make_1([#we{id=Id,es=Etab}=We|Shs], Filter, edge=Mode) ->
-    Es = wings_util:array_keys(Etab),
-    case [E || E <- Es, Filter(E, We)] of
-	[] -> make_1(Shs, Filter, Mode);
-	Sel0 ->
-	    Sel = wings_we:visible_edges(gb_sets:from_ordset(Sel0), We),
-	    [{Id,Sel}|make_1(Shs, Filter, Mode)]
-    end;
-make_1([#we{id=Id,vp=Vtab}=We|Shs], Filter, vertex=Mode) ->
-    Vs = wings_util:array_keys(Vtab),
-    case [V || V <- Vs, Filter(V, We)] of
-	[] -> make_1(Shs, Filter, Mode);
-	Sel0 ->
-	    Sel = gb_sets:from_ordset(wings_we:visible_vs(Sel0, We)),
-	    [{Id,Sel}|make_1(Shs, Filter, Mode)]
-    end;
-make_1([], _Filter, _Mode) -> [].
+make(Filter, Mode, St) when is_function(Filter, 2) ->
+    new_sel(fun(Sel, We) ->
+		    gb_sets:filter(fun(Item) -> Filter(Item, We) end, Sel)
+	    end, Mode, St).
 
 %%%
 %%% Calculate the center for all selected objects.
 %%%
+
+-spec center(#st{}) -> e3d_vector().
 
 center(#st{selmode=Mode}=St) ->
     Centers = fold(fun(Items, We, A) ->
@@ -173,12 +218,19 @@ center(#st{selmode=Mode}=St) ->
 		   end, [], St),
     e3d_vec:average(Centers).
 
+%% Calculate center of bounding box.
+
+-spec bbox_center(#st{}) -> e3d_vector().
+
 bbox_center(St) ->
     BBox = bounding_box(St),
     e3d_vec:average(BBox).
+
 %%%
 %%% Calculate the bounding-box for the selection.
 %%%
+
+-spec bounding_box(#st{}) -> [e3d_vector()] | 'none'.
 
 bounding_box(#st{selmode=Mode}=St) ->
     fold(fun(Items, We, A) ->
@@ -189,6 +241,7 @@ bounding_box(#st{selmode=Mode}=St) ->
 %%%
 %%% Calculate the bounding boxes for all selected objects.
 %%%
+%%% FIXME: The name is strange. Maybe bbox_centers/1?
 
 bounding_boxes(#st{selmode=Mode}=St) ->
     reverse(
@@ -205,10 +258,169 @@ bounding_boxes(#st{selmode=Mode}=St) ->
 %%% vertex without necessarily being in the same region.
 %%%
 
+-spec face_regions(Faces, #we{}) -> [face_set()] when
+      Faces :: face_set() | [face_num()].
+
 face_regions(Faces, We) when is_list(Faces) ->
     face_regions_1(gb_sets:from_list(Faces), We);
 face_regions(Faces, We) ->
     face_regions_1(Faces, We).
+
+%%%
+%%% Divide the face selection into regions where each face shares at least
+%%% one vertex with another face in the same region.
+%%%
+
+-spec strict_face_regions(Faces, #we{}) -> [face_set()] when
+      Faces :: face_set() | [face_num()].
+
+strict_face_regions(Faces, We) when is_list(Faces) ->
+    find_strict_face_regions(gb_sets:from_list(Faces), We, []);
+strict_face_regions(Faces, We) ->
+    find_strict_face_regions(Faces, We, []).
+
+%%%
+%%% Here we want to divide the selection into regions of connected edges.
+%%% We use a standard working-set algorithm.
+%%%
+
+-spec edge_regions(Edges, #we{}) -> [edge_set()] when
+      Edges :: edge_set() | [edge_num()].
+
+edge_regions(Edges, We) when is_list(Edges) ->
+    find_edge_regions(gb_sets:from_list(Edges), We, []);
+edge_regions(Edges, We) ->
+    find_edge_regions(Edges, We, []).
+
+%%%
+%%% Validate selection.
+%%%
+
+-spec valid_sel(#st{}) -> #st{}.
+
+valid_sel(#st{sel=Sel,selmode=Mode}=St) ->
+    St#st{sel=valid_sel(Sel, Mode, St)}.
+
+-spec valid_sel(SelIn, sel_mode(), #st{}) -> SelOut when
+      SelIn :: [{item_id(),item_set()}],
+      SelOut :: [{item_id(),item_set()}].
+
+valid_sel(Sel0, Mode, #st{shapes=Shapes}) ->
+    Sel = foldl(
+	    fun({Id,Items0}, A) ->
+		    case gb_trees:lookup(Id, Shapes) of
+			none -> A;
+			{value,#we{perm=Perm}} when ?IS_NOT_SELECTABLE(Perm) ->
+			    A;
+			{value,We} ->
+			    Items = validate_items(Items0, Mode, We),
+			    case gb_sets:is_empty(Items) of
+				false -> [{Id,Items}|A];
+				true -> A
+			    end
+		    end
+	    end, [], Sel0),
+    reverse(Sel).
+
+-spec select_object(obj_id(), #st{}) -> #st{}.
+
+select_object(Id, #st{selmode=Mode,sel=Sel0}=St) ->
+    case keymember(Id, 1, Sel0) of
+	true -> St;
+	false ->
+	    Sel = sort([{Id,get_all_items(Mode, Id, St)}|Sel0]),
+	    St#st{sel=Sel}
+    end.
+
+-spec deselect_object(obj_id(), #st{}) -> #st{}.
+
+deselect_object(Id, #st{sel=Sel0}=St) ->
+    Sel = keydelete(Id, 1, Sel0),
+    St#st{sel=Sel}.
+
+-spec inverse_items(sel_mode(), item_set(), #we{}) -> item_set().
+
+inverse_items(Mode, Elems, We) ->
+    gb_sets:difference(get_all_items(Mode, We), Elems).
+
+-spec get_all_items(sel_mode(), obj_id(), #st{}) -> item_set().
+
+get_all_items(Mode, Id, #st{shapes=Shapes}) ->
+    We = gb_trees:get(Id, Shapes),
+    get_all_items(Mode, We).
+
+-spec to_vertices(sel_mode(), item_set(), #we{}) -> [item_id()].
+
+to_vertices(vertex, Vs, _) -> Vs;
+to_vertices(face, Faces, We) ->
+    wings_face:to_vertices(Faces, We);
+to_vertices(edge, Edges, We) ->
+    wings_edge:to_vertices(Edges, We);
+to_vertices(body, _, #we{vp=Vtab}) ->
+    wings_util:array_keys(Vtab).
+
+%%%
+%%% Local functions.
+%%%
+
+map_1(F, [{Id,Items}|Sel], [{Id,We0}|Shs], St, Acc) ->
+    ?ASSERT(We0#we.id =:= Id),
+    #we{es=Etab} = We = F(Items, We0),
+    case wings_util:array_is_empty(Etab) of
+	true -> map_1(F, Sel, Shs, St, Acc);
+	false -> map_1(F, Sel, Shs, St, [{Id,We}|Acc])
+    end;
+map_1(F, [_|_]=Sel, [Pair|Shs], St, Acc) ->
+    map_1(F, Sel, Shs, St, [Pair|Acc]);
+map_1(_F, [], Shs, _St, Acc) ->
+    gb_trees:from_orddict(reverse(Acc, Shs)).
+
+update_sel_1([{Id,Sel0}|T], F, Shapes) ->
+    We = gb_trees:get(Id, Shapes),
+    ?ASSERT(We#we.id =:= Id),
+    Sel = F(Sel0, We),
+    case gb_sets:is_empty(Sel) of
+	false ->
+	    [{Id,Sel}|update_sel_1(T, F, Shapes)];
+	true ->
+	    update_sel_1(T, F, Shapes)
+    end;
+update_sel_1([], _, _) -> [].
+
+fold_1(F, Acc0, Shapes, [{Id,Items}|T]) ->
+    We = gb_trees:get(Id, Shapes),
+    ?ASSERT(We#we.id =:= Id),
+    fold_1(F, F(Items, We, Acc0), Shapes, T);
+fold_1(_F, Acc, _Shapes, []) -> Acc.
+
+mapfold_1(F, Acc0, [{Id,Items}|Sel], [{Id,We0}|Shs], St, ShsAcc) ->
+    ?ASSERT(We0#we.id =:= Id),
+    {#we{es=Etab}=We,Acc} = F(Items, We0, Acc0),
+    case wings_util:array_is_empty(Etab) of
+	true -> mapfold_1(F, Acc0, Sel, Shs, St, ShsAcc);
+	false -> mapfold_1(F, Acc, Sel, Shs, St, [{Id,We}|ShsAcc])
+    end;
+mapfold_1(F, Acc, [_|_]=Sel, [Pair|Shs], St, ShsAcc) ->
+    mapfold_1(F, Acc, Sel, Shs, St, [Pair|ShsAcc]);
+mapfold_1(_F, Acc, [], Shs, _St, ShsAcc) ->
+    {gb_trees:from_orddict(reverse(ShsAcc, Shs)),Acc}.
+
+new_sel_1([#we{perm=Perm}|Shs], F, Mode) when ?IS_NOT_SELECTABLE(Perm) ->
+    new_sel_1(Shs, F, Mode);
+new_sel_1([We|Shs], F, Mode) when ?IS_LIGHT(We), Mode =/= body ->
+    new_sel_1(Shs, F, Mode);
+new_sel_1([#we{id=Id}=We|Shs], F, Mode) ->
+    Sel0 = get_all_items(Mode, We),
+    Sel = F(Sel0, We),
+    case gb_sets:is_empty(Sel) of
+	false ->
+	    [{Id,Sel}|new_sel_1(Shs, F, Mode)];
+	true ->
+	    new_sel_1(Shs, F, Mode)
+    end;
+new_sel_1([], _, _) -> [].
+
+
 
 face_regions_1(Faces, We) ->
     find_face_regions(Faces, We, fun collect_face_fun/5, []).
@@ -239,16 +451,6 @@ collect_face_fun(Face, _, _, Rec, {Ws,Faces}=A) ->
 	true -> {[Of|Ws],gb_sets:delete(Of, Faces)};
 	false -> A
     end.
-
-%%%
-%%% Divide the face selection into regions where each face shares at least
-%%% one vertex with another face in the same region.
-%%%
-
-strict_face_regions(Faces, We) when is_list(Faces) ->
-    find_strict_face_regions(gb_sets:from_list(Faces), We, []);
-strict_face_regions(Faces, We) ->
-    find_strict_face_regions(Faces, We, []).
 
 find_strict_face_regions(Faces0, We, Acc) ->
     case gb_sets:is_empty(Faces0) of
@@ -282,16 +484,6 @@ collect_strict_adj_sel(Face, We, Ws0, Faces0) ->
 		end, A0, V, We)
       end, {Ws0,Faces0}, Face, We).
 
-%%%
-%%% Here we want to divide the selection into regions of connected edges.
-%%% We use a standard working-set algorithm.
-%%%
-
-edge_regions(Edges, We) when is_list(Edges) ->
-    find_edge_regions(gb_sets:from_list(Edges), We, []);
-edge_regions(Edges, We) ->
-    find_edge_regions(Edges, We, []).
-
 find_edge_regions(Edges0, We, Acc) ->
     case gb_sets:is_empty(Edges0) of
 	true -> Acc;
@@ -320,49 +512,10 @@ find_all_adj_edges(Ws0, #we{es=Etab}=We, Reg0, Edges0) ->
 
 add_adjacent_edges(V, We, Acc) ->
     wings_vertex:fold(fun(Edge, _, _, A) -> [Edge|A] end, Acc, V, We).
-	      
-valid_sel(#st{sel=Sel,selmode=Mode}=St) ->
-    St#st{sel=valid_sel(Sel, Mode, St)}.
-    
-valid_sel(Sel0, Mode, #st{shapes=Shapes}) ->
-    Sel = foldl(
-	    fun({Id,Items0}, A) ->
-		    case gb_trees:lookup(Id, Shapes) of
-			none -> A;
-			{value,#we{perm=Perm}} when ?IS_NOT_SELECTABLE(Perm) ->
-			    A;
-			{value,We} ->
-			    Items = validate_items(Items0, Mode, We),
-			    case gb_sets:is_empty(Items) of
-				false -> [{Id,Items}|A];
-				true -> A
-			    end
-		    end
-	    end, [], Sel0),
-    reverse(Sel).
 
 validate_items(Items, body, _We) -> Items;
 validate_items(Items, Mode, We) ->
     gb_sets:intersection(Items, get_all_items(Mode, We)).
-    
-select_object(Id, #st{selmode=Mode,sel=Sel0}=St) ->
-    case keymember(Id, 1, Sel0) of
-	true -> St;
-	false ->
-	    Sel = sort([{Id,get_all_items(Mode, Id, St)}|Sel0]),
-	    St#st{sel=Sel}
-    end.
-
-deselect_object(Id, #st{sel=Sel0}=St) ->
-    Sel = keydelete(Id, 1, Sel0),
-    St#st{sel=Sel}.
-
-inverse_items(Mode, Elems, We) ->
-    gb_sets:difference(get_all_items(Mode, We), Elems).
-
-get_all_items(Mode, Id, #st{shapes=Shapes}) ->
-    We = gb_trees:get(Id, Shapes),
-    get_all_items(Mode, We).
 
 get_all_items(vertex, We) ->
     gb_sets:from_ordset(wings_we:visible_vs(We));
@@ -372,11 +525,3 @@ get_all_items(face, We) ->
     gb_sets:from_ordset(wings_we:visible(We));
 get_all_items(body, _) ->
     gb_sets:singleton(0).
-
-to_vertices(vertex, Vs, _) -> Vs;
-to_vertices(face, Faces, We) ->
-    wings_face:to_vertices(Faces, We);
-to_vertices(edge, Edges, We) ->
-    wings_edge:to_vertices(Edges, We);
-to_vertices(body, _, #we{vp=Vtab}) ->
-    wings_util:array_keys(Vtab).
