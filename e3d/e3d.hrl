@@ -11,15 +11,10 @@
 %%     $Id$
 %%
 
-%% 3D location.
--type e3d_point() :: {float(),float(),float()}.
-
--type e3d_plane() :: {e3d_vec:vector(), float()}.
-
 %% Types for e3d_bv
 -define(E3D_INFINITY, 3.402823e+38).  %% 32 bits float max
--type e3d_bbox() :: {e3d_point(), e3d_point()}.
--type e3d_bsphere() :: {e3d_point(), number()}.
+-type e3d_bbox() :: {e3d_vec:point(), e3d_vec:point()}.
+-type e3d_bsphere() :: {e3d_vec:point(), number()}.
 -type e3d_bv() :: e3d_bbox() | e3d_bsphere().
 
 %% Types for transform

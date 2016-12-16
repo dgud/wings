@@ -31,7 +31,8 @@
 
 -compile(inline).
 
--type e3d_vector() :: e3d_vec:vector().
+-type vector() :: e3d_vec:vector().
+-type point()  :: e3d_vec:point().
 
 -define(BB_MIN, {{?E3D_INFINITY,?E3D_INFINITY,?E3D_INFINITY},
 		 {-?E3D_INFINITY,-?E3D_INFINITY,-?E3D_INFINITY}}).
@@ -52,11 +53,11 @@
 box() ->
     ?BB_MIN.
 
--spec box([e3d_point()]) -> e3d_bbox().
+-spec box([point()]) -> e3d_bbox().
 box([{X,Y,Z}|Vs]) ->
     bounding_box_1(Vs, X, X, Y, Y, Z, Z).
 
--spec box(e3d_point()|[e3d_point()], e3d_point()|float()) -> e3d_bbox().
+-spec box(point()|[point()], point()|float()) -> e3d_bbox().
 box([{X,Y,Z}|Vs], Expand) ->
     {Min, Max} = bounding_box_1(Vs, X, X, Y, Y, Z, Z),
     {add(Min, {-Expand,-Expand,-Expand}), add(Max,{Expand,Expand,Expand})};
@@ -73,7 +74,7 @@ box({V10,V11,V12}, {V20,V21,V22}) ->
 		  end,
     {{MinX,MinY,MinZ},{MaxX,MaxY,MaxZ}}.
 
--spec box(e3d_vector(), e3d_vector(), float()) -> e3d_bbox().
+-spec box(vector(), vector(), float()) -> e3d_bbox().
 box({V10,V11,V12}, {V20,V21,V22}, Expand) ->
 
     {MinX, MaxX} = if V10 < V20 -> {V10,V20};
@@ -93,7 +94,7 @@ box({V10,V11,V12}, {V20,V21,V22}, Expand) ->
 %% @end
 %%--------------------------------------------------------------------
 
--spec union(e3d_bbox(), e3d_vector() | e3d_bbox()) -> e3d_bbox().
+-spec union(e3d_bbox(), vector() | e3d_bbox()) -> e3d_bbox().
 union(BBox1 = {Min1={V10,V11,V12}, Max1={V20,V21,V22}}, 
       BBox2 = {Min2={V30,V31,V32}, Max2={V40,V41,V42}}) ->
     %%  Avoid tuple construction if unnecessary
@@ -191,7 +192,7 @@ sphere(BB = {{_,_,_}, Max = {_,_,_}}) ->
 %% @doc Returns the center of the bounding volume
 %% @end
 %%--------------------------------------------------------------------
--spec center(e3d_bv()) -> e3d_point().
+-spec center(e3d_bv()) -> point().
 center({Min = {_,_,_}, Max = {_,_,_}}) ->
     average(Min,Max);
 center({Center, DistSqr}) when is_list(DistSqr) ->
@@ -227,7 +228,7 @@ volume({Min = {Minx,_,_}, Max = {MaxX,_,_}}) ->
 %% @doc Returns true if point is inside baounding volume
 %% @end
 %%--------------------------------------------------------------------
--spec inside(e3d_bv(), e3d_vector()) -> boolean().
+-spec inside(e3d_bv(), vector()) -> boolean().
 inside({{V10,V11,V12}, {V20,V21,V22}}, {V30,V31,V32}) ->
     V10 >= V30 andalso V30 >= V20 andalso 
 	V11 >= V31 andalso V31 >= V21 andalso 

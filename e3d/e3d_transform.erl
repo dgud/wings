@@ -31,8 +31,9 @@
 	 inverse/1, translate/2, rotate/2, rotate/3, scale/2, mul/1, mul/2
 	]).
 
--type e3d_matrix() :: e3d_mat:matrix().
--type e3d_vector() :: e3d_vec:vector().
+-type matrix() :: e3d_mat:matrix().
+-type vector() :: e3d_vec:vector().
+-type point() :: e3d_vec:point().
 
 -include("e3d.hrl").
 
@@ -49,7 +50,7 @@ identity() ->
 %% @doc  Initilizes transform from matrix mat
 %% @end
 %%--------------------------------------------------------------------
--spec init(e3d_matrix()) -> e3d_transform().
+-spec init(matrix()) -> e3d_transform().
 init(Mat) when tuple_size(Mat) =:= 12 ->
     init(e3d_mat:expand(Mat));
 init(Mat) ->
@@ -59,14 +60,14 @@ init(Mat) ->
 %% @doc  Returns the matrix
 %% @end
 %%--------------------------------------------------------------------
--spec matrix(e3d_transform()) -> e3d_matrix().
+-spec matrix(e3d_transform()) -> matrix().
 matrix(#e3d_transf{mat=M}) -> e3d_mat:expand(M).
 
 %%--------------------------------------------------------------------
 %% @doc  Returns the inverse matrix
 %% @end
 %%--------------------------------------------------------------------
--spec inv_matrix(e3d_transform()) -> e3d_matrix().
+-spec inv_matrix(e3d_transform()) -> matrix().
 inv_matrix(#e3d_transf{inv=I}) -> e3d_mat:expand(I).
 
 %%%-------------------------------------------------------------------
@@ -84,7 +85,7 @@ inverse(#e3d_transf{mat=M, inv=I}) ->
 %% @doc  Translates the matrix with vector
 %% @end
 %%--------------------------------------------------------------------
--spec translate(e3d_transform(), e3d_vector()) -> e3d_transform().
+-spec translate(e3d_transform(), vector()) -> e3d_transform().
 translate(#e3d_transf{mat=M,inv=I}, {Dx,Dy,Dz}) ->
     #e3d_transf{mat = e3d_mat:mul(M, e3d_mat:translate(Dx,Dy,Dz)),
 		inv = e3d_mat:mul(e3d_mat:translate(-Dx,-Dy,-Dz), I)}.
@@ -93,7 +94,7 @@ translate(#e3d_transf{mat=M,inv=I}, {Dx,Dy,Dz}) ->
 %% @doc  Rotates the matrix with rotation matrix
 %% @end
 %%--------------------------------------------------------------------
--spec rotate(e3d_transform(), e3d_matrix()) -> e3d_transform().
+-spec rotate(e3d_transform(), matrix()) -> e3d_transform().
 rotate(#e3d_transf{mat=M,inv=I}, Rot)
   when tuple_size(Rot) =:= 12; tuple_size(Rot) =:= 16 ->
     #e3d_transf{mat = e3d_mat:mul(M, Rot),
@@ -103,7 +104,7 @@ rotate(#e3d_transf{mat=M,inv=I}, Rot)
 %% @doc  Rotates the matrix with angle (in degress) and direction
 %% @end
 %%--------------------------------------------------------------------
--spec rotate(e3d_transform(), number(), e3d_vector()) -> e3d_transform().
+-spec rotate(e3d_transform(), number(), vector()) -> e3d_transform().
 rotate(Mat = #e3d_transf{}, A, Vec) ->
     rotate(Mat, e3d_mat:rotate(A,Vec)).
 
@@ -111,7 +112,7 @@ rotate(Mat = #e3d_transf{}, A, Vec) ->
 %% @doc  Scales the matrix with {ScaleX, ScaleY, ScaleZ}
 %% @end
 %%--------------------------------------------------------------------
--spec scale(e3d_transform(), e3d_vector()) -> e3d_transform().
+-spec scale(e3d_transform(), vector()) -> e3d_transform().
 scale(#e3d_transf{mat=M,inv=I}, {X,Y,Z}) ->
     #e3d_transf{mat = e3d_mat:mul(M, e3d_mat:scale(X,Y,Z)),
 		inv = e3d_mat:mul(e3d_mat:scale(1/X,1/Y,1/Z), I)}.
@@ -138,7 +139,7 @@ mul([#e3d_transf{}=A]) -> A.
 %% @doc  Generates a world to camera transformation
 %% @end
 %%--------------------------------------------------------------------
--spec lookat(e3d_point(), e3d_vector(), e3d_vector()) -> e3d_transform().
+-spec lookat(point(), vector(), vector()) -> e3d_transform().
 lookat(Pos, Look, Up) ->
     Dir = e3d_vec:norm_sub(Look, Pos),
     Right = e3d_vec:norm(e3d_vec:cross(Dir, e3d_vec:norm(Up))),

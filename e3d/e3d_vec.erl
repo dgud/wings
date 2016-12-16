@@ -15,11 +15,13 @@
 
 -export([zero/0,is_zero/1,add/1,add/2,add_prod/3,sub/1,sub/2,lerp/3,
 	 norm_sub/2,mul/2,divide/2,neg/1,dot/2,cross/2,
-	 len/1,dist/2,dist_sqr/2,
+	 len/1,len_sqr/1,dist/2,dist_sqr/2,
 	 norm/1,norm/3,normal/3,normal/1,average/1,average/2,average/4,
 	 bounding_box/1,area/3,degrees/2,
-   plane/1,plane/2,plane/3,
-   plane_side/2,plane_dist/2]).
+         plane/1,plane/2,plane/3,
+         plane_side/2,plane_dist/2,
+         line_dist/3, line_dist_sqr/3
+        ]).
 
 -export_type([vector/0]).
 
@@ -30,6 +32,9 @@
 
 %% 3D vector or location.
 -type vector() :: {float(),float(),float()}.
+-type point()  :: {float(),float(),float()}.
+
+-type plane() :: {vector(), float()}.
 
 -spec zero() -> vector().
 
@@ -105,6 +110,11 @@ cross({V10,V11,V12}, {V20,V21,V22})
 
 len({X,Y,Z}) when is_float(X), is_float(Y), is_float(Z) ->
     math:sqrt(X*X+Y*Y+Z*Z).
+
+-spec len_sqr(vector()) -> float().
+
+len_sqr({X,Y,Z}) when is_float(X), is_float(Y), is_float(Z) ->
+    X*X+Y*Y+Z*Z.
 
 -spec lerp(vector(), vector(), float()) -> vector().
 
@@ -278,30 +288,50 @@ area({V10,V11,V12}, {V20,V21,V22}, {V30,V31,V32})
 
 %% Calculate plane coefficients from point {CX,CY,CZ} and normal {A,B,C}
 %% Use reference of  : http://mathworld.wolfram.com/Plane.html
--spec plane(Center::vector(), Normal::vector()) -> e3d_plane().
+-spec plane(Center::vector(), Normal::vector()) -> plane().
 plane({CX,CY,CZ}, {A,B,C})
   when is_float(CX), is_float(CY), is_float(CZ),
        is_float(A),  is_float(A),  is_float(A) ->
     D = -A*CX-B*CY-C*CZ,
     {{A,B,C},D}.
 
--spec plane(e3d_point(),e3d_point(),e3d_point()) -> e3d_plane().
+-spec plane(point(),point(),point()) -> plane().
 plane(P1, P2, P3) ->
     plane(average([P1,P2,P3]), normal(P1,P2,P3)).
 
--spec plane([e3d_point()]) -> e3d_plane().
+-spec plane([point()]) -> plane().
 plane(Polygon) ->
     plane(average(Polygon), normal(Polygon)).
 
 %% Helper function used to sort points according to which side of a plane they are on.
+-spec plane_side(point(), plane()) -> -1|1.
 plane_side({X,Y,Z},{{A,B,C},D}) ->
     Temp=A*X+B*Y+C*Z+D,
     if  Temp < 0.0000 -> -1;  true -> 1 end.
 
 %% Using Coeff to calculate signed distance from point to plane.
+-spec plane_dist(point(), plane()) -> float().
 plane_dist({X,Y,Z},{{A,B,C},D}) ->
     (A*X+B*Y+C*Z+D)/math:sqrt(A*A+B*B+C*C).
 
+%% Dist from point P to line (A,B)
+-spec line_dist(point(), point(), point()) -> float().
+line_dist(P,A,B) ->
+    math:sqrt(line_dist_sqr(P,A,B)).
+
+-spec line_dist_sqr(point(), point(), point()) -> float().
+line_dist_sqr(P,A,B) ->
+    AB = sub(B, A),
+    AP = sub(P, A),
+    case dot(AP, AB) =< 0.0 of
+        true  -> len_sqr(AP);
+        false ->
+            BP = sub(B,P),
+            case dot(BP, AB) =< 0.0 of
+                true  -> len_sqr(BP);
+                false -> len_sqr(cross(AB,AP)) / len_sqr(AB)
+            end
+    end.
 
 %% Should be removed and calls should be changed to e3d_bv instead.
 -spec bounding_box([vector()]) -> [vector()].
