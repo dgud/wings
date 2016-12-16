@@ -94,6 +94,8 @@
 -define(CHECK_ERROR(), ok).
 -endif.
 
+-define(dbg(Str,Args), io:format("~p:~p: " ++ Str, [?MODULE,?LINE|Args])).
+
 %% Use for non saved global gui resources, avoids the dictionary
 %% Example: runtime fonts
 -define(GET(Key), wings_wm:get_value(Key)).
