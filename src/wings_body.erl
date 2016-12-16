@@ -31,22 +31,22 @@ menu(X, Y, St) ->
 	    wings_menu_util:scale(St),
 	    separator,
 	    {?__(3,"Flip..."),{flip,
-	       [{wings_s:dir(x),flip_fun(x),
-	         {io_lib:format(FlipStrL, [wings_s:dir(x)]),
-	          io_lib:format(FlipStrM, [wings_s:dir(x)]),
-	          io_lib:format(FlipStrR, [wings_s:dir(x)])},[]},
-	        {wings_s:dir(y),flip_fun(y),
-	         {io_lib:format(FlipStrL, [wings_s:dir(y)]),
-	          io_lib:format(FlipStrM, [wings_s:dir(y)]),
-	          io_lib:format(FlipStrR, [wings_s:dir(y)])},[]},
-	        {wings_s:dir(z),flip_fun(z),
-	         {io_lib:format(FlipStrL, [wings_s:dir(z)]),
-	          io_lib:format(FlipStrM, [wings_s:dir(z)]),
-	          io_lib:format(FlipStrR, [wings_s:dir(z)])},[]},
-	        {?__(37,"Pick"),flip_fun(pick),
-	         {?__(38,"Pick axis to flip object along"),
-	          ?__(39,"Pick axis and point to flip object along"),
-	          ?__(40,"Pick global axis to flip object along") ++ Dup},[]}]}},
+			       [{wings_s:dir(x),flip_fun(x),
+				 {io_lib:format(FlipStrL, [wings_s:dir(x)]),
+				  io_lib:format(FlipStrM, [wings_s:dir(x)]),
+				  io_lib:format(FlipStrR, [wings_s:dir(x)])},[]},
+				{wings_s:dir(y),flip_fun(y),
+				 {io_lib:format(FlipStrL, [wings_s:dir(y)]),
+				  io_lib:format(FlipStrM, [wings_s:dir(y)]),
+				  io_lib:format(FlipStrR, [wings_s:dir(y)])},[]},
+				{wings_s:dir(z),flip_fun(z),
+				 {io_lib:format(FlipStrL, [wings_s:dir(z)]),
+				  io_lib:format(FlipStrM, [wings_s:dir(z)]),
+				  io_lib:format(FlipStrR, [wings_s:dir(z)])},[]},
+				{?__(37,"Pick"),flip_fun(pick),
+				 {?__(38,"Pick axis to flip object along"),
+				  ?__(39,"Pick axis and point to flip object along"),
+				  ?__(40,"Pick global axis to flip object along") ++ Dup},[]}]}},
 	    separator,
 	    {?__(10,"Invert"),invert,
 	     ?__(11,"Flip all normals, turning the object inside out")},
@@ -78,7 +78,7 @@ menu(X, Y, St) ->
 	     {?__(30,"Rename selected objects"),[],
 	      ?__(51,"Add a common prefix to each selected object")},[]},
 	    separator,
-	    %?__(31,"Show All"),show_all,
+	    %%?__(31,"Show All"),show_all,
 	    {?__(52,"Unhide Faces"),show_all,
 	     ?__(32,"Show all faces for this object")},
 	    {?__(33,"Vertex Attributes"),
@@ -101,20 +101,20 @@ rename_fun() ->
         (1,_) -> {body,rename};
         (3,_) -> {body,{rename,prefix}};
         (_,_) -> ignore
-    end.
+	     end.
 
 flip_fun(pick) ->
     fun
-	  (1, _Ns) -> {body,{flip,{dup(local),{'ASK',[flip_axis]}}}};
-	  (2, _Ns) -> {body,{flip,{dup(point),{'ASK',[flip_axis,flip_point]}}}};
-	  (3, _Ns) -> {body,{flip,{dup(global),{'ASK',[flip_axis]}}}}
-	end;
+	(1, _Ns) -> {body,{flip,{dup(local),{'ASK',[flip_axis]}}}};
+	(2, _Ns) -> {body,{flip,{dup(point),{'ASK',[flip_axis,flip_point]}}}};
+	(3, _Ns) -> {body,{flip,{dup(global),{'ASK',[flip_axis]}}}}
+	       end;
 flip_fun(Axis) ->
     fun
-	  (1, _Ns) -> {body,{flip,{dup(local),Axis}}};
-	  (2, _Ns) -> {body,{flip,{dup(point),{Axis,{'ASK',[flip_point]}}}}};
-	  (3, _Ns) -> {body,{flip,{dup(global),Axis}}}
-	end.
+        (1, _Ns) -> {body,{flip,{dup(local),Axis}}};
+        (2, _Ns) -> {body,{flip,{dup(point),{Axis,{'ASK',[flip_point]}}}}};
+        (3, _Ns) -> {body,{flip,{dup(global),Axis}}}
+    end.
 
 subdiv_fun() ->
     fun
@@ -124,7 +124,7 @@ subdiv_fun() ->
     end.
 
 dup(Type) ->
-%% Return {dup,Type} if Alt is pressed during Flip command, otherwise Type.
+    %% Return {dup,Type} if Alt is pressed during Flip command, otherwise Type.
     case wings_io:is_modkey_pressed(?ALT_BITS) of
         true -> {dup,Type};
         false -> Type
@@ -150,7 +150,7 @@ vertex_color_item(object) ->
     [{?__(1,"Vertex Color"),vertex_color,
       ?__(3,"Apply vertex colors to selected objects")}];
 vertex_color_item(_) -> [].
-    
+
 arealight_conv(arealight, T) ->
     [{?__(1,"Area Light to Object"),from_arealight,
       ?__(2,"Convert selected area lights to objects")}|T];
@@ -193,12 +193,12 @@ command({auto_smooth,Ask}, St) ->
     auto_smooth(Ask, St);
 command({flip,{Type,{Axis,{'ASK',Ask}}}},St) ->
     wings:ask(flip_ask(Ask), St, fun(Result,St0) ->
-    {save_state,flip(Type,{Axis,Result}, St0)}
-    end);
+					 {save_state,flip(Type,{Axis,Result}, St0)}
+				 end);
 command({flip,{Type,{'ASK',Ask}}}, St) ->
     wings:ask(flip_ask(Ask), St, fun(Result,St0) ->
-    {save_state,flip(Type, Result, St0)}
-    end);
+					 {save_state,flip(Type, Result, St0)}
+				 end);
 command({flip,{Type, Plane}}, St) ->
     {save_state,flip(Type, Plane, St)};
 command(cleanup, St) ->
@@ -290,7 +290,7 @@ clean_isolated_vertices(We) ->
 		      [length(Isolated)]),
 	    wings_vertex:dissolve_isolated(Isolated, We)
     end.
-		  
+
 clean_short_edges(Tolerance, #we{es=Etab,vp=Vtab}=We) ->
     Short = array:sparse_foldl(
 	      fun(Edge, #edge{vs=Va,ve=Vb}, A) ->
@@ -437,7 +437,7 @@ delete_2edged_faces_1([Face|Faces], We0) ->
     case delete_if_bad(Face, We0) of
 	bad_edge ->
 	    wings_u:error_msg(?__(1,"Face") ++ integer_to_list(Face) ++
-			     ?__(2,"has only one edge"));
+				  ?__(2,"has only one edge"));
 	We -> delete_2edged_faces_1(Faces, We)
     end;
 delete_2edged_faces_1([], We) -> We.
@@ -534,9 +534,9 @@ flip({dup,Type}, Plane, St0) ->
     flip_cmd(Type,Plane,St);
 flip(Type, Plane, St0) ->
     St = case dup(Type) of
-        {dup,_} -> duplicate(none,St0);
-        _Otherwise -> St0
-    end,
+	     {dup,_} -> duplicate(none,St0);
+	     _Otherwise -> St0
+	 end,
     flip_cmd(Type,Plane,St).
 
 flip_cmd(Type, Plane, St) ->
@@ -692,47 +692,47 @@ cos_degrees(Angle) ->
 %%% Rename selected objects.
 %%%
 
-% used by wings_shape - Rename option - Selected
+%% used by wings_shape - Rename option - Selected
 rename_selected(Mask,St) ->
     {_,Names,Wes} = wings_sel:fold(fun(_, We, {Idx,NAcc,WAcc}) ->
-        Name0=get_masked_name(Mask,Idx),
-        {Idx+1,[Name0|NAcc],[We|WAcc]}
-    end, {1,[],[]}, St),
+					   Name0=get_masked_name(Mask,Idx),
+					   {Idx+1,[Name0|NAcc],[We|WAcc]}
+				   end, {1,[],[]}, St),
     rename_1(Names, Wes, St).
-% used by wings_shape - Rename option - Filtered
+%% used by wings_shape - Rename option - Filtered
 rename_filtered(Filter,Mask,#st{shapes=Shs}=St) ->
     {_,Names,Wes}=foldl(fun({_,#we{name=Name}=We},{Idx,NAcc,WAcc}=Acc) ->
-        case wings_util:is_name_masked(Name,Filter) of
-        true ->
-            Name0=get_masked_name(Mask,Idx),
-            {Idx+1,[Name0|NAcc],[We|WAcc]};
-        false -> Acc
-        end
-    end,{1,[],[]},gb_trees:to_list(Shs)),
+				case wings_util:is_name_masked(Name,Filter) of
+				    true ->
+					Name0=get_masked_name(Mask,Idx),
+					{Idx+1,[Name0|NAcc],[We|WAcc]};
+				    false -> Acc
+				end
+			end,{1,[],[]},gb_trees:to_list(Shs)),
     rename_1(Names, Wes, St).
 
 get_masked_name(Mask,SeqNum) ->
     Idx=string:chr(Mask,$%),
     Mask0 = if Idx=:=0 -> Mask++"%";
-      true -> Mask
-    end,
+	       true -> Mask
+	    end,
     Len=string:len(Mask0),
     case string:chr(Mask0,$%) of
-      0 -> integer_to_list(SeqNum)++Mask;
-      Len -> string:sub_string(Mask,1,Len-1)++integer_to_list(SeqNum);
-      Idx0 ->
-        Prefix=string:sub_string(Mask,1,Idx0-1),
-        Suffix0=string:sub_string(Mask,Idx0+1),
-        Idx1=string:chr(Suffix0,$%),
-        {SeqNum0,Suffix}= if Idx1=/=0 ->
-            StartNum=string:sub_string(Suffix0,1,Idx1-1),
-            case string:to_integer(StartNum) of
-            {error,_} ->  {SeqNum,Suffix0};
-            {Value,_} ->  {Value+SeqNum-1,string:sub_string(Suffix0,Idx1+1)}
-            end;
-          true -> {SeqNum,Suffix0}
-        end,
-        Prefix++integer_to_list(SeqNum0)++Suffix
+	0 -> integer_to_list(SeqNum)++Mask;
+	Len -> string:sub_string(Mask,1,Len-1)++integer_to_list(SeqNum);
+	Idx0 ->
+	    Prefix=string:sub_string(Mask,1,Idx0-1),
+	    Suffix0=string:sub_string(Mask,Idx0+1),
+	    Idx1=string:chr(Suffix0,$%),
+	    {SeqNum0,Suffix}= if Idx1=/=0 ->
+				      StartNum=string:sub_string(Suffix0,1,Idx1-1),
+				      case string:to_integer(StartNum) of
+					  {error,_} ->  {SeqNum,Suffix0};
+					  {Value,_} ->  {Value+SeqNum-1,string:sub_string(Suffix0,Idx1+1)}
+				      end;
+				 true -> {SeqNum,Suffix0}
+			      end,
+	    Prefix++integer_to_list(SeqNum0)++Suffix
     end.
 
 rename_prefix(St0) ->
@@ -913,31 +913,32 @@ weld([Tolerance], #st{shapes=Shs0,sel=Sel0}=St0) ->
 %% tried). So the hope is that another face pair in the shape will be connect
 %% the next time through the St, which will make the unprocessed face pair share
 %% at least one edge. All the same, not all shapes will be processed. If there
-%% only single vert mathcing face pairs, then nothing can be done. If you know
+%% only single vert matching face pairs, then nothing can be done. If you know
 %% how to weld faces with only one common vertex, append the code at
 %% "single vertex").
 weld_objects(Tolerance, SelAcc0, Status0, St0) ->
     Empty = gb_sets:empty(),
     ErrorMsg = ?__(1,"Found no faces to weld."),
-    {St1,{Sel0,Status}} = wings_sel:mapfold(fun(_, We0, Acc) ->
-					  case weld_1(Tolerance, We0, Acc) of
-					    {We0,_} when SelAcc0 =:= Empty ->
-					        wings_u:error_msg(ErrorMsg);
-					    Result ->
-					        Result
-					  end
-				  end, {[],Status0}, St0),
-	case Status of
-	  _ when Sel0 =:= [] -> wings_u:error_msg(ErrorMsg);
-      single_vertex when St0 =/= St1 ->
-        [{_,Vs}] = Sel0,
-        SelAcc = gb_sets:union(SelAcc0,Vs),
-        weld_objects(Tolerance, SelAcc, status, St1);
-	  _ ->
+    {St1,{Sel0,Status}} =
+	wings_sel:mapfold(fun(_, We0, Acc) ->
+				  case weld_1(Tolerance, We0, Acc) of
+				      {We0,_} when SelAcc0 =:= Empty ->
+					  wings_u:error_msg(ErrorMsg);
+				      Result ->
+					  Result
+				  end
+			  end, {[],Status0}, St0),
+    case Status of
+	_ when Sel0 =:= [] -> wings_u:error_msg(ErrorMsg);
+	single_vertex when St0 =/= St1 ->
+	    [{_,Vs}] = Sel0,
+	    SelAcc = gb_sets:union(SelAcc0,Vs),
+	    weld_objects(Tolerance, SelAcc, status, St1);
+	_ ->
 	    [{Id,Vs}] = Sel0,
-        SelAcc = gb_sets:union(SelAcc0,Vs),
-        St = wings_sel:set(vertex, [{Id,SelAcc}], St1),
-        {save_state,wings_sel:valid_sel(St)}
+	    SelAcc = gb_sets:union(SelAcc0,Vs),
+	    St = wings_sel:set(vertex, [{Id,SelAcc}], St1),
+	    {save_state,wings_sel:valid_sel(St)}
     end.
 
 weld_1(Tol, #we{id=Id,fs=Fs0}=We0, {Sel,Status0}) ->
@@ -990,19 +991,19 @@ try_weld(Fa, Fb, Tol, We, Status) ->
     Na = wings_face:normal(Fa, We),
     Nb = wings_face:normal(Fb, We),
     case e3d_vec:dot(Na, Nb) of
-      Dot when Dot < -0.99 ->
-       case wings_face:are_neighbors(Fa, Fb, We) of
-         true ->
-           case shared_edges(Fa,Fb,We) of
-             [] ->  %io:format("~p\n",["single vertex"]),
-               {We,single_vertex};
-             CommonEs ->
-               {weld_neighbors(Fa, Fb, CommonEs, Tol, We),Status}
-           end;
-         false ->
-           {try_weld_1(Fa, Fb, Tol, We),Status}
-       end;
-     _Dot -> {We,Status}
+	Dot when Dot < -0.99 ->
+	    case wings_face:are_neighbors(Fa, Fb, We) of
+		true ->
+		    case shared_edges(Fa,Fb,We) of
+			[] ->  %io:format("~p\n",["single vertex"]),
+			    {We,single_vertex};
+			CommonEs ->
+			    {weld_neighbors(Fa, Fb, CommonEs, Tol, We),Status}
+		    end;
+		false ->
+		    {try_weld_1(Fa, Fb, Tol, We),Status}
+	    end;
+	_Dot -> {We,Status}
     end.
 
 shared_edges(Fa, Fb, We) ->
@@ -1051,19 +1052,19 @@ weld_neighbors(Fa, Fb, CommonEs, Tol, We0) ->
 check_weld_neighbors(Face, Vs0, Tol, We) ->
     Vs1 = wings_face:to_vertices([Face], We),
     if
-      Vs0 =:= Vs1 -> error;
-      true ->
-        Vs =  Vs1 -- Vs0,
-        if
-          Vs =:= [] -> error;
-          true ->
-            NVs = Vs0 -- Vs,
-            case get_vs_pairs(Vs, Tol, Face, We) of
-              [] -> error;
-              CPList ->
-                connect_and_collapse(Face, CPList, NVs, [], We)
-            end
-        end
+	Vs0 =:= Vs1 -> error;
+	true ->
+	    Vs =  Vs1 -- Vs0,
+	    if
+		Vs =:= [] -> error;
+		true ->
+		    NVs = Vs0 -- Vs,
+		    case get_vs_pairs(Vs, Tol, Face, We) of
+			[] -> error;
+			CPList ->
+			    connect_and_collapse(Face, CPList, NVs, [], We)
+		    end
+	    end
     end.
 
 get_vs_pairs(Vs, Tol, Face, We) ->
@@ -1081,26 +1082,26 @@ get_vs_pairs_1([VPos|VposList0], Tol, Face, Acc, We) ->
 get_vs_pairs_1([], _, _, Acc, _) ->
     Acc.
 
-        
+
 closest_pair([{Vb,PosB}|VposList], {Va,PosA}, {V0,D0}, Face, We) ->
     D1 = e3d_vec:dist(PosA,PosB),
     D = if
-      D1 =< D0 ->
-        case wings_vertex:edge_through(Va, Vb, Face, We) of
-          none -> {{Vb,PosB},D1};
-          _other -> {V0,D0}
-        end;
-      true -> {V0,D0}
-    end,
+	    D1 =< D0 ->
+		case wings_vertex:edge_through(Va, Vb, Face, We) of
+		    none -> {{Vb,PosB},D1};
+		    _other -> {V0,D0}
+		end;
+	    true -> {V0,D0}
+	end,
     closest_pair(VposList, {Va,PosA}, D, Face, We);
 closest_pair([], {Va,_}, {{Vb,_},_}, _Face, #we{}) -> {Va,Vb};
 closest_pair([], _, _, _, _) -> none.
 
 dissolve_edges([E|CommonEs],We0) ->
     case catch wings_edge:dissolve_edge(E,We0) of
-      #we{}=We ->
-         dissolve_edges(CommonEs,We);
-       _ -> We0
+	#we{}=We ->
+	    dissolve_edges(CommonEs,We);
+	_ -> We0
     end;
 dissolve_edges([],We) ->
     We.
@@ -1110,58 +1111,58 @@ connect_and_collapse(Face, [{Va,Vb}|CPList], NVs, [], We0) ->
     [E] = wings_we:new_items_as_ordset(edge, We0, We1),
     #we{fs=Ftab}=We2 = wings_collapse:collapse_edge(E, We1),
     case gb_trees:is_defined(Face,Ftab) of
-      true ->
-        case gb_trees:is_defined(NewFace,Ftab) of
-          true ->
-            NFVs = wings_face:to_vertices([NewFace], We2) -- NVs,
-            NFCPList = get_pairs_for_this_face(CPList,NFVs),
-            FCPList = CPList -- NFCPList,
-            connect_and_collapse(NewFace, NFCPList, NVs, [{Face,FCPList}], We2);
-          false ->
-            connect_and_collapse(Face, CPList, NVs, [], We2)
-        end;
-      false ->
-        case gb_trees:is_defined(NewFace,Ftab) of
-          false -> We2;
-          true ->
-            connect_and_collapse(NewFace, CPList, NVs, [], We2)
-        end
+	true ->
+	    case gb_trees:is_defined(NewFace,Ftab) of
+		true ->
+		    NFVs = wings_face:to_vertices([NewFace], We2) -- NVs,
+		    NFCPList = get_pairs_for_this_face(CPList,NFVs),
+		    FCPList = CPList -- NFCPList,
+		    connect_and_collapse(NewFace, NFCPList, NVs, [{Face,FCPList}], We2);
+		false ->
+		    connect_and_collapse(Face, CPList, NVs, [], We2)
+	    end;
+	false ->
+	    case gb_trees:is_defined(NewFace,Ftab) of
+		false -> We2;
+		true ->
+		    connect_and_collapse(NewFace, CPList, NVs, [], We2)
+	    end
     end;
 connect_and_collapse(Face, [{Va,Vb}|CPList], NVs, StoredFs, We0) ->
     {We1, NewFace} = wings_vertex:force_connect(Va, Vb, Face, We0),
     [E] = wings_we:new_items_as_ordset(edge, We0, We1),
     #we{fs=Ftab}=We2 = wings_collapse:collapse_edge(E, We1),
     case gb_trees:is_defined(Face,Ftab) of
-      true ->
-        case gb_trees:is_defined(NewFace,Ftab) of
-          true ->
-            NFVs = wings_face:to_vertices([NewFace], We2) -- NVs,
-            NFCPList = get_pairs_for_this_face(CPList,NFVs),
-            FCPList = CPList -- NFCPList,
-            F = {Face,FCPList},
-            connect_and_collapse(NewFace, NFCPList, NVs, [F|StoredFs], We2);
-          false ->
-            connect_and_collapse(Face, CPList, NVs, StoredFs, We2)
-        end;
-      false ->
-        case gb_trees:is_defined(NewFace,Ftab) of
-          false ->
-            [{OldFace,OldCPList}|Rest] = StoredFs,
-            connect_and_collapse(OldFace, OldCPList, NVs, Rest, We2);
-          true ->
-            connect_and_collapse(NewFace, CPList, NVs, StoredFs, We2)
-        end
+	true ->
+	    case gb_trees:is_defined(NewFace,Ftab) of
+		true ->
+		    NFVs = wings_face:to_vertices([NewFace], We2) -- NVs,
+		    NFCPList = get_pairs_for_this_face(CPList,NFVs),
+		    FCPList = CPList -- NFCPList,
+		    F = {Face,FCPList},
+		    connect_and_collapse(NewFace, NFCPList, NVs, [F|StoredFs], We2);
+		false ->
+		    connect_and_collapse(Face, CPList, NVs, StoredFs, We2)
+	    end;
+	false ->
+	    case gb_trees:is_defined(NewFace,Ftab) of
+		false ->
+		    [{OldFace,OldCPList}|Rest] = StoredFs,
+		    connect_and_collapse(OldFace, OldCPList, NVs, Rest, We2);
+		true ->
+		    connect_and_collapse(NewFace, CPList, NVs, StoredFs, We2)
+	    end
     end.
 
 -spec weld_error() -> no_return().
 weld_error() ->
     wings_u:error_msg(?__(1,"Weld could not be resolved")).
 
-% Assume if Va is in the face then Vb is as well
+%% Assume if Va is in the face then Vb is as well
 get_pairs_for_this_face([{Va,Vb}|CPList],FVs) ->
     case lists:member(Va,FVs) of
-      true -> [{Va,Vb}|get_pairs_for_this_face(CPList,FVs)];
-      false -> get_pairs_for_this_face(CPList,FVs)
+	true -> [{Va,Vb}|get_pairs_for_this_face(CPList,FVs)];
+	false -> get_pairs_for_this_face(CPList,FVs)
     end;
 get_pairs_for_this_face([],_FVs) ->
     [].
