@@ -19,67 +19,46 @@
 go() ->
     start().
 
-start() ->    
+start() ->
     Coord = fun(A,B) ->
 		    As = math:sin(A),
 		    {As*math:cos(B),As*math:sin(B),math:cos(A)}
 	    end,
     Vec = [math:pi()*I/?SAMPLE || I <- lists:seq(0, ?SAMPLE-1)],
     L0 = lists:sort([Coord(A,B) || A <- Vec, B <- Vec]),
-    {L,_} = lists:mapfoldl(fun(A,Acc) -> {{A,Acc},Acc+1} end,0, L0),
+    {L,_} = lists:mapfoldl(fun(A,Acc) -> {{Acc,A},Acc+1} end,0, L0),
     io:format("Testdata ~p ~n", [length(L)]),
 %%     L  = [{e3d_vec:norm(P), Id} || {P,Id} <- L0],
     erlang:garbage_collect(),
-    _K = ?TC(ori_fl, orig_kd3:from_list(L)),
     _E = ?TC(e3d_fl, e3d_kd3:from_list(L)),
     K = _E, E = _E,
     %%K = _K, E = _K,
     ?TC(gb_fl, gb_trees:from_orddict(lists:sort(L))),
     io:format("~n"),
-    
-    w(orig_kd3:nearest({0,0,0},K), e3d_kd3:nearest({0,0,0}, E)),
-    w(orig_kd3:nearest({1,1,1},K), e3d_kd3:nearest({1,1,1}, E)),
-    w(orig_kd3:nearest({0,1,1},K), e3d_kd3:nearest({0,1,1}, E)),
-    w(orig_kd3:nearest({0,1,0},K), e3d_kd3:nearest({0,1,0}, E)),
-    w(orig_kd3:nearest({1,1,0},K), e3d_kd3:nearest({1,1,0}, E)),
-    w(orig_kd3:nearest({1,0,0},K), e3d_kd3:nearest({1,0,0}, E)),
-    w(orig_kd3:nearest({0,0,1},K), e3d_kd3:nearest({0,0,1}, E)),
-    w(orig_kd3:nearest({0.2,0.77,0.60},K), e3d_kd3:nearest({0.2,0.77,0.60}, E)),
 
     erlang:garbage_collect(),
     ?TC(e3d_cn, check_nearest(e3d_kd3, E, L)),
-    ?TC(ori_cn, check_nearest(orig_kd3, K, L)),
-    io:format("~n"),    
-    ?TC(ori_cd, check_delete(orig_kd3, K, L)),
+    io:format("~n"),
     ?TC(e3d_cd, check_delete(e3d_kd3, E, L)),
     io:format("~n"),
-    ?TC(ori_cd2, check_delete2(orig_kd3, K, L)),
     ?TC(e3d_cd2, check_delete2(e3d_kd3, E, L)),
 
     io:format("~n"),
-       
-    %%     io:format("~p~n~p~n",[
-    %% 			  [Id || {_,Id} <- orig_kd3:to_list(K)],
-    %% 			  [Id || {_,Id} <- e3d_kd3:to_list(E)]]),			  
-    
-    SList = ?TC(create_ref, lists:sort([{e3d_vec:dist_sqr(?POINT, P),O} || O = {P,_} <- L])),
+    SList = ?TC(create_ref, lists:sort([{e3d_vec:dist_sqr(?POINT, P),O} || O = {_,P} <- L])),
     SL   = [O || {_, O} <- SList],
 
     %% [ io:format("~p ~p ~n", [D,A]) || {D,{_,A}} <- lists:sort(Dist) ],
     erlang:garbage_collect(),
-    %?TC(ori_tn, check_take_nearest(orig_kd3, K, SL, length(SL))), 
     %?TC(e3d_tn, check_take_nearest(e3d_kd3, E, SL, length(SL))), 
-    
     ?TC(e3d_fo, check_fold_all(e3d_kd3, E, length(SL))),
     ?TC(e3d_fo, check_fold_dist(e3d_kd3, E, element(1, lists:split(50, SL)))),
     io:format("~n"),
-    ?TC(ori_tn2, check_take_nearest2(orig_kd3, K, SL)), 
     ?TC(e3d_tn2, check_take_nearest2(e3d_kd3, E, SL)), 
     ok.
 
 check_nearest(Mod, T, L) ->
-    lists:foreach(fun({P, _Id}) ->
-			  {P, _MaybeOtherId} = Mod:nearest(P, T)
+    lists:foreach(fun({_Id, P}) ->
+			  {_MaybeOtherId, P} = Mod:nearest(P, T)
 		  end, L).
 
 check_fold_all(Mod, T, Len) ->
@@ -87,20 +66,20 @@ check_fold_all(Mod, T, Len) ->
     0 = Mod:fold(DoAll, Len, ?POINT, 2.0, T).
 
 check_fold_dist(Mod, T, List) ->
-    [{Last,_}|_] = lists:reverse(List),
+    [{_,Last}|_] = lists:reverse(List),
     Dist = e3d_vec:dist(Last, ?POINT),
-    Check = fun(Object, L) -> 
+    Check = fun(Object, L) ->
 		    case lists:member(Object, L) of
 			true -> lists:delete(Object,L);
 			false -> erlang:display(check_dist)
-		    end 
+		    end
 	    end,
     [] = Mod:fold(Check, List, ?POINT, Dist, T).
 
 
-check_take_nearest(Mod, T, [Obj={P,_Obj}|Res], Len) ->
+check_take_nearest(Mod, T, [Obj={_Obj,P}|Res], Len) ->
     case (Mod:take_nearest(?POINT, T)) of
-	{{P,_},Rest} ->
+	{{_,P},Rest} ->
 	    check_take_nearest(Mod,Rest,Res, Len-1);
 	{Other,_} ->
 	    io:format("~p = ~p ~n",[Obj,Other])
@@ -108,27 +87,27 @@ check_take_nearest(Mod, T, [Obj={P,_Obj}|Res], Len) ->
 check_take_nearest(Mod, T, [], 0) ->
     undefined = Mod:take_nearest({0.0,0.0,0.0}, T).
 
-check_take_nearest2(Mod, T, [{P,_Id}|Res]) ->
+check_take_nearest2(Mod, T, [{_Id,P}|Res]) ->
     case Mod:take_nearest(P, T) of
-	{{P,_},Rest} ->
+	{{_,_P},Rest} ->
 	    check_take_nearest2(Mod,Rest,Res);
 	{Other,_} ->
-	    io:format("~p = ~p ~n",[{P,_Id},Other])	    
+	    io:format("~p = ~p ~n",[{_Id,P},Other])
     end;
 check_take_nearest2(Mod, T, []) ->
-    undefined = Mod:take_nearest({0.0,0.0,0.0}, T).    
+    undefined = Mod:take_nearest({0.0,0.0,0.0}, T).
 
 w(K, E) ->
     io:format("~p ~p => ~p ~n", [element(2,K), element(2,E), element(1, E)]).
 
 
-check_delete(Mod, Tree, [{P,_}|R]) ->
+check_delete(Mod, Tree, [{_,P}|R]) ->
     Mod:delete(P,Tree),
     check_delete(Mod, Tree, R);
 check_delete(_, _, []) ->
     ok.
 
-check_delete2(Mod, Tree, [{P,_}|R]) ->
+check_delete2(Mod, Tree, [{_,P}|R]) ->
     Tree2 = Mod:delete(P,Tree),
     check_delete(Mod, Tree2, R);
 check_delete2(Mod, Tree, []) ->
