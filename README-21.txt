@@ -1,3 +1,29 @@
+--- 2.1.5 --------------------------------------------
+- Added Make Normal-Map command, in outliner.
+  And improved bump-map to normal-map calculations. [Micheus]
+
+- Keyboard shortcuts could sometimes be invoked twice [dgud]
+
+- Outliner could get keyboard focus after some commands though
+  the window was not marked as focused. Fixes focus issues. [dgud]
+
+- Choosing 'Loaded Font Glyphs' from Development menu was causing
+  Wings3D crash. Thanks to Fonte Boa [Micheus]
+
+- Fixed the visualization of Tweak "Show Magnet Influence" was not
+  working. Thanks to Fonte Boa. [Micheus]
+
+- Invalid ps/eps file (absent or invalid token) was causing Wings3D crash.
+  Thanks to tkbd. [Micheus]
+
+- Fixed broken TGA image loader, wx's targa loader, fails with RLE
+  encoding, bug is fixed but not released workaround by using wings
+  own tga loader. Reported by tkbd. [dgud]
+
+- Fixed loading files from root dir on Windows [Micheus].
+
+- Code cleanup and Optimizations [bjorng] [dgud]
+
 --- 2.1.4 --------------------------------------------
 - Fix crash in autouv when doing geometry changes from the autouv
   window via keyboard shortcuts. Now the commands only work if selection
