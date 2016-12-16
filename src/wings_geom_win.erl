@@ -687,8 +687,12 @@ sort_folder(#{shs:=Shs, folders:={Current, Fld0}}) ->
 
 sort_folder(Ids, Shs) ->
     Names0 = foldl(fun(Id, Acc) ->
-			   #{name:=Name}=We = wings_util:mapsfind(Id, id, Shs),
-			   [{wings_util:cap(Name),We}|Acc]
+                           case wings_util:mapsfind(Id, id, Shs) of
+                               #{name:=Name}=We ->
+                                   [{wings_util:cap(Name),We}|Acc];
+                               false ->
+                                   Acc
+                           end
 		   end, [], gb_sets:to_list(Ids)),
     lists:sort(Names0).
 
