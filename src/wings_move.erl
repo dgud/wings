@@ -46,7 +46,7 @@ plus_minus({'ASK',Ask}, Tvs, St0) ->
 plus_minus(Type, Tvs0, #st{selmode=Mode}=St) ->
     Vec = make_vector(Type),
     Tvs = plus_minus_2(Mode, Vec, Tvs0, []),
-    Flags = [flags(Type),{initial,[0.0,0.0,1.0]}],
+    Flags = [{initial,[0.0,0.0,1.0]}|flags(Type)],
     wings_drag:setup(Tvs, unit(Type, [{percent,{0.0,infinity}}]), Flags, St).
 
 plus_minus_2(Mode, Vec, [{Items,NewVs,Forbidden,We}|T], Acc0) ->
