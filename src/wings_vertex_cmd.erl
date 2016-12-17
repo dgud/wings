@@ -12,7 +12,7 @@
 %%
 
 -module(wings_vertex_cmd).
--export([menu/3,command/2,tighten/3,tighten/4,
+-export([menu/3,command/2,tighten_vs/2,tighten_vs/3,
 	 connect/2,bevel_vertex/2,flatten/2]).
 
 -export([set_color/2]).
@@ -481,18 +481,12 @@ connect_cuts_error() ->
 %%%
 
 tighten(St) ->
-    Tvs = wings_sel:fold(fun tighten/3, [], St),
-    wings_drag:setup(Tvs, [percent], St).
+    wings_drag:fold(fun tighten_vs/2, [percent], St).
 
-tighten(Vs, #we{id=Id}=We, Acc) when is_list(Vs) ->
-    Tv = foldl(
-	   fun(V, A) ->
-		   Vec = tighten_vec(V, We),
-		   [{Vec,[V]}|A]
-	   end, [], Vs),
-    [{Id,Tv}|Acc];
-tighten(Vs, We, Acc) -> 
-    tighten(gb_sets:to_list(Vs), We, Acc).
+tighten_vs(Vs, We) when is_list(Vs) ->
+    [{tighten_vec(V, We),[V]} || V <- Vs];
+tighten_vs(Vs, We) ->
+    tighten_vs(gb_sets:to_list(Vs), We).
 
 tighten_vec(V, #we{vp=Vtab,mirror=MirrorFace}=We) ->
     Cs = wings_vertex:fold(
@@ -510,27 +504,26 @@ tighten_vec(V, #we{vp=Vtab,mirror=MirrorFace}=We) ->
 %%%
 
 tighten(Magnet, St) ->
-    Tvs = wings_sel:fold(fun(Vs, We, Acc) ->
-				 tighten(Vs, We, Magnet, Acc)
-			 end, [], St),
     Flags = wings_magnet:flags(Magnet, []),
-    wings_drag:setup(Tvs, [percent,falloff], Flags, St).
+    wings_drag:fold(fun(Vs, We) ->
+                            tighten_vs(Vs, We, Magnet)
+                    end, [percent,falloff], Flags, St).
 
-tighten(Vs, We, Magnet, Acc) when is_list(Vs) ->
+tighten_vs(Vs, We, Magnet) when is_list(Vs) ->
     Tv = foldl(
 	   fun(V, A) ->
 		   Vec = tighten_vec(V, We),
 		   [{Vec,[V]}|A]
 	   end, [], Vs),
-    magnet_move(Tv, Magnet, We, Acc);
-tighten(Vs, We, Magnet, Acc) -> 
-    tighten(gb_sets:to_list(Vs), We, Magnet, Acc).
+    magnet_move(Tv, Magnet, We);
+tighten_vs(Vs, We, Magnet) ->
+    tighten_vs(gb_sets:to_list(Vs), We, Magnet).
 
-magnet_move(Tv, Magnet0, #we{id=Id}=We, Acc) ->
+magnet_move(Tv, Magnet0, We) ->
     Vs = lists:append([Vs || {_,Vs} <- Tv]),
     {VsInf,Magnet,Affected} = wings_magnet:setup(Magnet0, Vs, We),
     Vec = magnet_tighten_vec(Affected, We, []),
-    [{Id,{Affected,wings_move:magnet_move_fun(Vec, VsInf, Magnet)}}|Acc].
+    {Affected,wings_move:magnet_move_fun(Vec, VsInf, Magnet)}.
 
 magnet_tighten_vec([V|Vs], We, Acc) ->
     Vec = tighten_vec(V, We),

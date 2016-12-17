@@ -588,12 +588,11 @@ flip_center(point, {z,{_,_,Z}}, {Cx,Cy,_}) -> {Cx,Cy,Z}.
 %%%
 
 tighten(St) ->
-    Tvs = wings_sel:fold(fun tighten/3, [], St),
-    wings_drag:setup(Tvs, [percent], St).
+    wings_drag:fold(fun tighten/2, [percent], St).
 
-tighten(_, #we{vp=Vtab}=We, A) ->
+tighten(_, #we{vp=Vtab}=We) ->
     Vs = wings_util:array_keys(Vtab),
-    wings_vertex_cmd:tighten(Vs, We, A).
+    wings_vertex_cmd:tighten_vs(Vs, We).
 
 %%%
 %%% The subdiv command.

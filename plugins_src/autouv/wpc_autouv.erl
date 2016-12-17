@@ -1035,35 +1035,33 @@ do_drag(Other) ->
     Other.
 
 tighten(#st{selmode=vertex}=St) ->
-    tighten_1(fun vertex_tighten/3, St);
+    tighten_1(fun vertex_tighten/2, St);
 tighten(#st{selmode=body}=St) ->
-    tighten_1(fun(_, We, A) -> body_tighten(We, A) end, St).
+    tighten_1(fun(_, We) -> body_tighten(We) end, St).
 
-tighten_1(Tighten, St) ->    
-    Tvs = wings_sel:fold(Tighten, [], St),
-    wings_drag:setup(Tvs, [percent], St).
+tighten_1(Tighten, St) ->
+    wings_drag:fold(Tighten, [percent], St).
 
-vertex_tighten(Vs0, We, A) ->
+vertex_tighten(Vs0, We) ->
     Vis = gb_sets:from_ordset(wings_we:visible(We)),
     Vs = [V || V <- gb_sets:to_list(Vs0), not_bordering(V, Vis, We)],
-    wings_vertex_cmd:tighten(Vs, We, A).
+    wings_vertex_cmd:tighten_vs(Vs, We).
 
-body_tighten(#we{vp=Vtab}=We, A) ->
+body_tighten(#we{vp=Vtab}=We) ->
     Vis = gb_sets:from_ordset(wings_we:visible(We)),
     Vs = [V || V <- wings_util:array_keys(Vtab), not_bordering(V, Vis, We)],
-    wings_vertex_cmd:tighten(Vs, We, A).
+    wings_vertex_cmd:tighten_vs(Vs, We).
 
 tighten(Magnet, St) ->
-    Tvs = wings_sel:fold(fun(Vs, We, A) ->
-				 mag_vertex_tighten(Vs, We, Magnet, A)
-			 end, [], St),
     Flags = wings_magnet:flags(Magnet, []),
-    wings_drag:setup(Tvs, [percent,falloff], Flags, St).
+    wings_drag:fold(fun(Vs, We) ->
+                            mag_vertex_tighten(Vs, We, Magnet)
+                    end, [percent,falloff], Flags, St).
 
-mag_vertex_tighten(Vs0, We, Magnet, A) ->
+mag_vertex_tighten(Vs0, We, Magnet) ->
     Vis = gb_sets:from_ordset(wings_we:visible(We)),
     Vs = [V || V <- gb_sets:to_list(Vs0), not_bordering(V, Vis, We)],
-    wings_vertex_cmd:tighten(Vs, We, Magnet, A).
+    wings_vertex_cmd:tighten_vs(Vs, We, Magnet).
 
 equal_length(Op,St) ->
     wings_sel:map(fun(Es, We) ->
