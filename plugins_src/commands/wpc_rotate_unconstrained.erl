@@ -112,38 +112,33 @@ center_setup({Center, Mag}, St) ->
 
 %%%% FOLDING AND DRAGGING
 finish_setup(Center, {}, St) -> finish_setup(Center, none, St);
-finish_setup(Center0, body, St) -> 	% body (uses whole matrix instead of single vert coordinates)
-    Tvs = wings_sel:fold(
-        fun(_, #we{id=Id}=We, Acc) ->
-            Center = find_center(Center0, body, We),
-            [{Id,rotate(body, Center)}|Acc]
-            end,
-        [], St),
-    wings_drag:setup({matrix, Tvs}, [angle, angle], [screen_relative], St);
-
+finish_setup(Center0, body, St) ->
+    %% body (uses whole matrix instead of single vert coordinates)
+    wings_drag:matrix(
+      fun(We) ->
+              Center = find_center(Center0, body, We),
+              rotate(body, Center)
+      end, [angle,angle], [screen_relative], St);
 finish_setup(Center0, Mag, #st{selmode=Mode}=St) ->
     Type = magnet_type(Mag),
     State = {none,Type,{reciprocal,false}},
     CamX = view_cam(x),
     CamY = view_cam(y),
-    Tvs = wings_sel:fold(
-        fun(Vs0,We,Acc) ->
-            Vs = conversion(Mode, Vs0, We),
-            Center = find_center(Center0, Vs, We),
-            finish_setup_1(Vs,We,CamX,CamY,Center,Mag,State,Acc, St)
-            end,
-        [], St),
     Units = [angle, angle| magnet_unit(Mag)],
-    wings_drag:setup(Tvs, Units, flags(State), St).
+    wings_drag:fold(
+      fun(Vs0, We) ->
+              Vs = conversion(Mode, Vs0, We),
+              Center = find_center(Center0, Vs, We),
+              finish_setup_1(Vs, We, CamX, CamY, Center, Mag, State)
+      end, Units, flags(State), St).
 
 %%%% vertex list
-finish_setup_1(Vs,#we{id=Id}=We,CamX,CamY,Center,none,State,Acc, _) ->  % no mag
-    VsPos = wings_util:add_vpos(Vs,We),
-    [{Id,{Vs, rotate_fun(CamX,CamY,Center,VsPos,none,State)}}|Acc];
-
-finish_setup_1(Vs, #we{id=Id}=We,CamX,CamY,Center,Mag0,State,Acc, _) ->  % mag
+finish_setup_1(Vs, We,CamX, CamY, Center, none, State) ->
+    VsPos = wings_util:add_vpos(Vs, We),
+    {Vs,rotate_fun(CamX, CamY, Center, VsPos, none, State)};
+finish_setup_1(Vs, We, CamX, CamY, Center, Mag0, State) ->
     {VsInf,Magnet,Affected} = wings_magnet:setup(Mag0, Vs, We),
-    [{Id,{Affected,rotate_fun(CamX,CamY,Center,VsInf,Magnet,State)}}|Acc].
+    {Affected,rotate_fun(CamX, CamY, Center, VsInf, Magnet, State)}.
 
 %%%% Catch view rotations, magnet option changes etc
 rotate_fun(CamX,CamY,Center,VsPos,none,State) ->		% no mag

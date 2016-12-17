@@ -153,21 +153,20 @@ finish_setup(Axis, Center, Deg, Mag, #st{selmode=Selmode}=St0) ->
     end,
     MagType = magnet_type(Mag),
     State = {none,MagType,{reciprocal,false}},
-    Tvs = wings_sel:fold(fun(Vs0,We,Acc) ->
-            Vs = gb_sets:to_list(Vs0),
-            finish_setup_1(Vs,We,Axis,Center,Deg,Mag,State,Acc)
-            end,[],St),
     Units = [percent|magnet_unit(Mag)],
     Flags = [{mode,{arc_intersect_modes(Mag),State}}],
-    wings_drag:setup(Tvs, Units, Flags, St0).
+    wings_drag:fold(
+      fun(Vs0, We) ->
+              Vs = gb_sets:to_list(Vs0),
+              finish_setup_1(Vs, We, Axis, Center, Deg, Mag, State)
+      end, Units, Flags, St).
 
-finish_setup_1(Vs,#we{id=Id}=We,Axis,Center,Deg,none,State,Acc) ->
-    VsPos = wings_util:add_vpos(Vs,We),
-    [{Id,{Vs, arc_intersect_fun(Axis,Center,Deg,VsPos,none,State)}}|Acc];
-
-finish_setup_1(Vs,#we{id=Id}=We,Axis,Center,Deg,Mag,State,Acc) ->
+finish_setup_1(Vs, We, Axis, Center, Deg, none, State) ->
+    VsPos = wings_util:add_vpos(Vs, We),
+    {Vs,arc_intersect_fun(Axis, Center, Deg, VsPos, none, State)};
+finish_setup_1(Vs, We, Axis, Center, Deg, Mag, State) ->
     {VsInf,Magnet,Affected} = wings_magnet:setup(Mag, Vs, We),
-    [{Id,{Affected,arc_intersect_fun(Axis,Center,Deg,VsInf,Magnet,State)}}|Acc].
+    {Affected,arc_intersect_fun(Axis, Center, Deg, VsInf, Magnet, State)}.
 
 magnet_unit(none) -> [];
 magnet_unit(_) -> [falloff].

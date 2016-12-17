@@ -230,13 +230,11 @@ shear_callback({GlidePlane,Radial,Origin,GlidePoint},St) ->
     DBbox = abs(lists:max(DistsFromCntr)) + abs(lists:min(DistsFromCntr)),
     ShearData = {Sf,Norm,DBbox,Dir,Anchor},
     Data = {GlidePlane,Radial,Origin,GlidePoint},
-    Tvs = wings_sel:fold(fun(Vs, We, Acc) ->
-            shear_verts(ShearData,State,Data,Vs,We,Acc)
-            end, [], St),
     Units = shear_units(Mode),
     Flags = [{mode,{shear_modes(),State}},{initial,[0.0,0.0,1.0]}],
-    wings_drag:setup(Tvs, Units, Flags, St);
-
+    wings_drag:fold(fun(Vs, We) ->
+                            shear_verts(ShearData, State, Data, Vs, We)
+                    end, Units, Flags, St);
 %%%% To catch 'repeat drag' arguments where the user was re-asked selections
 shear_callback(_,St) ->
     Ask = [radial,glide_plane,origin,glide_point],
@@ -284,10 +282,10 @@ shear_dir_help(true) -> ?__(2,"Symmetric").
 shear_anchor_help(true) -> ?__(1,"Anchor Origin");
 shear_anchor_help(false) -> ?__(2,"Free Origin").
 
-shear_verts(ShearData,State,Data,Vs0,#we{id=Id}=We,Acc) ->
+shear_verts(ShearData, State, Data, Vs0, We) ->
     Vs = gb_sets:to_list(Vs0),
     VsPos = wings_util:add_vpos(Vs, We),
-    [{Id,{Vs,shear_fun(ShearData,Data,VsPos,State)}}|Acc].
+    {Vs,shear_fun(ShearData,Data,VsPos,State)}.
 
 shear_fun({Sf,Norm,DBbox,Dir,Anchor},Data,VsPos,State) ->
     fun(new_mode_data, {NewState,_}) ->

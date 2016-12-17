@@ -135,15 +135,14 @@ cylinder_setup({Axis0,Center,Radius0},St) ->
 
 %%%% Callback
 cylinder_callback(Data,St) ->
-    Tvs = wings_sel:fold(fun(Vs,We,Acc) ->
-          cylindrilize_verts(Data,Vs,We,Acc)
-          end,[],St),
-    wings_drag:setup(Tvs,[percent],St).
+    wings_drag:fold(fun(Vs, We) ->
+                            cylindrilize_verts(Data, Vs, We)
+                    end, [percent], St).
 
-cylindrilize_verts(Data,Vs0,#we{id=Id}=We,Acc) ->
+cylindrilize_verts(Data, Vs0, We) ->
     Vs = gb_sets:to_list(Vs0),
     VsPos = wings_util:add_vpos(Vs,We),
-    [{Id,{Vs,cylindrilize_fun(Data,VsPos)}}|Acc].
+    {Vs,cylindrilize_fun(Data, VsPos)}.
 
 cylindrilize_fun(Data,VsPos) ->
     fun([Dist|_], A) ->

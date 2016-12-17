@@ -182,31 +182,29 @@ command(_,_) -> next.
 %% Explode
 explode({Axis0,Point}, St) ->
     Axis = wings_util:make_vector(Axis0),
-    Ids = wings_sel:fold(fun(_,#we{id=Id}=We,Acc) ->
-        Center = wings_vertex:center(We),
-        Fun = explode_fun(Axis, Point, Center),
-        [{Id,Fun}|Acc]
-    end, [], St),    
-    wings_drag:setup({matrix,Ids}, [percent], St).
+    wings_drag:matrix(
+      fun(We) ->
+              Center = wings_vertex:center(We),
+              explode_fun(Axis, Point, Center)
+      end, [percent], St).
 
 %% Explode Uniform
 explode_uniform(Point, St) ->
-    Ids = wings_sel:fold(fun(_,#we{id=Id}=We,Acc) ->
-        Center = wings_vertex:center(We),
-        Fun = explode_uniform_fun(Point, Center),
-        [{Id,Fun}|Acc]
-    end, [], St),    
-    wings_drag:setup({matrix,Ids}, [percent], St).
+    wings_drag:matrix(
+      fun(We) ->
+              Center = wings_vertex:center(We),
+              explode_uniform_fun(Point, Center)
+      end, [percent], St).
 
 %% Explode Radial
 explode_radial({Axis0,Point}, St) ->
     Axis = wings_util:make_vector(Axis0),
-    Ids = wings_sel:fold(fun(_,#we{id=Id}=We,Acc) ->
-        Center = wings_vertex:center(We),
-        Fun = explode_radial_fun(Axis, Point, Center),
-        [{Id,Fun}|Acc]
-    end, [], St),    
-    wings_drag:setup({matrix,Ids}, [percent], St).
+    wings_drag:matrix(
+      fun(We) ->
+              Center = wings_vertex:center(We),
+              explode_radial_fun(Axis, Point, Center)
+      end, [percent], St).
+
 
 %%%
 %%% Explode fun

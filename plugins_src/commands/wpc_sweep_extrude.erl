@@ -146,49 +146,52 @@ sweep_extract(Type, Axis, St0) ->
     sweep_region(Type, Axis, St).
 
 %%%% Setup
-sweep_setup(Type,Axis,St) ->
+sweep_setup(Type, Axis, St) ->
     Prefs = wings_pref:get_value(sweep,{unlocked,unwarped,region,free_base}),
     {Lock,Warp,Center,Base} = Prefs,
     State = {Lock,Axis,Warp,Center,Base},
 
     SelC = wings_sel:center(St),
 
-    Tvs = wings_sel:fold(fun(Fs, #we{id=Id}=We, Acc) ->
-
-            Regions = wings_sel:face_regions(Fs,We),
-            {AllVs,VsData} = collect_data(Type, Regions, We, Axis, SelC, [], State, [], []),
-            [{Id, {AllVs, sweep_fun(Type, VsData, State)}} | Acc]
-         end, [], St),
     Units = units(Type),
     Flags = [{mode,{modes(),State}}|flag(Axis)],
-    wings_drag:setup(Tvs, Units, Flags, St).
+    wings_drag:fold(
+      fun(Fs, We) ->
+              Regions = wings_sel:face_regions(Fs, We),
+              {AllVs,VsData} = collect_data(Regions, We, Axis,
+                                            SelC, State),
+              {AllVs,sweep_fun(Type, VsData, State)}
+      end, Units, Flags, St).
 
 units(absolute) -> [distance,skip,angle,percent,angle];
 units(relative) -> [percent,skip,angle,percent,angle].
 
+collect_data(Regions, We, Axis, SelC, State) ->
+    collect_data(Regions, We, Axis, SelC, [], State, [], []).
 
 %% LoopNorm is the extrude direction
-collect_data(Type, [Fs0|Rs], #we{mirror=M}=We, Axis0, SelC0, AllVs0, State, LVAcc0, ExData) ->
+collect_data([Fs0|Rs], #we{mirror=M}=We, Axis0, SelC0, AllVs0, State,
+             LVAcc0, ExData) ->
     Fs1 = wings_face:extend_border(Fs0, We),
     Fs = gb_sets:delete_any(M, Fs1),
     {OuterEs, RegVs} =  reg_data_0(Fs, We, [], []),
     LoopVs0 = wings_edge:to_vertices(OuterEs, We),
     LoopNorm = average_face_norm(Fs0, We, M, Fs1=/=Fs, []),
-    LoopVs = case Type of
-      sweep_extrude -> LoopVs0;
-      _otherwise when M =/= none ->
-          MirEs = wings_face:to_edges([M],We),
-          LoopEs = OuterEs -- MirEs,
-          LoopVerts = wings_edge:to_vertices(LoopEs,We),
-          LoopVerts;
-      _otherwise -> LoopVs0
+    LoopVs = if
+                 M =/= none ->
+                     MirEs = wings_face:to_edges([M],We),
+                     LoopEs = OuterEs -- MirEs,
+                     LoopVerts = wings_edge:to_vertices(LoopEs,We),
+                     LoopVerts;
+                true ->
+                     LoopVs0
     end,
     Axis = wings_util:make_vector(Axis0),
 
     ExVs = ordsets:subtract(RegVs, LoopVs),
     AllVs = ordsets:union(RegVs ,AllVs0),
 
-    LoopVs1 = [ V || V <- LoopVs , not ordsets:is_element(V,LVAcc0) ],
+    LoopVs1 = [ V || V <- LoopVs, not ordsets:is_element(V,LVAcc0) ],
 
     SeedVpos = add_vpos_data(seed,LoopVs1,We,[]),
     AllVpos = add_vpos_data(extrude,ExVs,We,SeedVpos),
@@ -199,9 +202,8 @@ collect_data(Type, [Fs0|Rs], #we{mirror=M}=We, Axis0, SelC0, AllVs0, State, LVAc
     NW = non_warping_norm(Axis, LoopNorm),
     CN = specify_warp_and_center(Axis, NW, LoopC, SelC, State),
     Data = {{SelC, LoopC, LoopNorm, MaxR, NW, Axis}, CN},
-    collect_data(Type, Rs, We, Axis0, SelC0, AllVs, State, LVAcc, [{Data,AllVpos}|ExData]);
-
-collect_data(_Type, [], _We, _Axis0, _SelC0, AllVs, _State, _LVs, VsData) ->
+    collect_data(Rs, We, Axis0, SelC0, AllVs, State, LVAcc, [{Data,AllVpos}|ExData]);
+collect_data([], _We, _Axis0, _SelC0, AllVs, _State, _LVs, VsData) ->
     {AllVs, VsData}.
 
 %% Calculate average norm of face region accounting for Virtual Mirror (if any).

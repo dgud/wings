@@ -17,7 +17,7 @@
 
 -include_lib("wings.hrl").
 
--import(lists, [foldl/3]).
+-import(lists, [append/1,foldl/3,unzip/1]).
 -define(HUGE, 1.0E307).
 
 init() ->
@@ -42,24 +42,20 @@ menu({face,flatten}, Menu0) ->
 menu(_, Menu) -> Menu.
 
 command({face,{move,region}}, St) ->
-    Tvs = wpa:sel_fold(
-	    fun(Faces, We, Acc) ->
-		    Id = wpa:obj_id(We),
-		    [{Id,move_region(Faces, We)}|Acc]
-	    end, [], St),
-    wpa:drag(Tvs, [distance], St);
+    wings_drag:fold(
+      fun(Faces, We) ->
+              move_region(Faces, We)
+      end, [distance], St);
 command({face,{scale,region}}, St) ->
-    Tvs = wpa:sel_fold(
-	    fun(Faces, We, Acc) ->
-		    scale_region(Faces, We, Acc)
-	    end, [], St),
-    wpa:drag(Tvs, [{percent,{0.0,?HUGE}}], [{initial,[1.0]}], St);
+    wings_drag:fold(
+      fun(Faces, We) ->
+              scale_region(Faces, We)
+      end, [{percent,{0.0,?HUGE}}], [{initial,[1.0]}], St);
 command({face,{rotate,region}}, St) ->
-    Tvs = wpa:sel_fold(
-	    fun(Faces, We, Acc) ->
-		    rotate_region(Faces, We, Acc)
-	    end, [], St),
-    wpa:drag(Tvs, [angle], St);
+    wings_drag:fold(
+      fun(Faces, We) ->
+              rotate_region(Faces, We)
+      end, [angle], St);
 command({face,{flatten,region}}, St) ->
     wpa:sel_map(
       fun(Faces, We) ->
@@ -92,44 +88,45 @@ move_region(OuterVs, Faces, We, Acc) ->
 %%% Scale Region.
 %%%
 
-scale_region(Faces, We, Acc) ->
-    scale_region_1(wpa:sel_strict_face_regions(Faces, We), We, Acc).
+scale_region(Faces, We) ->
+    scale_region_1(wpa:sel_strict_face_regions(Faces, We), We, []).
 
 scale_region_1([Fs|Regs], We, Acc0) ->
     Acc = case wpa:face_outer_vertices_ccw(Fs, We) of
 	      error ->
 		  region_error();
 	      OuterVs when is_list(OuterVs) ->
-		  scale_region_1(OuterVs, Fs, We, Acc0)
+		  scale_region_2(OuterVs, Fs, We, Acc0)
 	  end,
     scale_region_1(Regs, We, Acc);
-scale_region_1([], _, Acc) -> Acc.
+scale_region_1([], _, Tv) ->
+    Vs = [V || {V,_,_} <- Tv],
+    F = fun([Dx0], A0) ->
+            Dx = Dx0-1.0,
+            foldl(fun({V,Pos0,Vec}, A) ->
+                          Pos = e3d_vec:add(Pos0, e3d_vec:mul(Vec, Dx)),
+                          [{V,Pos}|A]
+                  end, A0, Tv)
+        end,
+    {Vs,F}.
 
-scale_region_1(OuterVs, Faces, We, Acc) ->
+scale_region_2(OuterVs, Faces, We, Acc) ->
     PlaneNormal = wings_face:face_normal_cw(OuterVs, We),
     WeTemp = wpa:vertex_flatten(OuterVs, PlaneNormal, We),
     Center = wings_vertex:center(OuterVs, WeTemp),
     Vs = wings_face:to_vertices(Faces, We),
-    Tv = foldl(fun(V, A) ->
-		       Pos = wpa:vertex_pos(V, We),
-		       Vec = e3d_vec:sub(Pos, Center),
-		       [{V,Pos,Vec}|A]
-	       end, [], Vs),
-    Trans = fun([Dx0], A0) ->
-		    Dx = Dx0-1.0,
-		    foldl(fun({V,Pos0,Vec}, A) ->
-				  Pos = e3d_vec:add(Pos0, e3d_vec:mul(Vec, Dx)),
-				  [{V,Pos}|A]
-			  end, A0, Tv)
-	    end,
-    [{wpa:obj_id(We),{Vs,Trans}}|Acc].
+    foldl(fun(V, A) ->
+                  Pos = wpa:vertex_pos(V, We),
+                  Vec = e3d_vec:sub(Pos, Center),
+                  [{V,Pos,Vec}|A]
+          end, Acc, Vs).
 
 %%%
 %%% Rotate Region.
 %%%
 
-rotate_region(Faces, We, Acc) ->
-    rotate_region_1(wpa:sel_strict_face_regions(Faces, We), We, Acc).
+rotate_region(Faces, We) ->
+    rotate_region_1(wpa:sel_strict_face_regions(Faces, We), We, []).
 
 rotate_region_1([Fs|Regs], We, Acc0) ->
     Acc = case wpa:face_outer_vertices_ccw(Fs, We) of
@@ -139,18 +136,18 @@ rotate_region_1([Fs|Regs], We, Acc0) ->
 		  rotate_region(OuterVs, Fs, We, Acc0)
 	  end,
     rotate_region_1(Regs, We, Acc);
-rotate_region_1([], _, Acc) -> Acc.
+rotate_region_1([], _, Acc) ->
+    wings_drag:compose(Acc).
 
 rotate_region(OuterVs, Faces, We, Acc) ->
     PlaneNormal = wings_face:face_normal_cw(OuterVs, We),
     Vs = wings_face:to_vertices(Faces, We),
     Center = wings_vertex:center(OuterVs, We),
     VsPos = wings_util:add_vpos(Vs, We),
-    Id = wpa:obj_id(We),
-    [{Id,{Vs,rotate_fun(Center, VsPos, PlaneNormal)}}|Acc].
+    [{Vs,rotate_fun(Center, VsPos, PlaneNormal)}|Acc].
 
 rotate_fun(Center, VsPos, Axis) ->
-    fun([Angle], A) ->
+    fun(Angle, A) ->
 	    rotate(Center, Axis, Angle, VsPos, A)
     end.
 
