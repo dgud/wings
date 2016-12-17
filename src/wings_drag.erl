@@ -17,6 +17,7 @@
 -define(NEED_ESDL, 1).
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
+-include("e3d.hrl").
 
 -import(lists, [foldl/3,sort/1,reverse/1,reverse/2,member/2]).
 
@@ -34,14 +35,14 @@
 	 mmb_timer=0,		% Mmb is pressed timer
 	 rmb_timer=0,		% Rmb is pressed timer (forth parameter)
 	 offset,		% Offset for each dimension.
-	 unit,			% Unit that drag is done in.
+	 unit :: [unit()],      % Unit that drag is done in.
 	 unit_sc,		% Scales for each dimension.
-	 flags=[],		% Flags.
+	 flags=[] :: [flag()],  % Flags.
 	 falloff,		% Magnet falloff.
-	 mode_fun,		% Special mode.
-	 mode_data,		% State for mode.
+	 mode_fun :: mode_fun(),% Special mode.
+	 mode_data :: mode_data(),% State for mode.
 	 info="",		% Information line.
-	 st,			% Saved st record.
+	 st :: #st{},           % Saved st record.
 	 last_move		% Last move.
 	}).
 
@@ -51,8 +52,56 @@
 	 we_funs		%List of funs that operate on the We.
 	}).
 
+-type id() :: non_neg_integer().
+-type vertices() :: [vertex_num()].
+
+-type mat_transform_fun() :: fun((e3d_matrix(), [float()]) -> e3d_matrix()).
+-type we_transform_fun() :: fun((#we{}, [float()]) -> #we{}).
+-type vec_transform_fun() :: fun((_, _) -> [{vertex_num(),e3d_vector()}]).
+-type general_fun() :: fun((_, #dlo{}) -> #dlo{}).
+
+-type tv() :: [{e3d_vector(),vertices()}]
+            | {vertices(),vec_transform_fun()}
+            | {'we',we_transform_fun()}.
+
+-type tvs() :: {'matrix',[{id(),mat_transform_fun()}]}
+             | {'general',[{id(),general_fun()}]}
+             | [{id(),tv()}].
+
+-type inf_or_float() :: 'infinity' | float().
+-type limit2() :: {inf_or_float(),inf_or_float()}.
+
+-type unit() :: 'angle'   | {'angle',limit2()}
+              | 'distance'| {'distance',limit2()}
+              | 'dx'      | {'dx',limit2()}
+              | 'dy'      | {'dy',limit2()}
+              | 'dz'
+              | 'falloff'
+              | {'number',limit2()}
+              | 'percent' | {'percent',limit2()}
+              | 'rx'      | {'rx',limit2()}
+              | 'skip'
+              | plugin_unit_kludge().
+
+%% FIXME: Should wrap in a tuple, e.e. {custom,CustomType}.
+-type plugin_unit_kludge() :: 'absolute_diameter'
+                            | 'diametric_factor'.
+
+-type mode_fun() :: fun((any(), mode_data()) -> mode_data()).
+-type mode_data() :: any().
+
+-type flag() :: {'initial',list()}
+              | 'keep_drag'
+              | {'mode',{mode_fun(),mode_data()}}
+              | {'rescale_normals',boolean()}
+              | 'screen_relative'.
+
+-spec setup(tvs(), [unit()], #st{}) -> {'drag',#drag{}}.
+
 setup(Tvs, Unit, St) ->
     setup(Tvs, Unit, [], St).
+
+-spec setup(tvs(), [unit()], [flag()], #st{}) -> {'drag',#drag{}}.
 
 setup(Tvs, Units, Flags, St) ->
     cursor_boundary(60),
@@ -74,7 +123,7 @@ setup(Tvs, Units, Flags, St) ->
 	{general,General} ->
 	    wings_draw:invalidate_dlists(St),
 	    break_apart_general(General);
-	_ = _BR ->
+	[_|_] ->
 	    wings_draw:invalidate_dlists(St),
 	    break_apart(Tvs, St)
     end,
@@ -103,7 +152,7 @@ setup_mode(Flags, Falloff) ->
     case proplists:get_value(mode, Flags, none) of
 	none ->
 	    {standard_mode_fun(Falloff),none};
-	{_,_}=Mode ->
+	{F,_}=Mode when is_function(F, 2) ->
 	    Mode
     end.
 
@@ -335,6 +384,8 @@ break_apart_general(D, Tvs) -> {D,Tvs}.
 %%%
 %%% Handling of drag events.
 %%%
+
+-spec do_drag(#drag{}, [_] | 'none') -> term().
 
 do_drag(#drag{flags=Flags}=Drag, none) ->
     wings_menu:kill_menus(), %% due to toolbar menu facility
@@ -1147,7 +1198,6 @@ motion_update({no_change,_}, #drag{falloff=none}=Drag) ->
 motion_update({no_change,LastMove}, #drag{unit=Units}=Drag) ->
     Move = constrain_1(Units, LastMove, Drag),
     motion_update(Move,Drag);
-
 motion_update(Move, #drag{unit=Units}=Drag) ->
     wings_dl:map(fun(D, _) ->
 			 motion_update_fun(D, Move)
