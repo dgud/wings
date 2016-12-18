@@ -30,7 +30,7 @@
 	 scene_pref_set/2,scene_pref_set_default/2,scene_pref_delete/2,
 	 sel_get/1,sel_set/2,sel_set/3,sel_map/2,sel_fold/3,sel_convert/3,
 	 sel_edge_regions/2,sel_face_regions/2,sel_strict_face_regions/2,
-	 drag/3,drag/4,drop/2,
+	 drop/2,
 	 pick/3,
 	 vertices/1,vertex_pos/2,vertex_flatten/3,vertex_center/2,
 	 faces/1,face_vertices/2,face_outer_vertices_ccw/2,face_outer_edges/2,
@@ -469,14 +469,8 @@ pick(X, Y, St) ->
     wings_pick:do_pick(X, Y, St).
 
 %%%
-%%% Drag and drop support
+%%% Drop support
 %%%
-
-drag(Tvs, Units, St) ->
-    wings_drag:setup(Tvs, Units, [], St).
-
-drag(Tvs, Units, Flags, St) ->
-    wings_drag:setup(Tvs, Units, Flags, St).
 
 drop(WindowName, DropData) ->
     wings_wm:send(WindowName, {drop,DropData}).
