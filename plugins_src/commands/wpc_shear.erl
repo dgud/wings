@@ -86,27 +86,27 @@ xyz2(z) ->
 
 %%%% Commands
 command({vertex,{deform,{shear,{GlidePlane0,{Radial0,{rmb,{'ASK',Ask}}}}}}},St) ->
-    GlidePlane = axis_conversion(GlidePlane0),
-    Radial = axis_conversion(Radial0),
+    GlidePlane = wings_util:make_vector(GlidePlane0),
+    Radial = wings_util:make_vector(Radial0),
     wings:ask(selection_ask(Ask), St, fun ({Origin,GlidePoint}, St0) ->
         check_selection({GlidePlane,Radial,Origin,GlidePoint},St0)
     end);
 
 command({vertex,{deform,{shear,{GlidePlane0,{Radial0,lmb}}}}},St) ->
-    GlidePlane = axis_conversion(GlidePlane0),
-    Radial = axis_conversion(Radial0),
+    GlidePlane = wings_util:make_vector(GlidePlane0),
+    Radial = wings_util:make_vector(Radial0),
     [Origin,GlidePoint] = determine_boundaries(GlidePlane,St),
     check_selection({GlidePlane,Radial,Origin,GlidePoint},St);
 
 command({vertex,{deform,{shear,{GlidePlane0,{rmb,{'ASK',Ask}}}}}},St) ->
-    GlidePlane = axis_conversion(GlidePlane0),
+    GlidePlane = wings_util:make_vector(GlidePlane0),
     wings:ask(selection_ask(Ask), St, fun ({Radial,Origin,GlidePoint}, St0) ->
         check_selection({GlidePlane,Radial,Origin,GlidePoint},St0)
     end);
 
 command({vertex,{deform,{shear,{GlidePlane0,{mmb,{'ASK',Ask}}}}}},St) ->
     wings:ask(selection_ask(Ask), St, fun ({Radial,Origin}, St0) ->
-        GlidePlane = axis_conversion(GlidePlane0),
+        GlidePlane = wings_util:make_vector(GlidePlane0),
         GlidePoint = get_glide_point(GlidePlane,Origin,St0),
         check_selection({GlidePlane,Radial,Origin,GlidePoint},St0)
     end);
@@ -118,16 +118,16 @@ command({vertex,{deform,{shear,{'ASK',Ask}}}}, St) ->
 
 %%%% commands to match 'Repeat Drag' arguments from 'ASK' selections follow
 command({vertex,{deform,{shear,{GlidePlane0,{Radial0,{rmb,{Origin,GlidePoint}}}}}}},St) ->
-    GlidePlane = axis_conversion(GlidePlane0),
-    Radial = axis_conversion(Radial0),
+    GlidePlane = wings_util:make_vector(GlidePlane0),
+    Radial = wings_util:make_vector(Radial0),
     shear_callback({GlidePlane,Radial,Origin,GlidePoint},St);
 
 command({vertex,{deform,{shear,{GlidePlane0,{rmb,{Radial,Origin,GlidePoint}}}}}}, St) ->
-    GlidePlane = axis_conversion(GlidePlane0),
+    GlidePlane = wings_util:make_vector(GlidePlane0),
     shear_callback({GlidePlane,Radial,Origin,GlidePoint},St);
 
 command({vertex,{deform,{shear,{GlidePlane0,{mmb,{Radial,Origin}}}}}}, St) ->
-    GlidePlane = axis_conversion(GlidePlane0),
+    GlidePlane = wings_util:make_vector(GlidePlane0),
     GlidePoint = get_glide_point(GlidePlane,Origin,St),
     shear_callback({GlidePlane,Radial,Origin,GlidePoint},St);
 
@@ -216,15 +216,6 @@ check_glide_plane_norm({GlidePlane,Radial,Origin,GlidePoint},St) ->
 			  end);
 	false ->
 	    shear_callback({GlidePlane,Radial,Origin,GlidePoint},St)
-    end.
-
-%%%%
-axis_conversion(Axis) ->
-    case Axis of
-      x -> {1.0,0.0,0.0};
-      y -> {0.0,1.0,0.0};
-      z -> {0.0,0.0,1.0};
-      _ -> Axis
     end.
 
 %%%%

@@ -181,7 +181,7 @@ command(_,_) -> next.
 
 %% Explode
 explode({Axis0,Point}, St) ->
-    Axis = axis_conv(Axis0),
+    Axis = wings_util:make_vector(Axis0),
     Ids = wings_sel:fold(fun(_,#we{id=Id}=We,Acc) ->
         Center = wings_vertex:center(We),
         Fun = explode_fun(Axis, Point, Center),
@@ -200,7 +200,7 @@ explode_uniform(Point, St) ->
 
 %% Explode Radial
 explode_radial({Axis0,Point}, St) ->
-    Axis = axis_conv(Axis0),
+    Axis = wings_util:make_vector(Axis0),
     Ids = wings_sel:fold(fun(_,#we{id=Id}=We,Acc) ->
         Center = wings_vertex:center(We),
         Fun = explode_radial_fun(Axis, Point, Center),
@@ -244,18 +244,3 @@ explode_radial_fun(Axis, Point, Center) ->
 dist_along_vector({Xa,Ya,Za},{Xb,Yb,Zb},{Vx,Vy,Vz}) ->
 %% Return Distance between PosA and PosB along Normalized Vector
     Vx*(Xa-Xb)+Vy*(Ya-Yb)+Vz*(Za-Zb).
-
-axis_conv(Axis) ->
-%% Converts an atom axis to a tuple axis.
-    case Axis of
-      x -> {1.0,0.0,0.0};
-      y -> {0.0,1.0,0.0};
-      z -> {0.0,0.0,1.0};
-      last_axis ->
-        {_, Dir} = wings_pref:get_value(last_axis),
-        Dir;
-      default_axis ->
-        {_, Dir} = wings_pref:get_value(default_axis),
-        Dir;
-      {X,Y,Z} -> {X,Y,Z}
-    end.

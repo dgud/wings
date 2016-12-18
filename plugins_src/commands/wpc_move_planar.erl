@@ -103,21 +103,19 @@ selection_ask([magnet|Rest],Ask) ->
 
 %%%% Setup
 planar_setup(Axis0,#st{selmode=body,sel=Sel}=St) ->
-    Axis = axis_conversion(Axis0),
+    Axis = wings_util:make_vector(Axis0),
     Fun = translate_fun(Axis),
     Ids = [{Id,Fun} || {Id,_} <- Sel],
     wings_drag:setup({matrix,Ids}, [dx,dy], St);
-
 planar_setup({Axis0,Mag},#st{selmode=Mode}=St) ->
-    Axis = axis_conversion(Axis0),
+    Axis = wings_util:make_vector(Axis0),
     Tvs = wings_sel:fold(fun(Items,We,Acc) ->
                 setup(Mode, Axis, Items, We, Mag, Acc)
                 end,[],St),
     Flags = wings_magnet:flags(Mag,[]),
     wings_drag:setup(Tvs, [dx,dy|[falloff]], Flags, St);
-
 planar_setup(Axis0,#st{selmode=Mode}=St) ->
-    Axis = axis_conversion(Axis0),
+    Axis = wings_util:make_vector(Axis0),
     Tvs = wings_sel:fold(fun(Items,We,Acc) ->
                 setup(Mode,Axis,Items,We,none,Acc)
                 end,[],St),
@@ -214,18 +212,3 @@ planar(Vpos,{X,Y,Z},Dx,Dy) ->
     B = e3d_vec:norm(e3d_vec:cross({X,Y,Z},A)),
 	C = e3d_vec:add(Vpos, e3d_vec:mul(A, -Dx)),
 	e3d_vec:add(C, e3d_vec:mul(B, -Dy)).
-
-%%%% Utilities
-axis_conversion(Axis) ->
-    case Axis of
-      x -> {1.0,0.0,0.0};
-      y -> {0.0,1.0,0.0};
-      z -> {0.0,0.0,1.0};
-      last_axis ->
-          {_, Dir} = wings_pref:get_value(last_axis),
-          e3d_vec:norm(Dir);
-      default_axis ->
-          {_, Dir} = wings_pref:get_value(default_axis),
-          e3d_vec:norm(Dir);
-      {_,_,_} -> e3d_vec:norm(Axis)
-    end.

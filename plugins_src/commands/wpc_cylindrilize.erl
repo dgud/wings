@@ -108,7 +108,7 @@ selection_ask([AskType|Rest],Ask) ->
 
 %%%% Selection data setup
 get_center_and_radius(Axis0,St) ->
-    Axis = axis_conversion(Axis0),
+    Axis = wings_util:make_vector(Axis0),
     Center = wings_sel:center(St),
     DistList = wings_sel:fold(fun(Vs,We,Acc) ->
             VList = gb_sets:to_list(Vs),
@@ -128,7 +128,7 @@ get_radius(Axis,Center,VList,We,Acc) ->
     [Dist|Acc].
 
 cylinder_setup({Axis0,Center,Radius0},St) ->
-    Axis = axis_conversion(Axis0),
+    Axis = wings_util:make_vector(Axis0),
     CntrOnPlane = intersect_vec_plane(Center,Radius0,Axis),
     Radius = abs(e3d_vec:dist(CntrOnPlane,Radius0)),
     cylinder_callback({Axis,Center,Radius},St).
@@ -171,11 +171,3 @@ intersect_vec_plane(PosA,PosB,Vector) ->
     DotProduct = e3d_vec:dot(PlaneNorm,PlaneNorm),
     Intersection = e3d_vec:dot(e3d_vec:sub(PosB,PosA),PlaneNorm)/DotProduct,
     e3d_vec:add(PosA, e3d_vec:mul(PlaneNorm, Intersection)).
-
-axis_conversion(Axis) ->
-    case Axis of
-      x -> {1.0,0.0,0.0};
-      y -> {0.0,1.0,0.0};
-      z -> {0.0,0.0,1.0};
-      _ -> Axis
-    end.

@@ -781,7 +781,7 @@ angle(Axis,St) ->
 
 to_axis(Axis,#st{selmode=edge,shapes=Shs,sel=[{Id,Sel}]}=St) ->
     Keys = mod_key_combo(),
-    Vec1 = axis_conversion(Axis),
+    Vec1 = wings_util:make_vector(Axis),
     We = gb_trees:get(Id, Shs),
     [Edge] = gb_sets:to_list(Sel),
     #edge{vs=V0s,ve=V0e} = array:get(Edge, We#we.es),
@@ -795,7 +795,7 @@ to_axis(Axis,#st{selmode=edge,shapes=Shs,sel=[{Id,Sel}]}=St) ->
 
 to_axis(Axis,#st{selmode=face,shapes=Shs,sel=[{Id,Sel}]}=St) ->
     Keys = mod_key_combo(),
-    Vec1 = axis_conversion(Axis),
+    Vec1 = wings_util:make_vector(Axis),
     We = gb_trees:get(Id, Shs),
     [Face] = gb_sets:to_list(Sel),
     Norm1 = wings_face:normal(Face,We),
@@ -1020,15 +1020,6 @@ mod_key_combo() ->
     Ctrl  = wings_io:is_modkey_pressed(?KMOD_CTRL),
     Alt   = wings_io:is_modkey_pressed(?KMOD_ALT),
     {Shift,Ctrl,Alt}.
-
-%%% Utilities
-axis_conversion(Axis) ->
-    case Axis of
-      x -> {1.0,0.0,0.0};
-      y -> {0.0,1.0,0.0};
-      z -> {0.0,0.0,1.0};
-      _ -> Axis
-    end.
 
 %%% Set preferences
 set_constraint({Shift,Ctrl,Alt}, Key, Val) ->
