@@ -1266,8 +1266,8 @@ lift_from_edge_2(Dir, Face, Edge, Side, #we{id=Id,es=Etab}=We0, Tv) ->
 			left -> e3d_vec:norm_sub(VbPos, VaPos);
 			right -> e3d_vec:norm_sub(VaPos, VbPos)
 		   end,
-	    Rot = wings_rotate:rotate(Axis, VaPos, FaceVs, We, Tv),
-	    {We,Rot};
+	    Rot = wings_rotate:rotate(Axis, VaPos, FaceVs, We),
+	    {We,[{Id,Rot}]};
 	_Other ->
 	    Vec = wings_util:make_vector(Dir),
 	    Move = wings_move:setup_we(vertex, Vec, FaceVs, We),
@@ -1361,8 +1361,8 @@ lift_from_vertex_2(Dir, Face, V, #we{id=Id,next_id=Next}=We0, Tv) ->
 	    M = e3d_vec:norm(e3d_vec:add(Vecs)),
 	    N = wings_face:normal(Face, We),
 	    Axis = e3d_vec:cross(M, N),
- 	    Rot = wings_rotate:rotate(Axis, Vpos, FaceVs, We, Tv),
-	    {We,Rot};
+            Rot = wings_rotate:rotate(Axis, Vpos, FaceVs, We),
+	    {We,[{Id,Rot}]};
 	_Other ->
 	    Vec = wings_util:make_vector(Dir),
 	    Move = wings_move:setup_we(vertex, Vec, FaceVs, We),
