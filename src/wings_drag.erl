@@ -12,14 +12,16 @@
 %%
 
 -module(wings_drag).
--export([setup/3,setup/4,do_drag/2]).
+-export([setup/3,setup/4,do_drag/2,fold/3,fold/4,
+         matrix/3,matrix/4,compose/1]).
 
 -define(NEED_ESDL, 1).
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
 -include("e3d.hrl").
 
--import(lists, [foldl/3,sort/1,reverse/1,reverse/2,member/2]).
+-import(lists, [append/1,foldl/3,sort/1,reverse/1,reverse/2,
+                member/2,unzip/1]).
 
 %% Main drag record. Kept in state.
 -record(drag,
@@ -96,6 +98,50 @@
               | {'rescale_normals',boolean()}
               | 'screen_relative'.
 
+-type tv_list() :: {id(),tv()}.
+
+
+-spec fold(Fun, [unit()], #st{}) -> {'drag',#drag{}} when
+      Fun :: fun((wings_sel:item_set(), #we{}) -> tv_list()).
+
+fold(F, Unit, St) when is_function(F, 2) ->
+    fold(F, Unit, [], St).
+
+-spec fold(Fun, [unit()], [flag()], #st{}) -> {'drag',#drag{}} when
+      Fun :: fun((wings_sel:item_set(), #we{}) -> tv_list()).
+
+fold(F, Unit, Flags, St) when is_function(F, 2) ->
+    #st{sel=Sel,shapes=Shapes} = St,
+    Tvs = fold_1(Sel, F, Shapes),
+    setup(Tvs, Unit, Flags, St).
+
+-spec matrix(Fun, [unit()], #st{}) -> {'drag',#drag{}} when
+      Fun :: fun((#we{}) -> mat_transform_fun()).
+
+matrix(F, Units, #st{selmode=body}=St) ->
+    matrix(F, Units, [], St).
+
+-spec matrix(Fun, [unit()], [flag()], #st{}) -> {'drag',#drag{}} when
+      Fun :: fun((#we{}) -> mat_transform_fun()).
+
+matrix(F, Units, Flags, #st{selmode=body}=St) when is_function(F, 1) ->
+    #st{sel=Sel,shapes=Shapes} = St,
+    Tvs = matrix_1(Sel, F, Shapes),
+    setup({matrix,Tvs}, Units, Flags, St).
+
+-spec compose([{vertices(),vec_transform_fun()}]) ->
+                     {vertices(),vec_transform_fun()}.
+
+compose([{_,_}=Transform]) ->
+    Transform;
+compose(Transforms) ->
+    {Vs0,TransformFuns} = unzip(Transforms),
+    Vs = append(Vs0),
+    F = fun(Arg, Acc) ->
+                execute_composed(TransformFuns, Arg, Acc)
+        end,
+    {Vs,F}.
+
 -spec setup(tvs(), [unit()], #st{}) -> {'drag',#drag{}}.
 
 setup(Tvs, Unit, St) ->
@@ -128,6 +174,28 @@ setup(Tvs, Units, Flags, St) ->
 	    break_apart(Tvs, St)
     end,
     {drag,Drag}.
+
+%%%
+%%% Local functions.
+%%%
+
+fold_1([{Id,Items}|T], F, Shapes) ->
+    We = gb_trees:get(Id, Shapes),
+    ?ASSERT(We#we.id =:= Id),
+    [{Id,F(Items, We)}|fold_1(T, F, Shapes)];
+fold_1([], _, _) -> [].
+
+matrix_1([{Id,_}|T], F, Shapes) ->
+    We = gb_trees:get(Id, Shapes),
+    ?ASSERT(We#we.id =:= Id),
+    [{Id,F(We)}|matrix_1(T, F, Shapes)];
+matrix_1([], _, _) -> [].
+
+execute_composed([TF|TFs], Arg, Acc0) ->
+    Acc = TF(Arg, Acc0),
+    execute_composed(TFs, Arg, Acc);
+execute_composed([], _Arg, Acc) -> Acc.
+
 
 %% make sure cursor isn't too close to the edge of the window since this can
 %% cause drag response problems.
