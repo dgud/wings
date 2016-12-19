@@ -18,7 +18,8 @@
 -export([setup/2]).
 
 -include("wings.hrl").
--import(lists, [foldl/3]).
+-import(lists, [foldl/3,map/2]).
+
 -define(HUGE, 1.0E307).
 
 setup({'ASK',Ask}, St) ->
@@ -50,26 +51,27 @@ setup_1({_,Dir}, Point, Magnet, St) ->
     setup_2(Dir, Point, Magnet, St).
 
 setup_2(Vec, Point, Magnet, #st{selmode=vertex}=St) ->
-    Tvs = scale_vertices(Vec, Point, Magnet, St),
-    init_drag(Tvs, Magnet, St);
+    Center = vertices_center(Point, St),
+    F = fun(Vs0, We) ->
+                Vs = gb_sets:to_list(Vs0),
+                scale(Vec, Center, Magnet, Vs, We)
+        end,
+    init_drag(F, Magnet, St);
 setup_2(Vec, Point, Magnet, #st{selmode=edge}=St) ->
-    Tvs = wings_sel:fold(
-	    fun(Edges, We, Acc) ->
-		    edges_to_vertices(Vec, Point, Magnet, Edges, We, Acc)
-	    end, [], St),
-    init_drag(Tvs, Magnet, St);
+    F = fun(Edges, We) ->
+                edges_to_vertices(Vec, Point, Magnet, Edges, We)
+        end,
+    init_drag(F, Magnet, St);
 setup_2(Vec, Point, Magnet, #st{selmode=face}=St) ->
-    Tvs = wings_sel:fold(
-	    fun(Faces, We, Acc) ->
-		    faces_to_vertices(Vec, Point, Magnet, Faces, We, Acc)
-	    end, [], St),
-    init_drag(Tvs, Magnet, St);
+    F = fun(Faces, We) ->
+                faces_to_vertices(Vec, Point, Magnet, Faces, We)
+        end,
+    init_drag(F, Magnet, St);
 setup_2(Vec, Point, _Magnet, #st{selmode=body}=St) ->
-    Tvs = wings_sel:fold(
-	    fun(_, #we{id=Id}=We, Acc) ->
-		    [{Id,body_to_vertices(Vec, Point, We)}|Acc]
-	    end, [], St),
-    init_drag({matrix,Tvs}, none, [rescale_normals], St).
+    Flags = [{initial,[1.0]},rescale_normals],
+    wings_drag:matrix(fun(We) ->
+                              body_to_vertices(Vec, Point, We)
+                      end, [percent], Flags, St).
 
 special_axis(last_axis=A) ->
     wings_pref:get_value(A);
@@ -85,9 +87,10 @@ special_axis(_) -> no.
 init_drag(Tvs, Magnet, St) ->
     init_drag(Tvs, Magnet, [], St).
 
-init_drag(Tvs, Magnet, Flags, St) ->
-    wings_drag:setup(Tvs, [percent|magnet_unit(Magnet)],
-		     wings_magnet:flags(Magnet, [{initial,[1.0]}|Flags]), St).
+init_drag(Tvs, Magnet, Flags0, St) ->
+    Unit = [percent|magnet_unit(Magnet)],
+    Flags = wings_magnet:flags(Magnet, [{initial,[1.0]}|Flags0]),
+    wings_drag:fold(Tvs, Unit, Flags, St).
 
 magnet_unit(none) -> [];
 magnet_unit(_) -> [falloff].
@@ -96,73 +99,64 @@ magnet_unit(_) -> [falloff].
 %% Scaling of vertices.
 %%
 
-scale_vertices(Vec, center, Magnet, St) ->
-    Tvs = wings_sel:fold(fun(Vs, We, Acc) ->
-				 [{gb_sets:to_list(Vs),We}|Acc]
-			 end, [], St),
-    VsPs = foldl(fun({Vs,#we{vp=Vtab0}}, Acc) ->
-			 Vtab1 = sofs:from_external(array:sparse_to_orddict(Vtab0),
-						    [{vertex,pos}]),
-			 Restr = sofs:set(Vs, [vertex]),
-			 Vtab2 = sofs:restriction(Vtab1, Restr),
-			 Vtab3 = sofs:range(Vtab2),
-			 Vtab = sofs:to_external(Vtab3),
-			 [Vtab|Acc]
-		 end, [], Tvs),
-    Center = e3d_vec:average(lists:append(VsPs)),
-    foldl(fun({Vs,We}, Acc) ->
-		  scale(Vec, Center, Magnet, Vs, We, Acc)
-	  end, [], Tvs);
-scale_vertices(Vec, Center, Magnet, St) ->
-    wings_sel:fold(
-      fun(Vs0, We, Acc) ->
-	      Vs = gb_sets:to_list(Vs0),
-	      scale(Vec, Center, Magnet, Vs, We, Acc)
-      end, [], St).
+vertices_center(center, St) ->
+    VsWe = wings_sel:fold(fun(Vs, We, Acc) ->
+                                  [{gb_sets:to_list(Vs),We}|Acc]
+                          end, [], St),
+    VsPs = map(fun({Vs,#we{vp=Vtab0}}) ->
+                       Vtab1 = array:sparse_to_orddict(Vtab0),
+                       Vtab2 = sofs:from_external(Vtab1, [{vertex,pos}]),
+                       Restr = sofs:set(Vs, [vertex]),
+                       Vtab3 = sofs:restriction(Vtab2, Restr),
+                       Vtab = sofs:range(Vtab3),
+                       sofs:to_external(Vtab)
+               end, VsWe),
+    e3d_vec:average(lists:append(VsPs));
+vertices_center(Center, _) -> Center.
 
 %%
 %% Conversion of edge selections to vertices.
 %%
 
-edges_to_vertices(Vec, center, none, Edges0, We, Acc) ->
-    foldl(fun(Edges, A) ->
-		  edges_to_vertices_1(Vec, center, none, Edges, We, A)
-	  end, Acc, wings_sel:edge_regions(Edges0, We));
-edges_to_vertices(Vec, center, Magnet, Edges0, We, Acc) ->
+edges_to_vertices(Vec, center, none, Edges0, We) ->
+    Ts = [edges_to_vertices_1(Vec, center, none, Edges, We) ||
+             Edges <- wings_sel:edge_regions(Edges0, We)],
+    wings_drag:compose(Ts);
+edges_to_vertices(Vec, center, Magnet, Edges0, We) ->
     case wings_sel:edge_regions(Edges0, We) of
 	[Edges] ->
-	    edges_to_vertices_1(Vec, center, Magnet, Edges, We, Acc);
+	    edges_to_vertices_1(Vec, center, Magnet, Edges, We);
 	_Other ->
 	    wings_u:error_msg(?__(1,"Magnet scale on multiple edge regions requires an explicit scale origin."))
     end;
-edges_to_vertices(Vec, Point, Magnet, Edges, We, Acc) ->
-    edges_to_vertices_1(Vec, Point, Magnet, Edges, We, Acc).
+edges_to_vertices(Vec, Point, Magnet, Edges, We) ->
+    edges_to_vertices_1(Vec, Point, Magnet, Edges, We).
 
-edges_to_vertices_1(Vec, Point, Magnet, Edges, We, Acc) ->
+edges_to_vertices_1(Vec, Point, Magnet, Edges, We) ->
     Vs = wings_edge:to_vertices(Edges, We),
-    scale(Vec, Point, Magnet, Vs, We, Acc).
+    scale(Vec, Point, Magnet, Vs, We).
 
 %%
 %% Conversion of face selections to vertices.
 %%
 
-faces_to_vertices(Vec, center, none, Faces0, We, Acc) ->
-    foldl(fun(Faces, A) ->
-		  faces_to_vertices_1(Vec, center, none, Faces, We, A)
-	  end, Acc, wings_sel:strict_face_regions(Faces0, We));
-faces_to_vertices(Vec, center, Magnet, Faces0, We, Acc) ->
+faces_to_vertices(Vec, center, none, Faces0, We) ->
+    Ts = [faces_to_vertices_1(Vec, center, none, Faces, We) ||
+             Faces <- wings_sel:strict_face_regions(Faces0, We)],
+    wings_drag:compose(Ts);
+faces_to_vertices(Vec, center, Magnet, Faces0, We) ->
     case wings_sel:strict_face_regions(Faces0, We) of
 	[Faces] ->
-	    faces_to_vertices_1(Vec, center, Magnet, Faces, We, Acc);
+	    faces_to_vertices_1(Vec, center, Magnet, Faces, We);
 	_Other ->
 	    wings_u:error_msg(?__(1,"Magnet scale on multiple face regions requires an explicit scale origin."))
     end;
-faces_to_vertices(Vec, Point, Magnet, Faces, We, Acc) ->
-    faces_to_vertices_1(Vec, Point, Magnet, Faces, We, Acc).
+faces_to_vertices(Vec, Point, Magnet, Faces, We) ->
+    faces_to_vertices_1(Vec, Point, Magnet, Faces, We).
 
-faces_to_vertices_1(Vec, Point, Magnet, Faces, We, Acc) ->
+faces_to_vertices_1(Vec, Point, Magnet, Faces, We) ->
     Vs = wings_face:to_vertices(Faces, We),
-    scale(Vec, Point, Magnet, Vs, We, Acc).
+    scale(Vec, Point, Magnet, Vs, We).
 
 %%
 %% Conversion of body selection to vertices.
@@ -184,10 +178,10 @@ body_to_vertices_1(Vec0, Center) ->
 %%% Utilities.
 %%%
 
-scale(Vec, center, Magnet, Vs, We, A) ->
+scale(Vec, center, Magnet, Vs, We) ->
     Center = wings_vertex:center(Vs, We),
-    scale(Vec, Center, Magnet, Vs, We, A);
-scale(Vec0, Center, Magnet, Vs, #we{id=Id}=We, Acc) ->
+    scale(Vec, Center, Magnet, Vs, We);
+scale(Vec0, Center, Magnet, Vs, We) ->
     Vec = make_vector(Vec0),
     {Pre,Post} = make_matrices(Vec, Center),
     VsPos = mul(Vs, Post, We),
@@ -199,19 +193,20 @@ scale(Vec0, Center, Magnet, Vs, #we{id=Id}=We, Acc) ->
 				[{V,Pos}|A]
 			end, A0, VsPos)
 	  end,
-    magnet(Vec, Magnet, Pre, Post, Vs, We, {Id,{Vs,Fun}}, Acc).
+    magnet(Vec, Magnet, Pre, Post, Vs, We, {Vs,Fun}).
 
-magnet(_Vec, none, _Pre, _Post, _Vs, _We, Tv, Acc) -> [Tv|Acc];
-magnet(Vec, Magnet0, Pre, Post, Vs0, #we{id=Id}=We, _, Acc) ->
+magnet(_Vec, none, _Pre, _Post, _Vs, _We, Tv) ->
+    Tv;
+magnet(Vec, Magnet0, Pre, Post, Vs0, We, _Tv) ->
     {VsInf0,Magnet,Affected} = wings_magnet:setup(Magnet0, Vs0, We),
     VsInf = pre_transform(Post, VsInf0),
-    [{Id,{Affected,magnet_scale_fun(Vec, Pre, VsInf, Magnet)}}|Acc].
+    {Affected,magnet_scale_fun(Vec, Pre, VsInf, Magnet)}.
 
 pre_transform(Matrix, VsInf) ->
     wings_magnet:transform(fun(Pos) ->
 				   e3d_mat:mul_point(Matrix, Pos)
 			   end, VsInf).
-    
+
 magnet_scale_fun(Vec, Pre, VsInf0, {_,R}=Magnet0) ->
     fun(new_falloff, Falloff) ->
 	    VsInf = wings_magnet:recalc(Falloff, VsInf0, Magnet0),
