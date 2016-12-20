@@ -23,20 +23,21 @@ setup({Vec,Magnet}, St) ->
 setup(Vec, St) ->
     setup(Vec, none, St).
 
-setup(Type, _Magnet, #st{selmode=body,sel=Sel}=St) ->
+setup(Type, _Magnet, #st{selmode=body}=St) ->
     Vec = make_vector(Type),
     Fun = translate_fun(Vec),
-    Ids = [{Id,Fun} || {Id,_} <- Sel],
-    wings_drag:setup({matrix,Ids}, unit(Type), flags(Type), St);
+    wings_drag:matrix(
+      fun(_) ->
+              Fun
+      end, unit(Type), flags(Type), St);
 setup(Vec0, Magnet, #st{selmode=Mode}=St) ->
     Vec = make_vector(Vec0),
-    Tvs = wings_sel:fold(
-	    fun(Items, We, Acc) ->
-		    Tv = setup_we(Mode, Vec, Items, We),
-		    magnet_move(Tv, Vec, Magnet, We, Acc)
-	    end, [], St),
     Flags = wings_magnet:flags(Magnet, flags(Vec0)),
-    wings_drag:setup(Tvs, unit(Vec0, magnet_unit(Magnet)), Flags, St).
+    wings_drag:fold(
+      fun(Items, We) ->
+              Tv = setup_we(Mode, Vec, Items, We),
+              magnet_move(Tv, Vec, Magnet, We)
+      end, unit(Vec0, magnet_unit(Magnet)), Flags, St).
 
 magnet_unit(none) -> [];
 magnet_unit(_) -> [falloff].
@@ -46,7 +47,7 @@ plus_minus({'ASK',Ask}, Tvs, St0) ->
 plus_minus(Type, Tvs0, #st{selmode=Mode}=St) ->
     Vec = make_vector(Type),
     Tvs = plus_minus_2(Mode, Vec, Tvs0, []),
-    Flags = [flags(Type),{initial,[0.0,0.0,1.0]}],
+    Flags = [{initial,[0.0,0.0,1.0]}|flags(Type)],
     wings_drag:setup(Tvs, unit(Type, [{percent,{0.0,infinity}}]), Flags, St).
 
 plus_minus_2(Mode, Vec, [{Items,NewVs,Forbidden,We}|T], Acc0) ->
@@ -322,12 +323,14 @@ translate_fun({Xt0,Yt0,Zt0}) ->
 %%% Magnet move.
 %%%
 
-magnet_move(Tv, _Vec, none, #we{id=Id}, Acc) -> [{Id,Tv}|Acc];
-magnet_move(Tv, Vec0, Magnet0, #we{id=Id}=We, Acc) ->
+magnet_move(Tv, _Vec, none, _We) ->
+    Tv;
+magnet_move(Tv, Vec0, Magnet0, We) ->
+    io:format("~p\n", [Vec0]),
     Vs = affected(Tv),
     {VsInf,Magnet,Affected} = wings_magnet:setup(Magnet0, Vs, We),
     Vec = magnet_vec(Vec0, Affected, We),
-    [{Id,{Affected,magnet_move_fun(Vec, VsInf, Magnet)}}|Acc].
+    {Affected,magnet_move_fun(Vec, VsInf, Magnet)}.
 
 magnet_vec(normal, Vs, We) ->
     VsVec = [{V,Vec} || {Vec,[V]} <- vertex_normals(We, Vs)],

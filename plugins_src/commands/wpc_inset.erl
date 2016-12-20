@@ -88,24 +88,30 @@ offset_regions_setup(offset_region, St) ->
 
 inset_regions_setup(inset_region, St) ->
     State = drag_mode(inset_region),
-    Tvs = wings_sel:fold(fun(Faces, #we{id=Id}=We, Acc) ->
-            FaceRegions = wings_sel:face_regions(Faces,We),
-            {AllVs0,VsData} = collect_inset_regions_data(FaceRegions,We,[],[]),
-            AllVs = ordsets:from_list(AllVs0),
-            [{Id, {AllVs, inset_regions_fun(VsData, State)}}|Acc]
-            end, [], St),
     Flags = [{mode,{modes(),State}}],
-    wings_drag:setup(Tvs, drag_units(State), Flags, St).
+    wings_drag:fold(
+      fun(Faces, We) ->
+              inset_regions_setup_1(Faces, We, State)
+      end, drag_units(State), Flags, St).
+
+inset_regions_setup_1(Faces, We, State) ->
+    FaceRegions = wings_sel:face_regions(Faces, We),
+    {AllVs0,VsData} = collect_inset_regions_data(FaceRegions, We, [], []),
+    AllVs = ordsets:from_list(AllVs0),
+    {AllVs,inset_regions_fun(VsData, State)}.
 
 inset_faces_setup(inset_faces, St) ->
     State = drag_mode(inset_faces),
-    Tvs = wings_sel:fold(fun(Faces, #we{id=Id}=We, Acc) ->
-            {AllVs0,VData} = collect_inset_face_data(Faces,We,[],[],none),
-            AllVs = ordsets:from_list(AllVs0),
-            [{Id, {AllVs, inset_faces_fun(VData, State)}}|Acc]
-            end, [], St),
     Flags = [{mode,{modes(),State}}],
-    wings_drag:setup(Tvs, drag_units(State), Flags, St).
+    wings_drag:fold(
+      fun(Faces, We) ->
+              inset_faces_setup_1(Faces, We, State)
+      end, drag_units(State), Flags, St).
+
+inset_faces_setup_1(Faces, We, State) ->
+    {AllVs0,VData} = collect_inset_face_data(Faces, We, [], [], none),
+    AllVs = ordsets:from_list(AllVs0),
+    {AllVs,inset_faces_fun(VData, State)}.
 
 test_selection(AllVs) ->
     case length(AllVs) == length(lists:usort(AllVs)) of

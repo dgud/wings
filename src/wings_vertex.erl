@@ -240,8 +240,13 @@ connect(Face, Vs, #we{} = We0) ->
 	#we{} = We -> We
     end.
 
-%% Connect Va Vb maybe trough several faces, returns {gbset(NewEdges), We}
-connect_cut(VS0, VE0, #we{}=We0) when is_integer(VS0),is_integer(VE0) ->
+%% Connect Va to Vb, maybe trough several faces.
+%% Return {#we{},gbset(Edges).
+
+-spec connect_cut(vertex_num(), vertex_num(), #we{}) ->
+                         {#we{},gb_sets:set(edge_num())}.
+
+connect_cut(VS0, VE0, #we{}=We0) when is_integer(VS0), is_integer(VE0) ->
     CutPlane = calc_planes(VS0,VE0,We0),
     ETree = collect_edges(CutPlane, ordsets:from_list([VS0, VE0]), We0),
     try
@@ -268,7 +273,7 @@ connect_vs([Va, Face|[Vb|_]=Vs], #we{next_id=Edge}=We0, Acc) ->
 	    connect_vs(Vs, We0, [Exist|Acc])
     end;
 connect_vs([_, undefined], We, Acc) ->
-    {gb_sets:from_list(Acc), We}.
+    {We,gb_sets:from_list(Acc)}.
 
 path_length([V1|[V2|_]=Vs], We, Acc) ->
     Dist = e3d_vec:dist(v(V1, We),v(V2, We)),

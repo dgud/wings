@@ -63,18 +63,18 @@ command_help(turn_optimized) ->
 %% Edge turning
 %%
 
-turn_edges(ModeFun, Opt, St0) ->
-    SelFun = fun(Es0, #we{id=Id}=We0, Acc) ->
-		     Es1 = gb_sets:to_list(Es0),
-		     case wings_we:fully_visible_edges(Es1, We0) of
-			 [] -> {We0,Acc};
-			 Es ->
-			     {We,Sel} = turn_edges(Es, ModeFun, Opt, We0),
-			     {We,[{Id,gb_sets:from_list(Sel)}|Acc]}
-		     end
-	     end,
-    {St,Sel} = wings_sel:mapfold(SelFun, [], St0),
-    wings_sel:set(Sel, St).
+turn_edges(ModeFun, Opt, St) ->
+    F = fun(Es0, We0) ->
+                Es1 = gb_sets:to_list(Es0),
+                case wings_we:fully_visible_edges(Es1, We0) of
+                    [] ->
+                        {We0,gb_sets:empty()};
+                    Es ->
+                        {We,Sel} = turn_edges(Es, ModeFun, Opt, We0),
+                        {We,gb_sets:from_list(Sel)}
+                end
+        end,
+    wings_sel:map_update_sel(F, St).
 
 turn_edges(Edges, ModeFun, Opt, #we{es=Etab}=We0) ->
     validate_edges(Edges, Etab),

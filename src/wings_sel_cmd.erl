@@ -19,7 +19,8 @@
 -export([init/0,select_all/1]).
 
 -include("wings.hrl").
--import(lists, [map/2,foldl/3,reverse/1,keymember/3,keyfind/3,usort/1]).
+-import(lists, [map/2,foldl/3,reverse/1,member/2,keymember/3,keyfind/3,
+		usort/1,any/2]).
 
 init() ->
     wings_pref:set_default(saved_selections_cycle_by_mode,false).
@@ -353,29 +354,24 @@ by_command({by_name_with, Name}, St) ->
     {save_state,by_name_with(Name, St)}.
 
 face_region_to_edge_loop(St) ->
-    Sel = wings_sel:fold(
-	    fun(Fs, #we{id=Id}=We, Acc) ->
-		    Es0 = wings_face:outer_edges(Fs, We),
-		    Es1 = subtract_mirror_edges(Es0, We),
-		    Es = gb_sets:from_list(Es1),
-		    [{Id,Es}|Acc]
-	    end, [], St),
-    wings_sel:set(edge, Sel, St).
+    wings_sel:update_sel(
+      fun(Fs, We) ->
+	      Es0 = wings_face:outer_edges(Fs, We),
+	      Es = subtract_mirror_edges(Es0, We),
+	      gb_sets:from_list(Es)
+      end, edge, St).
 
 subtract_mirror_edges(Es, #we{mirror=none}) -> Es;
 subtract_mirror_edges(Es, #we{mirror=Face}=We) ->
     Es -- wings_face:to_edges([Face], We).
 
 vs_to_edge_loop(St) ->
-    Sel0 = wings_sel:fold(
-      fun(Vs, #we{id=Id}=We, Acc) ->
-        Es0 = vs_to_edges(Vs, We, []),
-        Es1 = subtract_mirror_edges(Es0, We),
-        Es = gb_sets:from_list(Es1),
-        [{Id,Es}|Acc]
-      end, [], St),
-    Sel = wings_sel:valid_sel(Sel0, edge, St),
-    wings_sel:set(edge, Sel, St).
+    wings_sel:update_sel(
+      fun(Vs, We) ->
+	      Es0 = vs_to_edges(Vs, We, []),
+	      Es = subtract_mirror_edges(Es0, We),
+	      gb_sets:from_list(Es)
+      end, edge, St).
 
 vs_to_edges(Vs0, We, Es0) ->
     case gb_sets:is_empty(Vs0) of
@@ -400,19 +396,15 @@ vs_to_edges(Vs0, We, Es0) ->
 set_select_mode(Type, St) ->
     {save_state,wings_sel_conv:mode(Type, St)}.
 
-select_all(#st{selmode=body,shapes=Shapes}=St) ->
-    Items = gb_sets:singleton(0),
-    Sel = [{Id,Items} || #we{id=Id,perm=Perm} <- gb_trees:values(Shapes),
-			 ?IS_SELECTABLE(Perm)],
-    St#st{sel=Sel};
-select_all(#st{selmode=Mode,sel=[],shapes=Shapes}=St) ->
-    Sel = [{Id,wings_sel:get_all_items(Mode, We)} ||
-	      #we{id=Id,perm=Perm}=We <- gb_trees:values(Shapes),
-	      ?IS_SELECTABLE(Perm)],
-    St#st{sel=Sel};
-select_all(#st{selmode=Mode,sel=Sel0}=St) ->
-    Sel = [{Id,wings_sel:get_all_items(Mode, Id, St)} || {Id,_} <- Sel0],
-    St#st{sel=Sel}.
+select_all(#st{selmode=body}=St) ->
+    wings_sel:new_sel(fun(Sel, _) -> Sel end, body, St);
+select_all(#st{selmode=Mode,sel=[]}=St) ->
+    wings_sel:new_sel(fun(Sel, _) -> Sel end, Mode, St);
+select_all(#st{selmode=Mode}=St) ->
+    wings_sel:update_sel(
+      fun(_Sel, We) ->
+              wings_sel:get_all_items(Mode, We)
+      end, Mode, St).
 
 %%%
 %%% Select Inverse.
@@ -425,15 +417,14 @@ inverse(#st{selmode=body,sel=Sel0,shapes=Shapes}=St) ->
     Sel = ordsets:subtract(All, Sel0),
     St#st{sel=Sel};
 inverse(#st{selmode=Mode}=St) ->
-    Sel = wings_sel:fold(
-	    fun(Items, #we{id=Id}=We, A) ->
-		    Diff = wings_sel:inverse_items(Mode, Items, We),
-		    case gb_sets:is_empty(Diff) of
-			true -> [{Id,Items}|A]; %Can't inverse.
-			false -> [{Id,Diff}|A]
-		    end
-	    end, [], St),
-    St#st{sel=reverse(Sel)}.
+    wings_sel:update_sel(
+      fun(Items, We) ->
+	      Diff = wings_sel:inverse_items(Mode, Items, We),
+	      case gb_sets:is_empty(Diff) of
+		  true -> Items;		%Can't inverse.
+		  false -> Diff
+	      end
+      end, St).
 
 %%%
 %%% Deselect
@@ -844,23 +835,13 @@ random(true, St) ->
     Title =  ?__(1,"Select Random"),
     Cmd = {select,by,random},
     wings_dialog:dialog_preview(Cmd, true, Title, Qs, St);
-random([Percent], St) -> random(Percent, St);
-random(Percent, #st{selmode=Mode, sel=[]}=St) ->
+random([Percent], St) ->
+    random(Percent, St);
+random(Percent, #st{selmode=Mode}=St0) ->
     P = Percent / 100,
     wings_pref:set_value(random_select, Percent),
-    {save_state, wings_sel:make(fun(_, _) -> rand:uniform() < P end, Mode, St)};
-random(Percent, St) ->
-    P = Percent / 100,
-    NewSel = wings_sel:fold(fun(Sel0, #we{id=Id}, Acc) ->
-            Sel1 = gb_sets:to_list(Sel0),
-            Sel2 = [Elem || Elem <- Sel1, rand:uniform() < P ],
-            case Sel2 of
-              [] -> Acc;
-              _ -> [{Id,gb_sets:from_list(Sel2)}|Acc]
-            end
-        end,[],St),
-    wings_pref:set_value(random_select, Percent),
-    {save_state, wings_sel:set(NewSel, St)}.
+    St = intersect_sel_items(fun(_, _) -> rand:uniform() < P end, Mode, St0),
+    {save_state,St}.
 
 %%
 %% Select short edges.
@@ -874,75 +855,40 @@ short_edges(Ask, St) when is_atom(Ask) ->
     Cmd = {select,by,short_edges},
     wings_dialog:dialog_preview(Cmd, Ask, Title, Qs, St);
 short_edges([Tolerance], #st{sel=[]}=St0) ->
-    St = wings_sel:make(fun(Edge, We) ->
-				short_edge(Tolerance, Edge, We)
-			end, edge, St0),
-    {save_state,St#st{selmode=edge}};
-short_edges([Tolerance], #st{selmode=Mode}=St0) ->
-    St = if Mode =:= edge -> St0; true -> wings_sel_conv:mode(edge, St0) end,
-    Sel = wings_sel:fold(fun(Sel0, #we{id=Id}=We, Acc) ->
-				Sel1 = gb_sets:to_list(Sel0),
-				ShortEdges = [Edge || Edge <- Sel1, short_edge(Tolerance, Edge, We)],
-				case ShortEdges of
-				  [] -> Acc;
-				  _ -> [{Id,gb_sets:from_list(ShortEdges)}|Acc]
-				end
-			end, [], St),
-    {save_state,wings_sel:set(edge,Sel,St0)}.
+    St = intersect_sel_items(fun(Edge, We) ->
+				     is_short_edge(Tolerance, Edge, We)
+			     end, edge, St0),
+    {save_state,St}.
 
-short_edge(Tolerance, Edge, #we{es=Etab,vp=Vtab}) ->
+is_short_edge(Tolerance, Edge, #we{es=Etab,vp=Vtab}) ->
     #edge{vs=Va,ve=Vb} = array:get(Edge, Etab),
     VaPos = array:get(Va, Vtab),
     VbPos = array:get(Vb, Vtab),
-    abs(e3d_vec:dist(VaPos, VbPos)) < Tolerance.
+    e3d_vec:dist(VaPos, VbPos) < Tolerance.
 
 %%
 %% Select all edges between materials.
 %%
 
-material_edges(#st{sel=[]}=St) ->
-    wings_sel:make(fun material_edges_fun/2, edge, St);
-material_edges(#st{selmode=Mode}=St0) ->
-    St = if Mode =:= edge -> St0; true -> wings_sel_conv:mode(edge, St0) end,
-    Sel = wings_sel:fold(fun(Sel0, #we{id=Id}=We,Acc) ->
-		  Sel1 = gb_sets:to_list(Sel0),
-		  MatEdges = [Edge || Edge <- Sel1, material_edges_fun(Edge, We)],
-		  case MatEdges of
-		    [] -> Acc;
-		    _ -> [{Id, gb_sets:from_list(MatEdges)}|Acc]
-		  end
-	  end,[],St),
-    wings_sel:set(edge, Sel, St0).
-
-material_edges_fun(E, #we{es=Etab}=We) ->
-    #edge{lf=Lf,rf=Rf} = array:get(E, Etab),
-    wings_facemat:face(Lf, We) =/= wings_facemat:face(Rf, We).
+material_edges(St) ->
+    intersect_sel_items(
+      fun(Edge, #we{es=Etab}=We) ->
+	      #edge{lf=Lf,rf=Rf} = array:get(Edge, Etab),
+	      wings_facemat:face(Lf, We) =/= wings_facemat:face(Rf, We)
+      end, edge, St).
 
 %%
 %% Select all faces that have (proper) UV coordinates.
 %%
 
-uv_mapped_faces(#st{shapes=Shs,sel=[]}=St) ->
-    Sel = foldl(fun(#we{id=Id}=We, A) ->
-			case wings_we:uv_mapped_faces(We) of
-			    [] -> A;
-			    Fs -> [{Id,gb_sets:from_ordset(Fs)}|A]
-			end
-		end, [], gb_trees:values(Shs)),
-    wings_sel:set(face, Sel, St);
-uv_mapped_faces(#st{selmode=Mode}=St0) ->
-    St = if Mode =:= face -> St0; true -> wings_sel_conv:mode(face, St0) end,
-    Sel = wings_sel:fold(fun(Sel0, #we{id=Id}=We, Acc) ->
-				Sel1 = gb_sets:to_list(Sel0),
-				UVF = wings_we:uv_mapped_faces(We),
-				Faces = [Face || Face <- Sel1, lists:member(Face, UVF)],
-				case Faces of
-				  [] -> Acc;
-				  _ -> [{Id,gb_sets:from_list(Faces)}|Acc]
-				end
-			end, [], St),
-	wings_sel:set(face,Sel,St0).
-
+uv_mapped_faces(St0) ->
+    St1 = possibly_convert(face, St0),
+    St = intersect_sel(
+	   fun(We) ->
+		   UVF = wings_we:uv_mapped_faces(We),
+		   gb_sets:from_ordset(UVF)
+	   end, face, St1),
+    {save_state,St}.
 
 %%
 %% Select by numerical item id.
@@ -1065,30 +1011,11 @@ select_lights_1([], _) -> [].
 %%% Select isolated vertices.
 %%%
 
-select_isolated(#st{shapes=Shs, sel=[]}=St) ->
-    Sel = foldl(fun(#we{perm=Perm}=We, A) when ?IS_SELECTABLE(Perm) ->
-			select_isolated_1(We, A);
-		   (_, A) -> A
-		end, [], gb_trees:values(Shs)),
-    wings_sel:set(vertex, Sel, St);
-select_isolated(#st{selmode=Mode}=St0) ->
-    St = if Mode =:= vertex -> St0; true -> wings_sel_conv:mode(vertex, St0) end,
-    Sel = wings_sel:fold(fun(Sel0, #we{id=Id}=We, A) ->
-			Isolated0 = gb_sets:from_list(wings_vertex:isolated(We)),
-			Isolated = gb_sets:intersection(Sel0, Isolated0),
-			case gb_sets:is_empty(Isolated) of
-			  true -> A;
-			  false -> [{Id,Isolated}|A]
-			end
-		end, [], St),
-    wings_sel:set(vertex, Sel, St).
-
-select_isolated_1(#we{id=Id}=We, A) ->
-    Isolated = gb_sets:from_list(wings_vertex:isolated(We)),
-    case gb_sets:is_empty(Isolated) of
-	true -> A;
-	false -> [{Id,Isolated}|A]
-    end.
+select_isolated(St) ->
+    intersect_sel(
+      fun(We) ->
+	      gb_sets:from_list(wings_vertex:isolated(We))
+      end, vertex, St).
 
 %%%
 %%% Select nonplanar faces
@@ -1100,22 +1027,12 @@ nonplanar_faces(Ask, St) when is_atom(Ask) ->
     Title = ?__(2,"Select Non-planar Faces"),
     wings_dialog:dialog_preview({select,by,nonplanar_faces}, Ask, Title,
 	  [{hframe,Qs}], St);
-nonplanar_faces([Tolerance], #st{sel=[]}=St) ->
-    Sel = fun(Face, We) ->
-		  not wings_face:is_planar(Tolerance,Face,We)
-	  end,
-    {save_state,wings_sel:make(Sel, face, St)};
-nonplanar_faces([Tolerance], #st{selmode=Mode}=St0) ->
-    St = if Mode =:= face -> St0; true -> wings_sel_conv:mode(face, St0) end,
-    Sel = wings_sel:fold(fun(Sel0, #we{id=Id}=We, Acc) ->
-		  Sel1 = gb_sets:to_list(Sel0),
-		  NPFaces = [Face || Face <- Sel1, not wings_face:is_planar(Tolerance,Face,We)],
-		  case NPFaces of
-		    [] -> Acc;
-		    _ -> [{Id,gb_sets:from_list(NPFaces)}|Acc]
-		  end
-	  end,[],St),
-    {save_state,wings_sel:set(face, Sel, St0)}.
+nonplanar_faces([Tolerance], St0) ->
+    St = intersect_sel_items(
+	   fun(Face, We) ->
+		   not wings_face:is_planar(Tolerance, Face, We)
+	   end, face, St0),
+    {save_state,St}.
 
 
 %%%
@@ -1125,7 +1042,6 @@ nonplanar_faces([Tolerance], #st{selmode=Mode}=St0) ->
 oriented_faces(_, #st{selmode=Mode, sel=Sel}) when Mode =/= face; Sel =:= [] ->
     wings_u:error_msg(?__(4,"At least one face must be selected")),
     keep;
-
 oriented_faces(Ask, St) when is_atom(Ask) ->
     Connected = wings_pref:get_value(similar_normals_connected,false),
     {Save,Angle} = case wings_pref:get_value(similar_normals_angle,{false,1.0E-3}) of
@@ -1141,74 +1057,48 @@ oriented_faces(Ask, St) when is_atom(Ask) ->
     Title = ?__(2,"Select Similarly Oriented Faces"),
     Cmd = {select,oriented_faces},
     wings_dialog:dialog_preview(Cmd, Ask, Title, Qs, St);
-
 oriented_faces([Tolerance,Connected,Save], #st{selmode=face, sel=[]}) ->
-    wings_pref:set_value(similar_normals_connected,Connected),
-    wings_pref:set_value(similar_normals_angle,{Save,Tolerance}),
-    wings_u:error_msg(?__(4,"At least one face must be selected"));
-
-oriented_faces([Tolerance,false,Save], St) ->
-    wings_pref:set_value(similar_normals_connected,false),
-    wings_pref:set_value(similar_normals_angle,{Save,Tolerance}),
-    CosTolerance = math:cos(Tolerance * (math:pi() / 180.0)),
-    Normals0 = wings_sel:fold(fun(Faces, We, A) ->
-                [wings_face:normal(F, We) ||
-                    F <- gb_sets:to_list(Faces)] ++ A
-              end, [], St),
-	Normals = lists:usort(Normals0),
-    Sel = fun(Face, We) ->
-          Normal = wings_face:normal(Face,We),
-          any_matching_normal(CosTolerance, Normal, Normals)
-      end,
-    {save_state,wings_sel:make(Sel, face, St)};
-
-oriented_faces([Tolerance,true,Save], St0) ->
+    wings_pref:set_value(similar_normals_connected, Connected),
     wings_pref:set_value(similar_normals_angle, {Save,Tolerance}),
+    wings_u:error_msg(?__(4,"At least one face must be selected"));
+oriented_faces([Tolerance,false,Save], St) ->
+    wings_pref:set_value(similar_normals_connected, false),
+    wings_pref:set_value(similar_normals_angle, {Save,Tolerance}),
+    Normals0 = wings_sel:fold(fun(Faces, We, Acc) ->
+				      collect_normals(Faces, We, Acc)
+			      end, [], St),
+    Normals = lists:usort(Normals0),
+    Pred = matching_normal_pred(Tolerance, Normals),
+    {save_state,wings_sel:make(Pred, face, St)};
+oriented_faces([Tolerance,true,Save], St0) ->
     wings_pref:set_value(similar_normals_connected, true),
+    wings_pref:set_value(similar_normals_angle, {Save,Tolerance}),
+    St = wings_sel:update_sel(
+	   fun(Faces, We) ->
+		   Normals0 = collect_normals(Faces, We),
+		   Normals = lists:usort(Normals0),
+		   Pred = matching_normal_pred(Tolerance, Normals),
+		   find_similar_connected(Pred, Faces, We)
+	   end, St0),
+    {save_state,St}.
+
+matching_normal_pred(Tolerance, Normals) ->
     CosTolerance = math:cos(Tolerance * (math:pi() / 180.0)),
-    Sel = wings_sel:fold(
-	    fun(Faces, #we{id=Id}=We, A) ->
-		    Normals0 = gb_sets:fold(
-				 fun(F,Acc) ->
-					 [wings_face:normal(F, We)|Acc]
-				 end, [], Faces),
-		    Normals = lists:usort(Normals0),
-		    [{Id,norm_search(Faces, Normals, CosTolerance, We, Faces)}|A]
-	    end, [], St0),
-    wings_sel:set(face, Sel, St0).
-
-norm_search(Faces,Normals,CosTolerance,We,LastSel) ->
-    Fs0 = wings_face:extend_border(LastSel, We),
-    Fs1 = gb_sets:subtract(Fs0,Faces),
-    AddSel = check_face_normals(Fs1,Normals,CosTolerance,We,gb_sets:empty()),
-    case gb_sets:is_empty(AddSel) of
-        true -> Faces;
-        false ->
-            Faces1 = gb_sets:union(AddSel,Faces),
-            norm_search(Faces1,Normals,CosTolerance,We,AddSel)
+    fun(Face, We) ->
+	    N = wings_face:normal(Face, We),
+	    any_matching_normal(CosTolerance, N, Normals)
     end.
 
-check_face_normals(Fs0,Normals,CosTolerance,We,Selection)->
-    case gb_sets:is_empty(Fs0) of
-      true -> Selection;
-      false ->
-        {F,Fs1} = gb_sets:take_smallest(Fs0),
-        Normal = wings_face:normal(F, We),
-        Sel = case any_matching_normal(CosTolerance, Normal, Normals) of
-          true -> gb_sets:add(F,Selection);
-          false -> Selection
-        end,
-        check_face_normals(Fs1,Normals,CosTolerance,We,Sel)
-    end.
+any_matching_normal(CosTolerance, Norm, Normals) ->
+    any(fun(N) -> e3d_vec:dot(N, Norm) >= CosTolerance end, Normals).
 
-any_matching_normal(_,_,[]) ->
-    false;
-any_matching_normal(CosTolerance, Norm, [N|T]) ->
-    Dot = e3d_vec:dot(N, Norm),
-    if
-      Dot >= CosTolerance -> true;
-      true ->  any_matching_normal(CosTolerance, Norm, T)
-    end.
+collect_normals(Faces, We) ->
+    collect_normals(Faces, We, []).
+
+collect_normals(Faces, We, Acc) ->
+    gb_sets:fold(fun(Face, A) ->
+			 [wings_face:normal(Face, We)|A]
+		 end, Acc, Faces).
 
 %%%
 %%% Select faces of the same material.
@@ -1216,7 +1106,6 @@ any_matching_normal(CosTolerance, Norm, [N|T]) ->
 similar_material(_, #st{selmode=Mode, sel=Sel}) when Mode =/= face; Sel =:= [] ->
     wings_u:error_msg(?__(3,"At least one face must be selected")),
     keep; %Wrong mode (invoked through hotkey).
-
 similar_material(Ask, St) when is_atom(Ask) ->
     Connected = wings_pref:get_value(similar_materials_connected, false),
     Mode = wings_pref:get_value(similar_materials, material),
@@ -1228,88 +1117,72 @@ similar_material(Ask, St) when is_atom(Ask) ->
     Title = ?__(4,"Select Faces with the same Material"),
     Cmd = {select,similar_material},
     wings_dialog:dialog_preview(Cmd, Ask, Title, Qs, St);
-
 similar_material([Connected,Mode], #st{selmode=face,sel=[]}) ->
     wings_pref:set_value(similar_materials, Mode),
     wings_pref:set_value(similar_materials_connected, Connected),
     wings_u:error_msg(?__(3,"At least one face must be selected"));
 
 similar_material([false,Mode], St) ->
-    Materials = wings_sel:fold(fun
-       (Faces, We, A) when Mode =:= vertex_color ->
-        gb_sets:fold(fun(F, Acc) ->
-                   [average_colors(F, We)|Acc]
-        end,A,Faces);
-       (Faces, We, A) ->
-               [wings_facemat:face(SelI, We) ||
-                   SelI <- gb_sets:to_list(Faces)] ++ A
-             end, [], St),
-    Sel = fun	
-        (F, We) when Mode =:= vertex_color ->
-          Col = average_colors(F, We),
-          any_matching_material(Col, Materials);
-        (Face, We) ->
-          Mat = wings_facemat:face(Face, We),
-          any_matching_material(Mat, Materials)
-      end,
     wings_pref:set_value(similar_materials, Mode),
     wings_pref:set_value(similar_materials_connected, false),
-    {save_state,wings_sel:make(Sel, face, St)};
-
+    MF = case Mode of
+	     vertex_color -> fun collect_colors/3;
+	     material -> fun collect_materials/3
+	 end,
+    Materials = lists:usort(wings_sel:fold(MF, [], St)),
+    Pred = similar_material_pred(Mode, Materials),
+    {save_state,wings_sel:make(Pred, face, St)};
 similar_material([true,Mode], St0) ->
-    Selection = wings_sel:fold(fun
-        (Faces, #we{id=Id}=We, A) when Mode =:= vertex_color ->
-            AllCols = gb_sets:fold(fun(F, Acc) ->
-                [average_colors(F, We)|Acc]
-            end,A,Faces),
-            Colours = lists:usort(AllCols),
-            [{Id,mat_search(Faces, Colours, We, Mode, Faces)}|A];
-        (Faces, #we{id=Id}=We, A) ->
-            AllMats = [wings_facemat:face(Face, We) || Face <- gb_sets:to_list(Faces)],
-            Materials = lists:usort(AllMats),
-            [{Id,mat_search(Faces, Materials, We, Mode, Faces)}|A]
-    end, [], St0),
-    wings_sel:set(face, Selection, St0).
+    wings_pref:set_value(similar_materials, Mode),
+    wings_pref:set_value(similar_materials_connected, true),
+    F = case Mode of
+	    vertex_color ->
+		fun(Faces, We) ->
+			Colors0 = collect_colors(Faces, We),
+			Colors = lists:usort(Colors0),
+			Pred = similar_material_pred(Mode, Colors),
+			find_similar_connected(Pred, Faces, We)
+		end;
+	    material ->
+		fun(Faces, We) ->
+			Materials0 = collect_materials(Faces, We),
+			Materials = lists:usort(Materials0),
+			Pred = similar_material_pred(Mode, Materials),
+			find_similar_connected(Pred, Faces, We)
+		end
+	end,
+    St = wings_sel:update_sel(F, St0),
+    {save_state,St}.
+
+similar_material_pred(vertex_color, Colors) ->
+    fun(Face, We) ->
+	    Color = average_colors(Face, We),
+	    member(Color, Colors)
+    end;
+similar_material_pred(material, Materials) ->
+    fun(Face, We) ->
+	    Mat = wings_facemat:face(Face, We),
+	    member(Mat, Materials)
+    end.
+
+collect_colors(Faces, We) ->
+    collect_colors(Faces, We, []).
+
+collect_colors(Faces, We, Acc) ->
+    gb_sets:fold(fun(F, A) ->
+			 [average_colors(F, We)|A]
+		 end, Acc, Faces).
+
+collect_materials(Faces, We) ->
+    collect_materials(Faces, We, []).
+
+collect_materials(Faces, We, Acc) ->
+    gb_sets:fold(fun(F, A) ->
+			 [wings_facemat:face(F, We)|A]
+		 end, Acc, Faces).
 
 average_colors(Face, We) ->
     wings_color:average([C || C <- wings_va:face_attr(color, Face, We)]).
-
-mat_search(Faces,Colours,We,Mode,LastSel) ->
-    Fs0 = wings_face:extend_border(LastSel, We),
-    Fs1 = gb_sets:subtract(Fs0,Faces),
-    AddSel = check_face_colours(Fs1,Colours,We,Mode,gb_sets:empty()),
-    case gb_sets:is_empty(AddSel) of
-        true -> Faces;
-        false ->
-            Faces1 = gb_sets:union(AddSel,Faces),
-            mat_search(Faces1,Colours,We,Mode,AddSel)
-    end.
-
-check_face_colours(Fs0,Colours,We,Mode,Selection)->
-    case gb_sets:is_empty(Fs0) of
-      true -> Selection;
-      false ->
-        {F,Fs1} = gb_sets:take_smallest(Fs0),
-        Colour = face_info(F,We,Mode),
-        Sel = case any_matching_material(Colour,Colours) of
-          true -> gb_sets:add(F,Selection);
-          false -> Selection
-        end,
-        check_face_colours(Fs1,Colours,We,Mode,Sel)
-    end.
-
-face_info(F,We,vertex_color) ->
-    average_colors(F, We);
-face_info(F,We,_Mode) ->
-    wings_facemat:face(F, We).
-
-any_matching_material(_,[]) ->
-    false;
-any_matching_material(Material, [Mat|T]) ->
-    if
-      Material == Mat -> true;
-      true -> any_matching_material(Material, T)
-    end.
 
 %%%
 %%% Select sharp edges
@@ -1323,26 +1196,15 @@ sharp_edges(Ask, St) when is_atom(Ask) ->
                {?__(5,"Both"),both}],both}],
     wings_dialog:dialog_preview({select,by,sharp_edges}, Ask,
       ?__(2,"Select Sharp Edges"), [{vframe,Qs}], St);
-sharp_edges([Tolerance,Type], #st{sel=[]}=St0) ->
+sharp_edges([Tolerance,Type], St0) ->
     CosTolerance = -math:cos(Tolerance * math:pi() / 180.0),
-    St = wings_sel:make(fun(Edge, We) ->
-         sharp_edge(CosTolerance, Type, Edge, We)
-     end, edge, St0),
-    {save_state,St};
-sharp_edges([Tolerance,Type], #st{selmode=Mode}=St0) ->
-    St = if Mode =:= edge -> St0; true -> wings_sel_conv:mode(edge, St0) end,
-    CosTolerance = -math:cos(Tolerance * math:pi() / 180.0),
-    Sel = wings_sel:fold(fun(Sel0, #we{id=Id}=We, Acc) ->
-          Sel1 = gb_sets:to_list(Sel0),
-          SharpEdges = [Edge || Edge <- Sel1, sharp_edge(CosTolerance, Type, Edge, We)],
-          case SharpEdges of
-            [] -> Acc;
-            _ -> [{Id, gb_sets:from_list(SharpEdges)}|Acc]
-          end
-      end,[],St),
-    {save_state,wings_sel:set(edge, Sel, St0)}.
+    St = intersect_sel_items(
+	   fun(Edge, We) ->
+		   is_sharp_edge(CosTolerance, Type, Edge, We)
+	   end, edge, St0),
+    {save_state,St}.
 
-sharp_edge(CosTolerance, Type, Edge, #we{es=Etab,vp=Vtab}=We) ->
+is_sharp_edge(CosTolerance, Type, Edge, #we{es=Etab,vp=Vtab}=We) ->
     #edge{lf=Lf,rf=Rf,vs=Va,ve=Vb} = array:get(Edge, Etab),
     Lfn = wings_face:normal(Lf, Edge, We),
     Rfn = wings_face:normal(Rf, Edge, We),
@@ -1603,22 +1465,9 @@ complete_loops(St0) ->
     St = wings_sel_conv:mode(edge,St0),
     wings_edge_loop:select_loop(St).
 
-hard_edges(#st{sel=[]}=St) ->
-    Sel = fun(Edge, #we{he=Htab}) ->
-		  gb_sets:is_member(Edge, Htab)
-	  end,
-    {save_state,wings_sel:make(Sel, edge, St)};
-hard_edges(#st{selmode=Mode}=St0) ->
-    St = if Mode =:= edge -> St0; true -> wings_sel_conv:mode(edge, St0) end,
-    Sel = wings_sel:fold(fun(Sel0, #we{id=Id,he=Htab},Acc) ->
-		  Sel1 = gb_sets:to_list(Sel0),
-		  HardEdges = [Edge || Edge <- Sel1, gb_sets:is_member(Edge, Htab)],
-		  case HardEdges of
-		    [] -> Acc;
-		    _ -> [{Id, gb_sets:from_list(HardEdges)}|Acc]
-		  end
-	  end,[],St),
-    {save_state,wings_sel:set(edge, Sel, St0)}.
+hard_edges(St0) ->
+    St = intersect_sel(fun(#we{he=Htab}) -> Htab end, edge, St0),
+    {save_state,St}.
 
 vertices_with(true, St) ->
     Qs = [{vframe,
@@ -1629,22 +1478,12 @@ vertices_with(true, St) ->
 		     {?__(5,"Exactly"),exactly}],exactly}]}],
     wings_dialog:dialog_preview({select,by,vertices_with}, true,
 				?__(2,"Select Vertices"), [{hframe,Qs}], St);
-vertices_with(N, #st{sel=[]}=St) ->
-    Sel = fun(V, We) ->
-	  vertices_with(N, V, We)
-    end,
-    wings_sel:make(Sel, vertex, St);
-vertices_with(N, #st{selmode=Mode}=St0) ->
-    St = if Mode =:= vertex -> St0; true -> wings_sel_conv:mode(vertex, St0) end,
-    Sel = wings_sel:fold(fun(Sel0, #we{id=Id}=We,Acc) ->
-		  Sel1 = gb_sets:to_list(Sel0),
-		  Vertices = [Vertex || Vertex <- Sel1, vertices_with(N, Vertex, We)],
-		  case Vertices of
-		    [] -> Acc;
-		    _ -> [{Id, gb_sets:from_list(Vertices)}|Acc]
-		  end
-	  end,[],St),
-    {save_state,wings_sel:set(vertex, Sel, St0)}.
+vertices_with(N, St0) ->
+    St = intersect_sel_items(
+	   fun(V, We) ->
+		   vertices_with(N, V, We)
+	   end, vertex, St0),
+    {save_state,St}.
 
 vertices_with(6, V, We) ->
     Cnt = wings_vertex:fold(
@@ -1678,22 +1517,12 @@ faces_with({faces_with,true}, St) ->
                {?__(5,"Exactly"),exactly}],exactly}]}],
     wings_dialog:dialog_preview({select,by,faces_with}, true,
         ?__(2,"Select Faces"), [{hframe,Qs}], St);
-faces_with(Filter, #st{sel=[]}=St) ->
-    Sel = fun(Face, We) ->
-		  faces_with(Filter, Face, We)
-	    end,
-    wings_sel:make(Sel, face, St);
-faces_with(Filter, #st{selmode=Mode}=St0) ->
-    St = if Mode =:= face -> St0; true -> wings_sel_conv:mode(face, St0) end,
-    Sel = wings_sel:fold(fun(Sel0, #we{id=Id}=We, Acc) ->
-				 Sel1 = gb_sets:to_list(Sel0),
-				 Faces = [Face || Face <- Sel1, faces_with(Filter, Face, We)],
-				 case Faces of
-				     [] -> Acc;
-				     _ -> [{Id,gb_sets:from_list(Faces)}|Acc]
-				 end
-			 end, [], St),
-    {save_state,wings_sel:set(face,Sel,St0)}.
+faces_with(Filter, St0) ->
+    St = intersect_sel_items(
+	   fun(Face, We) ->
+		   faces_with(Filter, Face, We)
+	   end, face, St0),
+    {save_state,St}.
 
 faces_with(Filter, Face, We) ->
     Vs = wings_face:vertices(Face, We),
@@ -1731,3 +1560,55 @@ select_nth_loop(N, #st{selmode=edge}=St) ->
     {save_state,wings_edge:select_nth_loop(N,St)};
 select_nth_loop(_, St) ->
     {save_state,St}.
+
+%%%
+%%% Utilities.
+%%%
+
+find_similar_connected(Pred, FaceSel, We) when is_function(Pred, 2) ->
+    find_similar_connected_1(FaceSel, Pred, We, FaceSel).
+
+find_similar_connected_1(Sel0, Pred, We, LastSel0) ->
+    LastSel1 = wings_face:extend_border(LastSel0, We),
+    LastSel2 = gb_sets:subtract(LastSel1, Sel0),
+    LastSel = find_similar_connected_2(LastSel2, Pred, We),
+    case gb_sets:is_empty(LastSel) of
+        true ->
+	    Sel0;
+        false ->
+	    Sel = gb_sets:union(Sel0, LastSel),
+	    find_similar_connected_1(Sel, Pred, We, LastSel)
+    end.
+
+find_similar_connected_2(Sel, Pred, We) ->
+    gb_sets:fold(
+      fun(Face, A) ->
+	      case Pred(Face, We) of
+		  true -> gb_sets:add(Face, A);
+		  false -> A
+	      end
+      end, gb_sets:empty(), Sel).
+
+intersect_sel(F, Mode, St0) when is_function(F, 1) ->
+    St = possibly_convert(Mode, St0),
+    FF = fun(Sel, We) ->
+		 gb_sets:intersection(Sel, F(We))
+	 end,
+    case St of
+	#st{sel=[]} ->
+	    wings_sel:new_sel(FF, Mode, St);
+	#st{} ->
+	    wings_sel:update_sel(FF, Mode, St)
+    end.
+
+intersect_sel_items(F, Mode, St0) when is_function(F, 2) ->
+    St = possibly_convert(Mode, St0),
+    FF = fun(Sel, We) ->
+		 gb_sets:filter(fun(Item) -> F(Item, We) end, Sel)
+	 end,
+    case St of
+	#st{sel=[]} ->
+	    wings_sel:new_sel(FF, Mode, St);
+	#st{} ->
+	    wings_sel:update_sel(FF, Mode, St)
+    end.

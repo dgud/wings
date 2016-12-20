@@ -15,7 +15,7 @@
 -export([sub_menu/1,command/2]).
 
 -include("wings.hrl").
--import(lists, [foldl/3,reverse/1]).
+-import(lists, [foldl/3,map/2,reverse/1]).
 -define(PI, math:pi()).
 
 sub_menu(_St) ->
@@ -122,12 +122,12 @@ command({torque,Axis}, St) -> torque(Axis, St).
 %%
 
 crumple(Dir, St) ->
-    Tvs = wings_sel:fold(fun(Vs, We, Acc) ->
-				 crumple(Dir, Vs, We, Acc) end,
-			 [], St),
-    wings_drag:setup(Tvs, [{percent,{-20.0,20.0}}], St).
+    U = [{percent,{-20.0,20.0}}],
+    wings_drag:fold(fun(Vs, We) ->
+                            crumple(Dir, Vs, We)
+                    end, U, St).
 
-crumple(normal, Vs0, #we{id=Id}=We, Acc) ->
+crumple(normal, Vs0, We) ->
     ExpSeed = rand:export_seed_s(rand:seed_s(exs64)),
     Vs = gb_sets:to_list(Vs0),
     VsPos0 = wings_util:add_vpos(Vs, We),
@@ -140,8 +140,8 @@ crumple(normal, Vs0, #we{id=Id}=We, Acc) ->
 				[{V,Pos}|VsAcc]
 			end, A, VsPos)
 	  end,
-    [{Id,{Vs,Fun}}|Acc];
-crumple(Dir, Vs0, #we{id=Id}=We, Acc) ->
+    {Vs,Fun};
+crumple(Dir, Vs0, We) ->
     {Xmask,Ymask,Zmask} = crumple_mask(Dir),
     ExpSeed = rand:export_seed_s(rand:seed_s(exs64)),
     Vs = gb_sets:to_list(Vs0),
@@ -156,7 +156,7 @@ crumple(Dir, Vs0, #we{id=Id}=We, Acc) ->
 				[{V,{X,Y,Z}}|VsAcc]
 			end, A, VsPos)
 	  end,
-    [{Id,{Vs,Fun}}|Acc].
+    {Vs,Fun}.
 
 crumple_mask(x) -> {1,0,0};
 crumple_mask(y) -> {0,1,0};
@@ -171,10 +171,9 @@ rnd(Sc) when is_float(Sc) ->
 %%
 
 inflate(St) ->
-    Tvs = wings_sel:fold(fun inflate/3, [], St),
-    wings_drag:setup(Tvs, [percent], St).
+    wings_drag:fold(fun inflate_1/2, [percent], St).
 
-inflate(Vs0, #we{vp=Vtab}=We, Acc) ->
+inflate_1(Vs0, #we{vp=Vtab}=We) ->
     Vs = gb_sets:to_list(Vs0),
     Center = wings_vertex:center(Vs, We),
     Radius = foldl(
@@ -185,26 +184,25 @@ inflate(Vs0, #we{vp=Vtab}=We, Acc) ->
 			   _Smaller -> R0
 		       end
 	       end, 0.0, Vs),
-    inflate(Center, Radius, Vs, We, Acc).
+    inflate(Center, Radius, Vs, We).
 
 inflate({'ASK',Ask}, St) ->
     wings:ask(Ask, St, fun inflate/2);
 inflate({Center,Outer}, St) ->
     Radius = e3d_vec:dist(Center, Outer),
-    Tvs = wings_sel:fold(fun(Vs, We, _) ->
-				 inflate(Center, Radius,
-					 gb_sets:to_list(Vs), We, [])
-			 end, [], St),
-    wings_drag:setup(Tvs, [percent], St).
+    wings_drag:fold(fun(Vs, We) ->
+                            inflate(Center, Radius,
+                                    gb_sets:to_list(Vs), We)
+                    end, [percent], St).
 
-inflate(Center, Radius, Vs, #we{id=Id,vp=Vtab}, Acc) ->
-    [{Id,foldl(fun(V, A) ->
-		       VPos = array:get(V, Vtab),
-		       D = e3d_vec:dist(Center, VPos),
-		       Dir = e3d_vec:norm_sub(VPos, Center),
-		       Vec = e3d_vec:mul(Dir, Radius-D),
-		       [{Vec,[V]}|A]
-	       end, [], Vs)}|Acc].
+inflate(Center, Radius, Vs, #we{vp=Vtab}) ->
+    map(fun(V) ->
+                VPos = array:get(V, Vtab),
+                D = e3d_vec:dist(Center, VPos),
+                Dir = e3d_vec:norm_sub(VPos, Center),
+                Vec = e3d_vec:mul(Dir, Radius-D),
+                {Vec,[V]}
+        end, Vs).
 
 %%
 %% The Taper deformer.
@@ -231,21 +229,20 @@ taper({Primary,Effect}, St) ->
     taper_1(Primary, Effect, center, St).
 
 taper_1(Primary, Effect, Center, St) ->
-    Tvs = wings_sel:fold(fun(Vs, We, Acc) ->
-				 taper_2(Vs, We, Primary, Effect, Center, Acc)
-			 end, [], St),
-    wings_drag:setup(Tvs, [percent], St).
+    wings_drag:fold(fun(Vs, We) ->
+                            taper_2(Vs, We, Primary, Effect, Center)
+                    end, [percent], St).
 
-taper_2(Vs, #we{id=Id}=We, Primary, Effect, Center, Acc) ->
+taper_2(Vs, We, Primary, Effect, Center) ->
     [MinR,MaxR] = wings_vertex:bounding_box(Vs, We),
     Key = key(Primary),
     Min = element(Key, MinR),
     Max = element(Key, MaxR),
     Range = Max - Min,
     check_range(Range, Primary),
-    taper_3(Id, Vs, We, Key, Effect, MinR, MaxR, Center, Acc).
+    taper_3(Vs, We, Key, Effect, MinR, MaxR, Center).
 
-taper_3(Id, Vs0, We, Key, Effect, MinR, MaxR, Center, Acc) ->
+taper_3(Vs0, We, Key, Effect, MinR, MaxR, Center) ->
     Tf = taper_fun(Key, Effect, Center, MinR, MaxR),
     Vs = gb_sets:to_list(Vs0),
     VsPos = wings_util:add_vpos(Vs, We),
@@ -255,7 +252,7 @@ taper_3(Id, Vs0, We, Key, Effect, MinR, MaxR, Center, Acc) ->
 				[{V,Tf(U, Pos)}|VsAcc]
 			end, A, VsPos)
 	  end,
-    [{Id,{Vs,Fun}}|Acc].
+    {Vs,Fun}.
 
 taper_fun(Key, Effect, center, MinR, MaxR) ->
     Center = e3d_vec:average(MinR, MaxR),
@@ -298,12 +295,11 @@ mix(A, F) ->
 %%%
 
 twist(Axis, St) ->
-    Tvs = wings_sel:fold(fun(Vs, We, Acc) ->
-				 twist(Vs, We, Axis, Acc)
-			 end, [], St),
-    wings_drag:setup(Tvs, [angle], St).
+    wings_drag:fold(fun(Vs, We) ->
+                            twist(Vs, We, Axis)
+                    end, [angle], St).
 
-twist(Vs0, #we{id=Id}=We, Axis, Acc) ->
+twist(Vs0, We, Axis) ->
     Key = key(Axis),
     [MinR,MaxR] = wings_vertex:bounding_box(Vs0, We),
     Min = element(Key, MinR),
@@ -313,7 +309,7 @@ twist(Vs0, #we{id=Id}=We, Axis, Acc) ->
     Tf = twist_fun(Axis, e3d_vec:average(MinR, MaxR)),
     Vs = gb_sets:to_list(Vs0),
     Fun = twister_fun(Vs, Tf, Min, Range, We),
-    [{Id,{Vs,Fun}}|Acc].
+    {Vs,Fun}.
 
 twist_fun(x, {_,Cy,Cz}) ->
     fun(U, Min, {X,Y0,Z0})
@@ -351,12 +347,11 @@ twist_fun(z, {Cx,Cy,_}) ->
 %%%
 
 torque(Axis, St) ->
-    Tvs = wings_sel:fold(fun(Vs, We, Acc) ->
-				 torque(Vs, We, Axis, Acc)
-			 end, [], St),
-    wings_drag:setup(Tvs, [angle], St).
+    wings_drag:fold(fun(Vs, We) ->
+                            torque(Vs, We, Axis)
+                    end, [angle], St).
 
-torque(Vs0, #we{id=Id}=We, Axis, Acc) ->
+torque(Vs0, We, Axis) ->
     Tf = torque_fun(Axis),
     Key = key(Axis),
     [MinR,MaxR] = wings_vertex:bounding_box(Vs0, We),
@@ -366,7 +361,7 @@ torque(Vs0, #we{id=Id}=We, Axis, Acc) ->
     check_range(Range, Axis),
     Vs = gb_sets:to_list(Vs0),
     Fun = twister_fun(Vs, Tf, Min, Range, We),
-    [{Id,{Vs,Fun}}|Acc].
+    {Vs,Fun}.
 
 torque_fun(x) ->
     fun(U, Min, {X,Y,Z})
