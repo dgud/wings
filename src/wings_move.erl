@@ -326,7 +326,6 @@ translate_fun({Xt0,Yt0,Zt0}) ->
 magnet_move(Tv, _Vec, none, _We) ->
     Tv;
 magnet_move(Tv, Vec0, Magnet0, We) ->
-    io:format("~p\n", [Vec0]),
     Vs = affected(Tv),
     {VsInf,Magnet,Affected} = wings_magnet:setup(Magnet0, Vs, We),
     Vec = magnet_vec(Vec0, Affected, We),
