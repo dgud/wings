@@ -451,32 +451,33 @@ connecting_edge(Vs0, #we{mirror=MirrorFace, id=Id}=We0, A) ->
     Sel = wings_we:new_items_as_gbset(edge, We0, We1),
     {We1,[{Id,Sel}|A]}.
 
-connect_cuts(#st{}=St0) ->
-    Do = fun(Set, #we{id=Id}=We0, #st{sel=Sel} = St) ->
-		 Sz = gb_sets:size(Set),
-		 case 1 < Sz andalso Sz < 4 of
-		     true -> ok;
-		     false -> connect_cuts_error()
-		 end,
-		 List = gb_sets:to_list(Set),
-		 Dict = combinations(List),
-		 Connect = fun({VS0,VE0}, {Set0,#we{}=We1}) ->
-				   {Set2,We2} = wings_vertex:connect_cut(VS0,VE0,We1),
-				   {gb_sets:union(Set2,Set0), We2}
-			   end,
-		 {Es,We} = lists:foldl(Connect, {gb_sets:empty(), We0}, Dict),
-		 %% Make selection
-		 wings_shape:replace(Id, We, wings_sel:set([{Id,Es}|Sel], St))
-	 end,
-    wings_sel:fold(Do, St0#st{selmode=edge, sel=[]}, St0).
+connect_cuts(St0) ->
+    {St,Sel} = wings_sel:mapfold(fun connect_cuts_fun/3, [], St0),
+    wings_sel:set(edge, Sel, St).
+
+connect_cuts_fun(Vs0, #we{id=Id}=We0, Acc) ->
+    case gb_sets:size(Vs0) of
+        2 -> ok;
+        3 -> ok;
+        _ -> connect_cuts_error()
+    end,
+    Vs = gb_sets:to_list(Vs0),
+    VsPairs = [{A,B} || A <- Vs, B <- Vs, A < B],
+    {We,Es} = do_connect_cuts(VsPairs, gb_sets:empty(), We0),
+    {We,[{Id,Es}|Acc]}.
+
+do_connect_cuts([{VS0,VE0}|Pairs], Es0, We0) ->
+    {We,Es1} = wings_vertex:connect_cut(VS0, VE0, We0),
+    Es = gb_sets:union(Es0, Es1),
+    do_connect_cuts(Pairs, Es, We);
+do_connect_cuts([], Es, We) ->
+    {We,Es}.
 
 -spec connect_cuts_error() -> no_return().
 connect_cuts_error() ->
     Msg = ?__(1, "Defined only for two or three selected vertices, per object."),
     wings_u:error_msg(Msg).
 
-combinations(List) ->
-    [{A,B} || A<-List, B<-List, A < B].
 
 %%%
 %%% The Tighten command.
