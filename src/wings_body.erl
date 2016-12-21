@@ -495,11 +495,11 @@ duplicate_object(Objects, #st{shapes=Shs}=St) ->
 %%% The Delete command.
 %%%
 
-delete(#st{shapes=Shapes0}=St) ->
-    Shapes = wings_sel:fold(fun(_, #we{id=Id}, Shs) ->
-				    gb_trees:delete(Id, Shs)
-			    end, Shapes0, St),
-    St#st{shapes=Shapes,sel=[]}.
+delete(St) ->
+    wings_sel:map_update_sel(
+      fun(_, _) ->
+              {#we{},gb_sets:empty()}
+      end, St).
 
 %%%
 %%% Delete called from the Outliner or Object window.
