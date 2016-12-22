@@ -243,11 +243,13 @@ make(Filter, Mode, St) when is_function(Filter, 2) ->
 -spec center(#st{}) -> e3d_vector().
 
 center(#st{selmode=Mode}=St) ->
-    Centers = fold(fun(Items, We, A) ->
-			   Vs = to_vertices(Mode, Items, We),
-			   [wings_vertex:center(Vs, We)|A]
-		   end, [], St),
-    e3d_vec:average(Centers).
+    MF = fun(Items, We) ->
+		 Vs = to_vertices(Mode, Items, We),
+		 wings_vertex:center(Vs, We)
+	 end,
+    RF = fun(V, {N,Acc}) -> {N+1,e3d_vec:add(V, Acc)} end,
+    {N,Sum} = dfold(MF, RF, {0,e3d_vec:zero()}, St),
+    e3d_vec:divide(Sum, N).
 
 %% Calculate center of bounding box.
 
@@ -264,10 +266,14 @@ bbox_center(St) ->
 -spec bounding_box(#st{}) -> [e3d_vector()] | 'none'.
 
 bounding_box(#st{selmode=Mode}=St) ->
-    fold(fun(Items, We, A) ->
+    MF = fun(Items, We) ->
 		 Vs = to_vertices(Mode, Items, We),
-		 wings_vertex:bounding_box(Vs, We, A)
-	 end, none, St).
+		 wings_vertex:bounding_box(Vs, We)
+	 end,
+    RF = fun(Box, none) -> Box;
+	    (Box, Acc) -> e3d_vec:bounding_box(Box++Acc)
+	 end,
+    dfold(MF, RF, none, St).
 
 %%%
 %%% Calculate the bounding boxes for all selected objects.
