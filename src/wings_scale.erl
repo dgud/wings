@@ -100,18 +100,7 @@ magnet_unit(_) -> [falloff].
 %%
 
 vertices_center(center, St) ->
-    VsWe = wings_sel:fold(fun(Vs, We, Acc) ->
-                                  [{gb_sets:to_list(Vs),We}|Acc]
-                          end, [], St),
-    VsPs = map(fun({Vs,#we{vp=Vtab0}}) ->
-                       Vtab1 = array:sparse_to_orddict(Vtab0),
-                       Vtab2 = sofs:from_external(Vtab1, [{vertex,pos}]),
-                       Restr = sofs:set(Vs, [vertex]),
-                       Vtab3 = sofs:restriction(Vtab2, Restr),
-                       Vtab = sofs:range(Vtab3),
-                       sofs:to_external(Vtab)
-               end, VsWe),
-    e3d_vec:average(lists:append(VsPs));
+    wings_sel:center_vs(St);
 vertices_center(Center, _) -> Center.
 
 %%
