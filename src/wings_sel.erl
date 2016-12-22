@@ -16,7 +16,7 @@
 -export([clear/1,reset/1,set/2,set/3,
 	 conditional_reset/1,
 	 map/2,map_update_sel/2,map_update_sel/3,
-	 update_sel/2,update_sel/3,fold/3,mapfold/3,
+	 update_sel/2,update_sel/3,fold/3,dfold/4,mapfold/3,
 	 new_sel/3,make/3,valid_sel/1,valid_sel/3,
 	 center/1,bbox_center/1,bounding_box/1,bounding_boxes/1,
 	 face_regions/2,strict_face_regions/2,edge_regions/2,
@@ -138,6 +138,37 @@ update_sel(F, Mode, St0) when is_function(F, 2) ->
 update_sel(F, #st{sel=Sel0,shapes=Shapes}=St) when is_function(F, 2) ->
     Sel = update_sel_1(Sel0, F, Shapes),
     set(Sel, St).
+
+
+%%%
+%%% Distributed fold over the selection. The Map function
+%%% will be called in process holding the #we{}. The
+%%% Reduce function will be called in the main Wings
+%%% process.
+%%%
+
+-spec dfold(Map, Reduce, Acc0, #st{}) -> Acc1 when
+      Map :: fun((InItems, #we{}) -> Int),
+      Reduce :: fun((Int, AccIn) -> AccOut),
+      InItems :: item_set(),
+      Acc0 :: term(),
+      Acc1 :: term(),
+      AccIn :: term(),
+      AccOut :: term().
+
+dfold(Map, Reduce, Acc0, St) when is_function(Map, 2),
+				  is_function(Reduce, 2) ->
+    #st{sel=Sel,shapes=Shapes} = St,
+    dfold_1(Sel, Map, Reduce, Shapes, Acc0).
+
+dfold_1([{Id,Items}|T], Map, Reduce, Shapes, Acc0) ->
+    We = gb_trees:get(Id, Shapes),
+    ?ASSERT(We#we.id =:= Id),
+    Int = Map(Items, We),
+    Acc = Reduce(Int, Acc0),
+    dfold_1(T, Map, Reduce, Shapes, Acc);
+dfold_1([], _, _, _, Acc) -> Acc.
+
 
 %%%
 %%% Fold over the selection.
