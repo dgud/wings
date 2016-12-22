@@ -33,23 +33,13 @@ bump(St0) ->
     wings_move:plus_minus(normal, Tvs, St).
 
 calc_bump_dist(St) ->
-    wings_sel:fold(fun(Edges, We, D) ->
-			   calc_bump_dist_1(Edges, We, D)
-		   end, infinite, St).
+    Map = fun calc_bump_dist_1/2,
+    Combine = fun min/2,
+    wings_sel:dfold(Map, Combine, infinity, St) / 2.
 
-calc_bump_dist_1(Faces, We, D) ->
-    Edges0 = gb_sets:to_list(wings_edge:from_faces(Faces, We)),
-    Vs = wings_vertex:from_edges(Edges0, We),
-    Edges = wings_edge:from_vs(Vs, We),
-    calc_bump_dist_2(Edges, We, D).
-
-calc_bump_dist_2([E|Es], #we{es=Etab,vp=Vtab}=We, D0) ->
-    #edge{vs=Va,ve=Vb} = array:get(E, Etab),
-    case e3d_vec:dist(array:get(Va, Vtab), array:get(Vb, Vtab)) / 2 of
-	D when D < D0 -> calc_bump_dist_2(Es, We, D);
-	_ -> calc_bump_dist_2(Es, We, D0)
-    end;
-calc_bump_dist_2([], _, D) -> D.
+calc_bump_dist_1(Faces, We) ->
+    Edges = gb_sets:to_list(wings_edge:from_faces(Faces, We)),
+    min_dist_from_edges(Edges, We).
 
 bump(Faces, Dist, We0, Acc) ->
     Edges = gb_sets:from_list(wings_face:outer_edges(Faces, We0)),
@@ -334,23 +324,12 @@ extrude(Type, St0) ->
     wings_move:plus_minus(Type, Tvs, St).
 
 calc_extrude_dist(St) ->
-    wings_sel:fold(fun(Edges, We, D) ->
-			   calc_extrude_dist_1(Edges, We, D)
-		   end, ?DEFAULT_EXTRUDE_DIST, St).
-
-calc_extrude_dist_1(Edges0, We, D) ->
-    Edges1 = gb_sets:to_list(Edges0),
-    Vs = wings_vertex:from_edges(Edges1, We),
-    Edges = wings_edge:from_vs(Vs, We),
-    calc_extrude_dist_2(Edges, We, D).
-
-calc_extrude_dist_2([E|Es], #we{es=Etab,vp=Vtab}=We, D0) ->
-    #edge{vs=Va,ve=Vb} = array:get(E, Etab),
-    case e3d_vec:dist(array:get(Va, Vtab), array:get(Vb, Vtab)) / 3 of
-	D when D < D0 -> calc_extrude_dist_2(Es, We, D);
-	_ -> calc_extrude_dist_2(Es, We, D0)
-    end;
-calc_extrude_dist_2([], _, D) -> D.
+    Map = fun(Edges0, We) ->
+		  Edges = gb_sets:to_list(Edges0),
+		  min_dist_from_edges(Edges, We)
+	  end,
+    Combine = fun min/2,
+    wings_sel:dfold(Map, Combine, 3.0*?DEFAULT_EXTRUDE_DIST, St) / 3.0.
 
 extrude_1(Edges, ExtrudeDist, We0, Acc) ->
     {We1,_,New,Forbidden} = extrude_edges(Edges, ExtrudeDist, We0),
@@ -665,3 +644,17 @@ scale_tv(Tv, ExtrudeDist) ->
 scale_tv_1([{Vec,Vs}|T], S, Acc) ->
     scale_tv_1(T, S, [{e3d_vec:mul(Vec, S),Vs}|Acc]);
 scale_tv_1([], _, Acc) -> Acc.
+
+-spec min_dist_from_edges(Edges, #we{}) -> float() when
+      Edges :: nonempty_list(edge_num()).
+
+min_dist_from_edges(Edges0, We) ->
+    Vs = wings_vertex:from_edges(Edges0, We),
+    Edges = wings_edge:from_vs(Vs, We),
+    min_dist_from_edges_1(Edges, We, infinite).
+
+min_dist_from_edges_1([E|Es], #we{es=Etab,vp=Vtab}=We, D0) ->
+    #edge{vs=Va,ve=Vb} = array:get(E, Etab),
+    D = e3d_vec:dist(array:get(Va, Vtab), array:get(Vb, Vtab)),
+    min_dist_from_edges_1(Es, We, min(D0, D));
+min_dist_from_edges_1([], _, D) -> D.
