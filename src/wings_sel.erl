@@ -18,7 +18,8 @@
 	 map/2,map_update_sel/2,map_update_sel/3,
 	 update_sel/2,update_sel/3,fold/3,dfold/4,mapfold/3,
 	 new_sel/3,make/3,valid_sel/1,valid_sel/3,
-	 center/1,bbox_center/1,bounding_box/1,bounding_boxes/1,
+	 center/1,center_vs/1,
+	 bbox_center/1,bounding_box/1,bounding_boxes/1,
 	 face_regions/2,strict_face_regions/2,edge_regions/2,
 	 select_object/2,deselect_object/2,
 	 get_all_items/2,get_all_items/3,
@@ -248,6 +249,24 @@ center(#st{selmode=Mode}=St) ->
 		 wings_vertex:center(Vs, We)
 	 end,
     RF = fun(V, {N,Acc}) -> {N+1,e3d_vec:add(V, Acc)} end,
+    {N,Sum} = dfold(MF, RF, {0,e3d_vec:zero()}, St),
+    e3d_vec:divide(Sum, N).
+
+
+%%%
+%%% Calculate the center for all selected vertices.
+%%%
+
+-spec center_vs(#st{}) -> e3d_vector().
+
+center_vs(#st{selmode=Mode}=St) ->
+    MF = fun(Items, We) ->
+		 N = gb_sets:size(Items),
+		 Vs = to_vertices(Mode, Items, We),
+		 Center = wings_vertex:center(Vs, We),
+		 {N,e3d_vec:mul(Center, float(N))}
+	 end,
+    RF = fun({N0,C0}, {N1,C1}) -> {N0+N1,e3d_vec:add(C0, C1)} end,
     {N,Sum} = dfold(MF, RF, {0,e3d_vec:zero()}, St),
     e3d_vec:divide(Sum, N).
 
