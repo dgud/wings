@@ -685,49 +685,45 @@ search_ssel_keys([],_St,Acc) ->
 %%%
 
 similar(#st{selmode=vertex}=St) ->
-    Seed = wings_sel:fold(fun(Sel0, We, A) ->
-				  [make_vertex_template(SelI, We) ||
-				      SelI <- gb_sets:to_list(Sel0)] ++ A
-			  end, [], St),
-    Templates = consolidate_templates(Seed),
-    wings_sel:make(
-      fun(V, W) ->
-	      match_templates(make_vertex_template(V, W), Templates)
-      end, vertex, St);
+    do_similar(fun make_vertex_template/2, St);
 similar(#st{selmode=edge}=St) ->
-    Seed = wings_sel:fold(fun(Sel0, We, A) ->
-				  [make_edge_template(SelI, We) ||
-				      SelI <- gb_sets:to_list(Sel0)] ++ A
-			  end, [], St),
-    Templates = consolidate_templates(Seed),
-    wings_sel:make(
-      fun(Edge, W) ->
-	      match_templates(make_edge_template(Edge, W), Templates)
-      end, edge, St);
+    do_similar(fun make_edge_template/2, St);
 similar(#st{selmode=face}=St) ->
-    Seed = wings_sel:fold(fun(Sel0, We, A) ->
-				  [make_face_template(SelI, We) ||
-				      SelI <- gb_sets:to_list(Sel0)] ++ A
-			  end, [], St),
-    Templates = consolidate_templates(Seed),
-    wings_sel:make(
-      fun(Face, WeI) ->
-	      match_templates(make_face_template(Face, WeI), Templates)
-      end, face, St);
+    do_similar(fun make_face_template/2, St);
 similar(#st{selmode=body}=St) ->
-    Template0 = wings_sel:fold(fun(_, #we{vp=Vtab,es=Etab,fs=Ftab}, Acc) ->
-				       [{wings_util:array_entries(Vtab),
-					 wings_util:array_entries(Etab),
-					 gb_trees:size(Ftab)}|Acc]
-			       end, [], St),
-    Template = ordsets:from_list(Template0),
-    wings_sel:make(fun(_, We) -> match_body(Template, We) end, body, St).
+    MF = fun(_, #we{vp=Vtab,es=Etab,fs=Ftab}) ->
+		 {wings_util:array_entries(Vtab),
+		  wings_util:array_entries(Etab),
+		  gb_trees:size(Ftab)}
+	 end,
+    RF = fun(T, A) -> [T|A] end,
+    Templates0 = wings_sel:dfold(MF, RF, [], St),
+    Templates = usort(Templates0),
+    Zero = gb_sets:singleton(0),
+    wings_sel:make(fun(_, We) ->
+			   Template = MF(Zero, We),
+			   member(Template, Templates)
+		   end, body, St).
 
-consolidate_templates(L) ->
-    case usort(L) of
-	[] -> [];
-	[H|T] -> consolidate_templates_1(H, T)
-    end.
+do_similar(MakeTemplate, #st{selmode=Mode}=St) ->
+    MF = fun(Sel, We) ->
+		 Ts = gb_sets:fold(
+			fun(I, A) ->
+				[MakeTemplate(I, We)|A]
+			end, [], Sel),
+		 usort(Ts)
+	 end,
+    RF = fun lists:umerge/2,
+    Templates0 = wings_sel:dfold(MF, RF, [], St),
+    Templates = consolidate_templates(Templates0),
+    wings_sel:make(
+      fun(Item, We) ->
+	      Template = MakeTemplate(Item, We),
+	      match_templates(Template, Templates)
+      end, Mode, St).
+
+consolidate_templates([H|T]) ->
+    consolidate_templates_1(H, T).
 
 consolidate_templates_1(Templ0, [Templ|T]) ->
     case match_template(Templ0, Templ) of
@@ -738,22 +734,10 @@ consolidate_templates_1(Templ0, [Templ|T]) ->
     end;
 consolidate_templates_1(Templ, []) -> [Templ].
 
-match_body(Template, #we{vp=Vtab,es=Etab,fs=Ftab}) ->
-    Sizes = {wings_util:array_entries(Vtab),
-	     wings_util:array_entries(Etab),
-	     gb_trees:size(Ftab)},
-    match_body_1(Template, Sizes).
-
-match_body_1([Sizes|_], Sizes) -> true;
-match_body_1([_|T], Sizes) -> match_body_1(T, Sizes);
-match_body_1([], _) -> false.
-
-match_templates(F, [Template|Ts]) ->
-    case match_template(F, Template) of
-	true -> true;
-	false -> match_templates(F, Ts)
-    end;
-match_templates(_, []) -> false.
+match_templates(T, Templates) ->
+    any(fun(Template) ->
+		match_template(T, Template)
+	end, Templates).
 
 match_template({Len,Ad,As}, {Len,Bd,Bs}) ->
     compare(Ad, Bd) andalso compare(As, Bs);
@@ -1064,10 +1048,9 @@ oriented_faces([Tolerance,Connected,Save], #st{selmode=face, sel=[]}) ->
 oriented_faces([Tolerance,false,Save], St) ->
     wings_pref:set_value(similar_normals_connected, false),
     wings_pref:set_value(similar_normals_angle, {Save,Tolerance}),
-    Normals0 = wings_sel:fold(fun(Faces, We, Acc) ->
-				      collect_normals(Faces, We, Acc)
-			      end, [], St),
-    Normals = lists:usort(Normals0),
+    MF = fun collect_normals/2,
+    RF = fun lists:umerge/2,
+    Normals = wings_sel:dfold(MF, RF, [], St),
     Pred = matching_normal_pred(Tolerance, Normals),
     {save_state,wings_sel:make(Pred, face, St)};
 oriented_faces([Tolerance,true,Save], St0) ->
@@ -1075,8 +1058,7 @@ oriented_faces([Tolerance,true,Save], St0) ->
     wings_pref:set_value(similar_normals_angle, {Save,Tolerance}),
     St = wings_sel:update_sel(
 	   fun(Faces, We) ->
-		   Normals0 = collect_normals(Faces, We),
-		   Normals = lists:usort(Normals0),
+		   Normals = collect_normals(Faces, We),
 		   Pred = matching_normal_pred(Tolerance, Normals),
 		   find_similar_connected(Pred, Faces, We)
 	   end, St0),
@@ -1093,12 +1075,10 @@ any_matching_normal(CosTolerance, Norm, Normals) ->
     any(fun(N) -> e3d_vec:dot(N, Norm) >= CosTolerance end, Normals).
 
 collect_normals(Faces, We) ->
-    collect_normals(Faces, We, []).
-
-collect_normals(Faces, We, Acc) ->
-    gb_sets:fold(fun(Face, A) ->
-			 [wings_face:normal(Face, We)|A]
-		 end, Acc, Faces).
+    Ns = gb_sets:fold(fun(Face, A) ->
+			      [wings_face:normal(Face, We)|A]
+		      end, [], Faces),
+    usort(Ns).
 
 %%%
 %%% Select faces of the same material.
@@ -1126,10 +1106,11 @@ similar_material([false,Mode], St) ->
     wings_pref:set_value(similar_materials, Mode),
     wings_pref:set_value(similar_materials_connected, false),
     MF = case Mode of
-	     vertex_color -> fun collect_colors/3;
-	     material -> fun collect_materials/3
+	     vertex_color -> fun collect_colors/2;
+	     material -> fun collect_materials/2
 	 end,
-    Materials = lists:usort(wings_sel:fold(MF, [], St)),
+    RF = fun lists:umerge/2,
+    Materials = wings_sel:dfold(MF, RF, [], St),
     Pred = similar_material_pred(Mode, Materials),
     {save_state,wings_sel:make(Pred, face, St)};
 similar_material([true,Mode], St0) ->
@@ -1138,15 +1119,13 @@ similar_material([true,Mode], St0) ->
     F = case Mode of
 	    vertex_color ->
 		fun(Faces, We) ->
-			Colors0 = collect_colors(Faces, We),
-			Colors = lists:usort(Colors0),
+			Colors = collect_colors(Faces, We),
 			Pred = similar_material_pred(Mode, Colors),
 			find_similar_connected(Pred, Faces, We)
 		end;
 	    material ->
 		fun(Faces, We) ->
-			Materials0 = collect_materials(Faces, We),
-			Materials = lists:usort(Materials0),
+			Materials = collect_materials(Faces, We),
 			Pred = similar_material_pred(Mode, Materials),
 			find_similar_connected(Pred, Faces, We)
 		end
@@ -1166,20 +1145,16 @@ similar_material_pred(material, Materials) ->
     end.
 
 collect_colors(Faces, We) ->
-    collect_colors(Faces, We, []).
-
-collect_colors(Faces, We, Acc) ->
-    gb_sets:fold(fun(F, A) ->
-			 [average_colors(F, We)|A]
-		 end, Acc, Faces).
+    Cs = gb_sets:fold(fun(F, A) ->
+			      [average_colors(F, We)|A]
+		      end, [], Faces),
+    usort(Cs).
 
 collect_materials(Faces, We) ->
-    collect_materials(Faces, We, []).
-
-collect_materials(Faces, We, Acc) ->
-    gb_sets:fold(fun(F, A) ->
-			 [wings_facemat:face(F, We)|A]
-		 end, Acc, Faces).
+    Ms = gb_sets:fold(fun(F, A) ->
+			      [wings_facemat:face(F, We)|A]
+		      end, [], Faces),
+    usort(Ms).
 
 average_colors(Face, We) ->
     wings_color:average([C || C <- wings_va:face_attr(color, Face, We)]).
@@ -1227,31 +1202,37 @@ is_sharp_edge(CosTolerance, Type, Edge, #we{es=Etab,vp=Vtab}=We) ->
 %%% Select shortest path
 %%%
 
-shortest_path(Method, St) ->
-    #st{shapes=Shapes,selmode=Mode,sel=Sel} = St,
-    case (Mode==vertex) andalso (length(Sel)==1) of
-	true -> ok;
-	false -> wings_u:error_msg(?__(1,"Exactly two vertices must be\n selected on the same object."))
+shortest_path(Method, #st{selmode=Mode}=St0) ->
+    MF = fun(Items, _) ->
+                 [Mode =:= vertex andalso gb_sets:size(Items)]
+         end,
+    RF = fun erlang:'++'/2,
+    case wings_sel:dfold(MF, RF, [], St0) of
+        [2] ->
+            ok;
+        _ ->
+            wings_u:error_msg(?__(1,"Exactly two vertices must be\n"
+                                  "selected on the same object."))
     end,
-    [{Id,SelectedVs}] = Sel,
-    case gb_sets:size(SelectedVs)==2 of
-	true -> ok;
-	false -> wings_u:error_msg(?__(2,"Exactly two vertices must be selected."))
-    end,
-    We = gb_trees:get(Id, Shapes),
-    [Pa,Pb] = [wings_vertex:pos(V, We) || V <- gb_sets:to_list(SelectedVs)],
+    St = wings_sel:update_sel(fun(Vs, We) ->
+                                      shortest_path_1(Vs, We, Method)
+                              end, edge, St0),
+    {save_state,St}.
+
+shortest_path_1(Vs, We, Method) ->
     #we{es=Etab,vp=Vtab} = We,
+    [Pa,Pb] = [wings_vertex:pos(V, We) || V <- gb_sets:to_list(Vs)],
     Graph = digraph:new(),
-    Add_Edge = fun(_, EdgeRec, _) ->
-		       build_digraph(Graph, EdgeRec, Vtab)
-	       end,
-    array:sparse_foldl(Add_Edge, [], Etab),
+    AddEdge = fun(_, EdgeRec, _) ->
+                      build_digraph(Graph, EdgeRec, Vtab)
+              end,
+    array:sparse_foldl(AddEdge, [], Etab),
     PathVs = find_path_verts(Method, Graph, Pa, Pb),
     digraph:delete(Graph),
-    SelFun = fun(Vert, We2) -> is_vert_in_path(PathVs, Vert, We2) end,
-    St2 = wings_sel:make(SelFun, vertex, St),
-    St3 = wings_sel_conv:mode(edge, St2),
-    {save_state,wings_sel_conv:less(St3)}.
+    SelFun = fun(V) -> is_vert_in_path(PathVs, V, We) end,
+    AllVs = wings_sel:get_all_items(vertex, We),
+    SelVs = gb_sets:filter(SelFun, AllVs),
+    gb_sets:from_ordset(vs_to_edges(SelVs, We, [])).
 
 find_path_verts(Method, Graph, Pa, Pb) ->
     case Method of
@@ -1421,38 +1402,45 @@ build_digraph(Graph, E, Vtab) ->
 %%% Select faces with similar area
 %%%
 
-similar_area(_, #st{selmode=Mode, sel=Sel}) when Mode =/= face; Sel =:= [] ->
-    wings_u:error_msg(?__(10,"Exactly one face must be selected")),
-    keep;
 similar_area(Ask, St) when is_atom(Ask) ->
+    _ = get_area(St),
     Qs = [{label,?__(1,"Area Tolerance")},
-	  {text,0.001,[{range,{0.0,100.0}}]}],
+          {text,0.001,[{range,{0.0,100.0}}]}],
     wings_dialog:dialog_preview({select,similar_area}, Ask,
-	?__(2,"Select Similar Area"), [{hframe,Qs}], St);
+                                ?__(2,"Select Similar Area"),
+                                [{hframe,Qs}], St);
 similar_area([Tolerance], St) ->
-    #st{shapes=Shapes,selmode=Mode,sel=Sel} = St,
-    case (Mode==face) and (length(Sel)==1) of
-	true -> ok;
-	false -> wings_u:error_msg(?__(3,"Exactly one face must be\n selected on a single object."))
-    end,
-    [{Id,SelectedFs}] = Sel,
-    case gb_sets:size(SelectedFs)==1 of
-	true -> ok;
-	false -> wings_u:error_msg(?__(4,"Exactly one face must be selected."))
-    end,
-    We = gb_trees:get(Id, Shapes),
-    Face1 = hd(gb_sets:to_list(SelectedFs)),
-    Area1 = wings_face:area(Face1, We),
-    SelFun = fun(Face, We2) ->
-	is_area_similar(Area1, Tolerance, Face, We2)
-    end,
+    Area = get_area(St),
+    SelFun = fun(Face, We) ->
+                     is_area_similar(Area, Tolerance, Face, We)
+             end,
     St2 = wings_sel:make(SelFun, face, St),
     {save_state,St2}.
 
-is_area_similar(Area1, Tolerance, Face, We) ->
-    Area2 = wings_face:area(Face, We),
-    AreaDiff = abs(Area1-Area2),
+is_area_similar(Area, Tolerance, Face, We) ->
+    AreaDiff = abs(wings_face:area(Face, We) - Area),
     AreaDiff =< Tolerance.
+
+get_area(#st{selmode=face}=St) ->
+    MF = fun(Faces, We) ->
+                 case gb_sets:size(Faces) of
+                     1 ->
+                         [Face] = gb_sets:to_list(Faces),
+                         [wings_face:area(Face, We)];
+                     _ ->
+                         [none]
+                 end
+         end,
+    RF = fun erlang:'++'/2,
+    case wings_sel:dfold(MF, RF, [], St) of
+        [Area] when is_float(Area) ->
+            Area;
+        _ ->
+            wings_u:error_msg(?__(1,"Exactly one face must be selected"))
+    end;
+get_area(_) ->
+    wings_u:error_msg(?__(1,"Exactly one face must be selected")).
+
 
 %%%
 %%% Change selection to complete loops from any mode
