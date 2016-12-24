@@ -1055,18 +1055,7 @@ purge_undo(St) ->
 			fun(_) -> {edit,confirmed_purge_undo} end).
 
 info(#st{sel=[]}) ->
-    [],
-    Progs = get(light_shaders),
-    NumLights = wings_pref:get_value(number_of_lights),
-    ActiveSh = wings_pref:get_value(active_shader),
-    UseProg = (Progs /= undefined) and (NumLights == 2),
-    case UseProg of
-     true ->
-	 {_Prog,Name} = element(ActiveSh, Progs),
-	 io_lib:format("Shader ~p of ~p: ~s ",[ActiveSh,tuple_size(Progs),Name]);
-     false ->
-	 []
-    end;
+    [];
 info(St) ->
     case wings_wm:get_prop(show_info_text) of
     false -> [];
