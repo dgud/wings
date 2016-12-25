@@ -25,7 +25,7 @@
 -export([init/0,menu/2,command/2]).
 
 -include_lib("wpc_intersect.hrl").
--import(lists, [member/2]).
+-import(lists, [any/2,member/2]).
 
 init() ->
     true.
@@ -120,38 +120,31 @@ intersect(Plane, origin, St) ->
     intersect(Plane, {0.0,0.0,0.0}, St);
 intersect(Plane0, Center, St) ->
     Plane = e3d_vec:norm(wings_util:make_vector(Plane0)),
-    ValidSelection = wpa:sel_fold(fun validateSel/3, valid, St),
-    case ValidSelection of
-	valid ->
+    case any_shared_vertices(St) of
+	false ->
 	    {save_state,
 	     wpa:sel_map(
 	       fun(Es, We) ->
 		       intersect_body(Es, Plane, Center, We)
 	       end, St)};
-	invalid ->
+	true ->
 	    wpa:error_msg(?__(1,"Selected edges may not share any vertices")),
 	    keep
     end.
 
-validateSel(Edges, We, valid) when is_list(Edges) ->
-    validateSelAcc(Edges, We#we.es, []);
-validateSel(Edges, We, valid) ->
-    validateSel(gb_sets:to_list(Edges), We, valid);
-validateSel(_Edges, _We, invalid) ->
-    invalid.
-    
-validateSelAcc([],_,_VertexAcc)->
-    valid;
-validateSelAcc([SelEdge|OtherSelEdges], EdgeTab, VertexAcc) ->
-    #edge{vs=V1,ve=V2} = array:get(SelEdge,EdgeTab),
-    InTable = member(V1,VertexAcc) orelse member(V2,VertexAcc),
-    case InTable of
-	true ->
-	    invalid;
-	false ->
-	    validateSelAcc(OtherSelEdges, EdgeTab, [V1,V2|VertexAcc])
-    end.
-
+any_shared_vertices(St) ->
+    MF = fun(Es, #we{es=Etab}) ->
+                 R = gb_sets:fold(
+                       fun(E, A) ->
+                               #edge{vs=Va,ve=Vb} = array:get(E, Etab),
+                               [{Va,E},{Vb,E}|A]
+                       end, [], Es),
+                 any(fun({_,[_,_|_]}) -> true;
+                        (_) -> false
+                     end, wings_util:rel2fam(R))
+         end,
+    RF = fun erlang:'or'/2,
+    wings_sel:dfold(MF, RF, false, St).
 
 intersect_body(Edges, Plane, Center, #we{es=EdgeTab,vp=VertPosTab0}=We0) when is_list(Edges) ->
     VertPosTab = intersect_edges(Plane, Center, EdgeTab, VertPosTab0, Edges),
