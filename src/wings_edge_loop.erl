@@ -18,7 +18,8 @@
 	 select_link_decr/1,select_link_incr/1]).
 
 %% Utilities.
--export([edge_loop_vertices/2,edge_links/2,partition_edges/2]).
+-export([edge_loop_vertices/2,edge_links/2,partition_edges/2,
+         select_loop/2]).
 
 -include("wings.hrl").
 -import(lists, [append/1,reverse/1,foldl/3,usort/1,member/2,any/2]).
@@ -94,6 +95,17 @@ partition_edges(Edges, We) when is_list(Edges) ->
     partition_edges(gb_sets:from_list(Edges), We, []);
 partition_edges(Edges, We) ->
     partition_edges(Edges, We, []).
+
+%% Create edge loops from the given edges.
+
+-spec select_loop(EdgesIn, #we{}) -> EdgesOut when
+      EdgesIn ::wings_sel:edge_set(),
+      EdgesOut ::wings_sel:edge_set().
+
+select_loop(Edges0, #we{es=Etab}=We) ->
+    Edges1 = select_loop_1(Edges0, Etab, gb_sets:empty()),
+    Edges2 = add_mirror_edges(Edges1, We),
+    wings_we:visible_edges(Edges2, We).
 
 %%%
 %%% Local functions and data structures.
@@ -187,11 +199,6 @@ follow_edge_1(G, E, Edges, Etab) ->
     end.
 
 %%% Helpers for select_loop/1.
-
-select_loop(Edges0, #we{es=Etab}=We) ->
-    Edges1 = select_loop_1(Edges0, Etab, gb_sets:empty()),
-    Edges2 = add_mirror_edges(Edges1, We),
-    wings_we:visible_edges(Edges2, We).
 
 select_loop_1(Edges0, Etab, Sel0) ->
     case gb_sets:is_empty(Edges0) of
