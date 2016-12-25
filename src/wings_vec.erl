@@ -419,76 +419,214 @@ build_result_1(Res, Cb, St0) ->
 %%% Vector functions.
 %%%
 
-check_vector(#st{sel=[]}) -> {none,""};
-
-check_vector(#st{selmode=vertex,sel=[{_Ob1,Sel1},{_Ob2,Sel2},{_Ob3,Sel3}]}=St) ->
-    VertNum = gb_sets:size(Sel1) + gb_sets:size(Sel2) + gb_sets:size(Sel3),
-    case VertNum of
-      3 ->
-        PosList = wings_sel:fold(fun(Verts,We,Acc) ->
-                        Vs = gb_sets:to_list(Verts),
-                        get_pos(Vs,We,Acc)
-                        end,[],St),
-        Positions = lists:merge(PosList),
-        get_vec(vertex,plane,Positions);
-      _ ->
-        Str = guard_string(),
-        {none,Str}
-    end;
-
-check_vector(#st{selmode=vertex,sel=[{Id0,Sel0},{Id1,Sel1}],shapes=Shs}=St) ->
-    SelSize = gb_sets:size(Sel0) + gb_sets:size(Sel1),
-    case SelSize of
-      2 ->
-        We0 = gb_trees:get(Id0,Shs),
-        We1 = gb_trees:get(Id1,Shs),
-        [EL0] = gb_sets:to_list(Sel0),
-        [EL1] = gb_sets:to_list(Sel1),
-        get_vec(vertex, [EL0, EL1], [We0, We1]);
-      3 ->
-        PosList = wings_sel:fold(fun(Verts,We,Acc) ->
-                        Vs = gb_sets:to_list(Verts),
-                        get_pos(Vs,We,Acc)
-                        end,[],St),
-        Positions = lists:merge(PosList),
-        get_vec(vertex,plane,Positions);
-
-      _ ->
-        Str = guard_string(),
-        {none,Str}
-    end;
-check_vector(#st{selmode=edge,sel=[{Id0,Sel0},{Id1,Sel1}],shapes=Shs}) ->
-        We0 = gb_trees:get(Id0,Shs),
-        We1 = gb_trees:get(Id1,Shs),
-        EL0 = gb_sets:to_list(Sel0),
-        EL1 = gb_sets:to_list(Sel1),
-        case length(EL0) + length(EL1) of
-          2 -> get_vec(edge, EL0 ++ EL1, [We0, We1]);
-          _ -> get_vec(edge, [{EL0}, {EL1}], [We0, We1])
-        end;
-
-check_vector(#st{selmode=Mode,sel=[{Id0,Sel0},{Id1,Sel1}],shapes=Shs}) ->
-    SelSize = gb_sets:size(Sel0) + gb_sets:size(Sel1),
-    case SelSize of
-      2 ->
-        We0 = gb_trees:get(Id0,Shs),
-        We1 = gb_trees:get(Id1,Shs),
-        [EL0] = gb_sets:to_list(Sel0),
-        [EL1] = gb_sets:to_list(Sel1),
-        get_vec(Mode, [EL0, EL1], [We0, We1]);
-      _ ->
-        Str = guard_string(),
-        {none,Str}
-    end;
-
-check_vector(#st{selmode=Mode,sel=[{Id,Elems0}],shapes=Shs}) ->
-    We = gb_trees:get(Id, Shs),
-    Elems = gb_sets:to_list(Elems0),
-    get_vec(Mode, Elems, We);
-
+check_vector(#st{sel=[]}) ->
+    {none,""};
+check_vector(#st{selmode=vertex}=St) ->
+    check_vector_vs(St);
+check_vector(#st{selmode=edge}=St) ->
+    check_vector_es(St);
+check_vector(#st{selmode=face}=St) ->
+    check_vector_fs(St);
 check_vector(_) ->
     Str = guard_string(),
     {none,Str}.
+
+check_vector_vs(#st{sel=[_,_,_,_|_]}) ->
+    {none,guard_string()};
+check_vector_vs(#st{}=St) ->
+    MF = fun check_vector_vs_fun/2,
+    RF = fun erlang:'++'/2,
+    case wings_sel:dfold(MF, RF, [], St) of
+        [{edge_loop,Center,Vec}] ->
+	    [{{Center,Vec},?__(1,"Vertex loop normal saved as axis.")}];
+        [edge_loop_error] ->
+	    [{none,?__(2,"Multi-vertex selection must form "
+                       "a single closed edge loop.")}];
+        [{Center,Vec}] ->
+            [{{Center,Vec},?__(3,"Vertex normal saved.")}];
+        [{PosA,NA},{PosB,NB}] ->
+            Center = e3d_vec:average(PosA, PosB),
+            Vec = e3d_vec:norm_sub(PosA, PosB),
+            Normal = e3d_vec:norm(e3d_vec:add(NA, NB)),
+            [{{Center,Vec},
+              {?__(4,"Direction between vertices saved as axis."),
+               ?__(5,"Use average of vertex normals as axis")}},
+             {{Center,Normal},
+              {?__(6,"Average of vertex normals saved as axis."),
+               ?__(7,"Use direction between vertices as axis")}}];
+        [{PosA,_},{PosB,_},{PosC,_}] ->
+            Vec0 = e3d_vec:sub(PosA, PosB),
+            Vec1 = e3d_vec:sub(PosA, PosC),
+            Vec = e3d_vec:norm(e3d_vec:cross(Vec0, Vec1)),
+            Center = e3d_vec:average([PosA,PosB,PosC]),
+            [{{Center,Vec},?__(8,"3-point perp. normal saved as axis.")}];
+        [_|_] ->
+            {none,guard_string()}
+    end.
+
+check_vector_vs_fun(Vs0, We) ->
+    Vs = gb_sets:to_list(Vs0),
+    case gb_sets:size(Vs0) of
+        Sz when Sz =< 3 ->
+            VF = fun(V) ->
+                         {wings_vertex:pos(V, We),
+                          vertex_no_mirror_norm(V, We)}
+                 end,
+            [VF(V) || V <- Vs];
+        _ ->
+            Edges = find_edges(Vs, We),
+            case wings_edge_loop:edge_loop_vertices(Edges, We) of
+                [LoopVs] ->
+                    Vtab = We#we.vp,
+                    Center = wings_vertex:center(LoopVs, We),
+                    Vec = wings_face:face_normal_cw(LoopVs, Vtab),
+                    [{edge_loop,Center,Vec}];
+                _ ->
+                    [edge_loop_error]
+            end
+    end.
+
+check_vector_es(#st{sel=[_,_,_|_]}) ->
+    {none,guard_string()};
+check_vector_es(#st{}=St) ->
+    MF = fun check_vector_es_fun/2,
+    RF = fun erlang:'++'/2,
+    case wings_sel:dfold(MF, RF, [], St) of
+        [{edge_loop,Center,Vec}] ->
+            [{{Center,Vec},?__(1,"Edge loop normal saved as axis.")}];
+        [{edge_loop,CenterA,_},{edge_loop,CenterB,_}] ->
+            Center = e3d_vec:average(CenterA, CenterB),
+            Vec = e3d_vec:norm_sub(CenterA, CenterB),
+            [{{Center,Vec},
+              ?__(2,"Axis between edge loop centers saved as axis.")}];
+        [edge_loop_error] ->
+            [{none,?__(3,"Multi-edge selection must form either "
+                       "a single or two closed edge loops.")}];
+        [{VaPos,VbPos,Normal}] ->
+            Vec = e3d_vec:norm_sub(VbPos, VaPos),
+            Center = e3d_vec:average(VaPos, VbPos),
+            [{{Center,Vec},
+              {?__(4,"Edge saved as axis"),
+               ?__(5,"Save edge normal")}},
+             {{Center,Normal},
+              {?__(6,"Edge normal saved as axis"),
+               ?__(7,"Save edge direction")}}];
+        [{Va0Pos,Vb0Pos,_},{Va1Pos,Vb1Pos,_}] ->
+            Center0 = e3d_vec:average(Va0Pos, Vb0Pos),
+            Center1 = e3d_vec:average(Va1Pos, Vb1Pos),
+            Center = e3d_vec:average(Center0, Center1),
+            Vec = e3d_vec:norm_sub(Center0, Center1),
+            Vec0 = e3d_vec:norm_sub(Va0Pos, Vb0Pos),
+            Vec1 = e3d_vec:norm_sub(Va1Pos, Vb1Pos),
+            Cross = e3d_vec:cross(Vec0, Vec1),
+            [{{Center,Vec},
+              {?__(8,"Direction between edges saved as axis."),
+               ?__(9,"Save cross vector")}},
+             {{Center,Cross},
+              {?__(10,"Cross product of edges saved as axis."),
+               ?__(11,"Save direction between edges")}}];
+        _ ->
+            {none,guard_string()}
+    end.
+
+check_vector_es_fun(Es0, #we{es=Etab,vp=Vtab}=We) ->
+    Es = gb_sets:to_list(Es0),
+    case gb_sets:size(Es0) of
+        1 ->
+            [E] = Es,
+            #edge{vs=Va,ve=Vb} = Erec = array:get(E, Etab),
+            PosA = wings_vertex:pos(Va, We),
+            PosB = wings_vertex:pos(Vb, We),
+            N = edge_normal(Erec, We),
+            [{PosA,PosB,N}];
+        2 ->
+            EF = fun(E) ->
+                         #edge{vs=Va,ve=Vb} = array:get(E, Etab),
+                         PosA = wings_vertex:pos(Va, We),
+                         PosB = wings_vertex:pos(Vb, We),
+                         {PosA,PosB,none}
+                 end,
+            [EF(E) || E <- Es];
+        _ ->
+            EF = fun(Vs) ->
+                         Center = wings_vertex:center(Vs, We),
+                         Vec = wings_face:face_normal_ccw(Vs, Vtab),
+                         {edge_loop,Center,Vec}
+                 end,
+            case wings_edge_loop:edge_loop_vertices(Es, We) of
+                Loops when length(Loops) =< 2 ->
+                    [EF(Vs) || Vs <- Loops];
+                _ ->
+                    [edge_loop_error]
+            end
+    end.
+
+edge_normal(#edge{lf=Lf,rf=Rf}, #we{mirror=Mirror}=We) ->
+    case Mirror of
+        Lf ->
+            Mn = wings_face:normal(Lf, We),
+            Rn = wings_face:normal(Rf, We),
+            Cross = e3d_vec:cross(Mn, Rn),
+            e3d_vec:norm(e3d_vec:cross(Cross, Mn));
+        Rf ->
+            Mn = wings_face:normal(Rf, We),
+            Ln = wings_face:normal(Lf, We),
+            Cross = e3d_vec:cross(Mn, Ln),
+            e3d_vec:norm(e3d_vec:cross(Cross, Mn));
+        _ ->
+            Ln = wings_face:normal(Lf, We),
+            Rn = wings_face:normal(Rf, We),
+            e3d_vec:norm(e3d_vec:add(Ln, Rn))
+    end.
+
+check_vector_fs(#st{sel=[_,_,_|_]}) ->
+    {none,guard_string()};
+check_vector_fs(#st{}=St) ->
+    MF = fun check_vector_fs_fun/2,
+    RF = fun erlang:'++'/2,
+    case wings_sel:dfold(MF, RF, [], St) of
+        [{edge_loop,Center,Vec}] ->
+	    [{{Center,Vec},
+              ?__(1,"Edge loop normal for region saved as axis.")}];
+        [edge_loop_error] ->
+	    [{none,?__(2,"Multi-face selection must have "
+                       "a single edge loop.")}];
+        [{Center,Vec}] ->
+            [{{Center,Vec},?__(3,"Face normal saved as axis.")}];
+        [{Center0,Vec0},{Center1,Vec1}] ->
+            Center = e3d_vec:average(Center0, Center1),
+            Vec = e3d_vec:norm_sub(Center0, Center1),
+            Normal = e3d_vec:norm(e3d_vec:add(Vec0, Vec1)),
+            [{{Center,Vec},
+              {?__(4,"Direction between face centers saved as axis."),
+               ?__(5,"Use average of face normals")}},
+             {{Center,Normal},
+              {?__(6,"Average of face normals saved as axis."),
+               ?__(7,"Use direction between face centers")}}];
+        _ ->
+            {none,guard_string()}
+    end.
+
+check_vector_fs_fun(Fs0, We) ->
+    Fs = gb_sets:to_list(Fs0),
+    case gb_sets:size(Fs0) of
+        Sz when Sz =< 2 ->
+            FF = fun(F) ->
+                         {wings_face:center(F, We),
+                          wings_face:normal(F, We)}
+                 end,
+            [FF(F) || F <- Fs];
+        _ ->
+            case wings_vertex:outer_vertices_ccw(Fs, We) of
+                error ->
+                    [edge_loop_error];
+                Vs when is_list(Vs) ->
+                    Center = wings_vertex:center(Vs, We),
+                    Vtab = We#we.vp,
+                    Vec = wings_face:face_normal_cw(Vs, Vtab),
+                    [{edge_loop,Center,Vec}]
+            end
+    end.
 
 guard_string() ->
     ?__(1,"Select parts of one object only") ++
@@ -496,225 +634,6 @@ guard_string() ->
 	?__(4,",\nor a single edge loop on each object ") ++
     ?__(3,", or any three vertices.").
 
-get_pos(Vs,We,Acc) ->
-    Positions = lists:foldl(fun(Vert,A) ->
-                #we{vp=Vtab} = We,
-                Pos = array:get(Vert, Vtab),
-                [Pos|A]
-                end,[],Vs),
-    [Positions|Acc].
-
-%%% Three verts two or three objects
-get_vec(vertex,plane,Positions) ->
-    case Positions of
-        [Vp1,Vp2,Vp3] ->
-            Vec0 = e3d_vec:sub(Vp1,Vp2),
-            Vec1 = e3d_vec:sub(Vp1,Vp3),
-            Vec = e3d_vec:norm(e3d_vec:cross(Vec0,Vec1)),
-            Center = e3d_vec:average(Positions),
-            [{{Center,Vec},?__(13,"3-point perp. normal saved as axis.")}];
-        _ -> {none,?__(27,"Vertices cannot share coordinates when defining a 3 point plane normal")}
-    end;
-
-%%% Two Objects
-get_vec(vertex, [Va, Vb], [We0, We1]) ->
-    VaPos = wings_vertex:pos(Va, We0),
-    VbPos = wings_vertex:pos(Vb, We1),
-    Vec = e3d_vec:norm_sub(VaPos, VbPos),
-    Center = e3d_vec:average(VaPos, VbPos),
-    Normal = e3d_vec:norm(e3d_vec:add(wings_vertex:normal(Va, We0),
-              wings_vertex:normal(Vb, We1))),
-    [{{Center,Vec},
-      {?__(9,"Direction between vertices saved as axis."),
-       ?__(10,"Use average of vertex normals as axis")}},
-     {{Center,Normal},
-      {?__(11,"Average of vertex normals saved as axis."),
-       ?__(12,"Use direction between vertices as axis")}}];
-
-%% Use two edge loops on separate objects.
-get_vec(edge, [{Edges1},{Edges2}], [We1,We2]) ->
-    Loop1 = wings_edge_loop:edge_loop_vertices(Edges1, We1),
-    Loop2 = wings_edge_loop:edge_loop_vertices(Edges2, We2),
-    case {Loop1, Loop2} of
-    {[Vs1],[Vs2]} ->
-        LoopCenter1 = wings_vertex:center(Vs1, We1),
-        LoopCenter2 = wings_vertex:center(Vs2, We2),
-        Center = e3d_vec:average(LoopCenter1, LoopCenter2),
-        Vec = e3d_vec:norm_sub(LoopCenter1, LoopCenter2),
-        [{{Center,Vec},?__(28,"Axis between edge loop centers saved as axis.")}];		
-    _Other ->
-        [{none,guard_string()}]
-    end;
-
-get_vec(edge, [Edge1,Edge2], [#we{es=Etab0,vp=Vtab0},#we{es=Etab1,vp=Vtab1}]) ->
-    #edge{vs=Va1,ve=Vb1} = array:get(Edge1, Etab0),
-    #edge{vs=Va2,ve=Vb2} = array:get(Edge2, Etab1),
-    Va1Pos = array:get(Va1, Vtab0),
-    Vb1Pos = array:get(Vb1, Vtab0),
-    Va2Pos = array:get(Va2, Vtab1),
-    Vb2Pos = array:get(Vb2, Vtab1),
-    Center1 = e3d_vec:average(Va1Pos, Vb1Pos),
-    Center2 = e3d_vec:average(Va2Pos, Vb2Pos),
-    Center = e3d_vec:average(Center1, Center2),
-    Vec = e3d_vec:norm_sub(Center1, Center2),
-    Vec1 = e3d_vec:norm_sub(Va1Pos,Vb1Pos),
-    Vec2 = e3d_vec:norm_sub(Va2Pos,Vb2Pos),
-    Cross = e3d_vec:cross(Vec1,Vec2),
-    [{{Center,Vec},
-      {?__(5,"Direction between edges saved as axis."),
-       ?__(24,"Save cross vector")}},
-     {{Center,Cross},
-      {?__(25,"Cross product of edges saved as axis"),
-       ?__(26,"Save direction between edges")}}];
-
-
-get_vec(face, [Face1, Face2], [We0, We1]) ->
-    Center1 = wings_face:center(Face1, We0),
-    Center2 = wings_face:center(Face2, We1),
-    Center = e3d_vec:average(Center1, Center2),
-    Vec = e3d_vec:norm_sub(Center1, Center2),
-    Face1n = wings_face:normal(Face1, We0),
-    Face2n = wings_face:normal(Face2, We1),
-    Normal = e3d_vec:norm(e3d_vec:add(Face1n, Face2n)),
-    [{{Center,Vec},
-      {?__(17,"Direction between face centers saved as axis."),
-       ?__(18,"Use average of face normals")}},
-     {{Center,Normal},
-      {?__(19,"Average of face normals saved as axis."),
-       ?__(20,"Use direction between face centers")}}];
-
-%% Use single edge as axis
-get_vec(edge, [Edge], #we{es=Etab,vp=Vtab,mirror=Mir}=We) ->
-    #edge{vs=Va,ve=Vb,lf=Lf,rf=Rf} = array:get(Edge, Etab),
-    VaPos = array:get(Va, Vtab),
-    VbPos = array:get(Vb, Vtab),
-    Vec = e3d_vec:norm_sub(VbPos, VaPos),
-    Center = wings_vertex:center([Va,Vb], We),
-    Normal = case Mir of
-      Lf ->
-        Mn = wings_face:normal(Mir, We),
-        Rn = wings_face:normal(Rf, We),
-        Cross = e3d_vec:cross(Mn, Rn),
-        e3d_vec:norm(e3d_vec:cross(Cross, Mn));
-      Rf ->
-        Mn = wings_face:normal(Mir, We),
-        Ln = wings_face:normal(Lf, We),
-        Cross = e3d_vec:cross(Mn, Ln),
-        e3d_vec:norm(e3d_vec:cross(Cross, Mn));
-      _ ->
-        Ln = wings_face:normal(Lf, We),
-        Rn = wings_face:normal(Rf, We),
-        e3d_vec:norm(e3d_vec:add(Ln, Rn))
-    end,
-    [{{Center,Vec},
-      {?__(1,"Edge saved as axis"),?__(2,"Save edge normal")}},
-     {{Center,Normal},
-      {?__(3,"Edge normal saved as axis"),?__(4,"Save edge direction")}}];
-%% Use direction between two edges
-get_vec(edge, [Edge1,Edge2], #we{es=Etab,vp=Vtab}) ->
-    #edge{vs=Va1,ve=Vb1} = array:get(Edge1, Etab),
-    #edge{vs=Va2,ve=Vb2} = array:get(Edge2, Etab),
-    Va1Pos = array:get(Va1, Vtab),
-    Vb1Pos = array:get(Vb1, Vtab),
-    Va2Pos = array:get(Va2, Vtab),
-    Vb2Pos = array:get(Vb2, Vtab),
-    Center1 = e3d_vec:average(Va1Pos, Vb1Pos),
-    Center2 = e3d_vec:average(Va2Pos, Vb2Pos),
-    Center = e3d_vec:average(Center1, Center2),
-    Vec = e3d_vec:norm_sub(Center1, Center2),
-    Vec1 = e3d_vec:norm_sub(Va1Pos, Vb1Pos),
-    Vec2 = e3d_vec:norm_sub(Va2Pos, Vb2Pos),
-    Cross = e3d_vec:cross(Vec1, Vec2),
-    [{{Center,Vec},
-      {?__(5,"Direction between edges saved as axis."),?__(24,"Save cross vector")}},
-     {{Center,Cross},
-      {?__(25,"Cross product of edges saved as axis"),?__(26,"Save direction between edges")}}];
-%% Use edge-loop normal.
-get_vec(edge, Edges, #we{vp=Vtab}=We) ->
-    case wings_edge_loop:edge_loop_vertices(Edges, We) of
-	[Vs] -> 
-	    Center = wings_vertex:center(Vs, We),
-	    Vec = wings_face:face_normal_ccw(Vs, Vtab),
-	    [{{Center,Vec},?__(6,"Edge loop normal saved as axis.")}];
-	[Vs1,Vs2] ->
-	    LoopCenter1 = wings_vertex:center(Vs1, We),
-	    LoopCenter2 = wings_vertex:center(Vs2, We),
-		Center = e3d_vec:average(LoopCenter1, LoopCenter2),
-	    Vec = e3d_vec:norm_sub(LoopCenter1, LoopCenter2),
-	    [{{Center,Vec},?__(28,"Axis between edge loop centers saved as axis.")}];		
-	_Other ->
-	    [{none,?__(29,"Multi-edge selection must form either a single or two closed edge loops.")}]
-    end;
-
-%% Vertex normal
-get_vec(vertex, [V], We) ->
-    Vec = vertex_no_mirror_norm(V,We),
-    Center = wings_vertex:center([V], We),
-    [{{Center,Vec},?__(8,"Vertex normal saved.")}];
-%% Direction between 2 vertices as axis
-get_vec(vertex, [Va,Vb]=Vs, We) ->
-    VaPos = wings_vertex:pos(Va, We),
-    VbPos = wings_vertex:pos(Vb, We),
-    Vec = e3d_vec:norm_sub(VaPos, VbPos),
-    Center = wings_vertex:center(Vs, We),
-    Normal = e3d_vec:norm(e3d_vec:add(vertex_no_mirror_norm(Va,We),
-        vertex_no_mirror_norm(Vb,We))),
-    [{{Center,Vec},
-      {?__(9,"Direction between vertices saved as axis."),
-       ?__(10,"Use average of vertex normals as axis")}},
-     {{Center,Normal},
-      {?__(11,"Average of vertex normals saved as axis."),
-       ?__(12,"Use direction between vertices as axis")}}];
-
-%% 3-point (defines face) perpendicular
-get_vec(vertex, [_,_,_]=Vs, #we{vp=Vtab}=We) ->
-    Vec = wings_face:face_normal_ccw(Vs, Vtab),
-    Center = wings_vertex:center(Vs, We),
-    [{{Center,Vec},?__(13,"3-point perp. normal saved as axis.")}];
-%% Take the edge loop normal.
-get_vec(vertex, Vs0, #we{vp=Vtab}=We) ->
-    Edges = find_edges(Vs0, We),
-    case wings_edge_loop:edge_loop_vertices(Edges, We) of
-	[Vs] -> 
-	    Center = wings_vertex:center(Vs, We),
-	    Vec = wings_face:face_normal_cw(Vs, Vtab),
-	    [{{Center,Vec},?__(14,"Vertex loop normal saved as axis.")}];
-	_Other ->
-	    [{none,?__(15,"Multi-vertex selection must form a single closed edge loop.")}]
-    end;
-
-%% Face normal
-get_vec(face, [Face], We) ->
-    Vec = wings_face:normal(Face, We),
-    Vs = wings_face:to_vertices([Face], We),
-    Center = wings_vertex:center(Vs, We),
-    [{{Center,Vec},?__(16,"Face normal saved as axis.")}];
-%% Direction between two faces as axis
-get_vec(face, [Face1,Face2], We) ->
-    Center1 = wings_face:center(Face1, We),
-    Center2 = wings_face:center(Face2, We),
-    Center = e3d_vec:average(Center1, Center2),
-    Vec = e3d_vec:norm_sub(Center1, Center2),
-    Face1n = wings_face:normal(Face1, We),
-    Face2n = wings_face:normal(Face2, We),
-    Normal = e3d_vec:norm(e3d_vec:add(Face1n, Face2n)),
-    [{{Center,Vec},
-      {?__(17,"Direction between face centers saved as axis."),
-       ?__(18,"Use average of face normals")}},
-     {{Center,Normal},
-      {?__(19,"Average of face normals saved as axis."),
-       ?__(20,"Use direction between face centers")}}];
-get_vec(face, Faces, #we{vp=Vtab}=We) ->
-    case wings_vertex:outer_vertices_ccw(Faces, We) of
-	error ->
-	    [{none,?__(22,"Multi-face selection must have a single edge loop.")}];
-	Vs when is_list(Vs) ->
-	    Center = wings_vertex:center(Vs, We),
-	    Vec = wings_face:face_normal_cw(Vs, Vtab),
-	    [{{Center,Vec},?__(21,"Edge loop normal for region saved as axis.")}]
-    end;
-
-get_vec(_, _, _) -> {none,?__(23,"Select vertices, edges, or faces.")}.
 
 %%%
 %%% Point functions.
