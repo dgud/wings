@@ -149,30 +149,25 @@ any_enabled_lights() ->
 			  Bool orelse ?IS_ANY_LIGHT(We)
 		  end, false).
 
+-spec info(#we{}) -> iolist().
+
 info(#we{name=Name,light=#light{type=Type}=L}=We) ->
-    Info0 = wings_util:format(?__(1,"Light ~s"), [Name]),
+    Info0 = io_lib:format(?__(1,"Light ~ts"), [Name]),
     case Type of
 	ambient -> Info0;
 	_ ->
-	    {X,Y,Z} = Pos = light_pos(We),
-	    Info = [Info0|io_lib:format(?__(2,": Pos ~s ~s ~s"),
-					[wings_util:nice_float(X),
-					 wings_util:nice_float(Y),
-					 wings_util:nice_float(Z)])],
+	    Pos = light_pos(We),
+	    Info = [Info0|io_lib:format(?__(2,": Pos ~s"),
+					[wings_util:nice_vector(Pos)])],
 	    [Info|info_1(Type, Pos, L)]
     end.
 
 info_1(point, _, _) -> [];
 info_1(Type, Pos, #light{aim=Aim,spot_angle=A}) ->
-    {Ax,Ay,Az} = Aim,
-    {Dx,Dy,Dz} = e3d_vec:norm_sub(Aim, Pos),
-    Info = io_lib:format(?__(1,". Aim ~s ~s ~s. Dir ~s ~s ~s"),
-			 [wings_util:nice_float(Ax),
-			  wings_util:nice_float(Ay),
-			  wings_util:nice_float(Az),
-			  wings_util:nice_float(Dx),
-			  wings_util:nice_float(Dy),
-			  wings_util:nice_float(Dz)]),
+    Dir = e3d_vec:norm_sub(Aim, Pos),
+    Info = io_lib:format(?__(1,". Aim ~s. Dir ~s"),
+			 [wings_util:nice_vector(Aim),
+			  wings_util:nice_vector(Dir)]),
     [Info|case Type of
 	      spot -> io_lib:format(?__(2,". Angle ~s~c"),
 				    [wings_util:nice_float(A),?DEGREE]);
