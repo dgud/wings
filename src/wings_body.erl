@@ -215,12 +215,8 @@ command({rename,Ids}, St) ->
     rename(Ids, St);
 command(to_arealight, St) ->
     to_arealight(St);
-command({to_arealight,Ids}, St) ->
-    to_arealight(Ids, St);
 command(from_arealight, St) ->
     from_arealight(St);
-command({from_arealight,Ids}, St) ->
-    from_arealight(Ids, St);
 command({vertex_attributes,materials_to_colors}, St) ->
     {save_state,materials_to_colors(St)};
 command({vertex_attributes,colors_to_materials}, St) ->
@@ -786,10 +782,6 @@ to_arealight(#st{shapes=Shs}=St) ->
     Wes = wings_sel:fold(fun(_, We, A) -> [We|A] end, [], St),
     to_arealight_1(Wes, Shs, St).
 
-to_arealight(Objects, #st{shapes=Shs}=St) ->
-    Wes = foldl(fun(Id, A) -> [gb_trees:get(Id, Shs)|A] end, [], Objects),
-    to_arealight_1(Wes, Shs, St).
-
 to_arealight_1([], Shs, St) -> 
     St#st{shapes=Shs};
 to_arealight_1([We0|Wes], Shs, St) when ?IS_ANY_LIGHT(We0) ->
@@ -811,10 +803,6 @@ from_arealight(#st{shapes=Shs}=St) ->
 		(_, _, A) ->
 		    A
 	    end, [], St),
-    from_arealight_1(Wes, Shs, St).
-
-from_arealight(Objects, #st{shapes=Shs}=St) ->
-    Wes = foldl(fun(Id, A) -> [gb_trees:get(Id, Shs)|A] end, [], Objects),
     from_arealight_1(Wes, Shs, St).
 
 from_arealight_1([], Shs, St) -> 
