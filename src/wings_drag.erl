@@ -64,7 +64,7 @@
 
 -type tv() :: [{e3d_vector(),vertices()}]
             | {vertices(),vec_transform_fun()}
-            | {'we',we_transform_fun()}.
+            | {'we',[we_transform_fun()]}.
 
 -type tvs() :: {'matrix',[{id(),mat_transform_fun()}]}
              | {'general',[{id(),general_fun()}]}
@@ -361,8 +361,8 @@ combine_tv_1([{Aff,Fun}|T], WeFuns, Aff0, FunList) ->
 combine_tv_1([], WeFuns, Aff, FunList) ->
     {Aff,FunList,WeFuns}.
 
-split_tv([{we,F}|T], WeFacc, Facc, Vacc) when is_function(F, 2) ->
-    split_tv(T, [F|WeFacc], Facc, Vacc);
+split_tv([{we,WeFuns}|T], [], Facc, Vacc) when is_list(WeFuns) ->
+    split_tv(T, WeFuns, Facc, Vacc);
 split_tv([{_,F}=Fun|T], WeFacc, Facc, Vacc) when is_function(F, 2) ->
     split_tv(T, WeFacc, [Fun|Facc], Vacc);
 split_tv([L|T], WeFacc, Facc, Vacc) when is_list(L) ->
@@ -387,7 +387,7 @@ mirror_constrain(Tvs, #we{mirror=Face}=We) ->
     VsSet = ordsets:from_list(Vs),
     mirror_constrain_1(Tvs, VsSet, M, []).
 
-mirror_constrain_1([{we,Tr}=Fun|Tvs], VsSet, M, Acc) when is_function(Tr) ->
+mirror_constrain_1([{we,Tr}=Fun|Tvs], VsSet, M, Acc) when is_list(Tr) ->
     mirror_constrain_1(Tvs, VsSet, M, [Fun|Acc]);
 mirror_constrain_1([{Vs,Tr0}=Fun|Tvs], VsSet, M, Acc) when is_function(Tr0) ->
     case ordsets:intersection(ordsets:from_list(Vs), VsSet) of

@@ -205,7 +205,7 @@ bevel_1(VsSet, #we{id=Id}=We0, {Tvs,Fa}) ->
 		  [] -> Fa;
 		  _ -> [{Id,gb_sets:from_list(Fs0)}|Fa]
 	      end,
-    {We,{[{Id,WeTr} || WeTr <- WeTrans]++[{Id,Tv}|Tvs],FaceSel}}.
+    {We,{[{Id,{we,WeTrans}},{Id,Tv}|Tvs],FaceSel}}.
 
 bevel_vertices([V|Vs], VsSet, WeOrig, We0, Acc0, Facc, WeTrans0) ->
     Adj = adjacent(V, VsSet, WeOrig),
@@ -249,7 +249,7 @@ bevel_vertex_1(V, Es, NumEdges, Adj, We0, Vec0, WeTrans0) ->
 	    true ->
 		%% Define a fun to update the vertex attributes dynamically.
 		VaTrans = bevel_va_fun(V, Es, InnerFace, We0),
-		WeTrans1 = [{we,VaTrans}|WeTrans0],
+		WeTrans1 = [VaTrans|WeTrans0],
 
 		%% Calculate initial values for vertex attributes.
 		%% This is necessary to get correct results in case two
