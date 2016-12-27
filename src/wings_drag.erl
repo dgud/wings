@@ -179,10 +179,18 @@ setup(Tvs, Units, Flags, St) ->
 %%% Local functions.
 %%%
 
-fold_1([{Id,Items}|T], F, Shapes) ->
-    We = gb_trees:get(Id, Shapes),
+fold_1([{Id,Items}|T], F, Shapes0) ->
+    We0 = gb_trees:get(Id, Shapes0),
     ?ASSERT(We#we.id =:= Id),
-    [{Id,F(Items, We)}|fold_1(T, F, Shapes)];
+    Tv = F(Items, We0),
+    Shapes = case We0 of
+                 #we{temp=[]} ->
+                     Shapes0;
+                 #we{} ->
+                     We = We0#we{temp=[]},
+                     gb_trees:update(Id, We, Shapes0)
+             end,
+    [{Id,Tv}|fold_1(T, F, Shapes)];
 fold_1([], _, _) -> [].
 
 matrix_1([{Id,_}|T], F, Shapes) ->
