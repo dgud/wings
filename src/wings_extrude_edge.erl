@@ -52,12 +52,10 @@ bump(Faces, Dist, We0, Acc) ->
 %%
 
 bevel(St0) ->
-    {St,{Tvs,Sel,Limit}} =
-	wings_sel:mapfold(fun bevel_edges/3, {[],[],infinite}, St0),
-    wings_drag:setup(Tvs, [{distance,{0.0,Limit}}],
-		     wings_sel:set(face, Sel, St)).
+    St = wings_sel:map_update_sel(fun bevel_edges/2, face, St0),
+    bevel_drag(St).
 
-bevel_edges(Edges, #we{id=Id,mirror=MirrorFace}=We0, {Tvs,Sel0,Limit0}) ->
+bevel_edges(Edges, #we{mirror=MirrorFace}=We0) ->
     Dist = ?BEVEL_EXTRUDE_DIST_KLUDGE,
     {We1,OrigVs,_,Forbidden} = extrude_edges(Edges, Dist, We0#we{mirror=none}),
     We2 = wings_edge:dissolve_edges(Edges, We1),
@@ -65,23 +63,26 @@ bevel_edges(Edges, #we{id=Id,mirror=MirrorFace}=We0, {Tvs,Sel0,Limit0}) ->
     Tv = scale_tv(Tv0, Dist),
     We3 = wings_collapse:collapse_vertices(OrigVs, We2),
     Vtab = bevel_reset_pos(OrigVs, We2, Forbidden, We3#we.vp),
-    We = We3#we{vp=Vtab,mirror=MirrorFace},
-    Limit = bevel_limit(Tv, We, Limit0),
+    We4 = We3#we{vp=Vtab,mirror=MirrorFace},
+    Limit = bevel_limit(Tv, We4),
+    We = We4#we{temp={Limit,Tv}},
     Sel = case gb_sets:is_empty(Forbidden) of
-	      true -> [{Id,wings_we:new_items_as_gbset(face, We0, We)}|Sel0];
-	      false -> Sel0
+	      true ->
+                  wings_we:new_items_as_gbset(face, We0, We);
+	      false ->
+                  gb_sets:empty()
 	  end,
-    {We,{[{Id,Tv}|Tvs],Sel,Limit}}.
+    {We,Sel}.
 
 %%
 %% The Bevel command (for faces).
 %%
 
 bevel_faces(St0) ->
-    {St,{Tvs,C}} = wings_sel:mapfold(fun bevel_faces/3, {[],infinite}, St0),
-    wings_drag:setup(Tvs, [{distance,{0.0,C}}], St).
+    St = wings_sel:map(fun bevel_faces/2, St0),
+    bevel_drag(St).
 
-bevel_faces(Faces, #we{id=Id,mirror=MirrorFace}=We0, {Tvs,Limit0}) ->
+bevel_faces(Faces, #we{mirror=MirrorFace}=We0) ->
     Dist = ?BEVEL_EXTRUDE_DIST_KLUDGE,
     Edges = wings_edge:from_faces(Faces, We0),
     {We1,OrigVs,_,Forbidden} = extrude_edges(Edges, Dist, We0#we{mirror=none}),
@@ -95,13 +96,20 @@ bevel_faces(Faces, #we{id=Id,mirror=MirrorFace}=We0, {Tvs,Limit0}) ->
 	    #we{vp=Vtab0} = We3 = wings_collapse:collapse_vertices(OrigVs, We2),
 	    Vtab = bevel_reset_pos(OrigVs, We2, Forbidden, Vtab0),
 	    We = We3#we{vp=Vtab,mirror=MirrorFace},
-	    Limit = bevel_limit(Tv, We, Limit0),
-	    {We,{[{Id,Tv}|Tvs],Limit}}
+	    Limit = bevel_limit(Tv, We),
+	    We#we{temp={Limit,Tv}}
     end.
 
 %%
 %% Common bevel utilities.
 %%
+
+bevel_drag(St) ->
+    MF = fun(_, #we{temp={Limit,_}}) -> Limit end,
+    RF = fun min/2,
+    Limit = wings_sel:dfold(MF, RF, infinite, St),
+    DF = fun(_, #we{temp={_,Tv}}) -> Tv end,
+    wings_drag:fold(DF, [{distance,{0.0,Limit}}], [], St).
 
 bevel_tv(Vs, We, Forbidden) ->
     foldl(fun(V, A) -> bevel_tv_1(V, We, Forbidden, A) end, [], Vs).
@@ -135,13 +143,13 @@ bevel_reset_pos_1(V, We, Forbidden, Vtab) ->
 	      end
       end, Vtab, V, We).
 
-bevel_limit(Tv, We, Limit) ->
+bevel_limit(Tv, We) ->
     L0 = foldl(fun({Vec,[V]}, A) ->
 		       bevel_limit_1(V, Vec, We, A)
 	       end, [], Tv),
     L = wings_util:rel2fam(L0),
     try
-	bevel_min_limit(L, We, Limit)
+	bevel_min_limit(L, We, infinite)
     catch
 	error:badarith ->
 	    extrude_problem()
