@@ -177,14 +177,18 @@ ex_connect([], _, We) ->
 %%%
 
 bevel(St0) ->
-    {St,{Tvs0,FaceSel}} =
-	wings_sel:mapfold(
-	  fun(VsSet, We, A) ->
-		  bevel_1(VsSet, We, A)
-	  end, {[],[]}, St0),
-    {Min,Tvs} = bevel_normalize(Tvs0),
-    wings_drag:setup(Tvs, [{distance,{0.0,Min}}],
-		     wings_sel:set(face, FaceSel, St)).
+    St = wings_sel:map_update_sel(
+           fun(VsSet, We) ->
+                   bevel_1(VsSet, We)
+           end, face, St0),
+    Limit = bevel_limit(St),
+    DF = fun(_, #we{temp={_,Tv}}) -> Tv end,
+    wings_drag:fold(DF, [{distance,{0.0,Limit}}], St).
+
+bevel_limit(St) ->
+    MF = fun(_, #we{temp={Limit,_}}) -> Limit end,
+    RF = fun min/2,
+    wings_sel:dfold(MF, RF, infinity, St).
 
 bevel_vertex(V, We0) ->
     Es = wings_vertex:fold(
@@ -198,14 +202,14 @@ bevel_vertex(V, We0) ->
 	    We
     end.
 
-bevel_1(VsSet, #we{id=Id}=We0, {Tvs,Fa}) ->
+bevel_1(VsSet, We0) ->
     Vs = gb_sets:to_list(VsSet),
-    {We,Tv,WeTrans,Fs0} = bevel_vertices(Vs, VsSet, We0, We0, [], [], []),
-    FaceSel = case Fs0 of
-		  [] -> Fa;
-		  _ -> [{Id,gb_sets:from_list(Fs0)}|Fa]
-	      end,
-    {We,{[{Id,{we,WeTrans}},{Id,Tv}|Tvs],FaceSel}}.
+    {We1,VecVs0,WeTrans,Fs0} = bevel_vertices(Vs, VsSet, We0, We0, [], [], []),
+    {VecVs,Limit} = bevel_normalize(VecVs0),
+    Tv = {we,WeTrans,VecVs},
+    We = We1#we{temp={Limit,Tv}},
+    Fs = gb_sets:from_list(Fs0),
+    {We,Fs}.
 
 bevel_vertices([V|Vs], VsSet, WeOrig, We0, Acc0, Facc, WeTrans0) ->
     Adj = adjacent(V, VsSet, WeOrig),
@@ -326,24 +330,11 @@ bevel_new_vertices(Ids, N, Pos, Vct0, Vtab0) when N > 0 ->
     bevel_new_vertices(wings_we:bump_id(Ids), N-1, Pos, Vct, Vtab);
 bevel_new_vertices(_, _, _, Vct, Vtab) -> {Vct,Vtab}.
 
-bevel_normalize(Tvs) ->
-    bevel_normalize(Tvs, 1.0E207, []).
-
-bevel_normalize([{_,{we,_}}=WeTrans|Tvs], Min, Acc) ->
-    bevel_normalize(Tvs, Min, [WeTrans|Acc]);
-bevel_normalize([{Id,VecVs0}|Tvs], Min0, Acc) ->
-    {VecVs,Min} = bevel_normalize_1(VecVs0, Min0),
-    bevel_normalize(Tvs, Min, [{Id,VecVs}|Acc]);
-bevel_normalize([], Min, Tvs) -> {Min,Tvs}.
-
-bevel_normalize_1(VecVs, Min0) ->
+bevel_normalize(VecVs) ->
     mapfoldl(fun({Vec,V}, M0) ->
-		     Min = case e3d_vec:len(Vec) of
-			       Len when Len < M0 -> Len;
-			       _Len -> M0
-			   end,
+		     Min = min(e3d_vec:len(Vec), M0),
 		     {{e3d_vec:norm(Vec),[V]},Min}
-	     end, Min0, VecVs).
+	     end, infinity, VecVs).
 
 adjacent(V, Vs, We) ->
     wings_vertex:fold(
