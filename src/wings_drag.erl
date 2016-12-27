@@ -62,9 +62,12 @@
 -type vec_transform_fun() :: fun((_, _) -> [{vertex_num(),e3d_vector()}]).
 -type general_fun() :: fun((_, #dlo{}) -> #dlo{}).
 
--type tv() :: [{e3d_vector(),vertices()}]
-            | {vertices(),vec_transform_fun()}
-            | {'we',[we_transform_fun()]}.
+-type basic_tv() :: [{e3d_vector(),vertices()}]
+                  | {vertices(),vec_transform_fun()}.
+
+-type tv() :: basic_tv() | {'we',[we_transform_fun()]}.
+
+-type fold_tv() :: basic_tv() | {'we',[we_transform_fun()],basic_tv()}.
 
 -type tvs() :: {'matrix',[{id(),mat_transform_fun()}]}
              | {'general',[{id(),general_fun()}]}
@@ -98,17 +101,14 @@
               | {'rescale_normals',boolean()}
               | 'screen_relative'.
 
--type tv_list() :: {id(),tv()}.
-
-
 -spec fold(Fun, [unit()], #st{}) -> {'drag',#drag{}} when
-      Fun :: fun((wings_sel:item_set(), #we{}) -> tv_list()).
+      Fun :: fun((wings_sel:item_set(), #we{}) -> fold_tv()).
 
 fold(F, Unit, St) when is_function(F, 2) ->
     fold(F, Unit, [], St).
 
 -spec fold(Fun, [unit()], [flag()], #st{}) -> {'drag',#drag{}} when
-      Fun :: fun((wings_sel:item_set(), #we{}) -> tv_list()).
+      Fun :: fun((wings_sel:item_set(), #we{}) -> fold_tv()).
 
 fold(F, Unit, Flags, St) when is_function(F, 2) ->
     #st{sel=Sel,shapes=Shapes} = St,
@@ -190,7 +190,14 @@ fold_1([{Id,Items}|T], F, Shapes0) ->
                      We = We0#we{temp=[]},
                      gb_trees:update(Id, We, Shapes0)
              end,
-    [{Id,Tv}|fold_1(T, F, Shapes)];
+    case Tv of
+        {we,[],OtherTv} ->
+            [{Id,OtherTv}|fold_1(T, F, Shapes)];
+        {we,[_|_]=WeFuns,OtherTv} ->
+            [{Id,OtherTv},{Id,{we,WeFuns}}|fold_1(T, F, Shapes)];
+        _ ->
+            [{Id,Tv}|fold_1(T, F, Shapes)]
+    end;
 fold_1([], _, _) -> [].
 
 matrix_1([{Id,_}|T], F, Shapes) ->
