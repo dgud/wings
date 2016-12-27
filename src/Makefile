@@ -76,6 +76,7 @@ MODULES= \
 	wings_glfont \
 	wings_help \
 	wings_hotkey \
+	wings_info \
 	wings_image \
 	wings_image_viewer \
 	wings_import \

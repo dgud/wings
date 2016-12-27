@@ -16,9 +16,10 @@
 -export([clear/1,reset/1,set/2,set/3,
 	 conditional_reset/1,
 	 map/2,map_update_sel/2,map_update_sel/3,
-	 update_sel/2,update_sel/3,fold/3,mapfold/3,
+	 update_sel/2,update_sel/3,fold/3,dfold/4,mapfold/3,
 	 new_sel/3,make/3,valid_sel/1,valid_sel/3,
-	 center/1,bbox_center/1,bounding_box/1,bounding_boxes/1,
+	 center/1,center_vs/1,
+	 bbox_center/1,bounding_box/1,bounding_boxes/1,
 	 face_regions/2,strict_face_regions/2,edge_regions/2,
 	 select_object/2,deselect_object/2,
 	 get_all_items/2,get_all_items/3,
@@ -139,6 +140,37 @@ update_sel(F, #st{sel=Sel0,shapes=Shapes}=St) when is_function(F, 2) ->
     Sel = update_sel_1(Sel0, F, Shapes),
     set(Sel, St).
 
+
+%%%
+%%% Distributed fold over the selection. The Map function
+%%% will be called in process holding the #we{}. The
+%%% Reduce function will be called in the main Wings
+%%% process.
+%%%
+
+-spec dfold(Map, Reduce, Acc0, #st{}) -> Acc1 when
+      Map :: fun((InItems, #we{}) -> Int),
+      Reduce :: fun((Int, AccIn) -> AccOut),
+      InItems :: item_set(),
+      Acc0 :: term(),
+      Acc1 :: term(),
+      AccIn :: term(),
+      AccOut :: term().
+
+dfold(Map, Reduce, Acc0, St) when is_function(Map, 2),
+				  is_function(Reduce, 2) ->
+    #st{sel=Sel,shapes=Shapes} = St,
+    dfold_1(Sel, Map, Reduce, Shapes, Acc0).
+
+dfold_1([{Id,Items}|T], Map, Reduce, Shapes, Acc0) ->
+    We = gb_trees:get(Id, Shapes),
+    ?ASSERT(We#we.id =:= Id),
+    Int = Map(Items, We),
+    Acc = Reduce(Int, Acc0),
+    dfold_1(T, Map, Reduce, Shapes, Acc);
+dfold_1([], _, _, _, Acc) -> Acc.
+
+
 %%%
 %%% Fold over the selection.
 %%%
@@ -212,11 +244,31 @@ make(Filter, Mode, St) when is_function(Filter, 2) ->
 -spec center(#st{}) -> e3d_vector().
 
 center(#st{selmode=Mode}=St) ->
-    Centers = fold(fun(Items, We, A) ->
-			   Vs = to_vertices(Mode, Items, We),
-			   [wings_vertex:center(Vs, We)|A]
-		   end, [], St),
-    e3d_vec:average(Centers).
+    MF = fun(Items, We) ->
+		 Vs = to_vertices(Mode, Items, We),
+		 wings_vertex:center(Vs, We)
+	 end,
+    RF = fun(V, {N,Acc}) -> {N+1,e3d_vec:add(V, Acc)} end,
+    {N,Sum} = dfold(MF, RF, {0,e3d_vec:zero()}, St),
+    e3d_vec:divide(Sum, N).
+
+
+%%%
+%%% Calculate the center for all selected vertices.
+%%%
+
+-spec center_vs(#st{}) -> e3d_vector().
+
+center_vs(#st{selmode=Mode}=St) ->
+    MF = fun(Items, We) ->
+		 N = gb_sets:size(Items),
+		 Vs = to_vertices(Mode, Items, We),
+		 Center = wings_vertex:center(Vs, We),
+		 {N,e3d_vec:mul(Center, float(N))}
+	 end,
+    RF = fun({N0,C0}, {N1,C1}) -> {N0+N1,e3d_vec:add(C0, C1)} end,
+    {N,Sum} = dfold(MF, RF, {0,e3d_vec:zero()}, St),
+    e3d_vec:divide(Sum, N).
 
 %% Calculate center of bounding box.
 
@@ -233,10 +285,14 @@ bbox_center(St) ->
 -spec bounding_box(#st{}) -> [e3d_vector()] | 'none'.
 
 bounding_box(#st{selmode=Mode}=St) ->
-    fold(fun(Items, We, A) ->
+    MF = fun(Items, We) ->
 		 Vs = to_vertices(Mode, Items, We),
-		 wings_vertex:bounding_box(Vs, We, A)
-	 end, none, St).
+		 wings_vertex:bounding_box(Vs, We)
+	 end,
+    RF = fun(Box, none) -> Box;
+	    (Box, Acc) -> e3d_vec:bounding_box(Box++Acc)
+	 end,
+    dfold(MF, RF, none, St).
 
 %%%
 %%% Calculate the bounding boxes for all selected objects.

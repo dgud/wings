@@ -131,18 +131,14 @@ dup(Type) ->
     end.
 
 mode_dependent(St) ->
-    SelObj = wings_sel:fold(fun(_, We, A) -> [We|A] end, [], St),
-    Kind = foldl(fun(We, A) ->
-			 Type = if 
-				    ?IS_AREA_LIGHT(We) -> arealight;
-				    true -> object
-				end,
-			 case A of
-			     none -> Type;
-			     Type -> Type;
-			     _ -> mixed
-			 end
-		 end, none, SelObj),
+    MF = fun(_, We) when ?IS_AREA_LIGHT(We) -> arealight;
+            (_, _) -> object
+         end,
+    RF = fun(T, []) -> T;
+            (T, T) -> T;
+            (_, _) -> mixed
+         end,
+    Kind = wings_sel:dfold(MF, RF, [], St),
     Tail = vertex_color_item(Kind),
     arealight_conv(Kind, Tail).
 
@@ -215,12 +211,8 @@ command({rename,Ids}, St) ->
     rename(Ids, St);
 command(to_arealight, St) ->
     to_arealight(St);
-command({to_arealight,Ids}, St) ->
-    to_arealight(Ids, St);
 command(from_arealight, St) ->
     from_arealight(St);
-command({from_arealight,Ids}, St) ->
-    from_arealight(Ids, St);
 command({vertex_attributes,materials_to_colors}, St) ->
     {save_state,materials_to_colors(St)};
 command({vertex_attributes,colors_to_materials}, St) ->
@@ -495,11 +487,11 @@ duplicate_object(Objects, #st{shapes=Shs}=St) ->
 %%% The Delete command.
 %%%
 
-delete(#st{shapes=Shapes0}=St) ->
-    Shapes = wings_sel:fold(fun(_, #we{id=Id}, Shs) ->
-				    gb_trees:delete(Id, Shs)
-			    end, Shapes0, St),
-    St#st{shapes=Shapes,sel=[]}.
+delete(St) ->
+    wings_sel:map_update_sel(
+      fun(_, _) ->
+              {#we{},gb_sets:empty()}
+      end, St).
 
 %%%
 %%% Delete called from the Outliner or Object window.
@@ -780,49 +772,18 @@ rename_qs(Wes) ->
        {vframe,TextFields}]}].
 
 %%%
-%%% Convert selected objects to area lights
+%%% Conversion to and from area lights.
 %%%
-to_arealight(#st{shapes=Shs}=St) ->
-    Wes = wings_sel:fold(fun(_, We, A) -> [We|A] end, [], St),
-    to_arealight_1(Wes, Shs, St).
+to_arealight(St) ->
+    wings_sel:map(fun to_arealight_1/2, St).
 
-to_arealight(Objects, #st{shapes=Shs}=St) ->
-    Wes = foldl(fun(Id, A) -> [gb_trees:get(Id, Shs)|A] end, [], Objects),
-    to_arealight_1(Wes, Shs, St).
-
-to_arealight_1([], Shs, St) -> 
-    St#st{shapes=Shs};
-to_arealight_1([We0|Wes], Shs, St) when ?IS_ANY_LIGHT(We0) ->
-    to_arealight_1(Wes, Shs, St);
-to_arealight_1([#we{id=Id}=We0|Wes], Shs, St) ->
+to_arealight_1(_, We) ->
+    false = ?IS_ANY_LIGHT(We),                  %Assertion.
     #we{light=Light} = wings_light:import([{opengl,[{type,area}]}]),
-    We = We0#we{light=Light},
-    to_arealight_1(Wes, gb_trees:update(Id, We, Shs), St).
+    We#we{light=Light}.
 
-
-
-%%%
-%%% Convert selected area lights to objects
-%%%
-from_arealight(#st{shapes=Shs}=St) ->
-    Wes = wings_sel:fold(
-	    fun (_, We, A) when ?IS_AREA_LIGHT(We)-> 
-		    [We|A];
-		(_, _, A) ->
-		    A
-	    end, [], St),
-    from_arealight_1(Wes, Shs, St).
-
-from_arealight(Objects, #st{shapes=Shs}=St) ->
-    Wes = foldl(fun(Id, A) -> [gb_trees:get(Id, Shs)|A] end, [], Objects),
-    from_arealight_1(Wes, Shs, St).
-
-from_arealight_1([], Shs, St) -> 
-    St#st{shapes=Shs};
-from_arealight_1([#we{id=Id}=We|Wes], Shs, St) when ?IS_AREA_LIGHT(We) ->
-    from_arealight_1(Wes, gb_trees:update(Id, We#we{light=none}, Shs), St);
-from_arealight_1([We|Wes], Shs, St) when ?IS_ANY_LIGHT(We) ->
-    to_arealight_1(Wes, Shs, St).
+from_arealight(St) ->
+    wings_sel:map(fun(_, We) -> We#we{light=none} end, St).
 
 %%%
 %%% Convert materials to vertex colors.

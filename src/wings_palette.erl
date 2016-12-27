@@ -156,24 +156,26 @@ write_file(Name, Cols) ->
 
 scan_colors(#st{mat=Mtab, selmode=Mode}=St, Cols0) ->
     Cols1 = scan_materials(gb_trees:values(Mtab), Cols0),
+    Cols2 = lists:usort(Cols1),
+    MF = fun(Items, We) ->
+		 Colors = scan_color(Mode, Items, We),
+		 lists:usort(Colors)
+	 end,
+    RF = fun lists:umerge/2,
+    wings_sel:dfold(MF, RF, Cols2, St).
 
-    Cols  = wings_sel:fold(fun(Items, We, Cols) ->
-				   scan_color(Items, Mode, We, Cols)
-			   end, ordsets:from_list(Cols1), St),
-    lists:usort(Cols).
-
-scan_color(_, body, We, Acc) ->
-    Cols = wings_va:all(color, We),
-    ordsets:union(Cols, Acc);
-scan_color(Sel, vertex, We, Acc0) ->
-    gb_sets:fold(
-      fun(V, Acc1) ->
-	      wings_vertex:fold(fun(_, Face, _, Acc) ->
-					Attr = wings_va:vtx_attrs(V, Face, We),
-					add_cols([Attr], Acc)
-				end, Acc1, V, We)
-      end, Acc0, Sel);
-scan_color(Sel, edge, We = #we{es=Etab}, Acc0) ->
+scan_color(body, _, We) ->
+    wings_va:all(color, We);
+scan_color(vertex, Vs, We) ->
+    F = fun(V, A) ->
+	       VsFun = fun(_, Face, _, Acc) ->
+			       Attr = wings_va:vtx_attrs(V, Face, We),
+			       add_cols([Attr], Acc)
+		       end,
+		wings_vertex:fold(VsFun, A, V, We)
+	end,
+    gb_sets:fold(F, [], Vs);
+scan_color(edge, Edges, #we{es=Etab}=We) ->
     gb_sets:fold(
       fun(Edge, Acc) ->
 	      #edge{lf=LF,rf=RF,ve=Ve,vs=Vs} = array:get(Edge, Etab),
@@ -182,13 +184,13 @@ scan_color(Sel, edge, We = #we{es=Etab}, Acc0) ->
 	      C = wings_va:vtx_attrs(Ve, LF, We),
 	      D = wings_va:vtx_attrs(Ve, RF, We),
 	      add_cols([A,B,C,D], Acc)
-      end, Acc0, Sel);
-scan_color(Sel, face, We, Acc0) ->
+      end, [], Edges);
+scan_color(face, Faces, We) ->
     gb_sets:fold(
       fun(Face, Acc) ->
 	      Attrs = wings_va:face_attr(color, Face, We),
 	      add_cols(Attrs, Acc)
-      end, Acc0, Sel).
+      end, [], Faces).
 
 scan_materials([Mat|Ms], Cols) ->
     Opengl = proplists:get_value(opengl, Mat),

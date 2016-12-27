@@ -24,18 +24,20 @@ submenu() ->
     [{?STR(submenu,1,"Triangulate"),triangulate},
      {?STR(submenu,2,"Quadrangulate"),quadrangulate}].
 
-command(triangulate, St) ->
+command(triangulate, St0) ->
     Action = fun triangulate/2,
-    {St1,Sel} = wings_sel:mapfold(fun(Fs, We, A) ->
-					  do_faces(Action, Fs, We, A) end,
-				  [], St),
-    {save_state,St1#st{sel=reverse(Sel)}};
-command(quadrangulate, St) ->
+    St = wings_sel:map_update_sel(
+           fun(Fs, We) ->
+                   do_faces(Action, Fs, We)
+           end, St0),
+    {save_state,St};
+command(quadrangulate, St0) ->
     Action = fun quadrangulate/2,
-    {St1,Sel} = wings_sel:mapfold(fun(Fs, We, A) ->
-					  do_faces(Action, Fs, We, A) end,
-				  [], St),
-    {save_state,St1#st{sel=reverse(Sel)}}.
+    St = wings_sel:map_update_sel(
+           fun(Fs, We) ->
+                   do_faces(Action, Fs, We)
+           end, St0),
+    {save_state,St}.
 
 triangulate(#we{fs=Ftab}=We) ->
     triangulate(gb_sets:from_ordset(gb_trees:keys(Ftab)), We).
@@ -105,10 +107,10 @@ is_good_triangulation({Nx,Ny,Nz}, {Ax,Ay,Az}, {Bx,By,Bz}, {Cx,Cy,Cz}, {Dx,Dy,Dz}
 is_good_triangulation_1(D1, D2) when D1 > 0.0, D2 > 0.0 -> true;
 is_good_triangulation_1(_, _) -> false.
 
-do_faces(Action, Faces, #we{id=Id}=We0, Acc) ->
+do_faces(Action, Faces, We0) ->
     We = Action(Faces, We0),
     Sel = gb_sets:union(wings_we:new_items_as_gbset(face, We0, We), Faces),
-    {We,[{Id,Sel}|Acc]}.
+    {We,Sel}.
 
 tess_faces([], We) -> We;
 tess_faces([F|T], We) -> tess_faces(T, doface(F, We)).

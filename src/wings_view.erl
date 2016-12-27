@@ -25,7 +25,7 @@
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
 
--import(lists, [foldl/3,zip/2]).
+-import(lists, [foldl/3,flatmap/2,zip/2]).
 
 menu() ->
     L = wings_pref:get_value(number_of_lights),
@@ -1243,33 +1243,29 @@ along(_, _) -> none.
 align_to_selection(#st{sel=[]}=St) -> St;
 align_to_selection(#st{selmode=vertex}=St) ->
     N = average_normals(
-	  fun(Vs, We, Acc) ->
-		  foldl(fun(V, A) ->
-				[wings_vertex:normal(V, We)|A]
-			end, Acc, Vs)
+          fun(Vs, We) ->
+		  [wings_vertex:normal(V, We) || V <- Vs]
 	  end, St),
-	align_view_to_selection(N),
-	St;
+    align_view_to_selection(N),
+    St;
 align_to_selection(#st{selmode=edge}=St) ->
     N = average_normals(
-	  fun(Edges, #we{es=Etab}=We, Acc) ->
-		  foldl(fun(Edge, A) ->
-				#edge{lf=Lf,rf=Rf} = array:get(Edge, Etab),
-				[wings_face:normal(Lf, We),
-				 wings_face:normal(Rf, We)|A]
-			end, Acc, Edges)
+	  fun(Edges, #we{es=Etab}=We) ->
+		  flatmap(fun(Edge) ->
+                                  #edge{lf=Lf,rf=Rf} = array:get(Edge, Etab),
+                                  [wings_face:normal(Lf, We),
+                                   wings_face:normal(Rf, We)]
+                          end, Edges)
 	  end, St),
-	align_view_to_selection(N),
-	St;
+    align_view_to_selection(N),
+    St;
 align_to_selection(#st{selmode=face}=St) ->
     N = average_normals(
-	  fun(Faces, We, Acc) ->
-		  foldl(fun(Face, A) ->
-				[wings_face:normal(Face, We)|A]
-			end, Acc, Faces)
+	  fun(Faces, We) ->
+                  [wings_face:normal(Face, We) || Face <- Faces]
 	  end, St),
-	align_view_to_selection(N),
-	St;
+    align_view_to_selection(N),
+    St;
 align_to_selection(St) -> St.
 
 align_view_to_selection(N) ->
@@ -1278,11 +1274,13 @@ align_view_to_selection(N) ->
     set_current(View#view{azimuth=Az,elevation=El}).
 
 average_normals(CalcNormals, St) ->
-    Ns = wings_sel:fold(
-	   fun(Items, We, Acc) ->
-		   CalcNormals(gb_sets:to_list(Items), We, Acc)
-	   end, [], St),
-    e3d_vec:norm(e3d_vec:add(Ns)).
+    MF = fun(Items, We) ->
+                 Ns = CalcNormals(gb_sets:to_list(Items), We),
+                 e3d_vec:add(Ns)
+         end,
+    RF = fun e3d_vec:add/2,
+    Ns = wings_sel:dfold(MF, RF, e3d_vec:zero(), St),
+    e3d_vec:norm(Ns).
 
 align_view_to_normal({Nx,Ny,Nz}) ->
     Z = {0.0,0.0,1.0},
