@@ -1168,34 +1168,42 @@ lift_selection(Dir, OrigSt) ->
 	  end,
     {[{Fun,Desc}],[],[],[vertex,edge]}.
 
-lift_check_selection(#st{selmode=edge,sel=EdgeSel}, OrigSt) ->
-    Res = wings_sel:fold(
-	    fun(_, _, error) -> error;
-	       (Faces, #we{id=Id}=We, [{Id,Edges}|More]) ->
-		    case lift_face_edge_pairs(Faces, Edges, We) of
-			error -> error;
-			_ -> More
-		    end;
-	       (_, _, _) -> error
-	    end, EdgeSel, OrigSt),
-    case Res of
-	[] -> {none,""};
-	_ -> {none,?__(1,"Face and edge selections don't match.")}
-    end;
-lift_check_selection(#st{selmode=vertex,sel=VsSel}, OrigSt) ->
-    Res = wings_sel:fold(
-	    fun(_, _, error) -> error;
-	       (Faces, #we{id=Id}=We, [{Id,Vs}|More]) ->
-		    case lift_face_vertex_pairs(Faces, Vs, We) of
-			error -> error;
-			_ -> More
-		    end;
-	       (_, _, _) -> error
-	    end, VsSel, OrigSt),
-    case Res of
-	[] -> {none,""};
-	_ -> {none,?__(2,"Face and vertex selections don't match.")}
+lift_check_selection(St, OrigSt) ->
+    {Mode,SelMap} = export_sel(St),
+    {F,Msg} = case Mode of
+                  edge ->
+                      {fun lift_face_edge_pairs/3,
+                       ?__(1,"Face and edge selections don't match.")};
+                  vertex ->
+                      {fun lift_face_vertex_pairs/3,
+                       ?__(2,"Face and vertex selections don't match.")}
+              end,
+    case lift_check_selection_1(F, SelMap, OrigSt) of
+	ok -> {none,""};
+	error -> {none,Msg}
     end.
+
+lift_check_selection_1(F, SelMap, #st{selmode=face}=St) ->
+    MF = fun(Faces, #we{id=Id}=We) ->
+                 case SelMap of
+                     #{Id:=Items} -> F(Faces, Items, We);
+                     #{} -> error
+                 end
+         end,
+    RF = fun(error, _) -> error;
+            (_, error) -> error;
+            (L, A) -> L ++ A
+         end,
+    case wings_sel:dfold(MF, RF, [], St) of
+        error -> error;
+        [_|_] -> ok
+    end.
+
+export_sel(#st{selmode=Mode}=St) ->
+    MF = fun(Items, #we{id=Id}) -> {Id,Items} end,
+    RF = fun(S, A) -> [S|A] end,
+    Sel = wings_sel:dfold(MF, RF, [], St),
+    {Mode,maps:from_list(Sel)}.
 
 lift({'ASK',Ask}, St) ->
     wings:ask(Ask, St, fun lift/2);
@@ -1206,39 +1214,46 @@ lift({Dir,vertex,VertexSel}, St) ->
 lift(Dir, St) ->
     wings:ask(lift_selection(Dir, St), St, fun lift/2).
 
-lift_setup_drag(Tvs, rotate, St) ->
-    wings_drag:setup(Tvs, [angle], St);
-lift_setup_drag(Tvs, free, St) ->
-    wings_drag:setup(Tvs, [dx,dy,dz], [screen_relative], St);
-lift_setup_drag(Tvs, _, St) ->
-    wings_drag:setup(Tvs, [distance], St).
+lift_setup_drag(F, rotate, St) ->
+    wings_drag:fold(F, [angle], St);
+lift_setup_drag(F, free, St) ->
+    wings_drag:fold(F, [dx,dy,dz], [screen_relative], St);
+lift_setup_drag(F, _, St) ->
+    wings_drag:fold(F, [distance], St).
 
 %%%
 %%% Lift from edge.
 %%%
 
-lift_from_edge(Dir, EdgeSel, St0) ->
-    Res = wings_sel:mapfold(
-	    fun(Faces, #we{id=Id}=We0, {[{Id,Edges}|ES],Tv0}) ->
-		    {We,Tv} = lift_from_edge(Dir, Faces, Edges, We0, Tv0),
-		    {We,{ES,Tv}};
-	       (_, _, _) -> lift_sel_mismatch()
-	    end, {EdgeSel,[]}, St0),
-    case Res of
-	{St,{[],Tvs}} -> lift_setup_drag(Tvs, Dir, St);
-	{_,_} -> lift_sel_mismatch()
-    end.
+lift_from_edge(Dir, EdgeSel0, St0) ->
+    EdgeSel = maps:from_list(EdgeSel0),
+    MF = fun(Faces, #we{id=Id}=We0) ->
+                 case EdgeSel of
+                     #{Id:=Edges} ->
+                         {We,Tv0} = lift_from_edge(Dir, Faces, Edges, We0),
+                         Tv = wings_drag:compose(Tv0),
+                         We#we{temp=Tv};
+                     #{} ->
+                         We0#we{temp=[]}
+                 end
+         end,
+    St = wings_sel:map(MF, St0),
+    FF = fun(_, #we{temp=[]}) -> lift_sel_mismatch();
+            (_, #we{temp=Tv}) -> Tv
+         end,
+    lift_setup_drag(FF, Dir, St).
 
 -spec lift_sel_mismatch() -> no_return().
 lift_sel_mismatch() ->
     wings_u:error_msg(?__(1,"Face and edge selections don't match.")).
-	
-lift_from_edge(Dir, Faces, Edges, We0, Tv) ->
+
+lift_from_edge(Dir, Faces, Edges, We0) ->
     case lift_face_edge_pairs(Faces, Edges, We0) of
-	error -> lift_sel_mismatch();		%Can happen if repeated.
+	error ->
+            lift_sel_mismatch();              %Can happen if repeated.
 	FaceEdgeRel ->
 	    We = wings_extrude_face:faces(Faces, We0),
-	    lift_from_edge_1(Dir, FaceEdgeRel, We0, We, Tv)
+	    lift_from_edge_1(Dir, FaceEdgeRel, We0, We, [])
     end.
 
 lift_from_edge_1(Dir, [{Face,Edge}|T], #we{es=Etab}=OrigWe, We0, Tv0) ->
@@ -1250,7 +1265,7 @@ lift_from_edge_1(Dir, [{Face,Edge}|T], #we{es=Etab}=OrigWe, We0, Tv0) ->
     lift_from_edge_1(Dir, T, OrigWe, We, Tv);
 lift_from_edge_1(_Dir, [], _OrigWe, We, Tv) -> {We,Tv}.
 
-lift_from_edge_2(Dir, Face, Edge, Side, #we{id=Id,es=Etab}=We0, Tv) ->
+lift_from_edge_2(Dir, Face, Edge, Side, #we{es=Etab}=We0, Tv) ->
     FaceVs0 = ordsets:from_list(wings_face:vertices_ccw(Face, We0)),
     #edge{vs=Va0,ve=Vb0} = array:get(Edge, Etab),
     {Va,Ea} = lift_edge_vs(Va0, FaceVs0, We0),
@@ -1267,11 +1282,11 @@ lift_from_edge_2(Dir, Face, Edge, Side, #we{id=Id,es=Etab}=We0, Tv) ->
 			right -> e3d_vec:norm_sub(VaPos, VbPos)
 		   end,
 	    Rot = wings_rotate:rotate(Axis, VaPos, FaceVs, We),
-	    {We,[{Id,Rot}]};
+	    {We,[Rot|Tv]};
 	_Other ->
 	    Vec = wings_util:make_vector(Dir),
 	    Move = wings_move:setup_we(vertex, Vec, FaceVs, We),
-	    {We,[{Id,Move}|Tv]}
+	    {We,[Move|Tv]}
     end.
 
 lift_edge_vs(V, FaceVs, We) ->
@@ -1308,27 +1323,33 @@ lift_face_edge_pairs(Faces, Edges, We) ->
 %%% Lift from vertex.
 %%%
 
-lift_from_vertex(Dir, VsSel, St0) ->
-    Res = wings_sel:mapfold(
-	    fun(Faces, #we{id=Id}=We0, {[{Id,Vs}|MoreVs],Tv0}) ->
-		    {We,Tv} = lift_from_vertex(Dir, Faces, Vs, We0, Tv0),
-		    {We,{MoreVs,Tv}};
-	       (_, _, _) -> lift_vtx_sel_mismatch()
-	    end, {VsSel,[]}, St0),
-    case Res of
-	{St,{[],Tvs}} -> lift_setup_drag(Tvs, Dir, St);
-	{_,_} -> lift_vtx_sel_mismatch()
-    end.
+lift_from_vertex(Dir, VsSel0, St0) ->
+    VsSel = maps:from_list(VsSel0),
+    MF = fun(Faces, #we{id=Id}=We0) ->
+                 case VsSel of
+                     #{Id:=Vs} ->
+                         {We,Tv0} = lift_from_vertex(Dir, Faces, Vs, We0),
+                         Tv = wings_drag:compose(Tv0),
+                         We#we{temp=Tv};
+                     #{} ->
+                         We0#we{temp=[]}
+                 end
+         end,
+    St = wings_sel:map(MF, St0),
+    FF = fun(_, #we{temp=[]}) -> lift_vtx_sel_mismatch();
+            (_, #we{temp=Tv}) -> Tv
+         end,
+    lift_setup_drag(FF, Dir, St).
 
 -spec lift_vtx_sel_mismatch() -> no_return().
 lift_vtx_sel_mismatch() ->
     wings_u:error_msg(?__(1,"Face and vertex selections don't match.")).
 
-lift_from_vertex(Dir, Faces, Vs, We, Tv) ->
+lift_from_vertex(Dir, Faces, Vs, We) ->
     case lift_face_vertex_pairs(Faces, Vs, We) of
 	error -> lift_vtx_sel_mismatch();	%Can happen if repeated.
 	FaceVtxRel ->
-	    lift_from_vertex_1(Dir, FaceVtxRel, We, Tv)
+	    lift_from_vertex_1(Dir, FaceVtxRel, We, [])
     end.
 
 lift_from_vertex_1(Dir, [{Face,V}|T], We0, Tv0) ->
@@ -1336,7 +1357,7 @@ lift_from_vertex_1(Dir, [{Face,V}|T], We0, Tv0) ->
     lift_from_vertex_1(Dir, T, We, Tv);
 lift_from_vertex_1(_Dir, [], We, Tv) -> {We,Tv}.
 
-lift_from_vertex_2(Dir, Face, V, #we{id=Id,next_id=Next}=We0, Tv) ->
+lift_from_vertex_2(Dir, Face, V, #we{next_id=Next}=We0, Tv) ->
     We1 = wings_extrude_face:faces([Face], We0),
     We = wings_vertex:fold(
 	   fun(Edge, _, _, W) when Edge >= Next ->
@@ -1362,11 +1383,11 @@ lift_from_vertex_2(Dir, Face, V, #we{id=Id,next_id=Next}=We0, Tv) ->
 	    N = wings_face:normal(Face, We),
 	    Axis = e3d_vec:cross(M, N),
             Rot = wings_rotate:rotate(Axis, Vpos, FaceVs, We),
-	    {We,[{Id,Rot}]};
+	    {We,[Rot|Tv]};
 	_Other ->
 	    Vec = wings_util:make_vector(Dir),
 	    Move = wings_move:setup_we(vertex, Vec, FaceVs, We),
-	    {We,[{Id,Move}|Tv]}
+	    {We,[Move|Tv]}
     end.
 
 %% Pair the face selection with the vertex selection (if possible).
