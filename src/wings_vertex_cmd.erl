@@ -124,19 +124,18 @@ flatten(Plane0, Center, St) ->
 %%%
 
 extrude(Type, St0) ->
-    {St,Tvs} = wings_sel:mapfold(
-		 fun(Vs, We0, Acc) ->
-			 extrude_vertices(Vs, We0, Acc)
-		 end, [], St0),
-    wings_move:plus_minus(Type, Tvs, St).
+    MF = fun(Vs, We0) -> extrude_vertices(Vs, We0) end,
+    St = wings_sel:map(MF, St0),
+    DF = fun(_, #we{temp=PlusMinus}) -> PlusMinus end,
+    wings_move:plus_minus(Type, DF, St).
 
-extrude_vertices(Vs, We0, Acc) ->
+extrude_vertices(Vs, We0) ->
     We = gb_sets:fold(
 	   fun(V, A) ->
 		   ex_new_vertices(V, We0, A)
 	   end, We0, Vs),
     NewVs = wings_we:new_items_as_ordset(vertex, We0, We),
-    {We,[{Vs,NewVs,gb_sets:empty(),We}|Acc]}.
+    We#we{temp={Vs,NewVs,gb_sets:empty()}}.
 
 ex_new_vertices(V, OrigWe, #we{vp=Vtab}=We0) ->
     Center = wings_vertex:pos(V, We0),
