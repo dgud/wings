@@ -13,7 +13,8 @@
 
 -module(wings_drag).
 -export([setup/3,setup/4,do_drag/2,fold/3,fold/4,
-         matrix/3,matrix/4,compose/1,translate_fun/2]).
+         matrix/3,matrix/4,general/4,
+         compose/1,translate_fun/2]).
 
 -export_type([vec_transform_fun/0,vertices/0,vertex_transform/0]).
 
@@ -130,8 +131,16 @@ matrix(F, Units, #st{selmode=body}=St) ->
 
 matrix(F, Units, Flags, #st{selmode=body}=St) when is_function(F, 1) ->
     #st{sel=Sel,shapes=Shapes} = St,
-    Tvs = matrix_1(Sel, F, Shapes),
+    Tvs = get_funs(Sel, F, Shapes),
     setup({matrix,Tvs}, Units, Flags, St).
+
+-spec general(Fun, [unit()], [flag()], #st{}) -> {'drag',#drag{}} when
+      Fun :: fun((#we{}) -> general_fun()).
+
+general(F, Units, Flags, St) when is_function(F, 1) ->
+    #st{sel=Sel,shapes=Shapes} = St,
+    Tvs = get_funs(Sel, F, Shapes),
+    setup({general,Tvs}, Units, Flags, St).
 
 -spec compose([{vertices(),vec_transform_fun()}]) ->
                      {vertices(),vec_transform_fun()}.
@@ -183,7 +192,7 @@ setup(Tvs, Units, Flags, St) ->
 	    wings_draw:refresh_dlists(St),
 	    insert_matrix(TvMatrix);
 	{general,General} ->
-	    wings_draw:invalidate_dlists(St),
+	    wings_draw:refresh_dlists(St),
 	    break_apart_general(General);
 	[_|_] ->
 	    wings_draw:invalidate_dlists(St),
@@ -216,11 +225,19 @@ fold_1([{Id,Items}|T], F, Shapes0) ->
     end;
 fold_1([], _, _) -> [].
 
-matrix_1([{Id,_}|T], F, Shapes) ->
-    We = gb_trees:get(Id, Shapes),
+get_funs([{Id,_}|T], F, Shapes0) ->
+    We0 = gb_trees:get(Id, Shapes0),
     ?ASSERT(We#we.id =:= Id),
-    [{Id,F(We)}|matrix_1(T, F, Shapes)];
-matrix_1([], _, _) -> [].
+    General = F(We0),
+    Shapes = case We0 of
+                 #we{temp=[]} ->
+                     Shapes0;
+                 #we{} ->
+                     We = We0#we{temp=[]},
+                     gb_trees:update(Id, We, Shapes0)
+             end,
+    [{Id,General}|get_funs(T, F, Shapes)];
+get_funs([], _, _) -> [].
 
 execute_composed([TF|TFs], Arg, Acc0) ->
     Acc = TF(Arg, Acc0),
