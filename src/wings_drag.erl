@@ -13,7 +13,9 @@
 
 -module(wings_drag).
 -export([setup/3,setup/4,do_drag/2,fold/3,fold/4,
-         matrix/3,matrix/4,compose/1]).
+         matrix/3,matrix/4,compose/1,translate_fun/2]).
+
+-export_type([vec_transform_fun/0,vertices/0,vertex_transform/0]).
 
 -define(NEED_ESDL, 1).
 -define(NEED_OPENGL, 1).
@@ -61,6 +63,8 @@
 -type we_transform_fun() :: fun((#we{}, [float()]) -> #we{}).
 -type vec_transform_fun() :: fun((_, _) -> [{vertex_num(),e3d_vector()}]).
 -type general_fun() :: fun((_, #dlo{}) -> #dlo{}).
+
+-type vertex_transform() :: {vertices(),vec_transform_fun()}.
 
 -type basic_tv() :: [{e3d_vector(),vertices()}]
                   | {vertices(),vec_transform_fun()}.
