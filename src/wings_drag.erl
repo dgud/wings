@@ -146,6 +146,18 @@ compose(Transforms) ->
         end,
     {Vs,F}.
 
+-spec translate_fun([{e3d_vector(),vertices()}], #we{}) ->
+                           {vertices(),vec_transform_fun()}.
+
+translate_fun([_|_]=VecVs0, #we{vp=Vtab}) ->
+    SS = sofs:from_term(VecVs0, [{vec,[vertex]}]),
+    FF = sofs:relation_to_family(SS),
+    FU = sofs:family_union(FF),
+    VecVs1 = sofs:to_external(FU),
+    Affected = foldl(fun({_,Vs}, A) -> Vs++A end, [], VecVs1),
+    VecVs = insert_vtx_data(VecVs1, Vtab, []),
+    {Affected,translate_fun(VecVs)}.
+
 -spec setup(tvs(), [unit()], #st{}) -> {'drag',#drag{}}.
 
 setup(Tvs, Unit, St) ->
