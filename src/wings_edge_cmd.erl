@@ -378,24 +378,35 @@ hardness(hard, St) ->
 %%% The Slide command.
 %%%
 
-slide(St) ->
+slide(St0) ->
     Mode = wings_pref:get_value(slide_mode, relative),
     Stop = wings_pref:get_value(slide_stop, false),
     State = {Mode,none,Stop},
     SUp = SDown = SN = SBi = {0.0,0.0,0.0},
-    {Tvs,_,_,_,_,MinUp,MinDw} =
-	wings_sel:fold(
-	  fun(EsSet, #we{id=Id} = We, {Acc,Up0,Dw0,N0,Bi0,MinUp,MinDw}) ->
+
+    %% FIXME: The use of the process dicationary (wings_slide) will
+    %% not work when each #we{} are stored in its own process.
+    %%
+    %% FIXME: Someone who understands the Up, Dw, N, and Bi parameters
+    %% should rewrite this code in a way that can be parallelized
+    %% (avoid the use of wings_sel:mapfold/3, since it forces
+    %% sequential evaluation in each process).
+
+    {St,{_,_,_,_,MinUp,MinDw}} =
+	wings_sel:mapfold(
+	  fun(EsSet, We, {Up0,Dw0,N0,Bi0,MinUp,MinDw}) ->
 		  LofEs0 = wings_edge_loop:partition_edges(EsSet, We),
 		  LofEs = reverse(sort([{length(Es),Es} || Es <- LofEs0])),
 		  {{Slides,MUp,MDw},Up,Dw,N,Bi} =
 		      slide_setup_edges(LofEs,Up0,Dw0,N0,Bi0,We,
 					{gb_trees:empty(),MinUp,MinDw}),
-		  {[{Id,make_slide_tv(Slides, State)}|Acc],Up,Dw,N,Bi,MUp,MDw}
-	  end, {[], SUp, SDown, SN, SBi, unknown,unknown}, St),
+		  {We#we{temp=make_slide_tv(Slides, State)},
+                   {Up,Dw,N,Bi,MUp,MDw}}
+	  end, {SUp, SDown, SN, SBi, unknown,unknown}, St0),
     Units = slide_units(State,MinUp,MinDw),
     Flags = [{mode,{slide_mode(MinUp,MinDw),State}},{initial,[0]}],
-    wings_drag:setup(Tvs, Units, Flags, St).
+    DF = fun(_, #we{temp=Tv}) -> Tv end,
+    wings_drag:fold(DF, Units, Flags, St).
 
 slide_mode(MinUp,MinDw) ->
     fun(help, State)		  ->	slide_help(State);
