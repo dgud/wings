@@ -108,7 +108,9 @@ bevel_drag(St) ->
     MF = fun(_, #we{temp={Limit,_}}) -> Limit end,
     RF = fun min/2,
     Limit = wings_sel:dfold(MF, RF, infinite, St),
-    DF = fun(_, #we{temp={_,Tv}}) -> Tv end,
+    DF = fun(_, #we{temp={_,Tv}}=We) ->
+                 wings_drag:translate_fun(Tv, We)
+         end,
     wings_drag:fold(DF, [{distance,{0.0,Limit}}], [], St).
 
 bevel_tv(Vs, We, Forbidden) ->

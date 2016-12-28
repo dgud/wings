@@ -206,7 +206,7 @@ bevel_1(VsSet, We0) ->
     Vs = gb_sets:to_list(VsSet),
     {We1,VecVs0,WeTrans,Fs0} = bevel_vertices(Vs, VsSet, We0, We0, [], [], []),
     {VecVs,Limit} = bevel_normalize(VecVs0),
-    Tv = {we,WeTrans,VecVs},
+    Tv = {we,WeTrans,wings_drag:translate_fun(VecVs, We1)},
     We = We1#we{temp={Limit,Tv}},
     Fs = gb_sets:from_list(Fs0),
     {We,Fs}.
