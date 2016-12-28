@@ -179,30 +179,26 @@ info_1(Type, Pos, #light{aim=Aim,spot_angle=A}) ->
 %%% Light Commands.
 %%%
 
-color(St) ->
-    Drag = wings_sel:fold(
-	     fun(_, #we{id=Id,light=L}=We, none) when ?IS_LIGHT(We) ->
-		     {R,G,B,A} = get_light_color(L),
-		     {H,S,V} = wings_color:rgb_to_hsv(R, G, B),
-		     ColorFun = fun({finish,C}, D) -> color(C, D, A);
-				   (C, D) -> color(C, D, A)
-				end,
-		     Tvs = {general,[{Id,ColorFun}]},
-		     Units = [{angle,{0.0,359.9999}},
-			      {percent,{0.0,1.0}},
-			      {percent,{0.0,1.0}}
-			     ],
-		     Flags = [{initial,[H,V,S]}],
-		     {Tvs,Units,Flags};
-		(_, We, _) when ?IS_LIGHT(We) ->
-		     wings_u:error_msg(?__(1,"Select only one light."));
-		(_, _, A) -> A
-	     end, none, St),
-    case Drag of
-	none -> St;
-	{Tvs,Units,Flags} ->
-	    wings_drag:setup(Tvs, Units, Flags, St)
-    end.
+color(St0) ->
+    {St,Flags} =
+        wings_sel:mapfold(
+          fun(_, #we{light=L}=We, []) when ?IS_LIGHT(We) ->
+                  {R,G,B,A} = get_light_color(L),
+                  {H,S,V} = wings_color:rgb_to_hsv(R, G, B),
+                  ColorFun = fun({finish,C}, D) -> color(C, D, A);
+                                (C, D) -> color(C, D, A)
+                             end,
+                  Flags = [{initial,[H,V,S]}],
+                  {We#we{temp=ColorFun},Flags};
+             (_, We, _) when ?IS_LIGHT(We) ->
+                  wings_u:error_msg(?__(1,"Select only one light."));
+             (_, _, A) -> A
+           end, [], St0),
+    Units = [{angle,{0.0,359.9999}},
+             {percent,{0.0,1.0}},
+             {percent,{0.0,1.0}}],
+    DF = fun(#we{temp=General}) -> General end,
+    wings_drag:general(DF, Units, Flags, St).
 
 color([H,V,S], #dlo{src_we=#we{light=L0}=We0}=D, A) ->
     {R,G,B} = wings_color:hsv_to_rgb(H, S, V),
@@ -238,40 +234,37 @@ position_highlight_1(Center, #we{light=L0}=We) ->
 
 spot_angle(St) ->
     case selected_light(St) of
-	{Id,#light{type=spot,spot_angle=SpotAngle}} ->
+	#light{type=spot,spot_angle=SpotAngle} ->
 	    SpotFun0 = fun([Angle|_], L) -> L#light{spot_angle=Angle} end,
-	    SpotFun = adjust_fun(SpotFun0),
-	    Tvs = {general,[{Id,SpotFun}]},
+            DF = fun(_) -> adjust_fun(SpotFun0) end,
 	    Units = [{angle,{0.1,89.9}}],
 	    Flags = [{initial,[SpotAngle]}],
-	    wings_drag:setup(Tvs, Units, Flags, St);
-	{_,_} ->
+	    wings_drag:general(DF, Units, Flags, St);
+	_ ->
 	    wings_u:error_msg(?__(1,"Not a spotlight."))
     end.
 
 spot_falloff(St) ->
     case selected_light(St) of
-	{Id,#light{type=spot,spot_exp=SpotExp}} ->
+	#light{type=spot,spot_exp=SpotExp} ->
 	    SpotFun0 = fun([Exp|_], L) -> L#light{spot_exp=Exp} end,
-	    SpotFun = adjust_fun(SpotFun0),
-	    Tvs = {general,[{Id,SpotFun}]},
+	    DF = fun(_) -> adjust_fun(SpotFun0) end,
 	    Units = [{number,{0.0,128.0}}],
 	    Flags = [{initial,[SpotExp]}],
-	    wings_drag:setup(Tvs, Units, Flags, St);
-	{_,_} ->
+	    wings_drag:general(DF, Units, Flags, St);
+	_ ->
 	    wings_u:error_msg(?__(1,"Not a spotlight."))
     end.
 
 attenuation(Type, St) ->
     case selected_light(St) of
-	{Id,#light{type=Ltype}=L} when Ltype == point; Ltype == spot ->
+	#light{type=Ltype}=L when Ltype =:= point; Ltype =:= spot ->
 	    Initial = att_initial(Type, L),
-	    Fun = adjust_fun(att_fun(Type)),
-	    Tvs = {general,[{Id,Fun}]},
+	    DF = fun(_) -> adjust_fun(att_fun(Type)) end,
 	    Units = [{dx,att_range(Type)}],
 	    Flags = [{initial,[Initial]}],
-	    wings_drag:setup(Tvs, Units, Flags, St);
-	{_,_} ->
+	    wings_drag:general(DF, Units, Flags, St);
+	_ ->
 	    wings_u:error_msg(?__(1,"Not a point light or spotlight."))
     end.
 
@@ -285,8 +278,8 @@ att_range(linear) -> {0.0,1.0};
 att_range(quadratic) -> {0.0,0.5}.
 
 selected_light(St) ->
-    MF = fun(_, #we{id=Id,light=L}=We) when ?IS_LIGHT(We) ->
-                 [{Id,L}];
+    MF = fun(_, #we{light=L}=We) when ?IS_LIGHT(We) ->
+                 [L];
             (_, #we{}) ->
                  []
          end,
