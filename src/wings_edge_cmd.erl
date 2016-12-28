@@ -248,25 +248,26 @@ cut_edges(Edges, N, We0) ->
 %%% Cut at an arbitrary position.
 %%%
 
-cut_pick(St) ->
-    {Tvs,Sel} = wings_sel:fold(
-		  fun(Es, We, []) ->
-			  case gb_sets:to_list(Es) of
-			      [E] -> cut_pick_make_tvs(E, We);
-			      _ -> cut_pick_error()
-			  end;
-		     (_, _, _) ->
-			  cut_pick_error()
-		  end, [], St),
+cut_pick(#st{sel=[_]}=St0) ->
+    MF = fun(Es, We) ->
+                 case gb_sets:to_list(Es) of
+                     [E] -> cut_pick_make_tvs(E, We);
+                     _ -> cut_pick_error()
+                 end
+         end,
+    St = wings_sel:map_update_sel(MF, vertex, St0),
     Units = [{percent,{0.0,1.0}}],
     Flags = [{initial,[0]}],
-    wings_drag:setup(Tvs, Units, Flags, wings_sel:set(vertex, Sel, St)).
+    DF = fun(#we{temp=General}) -> General end,
+    wings_drag:general(DF, Units, Flags, St);
+cut_pick(#st{}) ->
+    cut_pick_error().
 
 -spec cut_pick_error() -> no_return().
 cut_pick_error() ->
     wings_u:error_msg(?__(1,"Only one edge can be cut at an arbitrary position.")).
 
-cut_pick_make_tvs(Edge, #we{id=Id,es=Etab,vp=Vtab,next_id=NewV}=We) ->
+cut_pick_make_tvs(Edge, #we{es=Etab,vp=Vtab,next_id=NewV}=We) ->
     #edge{vs=Va,ve=Vb} = array:get(Edge, Etab),
     Start = array:get(Va, Vtab),
     End = array:get(Vb, Vtab),
@@ -280,8 +281,8 @@ cut_pick_make_tvs(Edge, #we{id=Id,es=Etab,vp=Vtab,next_id=NewV}=We) ->
 	     2#10000010,
 	     2#01111100>>},
     Fun = fun(I, D) -> cut_pick_marker(I, D, Edge, We, Start, Dir, Char) end,
-    Sel = [{Id,gb_sets:singleton(NewV)}],
-    {{general,[{Id,Fun}]},Sel}.
+    Sel = gb_sets:singleton(NewV),
+    {We#we{temp=Fun},Sel}.
 
 cut_pick_marker([I], D, Edge, We0, Start, Dir, Char) ->
     {X,Y,Z} = Pos = e3d_vec:add_prod(Start, Dir, I),
