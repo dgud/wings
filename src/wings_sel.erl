@@ -34,7 +34,7 @@
 
 -type vertex_set() :: gb_sets:set(vertex_num()).
 -type edge_set() :: gb_sets:set(edge_num()).
--type face_set() :: gb_sets:set(face_num()).
+-type face_set() :: gb_sets:set(visible_face_num()).
 
 -type item_id() :: visible_face_num() | edge_num() | vertex_num() | 0.
 -type item_set() :: gb_sets:set(item_id()).
@@ -191,7 +191,7 @@ fold(F, Acc, #st{sel=Sel,shapes=Shapes}) ->
 %%% Map and fold over the selection.
 %%%
 
--spec mapfold(Fun, Acc0, #st{}) -> Acc1 when
+-spec mapfold(Fun, Acc0, #st{}) -> {#st{},Acc1} when
       Fun :: fun((Items, #we{}, AccIn) -> {#we{},AccOut}),
       Items :: item_set(),
       Acc0 :: term(),
@@ -316,7 +316,7 @@ bounding_boxes(#st{selmode=Mode}=St) ->
 %%%
 
 -spec face_regions(Faces, #we{}) -> [face_set()] when
-      Faces :: face_set() | [face_num()].
+      Faces :: face_set() | [visible_face_num()].
 
 face_regions(Faces, We) when is_list(Faces) ->
     face_regions_1(gb_sets:from_list(Faces), We);
@@ -329,7 +329,7 @@ face_regions(Faces, We) ->
 %%%
 
 -spec strict_face_regions(Faces, #we{}) -> [face_set()] when
-      Faces :: face_set() | [face_num()].
+      Faces :: face_set() | [visible_face_num()].
 
 strict_face_regions(Faces, We) when is_list(Faces) ->
     find_strict_face_regions(gb_sets:from_list(Faces), We, []);
