@@ -607,7 +607,7 @@ gldraw_connect(Pos0, Pos1) ->
 		   end, [Pos0,Pos1]),
     gl:popAttrib().
 
-slide(C=#cs{st=St=#st{shapes=Sh},we=Shape,v=[#vi{id=Id1,mm=MM}|_]},S,E) ->
+slide(#cs{st=#st{shapes=Sh}=St0,we=Shape,v=[#vi{id=Id1,mm=MM}|_]}=C, S, E) ->
     #we{vp=Vtab} = gb_trees:get(Shape, Sh),
     Start0 = array:get(S, Vtab),
     End0   = array:get(E, Vtab),
@@ -624,20 +624,23 @@ slide(C=#cs{st=St=#st{shapes=Sh},we=Shape,v=[#vi{id=Id1,mm=MM}|_]},S,E) ->
 	    P0y < P1y ->  {Start0,End0};
 	    true ->       {End0,Start0}
 	end,
-    {Tvs,Sel,Init} = slide_make_tvs(Id1,Curr,Start,End,Shape,C),
+    {Tv,Init} = slide_make_tvs(Id1, Curr, Start, End, C),
+    FS = fun(_, #we{id=Id}) when Id =:= Shape ->
+                 gb_sets:singleton(Id1)
+         end,
+    St = wings_sel:new_sel(FS, vertex, St0),
     Units = [{percent,{0.0+2*?EPS,1.0-2*?EPS}}],
     Flags = [{initial,[Init]}],
-    wings_drag:setup(Tvs, Units, Flags, wings_sel:set(vertex, Sel, St)).
+    DF = fun(_, _) -> Tv end,
+    wings_drag:fold(DF, Units, Flags, St).
 
-slide_make_tvs(V,Curr,Start,End,Id,C) ->
+slide_make_tvs(V, Curr, Start, End, C) ->
     Dir = e3d_vec:sub(End, Start),
     TotDist = e3d_vec:len(Dir),
     Dist = e3d_vec:dist(Start,Curr),
     CursorPos  = Dist/TotDist,
-    
-    Fun = fun(I,Acc) -> sliding(I, Acc, V, Start, Dir, C) end,
-    Sel = [{Id,gb_sets:singleton(V)}],
-    {[{Id,{[V],Fun}}],Sel,CursorPos}.
+    Fun = fun(I, Acc) -> sliding(I, Acc, V, Start, Dir, C) end,
+    {{[V],Fun},CursorPos}.
 
 sliding([Dx|_],Acc,V,Start,Dir,C= #cs{v=[Vi|Vr]}) ->
     Pos = e3d_vec:add_prod(Start, Dir, Dx),
