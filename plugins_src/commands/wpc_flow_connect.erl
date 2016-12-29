@@ -55,22 +55,22 @@ command(_, _) ->
 
 %%% Functions
 flow_connect(St0) ->
-    {St1,Sel} = wings_sel:mapfold(fun(Edges, #we{id=Id}=We0, Acc) ->
-        {NewEdges,We} = calculate_cuts(Edges, Edges, We0, []),
-        {We,[{Id,NewEdges}|Acc]}
-    end, [], St0),
-    St = wings_sel:set(edge, Sel, St1),
-    {save_state,wings_sel:valid_sel(St)}.
+    F = fun calculate_cuts/2,
+    St1 = wings_sel:map_update_sel(F, St0),
+    St = wings_sel:valid_sel(St1),
+    {save_state,St}.
 
 flow_connect_drag(St0) ->
-    {St1,{Tvs,Sel}} = wings_sel:mapfold(fun(Edges, #we{id=Id}=We0, {Tvs0,SelAcc}) ->
-        {NewEdges,Vs,Data,We} = calculate_cuts_data(Edges, Edges, We0, []),
-        TvsData = [{Id,{Vs,flow_connect_tension_fun(Data,false)}}|Tvs0],
-        {We,{TvsData,[{Id,NewEdges}|SelAcc]}}
-    end, {[],[]}, St0),
-    St = wings_sel:set(edge, Sel, St1),
-    Flags = [{mode,{mode(),false}}], %% mode
-    wings_drag:setup(Tvs, [percent], Flags, wings_sel:valid_sel(St)).
+    F = fun(Edges0, We0) ->
+                {Edges,Vs,Data,We} = calculate_cuts_data(Edges0, We0),
+                Tv = {Vs,flow_connect_tension_fun(Data, false)},
+                {We#we{temp=Tv},Edges}
+        end,
+    St1 = wings_sel:map_update_sel(F, St0),
+    St = wings_sel:valid_sel(St1),
+    Flags = [{mode,{mode(),false}}],
+    DF = fun(_, #we{temp=Tv}) -> Tv end,
+    wings_drag:fold(DF, [percent], Flags, St).
 
 mode() ->
     fun
@@ -83,6 +83,9 @@ mode() ->
 help(false) -> "[1] " ++ ?__(1,"Move in direction of face normals");
 help(true) -> "[1] " ++ ?__(2,"Move in direction of geometry flow").
 
+calculate_cuts_data(Edges, We) ->
+    calculate_cuts_data(Edges, Edges, We, []).
+
 calculate_cuts_data(Edges0, Es, We, Acc) ->
     case gb_sets:is_empty(Edges0) of
         true ->
@@ -92,6 +95,9 @@ calculate_cuts_data(Edges0, Es, We, Acc) ->
             CutData = edge_link_vectors(Edge, Es, We),
             calculate_cuts_data(Edges, Es, We, [{Edge,CutData}|Acc])
     end.
+
+calculate_cuts(Edges, We) ->
+    calculate_cuts(Edges, Edges, We, []).
 
 calculate_cuts(Edges0, Es, We, Acc) ->
     case gb_sets:is_empty(Edges0) of
@@ -294,7 +300,7 @@ cut_edges([{Edge,Pos}|Edges], We0, Acc) ->
 cut_edges([], We0, Vs) ->
     We = wings_vertex_cmd:connect(Vs, We0),
     NewEdges = wings_we:new_items_as_gbset(edge, We0, We),
-    {NewEdges,We}.
+    {We,NewEdges}.
 
 round_float(Float) when is_float(Float) ->
     round(10000*Float)/10000;
