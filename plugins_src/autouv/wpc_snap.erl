@@ -155,8 +155,7 @@ scale({auv_snap_prop,Proportional}, St) ->
     St;
 scale(Op, St) ->
     #s{sx=Ix,sy=Iy} = get(?MODULE),
-    ScaleFun = fun({finish,_}, Dlo) -> Dlo;
-		  ([X,Y], Dlo) ->
+    ScaleFun = fun([X,Y]) ->
 		       State = #s{sx=SX,sy=SY} = get(?MODULE),
 		       case Op of
 			   x ->    put(?MODULE, State#s{sx=X});
@@ -167,12 +166,11 @@ scale(Op, St) ->
 			       DY   = SY+Diff,
 			       put(?MODULE, State#s{sx=X,sy=DY})
 		       end,
-		       Dlo
+                       ok
 	       end,
-    Tvs   = {general, [{find_a_id(St), ScaleFun}]},
     Units = [{dx, {0.0,?HUGE}},{dy, {0.0,?HUGE}}],
     Flags = [{initial, [Ix,Iy]}],
-    wings_drag:setup(Tvs,Units,Flags,St).
+    wings_drag:drag_only(ScaleFun, Units, Flags, St).
 
 move(Op, St) when Op =:= center_x; Op =:= center_y; Op =:= center ->
     S = get(?MODULE),
@@ -184,35 +182,29 @@ move(Op, St) when Op =:= center_x; Op =:= center_y; Op =:= center ->
     St;
 move(Op, St) ->
     #s{tx=Ix,ty=Iy} = get(?MODULE),
-    MoveFun = fun({finish,_}, Dlo) -> Dlo;
-		 ([X,Y], Dlo) ->
+    MoveFun = fun([X,Y]) ->
 		      State = get(?MODULE),
 		      case Op of
 			  x ->    put(?MODULE, State#s{tx=-X});
 			  y ->    put(?MODULE, State#s{ty=-Y});
 			  free -> put(?MODULE, State#s{tx=-X,ty=-Y})
 		      end,
-		      Dlo
+		      ok
 	      end,
-
-    Tvs   = {general, [{find_a_id(St), MoveFun}]},
-    Units = [{dx, {-?HUGE,?HUGE}},{dy,{-?HUGE,?HUGE}}],
-    Flags = [{initial, [-Ix,-Iy]}],
-    wings_drag:setup(Tvs,Units,Flags,St).
+    Units = [{dx,{-?HUGE,?HUGE}},{dy,{-?HUGE,?HUGE}}],
+    Flags = [{initial,[-Ix,-Iy]}],
+    wings_drag:drag_only(MoveFun, Units, Flags, St).
 
 rotate(St) ->
     #s{r=R0}=get(?MODULE),
-    RotateFun = fun({finish,_}, Dlo) -> Dlo;
-		 ([R], Dlo) ->
-		      State = get(?MODULE),
-			  put(?MODULE, State#s{r=R}),
-		      Dlo
-	      end,
-
-    Tvs   = {general, [{find_a_id(St), RotateFun}]},
-    Units = [{rx, {-360.0,360.0}}],
-    Flags = [{initial, [R0]}],
-    wings_drag:setup(Tvs,Units,Flags,St).
+    RotateFun = fun([R]) ->
+                        State = get(?MODULE),
+                        put(?MODULE, State#s{r=R}),
+                        ok
+                end,
+    Units = [{rx,{-360.0,360.0}}],
+    Flags = [{initial,[R0]}],
+    wings_drag:drag_only(RotateFun, Units, Flags, St).
 
 fit(Op, St) ->
     #s{w=IW,h=IH}=S = get(?MODULE),
@@ -224,15 +216,6 @@ fit(Op, St) ->
       both -> put(?MODULE, S#s{sx=1.0/X,sy=1.0/Y,tx=0.0,ty=0.0})
     end,
     St.
-
-find_a_id(#st{shapes=Shs}) ->
-    Ida = [Id || #we{id=Id,perm=Perm} <- gb_trees:values(Shs),
-        ?IS_VISIBLE(Perm)],
-    Id = case length(Ida) of
-    0 -> wpa:error_msg(?__(1,"Visible object required."));
-    _ -> lists:min(Ida)
-    end,
-    Id.
 
 draw_image(Image,_St) ->
     gl:pushAttrib(?GL_ALL_ATTRIB_BITS),
