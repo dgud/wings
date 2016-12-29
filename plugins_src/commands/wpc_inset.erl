@@ -73,18 +73,22 @@ inset_setup(offset_region, St0) ->
     St = wings_face_cmd:extrude_region(St0),
     offset_regions_setup(offset_region, St).
 
-offset_regions_setup(offset_region, St) ->
+offset_regions_setup(offset_region, St0) ->
     State = drag_mode(offset_region),
-    SetupSt = wings_sel_conv:more(St),
-    Tvs = wings_sel:fold(fun(Faces, #we{id=Id}=We, Acc) ->
-            FaceRegions = wings_sel:face_regions(Faces,We),
-            {AllVs0,VsData} = collect_offset_regions_data(FaceRegions,We,[],[]),
-            test_selection(AllVs0),
-            AllVs = ordsets:from_list(AllVs0),
-            [{Id, {AllVs, offset_regions_fun(VsData, State)}}|Acc]
-            end, [], SetupSt),
+    St = wings_sel:map(
+           fun(Faces0, We) ->
+                   Faces = wings_sel_conv:more(face, Faces0, We),
+                   FaceRegions = wings_sel:face_regions(Faces, We),
+                   {AllVs0,VsData} =
+                       collect_offset_regions_data(FaceRegions, We, [], []),
+                   test_selection(AllVs0),
+                   AllVs = ordsets:from_list(AllVs0),
+                   Tv = {AllVs,offset_regions_fun(VsData, State)},
+                   We#we{temp=Tv}
+           end, St0),
     Flags = [{mode,{modes(),State}}],
-    wings_drag:setup(Tvs, drag_units(State), Flags, St).
+    DF = fun(_, #we{temp=Tv}) -> Tv end,
+    wings_drag:fold(DF, drag_units(State), Flags, St).
 
 inset_regions_setup(inset_region, St) ->
     State = drag_mode(inset_region),
