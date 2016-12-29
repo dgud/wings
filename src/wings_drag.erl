@@ -13,7 +13,7 @@
 
 -module(wings_drag).
 -export([setup/3,setup/4,do_drag/2,fold/3,fold/4,
-         matrix/3,matrix/4,general/4,
+         matrix/3,matrix/4,general/4,drag_only/4,
          compose/1,translate_fun/2]).
 
 -export_type([vec_transform_fun/0,vertices/0,vertex_transform/0]).
@@ -48,7 +48,8 @@
 	 mode_data :: mode_data(),% State for mode.
 	 info="",		% Information line.
 	 st :: #st{},           % Saved st record.
-	 last_move		% Last move.
+	 last_move,		% Last move.
+         drag                   % Drag fun.
 	}).
 
 %% Drag per object.
@@ -142,6 +143,12 @@ general(F, Units, Flags, St) when is_function(F, 1) ->
     Tvs = get_funs(Sel, F, Shapes),
     setup({general,Tvs}, Units, Flags, St).
 
+-spec drag_only(Fun, [unit()], [flag()], #st{}) -> {'drag',#drag{}} when
+      Fun :: fun((_) -> 'ok').
+
+drag_only(F, Units, Flags, St) when is_function(F, 1) ->
+    {drag,init(Units, Flags, St, F)}.
+
 -spec compose([{vertices(),vec_transform_fun()}]) ->
                      {vertices(),vec_transform_fun()}.
 
@@ -175,18 +182,7 @@ setup(Tvs, Unit, St) ->
 -spec setup(tvs(), [unit()], [flag()], #st{}) -> {'drag',#drag{}}.
 
 setup(Tvs, Units, Flags, St) ->
-    cursor_boundary(60),
-    wings_io:grab(),
-    wings_wm:grab_focus(),
-    Offset0 = proplists:get_value(initial, Flags, []),
-    Offset = pad_offsets(Offset0),
-    UnitSc = unit_scales(Units),
-    Falloff = falloff(Units),
-    {ModeFun,ModeData} = setup_mode(Flags, Falloff),
-    Drag = #drag{unit=Units,unit_sc=UnitSc,flags=Flags,offset=Offset,
-		 falloff=Falloff,
-		 mode_fun=ModeFun,mode_data=ModeData,
-		 st=St},
+    Drag = init(Units, Flags, St, fun default_drag_fun/1),
     case Tvs of
 	{matrix,TvMatrix} ->
 	    wings_draw:refresh_dlists(St),
@@ -203,6 +199,20 @@ setup(Tvs, Units, Flags, St) ->
 %%%
 %%% Local functions.
 %%%
+
+init(Units, Flags, St, DragFun) ->
+    cursor_boundary(60),
+    wings_io:grab(),
+    wings_wm:grab_focus(),
+    Offset0 = proplists:get_value(initial, Flags, []),
+    Offset = pad_offsets(Offset0),
+    UnitSc = unit_scales(Units),
+    Falloff = falloff(Units),
+    {ModeFun,ModeData} = setup_mode(Flags, Falloff),
+    #drag{unit=Units,unit_sc=UnitSc,flags=Flags,offset=Offset,
+		 falloff=Falloff,
+		 mode_fun=ModeFun,mode_data=ModeData,
+		 st=St,drag=DragFun}.
 
 fold_1([{Id,Items}|T], F, Shapes0) ->
     We0 = gb_trees:get(Id, Shapes0),
@@ -1314,13 +1324,16 @@ motion_update({no_change,_}, #drag{falloff=none}=Drag) ->
 motion_update({no_change,LastMove}, #drag{unit=Units}=Drag) ->
     Move = constrain_1(Units, LastMove, Drag),
     motion_update(Move,Drag);
-motion_update(Move, #drag{unit=Units}=Drag) ->
-    wings_dl:map(fun(D, _) ->
-			 motion_update_fun(D, Move)
-		 end, []),
+motion_update(Move, #drag{unit=Units,drag=DragFun}=Drag) ->
+    DragFun(Move),
     Msg0 = progress_units(Units, Move),
     Msg = reverse(trim(reverse(lists:flatten(Msg0)))),
     Drag#drag{info=Msg,last_move=Move}.
+
+default_drag_fun(Move) ->
+    wings_dl:map(fun(D, _) ->
+			 motion_update_fun(D, Move)
+		 end, []).
 
 motion_update_fun(#dlo{src_we=We,drag={matrix,Tr,Mtx0,_}}=D, Move) when ?IS_LIGHT(We) ->
     Mtx = Tr(Mtx0, Move),
