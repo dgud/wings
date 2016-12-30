@@ -19,19 +19,31 @@
 -include("wings.hrl").
 -import(lists, [map/2,foldl/3,reverse/1]).
 
-align(_Axis, #st{sel=[]}=St) -> St;
-align(Axis, St) ->
-    Cs = wings_sel:bounding_boxes(St),
-    Center = e3d_vec:average(Cs),
-    move_to(Center, Cs, Axis, St).
+align(_Axis, #st{sel=[]}=St) ->
+    St;
+align(Axis, #st{selmode=Mode}=St0) ->
+    CF = fun(Items, We) ->
+                 Vs = wings_sel:to_vertices(Mode, Items, We),
+                 C = e3d_vec:average(wings_vertex:bounding_box(Vs, We)),
+                 We#we{temp=C}
+         end,
+    St = wings_sel:map(CF, St0),
+    MF = fun(_, #we{temp=C}) -> [C] end,
+    RF = fun erlang:'++'/2,
+    Center = e3d_vec:average(wings_sel:dfold(MF, RF, [], St)),
+    move_to(Center, Axis, St).
 
-center(_Axis, #st{sel=[]}=St) -> St;
-center(Axis, #st{shapes=Shapes,sel=SelAny}=St) ->
-    Cs0 = [wings_we:centroid(gb_trees:get(WeID, Shapes)) || {WeID,_} <- SelAny ],
-    CommonCenter = e3d_vec:average(Cs0),
-    Cs = lists:duplicate(length(Cs0), CommonCenter),
-    Center = e3d_vec:zero(),
-    move_to(Center, Cs, Axis, St).
+center(_Axis, #st{sel=[]}=St) ->
+    St;
+center(Axis, St0) ->
+    MF = fun(_, We) ->
+                 [wings_we:centroid(We)]
+         end,
+    RF = fun erlang:'++'/2,
+    Center = e3d_vec:average(wings_sel:dfold(MF, RF, [], St0)),
+    CF = fun(_, We) -> We#we{temp=Center} end,
+    St = wings_sel:map(CF, St0),
+    move_to(e3d_vec:zero(), Axis, St).
 
 copy_bb(St) ->
     BB = wings_sel:bounding_box(St),
@@ -159,19 +171,19 @@ min_scale([_|Ss], Min) ->
     min_scale(Ss, Min);
 min_scale([], Min) -> Min.
 
-move_to(Center, Cs, Axis, St0) ->
-    {St,_} = wings_sel:mapfold(
-	       fun(_, #we{vp=Vtab0}=We, [MyCenter|Centers]) ->
-		       Offset0 = e3d_vec:sub(Center, MyCenter),
-		       case filter_coord(Axis, Offset0) of
-			   {0.0,0.0,0.0} -> {We,Centers};
-			   Offset ->
-			       Vtab = offset(Offset, Vtab0),
-			       {We#we{vp=Vtab},Centers}
-		       end
-	       end, Cs, St0),
-    St.
-    
+move_to(Center, Axis, St) ->
+    MF = fun(_, #we{vp=Vtab0,temp=MyCenter}=We) ->
+                 Offset0 = e3d_vec:sub(Center, MyCenter),
+                 case filter_coord(Axis, Offset0) of
+                     {0.0,0.0,0.0} ->
+                         We#we{temp=[]};
+                     Offset ->
+                         Vtab = offset(Offset, Vtab0),
+                         We#we{vp=Vtab,temp=[]}
+                 end
+         end,
+    wings_sel:map(MF, St).
+
 filter_coord(x, {X,_,_}) -> {X,0.0,0.0};
 filter_coord(y, {_,Y,_}) -> {0.0,Y,0.0};
 filter_coord(z, {_,_,Z}) -> {0.0,0.0,Z};

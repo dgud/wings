@@ -19,7 +19,7 @@
 	 update_sel/2,update_sel/3,fold/3,dfold/4,mapfold/3,
 	 new_sel/3,make/3,valid_sel/1,valid_sel/3,
 	 center/1,center_vs/1,
-	 bbox_center/1,bounding_box/1,bounding_boxes/1,
+	 bbox_center/1,bounding_box/1,
 	 face_regions/2,strict_face_regions/2,edge_regions/2,
 	 select_object/2,deselect_object/2,
 	 get_all_items/2,get_all_items/3,
@@ -294,20 +294,6 @@ bounding_box(#st{selmode=Mode}=St) ->
 	    (Box, Acc) -> e3d_vec:bounding_box(Box++Acc)
 	 end,
     dfold(MF, RF, none, St).
-
-%%%
-%%% Calculate the bounding boxes for all selected objects.
-%%%
-%%% FIXME: The name is strange. Maybe bbox_centers/1?
-
-bounding_boxes(#st{selmode=Mode}=St) ->
-    reverse(
-      fold(
-	fun(Items, We, A) ->
-		Vs = to_vertices(Mode, Items, We),
-		[e3d_vec:average(wings_vertex:bounding_box(Vs, We))|A]
-	end, [], St)).
-
 
 %%%
 %%% Divide the face selection into regions where each face shares at least
