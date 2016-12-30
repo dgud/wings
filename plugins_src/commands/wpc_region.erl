@@ -147,7 +147,7 @@ rotate_region(OuterVs, Faces, We, Acc) ->
     [{Vs,rotate_fun(Center, VsPos, PlaneNormal)}|Acc].
 
 rotate_fun(Center, VsPos, Axis) ->
-    fun(Angle, A) ->
+    fun([Angle], A) ->
 	    rotate(Center, Axis, Angle, VsPos, A)
     end.
 
