@@ -23,7 +23,7 @@
 	 face_regions/2,strict_face_regions/2,edge_regions/2,
 	 select_object/2,deselect_object/2,
 	 get_all_items/2,get_all_items/3,
-	 inverse_items/3]).
+	 inverse_items/3,to_vertices/3]).
 
 -export_type([vertex_set/0,edge_set/0,face_set/0,item_set/0]).
 
@@ -406,7 +406,7 @@ get_all_items(Mode, Id, #st{shapes=Shapes}) ->
     We = gb_trees:get(Id, Shapes),
     get_all_items(Mode, We).
 
--spec to_vertices(sel_mode(), item_set(), #we{}) -> [item_id()].
+-spec to_vertices(sel_mode(), item_set(), #we{}) -> [vertex_num()].
 
 to_vertices(vertex, Vs, _) -> Vs;
 to_vertices(face, Faces, We) ->
