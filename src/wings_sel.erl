@@ -18,6 +18,7 @@
 	 map/2,map_update_sel/2,map_update_sel/3,
 	 update_sel/2,update_sel/3,fold/3,dfold/4,mapfold/3,
 	 new_sel/3,make/3,valid_sel/1,valid_sel/3,
+         clone/2,clone/3,
 	 center/1,center_vs/1,
 	 bbox_center/1,bounding_box/1,
 	 face_regions/2,strict_face_regions/2,edge_regions/2,
@@ -237,6 +238,33 @@ make(Filter, Mode, St) when is_function(Filter, 2) ->
     new_sel(fun(Sel, We) ->
 		    gb_sets:filter(fun(Item) -> Filter(Item, We) end, Sel)
 	    end, Mode, St).
+
+
+%%
+%% Clone the selection.
+%%
+
+-type clone_item() :: {#we{},item_set(),wings_shape:suffix()}.
+-type clone_out() :: {#we{},item_set(),[clone_item()]}.
+-type clone_fun() :: fun((item_set(), #we{}) -> clone_out()).
+
+-spec clone(Fun, #st{}) -> #st{} when
+      Fun :: clone_fun().
+
+clone(F, St0) ->
+    MF = fun(Items, We, Acc) ->
+                 clone_fun(F, Items, We, Acc)
+         end,
+    #st{sel=Sel} = St = fold(MF, St0#st{sel=[]}, St0),
+    St#st{sel=sort(Sel)}.
+
+-spec clone(Fun, Mode, #st{}) -> #st{} when
+      Fun :: clone_fun(),
+      Mode :: sel_mode().
+
+clone(Fun, Mode, St0) ->
+    St = clone(Fun, St0),
+    St#st{selmode=Mode}.
 
 %%%
 %%% Calculate the center for all selected objects.
@@ -464,7 +492,24 @@ new_sel_1([#we{id=Id}=We|Shs], F, Mode) ->
     end;
 new_sel_1([], _, _) -> [].
 
+clone_fun(F, Items0, #we{id=Id}=We0, #st{shapes=Shs0}=St0) ->
+    {We,Items,New} = F(Items0, We0),
+    Shs = gb_trees:update(Id, We, Shs0),
+    St1 = St0#st{shapes=Shs},
+    St = clone_add_sel(Items, Id, St1),
+    clone_fun_add(New, St).
 
+clone_fun_add([{We,Items,Suffix}|T], #st{onext=Id}=St0) ->
+    St1 = wings_shape:insert(We, Suffix, St0),
+    St = clone_add_sel(Items, Id, St1),
+    clone_fun_add(T, St);
+clone_fun_add([], St) -> St.
+
+clone_add_sel(Items, Id, #st{sel=Sel}=St) ->
+    case gb_sets:is_empty(Items) of
+        false -> St#st{sel=[{Id,Items}|Sel]};
+        true -> St
+    end.
 
 face_regions_1(Faces, We) ->
     find_face_regions(Faces, We, fun collect_face_fun/5, []).
