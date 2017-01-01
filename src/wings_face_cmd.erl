@@ -265,30 +265,22 @@ extrude_region_vmirror(OldWe, #we{mirror=Face0}=We0) ->
 
 shell_extrude(Axis, St0) ->
     St = shell_extrude(St0),
-    wings_move:setup(Axis, wings_sel:valid_sel(St)).
+    wings_move:setup(Axis, St).
 
 shell_extrude(St0) ->
-    Prev = wings_wm:get_prop(wireframed_objects),
-    #st{sel=Sel0}=St = wings_sel:fold(fun(Faces, We0, S0) ->
-            Regions = wings_sel:face_regions(Faces, We0),
-            shell_extrude_1(Regions, We0, S0)
-        end, St0#st{sel=[]}, St0),
-    Sel = lists:sort(Sel0),
-    Ids = gb_sets:from_list(orddict:fetch_keys(Sel)),
-    New = gb_sets:difference(Prev, Ids),
-    wings_wm:set_prop(wireframed_objects, New),
-    St#st{sel=Sel}.
+    CF = fun(Faces, We) ->
+                 Regions = wings_sel:face_regions(Faces, We),
+                 New = [shell_extrude_1(R, We) || R <- Regions],
+                 {We,gb_sets:empty(),New}
+         end,
+    wings_sel:clone(CF, St0).
 
-shell_extrude_1([Faces|Regions], We0, #st{sel=Sel0,onext=Oid}=St0) ->
-    #we{fs=AllFs0}=We1 = wings_dissolve:complement(Faces, We0),
+shell_extrude_1(Faces, We0) ->
+    #we{fs=AllFs0} = We1 = wings_dissolve:complement(Faces, We0),
     AllFs = gb_sets:from_ordset(gb_trees:keys(AllFs0)),
     Inverse = gb_sets:difference(AllFs, Faces),
     We = intrude_extract(Inverse, We1),
-    Sel = [{Oid,Faces}|Sel0],
-    St = wings_shape:insert(We, extract, St0),
-    shell_extrude_1(Regions, We0, St#st{sel=Sel});
-shell_extrude_1([], _, St) ->
-    St.
+    {We,Faces,extract}.
 
 intrude_extract(Faces0, #we{es=Etab,fs=Ftab,next_id=Wid}=We0) ->
     Faces = gb_sets:to_list(Faces0),
@@ -319,27 +311,19 @@ extract_faces(St0) ->
     St1 = wings_sel:map(fun(Faces, We) ->
 				wings_extrude_face:faces(Faces, We)
 			end, St0),
-    #st{sel=Sel}=St2 = extract_1(St1, St0),
-    wings_sel:set(Sel, St2).
+    extract_region(St1).
 
-extract_region(St0) ->
-    #st{sel=Sel}=St = extract_1(St0, St0),
-    wings_sel:set(Sel, St).
+extract_region(St) ->
+    CF = fun(Faces, We) ->
+                 Regions = wings_sel:face_regions(Faces, We),
+                 New = [extract_a_region(R, We) || R <- Regions],
+                 {We,gb_sets:empty(),New}
+         end,
+    wings_sel:clone(CF, St).
 
-extract_1(St, St0) ->
-    wings_sel:fold(
-	    fun(Faces, We0, S0) ->
-		    Regions = wings_sel:face_regions(Faces, We0),
-		    extract_2(Regions, We0, S0)
-	    end, St0#st{sel=[]}, St).
-
-extract_2([Faces|Regions], We0, #st{sel=Sel0,onext=Oid}=St0) ->
+extract_a_region(Faces, We0) ->
     We = wings_dissolve:complement(Faces, We0),
-    St = wings_shape:insert(We, extract, St0),
-    Sel = [{Oid,Faces}|Sel0],
-    extract_2(Regions, We0, St#st{sel=Sel});
-extract_2([],_,St) ->
-    St.
+    {We,Faces,extract}.
 
 %%%
 %%% The Dissolve command.
