@@ -639,16 +639,16 @@ add_slide_vertex(V,{Vpos,{Ndir,NL},{Pdir,PL}},Acc) ->
 %%% The Loop Cut command.
 %%%
 
-loop_cut(St0) ->
-    {Sel,St} = wings_sel:fold(fun loop_cut/3, {[],St0}, St0),
-    wings_sel:set(body, Sel, St).
+loop_cut(St) ->
+    wings_sel:clone(fun loop_cut/2, body, St).
 
-loop_cut(Edges, #we{name=Name,id=Id,fs=Ftab}=We0, {Sel,St0}) ->
+loop_cut(Edges, #we{id=Id,fs=Ftab}=We0) ->
     AdjFaces = wings_face:from_edges(Edges, We0),
     case loop_cut_partition(AdjFaces, Edges, We0, []) of
 	[_] ->
-	    wings_u:error_msg(?__(1,"Edge loop doesn't divide ~p into two (or more) parts."),
-			  [Name]);
+	    wings_u:error_msg(?__(1,"Edge loop doesn't divide object #~p "
+                                  "into two (or more) parts."),
+                              [Id]);
 	Parts0 ->
 	    %% We arbitrarily decide that the largest part of the object
 	    %% will be left unselected and will keep the name of the object.
@@ -666,17 +666,15 @@ loop_cut(Edges, #we{name=Name,id=Id,fs=Ftab}=We0, {Sel,St0}) ->
 	    First = ordsets:subtract(gb_trees:keys(Ftab), FirstComplement),
 
 	    We = wings_dissolve:complement(First, We0),
-	    Shs = St0#st.shapes,
-	    St = St0#st{shapes=gb_trees:update(Id, We, Shs)},
-	    loop_cut_make_copies(Parts, We0, Sel, St)
+            New = loop_cut_make_copies(Parts, We0),
+            {We,gb_sets:empty(),New}
     end.
 
-loop_cut_make_copies([P|Parts], We0, Sel0, #st{onext=Id}=St0) ->
-    Sel = [{Id,gb_sets:singleton(0)}|Sel0],
+loop_cut_make_copies([P|Parts], We0) ->
+    Sel = gb_sets:singleton(0),
     We = wings_dissolve:complement(P, We0),
-    St = wings_shape:insert(We, cut, St0),
-    loop_cut_make_copies(Parts, We0, Sel, St);
-loop_cut_make_copies([], _, Sel, St) -> {Sel,St}.
+    [{We,Sel,cut}|loop_cut_make_copies(Parts, We0)];
+loop_cut_make_copies([], _) -> [].
 
 loop_cut_partition(Faces0, Edges, We, Acc) ->
     case gb_sets:is_empty(Faces0) of
