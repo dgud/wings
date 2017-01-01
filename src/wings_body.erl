@@ -460,14 +460,13 @@ invert_normals(St) ->
 %%% The Duplicate command.
 %%%
 
-duplicate(Dir, #st{onext=Oid0}=St0) ->
-    St1 = wings_sel:fold(fun(_, We, St) ->
-				 wings_shape:insert(We, copy, St)
-			 end, St0, St0),
-    %% Select the duplicate items, not the original items.
-    Zero = gb_sets:singleton(0),
-    Sel = [{Id,Zero} || Id <- seq(Oid0, St1#st.onext-1)],
-    St = wings_sel:set(Sel, St1),
+duplicate(Dir, St0) ->
+    CF = fun(Items, We) ->
+                 Empty = gb_sets:empty(),
+                 New = [{We,Items,copy}],
+                 {We,Empty,New}
+         end,
+    St = wings_sel:clone(CF, St0),
     case Dir of
 	none -> St;
 	_ -> wings_move:setup(Dir, St)
@@ -477,11 +476,18 @@ duplicate(Dir, #st{onext=Oid0}=St0) ->
 %%% Duplicate called from the Outliner or Object window.
 %%%
 
-duplicate_object(Objects, #st{shapes=Shs}=St) ->
-    foldl(fun(Id, S) ->
-		  We = gb_trees:get(Id, Shs),
-		  wings_shape:insert(We, copy, S)
-	  end, St, Objects).
+duplicate_object(Objects0, St) ->
+    Objects = gb_sets:from_list(Objects0),
+    CF = fun(Items, #we{id=Id}=We) ->
+                 New = case gb_sets:is_element(Id, Objects) of
+                           true ->
+                               [{We,gb_sets:empty(),copy}];
+                           false ->
+                               []
+                       end,
+                 {We,Items,New}
+         end,
+    wings_sel:clone(CF, St).
 
 %%%
 %%% The Delete command.
@@ -625,17 +631,13 @@ combine(#st{shapes=Shs0,sel=[{Id,_}=S|_]=Sel0}=St) ->
 %%%
 
 separate(St) ->
-    wings_sel:fold(
-      fun(_, #we{id=Id}=We0, St0) ->
-	      case wings_we:separate(We0) of
-		  [_] -> St0;
-		  [We|Wes] ->
-		      St1 = foldl(fun(W, A) ->
-					  wings_shape:insert(W, sep, A)
-				  end, St0, Wes),
-		      wings_shape:replace(Id, We, St1)
-	      end
-      end, St, St).
+    CF = fun(Items, We0) ->
+                 Empty = gb_sets:empty(),
+                 [We|Wes] = wings_we:separate(We0),
+                 New = [{W,Empty,sep} || W <- Wes],
+                 {We,Items,New}
+         end,
+    wings_sel:clone(CF, St).
 
 %%%
 %%% The Auto-Smooth command.
