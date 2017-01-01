@@ -192,7 +192,8 @@
 						%  IDs.)
 	 mirror=none :: 'none' | non_neg_integer(),	%Mirror: none|Face
 	 light=none,				%Light data: none|Light
-	 holes=[] :: [integer()]		%List of hole faces.
+	 holes=[] :: [integer()],		%List of hole faces.
+         temp=[] :: term()
 	}).
 
 -define(IS_VISIBLE(Perm), (Perm =< 1)).

@@ -94,49 +94,51 @@ shift_ask_callback({{Mode}, Data}, St) ->
 %%  Drag and iterate through the vertices
 %%
 
-shift_verts(Mode, Data0, #st{selmode=body}=St0) ->
-    St = convert_sel(St0),
-    Fun = case Mode of
-            planar_shift -> fun shift_planar/3;
-            cylindrical_shift -> fun shift_cylindrical/3;
-            spherical_shift -> fun shift_spherical/3
-          end,
-    Tvs = wings_sel:fold(fun(Vs, We, Acc) ->
-                           Center = wings_vertex:center(Vs, We),
-                           Data = object_vector(Data0, Center),
-                           shift_verts({Fun, Data}, Vs, We, Acc)
-                         end, [], St),
-    wings_drag:setup(Tvs, [distance], St0);
+shift_verts(Mode, Data, #st{selmode=body}=St) ->
+    F = fun(Vs, We) ->
+                Center = wings_vertex:center(Vs, We),
+                object_vector(Data, Center)
+        end,
+    shift_verts_1(F, Mode, St);
+shift_verts(Mode, Data, St) ->
+    F = fun(_, _) -> Data end,
+    shift_verts_1(F, Mode, St).
 
+shift_verts_1(F, ShiftMode, #st{selmode=SelMode}=St) ->
+    Shift = case ShiftMode of
+                planar_shift -> fun shift_planar/3;
+                cylindrical_shift -> fun shift_cylindrical/3;
+                spherical_shift -> fun shift_spherical/3
+            end,
+    DF = fun(Items, We) ->
+                 Vs = convert_sel(SelMode, Items, We),
+                 Data = F(Vs, We),
+                 shift_verts_2(Shift, Data, Vs, We)
+         end,
+    wings_drag:fold(DF, [distance], St).
 
-shift_verts(Mode, Data, St0) ->
-    St = convert_sel(St0),
-    Fun = case Mode of
-            planar_shift -> fun shift_planar/3;
-            cylindrical_shift -> fun shift_cylindrical/3;
-            spherical_shift -> fun shift_spherical/3
-          end,
-    Tvs = wings_sel:fold(fun(Vs, We, Acc) ->
-                           shift_verts({Fun, Data}, Vs, We, Acc)
-                         end, [], St),
-    wings_drag:setup(Tvs, [distance], St0).
-
-
-shift_verts(FunData, Vs0, #we{id=Id}=We, Acc) ->
-    {ShiftFun,Data} = FunData,
-    Vs = gb_sets:to_list(Vs0),
+shift_verts_2(ShiftFun, Data, Vs, We) ->
     VsPos = wings_util:add_vpos(Vs, We),
     Fun = fun([Distance], A) ->
                   foldl(fun({V,Vpos}, VsAcc) ->
-                          [{V,ShiftFun(Vpos,Distance,Data)}|VsAcc]
+                                [{V,ShiftFun(Vpos, Distance, Data)}|VsAcc]
                         end, A, VsPos)
           end,
-    [{Id,{Vs,Fun}}|Acc].
+    {Vs,Fun}.
 
-convert_sel(#st{selmode=vertex}=St) ->
-    St;
-convert_sel(St) ->
-    wings_sel_conv:mode(vertex, St).
+-spec convert_sel(SelMode, Items, #we{}) -> Vertices when
+      SelMode :: sel_mode(),
+      Items :: [wings_sel:item_id()],
+      Vertices :: [vertex_num()].
+
+convert_sel(vertex, Vs, _We) ->
+    gb_sets:to_list(Vs);
+convert_sel(edge, Es, We) ->
+    wings_vertex:from_edges(Es, We);
+convert_sel(face, Fs, We) ->
+    wings_vertex:from_faces(Fs, We);
+convert_sel(body, _, We) ->
+    wings_we:visible_vs(We).
 
 object_vector({Axis,CenterPoint}, ObjCenter) ->
     Vector = e3d_vec:norm_sub(ObjCenter, CenterPoint),

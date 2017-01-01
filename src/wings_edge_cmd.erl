@@ -248,25 +248,26 @@ cut_edges(Edges, N, We0) ->
 %%% Cut at an arbitrary position.
 %%%
 
-cut_pick(St) ->
-    {Tvs,Sel} = wings_sel:fold(
-		  fun(Es, We, []) ->
-			  case gb_sets:to_list(Es) of
-			      [E] -> cut_pick_make_tvs(E, We);
-			      _ -> cut_pick_error()
-			  end;
-		     (_, _, _) ->
-			  cut_pick_error()
-		  end, [], St),
+cut_pick(#st{sel=[_]}=St0) ->
+    MF = fun(Es, We) ->
+                 case gb_sets:to_list(Es) of
+                     [E] -> cut_pick_make_tvs(E, We);
+                     _ -> cut_pick_error()
+                 end
+         end,
+    St = wings_sel:map_update_sel(MF, vertex, St0),
     Units = [{percent,{0.0,1.0}}],
     Flags = [{initial,[0]}],
-    wings_drag:setup(Tvs, Units, Flags, wings_sel:set(vertex, Sel, St)).
+    DF = fun(#we{temp=General}) -> General end,
+    wings_drag:general(DF, Units, Flags, St);
+cut_pick(#st{}) ->
+    cut_pick_error().
 
 -spec cut_pick_error() -> no_return().
 cut_pick_error() ->
     wings_u:error_msg(?__(1,"Only one edge can be cut at an arbitrary position.")).
 
-cut_pick_make_tvs(Edge, #we{id=Id,es=Etab,vp=Vtab,next_id=NewV}=We) ->
+cut_pick_make_tvs(Edge, #we{es=Etab,vp=Vtab,next_id=NewV}=We) ->
     #edge{vs=Va,ve=Vb} = array:get(Edge, Etab),
     Start = array:get(Va, Vtab),
     End = array:get(Vb, Vtab),
@@ -280,8 +281,8 @@ cut_pick_make_tvs(Edge, #we{id=Id,es=Etab,vp=Vtab,next_id=NewV}=We) ->
 	     2#10000010,
 	     2#01111100>>},
     Fun = fun(I, D) -> cut_pick_marker(I, D, Edge, We, Start, Dir, Char) end,
-    Sel = [{Id,gb_sets:singleton(NewV)}],
-    {{general,[{Id,Fun}]},Sel}.
+    Sel = gb_sets:singleton(NewV),
+    {We#we{temp=Fun},Sel}.
 
 cut_pick_marker([I], D, Edge, We0, Start, Dir, Char) ->
     {X,Y,Z} = Pos = e3d_vec:add_prod(Start, Dir, I),
@@ -377,24 +378,35 @@ hardness(hard, St) ->
 %%% The Slide command.
 %%%
 
-slide(St) ->
+slide(St0) ->
     Mode = wings_pref:get_value(slide_mode, relative),
     Stop = wings_pref:get_value(slide_stop, false),
     State = {Mode,none,Stop},
     SUp = SDown = SN = SBi = {0.0,0.0,0.0},
-    {Tvs,_,_,_,_,MinUp,MinDw} =
-	wings_sel:fold(
-	  fun(EsSet, #we{id=Id} = We, {Acc,Up0,Dw0,N0,Bi0,MinUp,MinDw}) ->
+
+    %% FIXME: The use of the process dicationary (wings_slide) will
+    %% not work when each #we{} are stored in its own process.
+    %%
+    %% FIXME: Someone who understands the Up, Dw, N, and Bi parameters
+    %% should rewrite this code in a way that can be parallelized
+    %% (avoid the use of wings_sel:mapfold/3, since it forces
+    %% sequential evaluation in each process).
+
+    {St,{_,_,_,_,MinUp,MinDw}} =
+	wings_sel:mapfold(
+	  fun(EsSet, We, {Up0,Dw0,N0,Bi0,MinUp,MinDw}) ->
 		  LofEs0 = wings_edge_loop:partition_edges(EsSet, We),
 		  LofEs = reverse(sort([{length(Es),Es} || Es <- LofEs0])),
 		  {{Slides,MUp,MDw},Up,Dw,N,Bi} =
 		      slide_setup_edges(LofEs,Up0,Dw0,N0,Bi0,We,
 					{gb_trees:empty(),MinUp,MinDw}),
-		  {[{Id,make_slide_tv(Slides, State)}|Acc],Up,Dw,N,Bi,MUp,MDw}
-	  end, {[], SUp, SDown, SN, SBi, unknown,unknown}, St),
+		  {We#we{temp=make_slide_tv(Slides, State)},
+                   {Up,Dw,N,Bi,MUp,MDw}}
+	  end, {SUp, SDown, SN, SBi, unknown,unknown}, St0),
     Units = slide_units(State,MinUp,MinDw),
     Flags = [{mode,{slide_mode(MinUp,MinDw),State}},{initial,[0]}],
-    wings_drag:setup(Tvs, Units, Flags, St).
+    DF = fun(_, #we{temp=Tv}) -> Tv end,
+    wings_drag:fold(DF, Units, Flags, St).
 
 slide_mode(MinUp,MinDw) ->
     fun(help, State)		  ->	slide_help(State);

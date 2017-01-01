@@ -398,20 +398,19 @@ shear_factor(GlidePlane,Origin,GlidePoint) ->
     abs(dist_along_vector(GlidePoint,Origin,GlidePlane)).
 
 %%%% Gets the greatest distance along Norm for the selected vertices
-largest_dist_along_axis(Norm,St) ->
+largest_dist_along_axis(Norm, St) ->
     Center = wings_sel:center(St),
-    Distances = wings_sel:fold(fun(Vs,We,Acc) ->
-                    V = gb_sets:to_list(Vs),
-                    get_dist_list(Center,Norm,V,We,Acc)
-               end, [], St),
-    lists:merge(Distances).
+    MF = fun(Vs, We) ->
+                 get_dist_list(Vs, Center, Norm, We)
+         end,
+    RF = fun erlang:'++'/2,
+    wings_sel:dfold(MF, RF, [], St).
 
-get_dist_list(Center,Norm,V,We,Acc) ->
-    G = lists:foldl(fun(Vert,A) ->
-            #we{vp=Vtab}=We,
-            Pos = array:get(Vert,Vtab),
-            [dist_along_vector(Pos,Center,Norm)|A]
-        end, [], V),
-    G1 = lists:max(G),
-    G2 = lists:min(G),
-    [[G1,G2]|Acc].
+get_dist_list(Vs, Center, Norm, #we{vp=Vtab}) ->
+    L = gb_sets:fold(
+          fun(V, A) ->
+                  Pos = array:get(V, Vtab),
+                  Dist = dist_along_vector(Pos, Center, Norm),
+                  [Dist|A]
+          end, [], Vs),
+    [lists:min(L),lists:max(L)].

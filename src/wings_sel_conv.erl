@@ -12,7 +12,7 @@
 %%
 
 -module(wings_sel_conv).
--export([mode/2,more/1,less/1]).
+-export([mode/2,more/1,more/3,less/1,less/3]).
 
 -include("wings.hrl").
 -import(lists, [foldl/3,reverse/1]).
@@ -43,6 +43,32 @@ less(#st{selmode=face}=St) ->
     face_less(St);
 less(St) -> St.
 
+-type some_modes() :: 'vertex' | 'edge' | 'face'.
+
+-spec more(Mode, ItemsIn, #we{}) -> ItemsOut when
+      Mode :: some_modes(),
+      ItemsIn :: wings_sel:item_set(),
+      ItemsOut :: wings_sel:item_set().
+
+more(vertex, Vs, We) ->
+    vertex_more(Vs, We);
+more(edge, Es, We) ->
+    edge_more(Es, We);
+more(face, Fs, We) ->
+    face_more(Fs, We).
+
+-spec less(Mode, ItemsIn, #we{}) -> ItemsOut when
+      Mode :: some_modes(),
+      ItemsIn :: wings_sel:item_set(),
+      ItemsOut :: wings_sel:item_set().
+
+less(vertex, Vs, We) ->
+    vertex_less(Vs, We);
+less(edge, Es, We) ->
+    edge_less(Es, We);
+less(face, Fs, We) ->
+    face_less(Fs, We).
+
 %%
 %% Convert the current selection to a vertex selection.
 %%
@@ -66,40 +92,40 @@ vertex_selection(#st{selmode=vertex}=St) ->
     vertex_more(St).
 
 vertex_more(St) ->
-    wings_sel:update_sel(
-      fun(Vs, We) ->
-	      gb_sets:fold(
-		fun(V, S0) ->
-			wings_vertex:fold(
-			  fun(_, F, Rec, S) when F >= 0 ->
-				  Other = wings_vertex:other(V, Rec),
-				  gb_sets:add(Other, S);
-			     (_, _, Rec, S) ->
-				  Other = wings_vertex:other(V, Rec),
-				  case vertex_visible(Other, We) of
-				      true -> gb_sets:add(Other, S);
-				      false -> S
-				  end
-			  end, S0, V, We)
-		end, Vs, Vs)
-      end, vertex, St).
+    wings_sel:update_sel(fun vertex_more/2, St).
+
+vertex_more(Vs, We) ->
+    gb_sets:fold(
+      fun(V, S0) ->
+              wings_vertex:fold(
+                fun(_, F, Rec, S) when F >= 0 ->
+                        Other = wings_vertex:other(V, Rec),
+                        gb_sets:add(Other, S);
+                   (_, _, Rec, S) ->
+                        Other = wings_vertex:other(V, Rec),
+                        case vertex_visible(Other, We) of
+                            true -> gb_sets:add(Other, S);
+                            false -> S
+                        end
+                end, S0, V, We)
+      end, Vs, Vs).
 
 vertex_less(St) ->
-    wings_sel:update_sel(
-      fun(Vs, We) ->
-	      gb_sets:fold(
-		fun(V, A) ->
-			Set = wings_vertex:fold(
-				fun(_, _, Rec, S) ->
-					Other = wings_vertex:other(V, Rec),
-					gb_sets:add(Other, S)
-				end, gb_sets:empty(), V, We),
-			case gb_sets:is_subset(Set, Vs) of
-			    true -> gb_sets:add(V, A);
-			    false -> A
-			end
-		end, gb_sets:empty(), Vs)
-      end, vertex, St).
+    wings_sel:update_sel(fun vertex_less/2, St).
+
+vertex_less(Vs, We) ->
+    gb_sets:fold(
+      fun(V, A) ->
+              Set = wings_vertex:fold(
+                      fun(_, _, Rec, S) ->
+                              Other = wings_vertex:other(V, Rec),
+                              gb_sets:add(Other, S)
+                      end, gb_sets:empty(), V, We),
+              case gb_sets:is_subset(Set, Vs) of
+                  true -> gb_sets:add(V, A);
+                  false -> A
+              end
+      end, gb_sets:empty(), Vs).
 
 vertex_visible(V, We) ->
     wings_vertex:fold(
@@ -137,12 +163,13 @@ edge_more(Edges, We) ->
     wings_we:visible_edges(Es, We).
 
 edge_less(St) ->
-    wings_sel:update_sel(fun(Edges, #we{es=Etab}=We) ->
-		     Vs0 = edge_less_1(Edges, Etab),
-		     Vs = ordsets:from_list(Vs0),
-		     AdjEdges = adjacent_edges(Vs, We),
-		     gb_sets:subtract(Edges, AdjEdges)
-	     end, edge, St).
+    wings_sel:update_sel(fun edge_less/2, St).
+
+edge_less(Edges, #we{es=Etab}=We) ->
+    Vs0 = edge_less_1(Edges, Etab),
+    Vs = ordsets:from_list(Vs0),
+    AdjEdges = adjacent_edges(Vs, We),
+    gb_sets:subtract(Edges, AdjEdges).
 
 edge_less_1(Edges, Etab) ->
     gb_sets:fold(
@@ -227,17 +254,17 @@ do_face_more(Face, We, Acc) ->
 	  end, Acc, wings_face:vertices_ccw(Face, We)).
 
 face_less(St) ->
-    wings_sel:update_sel(
-      fun(Faces0, #we{mirror=Mirror}=We) ->
-          Es0 = wings_face:outer_edges(Faces0, We),
-          MirEs = case Mirror of
-              none -> [];
-              _ -> wings_face:to_edges([Mirror], We)
-          end,
-          Es = Es0 -- MirEs,
-          Faces = wings_face:from_edges(Es, We),
-          gb_sets:difference(Faces0, Faces)
-      end, face, St).
+    wings_sel:update_sel(fun face_less/2, St).
+
+face_less(Faces0, #we{mirror=Mirror}=We) ->
+    Es0 = wings_face:outer_edges(Faces0, We),
+    MirEs = case Mirror of
+                none -> [];
+                _ -> wings_face:to_edges([Mirror], We)
+            end,
+    Es = Es0 -- MirEs,
+    Faces = wings_face:from_edges(Es, We),
+    gb_sets:difference(Faces0, Faces).
 
 remove_invisible_faces(Fs) ->
     case gb_sets:is_empty(Fs) of

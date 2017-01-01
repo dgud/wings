@@ -15,6 +15,8 @@
 -export([init/0,menu/2,command/2]).
 -include_lib("wings/src/wings.hrl").
 
+-import(lists, [member/2]).
+
 init() ->
     true.
 
@@ -60,98 +62,88 @@ command({edge,{circularise_center,Data}}, St) ->
 command(_, _) ->
     next.
 
-process_circ_cmd(Plane0, St0) ->
-    VsData = wings_sel:fold(fun(Edges, We, Acc) ->
-        case is_list(wings_edge_loop:edge_loop_vertices(Edges, We)) of
-          true ->
-            [circle|Acc];
-          false ->
-            EdgeGroups = wings_edge_loop:partition_edges(Edges, We),
-            VsList = wings_edge_loop:edge_links(Edges, We),
-            case check_if_partial_and_full_loops_are_mixed(VsList, We) of
-              not_mixed when length(EdgeGroups) =:= length(VsList) ->
-                [{VsList,We}|Acc];
-              not_mixed ->
-                circ_sel_error_4();
-              single_edge ->
-                circ_sel_error_3();
-              mixed ->
-                circ_sel_error_4()
-            end
-        end
-    end, [], St0),
-    case Plane0 of
+process_circ_cmd(Plane, St0) ->
+    MF = fun(Edges, We) ->
+                 case wings_edge_loop:edge_loop_vertices(Edges, We) of
+                     [_|_] ->
+                         true;
+                     none ->
+                         Gs = wings_edge_loop:partition_edges(Edges, We),
+                         VsList = wings_edge_loop:edge_links(Edges, We),
+                         case check_partial_and_full_loops(VsList, We) of
+                             not_mixed when length(Gs) =:= length(VsList) ->
+                                 false;
+                             not_mixed ->
+                                 circ_sel_error_4();
+                             single_edge ->
+                                 circ_sel_error_3();
+                             mixed ->
+                                 circ_sel_error_4()
+                         end
+                 end
+         end,
+    RF = fun erlang:'or'/2,
+    IsCircle = wings_sel:dfold(MF, RF, false, St0),
+    Setup = case IsCircle of
+                true -> fun circle_setup/2;
+                false -> fun arc_setup/2
+            end,
+    case Plane of
         {'ASK',Ask} ->
-            case lists:member(circle, VsData) of
-              true ->
-                wings:ask(selection_ask(Ask), St0,
-                  fun(Plane, St) -> circle_setup(Plane, St) end);
-              false ->
-                wings:ask(selection_ask(Ask), St0,
-                  fun(Plane, St) -> arc_setup(Plane, VsData, St) end)
-            end;
-        Plane ->
-            case lists:member(circle, VsData) of
-              true ->
-                circle_setup(Plane, St0);
-              false ->
-                arc_setup(Plane, VsData, St0)
-            end
+            wings:ask(selection_ask(Ask), St0, Setup);
+        _ ->
+            Setup(Plane, St0)
     end.
 
-process_cc_cmd(Data, #st{shapes=Shs,sel=[{Id,Sel}]}=St0) ->
-    We = gb_trees:get(Id, Shs),
-    Edges = gb_sets:to_list(Sel),
-    case wings_edge_loop:edge_loop_vertices(Edges, We) of
-      [Vs0] ->
-        %% Single closed loop mmb
-        second_ask(Edges, Vs0, We, St0);
-      _other ->
-        Vs = wings_edge_loop:edge_links(Edges, We),
-        EdgeGroups = wings_edge_loop:partition_edges(Edges, We),
-        case check_if_partial_and_full_loops_are_mixed(Vs, We) of
-          not_mixed when length(EdgeGroups) =:= length(Vs) ->
-            case Data of
-              {Plane,Center} ->
-                  arc_center_setup(Plane, Center, [{Vs,We}], St0);
-              _ ->
-                wings:ask(selection_ask([plane,arc_center]), St0,
-                  fun({Plane,Center}, St) ->
-                    arc_center_setup(Plane, Center, [{Vs,We}], St)
-                  end)
-            end;
-          not_mixed ->
-            circ_sel_error();
-          single_edge ->
-            circ_sel_error_3();
-          mixed ->
-            circ_sel_error()
-        end
+process_cc_cmd(Data, #st{sel=[_]}=St0) ->
+    MF = fun(Edges, #we{id=Id}=We) ->
+                 case wings_edge_loop:edge_loop_vertices(Edges, We) of
+                     [Vs] ->
+                         {Id,gb_sets:to_list(Edges),Vs};
+                     _ ->
+                         none
+                 end
+         end,
+    RF = fun(Res, none) -> Res end,
+    case wings_sel:dfold(MF, RF, none, St0) of
+        none ->
+            process_cc_cmd_1(Data, St0);
+        {_,_,_}=OrigSel ->
+            %% Single closed loop, MMB.
+            F = fun({Center,Plane,RayPos}, St) ->
+                        circle_pick_all_setup(RayPos, Center, Plane, St)
+                end,
+            wings:ask(secondary_sel_ask(OrigSel), St0, F)
     end;
-process_cc_cmd(Data, St0) ->
-    VsData = wings_sel:fold(fun(Es, We, Acc) ->
-        Edges = gb_sets:to_list(Es),
-        Vs = wings_edge_loop:edge_links(Edges, We),
-        EdgeGroups = wings_edge_loop:partition_edges(Edges, We),
-        case check_if_partial_and_full_loops_are_mixed(Vs, We) of
-          not_mixed when length(EdgeGroups) =:= length(Vs) ->
-            [{Vs,We}|Acc];
-          not_mixed ->
-            circ_sel_error();
-          single_edge ->
-            circ_sel_error_3();
-          mixed ->
-            circ_sel_error()
-        end
-    end, [], St0),
+process_cc_cmd(Data, St) ->
+    process_cc_cmd_1(Data, St).
+
+process_cc_cmd_1(Data, St0) ->
+    MF = fun(Es, We) ->
+                 Edges = gb_sets:to_list(Es),
+                 Vs = wings_edge_loop:edge_links(Edges, We),
+                 EdgeGroups = wings_edge_loop:partition_edges(Edges, We),
+                 case check_partial_and_full_loops(Vs, We) of
+                     not_mixed when length(EdgeGroups) =:= length(Vs) ->
+                         ok;
+                     not_mixed ->
+                         circ_sel_error();
+                     single_edge ->
+                         circ_sel_error_3();
+                     mixed ->
+                         circ_sel_error()
+                 end
+         end,
+    RF = fun(ok, ok) -> ok end,
+    ok = wings_sel:dfold(MF, RF, ok, St0),
     case Data of
       {Plane,Center} ->
-          arc_center_setup(Plane, Center, VsData, St0);
+            arc_center_setup(Plane, Center, St0);
       _ ->
-        wings:ask(selection_ask([plane,arc_center]), St0,
-          fun({Plane,Center}, St) ->
-            arc_center_setup(Plane, Center, VsData, St)
-          end)
+            wings:ask(selection_ask([plane,arc_center]), St0,
+                      fun({Plane,Center}, St) ->
+                              arc_center_setup(Plane, Center, St)
+                      end)
     end.
 
 %%%% Asks
@@ -173,60 +165,69 @@ selection_ask([arc_center|Rest], Ask) ->
     Desc = ?__(3,"Pick point from which the center will be calculated relative to chosen plane and ends of edge selection"),
     selection_ask(Rest, [{point,Desc}|Ask]).
 
-%%%% Secondary Selection for Circularise Mmb
-second_ask(Edges, Vs, We, St) ->
-    wings:ask(secondary_sel_ask(Edges, Vs), St, fun({Center,Plane,RayPos}, St0) ->
-    circle_pick_all_setup(Vs, RayPos, Center, Plane, We, St0)
-    end).
-
-secondary_sel_ask(Edges, Vs) ->
+secondary_sel_ask(OrigSel) ->
     Desc1 = ?__(1,"Select a single edge or vertex from the original edge loop marking the stable ray from the center point"),
     Desc2 = ?__(2,"Pick center point"),
     Desc3 = ?__(3,"Pick plane"),
-    Fun = fun
-             (check, #st{selmode=vertex}=St) ->
-               check_selection(St, Vs);
-             (check, #st{selmode=edge}=St) ->
-               check_selection(St, Edges);
-             (check, St) ->
-               check_selection(St, []);
-             (exit, {_,_,#st{selmode=vertex,sel=[{_,Sel}]}=St}) ->
-               case check_selection(St, Vs) of
-                 {_,[]} ->
-                   RayV = gb_sets:smallest(Sel),
-                   {result,RayV};
-                 {_,_} -> error
-               end;
-             (exit, {_,_,#st{shapes=Shs,selmode=edge,sel=[{Id,Sel}]}=St}) ->
-               case check_selection(St, Edges) of
-                 {_,[]} ->
-                   #we{es=Etab} = gb_trees:get(Id, Shs),
-                   E = gb_sets:smallest(Sel),
-                   #edge{vs=Va,ve=Vb} = array:get(E, Etab),
-                   {result,{Va,Vb}};
-                 {_,_} -> error
-               end;
-             (exit,_) -> error
+    Fun = fun(check, St) ->
+                  case check_selection(OrigSel, St) of
+                      {_,Point,Msg} ->
+                          {Point,Msg};
+                      Msg ->
+                          {none,Msg}
+                  end;
+             (exit, {_,_,St}) ->
+                  case check_selection(OrigSel, St) of
+                      {Result,_,_} ->
+                          {result,Result};
+                      _ ->
+                          error
+                  end
            end,
     {[{point,Desc2},{axis,Desc3},{Fun,Desc1}],[],[],[vertex,edge,face]}.
 
-check_selection(#st{sel=[]}, _Vs) ->
-    {none,?__(1,"Nothing selected")};
+check_selection({OrigId,Edges,Vs}, #st{selmode=Mode}=St) ->
+    Sel = case Mode of
+              vertex -> Vs;
+              edge -> Edges;
+              face -> []
+          end,
+    MF = fun(Items, #we{id=Id}=We) when Id =:= OrigId ->
+                 case gb_sets:size(Items) of
+                     1 ->
+                         [Item] = gb_sets:to_list(Items),
+                         case member(Item, Sel) of
+                             false ->
+                                 [wrong];
+                             true ->
+                                 [get_point(Mode, Item, We)]
+                         end;
+                     _ ->
+                         [multiple]
+                 end;
+            (_, _) ->
+                 [wrong]
+         end,
+    RF = fun erlang:'++'/2,
+    case wings_sel:dfold(MF, RF, [], St) of
+        [] ->
+            ?__(1,"Nothing selected");
+        [{Result,Point}] ->
+            {Result,Point,?__(2,"Point saved as stable ray location.")};
+        [wrong] ->
+            ?__(3,"Only a vertex or an edge from the original "
+                "edge loop may be selected.");
+        [_|_] ->
+            ?__(4,"Only a single edge or vertex may be selected.")
+    end.
 
-check_selection(#st{selmode=Mode,sel=[{_,Sel}]}, OrigSel) when Mode =:= edge; Mode =:= vertex ->
-    case gb_sets:size(Sel) of
-      1 ->
-        Elem = gb_sets:smallest(Sel),
-        case lists:member(Elem, OrigSel) of
-          true -> {none,[]};
-          false -> {none,?__(2,"Vertex must be from the original edge loop")}
-        end;
-      _ ->
-        {none,?__(2,"Vertex must be from the original edge loop")}
-    end;
-check_selection(_, _) ->
-    {none,?__(4,"Only a single edge or vertex may be selected")}.
-
+get_point(vertex, V, We) ->
+    {V,wings_vertex:pos(V, We)};
+get_point(edge, E, #we{es=Etab,vp=Vtab}) ->
+    #edge{vs=Va,ve=Vb} = array:get(E, Etab),
+    Pos = e3d_vec:average(wings_vertex:pos(Va, Vtab),
+                          wings_vertex:pos(Vb, Vtab)),
+    {{Va,Vb},Pos}.
 
 % % % % % % % % % % %
 %    Data Setup     %
@@ -234,17 +235,24 @@ check_selection(_, _) ->
 
 %%%% Arc Setup LMB - find plane for each arc
 %%%% Arc Setup RMB - arc to common plane
-arc_setup(Plane, VsData, St) ->
+arc_setup(Plane, St0) ->
     Flatten = wings_pref:get_value(circularise_flatten, true),
     State = {Flatten,normal,none},
-    {_,Tvs} = lists:foldl(fun({VertList,We},{TentVec,Acc}) ->
-            arc_setup(State, Plane, VertList, We, TentVec, Acc)
-            end, {tent_vec,[]}, VsData),
+    F = fun(Es, We, TentVec0) ->
+                VsList = wings_edge_loop:edge_links(Es, We),
+                {TentVec,Tv} = arc_setup(State, Plane, VsList, We, TentVec0),
+                {We#we{temp=Tv},TentVec}
+        end,
+    {St,_} = wings_sel:mapfold(F, tent_vec, St0),
     Flags = [{mode,{arc_modes(),State}},{initial,[0.0,0.0,1.0]}],
     Units = [angle,skip,percent],
-    wings_drag:setup(Tvs, Units, Flags, St).
+    DF = fun(_, #we{temp=Tv}) -> Tv end,
+    wings_drag:fold(DF, Units, Flags, St).
 
-arc_setup(State, Plane0, [VsList|Loops], #we{id=Id,vp=Vtab}=We, TentVec0, Acc0) ->
+arc_setup(State, Plane, VsData, We, TentVec) ->
+    arc_setup(State, Plane, VsData, We, TentVec, []).
+
+arc_setup(State, Plane0, [VsList|Loops], #we{vp=Vtab}=We, TentVec0, Acc0) ->
     {Vs0,Edges} = arc_vs(VsList, [], []),
     CwNorm = wings_face:face_normal_cw(Vs0, Vtab),
     case e3d_vec:is_zero(CwNorm) of
@@ -298,20 +306,25 @@ arc_setup(State, Plane0, [VsList|Loops], #we{id=Id,vp=Vtab}=We, TentVec0, Acc0) 
     Cross = e3d_vec:norm(e3d_vec:cross(Norm, Chord)),
     Opp = e3d_vec:len(Chord),
     Data = {{CwNorm, Cross, Opp, Norm, SPos, Hinge, NumVs}, DegVertList},
-    Acc = [{Id,{Vlist, make_arc_fun(Data, State)}}|Acc0],
+    Acc = [{Vlist, make_arc_fun(Data, State)}|Acc0],
     arc_setup(State, Plane0, Loops, We, TentVec, Acc);
-arc_setup(_, _, [], _, TentVec, Acc) -> {TentVec,Acc}.
+arc_setup(_, _, [], _, TentVec, Acc) ->
+    {TentVec,wings_drag:compose(Acc)}.
 
 %%%% Arc Setup MMB
-arc_center_setup(Plane, Center, VsData, St) ->
+arc_center_setup(Plane, Center, St0) ->
     Flatten = wings_pref:get_value(circularise_flatten, true),
     State = {Flatten,normal,acute},
-    Tvs = lists:foldl(fun({ArcVs,#we{id=Id,vp=Vtab}}, Acc) ->
-            {Vlist,Data} = arc_center_setup_1(ArcVs, Plane, Center, Vtab),
-            [{Id,{Vlist,make_arc_center_fun(Data, State)}}|Acc]
-    end, [], VsData),
+    F = fun(Edges, #we{vp=Vtab}=We) ->
+                ArcVs = wings_edge_loop:edge_links(Edges, We),
+                {Vlist,Data} = arc_center_setup_1(ArcVs, Plane, Center, Vtab),
+                Tv = {Vlist,make_arc_center_fun(Data, State)},
+                We#we{temp=Tv}
+        end,
+    St = wings_sel:map(F, St0),
+    DF = fun(_, #we{temp=Tv}) -> Tv end,
     Flags = [{mode,{arc_modes(),State}},{initial,[1.0]}],
-    wings_drag:setup(Tvs, [percent], Flags, St).
+    wings_drag:fold(DF, [percent], Flags, St).
 
 arc_center_setup_1(VData, Plane, Center, Vtab) ->
     lists:foldl(fun(ArcVs, {VlistAcc,DataAcc}) ->
@@ -356,15 +369,15 @@ make_degree_vert_list([V|Vs], Vtab, Index, Vlist, DegVertList) ->
     Vpos = array:get(V, Vtab),
     make_degree_vert_list(Vs, Vtab, Index+1, [V|Vlist], [{V,{Vpos, Index}}|DegVertList]).
 
-check_if_partial_and_full_loops_are_mixed([Group|Vs], We) when length(Group) > 1 ->
+check_partial_and_full_loops([Group|Vs], We) when length(Group) > 1 ->
     {Edges,Bool} = edges_in_group(Group, [], [], [], false, false),
     case is_list(wings_edge_loop:edge_loop_vertices(Edges, We)) of
       true -> mixed;
       false when Bool -> mixed;
-      false -> check_if_partial_and_full_loops_are_mixed(Vs, We)
+      false -> check_partial_and_full_loops(Vs, We)
     end;
-check_if_partial_and_full_loops_are_mixed([], _) -> not_mixed;
-check_if_partial_and_full_loops_are_mixed(_, _) -> single_edge.
+check_partial_and_full_loops([], _) -> not_mixed;
+check_partial_and_full_loops(_, _) -> single_edge.
 
 edges_in_group([{Edge,V,V2}|VsList], EAcc, VAcc, V2Acc, false, false) ->
     Bool = lists:member(V, VAcc),
@@ -381,30 +394,42 @@ circle_setup(Plane, St) ->
     Flatten = wings_pref:get_value(circularise_flatten, true),
     DragMode = wings_pref:get_value(circularise_drag, relative),
     State = {Flatten,none,DragMode},
-    Tvs = wings_sel:fold(fun(Edges, We, Acc) ->
-        case wings_edge_loop:edge_loop_vertices(Edges, We) of
-          none ->
-              circ_sel_error_4();
-          Groups ->
-              TotalVs = length(wings_edge:to_vertices(Edges, We)),
-              SumCheck = [length(SubGroup) || SubGroup <- Groups],
-              Sum = lists:sum(SumCheck),
-              case TotalVs  =:=  Sum of
-                  true -> circle_setup_1(Groups, We, Plane, State, Acc);
-                  false -> circ_sel_error_1()
-              end
-        end
-    end, [], St),
+    DF = fun(Edges, We) ->
+                 case wings_edge_loop:edge_loop_vertices(Edges, We) of
+                     none ->
+                         circ_sel_error_4();
+                     Groups ->
+                         TotalVs = length(wings_edge:to_vertices(Edges, We)),
+                         SumCheck = [length(SubGroup) || SubGroup <- Groups],
+                         Sum = lists:sum(SumCheck),
+                         case TotalVs  =:=  Sum of
+                             true ->
+                                 circle_setup_1(Groups, We, Plane, State, []);
+                             false ->
+                                 circ_sel_error_1()
+                         end
+                 end
+         end,
     Flags = [{mode,{circ_mode(),State}},{initial,[1.0,0.0,1.0]}],
-    wings_drag:setup(Tvs, circularise_units(State), Flags, St).
+    wings_drag:fold(DF, circularise_units(State), Flags, St).
 
 
 %%%% Circularise Setup MMB
-circle_pick_all_setup(Vs0, RayV, Center, Axis0, #we{vp=Vtab,id=Id}, St) ->
+circle_pick_all_setup(RayV, Center, Axis0, St0) ->
     Flatten = wings_pref:get_value(circularise_flatten, true),
     DragMode = wings_pref:get_value(circularise_drag, relative),
     State = {Flatten,normal,DragMode},
     Axis = e3d_vec:norm(Axis0),
+    MF = fun(Es, We) ->
+                 circle_pick_all_setup_1(Es, We, State, RayV, Center, Axis)
+         end,
+    St = wings_sel:map(MF, St0),
+    Flags = [{mode,{circ_mode(),State}},{initial,[1.0,0.0,1.0]}],
+    DF = fun(_, #we{temp=Tv}) -> Tv end,
+    wings_drag:fold(DF, circularise_units(State), Flags, St).
+
+circle_pick_all_setup_1(Edges, #we{vp=Vtab}=We, State, RayV, Center, Axis) ->
+    [Vs0] = wings_edge_loop:edge_loop_vertices(Edges, We),
     Vs = check_vertex_order(Vs0, Axis, wings_face:face_normal_cw(Vs0, Vtab)),
     Deg = (360.0/length(Vs)),
     {Pos,Index} = find_stable_point(Vs, RayV, Vtab, 0.0),
@@ -413,12 +438,12 @@ circle_pick_all_setup(Vs0, RayV, Center, Axis0, #we{vp=Vtab,id=Id}, St) ->
     Ray = e3d_vec:norm(Ray0),
     VertDegList = degrees_from_static_ray(Vs, Vtab, Deg, Index, 1, []),
     Data = {Center,Ray,Len,Axis,VertDegList},
-    Tvs = [{Id,{Vs,make_circular_fun(Data, State)}}],
-    Flags = [{mode,{circ_mode(),State}},{initial,[1.0,0.0,1.0]}],
-    wings_drag:setup(Tvs, circularise_units(State), Flags, St).
+    Tv = {Vs,make_circular_fun(Data, State)},
+    We#we{temp=Tv}.
 
-circle_setup_1([], _, _, _, Acc) -> Acc;
-circle_setup_1([Vs0|Groups], #we{vp=Vtab,id=Id}=We, Plane, State, Acc) ->
+circle_setup_1([], _, _, _, Acc) ->
+    wings_drag:compose(Acc);
+circle_setup_1([Vs0|Groups], #we{vp=Vtab}=We, Plane, State, Acc0) ->
     CwNorm = wings_face:face_normal_cw(Vs0, Vtab),
     Axis = circle_plane(Plane, CwNorm),
     Vs = check_vertex_order(Vs0, Axis, CwNorm),
@@ -428,7 +453,8 @@ circle_setup_1([Vs0|Groups], #we{vp=Vtab,id=Id}=We, Plane, State, Acc) ->
     VertDegList = degrees_from_static_ray(Vs, Vtab, Deg, Index, 1.0, []),
     Ray = e3d_vec:norm_sub(Pos, Center),
     Data = {Center,Ray,NearestVpos,Axis,VertDegList},
-    circle_setup_1(Groups, We, Plane, State, [{Id,{Vs,make_circular_fun(Data, State)}}|Acc]).
+    Acc = [{Vs,make_circular_fun(Data, State)}|Acc0],
+    circle_setup_1(Groups, We, Plane, State, Acc).
 
 %% Tent arc for open edge loops that have a ccw normal of {0,0,0}
 tent_arc(Edges, [_,V2|_], Norm, #we{vp=Vtab}=We) ->

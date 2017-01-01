@@ -195,14 +195,16 @@ inflate({Center,Outer}, St) ->
                                     gb_sets:to_list(Vs), We)
                     end, [percent], St).
 
-inflate(Center, Radius, Vs, #we{vp=Vtab}) ->
-    map(fun(V) ->
+inflate(Center, Radius, Vs, #we{vp=Vtab}=We) ->
+    F = fun(V) ->
                 VPos = array:get(V, Vtab),
                 D = e3d_vec:dist(Center, VPos),
                 Dir = e3d_vec:norm_sub(VPos, Center),
                 Vec = e3d_vec:mul(Dir, Radius-D),
                 {Vec,[V]}
-        end, Vs).
+        end,
+    VecVs = [F(V) || V <- Vs],
+    wings_drag:translate_fun(VecVs, We).
 
 %%
 %% The Taper deformer.

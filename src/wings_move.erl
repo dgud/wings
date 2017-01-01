@@ -42,40 +42,68 @@ setup(Vec0, Magnet, #st{selmode=Mode}=St) ->
 magnet_unit(none) -> [];
 magnet_unit(_) -> [falloff].
 
-plus_minus({'ASK',Ask}, Tvs, St0) ->
-    wings:ask(Ask, St0, fun(Type, St) -> plus_minus(Type, Tvs, St) end);
-plus_minus(Type, Tvs0, #st{selmode=Mode}=St) ->
+-type plus_minus_data() :: {wings_sel:face_set() | [face_num()],
+                            [vertex_num()],
+                            wings_sel:item_set()}.
+
+-spec plus_minus(Type, F, #st{}) -> {drag,term()} when
+      Type :: term(),
+      Items ::wings_sel:item_set(),
+      PlusMinus :: plus_minus_data(),
+      F :: fun((Items, #we{}) -> PlusMinus).
+
+plus_minus({'ASK',Ask}, F, St0) when is_function(F, 2) ->
+    wings:ask(Ask, St0, fun(Type, St) -> plus_minus(Type, F, St) end);
+plus_minus(Type, F, #st{selmode=Mode}=St) when is_function(F, 2) ->
     Vec = make_vector(Type),
-    Tvs = plus_minus_2(Mode, Vec, Tvs0, []),
     Flags = [{initial,[0.0,0.0,1.0]}|flags(Type)],
-    wings_drag:setup(Tvs, unit(Type, [{percent,{0.0,infinity}}]), Flags, St).
+    DF = fun(Items, We) ->
+                 PlusMinus = F(Items, We),
+                 plus_minus_1(Mode, Vec, PlusMinus, We)
+         end,
+    wings_drag:fold(DF, unit(Type, [{percent,{0.0,infinity}}]), Flags, St).
 
-plus_minus_2(Mode, Vec, [{Items,NewVs,Forbidden,We}|T], Acc0) ->
-    Tv = setup_we(Mode, Vec, Items, We),
-    Acc = plus_minus_3(Tv, NewVs, Forbidden, We, Acc0),
-    plus_minus_2(Mode, Vec, T, Acc);
-plus_minus_2(_Mode, _Vec, [], Acc) -> Acc.
+-spec plus_minus_1(Mode, Vec, PlusMinus, #we{}) -> Res when
+      Mode :: sel_mode(),
+      Vec :: 'normal' | e3d_vec:vector(),
+      PlusMinus :: plus_minus_data(),
+      Res :: wings_drag:vertex_transform().
 
-plus_minus_3(Tv0, NewVs, Forbidden, #we{id=Id}=We, Acc) ->
+plus_minus_1(Mode, Vec, {Items,NewVs,Forbidden}, We) ->
+    Tv0 = setup_we(Mode, Vec, Items, We),
     Affected0 = affected(Tv0),
     Vecs = move_vectors(NewVs, Forbidden, gb_sets:from_list(Affected0), We, []),
     Affected = [V || {V,_,_} <- Vecs],
     VsPos = move_away(1.0, Vecs, []),
     MoveAway = {Affected,move_away_fun(Vecs, VsPos)},
-    [{Id,Tv0},{Id,MoveAway}|Acc].
+    wings_drag:compose([Tv0,MoveAway]).
 
-setup_we(Mode, Vec, _, We) when ?IS_LIGHT(We) ->
-    setup_we_1(Mode, Vec, wings_sel:get_all_items(Mode, We), We);
+-spec setup_we(Mode, Vec, Items, #we{}) -> Result when
+      Mode :: sel_mode(),
+      Vec :: e3d_vec:vector() | 'normal',
+      Items :: wings_drag:vertices() | wings_sel:item_set(),
+      Result :: {wings_drag:vertices(),wings_drag:vec_transform_fun()}.
+
 setup_we(Mode, Vec, Items, We) ->
-    setup_we_1(Mode, Vec, Items, We).
+    case setup_we_1(Mode, Vec, Items, We) of
+        [_|_]=VecVs ->
+            wings_drag:translate_fun(VecVs, We);
+        {_,Fun}=VsFun when is_function(Fun, 2) ->
+            VsFun
+    end.
 
-setup_we_1(Mode, Vec, Items, We) when not is_list(Items) ->
-    setup_we_1(Mode, Vec, gb_sets:to_list(Items), We);
-setup_we_1(vertex, Vec, Items, We) ->
+setup_we_1(Mode, Vec, _, We) when ?IS_LIGHT(We) ->
+    setup_we_2(Mode, Vec, wings_sel:get_all_items(Mode, We), We);
+setup_we_1(Mode, Vec, Items, We) ->
+    setup_we_2(Mode, Vec, Items, We).
+
+setup_we_2(Mode, Vec, Items, We) when not is_list(Items) ->
+    setup_we_2(Mode, Vec, gb_sets:to_list(Items), We);
+setup_we_2(vertex, Vec, Items, We) ->
     vertices_to_vertices(Items, We, Vec);
-setup_we_1(edge, Vec, Items, We) ->
+setup_we_2(edge, Vec, Items, We) ->
     edges_to_vertices(Items, We, Vec);
-setup_we_1(face, Vec, Items, We) ->
+setup_we_2(face, Vec, Items, We) ->
     faces_to_vertices(Items, We, Vec).
 
 unit(Type) ->
@@ -415,9 +443,8 @@ magnet_move_fun(VsVec, VsInf0, {_,R}=Magnet0) ->
 %%% Utilities.
 %%%
 
-affected([_|_]=Tv) -> lists:append([Vs || {_,Vs} <- Tv]);
-affected({Vs,Fun}) when is_function(Fun) -> Vs.
-    
+affected({Vs,Fun}) when is_function(Fun, 2) -> Vs.
+
 make_tvs(Vs, free_2d, We) ->
     make_tvs(Vs, free, We);
 make_tvs(Vs, free, We) ->

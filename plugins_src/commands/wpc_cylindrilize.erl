@@ -107,25 +107,21 @@ selection_ask([AskType|Rest],Ask) ->
     selection_ask(Rest,[{Pick,Desc}|Ask]).
 
 %%%% Selection data setup
-get_center_and_radius(Axis0,St) ->
+get_center_and_radius(Axis0, St) ->
     Axis = wings_util:make_vector(Axis0),
     Center = wings_sel:center(St),
-    DistList = wings_sel:fold(fun(Vs,We,Acc) ->
-            VList = gb_sets:to_list(Vs),
-            get_radius(Axis,Center,VList,We,Acc)
-            end,[],St),
-    AllDists = lists:merge(DistList),
-    Radius = lists:max(AllDists),
+    MF = fun(Vs, We) -> get_radius(Vs, Axis, Center, We) end,
+    RF = fun max/2,
+    Radius = wings_sel:dfold(MF, RF, 0.0, St),
     cylinder_callback({Axis,Center,Radius},St).
 
-get_radius(Axis,Center,VList,We,Acc) ->
-    Dist = lists:foldl(fun(Vert,A) ->
-            #we{vp=Vtab} = We,
-            Pos = array:get(Vert,Vtab),
-            CntrOnPlane = intersect_vec_plane(Center,Pos,Axis),
-            [abs(e3d_vec:dist(CntrOnPlane,Pos))|A]
-            end,[],VList),
-    [Dist|Acc].
+get_radius(Vs, Axis, Center, #we{vp=Vtab}) ->
+    gb_sets:fold(
+      fun(V, Max) ->
+              Pos = array:get(V, Vtab),
+              CenterOnPlane = intersect_vec_plane(Center, Pos, Axis),
+              max(e3d_vec:dist(CenterOnPlane, Pos), Max)
+      end, 0.0, Vs).
 
 cylinder_setup({Axis0,Center,Radius0},St) ->
     Axis = wings_util:make_vector(Axis0),

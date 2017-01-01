@@ -19,21 +19,22 @@
 	 update_sel/2,update_sel/3,fold/3,dfold/4,mapfold/3,
 	 new_sel/3,make/3,valid_sel/1,valid_sel/3,
 	 center/1,center_vs/1,
-	 bbox_center/1,bounding_box/1,bounding_boxes/1,
+	 bbox_center/1,bounding_box/1,
 	 face_regions/2,strict_face_regions/2,edge_regions/2,
 	 select_object/2,deselect_object/2,
 	 get_all_items/2,get_all_items/3,
-	 inverse_items/3]).
+	 inverse_items/3,to_vertices/3]).
 
--export_type([edge_set/0,face_set/0,item_set/0]).
+-export_type([vertex_set/0,edge_set/0,face_set/0,item_set/0]).
 
 -include("wings.hrl").
 -include("e3d.hrl").
 
 -import(lists, [foldl/3,reverse/1,reverse/2,sort/1,keydelete/3,keymember/3]).
 
+-type vertex_set() :: gb_sets:set(vertex_num()).
 -type edge_set() :: gb_sets:set(edge_num()).
--type face_set() :: gb_sets:set(face_num()).
+-type face_set() :: gb_sets:set(visible_face_num()).
 
 -type item_id() :: visible_face_num() | edge_num() | vertex_num() | 0.
 -type item_set() :: gb_sets:set(item_id()).
@@ -190,7 +191,7 @@ fold(F, Acc, #st{sel=Sel,shapes=Shapes}) ->
 %%% Map and fold over the selection.
 %%%
 
--spec mapfold(Fun, Acc0, #st{}) -> Acc1 when
+-spec mapfold(Fun, Acc0, #st{}) -> {#st{},Acc1} when
       Fun :: fun((Items, #we{}, AccIn) -> {#we{},AccOut}),
       Items :: item_set(),
       Acc0 :: term(),
@@ -295,27 +296,13 @@ bounding_box(#st{selmode=Mode}=St) ->
     dfold(MF, RF, none, St).
 
 %%%
-%%% Calculate the bounding boxes for all selected objects.
-%%%
-%%% FIXME: The name is strange. Maybe bbox_centers/1?
-
-bounding_boxes(#st{selmode=Mode}=St) ->
-    reverse(
-      fold(
-	fun(Items, We, A) ->
-		Vs = to_vertices(Mode, Items, We),
-		[e3d_vec:average(wings_vertex:bounding_box(Vs, We))|A]
-	end, [], St)).
-
-
-%%%
 %%% Divide the face selection into regions where each face shares at least
 %%% one edge with another face in the same region. Two faces can share a
 %%% vertex without necessarily being in the same region.
 %%%
 
 -spec face_regions(Faces, #we{}) -> [face_set()] when
-      Faces :: face_set() | [face_num()].
+      Faces :: face_set() | [visible_face_num()].
 
 face_regions(Faces, We) when is_list(Faces) ->
     face_regions_1(gb_sets:from_list(Faces), We);
@@ -328,7 +315,7 @@ face_regions(Faces, We) ->
 %%%
 
 -spec strict_face_regions(Faces, #we{}) -> [face_set()] when
-      Faces :: face_set() | [face_num()].
+      Faces :: face_set() | [visible_face_num()].
 
 strict_face_regions(Faces, We) when is_list(Faces) ->
     find_strict_face_regions(gb_sets:from_list(Faces), We, []);
@@ -405,7 +392,7 @@ get_all_items(Mode, Id, #st{shapes=Shapes}) ->
     We = gb_trees:get(Id, Shapes),
     get_all_items(Mode, We).
 
--spec to_vertices(sel_mode(), item_set(), #we{}) -> [item_id()].
+-spec to_vertices(sel_mode(), item_set(), #we{}) -> [vertex_num()].
 
 to_vertices(vertex, Vs, _) -> Vs;
 to_vertices(face, Faces, We) ->

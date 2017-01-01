@@ -78,7 +78,8 @@ move_region([Fs|Regs], We, Acc0) ->
 		  move_region(OuterVs, Fs, We, Acc0)
 	  end,
     move_region(Regs, We, Acc);
-move_region([], _, Acc) -> Acc.
+move_region([], We, Acc) ->
+    wings_drag:translate_fun(Acc, We).
 
 move_region(OuterVs, Faces, We, Acc) ->
     PlaneNormal = wings_face:face_normal_cw(OuterVs, We),
