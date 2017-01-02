@@ -417,18 +417,20 @@ intrude_bridge([], [], We) -> We.
 %%% The Mirror command.
 %%%
 
-mirror_separate(St0) ->
-    St = wings_sel:fold(fun mirror_sep_faces/3, St0, St0),
-    wings_sel:clear(St).
-    
-mirror_sep_faces(Faces, We0, Acc) when is_list(Faces) ->
+mirror_separate(St) ->
+    CF = fun(Faces, We) ->
+                 New = mirror_sep_faces(Faces, We),
+                 {We,gb_sets:empty(),New}
+         end,
+    wings_sel:clone(CF, St).
+
+mirror_sep_faces(Faces, We0) ->
     Template = wings_we:invert_normals(We0),
-    foldl(fun(Face, A) ->
-		  We = mirror_vs(Face, Template),
-		  wings_shape:insert(We, mirror, A)
-	  end, Acc, Faces);
-mirror_sep_faces(Faces, We, Acc) ->
-    mirror_sep_faces(gb_sets:to_list(Faces), We, Acc).
+    Empty = gb_sets:empty(),
+    gb_sets:fold(fun(Face, A) ->
+                         We = mirror_vs(Face, Template),
+                         [{We,Empty,mirror}|A]
+                 end, [], Faces).
 
 mirror(St0) ->
     St = wings_sel:map(fun mirror_faces/2, St0),
