@@ -1398,47 +1398,54 @@ lift_face_vertex_pairs(Faces, Vs, We) ->
 %%% The Put On command.
 %%%
 
-put_on(#st{sel=[{_,Faces}]}=St) ->
-    case gb_trees:size(Faces) of
-	1 ->
-	    wings:ask(put_on_selection(St), St, fun put_on/2);
-	_ ->
-	    wings_u:error_msg(?__(1,"There must only be one face selected."))
-    end;
-put_on(_) ->
-    wings_u:error_msg(?__(1,"There must only be one face selected.")).
+-spec put_clone_only_one() -> no_return().
 
-put_on_selection(OrigSt) ->
+put_clone_only_one() ->
+    wings_u:error_msg(?__(1,"There must be only one face selected.")).
+
+put_on(St) ->
+    MF = fun(Faces, #we{id=Id}) -> [{gb_sets:size(Faces),Id}] end,
+    RF = fun erlang:'++'/2,
+    case wings_sel:dfold(MF, RF, [], St) of
+	[{1,Id}] ->
+	    wings:ask(put_on_selection(Id), St, fun put_on/2);
+	_ ->
+            put_clone_only_one()
+    end.
+
+put_on_selection(Id) ->
     Desc = ?__(1,"Select target element on which to put source object"),
-    Fun = fun(check, St) -> put_on_check_selection(St, OrigSt);
-	     (exit, {_,_,#st{selmode=Mode,sel=Sel}=St}) ->
-		  case put_on_check_selection(St, OrigSt) of
-		      {_,[]} -> {[],[{Mode,Sel}]};
+    Fun = fun(check, St) ->
+                  put_on_check_selection(Id, St);
+	     (exit, {_,_,St}) ->
+		  case put_on_check_selection(Id, St) of
+		      {_,[]} -> {[],[clone_on_targets(St)]};
 		      {_,_} -> error
 		  end
 	  end,
     {[{Fun,Desc}],[],[],[face,edge,vertex]}.
 
-put_on_check_selection(#st{sel=[{Id,_}]}, #st{sel=[{Id,_}]}) ->
-    {none,?__(1,"Selection must not be in the same object.")};
-put_on_check_selection(#st{sel=[{_,Elems}]}, _) ->
-    case gb_trees:size(Elems) of
-	1 -> {none,""};
-	_ -> {none,?__(2,"Select only one element.")}
-    end;
-put_on_check_selection(_, _) ->
-    {none,?__(2,"Select only one element.")}.
+put_on_check_selection(Id, St) ->
+    MF = fun(Items, #we{id=OtherId}) ->
+                 [{gb_sets:size(Items),OtherId}]
+         end,
+    RF = fun erlang:'++'/2,
+    case wings_sel:dfold(MF, RF, [], St) of
+        [{_,Id}] ->
+            {none,?__(1,"Selection must not be in the same object.")};
+        [{1,_}] ->
+            {none,""};
+        [_|_] ->
+            {none,?__(2,"Select only one element.")}
+    end.
 
-put_on({Mode,[{Id,Els}]}, #st{shapes=Shs}=St0) ->
-    We0 = gb_trees:get(Id, Shs),
-    [El] = gb_sets:to_list(Els),
-    {Axis,Target} = on_target(Mode, El, We0),
+put_on([{Axis,Target}], St0) ->
     St = wings_sel:map(fun(Faces, We) ->
 			       [Face] = gb_sets:to_list(Faces),
 			       put_on_1(Face, Axis, Target, We)
 		       end, St0),
     {save_state,St}.
-    
+
 put_on_1(Face, Axis, Target, We) ->
     Vs = wings_face:vertices_ccw(Face, We),
     Center = wings_vertex:center(Vs, We),
@@ -1453,54 +1460,55 @@ put_on_1(Face, Axis, Target, We) ->
 %%% The "Clone On" command (RMB click on Put On).
 %%%
 
-clone_on(#st{sel=[{_,Faces}]}=St) ->
-    case gb_trees:size(Faces) of
-	1 ->
+clone_on(St) ->
+    MF = fun(Faces, _) -> gb_sets:size(Faces) end,
+    RF = fun erlang:'+'/2,
+    case wings_sel:dfold(MF, RF, 0, St) of
+        1 ->
 	    wings:ask(clone_on_selection(), St, fun clone_on/2);
-	_ ->
-	    wings_u:error_msg(?__(1,"There must only be one face selected."))
-    end;
-clone_on(_) ->
-    wings_u:error_msg(?__(1,"There must only be one face selected.")).
+        _ ->
+            put_clone_only_one()
+    end.
 
 clone_on_selection() ->
     Desc = ?__(1,"Select target elements on which to put clones"),
     Fun = fun(check, _) ->
 		  {none,""};
-	     (exit, {_,_,#st{selmode=Mode,sel=Sel}}) ->
-		  {[],[{Mode,Sel}]}
+	     (exit, {_,_,St}) ->
+		  {[],[clone_on_targets(St)]}
 	  end,
     {[{Fun,Desc}],[],[],[face,edge,vertex]}.
 
-clone_on({Mode,Sel}, #st{selmode=OrigMode,sel=[{Id,Faces}]=OrigSel,shapes=Shs0}=St0) ->
-    We = gb_trees:get(Id, Shs0),
-    [Face] = gb_sets:to_list(Faces),
-    Vs = wings_face:vertices_ccw(Face, We),
-    Center = wings_vertex:center(Vs, We),
-    Translate = e3d_mat:translate(e3d_vec:neg(Center)),
-    N = wings_face:face_normal_cw(Vs, We),
-    St = clone_on_1(Translate, N, We, St0#st{selmode=Mode,sel=Sel}),
-    {save_state,St#st{selmode=OrigMode,sel=OrigSel}}.
-    
-clone_on_1(Tr, N, Clone, St) ->
-    wings_sel:fold(
-      fun(Els, We, S) ->
-	      clone_2(gb_sets:to_list(Els), We, Tr, N, Clone, S)
-      end, St, St).
+clone_on(Targets, OrigSt) ->
+    CF = fun(Faces, We) ->
+                 [Face] = gb_sets:to_list(Faces),
+                 Vs = wings_face:vertices_ccw(Face, We),
+                 Center = wings_vertex:center(Vs, We),
+                 Translate = e3d_mat:translate(e3d_vec:neg(Center)),
+                 N = wings_face:face_normal_cw(Vs, We),
+                 New = [clone_on_one(Target, N, Translate, We) ||
+                           Target <- Targets],
+                 {We,Faces,New}
+         end,
+    wings_sel:clone(CF, OrigSt).
 
-clone_2([E|Els], We, Tr, N, Clone, St0) ->
-    St = clone_3(E, We, Tr, N, Clone, St0),
-    clone_2(Els, We, Tr, N, Clone, St);
-clone_2([], _, _, _, _, St) -> St.
-
-clone_3(El, We, Tr, N, Clone, #st{selmode=Mode}=St) ->
-    {Axis,Target} = on_target(Mode, El, We),
-    RotAxis = e3d_mat:rotate_s_to_t(N, Axis),
-    M0 = e3d_mat:translate(Target),
+clone_on_one({TargetAxis,TargetPoint}, N, Tr, We0) ->
+    RotAxis = e3d_mat:rotate_s_to_t(N, TargetAxis),
+    M0 = e3d_mat:translate(TargetPoint),
     M1 = e3d_mat:mul(M0, RotAxis),
     M = e3d_mat:mul(M1, Tr),
-    NewWe = wings_we:transform_vs(M, Clone),
-    wings_shape:insert(NewWe, clone, St).
+    We = wings_we:transform_vs(M, We0),
+    {We,gb_sets:empty(),clone}.
+
+clone_on_targets(#st{selmode=Mode}=St) ->
+    MF = fun(Items, We) ->
+                 gb_sets:fold(
+                   fun(Item, A) ->
+                           [on_target(Mode, Item, We)|A]
+                   end, [], Items)
+         end,
+    RF = fun erlang:'++'/2,
+    wings_sel:dfold(MF, RF, [], St).
 
 %%%
 %%% Hide/Unhide Faces
