@@ -262,8 +262,8 @@ center(#st{selmode=Mode}=St) ->
 
 center_vs(#st{selmode=Mode}=St) ->
     MF = fun(Items, We) ->
-		 N = gb_sets:size(Items),
 		 Vs = to_vertices(Mode, Items, We),
+                 N = length(Vs),
 		 Center = wings_vertex:center(Vs, We),
 		 {N,e3d_vec:mul(Center, float(N))}
 	 end,
