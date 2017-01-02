@@ -394,7 +394,8 @@ get_all_items(Mode, Id, #st{shapes=Shapes}) ->
 
 -spec to_vertices(sel_mode(), item_set(), #we{}) -> [vertex_num()].
 
-to_vertices(vertex, Vs, _) -> Vs;
+to_vertices(vertex, Vs, _) ->
+    gb_sets:to_list(Vs);
 to_vertices(face, Faces, We) ->
     wings_face:to_vertices(Faces, We);
 to_vertices(edge, Edges, We) ->
