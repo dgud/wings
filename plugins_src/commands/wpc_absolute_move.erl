@@ -16,6 +16,8 @@
 
 -export([init/0,menu/2,command/2]).
 
+-import(lists, [foldl/3]).
+
 %%%
 %%% plugin interface
 %%%
@@ -45,13 +47,13 @@ draw(all, Mode) ->
     {?__(1, "Absolute Commands"), {absolute, draw(menu, Mode)}};
 draw(menu, Mode) ->
     [{?__(2,"Move"), move_fun(Mode),
-      {?__(3,"Move to exact position in absolute coordinates."),
-       ?__(8,"Move using a secondary selection as reference."),
-       ?__(9,"Move using a secondary selection and orientation as reference.")},[]},
+      {?__(3,"Move to exact position in absolute coordinates"),
+       ?__(8,"Move using a secondary selection as reference"),
+       ?__(9,"Move using a secondary selection and orientation as reference")},[]},
      {?__(4,"Snap"), snap_fun(Mode),
-      {?__(5,"Move to secondary selection."),
-       ?__(6,"Move using center as reference."),
-       ?__(7,"Move and display numeric entry.")},[]}].
+      {?__(5,"Move to secondary selection"),
+       ?__(6,"Move using center as reference"),
+       ?__(7,"Move and display numeric entry")},[]}].
 
 move_fun(Mode) ->
     fun(1, _Ns) ->
@@ -74,20 +76,21 @@ snap_fun(Mode) ->
     end.
 
 command({_,{absolute,Mode}},St) when Mode == move; Mode == rmove; Mode == omove; Mode == snap; Mode == csnap; Mode == nsnap ->
-    Mirror = check_mirror(St),
-    if
-        Mirror ->
-            mirror_error(),
-            St;
-        true ->
-            case Mode of
-                move -> move(St);
-                rmove -> wings:ask(selection_ask([reference]), St, fun rmove/2);
-                omove -> wings:ask(selection_ask([reference,axis,axis_point]), St, fun omove/2);
-                snap -> wings:ask(selection_ask([reference,target]), St, fun snap/2);
-                csnap -> wings:ask(selection_ask([target]), St, fun csnap/2);
-                nsnap -> wings:ask(selection_ask([reference,target]), St, fun nsnap/2)
-            end
+    check_mirror(St),
+    case Mode of
+        move ->
+            move(St);
+        rmove ->
+            wings:ask(selection_ask([reference]), St, fun rmove/2);
+        omove ->
+            wings:ask(selection_ask([reference,axis,axis_point]), St,
+                      fun omove/2);
+        snap ->
+            wings:ask(selection_ask([reference,target]), St, fun snap/2);
+        csnap ->
+            wings:ask(selection_ask([target]), St, fun csnap/2);
+        nsnap ->
+            wings:ask(selection_ask([reference,target]), St, fun nsnap/2)
     end;
 command(_,_) -> next.
 
@@ -101,50 +104,46 @@ move(St) ->
 rmove(Reference, St) ->
     move(Reference, St).
 
-omove({From, LineDir0, PlaneNorm0, PlanePoint}, St) ->
-    Sel = get_selection(St),
-
+omove({From,LineDir0,PlaneNorm0,PlanePoint}, #st{selmode=Mode}=St0) ->
     PlaneNorm = e3d_vec:norm(PlaneNorm0),
     LineDir = e3d_vec:norm(LineDir0),
     DotProd = e3d_vec:dot(LineDir, PlaneNorm),
-
     if
-	abs(DotProd) > 0.001 ->
-        X = e3d_vec:dot(e3d_vec:sub(PlanePoint, From),PlaneNorm)/DotProd,
-        Offset= e3d_vec:mul(LineDir, X),
-        #st{shapes=Shps0}=St,
-        Shps=lists:foldr(fun({Obj0,Vset}, ShpsAcc) ->
-            #we{vp=Vtab0}=We=gb_trees:get(Obj0, ShpsAcc),
-            Vtab=lists:foldl(fun(V, VtabAcc) ->
-                Vs0=array:get(V,VtabAcc),
-                Vs=e3d_vec:add(Vs0, Offset),
-                array:set(V,Vs,VtabAcc)
-            end, Vtab0, gb_sets:to_list(Vset)),
-            gb_trees:update(Obj0, We#we{vp=Vtab}, ShpsAcc)
-        end, Shps0, Sel),
-        {save_state,St#st{shapes=Shps}};
-	true ->
+	abs(DotProd) =< 0.001 ->
 	    wpa:error_msg(?__(1,"Line and plane are nearly parallel:\n"
-		      "can't find intersection.")),
-	    keep
-    end.
-
-move(Reference0, #st{shapes=Shapes}=St) ->
-    Sel = get_selection(St),
-    {Center,Lights} = get_center_and_lights(Sel,Shapes),
-    Reference = if Reference0 =:= center -> Center;
-        true -> Reference0
+		      "can't find intersection."));
+        true ->
+            ok
     end,
-    OneObject = check_single_obj(Sel),
-    SinglePoints = check_single_vert(Sel),
+    X = e3d_vec:dot(e3d_vec:sub(PlanePoint, From), PlaneNorm)/DotProd,
+    Offset = e3d_vec:mul(LineDir, X),
+    MF = fun(Items, #we{vp=Vtab0}=We) ->
+                 Vs = wings_sel:to_vertices(Mode, Items, We),
+                 Vtab = foldl(
+                          fun(V, Vt) ->
+                                  Pos0 = array:get(V, Vt),
+                                  Pos = e3d_vec:add(Pos0, Offset),
+                                  array:set(V, Pos, Vt)
+                          end, Vtab0, Vs),
+                 We#we{vp=Vtab}
+         end,
+    St = wings_sel:map(MF, St0),
+    {save_state,St}.
+
+move(Reference0, St) ->
+    Reference = case Reference0 of
+                    center -> wings_sel:center_vs(St);
+                    _ -> Reference0
+                end,
+    {OneObject,SinglePoints,Lights} = analyze_selection(St),
     WholeObjects = if
                        SinglePoints or Lights ->
                            false;
                        true ->
-                           check_whole_obj(St)
+                           all_items_selected(St)
                    end,
     MoveObj = if
-                  WholeObjects or Lights -> duplionly;
+                  WholeObjects or Lights -> dup_only;
                   OneObject -> one;
                   true -> many
               end,
@@ -153,42 +152,64 @@ move(Reference0, #st{shapes=Shapes}=St) ->
                   true -> true
               end,
     Align = not OneObject,
-    draw_window({{move_obj,MoveObj},{flatten,Flatten},{align,Align},{from,Reference},{to,Reference},{lock,false}},Sel,St).
+    draw_window({{move_obj,MoveObj},
+                 {flatten,Flatten},
+                 {align,Align},
+                 {from,Reference},
+                 {to,Reference},
+                 {lock,false}}, St).
+
+%% -> {SingleObject,SinglePoints,AllLights}
+analyze_selection(#st{selmode=Mode}=St) ->
+    MF = fun(Items, We) ->
+                 IsLight = ?IS_LIGHT(We),
+                 {1,gb_sets:size(Items) =:= 1,IsLight}
+         end,
+    RF = fun({B,S,L}, {B0,S0,L0}) ->
+                 {B+B0,S0 and S,L and L0}
+         end,
+    Acc0 = {0,Mode =:= vertex,true},
+    {N,Single,Lights} = wings_sel:dfold(MF, RF, Acc0, St),
+    {N =:= 1,Single,Lights}.
+
+all_items_selected(#st{selmode=Mode}=St) ->
+    MF = fun(Items, We) ->
+                 wings_sel:get_all_items(Mode, We) =:= Items
+         end,
+    RF = fun erlang:'and'/2,
+    wings_sel:dfold(MF, RF, true, St).
 
 %%%
 %%% absolute snap
 %%%
 
 snap({From,To}, St) ->
-    Sel = get_selection(St),
-    {save_state,do_move([From, To, false, {false, false, false}, {false, false, false}, 0], Sel, St)}.
+    {save_state,do_move([From, To, false, {false, false, false},
+                         {false, false, false}, 0], St)}.
 
 %%%
 %%% absolute snap with center as reference
 %%%
 
-csnap(To, #st{shapes=Shs}=St) ->
-    Sel = get_selection(St),
-    From = get_center(Sel, Shs),
-    {save_state,do_move([From, To, false, {false, false, false}, {false, false, false}, 0], Sel, St)}.
+csnap(To, St) ->
+    From = wings_sel:center_vs(St),
+    {save_state,do_move([From, To, false, {false, false, false},
+                         {false, false, false}, 0], St)}.
 
 %%%
 %%% absolute snap with numeric entry
 %%%
 
-nsnap({From,To}, #st{shapes=Shs}=St) ->
-    Sel = get_selection(St),
-    Lights = get_lights(Sel, Shs),
-    OneObject = check_single_obj(Sel),
-    SinglePoints = check_single_vert(Sel),
+nsnap({From,To}, St) ->
+    {OneObject,SinglePoints,Lights} = analyze_selection(St),
     WholeObjects = if
                        SinglePoints or Lights ->
                            false;
                        true ->
-                           check_whole_obj(St)
+                           all_items_selected(St)
                    end,
     MoveObj = if
-                  WholeObjects or Lights -> duplionly;
+                  WholeObjects or Lights -> dup_only;
                   OneObject -> one;
                   true -> many
               end,
@@ -197,74 +218,35 @@ nsnap({From,To}, #st{shapes=Shs}=St) ->
                   true -> true
               end,
     Align = not OneObject,
-    draw_window({{move_obj,MoveObj},{flatten,Flatten},{align,Align},{from,From},{to,To},{lock,true}},Sel,St).
+    draw_window({{move_obj,MoveObj},
+                 {flatten,Flatten},
+                 {align,Align},
+                 {from,From},
+                 {to,To},
+                 {lock,true}}, St).
 
 %%%
 %%% some helpful test and investigation functions
 %%%
 
-check_mirror(#st{shapes=Shs}=St) ->
-    Sel = get_selection(St),
-    check_mirror(Sel, Shs).
-
-check_mirror([],_) ->
-    false;
-check_mirror([{Obj,VSet}|Rest],Shs) ->
-    We = gb_trees:get(Obj, Shs),
-    Mirror = We#we.mirror,
-    case Mirror of
-        none ->
-            check_mirror(Rest,Shs);
-        _ ->
-            MirrorVerts = wings_face:vertices_cw(Mirror,We),
-            MVSet = gb_sets:from_list(MirrorVerts),
-            case gb_sets:is_disjoint(MVSet,VSet) of
-                true -> check_mirror(Rest,Shs);
-                false -> true
-            end
+check_mirror(#st{selmode=Mode}=St) ->
+    MF = fun(_Items, #we{mirror=none}) ->
+                 true;
+            (Items, #we{mirror=Mirror}=We) ->
+                 Vs = wings_sel:to_vertices(Mode, Items, We),
+                 MirrorVs0 = wings_face:vertices_cw(Mirror, We),
+                 MirrorVs = ordsets:from_list(MirrorVs0),
+                 ordsets:is_disjoint(Vs, MirrorVs)
+         end,
+    RF = fun erlang:'and'/2,
+    case wings_sel:dfold(MF, RF, true, St) of
+        false -> mirror_error();
+        true -> ok
     end.
 
 -spec mirror_error() -> no_return().
 mirror_error() ->
     wings_u:error_msg(?__(1,"You cannot move vertices from mirror plane")).
-
-get_selection(#st{selmode=SelMode}=St) ->
-    #st{sel=Sel} = case SelMode of
-        vertex -> St;
-        _ -> wings_sel_conv:mode(vertex,St)
-    end,
-    Sel.
-
-get_center(Sel,Shapes) ->
-    {Center,_} = get_center_and_lights(Sel,Shapes,[],false),
-    Center.
-
-get_lights(Sel,Shapes) ->
-    {_,Lights} = get_center_and_lights(Sel,Shapes,[],false),
-    Lights.
-
-get_center_and_lights(Sel,Shapes) ->
-    get_center_and_lights(Sel,Shapes,[],true).
-
-get_center_and_lights([],_,Now,Lights) ->
-    {e3d_vec:average(Now),Lights};
-get_center_and_lights([{Obj,Vset}|Rest],Shapes,Now,Lights) ->
-    We = gb_trees:get(Obj, Shapes),
-    Positions = gb_sets:fold(fun(Vert, Acc) ->
-                         [wings_vertex:pos(Vert, We)|Acc]
-                      end, [], Vset),
-    get_center_and_lights(Rest,Shapes,Now++Positions,Lights and ?IS_LIGHT(We)).
-
-check_single_obj([{_,_}]) -> true;
-check_single_obj(_) -> false.
-
-check_single_vert(L) ->
-    lists:all(fun({_,GbSet}) -> gb_sets:size(GbSet) =:= 1 end, L).
-
-check_whole_obj(#st{selmode=SelMode}=St0) ->
-    St1 = wings_sel_conv:mode(body,St0),
-    St2 = wings_sel_conv:mode(SelMode,St1),
-    St2#st.sel == St0#st.sel.
 
 selection_ask(Asks) ->
     Ask = selection_ask(Asks,[]),
@@ -291,63 +273,64 @@ selection_ask([axis_point|Rest],Ask) ->
 %%
 %% draw_window(Options,Selection,State)
 %%
-%% functions that draws interface and translates entered options for further processing
-%%  and calls do_move(ProcessedOptions,Selection,State)
+%% functions that draws interface and translates entered options for
+%% further processing and calls
+%% do_move(ProcessedOptions, Selection, State)
 %%
 
-draw_window({{_,MoveObj},{_,Flatten},{_,Align},{_,{CX,CY,CZ}=Center},{_,Default},{_,Lock}},
-	    Sel,#st{selmode=SelMode}=St) ->
-    MoveD =  case MoveObj of
-		 one ->
-		     {hframe,
-		      [{?__(3,"Move object"),false,[{key,all}, {hook, fun disable/3}]},
-		       panel | duplicate(true)]};
-		 many ->
-		     {hframe,
-		      [{?__(4,"Move objects"),false,[{key,all}, {hook, fun disable/3}]},
-		       panel | duplicate(true)]};
-		 duplionly ->
-		     {hframe, duplicate(false)}
-             end,
+draw_window({{_,MoveObj},{_,Flatten},{_,Align},{_,Center},{_,Default},{_,Lock}},
+	    #st{selmode=SelMode}=St) ->
+    MoveD = case MoveObj of
+                one ->
+                    {hframe,
+                     [{?__(3,"Move object"),false,[{key,all},
+                                                   {hook, fun disable/3}]},
+                      panel | duplicate(true)]};
+                many ->
+                    {hframe,
+                     [{?__(4,"Move objects"),false,[{key,all},
+                                                    {hook, fun disable/3}]},
+                      panel | duplicate(true)]};
+                dup_only ->
+                    {hframe, duplicate(false)}
+            end,
 
-    {Headers, RX,RY,RZ} = lists:foldl(fun draw_window1/2, {[],[],[],[]},
-				      [{center, Default},  {align,Align},
-				       {flatten, Flatten}, {lock, Lock}]),
+    {Headers, RX,RY,RZ} = foldl(fun draw_window1/2, {[],[],[],[]},
+                                [{center, Default},  {align,Align},
+                                 {flatten, Flatten}, {lock, Lock}]),
 
     Frame1 = {label_column,[{" ", lists:reverse(Headers)},
 			    {"X:", lists:reverse(RX)},
 			    {"Y:", lists:reverse(RY)},
 			    {"Z:", lists:reverse(RZ)}]},
 
-    Frame6 = if % Lock is true only for Snap and this extra check box must be used only with it
-		 Lock and (SelMode == body) ->
+    Frame6 = if
+                 %% Lock is true only for Snap and this extra check box
+                 %% must be used only with it.
+		 Lock, SelMode =:= body ->
 		     [{label_column,
 		       [{?__(10,"Between reference and target")++":",
 			 {hframe,[{"",false,[{key,dup_rt}]}]}}
 		       ]}];
                  true -> []
              end,
-    Reference = {label,?__(8,"Reference point is") ++ ": (" ++
-		     wings_util:nice_float(CX)++", "++
-		     wings_util:nice_float(CY)++", "++
-		     wings_util:nice_float(CZ)++")"},
+    Reference = {label,?__(8,"Reference point is") ++ ": " ++
+                     wings_util:nice_vector(Center)},
 
     Frame = [{vframe,[Frame1, MoveD|Frame6++[separator,Reference]]}],
     wings_dialog:dialog(?__(1,"Absolute move options"), {preview,Frame},
-       fun
-           ({dialog_preview,Move}) ->
-               {preview,St,translate(Move,Center,Sel,St)};
-           (cancel) -> St;
+       fun({dialog_preview,Move}) ->
+               {preview,St,translate(Move, Center, St)};
+          (cancel) ->
+               St;
            (Move) ->
-               {commit,St,translate(Move,Center,Sel,St)}
+               {commit,St,translate(Move, Center, St)}
        end).
 
 duplicate(CheckAll) when is_boolean(CheckAll) ->
-    [
-	     {value, CheckAll, [{key, dupli_check}]},
-	     {text,0,[{key,dupli},{range,{0,infinity}},{width,6}]},
-             {label," "++?__(5,"Duplicates")}
-    ].
+    [{value, CheckAll, [{key, dupli_check}]},
+     {text,0,[{key,dupli},{range,{0,infinity}},{width,6}]},
+     {label," "++?__(5,"Duplicates")}].
 
 draw_window1({center,{XC,YC,ZC}}, {Header, X,Y,Z}) ->
     {[{label,?__(2,"Set position")++":", [{proportion, 2}]}|Header],
@@ -372,12 +355,13 @@ draw_window1({lock,true},  {Header, X,Y,Z}) ->
 draw_window1({_, false}, Acc) ->
     Acc.
 
-
 disable(all, Bool, Store) ->
     try
 	Use = wings_dialog:get_value(dupli_check, Store),
 	wings_dialog:enable(dupli, Bool andalso Use, Store)
-    catch _:_ -> ignore end,
+    catch _:_ ->
+            ignore
+    end,
     try
 	Dupli = wings_dialog:get_value(dupli, Store),
 	try
@@ -397,40 +381,40 @@ depend(ly) -> y;
 depend(lz) -> z.
 
 lookup(Key, List, Default) ->
-   case lists:keysearch(Key, 1, List) of
-      {value,{_,Value}} -> Value;
-      _ -> Default
+   case lists:keyfind(Key, 1, List) of
+       {_,Value} -> Value;
+       false -> Default
    end.
 
-translate(Options,{CX,CY,CZ}=Center,Sel,St) ->
-   X = lookup(x, Options, 0.0),
-   Y = lookup(y, Options, 0.0),
-   Z = lookup(z, Options, 0.0),
-   NX = case lookup(lx,Options,false) of
-           true -> CX;
-           _ -> X
-        end,
-   NY = case lookup(ly,Options,false) of
-           true -> CY;
-           _ -> Y
-        end,
-   NZ = case lookup(lz, Options, false) of
-           true -> CZ;
-           _ -> Z
-        end,
-   Obj = lookup(all,Options,true),
-   Dupli = case lookup(dupli,Options,0) of
-              N when Obj -> N;
-              _ -> 0
-           end,
-   Dup_rt = lookup(dup_rt,Options,false),
-   Ax = lookup(ax,Options,false) and (Dupli>0),
-   Ay = lookup(ay,Options,false) and (Dupli>0),
-   Az = lookup(az,Options,false) and (Dupli>0),
-   Fx = lookup(fx,Options,false),
-   Fy = lookup(fy,Options,false),
-   Fz = lookup(fz,Options,false),
-   do_move([Center,{NX,NY,NZ},Obj,{Ax,Ay,Az},{Fx,Fy,Fz},Dupli,Dup_rt],Sel,St).
+translate(Options, {CX,CY,CZ}=Center, St) ->
+    X = lookup(x, Options, 0.0),
+    Y = lookup(y, Options, 0.0),
+    Z = lookup(z, Options, 0.0),
+    NX = case lookup(lx, Options, false) of
+             true -> CX;
+             false -> X
+         end,
+    NY = case lookup(ly, Options, false) of
+             true -> CY;
+             false -> Y
+         end,
+    NZ = case lookup(lz, Options, false) of
+             true -> CZ;
+             false -> Z
+         end,
+    Obj = lookup(all, Options, true),
+    Dupli = case lookup(dupli, Options, 0) of
+                N when Obj -> N;
+                _ -> 0
+            end,
+    DupRT = lookup(dup_rt, Options, false),
+    Ax = lookup(ax, Options, false) and (Dupli > 0),
+    Ay = lookup(ay, Options, false) and (Dupli > 0),
+    Az = lookup(az, Options, false) and (Dupli > 0),
+    Fx = lookup(fx, Options, false),
+    Fy = lookup(fy, Options, false),
+    Fz = lookup(fz, Options, false),
+    do_move([Center,{NX,NY,NZ},Obj,{Ax,Ay,Az},{Fx,Fy,Fz},Dupli,DupRT], St).
 
 %%
 %% do_move(Options,Selection,State)
@@ -438,64 +422,77 @@ translate(Options,{CX,CY,CZ}=Center,Sel,St) ->
 %% this is main absolute move command, it returns new state.
 %%
 
-do_move([_,XYZ,_,_,_,Dupli]=Move,Sel,St) ->
-    do_move1(XYZ,Dupli,false,Move,Sel,St);
-do_move([_,XYZ,_,_,_,Dupli,Dup_rt]=Move0,Sel,St) ->
-    {Move,_}=lists:split(length(Move0) -1, Move0),
-    do_move1(XYZ,Dupli,Dup_rt,Move,Sel,St).
-
-do_move1(_,_,_,_,[],St) ->
-    St;
-do_move1({XO,YO,ZO},DuOrg,Dup_rt,[{Cx,Cy,Cz},{X,Y,Z},Wo,{Ax,Ay,Az},{Fx,Fy,Fz},Du],[{Obj0,Vset}|Rest]=Sel,#st{shapes=Shapes0}=St0) ->
-    We0 = gb_trees:get(Obj0, Shapes0),
-    #st{shapes=Shapes1,onext=Oid} = St1 = if
-                                              Du > 0 ->
-                                                  wings_shape:insert(We0, copy, St0);
-                                              true ->
-                                                  St0
-                                          end,
+do_move([_,XYZ,_,_,_,Dupli]=Move, St) ->
+    do_move_1(XYZ, Dupli, false, Move, St);
+do_move([C,Origin,Wo,A,F,Dupli,DupRT], St) ->
     if
-        Du > 0 ->
-            Obj1 = Oid-1,
-            We1 = gb_trees:get(Obj1, Shapes1);
+        DupRT, Dupli > 0 ->
+            Move = [C,Origin,Wo,{false,false,false},F,Dupli],
+            do_move_1(Origin, Dupli, true, Move, St);
         true ->
-            Obj1 = Obj0,
-            We1 = We0
-    end,
-    Vtab = We1#we.vp,
-    {Ox,Oy,Oz} = get_center([{Obj1,Vset}],Shapes1),
-    if (DuOrg > 0) and Dup_rt ->
-        Dx = ((X - Cx)/DuOrg)*Du,
-        Dy = ((Y - Cy)/DuOrg)*Du,
-        Dz = ((Z - Cz)/DuOrg)*Du;
-    true ->
-        Dx = if
-                 Ax -> X - Ox;
-                 true -> X - Cx
-             end,
-        Dy = if
-                 Ay -> Y - Oy;
-                 true -> Y - Cy
-             end,
-        Dz = if
-                 Az -> Z - Oz;
-                 true -> Z - Cz
-             end
-    end,
-    NewVtab = execute_move({Dx,Dy,Dz},{X,Y,Z},{Fx,Fy,Fz},Wo or ?IS_LIGHT(We1),Vset,Vtab),
-    NewWe = We1#we{vp=NewVtab},
-    NewShapes = gb_trees:update(Obj1,NewWe,Shapes1),
-    NewSt = St1#st{shapes=NewShapes},
-    if
-        Du > 1 ->
-            if Dup_rt ->
-                do_move1({XO,YO,ZO},DuOrg,Dup_rt,[{Cx,Cy,Cz},{X,Y,Z},Wo,{Ax,Ay,Az},{Fx,Fy,Fz},Du-1],Sel,NewSt);
-            true ->
-                do_move1({XO,YO,ZO},DuOrg,Dup_rt,[{Cx,Cy,Cz},{XO+Dx,YO+Dy,ZO+Dz},Wo,{Ax,Ay,Az},{Fx,Fy,Fz},Du-1],Sel,NewSt)
-            end;
-        true ->
-            do_move1({XO,YO,ZO},DuOrg,Dup_rt,[{Cx,Cy,Cz},{XO,YO,ZO},Wo,{Ax,Ay,Az},{Fx,Fy,Fz},DuOrg],Rest,NewSt)
+            Move = [C,Origin,Wo,A,F,Dupli],
+            do_move_1(Origin, Dupli, DupRT, Move, St)
     end.
+
+do_move_1(Origin, DuOrg, DupRT, Move, #st{selmode=Mode}=St) ->
+    CF = fun(Items, We0) ->
+                 Vs0 = wings_sel:to_vertices(Mode, Items, We0),
+                 Vs = gb_sets:from_ordset(Vs0),
+                 [We|Wes] = do_move_2(Vs, We0, Origin, DuOrg, DupRT, Move),
+                 Empty = gb_sets:empty(),
+                 New = [{W,Empty,copy} || W <- Wes],
+                 {We,Items,New}
+         end,
+    wings_sel:clone(CF, St).
+
+do_move_2(Vs, We, Origin, DuOrg, DupRT, Params) when DuOrg > 0 ->
+    [We|do_move_3(Vs, We, Origin, DuOrg, DupRT, Params)];
+do_move_2(Vs, We, Origin, DuOrg, DupRT, Params) ->
+    do_move_3(Vs, We, Origin, DuOrg, DupRT, Params).
+
+do_move_3(Vs, We0, Origin, DuOrg, DupRT,
+          [CommonCenter,Pos,Wo,Align,Flatten,Du]) ->
+    Center = wings_vertex:center(Vs, We0),
+    D0 = d(Pos, Align, CommonCenter, Center),
+    D = if
+            DupRT, DuOrg > 0 ->
+                e3d_vec:mul(D0, Du/DuOrg);
+            true ->
+                D0
+        end,
+    Vtab0 = We0#we.vp,
+    Vtab = execute_move(D, Pos, Flatten, Wo or ?IS_LIGHT(We0), Vs, Vtab0),
+    We = We0#we{vp=Vtab},
+    [We|
+     if
+         Du > 1 ->
+             if DupRT ->
+                     do_move_2(Vs, We0, Origin, DuOrg, DupRT,
+                               [CommonCenter,Pos,Wo,Align,
+                                Flatten,Du-1]);
+                true ->
+                     do_move_2(Vs, We0, Origin, DuOrg, DupRT,
+                               [CommonCenter,e3d_vec:add(Origin, D),Wo,
+                                Align,Flatten,Du-1])
+             end;
+         true ->
+             []
+     end].
+
+d(Pos0, Align, CommonCenter, Center) ->
+    PosAlign = e3d_vec:sub(Pos0, Center),
+    Pos = e3d_vec:sub(Pos0, CommonCenter),
+    d_1(1, Align, PosAlign, Pos).
+
+d_1(I, Align, PosAlign, Pos0) when I =< tuple_size(Align) ->
+    case element(I, Align) of
+        true ->
+            Pos = setelement(I, Pos0, element(I, PosAlign)),
+            d_1(I+1, Align, PosAlign, Pos);
+        false ->
+            d_1(I+1, Align, PosAlign, Pos0)
+    end;
+d_1(_, _, _, Pos) -> Pos.
 
 execute_move(D,N,F,Wo,Vset,Vtab) ->
     execute_move(array:sparse_size(Vtab)-1,D,N,F,Wo,Vset,Vtab).
@@ -539,4 +536,3 @@ execute_move(Vertex,{Dx,Dy,Dz}=D,{Nx,Ny,Nz}=N,{Fx,Fy,Fz}=F,Wo,Vset,Vtab) ->
 		    end,
             execute_move(Vertex-1,D,N,F,Wo,Vset,Vtab2)
     end.
-
