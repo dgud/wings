@@ -18,7 +18,7 @@
 	 map/2,map_update_sel/2,map_update_sel/3,
 	 update_sel/2,update_sel/3,fold/3,dfold/4,mapfold/3,
 	 new_sel/3,make/3,valid_sel/1,valid_sel/3,
-         clone/2,clone/3,
+         clone/2,clone/3,combine/2,merge/2,
 	 center/1,center_vs/1,
 	 bbox_center/1,bounding_box/1,
 	 face_regions/2,strict_face_regions/2,edge_regions/2,
@@ -266,6 +266,33 @@ clone(Fun, Mode, St0) ->
     St = clone(Fun, St0),
     St#st{selmode=Mode}.
 
+%%
+%% Combine selected objects to one.
+%%
+
+-spec combine(Fun, #st{}) -> #st{} when
+      Fun :: fun((item_set(), #we{}) -> {#we{},item_set()}).
+
+combine(F, St) ->
+    MF = fun(Wes, Sel, Mode) ->
+                 Zipped = combine_zip(Wes, Sel, Mode),
+                 {We,Items0} = wings_we:merge_root_set(Zipped),
+                 Items1 = combine_items(Mode, Items0),
+                 Items = gb_sets:from_ordset(Items1),
+                 F(Items, We)
+         end,
+    comb_merge(MF, St).
+
+-spec merge(Fun, #st{}) -> #st{} when
+      Fun :: fun(({#we{},item_set()}) -> {#we{},item_set()}).
+
+merge(F, St) when is_function(F, 1) ->
+    MF = fun(Wes, Sel, _Mode) ->
+                 Zipped = merge_zip(Wes, Sel),
+                 F(Zipped)
+         end,
+    comb_merge(MF, St).
+
 %%%
 %%% Calculate the center for all selected objects.
 %%%
@@ -510,6 +537,42 @@ clone_add_sel(Items, Id, #st{sel=Sel}=St) ->
         false -> St#st{sel=[{Id,Items}|Sel]};
         true -> St
     end.
+
+
+comb_merge(MF, #st{shapes=Shs0,selmode=Mode,sel=[{Id,_}|_]=Sel0}=St0) ->
+    Shs1 = sofs:from_external(gb_trees:to_list(Shs0), [{id,object}]),
+    Sel1 = sofs:from_external(Sel0, [{id,dummy}]),
+    Sel2 = sofs:domain(Sel1),
+    {Wes0,Shs2} = sofs:partition(1, Shs1, Sel2),
+    Wes = sofs:to_external(sofs:range(Wes0)),
+    {We,Items} = MF(Wes, Sel0, Mode),
+    Shs = gb_trees:from_orddict(sort([{Id,We}|sofs:to_external(Shs2)])),
+    Sel = case gb_sets:is_empty(Items) of
+              true -> [];
+              false -> [{Id,Items}]
+          end,
+    St = St0#st{shapes=Shs,sel=Sel},
+    wings_shape:recreate_folder_system(St).
+
+combine_zip([#we{id=Id}=We|Wes], [{Id,Items0}|Sel], Mode) ->
+    RootSet = combine_root_set(Mode, Items0),
+    [{We,RootSet}|combine_zip(Wes, Sel, Mode)];
+combine_zip([], [], _) -> [].
+
+combine_root_set(body, _Items) ->
+    [];
+combine_root_set(Mode, Items) ->
+    [{Mode,Item} || Item <- gb_sets:to_list(Items)].
+
+combine_items(body, _RootSet) ->
+    [0];
+combine_items(_, RootSet) ->
+    ordsets:from_list([Item || {_,Item} <- RootSet]).
+
+merge_zip([#we{id=Id}=We|Wes], [{Id,Items}|Sel]) ->
+    [{We,Items}|merge_zip(Wes, Sel)];
+merge_zip([], []) -> [].
+
 
 face_regions_1(Faces, We) ->
     find_face_regions(Faces, We, fun collect_face_fun/5, []).
