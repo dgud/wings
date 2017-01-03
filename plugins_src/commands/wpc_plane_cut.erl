@@ -752,37 +752,10 @@ loop_cut_partition(Faces0, Edges, We, Acc) ->
       true -> Acc;
       false ->
         {AFace,Faces1} = gb_sets:take_smallest(Faces0),
-        Reachable = collect_faces(AFace, Edges, We),
+        Reachable = wings_edge:reachable_faces(AFace, Edges, We),
         Faces = gb_sets:difference(Faces1, Reachable),
         loop_cut_partition(Faces, Edges, We, [Reachable|Acc])
     end.
-
-collect_faces(Face, Edges, We) ->
-    collect_faces(gb_sets:singleton(Face), We, Edges, gb_sets:empty()).
-
-collect_faces(Work0, We, Edges, Acc0) ->
-    case gb_sets:is_empty(Work0) of
-      true -> Acc0;
-      false ->
-        {Face,Work1} = gb_sets:take_smallest(Work0),
-        Acc = gb_sets:insert(Face, Acc0),
-        Work = collect_maybe_add(Work1, Face, Edges, We, Acc),
-        collect_faces(Work, We, Edges, Acc)
-    end.
-
-collect_maybe_add(Work, Face, Edges, We, Res) ->
-    wings_face:fold(
-      fun(_, Edge, Rec, A) ->
-          case gb_sets:is_member(Edge, Edges) of
-            true -> A;
-            false ->
-              Of = wings_face:other(Face, Rec),
-              case gb_sets:is_member(Of, Res) of
-                true -> A;
-                false -> gb_sets:add(Of, A)
-              end
-          end
-      end, Work, Face, We).
 
 select_one_side(_, all, Id, Sel, _) ->
     [{Id,gb_sets:singleton(0)}|Sel];
