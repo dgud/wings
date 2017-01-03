@@ -721,31 +721,30 @@ axis_conv(Axis) ->
 %%% Loop Cut modified from wings_edge_cmd.erl
 %%%
 
-loop_cut(Axis, Point, St0) ->
-    {Sel,St} = wings_sel:fold(fun(Edges, #we{id=Id,fs=Ftab}=We0, {Sel0,St1}) ->
-        AdjFaces = wings_face:from_edges(Edges, We0),
-        case loop_cut_partition(AdjFaces, Edges, We0, []) of
-          [_] ->
-            {Sel0,St1}; 
-          [_|Parts0] ->
-            Parts = [gb_sets:to_list(P) || P <- Parts0],
-            FirstComplement = ordsets:union(Parts),
-            First = ordsets:subtract(gb_trees:keys(Ftab), FirstComplement),
-            We = wings_dissolve:complement(First, We0),
-            #st{shapes=Shapes} = St1,
-            St = St1#st{shapes=gb_trees:update(Id, We, Shapes)},
-            Sel = select_one_side(Axis, Point, Id, Sel0, We),
-            loop_cut_make_copies(Parts, Axis, Point, We0, Sel, St)
-        end
-    end, {[],St0}, St0),
-    wings_sel:set(body, Sel, St).
+loop_cut(Axis, Point, St) ->
+    CF = fun(Edges, #we{fs=Ftab}=We0) ->
+                 AdjFaces = wings_face:from_edges(Edges, We0),
+                 case loop_cut_partition(AdjFaces, Edges, We0, []) of
+                     [_] ->
+                         {We0,gb_sets:empty()};
+                     [_|Parts0] ->
+                         Parts = [gb_sets:to_list(P) || P <- Parts0],
+                         FirstComplement = ordsets:union(Parts),
+                         First = ordsets:subtract(gb_trees:keys(Ftab),
+                                                  FirstComplement),
+                         We = wings_dissolve:complement(First, We0),
+                         Sel = select_one_side(Axis, Point, We),
+                         New = loop_cut_make_copies(Parts, Axis, Point, We0),
+                         {We,Sel,New}
+                 end
+         end,
+    wings_sel:clone(CF, body, St).
 
-loop_cut_make_copies([P|Parts], Axis, Point, We0, Sel0, #st{onext=Id}=St0) ->
+loop_cut_make_copies([P|Parts], Axis, Point, We0) ->
     We = wings_dissolve:complement(P, We0),
-    Sel = select_one_side(Axis, Point, Id, Sel0, We),
-    St = wings_shape:insert(We, cut, St0),
-    loop_cut_make_copies(Parts, Axis, Point, We0, Sel, St);
-loop_cut_make_copies([], _, _, _, Sel, St) -> {Sel,St}.
+    Sel = select_one_side(Axis, Point, We),
+    [{We,Sel,cut}|loop_cut_make_copies(Parts, Axis, Point, We0)];
+loop_cut_make_copies([], _, _, _) -> [].
 
 loop_cut_partition(Faces0, Edges, We, Acc) ->
     case gb_sets:is_empty(Faces0) of
@@ -757,13 +756,13 @@ loop_cut_partition(Faces0, Edges, We, Acc) ->
         loop_cut_partition(Faces, Edges, We, [Reachable|Acc])
     end.
 
-select_one_side(_, all, Id, Sel, _) ->
-    [{Id,gb_sets:singleton(0)}|Sel];
-select_one_side(Plane, Point, Id, Sel, #we{fs=Fs}=We) ->
+select_one_side(_, all, _) ->
+    gb_sets:singleton(0);
+select_one_side(Plane, Point, #we{fs=Fs}=We) ->
     {Face,_} = gb_trees:smallest(Fs),
     Center = wings_face:center(Face, We),
     Vec = e3d_vec:sub(Point, Center),
     case e3d_vec:dot(Plane, Vec) < 0.0 of
-      true -> [{Id,gb_sets:singleton(0)}|Sel];
-      false -> Sel
+        true -> gb_sets:singleton(0);
+        false -> gb_sets:empty()
     end.
