@@ -616,15 +616,11 @@ smooth(St) ->
 
 combine(#st{sel=[]}=St) -> St;
 combine(#st{sel=[_]}=St) -> St;
-combine(#st{shapes=Shs0,sel=[{Id,_}=S|_]=Sel0}=St) ->
-    Shs1 = sofs:from_external(gb_trees:to_list(Shs0), [{id,object}]),
-    Sel1 = sofs:from_external(Sel0, [{id,dummy}]),
-    Sel2 = sofs:domain(Sel1),
-    {Wes0,Shs2} = sofs:partition(1, Shs1, Sel2),
-    Wes = sofs:to_external(sofs:range(Wes0)),
-    We = wings_we:merge(Wes),
-    Shs = gb_trees:from_orddict(sort([{Id,We}|sofs:to_external(Shs2)])),
-    wings_shape:recreate_folder_system(St#st{shapes=Shs,sel=[S]}).
+combine(#st{}=St) ->
+    CF = fun(Items, We) ->
+                 {We,Items}
+         end,
+    wings_sel:combine(CF, St).
 
 %%%
 %%% The Separate command.
