@@ -25,7 +25,7 @@
 	 get_all_items/2,get_all_items/3,
 	 inverse_items/3,to_vertices/3]).
 
--export_type([vertex_set/0,edge_set/0,face_set/0,item_set/0]).
+-export_type([edge_set/0,face_set/0,item_id/0,item_set/0,vertex_set/0]).
 
 -include("wings.hrl").
 -include("e3d.hrl").
