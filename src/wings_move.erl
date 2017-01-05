@@ -67,7 +67,7 @@ plus_minus(Type, F, #st{selmode=Mode}=St) when is_function(F, 2) ->
     wings_drag:fold(DF, unit(Type, [{percent,{0.0,infinity}}]), Flags, St).
 
 -spec plus_minus_1(Mode, Vec, PlusMinus, #we{}) -> Res when
-      Mode :: sel_mode(),
+      Mode :: wings_sel:mode(),
       Vec :: 'normal' | e3d_vec:vector(),
       PlusMinus :: plus_minus_data(),
       Res :: wings_drag:vertex_transform().
@@ -82,7 +82,7 @@ plus_minus_1(Mode, Vec, {Items,NewVs,Forbidden}, We) ->
     wings_drag:compose([Tv0,MoveAway]).
 
 -spec setup_we(Mode, Vec, Items, #we{}) -> Result when
-      Mode :: sel_mode(),
+      Mode :: wings_sel:mode(),
       Vec :: e3d_vec:vector() | 'normal',
       Items :: wings_drag:vertices() | wings_sel:item_set(),
       Result :: {wings_drag:vertices(),wings_drag:vec_transform_fun()}.

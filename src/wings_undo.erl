@@ -35,7 +35,7 @@
 %% The essential part of the state record.
 -record(est,
 	{shapes=[] :: list(#we{}) | gb_trees:tree(),
-	 selmode=face :: sel_mode(),
+	 selmode=face :: wings_sel:mode(),
 	 sel=[] :: list(),
 	 onext=1 :: elem_num(),
 	 mat=wings_material:default(),

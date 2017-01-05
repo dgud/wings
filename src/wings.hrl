@@ -106,7 +106,6 @@
 %% Types.
 %%
 
--type sel_mode() :: 'vertex' | 'edge' | 'face' | 'body'.
 -type bounding_box() :: [{float(),float(),float()}].
 
 -type wings_cmd() :: tuple() | atom().
@@ -119,13 +118,13 @@
 %% Main state record containing all objects and other important state.
 -record(st,
 	{shapes=gb_trees:empty() :: gb_trees:tree(),%All visible objects
-	 selmode=face :: sel_mode(),		%Selection mode.
+	 selmode=face :: wings_sel:mode(),          %Selection mode.
 	 sh=false :: boolean(),			%Smart highlighting active.
 	 sel=[],				%Current sel: [{Id,GbSet}]
 	 ssels=gb_trees:empty() :: gb_trees:tree(),   %Saved selections:
 
 	 %% Selection only temporary?
-	 temp_sel=none :: 'none' | {sel_mode(),boolean()},
+	 temp_sel=none :: 'none' | {wings_sel:mode(),boolean()},
 
 	 mat=gb_trees:empty() :: gb_trees:tree(),%Defined materials (GbTree).
 	 pal=[],                                %Palette

@@ -26,12 +26,15 @@
 	 get_all_items/2,get_all_items/3,
 	 inverse_items/3,to_vertices/3]).
 
--export_type([edge_set/0,face_set/0,item_id/0,item_set/0,vertex_set/0]).
+-export_type([mode/0,
+              edge_set/0,face_set/0,item_id/0,item_set/0,vertex_set/0]).
 
 -include("wings.hrl").
 -include("e3d.hrl").
 
 -import(lists, [foldl/3,reverse/1,reverse/2,sort/1,keydelete/3,keymember/3]).
+
+-type mode() :: 'vertex' | 'edge' | 'face' | 'body'.
 
 -type vertex_num() :: wings_vertex:vertex_num().
 -type edge_num() :: wings_edge:edge_num().
@@ -75,7 +78,8 @@ set([], St) ->
 set(Sel, St) ->
     St#st{sel=sort(Sel),sh=false}.
 
--spec set(sel_mode(), Sel, #st{}) -> #st{} when
+-spec set(Mode, Sel, #st{}) -> #st{} when
+      Mode :: mode(),
       Sel :: [{item_id(),item_set()}].
 
 set(Mode, [], St) ->
@@ -100,8 +104,9 @@ map(F, #st{shapes=Shs0,sel=Sel}=St) ->
 %% Map over the selection, modifying the objects and the selection.
 %%
 
--spec map_update_sel(Fun, sel_mode(), #st{}) -> #st{} when
+-spec map_update_sel(Fun, Mode, #st{}) -> #st{} when
       Fun :: fun((InItems, #we{}) -> {#we{},OutItems}),
+      Mode :: mode(),
       InItems :: item_set(),
       OutItems :: item_set().
 
@@ -129,8 +134,9 @@ map_update_sel(F, St0) when is_function(F, 2) ->
 %% Map over the selection, modifying the selection.
 %%
 
--spec update_sel(Fun, sel_mode(), #st{}) -> #st{} when
+-spec update_sel(Fun, Mode, #st{}) -> #st{} when
       Fun :: fun((InItems, #we{}) -> OutItems),
+      Mode :: mode(),
       InItems :: item_set(),
       OutItems :: item_set().
 
@@ -215,8 +221,9 @@ mapfold(F, Acc0, #st{shapes=Shs0,sel=Sel}=St) ->
 %% Light can only be selected in body mode.
 %%
 
--spec new_sel(Fun, sel_mode(), #st{}) -> #st{} when
+-spec new_sel(Fun, Mode, #st{}) -> #st{} when
       Fun :: fun((InItems, #we{}) -> OutItems),
+      Mode :: mode(),
       InItems :: item_set(),
       OutItems :: item_set().
 
@@ -234,8 +241,9 @@ new_sel(F, Mode, #st{shapes=Shapes}=St) when is_function(F, 2) ->
 %%  edge number, vertex number, or 0 depending on Mode).
 %%
 
--spec make(Fun, sel_mode(), #st{}) -> #st{} when
+-spec make(Fun, Mode, #st{}) -> #st{} when
       Fun :: fun((Items, #we{}) -> boolean()),
+      Mode :: mode(),
       Items :: item_set().
 
 make(Filter, Mode, St) when is_function(Filter, 2) ->
@@ -264,7 +272,7 @@ clone(F, St0) ->
 
 -spec clone(Fun, Mode, #st{}) -> #st{} when
       Fun :: clone_fun(),
-      Mode :: sel_mode().
+      Mode :: mode().
 
 clone(Fun, Mode, St0) ->
     St = clone(Fun, St0),
@@ -403,7 +411,8 @@ edge_regions(Edges, We) ->
 valid_sel(#st{sel=Sel,selmode=Mode}=St) ->
     St#st{sel=valid_sel(Sel, Mode, St)}.
 
--spec valid_sel(SelIn, sel_mode(), #st{}) -> SelOut when
+-spec valid_sel(SelIn, Mode, #st{}) -> SelOut when
+      Mode :: mode(),
       SelIn :: [{item_id(),item_set()}],
       SelOut :: [{item_id(),item_set()}].
 
@@ -440,18 +449,24 @@ deselect_object(Id, #st{sel=Sel0}=St) ->
     Sel = keydelete(Id, 1, Sel0),
     St#st{sel=Sel}.
 
--spec inverse_items(sel_mode(), item_set(), #we{}) -> item_set().
+-spec inverse_items(Mode, InItems, #we{}) -> OutItems when
+      Mode :: mode(),
+      InItems :: item_set(),
+      OutItems :: item_set().
 
 inverse_items(Mode, Elems, We) ->
     gb_sets:difference(get_all_items(Mode, We), Elems).
 
--spec get_all_items(sel_mode(), obj_id(), #st{}) -> item_set().
+-spec get_all_items(mode(), obj_id(), #st{}) -> item_set().
 
 get_all_items(Mode, Id, #st{shapes=Shapes}) ->
     We = gb_trees:get(Id, Shapes),
     get_all_items(Mode, We).
 
--spec to_vertices(sel_mode(), item_set(), #we{}) -> [vertex_num()].
+-spec to_vertices(Mode, Items, #we{}) -> Vertices when
+      Mode :: mode(),
+      Items :: item_set(),
+      Vertices :: [vertex_num()].
 
 to_vertices(vertex, Vs, _) ->
     gb_sets:to_list(Vs);
