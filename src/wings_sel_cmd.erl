@@ -890,7 +890,10 @@ by_id(#st{selmode=edge}=St) ->
 by_id(#st{selmode=face}=St) ->
     item_by_id("Face Id", St).
 
-item_by_id(Prompt, #st{sel=[{Id,_}]}=St) ->
+item_by_id(Prompt, #st{sel=[_]}=St) ->
+    MF = fun(_, #we{id=Id}) -> Id end,
+    RF = fun(I, []) -> I end,
+    Id = wings_sel:dfold(MF, RF, [], St),
     ask([{Prompt,0}],
 	fun([Item]) ->
 		{Prompt,[{Id,gb_sets:singleton(Item)}]}
