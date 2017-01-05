@@ -975,24 +975,14 @@ sel_by_id({Prompt,Sel}, St) ->
 %%% Select lights.
 %%%
 
-select_lights(#st{selmode=Mode,shapes=Shapes}=St) ->
-    Sel = select_lights_1(gb_trees:values(Shapes), Mode),
-    St#st{selmode=Mode,sel=Sel}.
-
-select_lights_1([#we{perm=Perm}|Shs], Mode) when ?IS_NOT_SELECTABLE(Perm) ->
-    select_lights_1(Shs, Mode);
-select_lights_1([We|Shs], Mode) when not ?IS_LIGHT(We) ->
-    select_lights_1(Shs, Mode);
-select_lights_1([#we{id=Id}|Shs], body) ->
-    [{Id,gb_sets:singleton(0)}|select_lights_1(Shs, body)];
-select_lights_1([#we{id=Id,vp=Vtab,es=Etab,fs=Ftab}|Shs], Mode) ->
-    Sel = case Mode of
-	      vertex -> wings_util:array_keys(Vtab);
-	      edge -> wings_util:array_keys(Etab);
-	      face -> gb_trees:keys(Ftab)
-	  end,
-    [{Id,gb_sets:from_ordset(Sel)}|select_lights_1(Shs, Mode)];
-select_lights_1([], _) -> [].
+select_lights(#st{selmode=Mode}=St0) ->
+    SF = fun(_, We) when ?IS_LIGHT(We) ->
+                 gb_sets:singleton(0);
+            (_, _) ->
+                 gb_sets:empty()
+         end,
+    St = wings_sel:new_sel(SF, body, St0),
+    wings_sel_conv:mode(Mode, St).
 
 %%%
 %%% Select isolated vertices.
