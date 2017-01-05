@@ -418,14 +418,17 @@ delete(St) ->
 %%%
 
 duplicate(Dir, St0) ->
-    {St,Sel} = wings_sel:fold(
-		 fun(Elems, We, {#st{onext=Id}=S0,Sel}) ->
-			 S = wings_shape:insert(We, copy, S0),
-			 {S,[{Id,Elems}|Sel]};
-		    (_, _, A) -> A
-		 end, {St0,[]}, St0),
-    wings_move:setup(Dir, wings_sel:set(Sel, St)).
-    
+    CF = fun(Items, We) ->
+                 Empty = gb_sets:empty(),
+                 New = [{We,Items,copy}],
+                 {We,Empty,New}
+         end,
+    St = wings_sel:clone(CF, St0),
+    case Dir of
+	none -> St;
+	_ -> wings_move:setup(Dir, St)
+    end.
+
 %%%
 %%% Creating lights.
 %%%
