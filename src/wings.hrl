@@ -105,11 +105,6 @@
 %%
 %% Types.
 %%
--type vertex_num() :: non_neg_integer().
--type edge_num() :: non_neg_integer().
--type face_num() :: integer().
--type visible_face_num() :: non_neg_integer().
--type elem_num() :: vertex_num() | edge_num() | face_num().
 
 -type sel_mode() :: 'vertex' | 'edge' | 'face' | 'body'.
 -type bounding_box() :: [{float(),float(),float()}].
@@ -232,14 +227,14 @@
 %%                /       \           
 %%                               	   
 -record(edge,
-	{vs=0 :: vertex_num(),			%Start vertex for edge
-	 ve=0 :: vertex_num(),			%End vertex for edge
-	 lf=0 :: face_num(),			%Left face
-	 rf=0 :: face_num(),			%Right face
-	 ltpr=0 :: edge_num(),			%Left traversal predecessor
-	 ltsu=0 :: edge_num(),			%Left traversal successor
-	 rtpr=0 :: edge_num(),			%Right traversal predecessor
-	 rtsu=0	:: edge_num()			%Right traversal successor
+	{vs=0   :: wings_vertex:vertex_num(),     %Start vertex for edge
+	 ve=0   :: wings_vertex:vertex_num(),     %End vertex for edge
+	 lf=0   :: wings_face:face_num(),         %Left face
+	 rf=0   :: wings_face:face_num(),         %Right face
+	 ltpr=0 :: wings_edge:edge_num(), %Left traversal predecessor
+	 ltsu=0 :: wings_edge:edge_num(), %Left traversal successor
+	 rtpr=0 :: wings_edge:edge_num(), %Right traversal predecessor
+	 rtsu=0	:: wings_edge:edge_num()  %Right traversal successor
 	}).
 
 %% The current view/camera.

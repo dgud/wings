@@ -129,7 +129,7 @@ shift_verts_2(ShiftFun, Data, Vs, We) ->
 -spec convert_sel(SelMode, Items, #we{}) -> Vertices when
       SelMode :: sel_mode(),
       Items :: [wings_sel:item_id()],
-      Vertices :: [vertex_num()].
+      Vertices :: [wings_vertex:vertex_num()].
 
 convert_sel(vertex, Vs, _We) ->
     gb_sets:to_list(Vs);

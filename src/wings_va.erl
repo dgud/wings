@@ -30,6 +30,10 @@
 -opaque all_attributes() :: {float(),float(),float()} | {float(),float()} | 'none'.
 -type side() :: 'left'|'right'|face_num().
 
+-type edge_num() :: wings_edge:edge_num().
+-type face_num() :: wings_face:face_num().
+-type vertex_num() :: wings_vertex:vertex_num().
+
 set_vertex_color(Vs, Color, We) ->
     gb_sets:fold(fun(V, W) ->
 			 set_vertex_color_1(V, Color, W)

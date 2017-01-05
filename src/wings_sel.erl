@@ -33,6 +33,10 @@
 
 -import(lists, [foldl/3,reverse/1,reverse/2,sort/1,keydelete/3,keymember/3]).
 
+-type vertex_num() :: wings_vertex:vertex_num().
+-type edge_num() :: wings_edge:edge_num().
+-type visible_face_num() :: wings_face:visible_face_num().
+
 -type vertex_set() :: gb_sets:set(vertex_num()).
 -type edge_set() :: gb_sets:set(edge_num()).
 -type face_set() :: gb_sets:set(visible_face_num()).

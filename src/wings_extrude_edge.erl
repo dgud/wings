@@ -21,6 +21,8 @@
 -define(DEFAULT_EXTRUDE_DIST, 0.2).
 -define(BEVEL_EXTRUDE_DIST_KLUDGE, 0.0001).
 
+-type edge_num() :: wings_edge:edge_num().
+
 %%%
 %%% The Bump command.
 %%%

@@ -16,6 +16,9 @@
 -include("wings.hrl").
 -import(lists, [foldl/3,sort/1]).
 
+-type vertex_num() :: wings_vertex:vertex_num().
+-type face_num() :: wings_face:face_num().
+
 setup({'ASK',Ask}, St) ->
     wings:ask(Ask, St, fun setup/2);
 setup({Vec,Magnet}, St) ->

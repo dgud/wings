@@ -21,6 +21,10 @@
 
 -import(lists, [reverse/1,reverse/2]).
 
+-type elem_num() :: wings_vertex:vertex_num()
+                  | wings_edge:edge_num()
+                  | wings_face:face_num().
+
 %% Develop info.
 -record(info,
 	{change,

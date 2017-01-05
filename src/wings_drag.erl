@@ -59,6 +59,8 @@
 	 we_funs :: [we_transform_fun()] %List of funs that operate on the We.
 	}).
 
+-type vertex_num() :: wings_vertex:vertex_num().
+
 -type vertices() :: [vertex_num()].
 
 -type mat_transform_fun() :: fun((e3d_matrix(), [float()]) -> e3d_matrix()).
