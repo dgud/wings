@@ -15,6 +15,7 @@
 
 -export([clear/1,reset/1,set/2,set/3,
 	 conditional_reset/1,
+         selected_ids/1,
 	 map/2,map_update_sel/2,map_update_sel/3,
 	 update_sel/2,update_sel/3,fold/3,dfold/4,mapfold/3,
 	 new_sel/3,make/3,valid_sel/1,valid_sel/3,
@@ -86,6 +87,16 @@ set(Mode, [], St) ->
     clear(St#st{selmode=Mode});
 set(Mode, Sel, St) ->
     St#st{selmode=Mode,sel=sort(Sel),sh=false}.
+
+
+%%
+%% Return the Ids for all selected objects.
+%%
+
+-spec selected_ids(#st{}) -> [non_neg_integer()].
+
+selected_ids(#st{sel=Sel}) ->
+    [Id || {Id,_} <- Sel].
 
 %%%
 %%% Map over the selection, modifying the selected objects.
