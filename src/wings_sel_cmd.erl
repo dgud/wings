@@ -257,10 +257,14 @@ command(hide_unselected, St) ->
     {save_state,hide_unselected(St)};
 command(lock_unselected, St) ->
     {save_state,lock_unselected(St)};
-command(show_all, St) ->
-    {save_state,wings_shape:show_all(St)};
-command(unlock_all, St) ->
-    {save_state,wings_shape:unlock_all(St)};
+command(show_all, St0) ->
+    All = wings_obj:fold(fun(#{id:=I}, A) -> [I|A] end, [], St0),
+    St = wings_obj:unhide(All, St0),
+    {save_state,St};
+command(unlock_all, St0) ->
+    All = wings_obj:fold(fun(#{id:=I}, A) -> [I|A] end, [], St0),
+    St = wings_obj:unlock(All, St0),
+    {save_state,St};
 command({adjacent,Type}, St) ->
     set_select_mode(Type, St);
 command({ssels, store_selection}, #st{ssels=Ssels0,selmode=Mode,sel=Sel}=St) ->
@@ -410,12 +414,11 @@ select_all(#st{selmode=Mode}=St) ->
 %%% Select Inverse.
 %%%
 
-inverse(#st{selmode=body,sel=Sel0,shapes=Shapes}=St) ->
-    Items = gb_sets:singleton(0),
-    All = [{Id,Items} || #we{id=Id,perm=Perm} <- gb_trees:values(Shapes),
-			 ?IS_SELECTABLE(Perm)],
-    Sel = ordsets:subtract(All, Sel0),
-    St#st{sel=Sel};
+inverse(#st{selmode=body}=St) ->
+    Inverse = unselected_ids(St),
+    wings_sel:make(fun(_, #we{id=Id}) ->
+                           member(Id, Inverse)
+                   end, body, St);
 inverse(#st{selmode=Mode}=St) ->
     wings_sel:update_sel(
       fun(Items, We) ->
@@ -442,32 +445,17 @@ deselect(St) ->
 %%% Lock Unselected
 %%%
 
-hide_selected(#st{selmode=Mode,shapes=Shs0,sel=Sel}=St) ->
-    Shs1 = map(fun(#we{id=Id}=We) ->
-		       case keyfind(Id, 1, Sel) of
-			   false -> {Id,We};
-			   {_,Set} -> {Id,We#we{perm={Mode,Set}}}
-		       end
-	       end, gb_trees:values(Shs0)),
-    Shs = gb_trees:from_orddict(Shs1),
-    St#st{shapes=Shs,sel=[]}.
+hide_selected(St) ->
+    Selected = wings_sel:selected_ids(St),
+    wings_obj:hide(Selected, St).
 
 hide_unselected(St) ->
-    update_unsel(?PERM_HIDDEN_BIT, St).
+    Unselected = unselected_ids(St),
+    wings_obj:hide(Unselected, St).
 
 lock_unselected(St) ->
-    update_unsel(?PERM_LOCKED_BIT, St).
-
-update_unsel(Perm, #st{shapes=Shs0,sel=Sel}=St) ->
-    Shs1 = map(fun(#we{id=Id,perm=0}=We) ->
-		       case keymember(Id, 1, Sel) of
-			   true -> {Id,We};
-			   false -> {Id,We#we{perm=Perm}}
-		       end;
-		  (#we{id=Id}=We) -> {Id,We}
-	       end, gb_trees:values(Shs0)),
-    Shs = gb_trees:from_orddict(Shs1),
-    St#st{shapes=Shs}.
+    Unselected = unselected_ids(St),
+    wings_obj:lock(Unselected, St).
 
 %%%
 %%% Selection Groups
@@ -898,15 +886,17 @@ item_by_id(Prompt, #st{sel=[_]}=St) ->
 	fun([Item]) ->
 		{Prompt,[{Id,gb_sets:singleton(Item)}]}
 	end, St);
-item_by_id(Prompt, #st{shapes=Shs}=St) ->
-    case gb_trees:to_list(Shs) of
-	[] -> wings_u:error_msg(?__(1,"Nothing to select."));
-	[{Id,_}] ->
+item_by_id(Prompt, St) ->
+    FF = fun(#{id:=Id}, A) -> [Id|A] end,
+    case wings_obj:fold(FF, [], St) of
+        [] ->
+            wings_u:error_msg(?__(1,"Nothing to select."));
+        [Id] ->
 	    ask([{Prompt,0}],
 		fun([Item]) ->
 			{Prompt,[{Id,gb_sets:singleton(Item)}]}
 		end, St);
-	[{Id0,_}|_] ->
+	[Id0|_] ->
 	    ask([{?__(2,"Object Id"),Id0},
 		 {Prompt,0}],
 		fun([Id,Item]) ->
@@ -915,35 +905,37 @@ item_by_id(Prompt, #st{shapes=Shs}=St) ->
     end.
 
 
-by_name(#st{shapes=Shs}) ->
-    case gb_trees:is_empty(Shs) of
-	true -> wings_u:error_msg(?__(1,"Nothing to select."));
-	_ ->
-	    wings_dialog:ask(?__(2,"Select by name"),
+by_name(St) ->
+    case wings_obj:num_objects(St) of
+        0 ->
+            wings_u:error_msg(?__(1,"Nothing to select."));
+        _ ->
+            wings_dialog:ask(?__(2,"Select by name"),
 			     [{?__(3,"Name"), ""}],
-			     fun([String]) -> {select,{by,{by_name_with,String}}} end)
+			     fun([String]) ->
+                                     {select,{by,{by_name_with,String}}}
+                             end)
     end.
 
-by_name_with(Filter, #st{shapes=Shs}=St) ->
-    Sel = foldl(fun(#we{id=Id,perm=P,name=Name}, A) ->
-            if ?IS_VISIBLE(P)=:=true ->
-                case wings_util:is_name_masked(Name,Filter) of
-                true -> #st{sel=Sel0}=wings_sel:select_object(Id,St),
-                    [A|Sel0];
-                _ -> A
-                end;
-            true -> A
-            end
-		end, [], gb_trees:values(Shs)),
-	Sel1=lists:flatten(Sel),
-    St#st{sel=Sel1}.
+by_name_with(Filter, #st{selmode=Mode}=St0) ->
+    FF = fun(#{id:=Id,name:=Name}, A) ->
+                 case wings_util:is_name_masked(Name, Filter) of
+                     true -> [Id|A];
+                     false -> A
+                 end
+         end,
+    Ids = gb_sets:from_list(wings_obj:fold(FF, [], St0)),
+    SF = fun(_, #we{id=Id}) -> gb_sets:is_member(Id, Ids) end,
+    St = wings_sel:make(SF, body, St0),
+    wings_sel_conv:mode(Mode, St).
 
-valid_sel(Prompt, Sel, #st{shapes=Shs,selmode=Mode}=St) ->
+valid_sel(Prompt, Sel, #st{selmode=Mode}=St) ->
     case wings_sel:valid_sel(Sel, Mode, St) of
 	[] ->
 	    [{Id,Item0}] = Sel,
 	    [Item] = gb_sets:to_list(Item0),
-	    case gb_trees:is_defined(Id, Shs) of
+            FF = fun(#{id:=ObjId}, A) -> (Id =:= ObjId) or A end,
+            case wings_obj:fold(FF, false, St) of
 		false ->
 		    wings_u:error_msg(?__(1,"The Object Id ")++
 				  integer_to_list(Id)++
@@ -1593,3 +1585,9 @@ intersect_sel_items(F, Mode, St0) when is_function(F, 2) ->
 	#st{} ->
 	    wings_sel:update_sel(FF, Mode, St)
     end.
+
+unselected_ids(St) ->
+    FF = fun(#{id:=Id}, A) -> [Id|A] end,
+    AllIds = ordsets:from_list(wings_obj:fold(FF, [], St)),
+    SelIds = ordsets:from_list(wings_sel:selected_ids(St)),
+    ordsets:subtract(AllIds, SelIds).
