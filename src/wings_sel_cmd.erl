@@ -453,10 +453,10 @@ hide_selected(#st{selmode=Mode,shapes=Shs0,sel=Sel}=St) ->
     St#st{shapes=Shs,sel=[]}.
 
 hide_unselected(St) ->
-    update_unsel([], St).
+    update_unsel(?PERM_HIDDEN_BIT, St).
 
 lock_unselected(St) ->
-    update_unsel(1, St).
+    update_unsel(?PERM_LOCKED_BIT, St).
 
 update_unsel(Perm, #st{shapes=Shs0,sel=Sel}=St) ->
     Shs1 = map(fun(#we{id=Id,perm=0}=We) ->

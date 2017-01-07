@@ -636,8 +636,6 @@ get_light_1(#we{light=L,pst=Pst}=We, BC) ->
 	     end,
     [{opengl,OpenGL}|Prop].
 
-export_perm([], Ps) ->
-    [{visible,false},{locked,false}|Ps];
 export_perm({_,_}, Ps) ->
     [{visible,false},{locked,false}|Ps];
 export_perm(P, Ps) when is_integer(P) ->

@@ -226,7 +226,7 @@ hide_object(Id, #st{shapes=Shs0}=St) ->
 
 hide_we(#we{id=Id,perm=Perm0}=We, St) ->
     Perm = case get_sel(Id, St) of
-	       [] -> Perm0 bor 2;
+	       [] -> Perm0 bor ?PERM_HIDDEN_BIT;
 	       Other -> Other
 	   end,
     We#we{perm=Perm}.
@@ -239,16 +239,17 @@ show_object(Id, #st{shapes=Shs0}=St) ->
     St#st{sel=Sel,shapes=Shs}.
 
 show_we(#we{perm=Perm0}=We) ->
-    Perm = case Perm0 of
-	       3 -> 1;
-	       1 -> 1;
-	       _ -> 0
-	   end,
+    Perm = if
+               is_integer(Perm0) ->
+                   Perm0 band (bnot ?PERM_HIDDEN_BIT);
+               true ->
+                   0
+           end,
     We#we{perm=Perm}.
 
 lock_object(Id, St0) ->
     St = wings_sel:deselect_object(Id, St0),
-    update_permission(1, Id, St).
+    update_permission(?PERM_LOCKED_BIT, Id, St).
 
 unlock_object(Id, St) ->
     update_permission(0, Id, St).
@@ -318,7 +319,7 @@ lock_others_in_folder(ThisId, Ids, #st{shapes=Shs0,sel=Sel0}=St) ->
 		       {Id,We};
 		  (#we{id=Id,perm=P}=We) when ?IS_VISIBLE(P) ->
 		      case lists:member(Id, Ids) of
-		          true -> {Id,We#we{perm=1}};
+		          true -> {Id,We#we{perm=?PERM_LOCKED_BIT}};
 		          false -> {Id,We}
 		      end;
 		  (#we{id=Id}=We) ->
@@ -338,7 +339,7 @@ lock_others(ThisId, #st{shapes=Shs0,sel=Sel0}=St) ->
     Shs1 = map(fun(#we{id=Id}=We) when ThisId =:= Id ->
 		       {Id,We};
 		  (#we{id=Id,perm=P}=We) when ?IS_VISIBLE(P) ->
-		       {Id,We#we{perm=1}};
+		       {Id,We#we{perm=?PERM_LOCKED_BIT}};
 		  (#we{id=Id}=We) ->
 		       {Id,We}
 	       end, gb_trees:values(Shs0)),

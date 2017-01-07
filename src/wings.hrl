@@ -161,13 +161,7 @@
 %% See http://www.cs.mtu.edu/~shene/COURSES/cs3621/NOTES/model/winged-e.html
 -record(we,
 	{id :: non_neg_integer()|undefined,	%Shape id. (undefined during construction)
-	 perm=0,				%Permissions:
-						% 0 - Everything allowed.
-						% 1 - Visible, can't select.
-						% [] or {Mode,GbSet} -
-						%  Invisible, can't select.
-						%  The GbSet contains the
-						%  object's selection.
+	 perm=0 :: wings_we:perm(),             %See wings_we.erl.
 	 name="" :: string() | tuple(),		%Name. (AutoUV stores other things here.)
 	 es=array:new() :: array:array(),	%array containing edges
 	 lv=none :: 'none' | array:array(),	%Left vertex attributes
@@ -194,6 +188,9 @@
 -define(IS_NOT_VISIBLE(Perm), (Perm > 1)).
 -define(IS_SELECTABLE(Perm), (Perm =:= 0)).
 -define(IS_NOT_SELECTABLE(Perm), (Perm =/= 0)).
+
+-define(PERM_LOCKED_BIT, 1).
+-define(PERM_HIDDEN_BIT, 2).
 
 %%
 %% Macros for testing for lights. We don't want to put the record
