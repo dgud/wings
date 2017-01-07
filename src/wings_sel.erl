@@ -16,8 +16,9 @@
 -export([clear/1,reset/1,set/2,set/3,
 	 conditional_reset/1,
          selected_ids/1,
-	 map/2,map_update_sel/2,map_update_sel/3,
-	 update_sel/2,update_sel/3,fold/3,dfold/4,mapfold/3,
+	 map/2,map_obj/2,
+         map_update_sel/2,map_update_sel/3,
+	 update_sel/2,update_sel/3,fold_obj/3,fold/3,dfold/4,mapfold/3,
 	 new_sel/3,make/3,valid_sel/1,valid_sel/3,
          clone/2,clone/3,combine/2,combine/3,merge/2,
 	 center/1,center_vs/1,
@@ -99,7 +100,8 @@ selected_ids(#st{sel=Sel}) ->
     [Id || {Id,_} <- Sel].
 
 %%%
-%%% Map over the selection, modifying the selected objects.
+%%% Map over the selection, modifying the selected #we{}
+%%% records.
 %%%
 
 -spec map(Fun, #st{}) -> #st{} when
@@ -110,6 +112,25 @@ map(F, #st{shapes=Shs0,sel=Sel}=St) ->
     Shs1 = gb_trees:to_list(Shs0),
     Shs = map_1(F, Sel, Shs1, St, []),
     St#st{shapes=Shs}.
+
+
+%%%
+%%% Map over the selection, modifying the object maps.
+%%%
+
+-spec map_obj(F, #st{}) -> #st{} when
+      F :: fun((InObj) -> OutObj),
+      InObj :: wings_obj:obj(),
+      OutObj :: wings_obj:obj().
+
+map_obj(F, #st{sel=Sel}=St) ->
+    SF = fun(#{id:=Id}=Obj) ->
+                 case keymember(Id, 1, Sel) of
+                     false -> Obj;
+                     true -> F(Obj)
+                 end
+         end,
+    wings_obj:map(SF, St).
 
 %%
 %% Map over the selection, modifying the objects and the selection.
@@ -193,6 +214,25 @@ dfold_1([{Id,Items}|T], Map, Reduce, Shapes, Acc0) ->
     dfold_1(T, Map, Reduce, Shapes, Acc);
 dfold_1([], _, _, _, Acc) -> Acc.
 
+%%%
+%%% Fold over the selection of objects (not #we{} records).
+%%%
+
+-spec fold_obj(Fun, Acc0, #st{}) -> Acc1 when
+      Fun :: fun((wings_obj:obj(), AccIn) -> AccOut),
+      Acc0 :: term(),
+      Acc1 :: term(),
+      AccIn :: term(),
+      AccOut :: term().
+
+fold_obj(F, Acc0, #st{sel=Sel}=St) ->
+    FF = fun(#{id:=Id}=Obj, A) ->
+                 case keymember(Id, 1, Sel) of
+                     false -> A;
+                     true -> F(Obj, A)
+                 end
+         end,
+    wings_obj:fold(FF, Acc0, St).
 
 %%%
 %%% Fold over the selection.
