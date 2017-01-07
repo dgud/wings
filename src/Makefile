@@ -90,6 +90,7 @@ MODULES= \
 	wings_menu_util \
 	wings_move \
 	wings_msg \
+	wings_obj \
 	wings_outliner \
 	wings_palette \
 	wings_pb \
