@@ -120,25 +120,27 @@ select_loop(Edges0, #we{es=Etab}=We) ->
 
 %%% find_loop/2 and helpers.
 
-find_loop(#st{sel=[{Id,Edges}=PrevSel],shapes=Shapes}=St, Dir0) ->
-    We = gb_trees:get(Id, Shapes),
-    #we{es=Etab} = We,
-    G = digraph:new(),
-    build_digraph(G, gb_sets:to_list(Edges), Edges, Etab),
-    Cs0 = digraph_utils:components(G),
-    Cs1 = get_edges(G, Cs0),
-    Cs = [C || C <- Cs1, is_closed_loop(C, We)],
-    digraph:delete(G),
-    {Dir,PrevLoop} = prev_loop(Dir0, St),
-    Sel = case pick_loop(Cs, Dir, PrevLoop, St) of
-	      none ->
-		  case pick_loop(Cs, Dir, PrevLoop, St) of
-		      none -> PrevSel;
-		      Sel0 -> Sel0
-		  end;
-	      Sel0 -> Sel0
-	  end,
-    St#st{sel=[Sel],edge_loop={Dir0,PrevSel}}.
+find_loop(#st{sel=PrevSel,edge_loop=PrevLoop0}=St0, Dir0) ->
+    MF = fun(Edges0, #we{id=Id,es=Etab}=We) ->
+                 G = digraph:new(),
+                 build_digraph(G, gb_sets:to_list(Edges0), Edges0, Etab),
+                 Cs0 = digraph_utils:components(G),
+                 Cs1 = get_edges(G, Cs0),
+                 Cs = [C || C <- Cs1, is_closed_loop(C, We)],
+                 digraph:delete(G),
+                 {Dir,PrevLoop} = prev_loop(Dir0, Id, PrevLoop0),
+                 case pick_loop(Cs, Dir, PrevLoop) of
+                     none -> gb_sets:empty();
+                     Edges -> Edges
+                 end
+         end,
+    St1 = St0#st{edge_loop={Dir0,PrevSel}},
+    case wings_sel:update_sel(MF, St1) of
+        #st{sel=[]}=St ->
+            wings_sel:set(PrevSel, St);
+        #st{}=St ->
+            St
+    end.
 
 is_closed_loop(Edges, We) ->
     case edge_loop_vertices(Edges, We) of
@@ -151,23 +153,26 @@ get_edges(G, [C|Cs]) ->
     [Es|get_edges(G, Cs)];
 get_edges(_, []) -> [].
 
-prev_loop(_, #st{edge_loop=none}) -> {none,none};
-prev_loop(Same, #st{sel=[{Id,_}],edge_loop={Same,{Id,L}}}) ->
+prev_loop(_, _, none) ->
+    {none,none};
+prev_loop(Dir, Id, {Dir,[{Id,L}]}) ->
     {away,L};
-prev_loop(_, #st{sel=[{Id,_}],edge_loop={_,{Id,L}}}) ->
+prev_loop(_, Id, {_,[{Id,L}]}) ->
     {towards,L};
-prev_loop(_, _) -> {away,none}.
-    
-pick_loop([C|Cs], Dir, PrevLoop, #st{sel=[{Id,_}]}=St) ->
+prev_loop(_, _, _) ->
+    {away,none}.
+
+pick_loop([C|Cs], Dir, PrevLoop) ->
     IsPrev = PrevLoop =:= C,
     case Dir of
 	away when IsPrev ->
-	    pick_loop(Cs, Dir, PrevLoop, St);
+	    pick_loop(Cs, Dir, PrevLoop);
 	towards when not IsPrev ->
-	    pick_loop(Cs, Dir, PrevLoop, St);
-	_ -> {Id,C}
+	    pick_loop(Cs, Dir, PrevLoop);
+	_ ->
+            C
     end;
-pick_loop([], _, _, #st{sel=[_]}) -> none.
+pick_loop([], _, _) -> none.
 
 build_digraph(G, [E|Es], Edges, Etab) ->
     #edge{ltpr=Lp,ltsu=Ls,rtpr=Rp,rtsu=Rs} = array:get(E, Etab),
