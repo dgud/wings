@@ -18,7 +18,7 @@
 	 map/2,map_update_sel/2,map_update_sel/3,
 	 update_sel/2,update_sel/3,fold/3,dfold/4,mapfold/3,
 	 new_sel/3,make/3,valid_sel/1,valid_sel/3,
-         clone/2,clone/3,combine/2,merge/2,
+         clone/2,clone/3,combine/2,combine/3,merge/2,
 	 center/1,center_vs/1,
 	 bbox_center/1,bounding_box/1,
 	 face_regions/2,strict_face_regions/2,edge_regions/2,
@@ -294,6 +294,14 @@ combine(F, St) ->
                  F(Items, We)
          end,
     comb_merge(MF, St).
+
+-spec combine(Fun, Mode, #st{}) -> #st{} when
+      Fun :: fun((item_set(), #we{}) -> {#we{},item_set()}),
+      Mode :: mode().
+
+combine(F, Mode, St0) ->
+    St = combine(F, St0),
+    St#st{selmode=Mode}.
 
 -spec merge(Fun, #st{}) -> #st{} when
       Fun :: fun(({#we{},item_set()}) -> {#we{},item_set()}).
