@@ -209,7 +209,7 @@ fold_1([{Id,Items}|T], F, Shapes0) ->
                      gb_trees:update(Id, We, Shapes0)
              end,
     case Tv of
-        {we,[_|_]=WeFuns,OtherTv} ->
+        {we,WeFuns,OtherTv} when is_list(WeFuns) ->
             [{Id,WeFuns,OtherTv}|fold_1(T, F, Shapes)];
         _ ->
             [{Id,[],Tv}|fold_1(T, F, Shapes)]
