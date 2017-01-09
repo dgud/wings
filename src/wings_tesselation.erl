@@ -103,8 +103,9 @@ is_good_triangulation({Nx,Ny,Nz}, {Ax,Ay,Az}, {Bx,By,Bz}, {Cx,Cy,Cz}, {Dx,Dy,Dz}
 %%%
 %%% Internal functions.
 %%%
-
-is_good_triangulation_1(D1, D2) when D1 > 0.0, D2 > 0.0 -> true;
+%% Check that D1 and D2 is larger than "Epsilon" to avoid triangles that are
+%% 3 points on a line
+is_good_triangulation_1(D1, D2) when D1 > 0.000001, D2 > 0.000001 -> true;
 is_good_triangulation_1(_, _) -> false.
 
 do_faces(Action, Faces, We0) ->
