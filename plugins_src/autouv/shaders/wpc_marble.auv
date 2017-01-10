@@ -22,8 +22,8 @@
 %% types: Marble
 {uniform, menu, "type", "Solid Marble (ignore colors)", [{"Solid Marble (ignore colors)",0},
                         {"User Colors",1}]}.
-{uniform, color, "color1", {0.95,0.95,0.9025,0.0}, "Color 1"}.
-{uniform, color, "color2", {0.05,0.05,0.05,0.0}, "Color 2"}.
+{uniform, color, "color1", {0.95,0.95,0.9025,1.0}, "Color 1"}.
+{uniform, color, "color2", {0.05,0.05,0.05,1.0}, "Color 2"}.
 {uniform, bool, "exchange", false, "Exchange colors"}.
 {uniform, {slider,1.0,100.0}, "frequency", 1.5, "Frequency"}.
 {uniform, {slider,0.0,200.0}, "amplitude", 2.0, "Amplitude"}.

@@ -223,5 +223,5 @@ void main(void) {
     c1 = c1*vec3(brightness/100.0);
   }
 
-  gl_FragColor = vec4(c1, 1.0-color1.a);
+  gl_FragColor = vec4(c1, color1.a);
 }

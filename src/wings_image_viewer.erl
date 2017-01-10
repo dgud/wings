@@ -46,10 +46,18 @@ new(WinName, Image, Opts) ->
     Size = {size,{min(800,max(200,W0+100)), min(600,max(150,H0+100))}},
     {Frame,Ps} = wings_frame:make_win(Title, [Size]),
     Window = wx_object:start_link(?MODULE, [Frame, WinName, Image, Opts], []),
-    wings_wm:toplevel(WinName, Window, Ps, {push, fun(_Ev) -> keep end}),
+    wings_wm:toplevel(WinName, Window, Ps, {push, fun(Ev) -> forward_ev(Ev, WinName, Window) end}),
     wxWindow:refresh(Window),
     keep.
 
+forward_ev({note, image_change}, {_, WinId}, Window) ->
+    case [Im || {Id, Im} <- wings_image:images(), WinId =:= Id] of
+        [Image] -> wx_object:cast(Window, {image_change, Image});
+        _ -> ignore
+    end,
+    keep;
+forward_ev(_, _, _) ->
+    keep.
 
 %%%%%%%% Progress bar internals %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -114,6 +122,7 @@ handle_event(#wx{event = #wxMouse{type = right_up}}, State=#state{panel=Panel}) 
     Menu = wxMenu:new([]),
     wxMenu:append(Menu, 1012, "12%"),
     wxMenu:append(Menu, 1025, "25%"),
+    wxMenu:append(Menu, 1050, "50%"),
     wxMenu:appendSeparator(Menu),
     wxMenu:append(Menu, 1100, "100%"),
     wxMenu:appendSeparator(Menu),
@@ -141,7 +150,8 @@ handle_event(#wx{event=#wxMouse{type=motion}}, State=#state{}) ->
 handle_event(#wx{event=#wxMouse{type=left_down,x=X,y=Y}}, State) ->
     {noreply, State#state{prev={X,Y}}};
 
-handle_event(#wx{event=#wxMouse{type=enter_window}}=Ev, State) ->
+handle_event(#wx{event=#wxMouse{type=enter_window}}=Ev, #state{panel=Panel}=State) ->
+    wxWindow:setFocus(Panel),
     wings_frame ! Ev,
     {noreply, State};
 
@@ -151,6 +161,13 @@ handle_event(#wx{event=#wxErase{}}, State) ->
 handle_call(_Req, _From, State) ->
     {reply, keep, State}.
 
+handle_cast({image_change, E3d}, #state{panel=Panel,bitmap=Old}=State) ->
+    wxBitmap:destroy(Old),
+    Image = wings_image:e3d_to_wxImage(E3d),
+    BM = wxBitmap:new(Image),
+    wxImage:destroy(Image),
+    wxWindow:refresh(Panel),
+    {noreply, State#state{bitmap=BM}};
 handle_cast(_, State) -> {noreply, State}.
 
 handle_info(_, State) -> {noreply, State}.

@@ -12,7 +12,7 @@
 %%
 
 -module(wpc_views_win).
--export([init/0,menu/2,command/2,win_data/1]).
+-export([init/0,menu/2,command/2,win_data/1,win_name/0]).
 -export([window/1,window/5]).
 
 -export([init/1,
@@ -58,6 +58,9 @@ command(_,_) ->
 %% custom data is used to store windows properties and custom data - it should be parsed in window/5
 win_data(?WIN_NAME=Name) ->
     {Name, {right,[]}}.
+
+win_name() ->
+    ?WIN_NAME.
 
 window(St) ->
     case wings_wm:is_window(?WIN_NAME) of
@@ -145,7 +148,7 @@ init([Frame, _Ps, VS]) ->
     Panel = wxPanel:new(Frame),
     wxPanel:setFont(Panel, ?GET(system_font_wx)),
     Szr = wxBoxSizer:new(?wxVERTICAL),
-    Style = ?wxLC_REPORT bor ?wxLC_NO_HEADER bor ?wxLC_EDIT_LABELS,
+    Style = ?wxLC_REPORT bor ?wxLC_NO_HEADER bor ?wxLC_EDIT_LABELS bor ?wxLC_SINGLE_SEL,
     LC = wxListCtrl:new(Panel, [{style, Style}]),
     wxListCtrl:setBackgroundColour(LC, BG),
     wxListCtrl:setForegroundColour(LC, FG),

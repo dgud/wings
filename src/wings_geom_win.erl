@@ -473,11 +473,15 @@ handle_event(#wx{event=#wxList{type=command_list_end_label_edit, itemIndex=Indx}
 handle_event(#wx{event=#wxTree{type=command_tree_end_label_edit, item=Indx}},
 	     #state{name=Name, tree=Tree, tc=TC} = State) ->
     NewName = wxTreeCtrl:getItemText(TC, Indx),
-    {_, OldName} = lists:keyfind(Indx, 1, Tree),
-    if NewName =/= [] ->
-    	wings_wm:psend(Name, {action, {rename_folder, [OldName, NewName]}});
-    true ->
-	wxTreeCtrl:setItemText(TC, Indx, OldName)
+    case lists:keyfind(Indx, 1, Tree) of
+        {_, OldName} ->
+            if NewName =/= [] ->
+                    wings_wm:psend(Name, {action, {rename_folder, [OldName, NewName]}});
+               true ->
+                    wxTreeCtrl:setItemText(TC, Indx, OldName)
+            end;
+        false ->
+            io:format("~p:~p: Could not find ~p in ~p~n", [?MODULE, ?LINE, Indx, Tree])
     end,
     {noreply, State};
 
@@ -638,9 +642,14 @@ update_folders({Curr, Fld0}, TC) ->
 		 Leaves = lists:map(Add, Sorted),
 		 wxTreeCtrl:expand(TC, Root),
 		 All = [{Root,?NO_FLD}|Leaves],
-		 {Node,_} = lists:keyfind(Curr, 2, All),
-		 wxTreeCtrl:selectItem(TC, Node),
-		 wxTreeCtrl:ensureVisible(TC, Node),
+		 case lists:keyfind(Curr, 2, All) of
+		     {Node,_} ->
+			 wxTreeCtrl:selectItem(TC, Node),
+			 wxTreeCtrl:ensureVisible(TC, Node);
+		     _ ->
+                         io:format("~p:~p: Unexpected folder error.\nCurr: ~p\nAll: ~p\n\n",
+                                   [?MODULE, ?LINE, Curr,All])
+		 end,
 		 All
 	 end,
     wx:batch(Do).
@@ -678,8 +687,12 @@ sort_folder(#{shs:=Shs, folders:={Current, Fld0}}) ->
 
 sort_folder(Ids, Shs) ->
     Names0 = foldl(fun(Id, Acc) ->
-			   #{name:=Name}=We = wings_util:mapsfind(Id, id, Shs),
-			   [{wings_util:cap(Name),We}|Acc]
+                           case wings_util:mapsfind(Id, id, Shs) of
+                               #{name:=Name}=We ->
+                                   [{wings_util:cap(Name),We}|Acc];
+                               false ->
+                                   Acc
+                           end
 		   end, [], gb_sets:to_list(Ids)),
     lists:sort(Names0).
 

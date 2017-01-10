@@ -251,30 +251,30 @@ bend_setup_clamps(#bend_data{rodCenter=RC, rodNormal=RN}=BD,
 %%
 
 bend_verts(BendData, St) ->
-  case BendData#bend_data.rodLength of
-    0.0 -> wpa:error_msg(?__(1,"Configuration does not result in bending"));
-    _ ->
-      %% FIXME
-      %%   Run a test call. If you don't do this before
-      %%   iterating, and there's an error, it locks up
-      %%   the mouse under linux.
-      bend_vertex({1.0, 1.0, 1.0}, 45.0, BendData),
+    case BendData#bend_data.rodLength of
+        0.0 ->
+            wpa:error_msg(?__(1,"Configuration does not result in bending"));
+        _ ->
+            %% FIXME
+            %%   Run a test call. If you don't do this before
+            %%   iterating, and there's an error, it locks up
+            %%   the mouse under linux.
+            bend_vertex({1.0, 1.0, 1.0}, 45.0, BendData),
 
-      Tvs = wings_sel:fold(fun(Vs, We, Acc) ->
-                                   bend_verts(BendData, Vs, We, Acc)
-                           end, [], St),
-      wings_drag:setup(Tvs, [angle], St)
-  end.
+            wings_drag:fold(fun(Vs, We) ->
+                                    bend_verts(BendData, Vs, We)
+                            end, [angle], St)
+    end.
 
-bend_verts(BendData, Vs0, #we{id=Id}=We, Acc) ->
-  Vs = gb_sets:to_list(Vs0),
-  VsPos = wings_util:add_vpos(Vs, We),
-  Fun = fun([Angle], A) ->
-                foldl(fun({V,Vpos}, VsAcc) ->
-                              [{V,bend_vertex(Vpos,Angle,BendData)}|VsAcc]
-                      end, A, VsPos)
-        end,
-  [{Id,{Vs,Fun}}|Acc].
+bend_verts(BendData, Vs0, We) ->
+    Vs = gb_sets:to_list(Vs0),
+    VsPos = wings_util:add_vpos(Vs, We),
+    Fun = fun([Angle], A) ->
+                  foldl(fun({V,Vpos}, VsAcc) ->
+                                [{V,bend_vertex(Vpos,Angle,BendData)}|VsAcc]
+                        end, A, VsPos)
+          end,
+    {Vs,Fun}.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

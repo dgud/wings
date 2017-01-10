@@ -45,9 +45,9 @@ vec4 hexagon0(in float d,
   float k = abs(d);
   float tk = ((1.0/frequency)+(0.1 *min(gridThickness,99.8)));
   if (k >= tk) {
-    return vec4(colorHex.rgb,1.0-colorHex.a);
+    return colorHex;
   } else {
-    return vec4(colorThick.rgb, 1.0-colorThick.a);
+    return colorThick;
   }
 }
 
@@ -55,8 +55,8 @@ vec4 hexagon1(in float d)
 {
   float k = d;
   float ik = (1.0-k);
-  kcolor = vec4(vec3(colorHex.rgb)*k,1.0-colorHex.a);
-  kbkcolor = vec4(vec3(colorThick.rgb)*ik,1.0-colorThick.a);
+  kcolor = colorHex;
+  kbkcolor = colorThick;
   return vec4(kbkcolor+kcolor);
 }
 
@@ -64,8 +64,8 @@ vec4 hexagon2(in float d)
 {
   float k = min(d,1.0);
   float ik = (1.0-k);
-  kcolor = vec4(vec3(colorHex.rgb)*k,1.0-colorHex.a);
-  kbkcolor = vec4(vec3(colorThick.rgb)*ik,1.0-colorThick.a);
+  kcolor = colorHex;
+  kbkcolor = colorThick;
   if (k >= 1.0) {
     return kcolor;
   } else if (ik >= 0.90) {
@@ -80,8 +80,8 @@ vec4 hexagon3(in float d,
 {
   float k = min(abs(d*(3.0/sqrt(gridThickness))),1.0);
   float ik = (1.0-k);
-  kcolor = vec4(vec3(colorHex.rgb)*k,1.0-colorHex.a);
-  kbkcolor = vec4(vec3(colorThick.rgb)*ik,1.0-colorThick.a);
+  kcolor = vec4(vec3(colorHex.rgb)*k,colorHex.a);
+  kbkcolor = vec4(vec3(colorThick.rgb)*ik,colorThick.a);
   if (k >= 0.70) {
     return kcolor;
   } else if (ik <= 1.0) {

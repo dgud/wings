@@ -24,17 +24,19 @@
 	 array_keys/1,array_smallest_key/1,array_greatest_key/1,
 	 array_is_empty/1,array_entries/1,
 	 mapsfind/3,
-	 wxequal/2, wxset_pid/2,
-	 nice_float/1,
+	 wxequal/2, wxset_pid/2, min_wx/1,
+	 nice_float/1,nice_vector/1,nice_abs_vector/1,
 	 unique_name/2,
 	 is_name_masked/2,
 	 lib_dir/1,
-	 tc/3,
+	 tc/3, profile_start/1, profile_stop/1,
 	 limit/2]).
 
 -define(NEED_OPENGL, 1).
 -define(NEED_ESDL, 1).
 -include("wings.hrl").
+-include("e3d.hrl").
+
 -import(lists, [foldl/3,reverse/1,member/2,last/1]).
 
 share(X, X, X) -> {X,X,X};
@@ -186,7 +188,21 @@ array_is_empty(Array) ->
 %%
 array_entries(Array) ->
     array:sparse_foldl(fun(_, _, N) -> N + 1 end, 0, Array).
-			        
+
+-spec nice_abs_vector(e3d_vector()) -> iolist().
+
+nice_abs_vector({X,Y,Z}) ->
+    nice_vector({abs(X),abs(Y),abs(Z)}).
+
+-spec nice_vector(e3d_vector()) -> iolist().
+
+nice_vector({X,Y,Z}) ->
+    ["<",
+     wings_util:nice_float(X),"  ",
+     wings_util:nice_float(Y),"  ",
+     wings_util:nice_float(Z),
+     ">"].
+
 nice_float(F) when is_float(F) ->
     simplify_float(lists:flatten(io_lib:format("~f", [F]))).
 
@@ -214,6 +230,21 @@ mapsfind(_, _, []) -> false.
 wxequal(#wx_ref{ref=Ref1}, #wx_ref{ref=Ref2}) -> Ref1 =:= Ref2.
 wxset_pid(#wx_ref{}=R, Pid) when is_pid(Pid) ->
     R#wx_ref{state=Pid}.
+
+min_wx({_,_}=Ver) ->
+    case get(wx_version) of
+        undefined ->
+            case filename:basename(code:lib_dir(wx)) of
+                [$w,$x,$-,Major,_,Minor|_] ->
+                    Version = {Major-$0, Minor-$0},
+                    put(wx_version, Version),
+                    Version >= Ver;
+                _Vsn -> %% erlang src build? assume 19.2 or later
+                    true
+            end;
+        Version ->
+            Version >= Ver
+    end.
 
 %%
 %% Create a unique name by appending digits.
@@ -249,6 +280,33 @@ tc(Fun,Mod,Line) ->
     After = os:timestamp(),
     io:format("~p:~p: Time: ~p\n", [Mod, Line, timer:now_diff(After,Before)]),
     R.
+
+profile_start(fprof) ->
+    fprof:trace(start),
+    ok;
+profile_start(eprof) ->
+    eprof:start(),
+    profiling = eprof:start_profiling([self()]),
+    ok.
+
+profile_stop(fprof) ->
+    fprof:trace(stop),
+    spawn_link(fun() ->
+                       File = "fprof.analysis",
+                       fprof:profile(),
+                       fprof:analyse([{dest, File}, {cols, 120}]),
+                       io:format("Analysis in: ~p~n", [filename:absname(File)]),
+                       eprof:stop()
+               end),
+    ok;
+profile_stop(eprof) ->
+    eprof:stop_profiling(),
+    spawn_link(fun() ->
+                       File = "eprof.analysis",
+                       eprof:log(File),
+                       eprof:analyze(),
+                       io:format("Analysis in: ~p~n", [filename:absname(File)])
+               end).
 
 limit(Val, {'-infinity',infinity}) -> Val;
 limit(Val, {Min,infinity}) when Val < Min -> Min;

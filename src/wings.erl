@@ -86,13 +86,17 @@ halt_loop(Wings) ->
 do_spawn(File) ->
     do_spawn(File, []).
 
-do_spawn(File, Flags) ->
+do_spawn(File, Flags0) ->
     %% Set a minimal heap size to avoiding garbage-collecting
     %% all the time. Don't set it too high to avoid keeping binaries
     %% too long.
     Fun = fun() -> init(File) end,
-    spawn_opt(erlang, apply, [Fun,[]],
-          [{fullsweep_after,16384},{min_heap_size,32*1204}|Flags]).
+    Flags1 = case erlang:system_info(version) >= "8.1" of
+                 true -> [{message_queue_data, off_heap}|Flags0];
+                 false -> Flags0
+             end,
+    Flags = [{fullsweep_after,16384},{min_heap_size,32*1204}|Flags1],
+    spawn_opt(erlang, apply, [Fun,[]], Flags).
 
 init(File) ->
     process_flag(trap_exit, true),
@@ -268,7 +272,7 @@ init_opengl(St) ->
     keep.
 
 redraw(St) ->
-    redraw(info(St), St).
+    redraw(wings_info:info(St), St).
 
 redraw(Info, St) ->
     Render =
@@ -789,6 +793,7 @@ command_1({edit,{preferences,Pref}}, St) ->
     wings_pref_dlg:command(Pref, St);
 command_1({edit,{theme,Theme}}, St) ->
     wings_pref:pref({load,Theme,St}),
+    wings_frame:update_theme(),
     keep;
 
 %% Select menu.
@@ -1049,388 +1054,6 @@ purge_undo(St) ->
     wings_dialog:dialog("Purge Undo", Qs,
 			fun(_) -> {edit,confirmed_purge_undo} end).
 
-info(#st{sel=[]}) ->
-    [],
-    Progs = get(light_shaders),
-    NumLights = wings_pref:get_value(number_of_lights),
-    ActiveSh = wings_pref:get_value(active_shader),
-    UseProg = (Progs /= undefined) and (NumLights == 2),
-    case UseProg of
-     true ->
-	 {_Prog,Name} = element(ActiveSh, Progs),
-	 io_lib:format("Shader ~p of ~p: ~s ",[ActiveSh,tuple_size(Progs),Name]);
-     false ->
-	 []
-    end;
-info(St) ->
-    case wings_wm:get_prop(show_info_text) of
-    false -> [];
-    true -> info_1(St)
-    end.
-        
-info_1(#st{shapes=Shapes,selmode=body,sel=[{Id,_}]}) ->
-    Sh = gb_trees:get(Id, Shapes),
-    shape_info(Sh);
-info_1(#st{shapes=Shapes,selmode=body,sel=Sel}) ->
-    shape_info(Sel, Shapes);
-info_1(#st{selmode=vertex,sel=[{_Id,Sel}]}=St) ->
-    case gb_sets:size(Sel) of
-    0 -> "";
-    1 ->
-        [V] = gb_sets:to_list(Sel),
-        measure(io_lib:format(?__(1,"Vertex ~p selected"), [V]), St);
-    N when N < 5 ->
-        Vs = gb_sets:to_list(Sel),
-        measure(item_list(Vs, ?__(2,"Vertices")), St);
-    N ->
-        io_lib:format(?__(3,"~p vertices selected"), [N])
-    end;
-info_1(#st{selmode=edge,sel=[{_,Sel}]}=St) ->
-    case gb_sets:size(Sel) of
-    0 -> "";
-    1 ->
-        [Edge] = gb_sets:to_list(Sel),
-        measure(io_lib:format(?__(4,"Edge ~p selected"), [Edge]), St);
-    N when N < 5 ->
-        Edges = gb_sets:to_list(Sel),
-        measure(item_list(Edges, ?__(5,"Edges")), St);
-    N ->
-        measure(io_lib:format(?__(6,"~p edges selected"), [N]), St)
-    end;
-info_1(#st{selmode=face,sel=[{_,Sel}]}=St) ->
-    case gb_sets:size(Sel) of
-    0 -> "";
-    1 ->
-        [Face] = gb_sets:to_list(Sel),
-        measure(io_lib:format(?__(7,"Face ~p selected"), [Face]), St);
-    2 ->
-        Faces = gb_sets:to_list(Sel),
-        measure(item_list(Faces,?__(8,"Faces")), St);
-    N when N < 5 ->
-        Faces = gb_sets:to_list(Sel),
-        item_list(Faces,?__(8,"Faces"));
-    N ->
-        io_lib:format(?__(9,"~p faces selected"), [N])
-    end;
-info_1(#st{selmode=Mode,sel=Sel}=St) ->
-    On = length(Sel),
-    N = foldl(fun({_,S}, A) -> A+gb_sets:size(S) end, 0, Sel),
-    Str = case Mode of
-          vertex ->
-          io_lib:format(?__(10,"~p vertices selected in ~p objects"), [N,On]);
-          edge ->
-          io_lib:format(?__(11,"~p edges selected in ~p objects"), [N,On]);
-          face ->
-          io_lib:format(?__(12,"~p faces selected in ~p objects"), [N,On])
-      end,
-    measure(Str, St).
-
-measure(Base, #st{selmode=vertex,sel=[{Id,Vs}],shapes=Shs}) ->
-    case gb_sets:size(Vs) of
-    1 ->
-        We = gb_trees:get(Id, Shs),
-        [Va] = gb_sets:to_list(Vs),
-        {X,Y,Z} = wings_vertex:pos(Va, We),
-       [Base|io_lib:format(?__(1,". Position <~s  ~s  ~s>"),
-                          [wings_util:nice_float(X),
-                           wings_util:nice_float(Y),
-                           wings_util:nice_float(Z)])];
-    2 ->
-        We = gb_trees:get(Id, Shs),
-        [Va,Vb] = gb_sets:to_list(Vs),
-            {Xa,Ya,Za} = wings_vertex:pos(Va, We),
-            {Xb,Yb,Zb} = wings_vertex:pos(Vb, We),
-        Dist = e3d_vec:dist({Xa,Ya,Za},{Xb,Yb,Zb}),
-       [Base|io_lib:format(?__(5,". Distance ~s  <~s  ~s  ~s>"),
-                          [wings_util:nice_float(Dist),
-                           wings_util:nice_float(abs(Xb - Xa)),
-                           wings_util:nice_float(abs(Yb - Ya)),
-                           wings_util:nice_float(abs(Zb - Za))])];
-    _ -> Base
-    end;
-measure(Base, #st{selmode=vertex,sel=[{IdA,VsA},{IdB,VsB}],shapes=Shs}) ->
-    case gb_sets:size(VsA) == 1 andalso gb_sets:size(VsB) == 1 of
-    true ->
-        WeA = gb_trees:get(IdA, Shs),
-        WeB = gb_trees:get(IdB, Shs),
-        [Va] = gb_sets:to_list(VsA),
-        [Vb] = gb_sets:to_list(VsB),
-       {Xa,Ya,Za} = wings_vertex:pos(Va, WeA),
-       {Xb,Yb,Zb} = wings_vertex:pos(Vb, WeB),
-        Dist = e3d_vec:dist(wings_vertex:pos(Va, WeA),
-                            wings_vertex:pos(Vb, WeB)),
-       [Base|io_lib:format(?__(5,". Distance ~s  <~s  ~s  ~s>"),
-               [wings_util:nice_float(Dist),
-                wings_util:nice_float(Xb - Xa),
-                wings_util:nice_float(Yb - Ya),
-                wings_util:nice_float(Zb - Za)])];
-    _ -> Base
-    end;
-measure(Base, #st{selmode=edge,sel=[{Id,Es}],shapes=Shs}) ->
-    case gb_sets:size(Es) of
-        1 ->
-            We = gb_trees:get(Id, Shs),
-            [Edge] = gb_sets:to_list(Es),
-            #edge{vs=Va,ve=Vb} = array:get(Edge, We#we.es),
-            {Xa,Ya,Za} = wings_vertex:pos(Va, We),
-            {Xb,Yb,Zb} = wings_vertex:pos(Vb, We),
-            Length = e3d_vec:dist({Xa,Ya,Za}, {Xb,Yb,Zb}),
-            {X,Y,Z} = e3d_vec:average({Xa,Ya,Za}, {Xb,Yb,Zb}),
-            [Base|io_lib:format(?__(3,". Midpoint <~s  ~s  ~s>\nLength ~s") ++
-                                "  <~s  ~s  ~s>",
-                                [wings_util:nice_float(X),
-                                 wings_util:nice_float(Y),
-                                 wings_util:nice_float(Z),
-                                 wings_util:nice_float(Length),
-                                 wings_util:nice_float(abs(Xb - Xa)),
-                                 wings_util:nice_float(abs(Yb - Ya)),
-                                 wings_util:nice_float(abs(Zb - Za))])];
-        2 ->
-            We = gb_trees:get(Id, Shs),
-            [E0,E1] = gb_sets:to_list(Es),
-            #edge{vs=V0s,ve=V0e} = array:get(E0, We#we.es),
-            #edge{vs=V1s,ve=V1e} = array:get(E1, We#we.es),
-            PosA = {X0s,Y0s,Z0s} = wings_vertex:pos(V0s, We),
-            PosB = {X0e,Y0e,Z0e} = wings_vertex:pos(V0e, We),
-            PosC = {X1s,Y1s,Z1s} = wings_vertex:pos(V1s, We),
-            PosD = {X1e,Y1e,Z1e} = wings_vertex:pos(V1e, We),
-            V0 = {X0e-X0s, Y0e-Y0s, Z0e-Z0s},
-            V1 = {X1e-X1s, Y1e-Y1s, Z1e-Z1s},
-            RawAngle = e3d_vec:degrees(V0, V1),
-            Angle = case {V0s,V0e} of
-                      {V1s,_} -> RawAngle;
-                      {_,V1e} -> RawAngle;
-                      {V1e,_} -> 180.0 - RawAngle;
-                      {_,V1s} -> 180.0 - RawAngle;
-                      {_,_}   -> RawAngle   %%% unconnected
-                    end,
-            enhanced_info([Base|io_lib:format(?__(6,". Angle ~s")++"~c",
-                          [wings_util:nice_float(Angle),?DEGREE])],
-                          {PosA, PosB, PosC, PosD, E0, E1});
-        _ -> 
-            Base
-    end;
-
-measure(Base, #st{shapes=Shs, selmode=edge, sel=[{Id1,Sel1},{Id2,Sel2}]}) ->
-    case gb_sets:size(Sel1) == 1 andalso gb_sets:size(Sel2) == 1 of
-    true ->
-      WeA = gb_trees:get(Id1, Shs),
-      WeB = gb_trees:get(Id2, Shs),
-      [Es0] = gb_sets:to_list(Sel1),
-      [Es1] = gb_sets:to_list(Sel2),
-      #edge{vs=V0s,ve=V0e} = array:get(Es0, WeA#we.es),
-      #edge{vs=V1s,ve=V1e} = array:get(Es1, WeB#we.es),
-      PosA = {X0s,Y0s,Z0s} = wings_vertex:pos(V0s, WeA),
-      PosB = {X0e,Y0e,Z0e} = wings_vertex:pos(V0e, WeA),
-      PosC = {X1s,Y1s,Z1s} = wings_vertex:pos(V1s, WeB),
-      PosD = {X1e,Y1e,Z1e} = wings_vertex:pos(V1e, WeB),
-      V0 = {X0e-X0s, Y0e-Y0s, Z0e-Z0s},
-      V1 = {X1e-X1s, Y1e-Y1s, Z1e-Z1s},
-      RawAngle = e3d_vec:degrees(V0, V1),
-      Angle = case {V0s,V0e} of
-          {V1s,_} -> RawAngle;
-          {_,V1e} -> RawAngle;
-          {V1e,_} -> 180.0 - RawAngle;
-          {_,V1s} -> 180.0 - RawAngle;
-          {_,_}   -> RawAngle   %%% unconnected
-              end,
-      enhanced_info([Base|io_lib:format(?__(6,". Angle ~s")++"~c",
-                    [wings_util:nice_float(Angle),?DEGREE])],
-                    {PosA, PosB, PosC, PosD, Es0, Es1, Id1, Id2});
-    false->
-        Base
-    end;
-measure(Base, #st{selmode=face,sel=[{Id,Fs}],shapes=Shs}) ->
-    case gb_sets:size(Fs) of
-    1 ->
-        We = gb_trees:get(Id, Shs),
-        [Face] = gb_sets:to_list(Fs),
-        {X,Y,Z} = wings_face:center(Face, We),
-        Mat = wings_facemat:face(Face, We),
-        Area = area_info(Face, We),
-        [Base|wings_util:format(?__(4,". Midpoint <~s  ~s  ~s> \nMaterial ~s.")
-                            ++ Area,
-                            [wings_util:nice_float(X),
-                             wings_util:nice_float(Y),
-                             wings_util:nice_float(Z),
-                             Mat])];
-    2 ->
-      We = gb_trees:get(Id, Shs),
-      [F0,F1] = gb_sets:to_list(Fs),
-      N0 = wings_face:normal(F0, We),
-      N1 = wings_face:normal(F1, We),
-      Angle = e3d_vec:degrees(N0,N1),
-      enhanced_info([Base|io_lib:format(?__(6,". Angle ~s")++"~c",
-      [wings_util:nice_float(Angle),?DEGREE])],{We,F0,F1});
-    _ -> Base
-    end;
-measure(Base, #st{shapes=Shs, selmode=face, sel=[{Id1,Fs1},{Id2,Fs2}]}) ->
-    case gb_sets:size(Fs1) == 1 andalso gb_sets:size(Fs2) == 1 of
-    true ->
-        WeA = gb_trees:get(Id1, Shs),
-        WeB = gb_trees:get(Id2, Shs),
-        [F0] = gb_sets:to_list(Fs1),
-        [F1] = gb_sets:to_list(Fs2),
-          N0 = wings_face:normal(F0, WeA),
-          N1 = wings_face:normal(F1, WeB),
-        Angle = e3d_vec:degrees(N0,N1),
-        enhanced_info([Base|io_lib:format(?__(6,". Angle ~s")++"~c",
-                      [wings_util:nice_float(Angle),?DEGREE])],
-                      {face,WeA,WeB,F0,F1,Id1,Id2});
-    false ->
-        Base
-    end;
-
-measure(Base, _) -> Base.
-
-item_list(Items, Desc) ->
-    item_list(Items, " ", Desc).
-
-item_list([Item|Items], Sep, Desc) ->
-    item_list(Items, ", ", [Desc,Sep|integer_to_list(Item)]);
-item_list([], _Sep, Desc) -> [Desc|?__(1," selected")].
-
-shape_info(We) when ?IS_LIGHT(We) ->
-    wings_light:info(We);
-shape_info(#we{id=Id,name=Name,fs=Ftab,es=Etab,vp=Vtab}=We) ->
-    Faces = gb_trees:size(Ftab),
-    Edges = wings_util:array_entries(Etab),
-    Vertices = wings_util:array_entries(Vtab),
-    wings_util:format(?__(new_object_info,
-			  "Object ~p \"~s\" has ~p polygons, "
-			  "~p edges, ~p vertices~s~s."),
-              [Id,Name,Faces,Edges,Vertices,
-	       vtx_attributes(We),hole_info(We)]).
-
-vtx_attributes(We) ->
-    case wings_va:any_attributes(We) of
-	false -> "";
-	true -> ", " ++ ?__(1,"vertex attributes")
-    end.
-
-hole_info(#we{holes=[]}) ->
-    "";
-hole_info(#we{holes=Holes}) ->
-    case length(Holes) of
-	1 -> [", 1 ",?__(1,"hole")];
-	N -> [", ",integer_to_list(N)," ",?__(2,"holes")]
-    end.
-
-shape_info(Objs, Shs) ->
-    shape_info(Objs, Shs, 0, 0, 0, 0).
-
-shape_info([{Id,_}|Objs], Shs, On, Vn, En, Fn) ->
-    #we{fs=Ftab,es=Etab,vp=Vtab} = gb_trees:get(Id, Shs),
-    Faces = gb_trees:size(Ftab),
-    Edges = wings_util:array_entries(Etab),
-    Vertices = wings_util:array_entries(Vtab),
-    shape_info(Objs, Shs, On+1, Vn+Vertices, En+Edges, Fn+Faces);
-shape_info([], _Shs, N, Vertices, Edges, Faces) ->
-    io_lib:format(?__(2,
-             "~p objects, ~p faces, ~p edges, ~p vertices"),
-          [N,Faces,Edges,Vertices]).
-
-enhanced_info(Basic, {PosA, PosB, PosC, PosD, E0, E1}) ->
-    case wings_pref:get_value(info_enhanced_text) of
-        true ->
-            Length1 = e3d_vec:dist(PosA,PosB),
-            Length2 = e3d_vec:dist(PosC,PosD),
-            {Xa,Ya,Za} = e3d_vec:average(PosA,PosB),
-            {Xb,Yb,Zb} = e3d_vec:average(PosC,PosD),
-               Dist = e3d_vec:dist({Xa,Ya,Za}, {Xb,Yb,Zb}),
-               Diff = abs(Length1 - Length2),
-            [Basic|io_lib:format(?__(42,"\nDistance ~s")++"  <~s  ~s  ~s>\n"++
-                                 ?__(41,"Edge~s ~s")++"  "++?__(41,"Edge~s ~s")
-                                 ++"  "++?__(45,"Difference ~s"),
-                                 [wings_util:nice_float(Dist),
-                                  wings_util:nice_float(abs(Xb - Xa)),
-                                  wings_util:nice_float(abs(Yb - Ya)),
-                                  wings_util:nice_float(abs(Zb - Za)),
-                                  wings_util:stringify(E0),
-                                  wings_util:nice_float(Length1),
-                                  wings_util:stringify(E1),
-                                  wings_util:nice_float(Length2),
-                                  wings_util:nice_float(Diff)])];
-        false -> 
-            Basic
-    end;
-enhanced_info(Basic, {PosA, PosB, PosC, PosD, Es0, Es1, Id1, Id2}) ->
-    case wings_pref:get_value(info_enhanced_text) of
-        true ->
-            Length1 = e3d_vec:dist(PosA,PosB),
-            Length2 = e3d_vec:dist(PosC,PosD),
-            {Xa,Ya,Za} = e3d_vec:average(PosA,PosB),
-            {Xb,Yb,Zb} = e3d_vec:average(PosC,PosD),
-            Dist = e3d_vec:dist({Xa,Ya,Za}, {Xb,Yb,Zb}),
-            Diff = abs(Length1 - Length2),
-            [Basic|io_lib:format(?__(42,"\nDistance ~s")++"  <~s  ~s  ~s>\n"++
-                          ?__(43,"Object~s")++" "++?__(41,"Edge~s ~s")++"  "++
-                          ?__(43,"Object~s")++" "++?__(41,"Edge~s ~s")++"  "++
-                          ?__(45,"Difference ~s"),
-                              [wings_util:nice_float(Dist),
-                               wings_util:nice_float(abs(Xb - Xa)),
-                               wings_util:nice_float(abs(Yb - Ya)),
-                               wings_util:nice_float(abs(Zb - Za)),
-                               wings_util:stringify(Id1),
-                               wings_util:stringify(Es0),
-                               wings_util:nice_float(Length1),
-                               wings_util:stringify(Id2),
-                               wings_util:stringify(Es1),
-                               wings_util:nice_float(Length2),
-                               wings_util:nice_float(Diff)])];
-        false ->
-            Basic
-    end;
-enhanced_info(Basic,{We,F0,F1}) ->
-    case wings_pref:get_value(info_enhanced_text) of
-        true ->
-            {Xa,Ya,Za} = wings_face:center(F0, We),
-            {Xb,Yb,Zb} = wings_face:center(F1, We),
-            Dist = e3d_vec:dist({Xa,Ya,Za},{Xb,Yb,Zb}),
-            Area0 = area_info(F0, We),
-            Area1 = area_info(F1, We),
-            [Basic|io_lib:format(?__(42,"\nDistance ~s")++"  <~s  ~s  ~s>\n"
-                                 ++ ?__(48,"Face~s") ++ Area0 ++ "  " 
-                                 ++ ?__(48,"Face~s") ++ Area1,
-                                [wings_util:nice_float(Dist),
-                                 wings_util:nice_float(abs(Xb - Xa)),
-                                 wings_util:nice_float(abs(Yb - Ya)),
-                                 wings_util:nice_float(abs(Zb - Za)),
-								 wings_util:stringify(F0),
-								 wings_util:stringify(F1)])];
-        false ->
-            Basic
-    end;
-enhanced_info(Basic,{face,WeA, WeB, F0, F1,Id1,Id2}) ->
-    case wings_pref:get_value(info_enhanced_text) of
-        true ->
-           {Xa,Ya,Za} = wings_face:center(F0, WeA),
-           {Xb,Yb,Zb} = wings_face:center(F1, WeB),
-           Area0 = area_info(F0, WeA),
-           Area1 = area_info(F1, WeB),
-           Dist = e3d_vec:dist({Xa,Ya,Za},{Xb,Yb,Zb}),
-           [Basic|io_lib:format(?__(42,"\nDistance ~s")++"  <~s  ~s  ~s>\n"++
-                      ?__(43,"Object~s")++" "++?__(48,"Face~s")++Area0++"  "++
-                      ?__(43,"Object~s")++" "++?__(48,"Face~s")++Area1,
-                      [wings_util:nice_float(Dist),
-                       wings_util:nice_float(abs(Xb - Xa)),
-                       wings_util:nice_float(abs(Yb - Ya)),
-                       wings_util:nice_float(abs(Zb - Za)),
-                       wings_util:stringify(Id1),
-                       wings_util:stringify(F0),
-                       wings_util:stringify(Id2),
-                       wings_util:stringify(F1)])];
-        false ->
-            Basic
-    end.
-
-area_info(Face, We) ->
-    case wings_face:vertices(Face,We) =< 50 of
-      true -> A = wings_face:area(Face, We),
-              wings_util:format(?__(40," Area ~s"), [wings_util:nice_float(A)]);
-      false -> []
-    end.
-
 command_name(_Repeat, #st{repeatable=ignore}) ->
     "("++cannot_repeat()++")";
 command_name(Repeat, #st{repeatable={_,Cmd}}=St) ->
@@ -1511,16 +1134,16 @@ crash_logger(Crash) ->
 
 crash_dialog(LogName) ->
     Show = fun(Parent) ->
-		   Str = ?__(1, "Internal error - log written to") ++ " " ++ LogName,
-		   Dialog = wxMessageDialog:new(Parent, Str, [{caption,"Internal Error"}]),
-		   wxMessageDialog:showModal(Dialog),
-		   Dialog
+                   Str1 = ?__(1, "Internal error - log written to") ++ " " ++ LogName,
+                   Str2 = ?__(2, "\nNow might be a good time to save your work and restart Wings3D"),
+                   Dialog = wxMessageDialog:new(Parent, Str1 ++ Str2, [{caption,"Internal Error"}]),
+                   wxMessageDialog:showModal(Dialog),
+                   Dialog
 	   end,
     try
         true = is_process_alive(whereis(wings_frame)),
         Parent = wings_dialog:get_dialog_parent(),
         Dialog = Show(Parent),
-        wings_dialog:reset_dialog_parent(Dialog),
         wxDialog:destroy(Dialog)
     catch _:_ ->
 	    Dlog = Show(wx:new()),

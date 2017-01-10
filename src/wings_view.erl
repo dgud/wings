@@ -25,7 +25,7 @@
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
 
--import(lists, [foldl/3,zip/2]).
+-import(lists, [foldl/3,flatmap/2,zip/2]).
 
 menu() ->
     L = wings_pref:get_value(number_of_lights),
@@ -84,9 +84,8 @@ menu() ->
      [{?__(36,"Scene Lights"),scene_lights,
        ?__(37,"Use the lights defined in the scene"),
        crossmark(scene_lights)},
-      {one_of(L == 1, ?__(38,"Two Lights"),?__(39,"One Light")),toggle_lights,
-       one_of(L == 1, ?__(40,"Use two work lights"),
-       ?__(41,"Use one work light"))},
+      {one_of(L == 1, ?__(38,"Use Camera Light"),?__(39,"Use a camera work Light")),toggle_lights,
+       one_of(L == 1, ?__(40,"Use two work lights"),?__(41,"Use a simple sky light simulation"))},
       separator,
       {?__(31,"Orthographic View"),orthogonal_view,
        ?__(32,"Toggle between orthographic and perspective views"),
@@ -219,7 +218,7 @@ command(auto_rotate, St) ->
     auto_rotate(St);
 command(rotate_left, St) ->
     #view{azimuth=Az0} = View = current(),
-    Az = Az0 + wings_pref:get_value(auto_rotate_angle),
+    Az = Az0 + ?GET(auto_rotate),
     set_current(View#view{azimuth=Az}),
     St;
 command(align_to_selection, St) ->
@@ -647,7 +646,8 @@ pget(Key, Props) -> proplists:get_value(Key, Props).
 
 auto_rotate(St) ->
     auto_rotate_help(),
-    Delay = wings_pref:get_value(auto_rotate_delay),
+    Delay = 16,
+    ?SET(auto_rotate, min(0.1333, 0.0333+wings_pref:get_value(auto_rotate_angle)/5)),
     Tim = #tim{delay=Delay,st=St},
     Active = wings_wm:this(),
     {W,H} = wings_wm:win_size(Active),
@@ -675,12 +675,17 @@ auto_rotate_event_1(redraw, Tim) ->
 auto_rotate_event_1(#mousemotion{}, _) -> keep;
 auto_rotate_event_1(got_focus, _) -> keep;
 auto_rotate_event_1(#mousebutton{state=?SDL_PRESSED}, _) -> keep;
-auto_rotate_event_1(#keyboard{}=Kb, #tim{delay=Delay}=Tim) ->
+auto_rotate_event_1(#keyboard{}=Kb, Tim) ->
+    Deg = ?GET(auto_rotate),
+    Incr = max(0.1, abs(Deg)*0.1),
     case wings_hotkey:event(Kb) of
 	{select,more} ->
-	    get_event(Tim#tim{delay=Delay-10});
+            ?SET(auto_rotate, min(15,  Deg+Incr)),
+            get_event(Tim);
 	{select,less} ->
-	    get_event(Tim#tim{delay=Delay+10});
+            Deg = ?GET(auto_rotate),
+            ?SET(auto_rotate, max(-15, Deg-Incr)),
+	    get_event(Tim);
 	_ ->
 	    keep
     end;
@@ -709,8 +714,8 @@ auto_rotate_help() ->
     Message = wings_msg:join([Msg1,Msg2,P,M]),
     wings_wm:message(Message).
 
-set_auto_rotate_timer(#tim{delay=Delay}=Tim) when Delay < 0 ->
-    set_auto_rotate_timer(Tim#tim{delay=0});
+set_auto_rotate_timer(#tim{delay=Delay}=Tim) when Delay < 16 ->
+    set_auto_rotate_timer(Tim#tim{delay=16});
 set_auto_rotate_timer(#tim{delay=Delay}=Tim0) ->
     Timer = wings_io:set_timer(Delay, {action, {view,rotate_left}}),
     Tim = Tim0#tim{timer=Timer},
@@ -732,7 +737,7 @@ toggle_option(Key0) ->
 	none ->
 	    Prev = wings_pref:get_value(Key, false),
 	    wings_pref:set_value(Key, not Prev),
-	    wings_wm:send(wings_frame, {menu,{view, Key0, not Prev}}),
+	    wings_wm:send(top_frame, {menu,{view, Key0, not Prev}}),
 	    Prev;
 	{value,Bool} ->
 	    wings_wm:set_prop(Key, not Bool),
@@ -1103,21 +1108,24 @@ views_move(J, St, CurrentView, Views) ->
 toggle_lights() ->
     %% Invalidate displaylists so that shader data get set correctly
     %% for materials
+    case wings_pref:get_value(scene_lights, true) of
+        false -> ok;
+        true -> toggle_option(scene_lights)
+    end,
+
     wings_dl:map(fun(#dlo{proxy_data=PD}=D, _) ->
 			 D#dlo{work=none,smooth=none,
 			       proxy_data=wings_proxy:invalidate(PD, dl)}
 		 end, []),
-    Lights = case wings_pref:get_value(number_of_lights) of
-		 1 -> 2;
-		 2 -> 1
-	     end,
-    wings_menu:update_menu(view, toggle_lights, 
-			   one_of(Lights == 1, 
-				  ?__(2,"Two Lights"),
-				  ?__(1,"One Light")),
-			   one_of(Lights == 1, 
-				  ?__(4,"Use two work lights"),
-				  ?__(3,"Use one work light"))),
+    Lights0 = wings_pref:get_value(number_of_lights),
+    wings_menu:update_menu(view, toggle_lights,
+			   one_of(Lights0 == 1,
+				  ?__(2,"Use Camera Light"),
+				  ?__(1,"Use Hemisphere Light")),
+			   one_of(Lights0 == 1,
+				  ?__(4,"Use a camera work light"),
+				  ?__(3,"Use a simple sky light simulation"))),
+    Lights = 1 + (2 + Lights0) rem 2,
     wings_pref:set_value(number_of_lights, Lights).
 
 shader_set(N) ->
@@ -1235,33 +1243,29 @@ along(_, _) -> none.
 align_to_selection(#st{sel=[]}=St) -> St;
 align_to_selection(#st{selmode=vertex}=St) ->
     N = average_normals(
-	  fun(Vs, We, Acc) ->
-		  foldl(fun(V, A) ->
-				[wings_vertex:normal(V, We)|A]
-			end, Acc, Vs)
+          fun(Vs, We) ->
+		  [wings_vertex:normal(V, We) || V <- Vs]
 	  end, St),
-	align_view_to_selection(N),
-	St;
+    align_view_to_selection(N),
+    St;
 align_to_selection(#st{selmode=edge}=St) ->
     N = average_normals(
-	  fun(Edges, #we{es=Etab}=We, Acc) ->
-		  foldl(fun(Edge, A) ->
-				#edge{lf=Lf,rf=Rf} = array:get(Edge, Etab),
-				[wings_face:normal(Lf, We),
-				 wings_face:normal(Rf, We)|A]
-			end, Acc, Edges)
+	  fun(Edges, #we{es=Etab}=We) ->
+		  flatmap(fun(Edge) ->
+                                  #edge{lf=Lf,rf=Rf} = array:get(Edge, Etab),
+                                  [wings_face:normal(Lf, We),
+                                   wings_face:normal(Rf, We)]
+                          end, Edges)
 	  end, St),
-	align_view_to_selection(N),
-	St;
+    align_view_to_selection(N),
+    St;
 align_to_selection(#st{selmode=face}=St) ->
     N = average_normals(
-	  fun(Faces, We, Acc) ->
-		  foldl(fun(Face, A) ->
-				[wings_face:normal(Face, We)|A]
-			end, Acc, Faces)
+	  fun(Faces, We) ->
+                  [wings_face:normal(Face, We) || Face <- Faces]
 	  end, St),
-	align_view_to_selection(N),
-	St;
+    align_view_to_selection(N),
+    St;
 align_to_selection(St) -> St.
 
 align_view_to_selection(N) ->
@@ -1270,11 +1274,13 @@ align_view_to_selection(N) ->
     set_current(View#view{azimuth=Az,elevation=El}).
 
 average_normals(CalcNormals, St) ->
-    Ns = wings_sel:fold(
-	   fun(Items, We, Acc) ->
-		   CalcNormals(gb_sets:to_list(Items), We, Acc)
-	   end, [], St),
-    e3d_vec:norm(e3d_vec:add(Ns)).
+    MF = fun(Items, We) ->
+                 Ns = CalcNormals(gb_sets:to_list(Items), We),
+                 e3d_vec:add(Ns)
+         end,
+    RF = fun e3d_vec:add/2,
+    Ns = wings_sel:dfold(MF, RF, e3d_vec:zero(), St),
+    e3d_vec:norm(Ns).
 
 align_view_to_normal({Nx,Ny,Nz}) ->
     Z = {0.0,0.0,1.0},

@@ -183,12 +183,6 @@ enter_event(Ev) ->
     ok.
 
 get_event() ->
-    case get_event2() of
-	{quit} -> quit;
-	Other -> Other
-    end.
-
-get_event2() ->
     Eq0 = get(?EVENT_QUEUE),
     {Event,Eq} = wings_io_wx:read_events(Eq0),
     put(?EVENT_QUEUE, Eq),

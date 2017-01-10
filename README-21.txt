@@ -1,3 +1,73 @@
+--- 2.1.5 --------------------------------------------
+- Added Make Normal-Map command, in outliner.
+  And improved bump-map to normal-map calculations. [Micheus]
+
+- Keyboard shortcuts could sometimes be invoked twice [dgud]
+
+- Outliner could get keyboard focus after some commands though
+  the window was not marked as focused. Fixes focus issues. [dgud]
+
+- Choosing 'Loaded Font Glyphs' from Development menu was causing
+  Wings3D crash. Thanks to Fonte Boa [Micheus]
+
+- Fixed the visualization of Tweak "Show Magnet Influence" was not
+  working. Thanks to Fonte Boa. [Micheus]
+
+- Invalid ps/eps file (absent or invalid token) was causing Wings3D crash.
+  Thanks to tkbd. [Micheus]
+
+- Fixed broken TGA image loader, wx's targa loader, fails with RLE
+  encoding, bug is fixed but not released workaround by using wings
+  own tga loader. Reported by tkbd. [dgud]
+
+- Fixed loading files from root dir on Windows [Micheus].
+
+- Code cleanup and Optimizations [bjorng] [dgud]
+
+--- 2.1.4 --------------------------------------------
+- Fix crash in autouv when doing geometry changes from the autouv
+  window via keyboard shortcuts. Now the commands only work if selection
+  mode is the same in both windows. Reported by Fonte Boa. [dgud]
+
+- Bridge-RMB was crashing for two faces selected in the same object.
+  Thanks to Fonte Boa. [Micheus]
+
+- After select multiple views and activate the RMB Wings3d crashes.
+  Thanks Fonte Boa [micheus]
+
+- It was impossible to define hotkeys in Sculpt mode.
+  Thanks to Fonte Boa. [Micheus]
+
+- Performance improvements. [dgud]
+
+- Selection display in ortho mode (and autouv).
+  Reported by Loefet and kugelfang. [dgud]
+
+- Fix olive green theme, report by tkbd. [dgud]
+
+- Fix crash at start if username contained unicode chars,
+  reported by infinder. [dgud]
+
+- In GeometryGraph if user accidentally put the folder name in edit mode and
+  then cancel it Wings3D was displaying a wrong message. Thanks tkbd. [Micheus]
+
+- The Geometry Graph window closes unexpectedly in some folder/item
+  operations. Avoid the crash and its cause should now
+  be appended to Log window. Thanks to tkbd [Micheus]
+
+--- 2.1.3 --------------------------------------------
+- Fix dragging images in outliner on mac and linux [dgud]
+
+- Add torus to correct place in menu when in Snap Image mode
+  We can't add it to the second place when auv_snap image is activated,
+  the torus comes in mixed with the snap commands. [dgud]
+
+- Fix octotoad scaling during creation, report by tkbd. [dgud]
+
+- Fix hotkey handling of keys F1-F15, reported by Fonteboa [dgud]
+
+- Fix displaying selections in secondary selection mode, reported by tkbd [dgud]
+
 --- 2.1.1 --------------------------------------------
 
 - Fixed starting wings with file argument, either double clicking

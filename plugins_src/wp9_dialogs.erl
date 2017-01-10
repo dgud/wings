@@ -51,18 +51,17 @@ file_dialog(Type, Prop, Title, Cont) ->
                             {style, Type0}]),
     case wxFileDialog:showModal(Dlg) of
         ?wxID_OK ->
-            Dir = wxFileDialog:getDirectory(Dlg),
             File = if Multiple =:= true ->
-                           wxFileDialog:getFilenames(Dlg);
+                           wxFileDialog:getPaths(Dlg);
                       true ->
-                           wxFileDialog:getFilename(Dlg)
+                           wxFileDialog:getPath(Dlg)
                    end,
             wxDialog:destroy(Dlg),
             if Multiple =:= true ->
-                    [wings_wm:psend(Cont(filename:join(Dir, File0)),wings_wm:get_current_state()) || File0 <- File],
+                    [Cont(filename:join([File0])) || File0 <- File],
                     keep;
                true ->
-                    Cont(filename:join(Dir, File))
+                    Cont(filename:join([File]))
             end;
         _Cancel ->
             wxDialog:destroy(Dlg),
@@ -71,16 +70,21 @@ file_dialog(Type, Prop, Title, Cont) ->
 
 read_image(Prop) ->
     Name = proplists:get_value(filename, Prop),
-    BlockWxMsgs = wxLogNull:new(),
-    case wxImage:loadFile(Image=wxImage:new(), Name) of
-        true ->
-            E3d = wings_image:wxImage_to_e3d(Image),
-            wxImage:destroy(Image),
-            wxLogNull:destroy(BlockWxMsgs),
-            e3d_image:fix_outtype(Name, E3d, Prop);
-        false ->
-            wxLogNull:destroy(BlockWxMsgs),
-            {error, ignore}
+    case string:to_lower(filename:extension(Name)) of
+        ".tga" ->
+            e3d_image:load(Name, Prop);
+        _ ->
+            BlockWxMsgs = wxLogNull:new(),
+            case wxImage:loadFile(Image=wxImage:new(), Name) of
+                true ->
+                    E3d = wings_image:wxImage_to_e3d(Image),
+                    wxImage:destroy(Image),
+                    wxLogNull:destroy(BlockWxMsgs),
+                    e3d_image:fix_outtype(Name, E3d, Prop);
+                false ->
+                    wxLogNull:destroy(BlockWxMsgs),
+                    {error, ignore}
+            end
     end.
 
 write_image(Prop) ->

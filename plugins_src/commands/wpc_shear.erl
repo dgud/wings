@@ -86,27 +86,27 @@ xyz2(z) ->
 
 %%%% Commands
 command({vertex,{deform,{shear,{GlidePlane0,{Radial0,{rmb,{'ASK',Ask}}}}}}},St) ->
-    GlidePlane = axis_conversion(GlidePlane0),
-    Radial = axis_conversion(Radial0),
+    GlidePlane = wings_util:make_vector(GlidePlane0),
+    Radial = wings_util:make_vector(Radial0),
     wings:ask(selection_ask(Ask), St, fun ({Origin,GlidePoint}, St0) ->
         check_selection({GlidePlane,Radial,Origin,GlidePoint},St0)
     end);
 
 command({vertex,{deform,{shear,{GlidePlane0,{Radial0,lmb}}}}},St) ->
-    GlidePlane = axis_conversion(GlidePlane0),
-    Radial = axis_conversion(Radial0),
+    GlidePlane = wings_util:make_vector(GlidePlane0),
+    Radial = wings_util:make_vector(Radial0),
     [Origin,GlidePoint] = determine_boundaries(GlidePlane,St),
     check_selection({GlidePlane,Radial,Origin,GlidePoint},St);
 
 command({vertex,{deform,{shear,{GlidePlane0,{rmb,{'ASK',Ask}}}}}},St) ->
-    GlidePlane = axis_conversion(GlidePlane0),
+    GlidePlane = wings_util:make_vector(GlidePlane0),
     wings:ask(selection_ask(Ask), St, fun ({Radial,Origin,GlidePoint}, St0) ->
         check_selection({GlidePlane,Radial,Origin,GlidePoint},St0)
     end);
 
 command({vertex,{deform,{shear,{GlidePlane0,{mmb,{'ASK',Ask}}}}}},St) ->
     wings:ask(selection_ask(Ask), St, fun ({Radial,Origin}, St0) ->
-        GlidePlane = axis_conversion(GlidePlane0),
+        GlidePlane = wings_util:make_vector(GlidePlane0),
         GlidePoint = get_glide_point(GlidePlane,Origin,St0),
         check_selection({GlidePlane,Radial,Origin,GlidePoint},St0)
     end);
@@ -118,16 +118,16 @@ command({vertex,{deform,{shear,{'ASK',Ask}}}}, St) ->
 
 %%%% commands to match 'Repeat Drag' arguments from 'ASK' selections follow
 command({vertex,{deform,{shear,{GlidePlane0,{Radial0,{rmb,{Origin,GlidePoint}}}}}}},St) ->
-    GlidePlane = axis_conversion(GlidePlane0),
-    Radial = axis_conversion(Radial0),
+    GlidePlane = wings_util:make_vector(GlidePlane0),
+    Radial = wings_util:make_vector(Radial0),
     shear_callback({GlidePlane,Radial,Origin,GlidePoint},St);
 
 command({vertex,{deform,{shear,{GlidePlane0,{rmb,{Radial,Origin,GlidePoint}}}}}}, St) ->
-    GlidePlane = axis_conversion(GlidePlane0),
+    GlidePlane = wings_util:make_vector(GlidePlane0),
     shear_callback({GlidePlane,Radial,Origin,GlidePoint},St);
 
 command({vertex,{deform,{shear,{GlidePlane0,{mmb,{Radial,Origin}}}}}}, St) ->
-    GlidePlane = axis_conversion(GlidePlane0),
+    GlidePlane = wings_util:make_vector(GlidePlane0),
     GlidePoint = get_glide_point(GlidePlane,Origin,St),
     shear_callback({GlidePlane,Radial,Origin,GlidePoint},St);
 
@@ -219,15 +219,6 @@ check_glide_plane_norm({GlidePlane,Radial,Origin,GlidePoint},St) ->
     end.
 
 %%%%
-axis_conversion(Axis) ->
-    case Axis of
-      x -> {1.0,0.0,0.0};
-      y -> {0.0,1.0,0.0};
-      z -> {0.0,0.0,1.0};
-      _ -> Axis
-    end.
-
-%%%%
 shear_callback({GlidePlane,Radial,Origin,GlidePoint},St) ->
     Mode = wings_pref:get_value(shear_mode,absolute),
     Dir = wings_pref:get_value(shear_drag,false),
@@ -239,13 +230,11 @@ shear_callback({GlidePlane,Radial,Origin,GlidePoint},St) ->
     DBbox = abs(lists:max(DistsFromCntr)) + abs(lists:min(DistsFromCntr)),
     ShearData = {Sf,Norm,DBbox,Dir,Anchor},
     Data = {GlidePlane,Radial,Origin,GlidePoint},
-    Tvs = wings_sel:fold(fun(Vs, We, Acc) ->
-            shear_verts(ShearData,State,Data,Vs,We,Acc)
-            end, [], St),
     Units = shear_units(Mode),
     Flags = [{mode,{shear_modes(),State}},{initial,[0.0,0.0,1.0]}],
-    wings_drag:setup(Tvs, Units, Flags, St);
-
+    wings_drag:fold(fun(Vs, We) ->
+                            shear_verts(ShearData, State, Data, Vs, We)
+                    end, Units, Flags, St);
 %%%% To catch 'repeat drag' arguments where the user was re-asked selections
 shear_callback(_,St) ->
     Ask = [radial,glide_plane,origin,glide_point],
@@ -293,10 +282,10 @@ shear_dir_help(true) -> ?__(2,"Symmetric").
 shear_anchor_help(true) -> ?__(1,"Anchor Origin");
 shear_anchor_help(false) -> ?__(2,"Free Origin").
 
-shear_verts(ShearData,State,Data,Vs0,#we{id=Id}=We,Acc) ->
+shear_verts(ShearData, State, Data, Vs0, We) ->
     Vs = gb_sets:to_list(Vs0),
     VsPos = wings_util:add_vpos(Vs, We),
-    [{Id,{Vs,shear_fun(ShearData,Data,VsPos,State)}}|Acc].
+    {Vs,shear_fun(ShearData,Data,VsPos,State)}.
 
 shear_fun({Sf,Norm,DBbox,Dir,Anchor},Data,VsPos,State) ->
     fun(new_mode_data, {NewState,_}) ->
@@ -409,20 +398,19 @@ shear_factor(GlidePlane,Origin,GlidePoint) ->
     abs(dist_along_vector(GlidePoint,Origin,GlidePlane)).
 
 %%%% Gets the greatest distance along Norm for the selected vertices
-largest_dist_along_axis(Norm,St) ->
+largest_dist_along_axis(Norm, St) ->
     Center = wings_sel:center(St),
-    Distances = wings_sel:fold(fun(Vs,We,Acc) ->
-                    V = gb_sets:to_list(Vs),
-                    get_dist_list(Center,Norm,V,We,Acc)
-               end, [], St),
-    lists:merge(Distances).
+    MF = fun(Vs, We) ->
+                 get_dist_list(Vs, Center, Norm, We)
+         end,
+    RF = fun erlang:'++'/2,
+    wings_sel:dfold(MF, RF, [], St).
 
-get_dist_list(Center,Norm,V,We,Acc) ->
-    G = lists:foldl(fun(Vert,A) ->
-            #we{vp=Vtab}=We,
-            Pos = array:get(Vert,Vtab),
-            [dist_along_vector(Pos,Center,Norm)|A]
-        end, [], V),
-    G1 = lists:max(G),
-    G2 = lists:min(G),
-    [[G1,G2]|Acc].
+get_dist_list(Vs, Center, Norm, #we{vp=Vtab}) ->
+    L = gb_sets:fold(
+          fun(V, A) ->
+                  Pos = array:get(V, Vtab),
+                  Dist = dist_along_vector(Pos, Center, Norm),
+                  [Dist|A]
+          end, [], Vs),
+    [lists:min(L),lists:max(L)].

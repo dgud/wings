@@ -721,76 +721,48 @@ axis_conv(Axis) ->
 %%% Loop Cut modified from wings_edge_cmd.erl
 %%%
 
-loop_cut(Axis, Point, St0) ->
-    {Sel,St} = wings_sel:fold(fun(Edges, #we{id=Id,fs=Ftab}=We0, {Sel0,St1}) ->
-        AdjFaces = wings_face:from_edges(Edges, We0),
-        case loop_cut_partition(AdjFaces, Edges, We0, []) of
-          [_] ->
-            {Sel0,St1}; 
-          [_|Parts0] ->
-            Parts = [gb_sets:to_list(P) || P <- Parts0],
-            FirstComplement = ordsets:union(Parts),
-            First = ordsets:subtract(gb_trees:keys(Ftab), FirstComplement),
-            We = wings_dissolve:complement(First, We0),
-            #st{shapes=Shapes} = St1,
-            St = St1#st{shapes=gb_trees:update(Id, We, Shapes)},
-            Sel = select_one_side(Axis, Point, Id, Sel0, We),
-            loop_cut_make_copies(Parts, Axis, Point, We0, Sel, St)
-        end
-    end, {[],St0}, St0),
-    wings_sel:set(body, Sel, St).
+loop_cut(Axis, Point, St) ->
+    CF = fun(Edges, #we{fs=Ftab}=We0) ->
+                 AdjFaces = wings_face:from_edges(Edges, We0),
+                 case loop_cut_partition(AdjFaces, Edges, We0, []) of
+                     [_] ->
+                         {We0,gb_sets:empty()};
+                     [_|Parts0] ->
+                         Parts = [gb_sets:to_list(P) || P <- Parts0],
+                         FirstComplement = ordsets:union(Parts),
+                         First = ordsets:subtract(gb_trees:keys(Ftab),
+                                                  FirstComplement),
+                         We = wings_dissolve:complement(First, We0),
+                         Sel = select_one_side(Axis, Point, We),
+                         New = loop_cut_make_copies(Parts, Axis, Point, We0),
+                         {We,Sel,New}
+                 end
+         end,
+    wings_sel:clone(CF, body, St).
 
-loop_cut_make_copies([P|Parts], Axis, Point, We0, Sel0, #st{onext=Id}=St0) ->
+loop_cut_make_copies([P|Parts], Axis, Point, We0) ->
     We = wings_dissolve:complement(P, We0),
-    Sel = select_one_side(Axis, Point, Id, Sel0, We),
-    St = wings_shape:insert(We, cut, St0),
-    loop_cut_make_copies(Parts, Axis, Point, We0, Sel, St);
-loop_cut_make_copies([], _, _, _, Sel, St) -> {Sel,St}.
+    Sel = select_one_side(Axis, Point, We),
+    [{We,Sel,cut}|loop_cut_make_copies(Parts, Axis, Point, We0)];
+loop_cut_make_copies([], _, _, _) -> [].
 
 loop_cut_partition(Faces0, Edges, We, Acc) ->
     case gb_sets:is_empty(Faces0) of
       true -> Acc;
       false ->
         {AFace,Faces1} = gb_sets:take_smallest(Faces0),
-        Reachable = collect_faces(AFace, Edges, We),
+        Reachable = wings_edge:reachable_faces(AFace, Edges, We),
         Faces = gb_sets:difference(Faces1, Reachable),
         loop_cut_partition(Faces, Edges, We, [Reachable|Acc])
     end.
 
-collect_faces(Face, Edges, We) ->
-    collect_faces(gb_sets:singleton(Face), We, Edges, gb_sets:empty()).
-
-collect_faces(Work0, We, Edges, Acc0) ->
-    case gb_sets:is_empty(Work0) of
-      true -> Acc0;
-      false ->
-        {Face,Work1} = gb_sets:take_smallest(Work0),
-        Acc = gb_sets:insert(Face, Acc0),
-        Work = collect_maybe_add(Work1, Face, Edges, We, Acc),
-        collect_faces(Work, We, Edges, Acc)
-    end.
-
-collect_maybe_add(Work, Face, Edges, We, Res) ->
-    wings_face:fold(
-      fun(_, Edge, Rec, A) ->
-          case gb_sets:is_member(Edge, Edges) of
-            true -> A;
-            false ->
-              Of = wings_face:other(Face, Rec),
-              case gb_sets:is_member(Of, Res) of
-                true -> A;
-                false -> gb_sets:add(Of, A)
-              end
-          end
-      end, Work, Face, We).
-
-select_one_side(_, all, Id, Sel, _) ->
-    [{Id,gb_sets:singleton(0)}|Sel];
-select_one_side(Plane, Point, Id, Sel, #we{fs=Fs}=We) ->
+select_one_side(_, all, _) ->
+    gb_sets:singleton(0);
+select_one_side(Plane, Point, #we{fs=Fs}=We) ->
     {Face,_} = gb_trees:smallest(Fs),
     Center = wings_face:center(Face, We),
     Vec = e3d_vec:sub(Point, Center),
     case e3d_vec:dot(Plane, Vec) < 0.0 of
-      true -> [{Id,gb_sets:singleton(0)}|Sel];
-      false -> Sel
+        true -> gb_sets:singleton(0);
+        false -> gb_sets:empty()
     end.

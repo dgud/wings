@@ -24,7 +24,7 @@
 -include("wings.hrl").
 -include("e3d.hrl").
 
--import(lists, [reverse/1,foldl/3,member/2,keydelete/3,sort/1]).
+-import(lists, [reverse/1,foldl/3,foldr/3,member/2,keydelete/3,sort/1]).
 
 -define(DEF_X, 0.0).
 -define(DEF_Y, 3.0).
@@ -98,21 +98,24 @@ body_menu(Dir, #st{selmode=body}) ->
       ?STR(menu,21,"Delete seleced lights")}];
 body_menu(_, _) -> [].
 
-filter_menu(Menu0, St) ->
-    T = wings_sel:fold(
-	  fun(_, #we{light=#light{type=Type}}, none) -> Type;
-	     (_, _, _) -> mixed
-	  end, none, St),
-    Menu = foldl(fun({one_light,_}, A) when T == mixed -> A;
-		    ({one_light,Entry}, A) -> [Entry|A];
-		    ({{iff,[_|_]=Types},Entry}, A) ->
-			 case member(T, Types) of
-			     true -> [Entry|A];
-			     false -> A
-			 end;
-		    (Entry, A) -> [Entry|A]
-		 end, [], Menu0),
-    reverse(Menu).
+filter_menu(Menu, St) ->
+    MF = fun(_, #we{light=#light{type=Type}}) -> Type;
+            (_, #we{}) -> not_light
+         end,
+    RF = fun(Type, []) -> Type;
+            (Type, Type) -> Type;
+            (_, _) -> mixed
+         end,
+    T = wings_sel:dfold(MF, RF, [], St),
+    foldr(fun({one_light,_}, A) when T =:= mixed -> A;
+             ({one_light,Entry}, A) -> [Entry|A];
+             ({{iff,[_|_]=Types},Entry}, A) ->
+                  case member(T, Types) of
+                      true -> [Entry|A];
+                      false -> A
+                  end;
+             (Entry, A) -> [Entry|A]
+          end, [], Menu).
 
 command({move_light,Type}, St) ->
     wings_move:setup(Type, St);
@@ -134,45 +137,38 @@ command(delete, St) ->
     {save_state,wings_shape:update_folders(delete(St))};
 command({duplicate,Dir}, St) ->
     duplicate(Dir, St).
-    
-is_any_light_selected(#st{sel=Sel,shapes=Shs}) ->
-    is_any_light_selected(Sel, Shs).
-is_any_light_selected([{Id,_}|Sel], Shs) ->
-    case gb_trees:get(Id, Shs) of
-	#we{}=We when ?IS_LIGHT(We) -> true;
-	#we{} -> is_any_light_selected(Sel, Shs)
-    end;
-is_any_light_selected([], _) -> false.
+
+-spec is_any_light_selected(#st{}) -> boolean().
+
+is_any_light_selected(St) ->
+    MF = fun(_, We) -> ?IS_LIGHT(We) end,
+    RF = fun erlang:'or'/2,
+    wings_sel:dfold(MF, RF, false, St).
 
 any_enabled_lights() ->
     wings_dl:fold(fun(#dlo{src_we=We}, Bool) ->
 			  Bool orelse ?IS_ANY_LIGHT(We)
 		  end, false).
 
+-spec info(#we{}) -> iolist().
+
 info(#we{name=Name,light=#light{type=Type}=L}=We) ->
-    Info0 = wings_util:format(?__(1,"Light ~s"), [Name]),
+    Info0 = io_lib:format(?__(1,"Light ~ts"), [Name]),
     case Type of
 	ambient -> Info0;
 	_ ->
-	    {X,Y,Z} = Pos = light_pos(We),
-	    Info = [Info0|io_lib:format(?__(2,": Pos ~s ~s ~s"),
-					[wings_util:nice_float(X),
-					 wings_util:nice_float(Y),
-					 wings_util:nice_float(Z)])],
+	    Pos = light_pos(We),
+	    Info = [Info0|io_lib:format(?__(2,": Pos ~s"),
+					[wings_util:nice_vector(Pos)])],
 	    [Info|info_1(Type, Pos, L)]
     end.
 
 info_1(point, _, _) -> [];
 info_1(Type, Pos, #light{aim=Aim,spot_angle=A}) ->
-    {Ax,Ay,Az} = Aim,
-    {Dx,Dy,Dz} = e3d_vec:norm_sub(Aim, Pos),
-    Info = io_lib:format(?__(1,". Aim ~s ~s ~s. Dir ~s ~s ~s"),
-			 [wings_util:nice_float(Ax),
-			  wings_util:nice_float(Ay),
-			  wings_util:nice_float(Az),
-			  wings_util:nice_float(Dx),
-			  wings_util:nice_float(Dy),
-			  wings_util:nice_float(Dz)]),
+    Dir = e3d_vec:norm_sub(Aim, Pos),
+    Info = io_lib:format(?__(1,". Aim ~s. Dir ~s"),
+			 [wings_util:nice_vector(Aim),
+			  wings_util:nice_vector(Dir)]),
     [Info|case Type of
 	      spot -> io_lib:format(?__(2,". Angle ~s~c"),
 				    [wings_util:nice_float(A),?DEGREE]);
@@ -183,30 +179,26 @@ info_1(Type, Pos, #light{aim=Aim,spot_angle=A}) ->
 %%% Light Commands.
 %%%
 
-color(St) ->
-    Drag = wings_sel:fold(
-	     fun(_, #we{id=Id,light=L}=We, none) when ?IS_LIGHT(We) ->
-		     {R,G,B,A} = get_light_color(L),
-		     {H,S,V} = wings_color:rgb_to_hsv(R, G, B),
-		     ColorFun = fun({finish,C}, D) -> color(C, D, A);
-				   (C, D) -> color(C, D, A)
-				end,
-		     Tvs = {general,[{Id,ColorFun}]},
-		     Units = [{angle,{0.0,359.9999}},
-			      {percent,{0.0,1.0}},
-			      {percent,{0.0,1.0}}
-			     ],
-		     Flags = [{initial,[H,V,S]}],
-		     {Tvs,Units,Flags};
-		(_, We, _) when ?IS_LIGHT(We) ->
-		     wings_u:error_msg(?__(1,"Select only one light."));
-		(_, _, A) -> A
-	     end, none, St),
-    case Drag of
-	none -> St;
-	{Tvs,Units,Flags} ->
-	    wings_drag:setup(Tvs, Units, Flags, St)
-    end.
+color(St0) ->
+    {St,Flags} =
+        wings_sel:mapfold(
+          fun(_, #we{light=L}=We, []) when ?IS_LIGHT(We) ->
+                  {R,G,B,A} = get_light_color(L),
+                  {H,S,V} = wings_color:rgb_to_hsv(R, G, B),
+                  ColorFun = fun({finish,C}, D) -> color(C, D, A);
+                                (C, D) -> color(C, D, A)
+                             end,
+                  Flags = [{initial,[H,V,S]}],
+                  {We#we{temp=ColorFun},Flags};
+             (_, We, _) when ?IS_LIGHT(We) ->
+                  wings_u:error_msg(?__(1,"Select only one light."));
+             (_, _, A) -> A
+           end, [], St0),
+    Units = [{angle,{0.0,359.9999}},
+             {percent,{0.0,1.0}},
+             {percent,{0.0,1.0}}],
+    DF = fun(#we{temp=General}) -> General end,
+    wings_drag:general(DF, Units, Flags, St).
 
 color([H,V,S], #dlo{src_we=#we{light=L0}=We0}=D, A) ->
     {R,G,B} = wings_color:hsv_to_rgb(H, S, V),
@@ -242,40 +234,37 @@ position_highlight_1(Center, #we{light=L0}=We) ->
 
 spot_angle(St) ->
     case selected_light(St) of
-	{Id,#light{type=spot,spot_angle=SpotAngle}} ->
+	#light{type=spot,spot_angle=SpotAngle} ->
 	    SpotFun0 = fun([Angle|_], L) -> L#light{spot_angle=Angle} end,
-	    SpotFun = adjust_fun(SpotFun0),
-	    Tvs = {general,[{Id,SpotFun}]},
+            DF = fun(_) -> adjust_fun(SpotFun0) end,
 	    Units = [{angle,{0.1,89.9}}],
 	    Flags = [{initial,[SpotAngle]}],
-	    wings_drag:setup(Tvs, Units, Flags, St);
-	{_,_} ->
+	    wings_drag:general(DF, Units, Flags, St);
+	_ ->
 	    wings_u:error_msg(?__(1,"Not a spotlight."))
     end.
 
 spot_falloff(St) ->
     case selected_light(St) of
-	{Id,#light{type=spot,spot_exp=SpotExp}} ->
+	#light{type=spot,spot_exp=SpotExp} ->
 	    SpotFun0 = fun([Exp|_], L) -> L#light{spot_exp=Exp} end,
-	    SpotFun = adjust_fun(SpotFun0),
-	    Tvs = {general,[{Id,SpotFun}]},
+	    DF = fun(_) -> adjust_fun(SpotFun0) end,
 	    Units = [{number,{0.0,128.0}}],
 	    Flags = [{initial,[SpotExp]}],
-	    wings_drag:setup(Tvs, Units, Flags, St);
-	{_,_} ->
+	    wings_drag:general(DF, Units, Flags, St);
+	_ ->
 	    wings_u:error_msg(?__(1,"Not a spotlight."))
     end.
 
 attenuation(Type, St) ->
     case selected_light(St) of
-	{Id,#light{type=Ltype}=L} when Ltype == point; Ltype == spot ->
+	#light{type=Ltype}=L when Ltype =:= point; Ltype =:= spot ->
 	    Initial = att_initial(Type, L),
-	    Fun = adjust_fun(att_fun(Type)),
-	    Tvs = {general,[{Id,Fun}]},
+	    DF = fun(_) -> adjust_fun(att_fun(Type)) end,
 	    Units = [{dx,att_range(Type)}],
 	    Flags = [{initial,[Initial]}],
-	    wings_drag:setup(Tvs, Units, Flags, St);
-	{_,_} ->
+	    wings_drag:general(DF, Units, Flags, St);
+	_ ->
 	    wings_u:error_msg(?__(1,"Not a point light or spotlight."))
     end.
 
@@ -289,13 +278,18 @@ att_range(linear) -> {0.0,1.0};
 att_range(quadratic) -> {0.0,0.5}.
 
 selected_light(St) ->
-    wings_sel:fold(fun(_, #we{id=Id,light=L}=We, none) when ?IS_LIGHT(We) ->
-			   {Id,L};
-		      (_, We, _) when ?IS_LIGHT(We) ->
-			   wings_u:error_msg(?__(1,
-						"Select only one light."));
-		      (_, _, A) -> A
-		   end, none, St).
+    MF = fun(_, #we{light=L}=We) when ?IS_LIGHT(We) ->
+                 [L];
+            (_, #we{}) ->
+                 []
+         end,
+    RF = fun erlang:'++'/2,
+    case wings_sel:dfold(MF, RF, [], St) of
+        [Selected] ->
+            Selected;
+        [_|_] ->
+            wings_u:error_msg(?__(1,"Select only one light."))
+    end.
 
 adjust_fun(AdjFun) ->
     fun({finish,Ds}, D) -> adjust_fun_1(AdjFun, Ds, D);
@@ -413,25 +407,28 @@ edit_specific(More, L) -> {L,More}.
 %%% The Delete command.
 %%%
 
-delete(#st{shapes=Shs0}=St) ->
-    Shs = wings_sel:fold(fun(_, #we{id=Id}, Shs) ->
-				 gb_trees:delete(Id, Shs)
-			 end, Shs0, St),
-    St#st{shapes=Shs,sel=[]}.
+delete(St) ->
+    wings_sel:map_update_sel(
+      fun(_, _) ->
+              {#we{},gb_sets:empty()}
+      end, St).
 
 %%%
 %%% The Duplicate command.
 %%%
 
 duplicate(Dir, St0) ->
-    {St,Sel} = wings_sel:fold(
-		 fun(Elems, We, {#st{onext=Id}=S0,Sel}) ->
-			 S = wings_shape:insert(We, copy, S0),
-			 {S,[{Id,Elems}|Sel]};
-		    (_, _, A) -> A
-		 end, {St0,[]}, St0),
-    wings_move:setup(Dir, wings_sel:set(Sel, St)).
-    
+    CF = fun(Items, We) ->
+                 Empty = gb_sets:empty(),
+                 New = [{We,Items,copy}],
+                 {We,Empty,New}
+         end,
+    St = wings_sel:clone(CF, St0),
+    case Dir of
+	none -> St;
+	_ -> wings_move:setup(Dir, St)
+    end.
+
 %%%
 %%% Creating lights.
 %%%

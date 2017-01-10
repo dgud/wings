@@ -52,6 +52,8 @@
 	 get_dd/0, get_dd/1, set_dd/2
 	]).
 
+-export([get_value/1, set_value/2, delete_value/1]).
+
 -define(NEED_OPENGL, 1).
 -define(NEED_ESDL, 1).
 -include("wings.hrl").
@@ -552,6 +554,20 @@ local_mouse_state() ->
     {X,Y} = screen2local({X0, Y0}),
     {B,X,Y}.
 
+get_value(Key) ->
+    case get(Key) of
+        undefined -> wings_pref:get_value({temp, Key});
+        Val -> Val
+    end.
+
+set_value(Key,Val) ->
+    put(Key, Val),
+    wings_pref:set_value({temp, Key}, Val).
+
+delete_value(Key) ->
+    erase(Key),
+    wings_pref:delete_value({temp, Key}).
+
 new_props(Win, Props0) ->
     Props = gb_trees:from_orddict(Props0),
     ?SET({Win, props}, Props).
@@ -795,6 +811,7 @@ update_focus(Active) ->
 		    Active
 	    end;
 	Win ->
+	    do_dispatch(Active, got_focus),
 	    Win
     end.
 
@@ -820,7 +837,7 @@ do_dispatch(Active, Ev) ->
 redraw_all() ->
     %% Remove late buffers clear due to problems with ATI cards when AA.
     Windows = keysort(2, gb_trees:to_list(get(wm_windows))),
-    wings_io:foreach(fun redraw_win/1, Windows),
+    foreach(fun redraw_win/1, Windows),
     calc_stats(),
     clean(),
     wings_io:set_cursor(get(wm_cursor)),
@@ -934,11 +951,7 @@ handle_event(State, Event, Stk) ->
 	    #se{h=Handler} -> Handler(Event);
 	    Handler when is_function(Handler) -> Handler()
 	end of
-	Res ->
-	    case State of #se{h=H} -> H;
-		H when is_function(H) -> H
-	    end,
-	    handle_response(Res, Event, Stk)
+	Res -> handle_response(Res, Event, Stk)
     catch
 	throw:{command_error,Error} ->
 	    wings_u:message(Error),

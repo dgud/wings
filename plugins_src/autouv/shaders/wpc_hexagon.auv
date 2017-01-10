@@ -22,8 +22,8 @@
 {uniform, menu, "typeHex", "Default", [{"Default",0},
         {"Pineapple fruit style",1},{"Honeycomb style",2},
         {"Beveled gradation",3}]}.
-{uniform, color, "colorHex", {0.3,0.1,0.1,0.0}, "Color"}.
-{uniform, color, "colorThick", {0.12,0.12,0.12,0.0}, "Grid color"}.
+{uniform, color, "colorHex", {0.3,0.1,0.1,1.0}, "Color"}.
+{uniform, color, "colorThick", {0.12,0.12,0.12,1.0}, "Grid color"}.
 {uniform, {slider,0.0,100.0}, "scaleThick", 5.0, "Grid scale (%)"}.
 {uniform, {slider,0.0,400.0}, "frequency", 30.0, "Frequency"}.
 {uniform, float, "shrink", 0.0, "Horizontal shrink"}.

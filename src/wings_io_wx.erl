@@ -179,6 +179,7 @@ reset_grab(Release) ->
 
 grab(Win) ->
     %%io:format("Grab mouse~n", []),
+    %%wings_util:profile_start(eprof),
     case get_state() of
 	#io{grab_stack=[]} = Io ->
 	    put(wm_cursor, blank),
@@ -193,6 +194,7 @@ grab(Win) ->
 
 ungrab(X, Y) ->
     %%io:format("UNGRAB mouse~n", []),
+    %% wings_util:profile_stop(eprof),
     case get_state() of
 	#io{grab_stack=[]} -> no_grab;
 	#io{grab_stack=[Win]}=Io ->
@@ -255,30 +257,28 @@ change_event_handler(?SDL_KEYUP, false) ->
     end.
 
 read_events(Eq0) ->
-    R = read_events(Eq0, undefined, 0),
-    %% Eq0 =:= {[],[]} orelse io:format("Q ~P~n",[Eq0, 10]),
-    %% case R of
-    %% 	{{wm,{_,console,_}}, _} -> ok;
-    %% 	{#mousemotion{state=0},_} -> ok;
-    %% 	{Ev, Eq} ->
-    %% 	    io:format("Ev: ~p ~P~n", [erlang:system_time(), Ev, 30]),
-    %% 	    io:format("Eq ~P~n", [queue:to_list(Eq), 20]),
-    %% 	    ok;
-    %% 	_ -> ok
-    %% end,
-    R.
+    case queue:is_empty(Eq0) of
+        true ->
+            Eq1 = rec_events(Eq0, undefined, 0),
+            read_events_q(Eq1);
+        false ->
+            read_events_q(Eq0)
+    end.
 
-read_events(Eq0, Prev, Wait) ->
+rec_events(Eq0, Prev, Wait) ->
     receive
 	#wx{event=#wxMouse{type=motion,x=X,y=Y}} = Ev ->
-	    case erase(mouse_warp) of
-		{X,Y} -> read_events(Eq0, Prev, Wait);
-		_ ->  read_events(Eq0, Ev, 0+1)
+	    case get(mouse_warp) of
+		{X,Y} ->
+                    erase(mouse_warp),
+                    rec_events(Eq0, Prev, Wait);
+                _ ->
+                    rec_events(Eq0, Ev, 5)
 	    end;
 	#wx{} = Ev ->
-	    read_events(q_in(Ev, q_in(Prev, Eq0)), undefined, 0);
+	    rec_events(q_in(Ev, q_in(Prev, Eq0)), undefined, 0);
 	{timeout,Ref,{event,Event}} when is_reference(Ref) ->
-	    {Event, q_in(Prev, Eq0)};
+	    q_in(Event, q_in(Prev, Eq0));
 	{lock, Pid} -> %% Order ?
 	    Pid ! {locked, self()},
 	    F = fun GetUnlock () ->
@@ -289,40 +289,35 @@ read_events(Eq0, Prev, Wait) ->
 			end
 		end,
 	    F(),
-	    read_events(Eq0, Prev, 0);
+	    rec_events(Eq0, Prev, 0);
         {'_wxe_error_', Op, Error} ->
             [{_,{M,F,A}}] = ets:lookup(wx_debug_info,Op),
 	    Msg = io_lib:format("~p in ~w:~w/~w", [Error, M, F, A]),
 	    wxe_master ! {wxe_driver, error, Msg},
-            read_events(Eq0, Prev, Wait);
+            rec_events(Eq0, Prev, Wait);
 	External ->
-	    read_events(q_in(External, q_in(Prev, Eq0)), undefined, 0)
+	    q_in(External, q_in(Prev, Eq0))
     after Wait ->
-	    case read_one(q_in(Prev, Eq0)) of
-		{#wx{event=#wxMouse{type=motion}} = Ev, Eq} ->
-		    {wx_translate(Ev),Eq};
-		{empty, Eq} ->
-		    read_events(Eq, undefined, infinity);
-		{Ev, Eq} ->
-		    filter_resize(Ev, Eq)
-	    end
+            q_in(Prev, Eq0)
+    end.
+
+read_events_q(Eq0) ->
+    case queue:out(Eq0) of
+        {{value, #wx{event=#wxMouse{type=motion}} = Ev}, Eq} ->
+            {wx_translate(Ev),Eq};
+        {{value,#wx{event=#wxKey{type=key_up}}=Ev},Eq} ->
+	    case get_state() of
+		#io{key_up=true} -> {wx_translate(Ev), Eq};
+		_ -> read_events_q(Eq)
+	    end;
+        {{value,Ev}, Eq} ->
+            filter_resize(Ev, Eq);
+        {empty, Eq} ->
+            read_events_q(rec_events(Eq, undefined, infinity))
     end.
 
 q_in(undefined, Eq) -> Eq;
 q_in(Ev, Eq) -> queue:in(Ev, Eq).
-
-read_one(Eq0) ->
-    case queue:out(Eq0) of
-	{{value,#wx{event=#wxKey{type=key_up}}=Event},Eq} ->
-	    case get_state() of
-		#io{key_up=true} -> {Event, Eq};
-		_ -> read_one(Eq)
-	    end;
-	{{value,Event},Eq} ->
-	    {Event,Eq};
-	{empty,_} = Empty ->
-	    Empty
-    end.
 
 % Resize window causes all strange of events and order
 % on different platforms
@@ -332,8 +327,6 @@ filter_resize(#wx{obj=Obj, event=#wxSize{}}=Ev0, Eq0) ->
 	    filter_resize(Ev0, Eq);
 	{{value, #wx{obj=Obj, event=#wxSize{}}=Ev}, Eq} ->
 	    filter_resize(Ev, Eq);
-	{{value, #wx{event=#wxActivate{active=true}}}, Eq} ->
-	    filter_resize(Ev0, Eq);
 	_ ->
 	    {wx_translate(Ev0), Eq0}
     end;
@@ -343,20 +336,9 @@ filter_resize(#wx{event=#wxPaint{}}=Ev0, Eq0) ->
 	    filter_resize(Ev0, Eq);
 	{{value, #wx{event=#wxSize{}}=Ev}, Eq} ->
 	    filter_resize(Ev, Eq);
-	{{value, #wx{event=#wxActivate{active=true}}}, Eq} ->
-	    filter_resize(Ev0, Eq);
 	_ ->
 	    {wx_translate(Ev0), Eq0}
 
-    end;
-filter_resize(#wx{event=#wxActivate{}}=Ev0, Eq0) ->
-    case queue:out(Eq0) of
-	{{value, #wx{event=#wxPaint{}}}, Eq} ->
-	    filter_resize(Ev0, Eq);
-	{{value, #wx{event=#wxSize{}}=Ev}, Eq} ->
-	    filter_resize(Ev, Eq);
-	_ ->
-	    {wx_translate(Ev0), Eq0}
     end;
 filter_resize(Event, Eq) ->
     {wx_translate(Event), Eq}.
@@ -476,8 +458,12 @@ make_key_event({Key, Mods}) ->
 	     (command) -> {true, ?KMOD_META}
 	  end,
     ModState = gui_state([Map(Mod) || Mod <- Mods], 0),
-    %% io:format("make key {~p, ~p} => ~p ~n",[Key, Mods, ModState]),
-    #keyboard{which=menubar, state=?SDL_PRESSED, unicode=Key, mod=ModState, sym=Key};
+    Uni = case wx_key_map(sdl_key_map(Key)) of
+              undefined -> Key;
+              _Other -> 0
+          end,
+    %io:format("make key {~p, ~p} => ~p ~p ~n",[Key, Mods, Uni, ModState]),
+    #keyboard{which=menubar, state=?SDL_PRESSED, sym=Key, mod=ModState, unicode=Uni};
 make_key_event(Key) when is_integer(Key) ->
     make_key_event({Key, []}).
 

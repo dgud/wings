@@ -186,28 +186,28 @@ void main( void ) {
 
     vec4 c1, c2;
     float d = calc_marble(pos,frequency,amplitude,int(floor(rougness)));
-	if (type == 0) {
-        c1 = vec4(0.95,0.95,0.9025,0.0);        // scale x from 0<x<1 to 0.2<x<0.95 // b -> slightly reduce blue component (make color "warmer"):
-        c2 = vec4(0.05,0.05,0.05,0.0);
+    if (type == 0) {
+        c1 = vec4(0.95,0.95,0.9025,1.0);        // scale x from 0<x<1 to 0.2<x<0.95 // b -> slightly reduce blue component (make color "warmer"):
+        c2 = vec4(0.05,0.05,0.05,1.0);
     } else {
         c1 = color1;
         c2 = color2;
     }
 
-	if (!invmask) {
-		d = 1.0-d;
+    if (!invmask) {
+        d = 1.0-d;
     }
 
-	if (exchange) {
-	    vec4 ct = c1;
-		c1 = c2;
-		c2 = ct;
-	}
+    if (exchange) {
+        vec4 ct = c1;
+        c1 = c2;
+        c2 = ct;
+    }
 
     if (mixmode == 0) {
-        gl_FragColor = vec4(c2.rgb*d + c1.rgb*(1.0-d), 1.0-min(c1.a*(1.0-d)+c2.a*d,1.0));
+        gl_FragColor = vec4(c2.rgb*d + c1.rgb*(1.0-d), c1.a*(1.0-d)+c2.a*d);
     } else if (mixmode == 1) {
-        gl_FragColor = vec4(c1.rgb*d + c2.rgb*(1.0-d), min(d+c1.a*(1.0-d),1.0));
+        gl_FragColor = vec4(c2.rgb*d + c1.rgb*(1.0-d), d);
     }
 }
 

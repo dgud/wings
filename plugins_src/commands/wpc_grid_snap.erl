@@ -88,19 +88,19 @@ command({vertex,{grid_snap,Axis}}, St) ->
 command(_, _) -> next.
 
 grid_snap(Axis, Point0, St) ->
-    Tvs = wings_sel:fold(fun(Vs0, #we{id=Id,vp=Vtab}=We, Acc) ->
-                Point = case Point0 of
-                    center ->
-                        BBox = wings_vertex:bounding_box(Vs0, We, none),
-                        e3d_vec:mul(e3d_vec:average(BBox), ?EPS);
-                    _ ->
-                        e3d_vec:mul(Point0, ?EPS)
-                end,
-                Vs = gb_sets:to_list(Vs0),
-                VsPos = add_vpos(Vs, Vtab),
-                [{Id,{Vs,grid_snap_fun(VsPos, Axis, Point)}}|Acc]
-                end,[],St),
-    wings_drag:setup(Tvs, [{distance,{0.0,infinity}}], St).
+    wings_drag:fold(
+      fun(Vs0, #we{vp=Vtab}=We) ->
+              Point = case Point0 of
+                          center ->
+                              BBox = wings_vertex:bounding_box(Vs0, We, none),
+                              e3d_vec:mul(e3d_vec:average(BBox), ?EPS);
+                          _ ->
+                              e3d_vec:mul(Point0, ?EPS)
+                      end,
+              Vs = gb_sets:to_list(Vs0),
+              VsPos = add_vpos(Vs, Vtab),
+              {Vs,grid_snap_fun(VsPos, Axis, Point)}
+      end, [{distance,{0.0,infinity}}], St).
 
 grid_snap_fun(VsPos, Axis, Point) ->
     fun

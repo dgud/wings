@@ -317,9 +317,9 @@ add_defaults_1(P) ->
     VertexColor = valid_vertex_color(prop_get(vertex_colors, P, ignore)),
     [{diffuse,norm(prop_get(diffuse, P, Def))},
      {ambient,norm(prop_get(ambient, P, Def))},
-     {specular,norm(prop_get(specular, P, {0.0,0.0,0.0,0.0}))},
-     {emission,norm(prop_get(emission, P, {0.0,0.0,0.0,0.0}))},
-     {shininess,prop_get(shininess, P, 0.0)},
+     {specular,norm(prop_get(specular, P, {0.0,0.0,0.0,1.0}))},
+     {emission,norm(prop_get(emission, P, {0.0,0.0,0.0,1.0}))},
+     {shininess,prop_get(shininess, P, 0.9)},
      {vertex_colors,VertexColor}].
 
 %% For future compatibility, ignore anything that we don't recognize.
@@ -581,12 +581,10 @@ is_transparent(Name, Mtab) ->
 
 is_mat_transparent(Mat) ->
     OpenGL = prop_get(opengl, Mat),
-    Trans = foldl(fun(_, true) -> true;
-		   ({emission,_}, _) -> false;
-		     ({_,{_,_,_,1.0}}, _) -> false;
-		     ({_,{_,_,_,_}}, _) -> true;
-		     (_, _) -> false
-		  end, false, OpenGL),
+    Trans = lists:any(fun({diffuse,{_,_,_,Alpha}}) when Alpha < 1.0 -> true;
+                         (_) -> false
+                      end, OpenGL),
+    %% Trans orelse proplists:is_defined(diffuse, prop_get(maps, Mat)).
     Trans.
 
 %% needed_attributes(We, St) -> [Attr]

@@ -12,13 +12,19 @@
 %%
 
 -module(wings_drag).
--export([setup/3,setup/4,do_drag/2]).
+-export([do_drag/2,fold/3,fold/4,
+         matrix/3,matrix/4,general/4,drag_only/4,
+         compose/1,translate_fun/2]).
+
+-export_type([vec_transform_fun/0,vertices/0,vertex_transform/0]).
 
 -define(NEED_ESDL, 1).
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
+-include("e3d.hrl").
 
--import(lists, [foldl/3,sort/1,reverse/1,reverse/2,member/2]).
+-import(lists, [append/1,foldl/3,sort/1,reverse/1,reverse/2,
+                member/2,unzip/1]).
 
 %% Main drag record. Kept in state.
 -record(drag,
@@ -34,27 +40,150 @@
 	 mmb_timer=0,		% Mmb is pressed timer
 	 rmb_timer=0,		% Rmb is pressed timer (forth parameter)
 	 offset,		% Offset for each dimension.
-	 unit,			% Unit that drag is done in.
+	 unit :: [unit()],      % Unit that drag is done in.
 	 unit_sc,		% Scales for each dimension.
-	 flags=[],		% Flags.
+	 flags=[] :: [flag()],  % Flags.
 	 falloff,		% Magnet falloff.
-	 mode_fun,		% Special mode.
-	 mode_data,		% State for mode.
+	 mode_fun :: mode_fun(),% Special mode.
+	 mode_data :: mode_data(),% State for mode.
 	 info="",		% Information line.
-	 st,			% Saved st record.
-	 last_move		% Last move.
+	 st :: #st{},           % Saved st record.
+	 last_move,		% Last move.
+         drag                   % Drag fun.
 	}).
 
 %% Drag per object.
+
 -record(do,
-	{funs,			%List of transformation funs.
-	 we_funs		%List of funs that operate on the We.
+	{tr_fun :: vec_transform_fun(),  %List of transformation funs.
+	 we_funs :: [we_transform_fun()] %List of funs that operate on the We.
 	}).
 
-setup(Tvs, Unit, St) ->
-    setup(Tvs, Unit, [], St).
+-type vertices() :: [vertex_num()].
 
-setup(Tvs, Units, Flags, St) ->
+-type mat_transform_fun() :: fun((e3d_matrix(), [float()]) -> e3d_matrix()).
+-type we_transform_fun() :: fun((#we{}, [float()]) -> #we{}).
+-type vec_transform_fun() ::
+        fun((_, _) -> [{vertex_num(),e3d_vec:vector()}]
+                          | vec_transform_fun()).
+-type general_fun() :: fun((_, #dlo{}) -> #dlo{}).
+
+-type vertex_transform() :: {vertices(),vec_transform_fun()}.
+
+-type basic_tv() :: {vertices(),vec_transform_fun()}.
+
+-type fold_tv() :: basic_tv() | {'we',[we_transform_fun()],basic_tv()}.
+
+-type inf_or_float() :: 'infinity' | float().
+-type limit2() :: {inf_or_float(),inf_or_float()}.
+
+-type unit() :: 'angle'   | {'angle',limit2()}
+              | 'distance'| {'distance',limit2()}
+              | 'dx'      | {'dx',limit2()}
+              | 'dy'      | {'dy',limit2()}
+              | 'dz'
+              | 'falloff'
+              | {'number',limit2()}
+              | 'percent' | {'percent',limit2()}
+              | 'rx'      | {'rx',limit2()}
+              | 'skip'
+              | plugin_unit_kludge().
+
+%% FIXME: Should wrap in a tuple, e.e. {custom,CustomType}.
+-type plugin_unit_kludge() :: 'absolute_diameter'
+                            | 'diametric_factor'.
+
+-type mode_fun() :: fun((any(), mode_data()) -> mode_data()).
+-type mode_data() :: any().
+
+-type flag() :: {'initial',list()}
+              | 'keep_drag'
+              | {'mode',{mode_fun(),mode_data()}}
+              | {'rescale_normals',boolean()}
+              | 'screen_relative'.
+
+-spec fold(Fun, [unit()], #st{}) -> {'drag',#drag{}} when
+      Fun :: fun((wings_sel:item_set(), #we{}) -> fold_tv()).
+
+fold(F, Units, St) when is_function(F, 2) ->
+    fold(F, Units, [], St).
+
+-spec fold(Fun, [unit()], [flag()], #st{}) -> {'drag',#drag{}} when
+      Fun :: fun((wings_sel:item_set(), #we{}) -> fold_tv()).
+
+fold(F, Units, Flags, St) when is_function(F, 2) ->
+    #st{sel=Sel,shapes=Shapes} = St,
+    Tvs = fold_1(Sel, F, Shapes),
+    Drag = init(Units, Flags, St),
+    wings_draw:refresh_dlists(St),
+    break_apart(Tvs, St),
+    {drag,Drag}.
+
+-spec matrix(Fun, [unit()], #st{}) -> {'drag',#drag{}} when
+      Fun :: fun((#we{}) -> mat_transform_fun()).
+
+matrix(F, Units, #st{selmode=body}=St) ->
+    matrix(F, Units, [], St).
+
+-spec matrix(Fun, [unit()], [flag()], #st{}) -> {'drag',#drag{}} when
+      Fun :: fun((#we{}) -> mat_transform_fun()).
+
+matrix(F, Units, Flags, #st{selmode=body}=St) when is_function(F, 1) ->
+    #st{sel=Sel,shapes=Shapes} = St,
+    Tvs = get_funs(Sel, F, Shapes),
+    Drag = init(Units, Flags, St),
+    wings_draw:refresh_dlists(St),
+    insert_matrix(Tvs),
+    {drag,Drag}.
+
+-spec general(Fun, [unit()], [flag()], #st{}) -> {'drag',#drag{}} when
+      Fun :: fun((#we{}) -> general_fun()).
+
+general(F, Units, Flags, St) when is_function(F, 1) ->
+    #st{sel=Sel,shapes=Shapes} = St,
+    Tvs = get_funs(Sel, F, Shapes),
+    Drag = init(Units, Flags, St),
+    wings_draw:refresh_dlists(St),
+    break_apart_general(Tvs),
+    {drag,Drag}.
+
+-spec drag_only(Fun, [unit()], [flag()], #st{}) -> {'drag',#drag{}} when
+      Fun :: fun((_) -> 'ok').
+
+drag_only(F, Units, Flags, St) when is_function(F, 1) ->
+    {drag,init(Units, Flags, St, F)}.
+
+-spec compose([{vertices(),vec_transform_fun()}]) ->
+                     {vertices(),vec_transform_fun()}.
+
+compose([{_,_}=Transform]) ->
+    Transform;
+compose(Transforms) ->
+    {Vs0,TransformFuns} = unzip(Transforms),
+    Vs = append(Vs0),
+    F = compose_fun(TransformFuns),
+    {Vs,F}.
+
+-spec translate_fun([{e3d_vector(),vertices()}], #we{}) ->
+                           {vertices(),vec_transform_fun()}.
+
+translate_fun([_|_]=VecVs0, #we{vp=Vtab}) ->
+    SS = sofs:from_term(VecVs0, [{vec,[vertex]}]),
+    FF = sofs:relation_to_family(SS),
+    FU = sofs:family_union(FF),
+    VecVs1 = sofs:to_external(FU),
+    Affected = foldl(fun({_,Vs}, A) -> Vs++A end, [], VecVs1),
+    VecVs = insert_vtx_data(VecVs1, Vtab, []),
+    {Affected,translate_fun(VecVs)}.
+
+%%%
+%%% Local functions.
+%%%
+
+init(Units, Flags, St) ->
+    init(Units, Flags, St, fun default_drag_fun/1).
+
+init(Units, Flags, St, DragFun) ->
     cursor_boundary(60),
     wings_io:grab(),
     wings_wm:grab_focus(),
@@ -63,22 +192,66 @@ setup(Tvs, Units, Flags, St) ->
     UnitSc = unit_scales(Units),
     Falloff = falloff(Units),
     {ModeFun,ModeData} = setup_mode(Flags, Falloff),
-    Drag = #drag{unit=Units,unit_sc=UnitSc,flags=Flags,offset=Offset,
+    #drag{unit=Units,unit_sc=UnitSc,flags=Flags,offset=Offset,
 		 falloff=Falloff,
 		 mode_fun=ModeFun,mode_data=ModeData,
-		 st=St},
-    case Tvs of
-	{matrix,TvMatrix} ->
-	    wings_draw:refresh_dlists(St),
-	    insert_matrix(TvMatrix);
-	{general,General} ->
-	    wings_draw:invalidate_dlists(St),
-	    break_apart_general(General);
-	_ = _BR ->
-	    wings_draw:invalidate_dlists(St),
-	    break_apart(Tvs, St)
-    end,
-    {drag,Drag}.
+		 st=St,drag=DragFun}.
+
+fold_1([{Id,Items}|T], F, Shapes0) ->
+    We0 = gb_trees:get(Id, Shapes0),
+    ?ASSERT(We#we.id =:= Id),
+    Tv = F(Items, We0),
+    Shapes = case We0 of
+                 #we{temp=[]} ->
+                     Shapes0;
+                 #we{} ->
+                     We = We0#we{temp=[]},
+                     gb_trees:update(Id, We, Shapes0)
+             end,
+    case Tv of
+        {we,WeFuns,OtherTv} when is_list(WeFuns) ->
+            [{Id,WeFuns,OtherTv}|fold_1(T, F, Shapes)];
+        _ ->
+            [{Id,[],Tv}|fold_1(T, F, Shapes)]
+    end;
+fold_1([], _, _) -> [].
+
+get_funs([{Id,_}|T], F, Shapes0) ->
+    We0 = gb_trees:get(Id, Shapes0),
+    ?ASSERT(We#we.id =:= Id),
+    General = F(We0),
+    Shapes = case We0 of
+                 #we{temp=[]} ->
+                     Shapes0;
+                 #we{} ->
+                     We = We0#we{temp=[]},
+                     gb_trees:update(Id, We, Shapes0)
+             end,
+    [{Id,General}|get_funs(T, F, Shapes)];
+get_funs([], _, _) -> [].
+
+
+%%%
+%%% Handle composing of transformation funs.
+%%%
+
+compose_fun(TransformFuns0) ->
+    fun(Arg, Acc) when is_list(Arg) ->
+            execute_composed(TransformFuns0, Arg, Acc);
+       (Key, We) ->
+            TransformFuns = execute_updated(TransformFuns0, Key, We),
+            compose_fun(TransformFuns)
+    end.
+
+execute_composed([TF|TFs], Arg, Acc0) ->
+    Acc = TF(Arg, Acc0),
+    execute_composed(TFs, Arg, Acc);
+execute_composed([], _Arg, Acc) -> Acc.
+
+execute_updated([TF0|TFs], Key, We) ->
+    TF = TF0(Key, We),
+    [TF|execute_updated(TFs, Key, We)];
+execute_updated([], _Key, _We) -> [].
 
 %% make sure cursor isn't too close to the edge of the window since this can
 %% cause drag response problems.
@@ -103,7 +276,7 @@ setup_mode(Flags, Falloff) ->
     case proplists:get_value(mode, Flags, none) of
 	none ->
 	    {standard_mode_fun(Falloff),none};
-	{_,_}=Mode ->
+	{F,_}=Mode when is_function(F, 2) ->
 	    Mode
     end.
 
@@ -194,33 +367,18 @@ adjust_unit_scaling([],[],[]) -> [].
 break_apart(Tvs, St) ->
     wings_dl:map(fun(D, Data) ->
 			 break_apart_1(D, Data, St)
-		 end, wings_util:rel2fam(Tvs)).
+		 end, Tvs).
 
-break_apart_1(#dlo{src_we=#we{id=Id}=We}=D0, [{Id,TvList0}|Tvs], St) ->
-    TvList = mirror_constrain(TvList0, We),
-    {Vs,FunList,WeFuns} = combine_tvs(TvList, We),
+break_apart_1(#dlo{src_we=#we{id=Id}=We}=D0, [{Id,WFs,Tv}|Tvs], St) ->
+    {Vs,TF} = mirror_constrain(Tv, We),
     D1 = if
 	     ?IS_LIGHT(We) -> D0#dlo{split=none};
 	     true -> D0
 	 end,
     D = wings_draw:split(D1, Vs, St),
-    Do = #do{funs=FunList,we_funs=WeFuns},
+    Do = #do{tr_fun=TF,we_funs=WFs},
     {D#dlo{drag=Do},Tvs};
 break_apart_1(D, Tvs, _) -> {D,Tvs}.
-
-combine_tvs(TvList, #we{vp=Vtab}) ->
-    {FunList,WeFuns,VecVs0} = split_tv(TvList, [], [], []),
-    SS = sofs:from_term(VecVs0, [{vec,[vertex]}]),
-    FF = sofs:relation_to_family(SS),
-    FU = sofs:family_union(FF),
-    VecVs1 = sofs:to_external(FU),
-    Affected = foldl(fun({_,Vs}, A) -> Vs++A end, [], VecVs1),
-    case insert_vtx_data(VecVs1, Vtab, []) of
-	[] ->
-	    combine_tv_1(FunList, WeFuns, Affected, []);
-	VecVs ->
-	    combine_tv_1(FunList, WeFuns, Affected, [translate_fun(VecVs)])
-    end.
 
 translate_fun(VecVs) ->
     fun(new_falloff, _Falloff) ->
@@ -230,20 +388,6 @@ translate_fun(VecVs) ->
 			  translate(Vec, Dx, VsPos, A)
 		  end, Acc, VecVs)
     end.
-
-combine_tv_1([{Aff,Fun}|T], WeFuns, Aff0, FunList) ->
-    combine_tv_1(T, WeFuns, Aff++Aff0, [Fun|FunList]);
-combine_tv_1([], WeFuns, Aff, FunList) ->
-    {Aff,FunList,WeFuns}.
-
-split_tv([{we,F}|T], WeFacc, Facc, Vacc) when is_function(F, 2) ->
-    split_tv(T, [F|WeFacc], Facc, Vacc);
-split_tv([{_,F}=Fun|T], WeFacc, Facc, Vacc) when is_function(F, 2) ->
-    split_tv(T, WeFacc, [Fun|Facc], Vacc);
-split_tv([L|T], WeFacc, Facc, Vacc) when is_list(L) ->
-    split_tv(T, WeFacc, Facc, L++Vacc);
-split_tv([], WeFuns, Funs, VecVs) ->
-    {Funs,WeFuns,VecVs}.
 
 insert_vtx_data([{Vec,Vs0}|VecVs], Vtab, Acc) ->
     Vs = insert_vtx_data_1(Vs0, Vtab, []),
@@ -262,9 +406,8 @@ mirror_constrain(Tvs, #we{mirror=Face}=We) ->
     VsSet = ordsets:from_list(Vs),
     mirror_constrain_1(Tvs, VsSet, M, []).
 
-mirror_constrain_1([{we,Tr}=Fun|Tvs], VsSet, M, Acc) when is_function(Tr) ->
-    mirror_constrain_1(Tvs, VsSet, M, [Fun|Acc]);
-mirror_constrain_1([{Vs,Tr0}=Fun|Tvs], VsSet, M, Acc) when is_function(Tr0) ->
+mirror_constrain_1([{Vs,Tr0}=Fun|Tvs], VsSet, M, Acc)
+  when is_function(Tr0, 2) ->
     case ordsets:intersection(ordsets:from_list(Vs), VsSet) of
 	[] ->
 	    mirror_constrain_1(Tvs, VsSet, M, [Fun|Acc]);
@@ -272,23 +415,7 @@ mirror_constrain_1([{Vs,Tr0}=Fun|Tvs], VsSet, M, Acc) when is_function(Tr0) ->
 	    Tr = constrain_fun(Tr0, M, Mvs),
 	    mirror_constrain_1(Tvs, VsSet, M, [{Vs,Tr}|Acc])
     end;
-mirror_constrain_1([VecVs0|Tvs], VsSet, M, Acc) ->
-    VecVs1 = sofs:from_term(VecVs0, [{vec,[vertex]}]),
-    VecVs2 = sofs:family_to_relation(VecVs1),
-    VecVs3 = sofs:to_external(VecVs2),
-    VecVs = mirror_constrain_2(VecVs3, VsSet, M, []),
-    mirror_constrain_1(Tvs, VsSet, M, [VecVs|Acc]);
 mirror_constrain_1([], _, _, Acc) -> Acc.
-
-mirror_constrain_2([{Vec0,V}|T], VsSet, M, Acc) ->
-    case member(V, VsSet) of
-	false ->
-	    mirror_constrain_2(T, VsSet, M, [{Vec0,[V]}|Acc]);
-	true ->
-	    Vec = e3d_mat:mul_vector(M, Vec0),
-	    mirror_constrain_2(T, VsSet, M, [{Vec,[V]}|Acc])
-    end;
-mirror_constrain_2([], _, _, Acc) -> Acc.
 
 constrain_fun(Tr0, M, Vs) ->
     fun(Cmd, Arg) ->
@@ -335,6 +462,8 @@ break_apart_general(D, Tvs) -> {D,Tvs}.
 %%%
 %%% Handling of drag events.
 %%%
+
+-spec do_drag(#drag{}, [_] | 'none') -> term().
 
 do_drag(#drag{flags=Flags}=Drag, none) ->
     wings_menu:kill_menus(), %% due to toolbar menu facility
@@ -653,11 +782,11 @@ handle_drag_event_2({camera,Ev,NextEv}, #drag{st=St}) ->
 handle_drag_event_2(Event, #drag{st=St}=Drag0) ->
     case wings_hotkey:event(Event,St) of
 	next ->
-	    get_drag_event(Drag0);
+	    get_drag_event_1(Drag0);
 	{view,quick_preview} ->
-	    get_drag_event(Drag0);
+	    get_drag_event_1(Drag0);
 	{view,smooth_proxy} ->
-	    get_drag_event(Drag0);
+	    get_drag_event_1(Drag0);
 	{view,Cmd} ->
 	    wings_view:command(Cmd, St),
 	    Drag = view_changed(Drag0),
@@ -796,15 +925,10 @@ view_changed_fun(#dlo{drag={matrix,Tr,_,_},transparent=#we{}=We}=D, _) ->
     {D#dlo{src_we=We,drag={matrix,Tr,Id,Id}},[]};
 view_changed_fun(#dlo{drag={matrix,Tr,_,Mtx}}=D, _) ->
     {D#dlo{drag={matrix,Tr,Mtx,Mtx}},[]};
-view_changed_fun(#dlo{drag=#do{funs=Tv0}=Do,src_we=We}=D, _) ->
-    Tv = update_tvs(Tv0, We, []),
-    {D#dlo{drag=Do#do{funs=Tv}},[]};
+view_changed_fun(#dlo{drag=#do{tr_fun=F0}=Do,src_we=We}=D, _) ->
+    F = F0(view_changed, We),
+    {D#dlo{drag=Do#do{tr_fun=F}},[]};
 view_changed_fun(D, _) -> {D,[]}.
-
-update_tvs([F0|Fs], NewWe, Acc) ->
-    F = F0(view_changed, NewWe),
-    update_tvs(Fs, NewWe, [F|Acc]);
-update_tvs([], _, Acc) -> reverse(Acc).
 
 motion(Event, Drag0) ->
     {Move,Drag} = mouse_translate(Event, Drag0),
@@ -1147,14 +1271,16 @@ motion_update({no_change,_}, #drag{falloff=none}=Drag) ->
 motion_update({no_change,LastMove}, #drag{unit=Units}=Drag) ->
     Move = constrain_1(Units, LastMove, Drag),
     motion_update(Move,Drag);
-
-motion_update(Move, #drag{unit=Units}=Drag) ->
-    wings_dl:map(fun(D, _) ->
-			 motion_update_fun(D, Move)
-		 end, []),
+motion_update(Move, #drag{unit=Units,drag=DragFun}=Drag) ->
+    DragFun(Move),
     Msg0 = progress_units(Units, Move),
     Msg = reverse(trim(reverse(lists:flatten(Msg0)))),
     Drag#drag{info=Msg,last_move=Move}.
+
+default_drag_fun(Move) ->
+    wings_dl:map(fun(D, _) ->
+			 motion_update_fun(D, Move)
+		 end, []).
 
 motion_update_fun(#dlo{src_we=We,drag={matrix,Tr,Mtx0,_}}=D, Move) when ?IS_LIGHT(We) ->
     Mtx = Tr(Mtx0, Move),
@@ -1164,10 +1290,11 @@ motion_update_fun(#dlo{drag={matrix,Trans,Matrix0,_}}=D, Move) ->
     D#dlo{drag={matrix,Trans,Matrix0,Matrix}};
 motion_update_fun(#dlo{drag={general,Fun}}=D, Move) ->
     Fun(Move, D);
-motion_update_fun(#dlo{drag=#do{funs=Tv,we_funs=WeFuns},src_we=We0}=D0, Move) ->
+motion_update_fun(#dlo{drag=#do{tr_fun=Tr,we_funs=WeFuns},
+                       src_we=We0}=D0, Move) ->
     We = foldl(fun(WeFun, W) -> WeFun(W, Move) end, We0, WeFuns),
     D = D0#dlo{src_we=We},
-    Vtab = foldl(fun(F, A) -> F(Move, A) end, [], Tv),
+    Vtab = Tr(Move, []),
     wings_draw:update_dynamic(D, Vtab);
 motion_update_fun(D, _) -> D.
 
@@ -1184,9 +1311,9 @@ parameter_update(Key, Val, Drag) ->
     Ev = #mousemotion{x=X,y=Y,state=0},
     motion(Ev, Drag).
 
-parameter_update_fun(#dlo{drag=#do{funs=Tv0}=Do}=D, Key, Val) ->
-    Tv = foldl(fun(F, A) -> [F(Key, Val)|A] end, [], Tv0),
-    D#dlo{drag=Do#do{funs=Tv}};
+parameter_update_fun(#dlo{drag=#do{tr_fun=Tr0}=Do}=D, Key, Val) ->
+    Tr = Tr0(Key, Val),
+    D#dlo{drag=Do#do{tr_fun=Tr}};
 parameter_update_fun(D, _, _) -> D.
 
 translate({Xt0,Yt0,Zt0}, Dx, VsPos, Acc) ->

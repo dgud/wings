@@ -18,7 +18,8 @@
 	 select_link_decr/1,select_link_incr/1]).
 
 %% Utilities.
--export([edge_loop_vertices/2,edge_links/2,partition_edges/2]).
+-export([edge_loop_vertices/2,edge_links/2,partition_edges/2,
+         select_loop/2]).
 
 -include("wings.hrl").
 -import(lists, [append/1,reverse/1,foldl/3,usort/1,member/2,any/2]).
@@ -44,8 +45,7 @@ select_prev(St) -> St.
 %%  only include the shorter path in the selection.
 %%
 stoppable_sel_loop(#st{selmode=edge}=St) ->
-    Sel = wings_sel:fold(fun stoppable_select_loop/3, [], St),
-    wings_sel:set(Sel, St);
+    wings_sel:update_sel(fun stoppable_select_loop/2, St);
 stoppable_sel_loop(St) -> St.
 
 %% select_loop(St0) -> St.
@@ -55,24 +55,21 @@ stoppable_sel_loop(St) -> St.
 %%  possible in both directions.
 %%
 select_loop(#st{selmode=edge}=St) ->
-    Sel = wings_sel:fold(fun select_loop/3, [], St),
-    wings_sel:set(Sel, St);
+    wings_sel:update_sel(fun select_loop/2, St);
 select_loop(St) -> St.
 
 %% select_link_decr(St0) -> St.
 %%  Implement the Select|Edge Loop|Shrink Edge Loop command.
 %%
 select_link_decr(#st{selmode=edge}=St) ->
-    Sel = wings_sel:fold(fun select_link_decr/3, [], St),
-    wings_sel:set(Sel, St);
+    wings_sel:update_sel(fun select_link_decr/2, St);
 select_link_decr(St) -> St.
 
 %% select_link_incr(St0) -> St.
 %%  Implement the Select|Edge Loop|Grow Edge Loop command.
 %%
 select_link_incr(#st{selmode=edge}=St) ->
-    Sel = wings_sel:fold(fun select_link_incr/3, [], St),
-    wings_sel:set(Sel, St);
+    wings_sel:update_sel(fun select_link_incr/2, St);
 select_link_incr(St) -> St.
 
 %% edge_loop_vertices(EdgeSet, WingedEdge) -> [[Vertex]] | none
@@ -98,6 +95,17 @@ partition_edges(Edges, We) when is_list(Edges) ->
     partition_edges(gb_sets:from_list(Edges), We, []);
 partition_edges(Edges, We) ->
     partition_edges(Edges, We, []).
+
+%% Create edge loops from the given edges.
+
+-spec select_loop(EdgesIn, #we{}) -> EdgesOut when
+      EdgesIn ::wings_sel:edge_set(),
+      EdgesOut ::wings_sel:edge_set().
+
+select_loop(Edges0, #we{es=Etab}=We) ->
+    Edges1 = select_loop_1(Edges0, Etab, gb_sets:empty()),
+    Edges2 = add_mirror_edges(Edges1, We),
+    wings_we:visible_edges(Edges2, We).
 
 %%%
 %%% Local functions and data structures.
@@ -192,12 +200,6 @@ follow_edge_1(G, E, Edges, Etab) ->
 
 %%% Helpers for select_loop/1.
 
-select_loop(Edges0, #we{id=Id,es=Etab}=We, Acc) ->
-    Edges1 = select_loop_1(Edges0, Etab, gb_sets:empty()),
-    Edges2 = add_mirror_edges(Edges1, We),
-    Edges = wings_we:visible_edges(Edges2, We),
-    [{Id,Edges}|Acc].
-
 select_loop_1(Edges0, Etab, Sel0) ->
     case gb_sets:is_empty(Edges0) of
 	true -> Sel0;
@@ -248,10 +250,9 @@ next_edge(From, V, Face, Edge, Etab) ->
 
 %%% Helpers for select_link_decr/1.
 
-select_link_decr(Edges0, #we{id=Id,es=Etab}, Acc) ->
+select_link_decr(Edges0, #we{es=Etab}) ->
     EndPoints = append(component_endpoints(Edges0, Etab)),
-    Edges = decrease_edge_link(EndPoints, Edges0),
-    [{Id,Edges}|Acc].
+    decrease_edge_link(EndPoints, Edges0).
 
 decrease_edge_link([{_V,Edge}|R], Edges) ->
     decrease_edge_link(R, gb_sets:delete_any(Edge, Edges));
@@ -259,10 +260,9 @@ decrease_edge_link([], Edges) -> Edges.
 
 %%% Helpers for stoppable_select_loop/1 and select_link_incr/1.
 
-stoppable_select_loop(Edges0, #we{id=Id}=We, Acc) ->
+stoppable_select_loop(Edges0, We) ->
     Edges1 = loop_incr(Edges0, We),
-    Edges = wings_we:visible_edges(Edges1, We),
-    [{Id,Edges}|Acc].
+    wings_we:visible_edges(Edges1, We).
 
 loop_incr(Edges, #we{es=Etab}=We) ->
     %% Group the selected edges into connected components and for each
@@ -434,12 +434,11 @@ reorder([Edge|R], Edge, Acc) ->
 reorder([E|R], Edge, Acc) ->
     reorder(R, Edge, [E|Acc]).
 
-select_link_incr(Edges0, #we{id=Id,es=Etab}=We, Acc) ->
+select_link_incr(Edges0, #we{es=Etab}=We) ->
     EndPoints = append(component_endpoints(Edges0, Etab)),
     BorderEdges = border_edges(Edges0, We),
     Edges1 = expand_edge_link(EndPoints, We, BorderEdges, Edges0),
-    Edges = wings_we:visible_edges(Edges1, We),
-    [{Id,Edges}|Acc].
+    wings_we:visible_edges(Edges1, We).
 
 expand_edge_link([{V,OrigEdge}|R], We, BorderEdges, Sel0) ->
     case find_middle_edge(V, OrigEdge, BorderEdges, We) of

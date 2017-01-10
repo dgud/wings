@@ -26,6 +26,8 @@
 -include("e3d_image.hrl").
 -import(lists, [keydelete/3]).
 
+-dialyzer({nowarn_function, fake_enter_window/2}).
+
 %%%
 %%% Outliner window.
 %%%
@@ -106,6 +108,9 @@ command({make_internal,Id}, _) ->
     make_internal(Id);
 command({make_external,Id}, _) ->
     make_external(Id);
+command({create_normal_map,Params}, _) ->
+    create_normal_map(Params),
+    keep;
 command({export_image,Id}, _) ->
     export_image(Id);
 command(Cmd, _) ->
@@ -419,9 +424,13 @@ handle_event(#wx{event=#wxMouse{type=motion, x=X,y=Y}} = _Ev,
        0 < Y, Y < MaxY -> {noreply, State#state{drag={Obj,0}}};
        true -> {noreply, State#state{drag=scroll_window(Y, TC, Drag)}}
     end;
-
-handle_event(#wx{} = _Ev, State) ->
-    %%io:format("~p:~p Got unexpected event ~p~n", [?MODULE,?LINE, _Ev]),
+handle_event(#wx{event=#wxFocus{}}=Ev, #state{top=Obj} = State) ->
+    %% Windows sets focus to the tree each time it is updated
+    %% fake a enter_window event
+    wings_frame ! fake_enter_window(Ev, Obj),
+    {noreply, State};
+handle_event(#wx{event=_Ev}, State) ->
+    %% io:format("~p:~p Got unexpected event ~p~n", [?MODULE,?LINE, _Ev])
     {noreply, State}.
 
 handle_call(_Req, _From, State) ->
@@ -468,6 +477,8 @@ terminate(_Reason, #state{}) ->
     normal.
 
 %%%%%%%%%%%%%%%%%%%%%%
+fake_enter_window(Ev, Obj) ->
+    Ev#wx{event=#wxMouse{type=enter_window}, userData={win, Obj}}.
 
 make_tree(Parent, #{bg:=BG, text:=FG}, IL) ->
     TreeStyle = ?wxTR_EDIT_LABELS bor ?wxTR_HIDE_ROOT bor ?wxTR_HAS_BUTTONS
@@ -476,13 +487,14 @@ make_tree(Parent, #{bg:=BG, text:=FG}, IL) ->
     wxTreeCtrl:setBackgroundColour(TC, BG),
     wxTreeCtrl:setForegroundColour(TC, FG),
     wxTreeCtrl:setImageList(TC, IL),
+    wxWindow:connect(TC, set_focus, [{skip, true}]),
     wxWindow:connect(TC, command_tree_end_label_edit),
     wxWindow:connect(TC, command_tree_begin_label_edit, [callback]),
     wxWindow:connect(TC, command_tree_begin_drag, [callback]),
     wxWindow:connect(TC, command_tree_end_drag, []),
     wxWindow:connect(TC, command_tree_item_activated, []),
     wxWindow:connect(TC, enter_window, [{userData, {win, Parent}}]),
-    wxWindow:connect(TC, motion),
+    wxWindow:connect(TC, motion, [{skip, true}]),
     case os:type() of
 	{win32, _} ->
 	    wxWindow:connect(TC, command_tree_item_menu, [{skip, false}]),
@@ -722,6 +734,9 @@ image_menu_2(Id, {Mat, Type}) ->
 
 command_image_menu(Id) ->
     [separator,
+     {?__(9,"Create Normal Map"),create_normal_map_fun(Id),
+      {?__(10,"Creates a normal map for the image"),[],?__(11,"Creates a normal map for the image with parameters")},[opt]},
+     separator,
      {?__(1,"Export..."),menu_cmd(export_image, Id),
       ?__(2,"Export the image")},
      separator,
@@ -741,6 +756,30 @@ handle_drop(#{type:=image, id:=Id}, #{type:=mat, name:=Name}) ->
 
 tx_cmd(Type, Id, Mat) ->
     {'VALUE',{assign_texture,Type,Id,Mat}}.
+
+create_normal_map({ask,Id}) ->
+    wings_dialog:dialog(?__(1,"Normalmap"),
+                        [{label_column, [{?__(2,"Bumpiness"), {text, 4.0, [{key,scale}, {range,{0.1,100.0}}]}}]},
+                         {?__(3,"Invert X"), false, [{key,invx}]},
+                         {?__(4,"Invert Y"), false, [{key,invy}]}],
+                        fun(Res) ->
+                                [{scale,Scale},{invx,InvX},{invy,InvY}] = Res,
+                                create_normal_map_0(Id, #{scale=>Scale,inv_x=>InvX,inv_y=>InvY}),
+                                keep
+                        end);
+create_normal_map(Id) ->
+    create_normal_map_0(Id, #{}).
+
+create_normal_map_0(Id, Params) ->
+    SrcIm = wings_image:info(Id),
+    #e3d_image{name=Name} = Im = e3d_image:height2normal(SrcIm, Params),
+    wings_image:new(Name, Im).
+
+create_normal_map_fun(Id) ->
+    fun (1, _) -> button_menu_cmd(create_normal_map, Id);
+	(3, _) ->button_menu_cmd(create_normal_map, {ask,Id});
+	(_,_) -> ignore
+    end.
 
 select_menu(Name) ->
     fun(1, _Ns) ->

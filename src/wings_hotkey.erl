@@ -89,11 +89,16 @@ lookup(Ev, Cmd) ->
 %%% Binding and unbinding of keys.
 %%%
 
--record(cs, {info, st, op, action}).
+-record(cs, {info, st, sc, op, action}).
 
-command(Cmd, St) ->
+command(Cmd0, St) ->
     Str = ?__(1, "Select an menu item to bind/unbind a hotkey"),
-    Cs = #cs{info=Str, st=St, op=Cmd},
+    {Cmd, Sc} =
+    case Cmd0 of
+	{_,_} -> Cmd0;
+	_ -> {Cmd0, none}
+    end,
+    Cs = #cs{info=Str, st=St, op=Cmd, sc=Sc},
     wings_wm:message(Str),
     {push, fun(Ev) -> event_handler(Ev, Cs) end}.
 
@@ -119,7 +124,7 @@ event_handler(Ev0=#keyboard{which=menubar},
     wings_wm:dirty(),
     {replace,fun(Ev) -> event_handler(Ev, CS#cs{action=Action}) end};
 
-event_handler(Ev0= #mousebutton{}, #cs{info=Str, st=St}) ->
+event_handler(Ev0= #mousebutton{}, #cs{info=Str, st=St, sc=Sc}) ->
     case wings_menu:is_popup_event(Ev0) of
         no ->
 	    wings_wm:message(Str),
@@ -128,7 +133,10 @@ event_handler(Ev0= #mousebutton{}, #cs{info=Str, st=St}) ->
         {yes,Xglobal,Yglobal,Mod} ->
             TweakBits = wings_msg:free_rmb_modifier(),
             case Mod band TweakBits =/= 0 of
-		true ->  wings_tweak:menu(Xglobal, Yglobal);
+		true ->  case Sc of
+			     none -> wings_tweak:menu(Xglobal, Yglobal);
+			     _ -> wpc_sculpt:sculpt_menu(Xglobal, Yglobal, Sc)
+			 end;
 		false -> wings:popup_menu(Xglobal, Yglobal, St)
             end
     end;
@@ -138,32 +146,43 @@ event_handler(#keyboard{sym=27}, _) ->
     wings_wm:dirty(),
     pop;
 
-event_handler(Ev = #keyboard{unicode=UC}, #cs{op=bind, action=Cmd})
-  when Cmd =/= undefined, UC =/= 0 ->
-    case wings_hotkey:event(Ev, Cmd) of
-	next ->
-	    case hotkeys_by_commands([Cmd]) of
-		[] -> do_bind(Ev, Cmd);
-		Hotkeys ->
-		    HKs = ["[" ++ Hotkey ++"]" || {_, Hotkey, _, _} <- Hotkeys],
-		    Q = ?__(3,"This command is already bound to ") ++ string:join(HKs, ", ") ++
-			?__(4," hotkey. Do you want to re-define it?"),
-		    wings_u:yes_no(Q, fun() ->
-					[wings_hotkey:unbind(Key) || {Key, _, _, _} <- Hotkeys],
-					do_bind(Ev, Cmd)
-				      end)
-	    end;
-	OtherCmd ->
-	    C = wings_util:stringify(OtherCmd),
-	    Q = ?__(1,"This key is already bound to the ") ++ C ++
-		?__(2," command. Do you want to re-define it?"),
-	    wings_u:yes_no(Q, fun() -> do_bind(Ev, Cmd) end)
-    end,
-    wings_wm:dirty(),
-    pop;
+event_handler(Ev = #keyboard{}, #cs{op=bind, action=Cmd})
+  when Cmd =/= undefined ->
+    case disallow_bind(Ev) of
+        true ->
+            keep;
+        false ->
+            case event(Ev, Cmd) of
+                next ->
+                    case hotkeys_by_commands([Cmd]) of
+                        [] -> do_bind(Ev, Cmd);
+                        Hotkeys ->
+                            HKs = ["[" ++ Hotkey ++"]" || {_, Hotkey, _, _} <- Hotkeys],
+                            Q = ?__(3,"This command is already bound to ") ++ string:join(HKs, ", ") ++
+                                ?__(4," hotkey. Do you want to re-define it?"),
+                            wings_u:yes_no(Q, fun() ->
+                                                      [wings_hotkey:unbind(Key) || {Key, _, _, _} <- Hotkeys],
+                                                      do_bind(Ev, Cmd)
+                                              end)
+                    end;
+                OtherCmd ->
+                    C = wings_util:stringify(OtherCmd),
+                    Q = ?__(1,"This key is already bound to the ") ++ C ++
+                        ?__(2," command. Do you want to re-define it?"),
+                    wings_u:yes_no(Q, fun() -> do_bind(Ev, Cmd) end)
+            end,
+            wings_wm:dirty(),
+            pop
+    end;
 
 event_handler(_Ev, _) ->
     keep.
+
+disallow_bind(#keyboard{unicode=UC}) when UC =/= 0 -> false;
+disallow_bind(#keyboard{sym=Sym}) when ?SDLK_F1 =< Sym, Sym =< ?SDLK_F15 -> false;
+disallow_bind(#keyboard{sym=Sym}) when ?SDLK_KP0 =< Sym, Sym =< ?SDLK_KP_EQUALS -> false;
+disallow_bind(#keyboard{sym=Sym}) when ?SDLK_HOME =< Sym, Sym =< ?SDLK_PAGEDOWN -> false;
+disallow_bind(_) -> true.
 
 do_unbind(Action) ->
     case hotkeys_by_commands([Action]) of

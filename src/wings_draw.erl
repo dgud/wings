@@ -347,12 +347,12 @@ update_fun_2(proxy, D, St) ->
 %%%% Check if plugins using the Pst need a draw list updated.
 update_fun_2({plugin,{Plugin,{_,_}=Data}},#dlo{plugins=Pdl}=D,St) ->
     case lists:keytake(Plugin,1,Pdl) of
-	    false ->
-		  Plugin:update_dlist(Data,D,St);
-	    {_,{Plugin,{_,none}},Pdl0} ->
-	      Plugin:update_dlist(Data,D#dlo{plugins=Pdl0},St);
-		_ -> D
-	end;
+        false ->
+            Plugin:update_dlist(Data,D,St);
+        {_,{Plugin,{_,none}},Pdl0} ->
+            Plugin:update_dlist(Data,D#dlo{plugins=Pdl0},St);
+        _ -> D
+    end;
 
 update_fun_2(_, D, _) -> D.
 
@@ -360,12 +360,23 @@ make_edge_dl(Ns) ->
     {Tris,Quads,Polys,PsLens} = make_edge_dl_bin(Ns, <<>>, <<>>, <<>>, []),
     T = vbo_draw_arrays(?GL_TRIANGLES, Tris),
     Q = vbo_draw_arrays(?GL_QUADS, Quads),
-    DP = fun() ->
-		 foldl(fun(Length, Start) ->
-			       gl:drawArrays(?GL_POLYGON, Start, Length),
-			       Length+Start
-		       end, 0, PsLens)
-	 end,
+    DP = case wings_util:min_wx({1,8}) of
+             true ->
+                 {_,Ss,Ls} = foldl(fun(N, {Start, Ss, Ls}) ->
+                                           gl:drawArrays(?GL_POLYGON, Start, N),
+                                           {N+Start, <<Ss/binary, Start:?UI32>>, <<Ls/binary, N:?UI32>>}
+                                   end, {0, <<>>, <<>>}, PsLens),
+                 fun() ->
+                         gl:multiDrawArrays(?GL_POLYGON, Ss, Ls)
+                 end;
+             false ->
+                 fun() ->
+                         foldl(fun(Length, Start) ->
+                                       gl:drawArrays(?GL_POLYGON, Start, Length),
+                                       Length+Start
+                               end, 0, PsLens)
+                 end
+         end,
     P = wings_vbo:new(DP, Polys),
     [T,Q,P].
 
@@ -482,14 +493,26 @@ update_sel_all(#dlo{src_we=#we{fs=Ftab}}=D) ->
 update_face_sel(Fs0, #dlo{src_we=We,vab=#vab{face_vs=Vs,face_map=Map}=Vab}=D)
   when Vs =/= none ->
     Fs = wings_we:visible(Fs0, We),
-    F = fun() ->
-		wings_draw_setup:enable_pointers(Vab, []),
-		[begin
-		     {Start,NoElements} = array:get(Face, Map),
-		     gl:drawArrays(?GL_TRIANGLES, Start, NoElements)
-		 end || Face <- Fs],
-		wings_draw_setup:disable_pointers(Vab, [])
-	end,
+    F = case wings_util:min_wx({1,8}) of
+            true ->
+                Collect = fun(Face, {Ss,Es}) ->
+                                  {Start,NoElements} = array:get(Face, Map),
+                                  {<<Ss/binary, Start:?UI32>>, <<Es/binary, NoElements:?UI32>>}
+                          end,
+                {Start,NoElements} = lists:foldl(Collect, {<<>>,<<>>}, lists:reverse(Fs)),
+                fun() ->
+                        wings_draw_setup:enable_pointers(Vab, []),
+                        gl:multiDrawArrays(?GL_TRIANGLES, Start, NoElements),
+                        wings_draw_setup:disable_pointers(Vab, [])
+                end;
+            false ->
+                SN = [array:get(Face, Map) || Face <- Fs],
+                fun() ->
+                        wings_draw_setup:enable_pointers(Vab, []),
+                        [gl:drawArrays(?GL_TRIANGLES, S, N) || {S,N} <- SN],
+                        wings_draw_setup:disable_pointers(Vab, [])
+                end
+        end,
     Sel = {call,F,Vab},
     D#dlo{sel=Sel};
 update_face_sel(Fs0, #dlo{src_we=We}=D) ->
@@ -559,8 +582,7 @@ unlit_plain_face_1([], _, Bin) -> Bin.
 %%% Splitting of objects into two display lists.
 %%%
 
-split(#dlo{ns={Ns0},src_we=#we{fs=Ftab}}=D, Vs, St) ->
-    Ns = remove_stale_ns(Ns0, Ftab),
+split(#dlo{ns={Ns}}=D, Vs, St) ->
     split_1(D#dlo{ns=Ns}, Vs, St);
 split(D, Vs, St) -> split_1(D, Vs, St).
 
@@ -577,13 +599,14 @@ split_2(#dlo{mirror=M,src_sel=Sel,src_we=#we{fs=Ftab}=We,
     StaticVs = static_vs(Faces, Vs, We),
 
     VisFtab = wings_we:visible(gb_trees:to_list(Ftab), We),
-    {Work,#dlo{ns=Ns},FtabDyn} = split_faces(D, VisFtab, Faces, St),
+    {Work,#dlo{ns=Ns},FtabStatic,FtabDyn} =
+	split_faces(D, VisFtab, Faces, St),
 
     %% To support commands that create new objects with static
     %% geometry (such as Shell Extrude), we must be sure to pass
     %% on the new normals table or the static edges will not be
     %% visible.
-    StaticEdgeDl = make_static_edges(Faces, D#dlo{ns=Ns}),
+    StaticEdgeDl = make_static_edges(FtabStatic, D#dlo{ns=Ns}),
     {DynVs,VsDlist} = split_vs_dlist(Vs, StaticVs, Sel, We),
 
     WeDyn = wings_facemat:gc(We#we{fs=gb_trees:from_orddict(FtabDyn)}),
@@ -599,16 +622,6 @@ split_2(#dlo{mirror=M,src_sel=Sel,src_we=#we{fs=Ftab}=We,
 	 src_sel=Sel,src_we=WeDyn,split=Split,
 	 proxy=UsesProxy, proxy_data=Pd,
 	 needed=Needed,open=Open}.
-
-remove_stale_ns(none, _) -> none;
-remove_stale_ns(Ns, Ftab) ->
-    Deleted = array:default(Ns),
-    array:sparse_map(fun(Face, Term) ->
-			     case gb_trees:is_defined(Face, Ftab) of
-				 true  -> Term;
-				 false -> Deleted
-			     end
-		     end, Ns).
 
 static_vs(Fs, Vs, We) ->
     VsSet = gb_sets:from_ordset(Vs),
@@ -627,18 +640,17 @@ static_vs_1([], _, _, Acc) -> ordsets:from_list(Acc).
 split_faces(#dlo{needed=Need}=D0, Ftab0, Fs0, St) ->
     Ftab = sofs:from_external(Ftab0, [{face,data}]),
     Fs = sofs:from_external(Fs0, [face]),
+    {DynFtab0,StaticFtab0} = sofs:partition(1, Ftab, Fs),
+    DynFtab = sofs:to_external(DynFtab0),
+    StaticFtab = sofs:to_external(StaticFtab0),
     case member(work, Need) orelse member(smooth, Need) of
 	false ->
 	    %% This is wireframe mode. We don't need any
 	    %% 'work' display list for faces.
-	    FtabDyn = sofs:to_external(sofs:restriction(Ftab, Fs)),
-	    {none,D0,FtabDyn};
+	    {none,D0,StaticFtab,DynFtab};
 	true ->
 	    %% Faces needed. (Either workmode or smooth mode.)
-	    {FtabDyn0,StaticFtab0} = sofs:partition(1, Ftab, Fs),
-	    FtabDyn = sofs:to_external(FtabDyn0),
-	    StaticFtab = sofs:to_external(StaticFtab0),
-
+	    %%
 	    %% Make sure that every static face has an entry
 	    %% in the normals array. Most of the time, this is
 	    %% not needed because newly created faces are
@@ -650,7 +662,7 @@ split_faces(#dlo{needed=Need}=D0, Ftab0, Fs0, St) ->
 	    StaticPlan = wings_draw_setup:prepare(StaticFtab, D1, St),
 	    D = wings_draw_setup:flat_faces(StaticPlan, D1),
 	    Dl = draw_flat_faces(D, St),
-	    {[Dl],D1,FtabDyn}
+	    {[Dl],D1,StaticFtab,DynFtab}
     end.
 
 split_new_normals(Ftab, #dlo{ns=Ns0,src_we=We}=D) ->
@@ -674,22 +686,10 @@ split_new_normals([{Face,Edge}|T], We, Ns0) ->
     end;
 split_new_normals([], _, Ns) -> Ns.
 
-make_static_edges(DynFaces, #dlo{ns=none}) ->
-    make_static_edges_1(DynFaces, [], []);
-make_static_edges(DynFaces, #dlo{ns=Ns}) ->
-    make_static_edges_1(DynFaces, array:sparse_to_orddict(Ns), []).
-
-make_static_edges_1([F|Fs], [{F,_}|Ns], Acc) ->
-    make_static_edges_1(Fs, Ns, Acc);
-make_static_edges_1([_|_]=Fs, [{_,N}|Ns], Acc) ->
-    make_static_edges_1(Fs, Ns, [N|Acc]);
-make_static_edges_1(_, Ns, Acc) ->
-    make_static_edges_2(Ns, Acc).
-
-make_static_edges_2([{_,N}|Ns], Acc) ->
-    make_static_edges_2(Ns, [N|Acc]);
-make_static_edges_2([], Acc) ->
-    make_edge_dl(Acc).
+make_static_edges(_Ftab, #dlo{ns=none}) ->
+    make_edge_dl([]);
+make_static_edges(Ftab, #dlo{ns=Ns}) ->
+    make_edge_dl([array:get(F, Ns) || {F,_} <- Ftab]).
 
 insert_vtx_data([V|Vs], Vtab, Acc) ->
     insert_vtx_data(Vs, Vtab, [{V,array:get(V, Vtab)}|Acc]);

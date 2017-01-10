@@ -46,7 +46,7 @@ load() ->
             set_value(legacy_colors_checked, true),
             ok;
         PrefFile ->
-            io:format("wings-~s\nReading preferences from: ~s\n",
+            io:format("wings-~s\nReading preferences from: ~ts\n",
                 [?WINGS_VERSION, PrefFile]),
             case local_consult(PrefFile) of
                 {ok,List0} ->
@@ -404,7 +404,6 @@ defaults() ->
      {force_ortho_along_axis,false},
      {body_hilite,true},
      {auto_rotate_angle,1.0},
-     {auto_rotate_delay,60},
      {autosave,true},
      {autosave_time,10},
      {active_vector_size,1.0},
@@ -657,13 +656,6 @@ pref({load,Request,St}) ->
     case Request of
 	custom_theme ->
 	    pref(load);
-	olive_theme ->
-	    LegacyColors = wings_theme:legacy_colors(),
-	    Defaults = defaults(),
-	    Colors = colors(LegacyColors, Defaults),
-	    load_pref_category([{graphical,true}],[{graphical,Colors}],St),
-	    init_opengl(),
-	    keep;
 	Theme when is_atom(Theme) ->
 	    Colors = wings_theme:Theme(),
 	    load_pref_category([{graphical,true}],[{graphical,Colors}],St),

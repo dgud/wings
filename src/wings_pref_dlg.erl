@@ -477,8 +477,7 @@ misc_prefs() ->
 	       {text,num_undo_levels,[{range,{1,128}}]}]},
       {vframe,
        [{label_column,
-	 [{?__(5,"Angle"),auto_rotate_angle},
-	  {?__(6,"Delay (ms)"),auto_rotate_delay}]}],
+	 [{?__(5,"Angle"),auto_rotate_angle}]}],
        [{title,?__(7,"Auto Rotate")}]},
       {vframe,
        [{vframe,
@@ -557,6 +556,8 @@ smart_set_value_1(Key, Val, St) ->
 		background_color ->
 		    {R,G,B} = Val,
 		    gl:clearColor(R, G, B, 1.0);
+		outliner_geograph_bg ->
+		    wings_frame:update_theme();
 		autosave ->
 		    wings_file:init_autosave();
 		autosave_time ->

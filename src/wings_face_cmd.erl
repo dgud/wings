@@ -23,7 +23,7 @@
 	 % extract_faces/1
 
 -include("wings.hrl").
--import(lists, [foldl/3,reverse/1,sort/1,member/2]).
+-import(lists, [foldl/3,reverse/1,sort/1,keyfind/3,member/2]).
 
 menu(X, Y, St) ->
     Dir = wings_menu_util:directions(St),
@@ -162,7 +162,7 @@ command(dissolve, St) ->
 command(clean_dissolve, St) ->
     {save_state,wings_shape:update_folders(clean_dissolve(St))};
 command(bridge, St) ->
-    {save_state,wings_shape:recreate_folder_system(bridge([],St))};
+    {save_state,wings_shape:recreate_folder_system(bridge(St))};
 command({bridge,reference}, St) ->
     bridge_ref(St);
 command(smooth, St) ->
@@ -214,9 +214,7 @@ extrude({region, Axis}, St0) ->
 
 %%% Extrude Faces
 extrude_faces(St) ->
-    wings_sel:map(fun(Faces, We) ->
-			  wings_extrude_face:faces(Faces, We)
-		  end, St).
+    wings_sel:map(fun wings_extrude_face:faces/2, St).
 
 %%% Extrude the selected regions.
 extrude_region(St) ->
@@ -267,30 +265,22 @@ extrude_region_vmirror(OldWe, #we{mirror=Face0}=We0) ->
 
 shell_extrude(Axis, St0) ->
     St = shell_extrude(St0),
-    wings_move:setup(Axis, wings_sel:valid_sel(St)).
+    wings_move:setup(Axis, St).
 
 shell_extrude(St0) ->
-    Prev = wings_wm:get_prop(wireframed_objects),
-    #st{sel=Sel0}=St = wings_sel:fold(fun(Faces, We0, S0) ->
-            Regions = wings_sel:face_regions(Faces, We0),
-            shell_extrude_1(Regions, We0, S0)
-        end, St0#st{sel=[]}, St0),
-    Sel = lists:sort(Sel0),
-    Ids = gb_sets:from_list(orddict:fetch_keys(Sel)),
-    New = gb_sets:difference(Prev, Ids),
-    wings_wm:set_prop(wireframed_objects, New),
-    St#st{sel=Sel}.
+    CF = fun(Faces, We) ->
+                 Regions = wings_sel:face_regions(Faces, We),
+                 New = [shell_extrude_1(R, We) || R <- Regions],
+                 {We,gb_sets:empty(),New}
+         end,
+    wings_sel:clone(CF, St0).
 
-shell_extrude_1([Faces|Regions], We0, #st{sel=Sel0,onext=Oid}=St0) ->
-    #we{fs=AllFs0}=We1 = wings_dissolve:complement(Faces, We0),
+shell_extrude_1(Faces, We0) ->
+    #we{fs=AllFs0} = We1 = wings_dissolve:complement(Faces, We0),
     AllFs = gb_sets:from_ordset(gb_trees:keys(AllFs0)),
     Inverse = gb_sets:difference(AllFs, Faces),
     We = intrude_extract(Inverse, We1),
-    Sel = [{Oid,Faces}|Sel0],
-    St = wings_shape:insert(We, extract, St0),
-    shell_extrude_1(Regions, We0, St#st{sel=Sel});
-shell_extrude_1([], _, St) ->
-    St.
+    {We,Faces,extract}.
 
 intrude_extract(Faces0, #we{es=Etab,fs=Ftab,next_id=Wid}=We0) ->
     Faces = gb_sets:to_list(Faces0),
@@ -321,72 +311,62 @@ extract_faces(St0) ->
     St1 = wings_sel:map(fun(Faces, We) ->
 				wings_extrude_face:faces(Faces, We)
 			end, St0),
-    #st{sel=Sel}=St2 = extract_1(St1, St0),
-    wings_sel:set(Sel, St2).
+    extract_region(St1).
 
-extract_region(St0) ->
-    #st{sel=Sel}=St = extract_1(St0, St0),
-    wings_sel:set(Sel, St).
+extract_region(St) ->
+    CF = fun(Faces, We) ->
+                 Regions = wings_sel:face_regions(Faces, We),
+                 New = [extract_a_region(R, We) || R <- Regions],
+                 {We,gb_sets:empty(),New}
+         end,
+    wings_sel:clone(CF, St).
 
-extract_1(St, St0) ->
-    wings_sel:fold(
-	    fun(Faces, We0, S0) ->
-		    Regions = wings_sel:face_regions(Faces, We0),
-		    extract_2(Regions, We0, S0)
-	    end, St0#st{sel=[]}, St).
-
-extract_2([Faces|Regions], We0, #st{sel=Sel0,onext=Oid}=St0) ->
+extract_a_region(Faces, We0) ->
     We = wings_dissolve:complement(Faces, We0),
-    St = wings_shape:insert(We, extract, St0),
-    Sel = [{Oid,Faces}|Sel0],
-    extract_2(Regions, We0, St#st{sel=Sel});
-extract_2([],_,St) ->
-    St.
+    {We,Faces,extract}.
 
 %%%
 %%% The Dissolve command.
 %%%
 
-dissolve(St0) ->
-    {St,Sel} = wings_sel:mapfold(fun dissolve_sel/3, [], St0),
-    wings_sel:set(Sel, St).
+dissolve(St) ->
+    wings_sel:map_update_sel(fun dissolve_sel/2, St).
 
-dissolve_sel(Faces, #we{id=Id,fs=Ftab,holes=Holes,mirror=M}=We0, Acc) ->
+dissolve_sel(Faces, #we{fs=Ftab,holes=Holes,mirror=M}=We0) ->
     Mirror = if M =:= none -> 0; true -> 1 end,
     F1 = gb_sets:size(Faces) + length(Holes) + Mirror,
     F2 = gb_trees:size(Ftab),
     case F1 =:= F2 of
-      false ->
-        We = wings_dissolve:faces(Faces, We0),
-        Sel = wings_we:new_items_as_gbset(face, We0, We),
-        {We,[{Id,Sel}|Acc]};
-      true ->
-        {#we{},Acc}
+	false ->
+	    We = wings_dissolve:faces(Faces, We0),
+	    Sel = wings_we:new_items_as_gbset(face, We0, We),
+	    {We,Sel};
+	true ->
+	    {#we{},gb_sets:empty()}
     end.
 
 %%%
 %%% Clean Dissolve
 %%%
 
-clean_dissolve(St0) ->
-    {St,Sel} = wings_sel:mapfold(fun clean_dissolve_sel/3, [], St0),
-    wings_sel:set(Sel, St).
+clean_dissolve(St) ->
+    wings_sel:map_update_sel(fun clean_dissolve_sel/2, St).
 
-clean_dissolve_sel(Faces, #we{id=Id,fs=Ftab,holes=Holes,mirror=M}=We0, Acc) ->
+clean_dissolve_sel(Faces, #we{fs=Ftab,holes=Holes,mirror=M}=We0) ->
     Mirror = if M =:= none -> 0; true -> 1 end,
     F1 = gb_sets:size(Faces) + length(Holes) + Mirror,
     F2 = gb_trees:size(Ftab),
     case F1 =:= F2 of
-      false ->
-         IsolatedVs1 = wings_vertex:isolated(We0),
-         We1 = wings_dissolve:faces(Faces, We0),
-         IsolatedVs2 = wings_vertex:isolated(We1),
-         C = IsolatedVs2 -- IsolatedVs1,
-         We = wings_edge:dissolve_isolated_vs(C, We1),
-         Sel = wings_we:new_items_as_gbset(face, We0, We),
-         {We,[{Id,Sel}|Acc]};
-      true ->
-        {#we{},Acc}
+	false ->
+	    IsolatedVs1 = wings_vertex:isolated(We0),
+	    We1 = wings_dissolve:faces(Faces, We0),
+	    IsolatedVs2 = wings_vertex:isolated(We1),
+	    C = IsolatedVs2 -- IsolatedVs1,
+	    We = wings_edge:dissolve_isolated_vs(C, We1),
+	    Sel = wings_we:new_items_as_gbset(face, We0, We),
+	    {We,Sel};
+	true ->
+	    {#we{},gb_sets:empty()}
     end.
 
 %%%
@@ -394,13 +374,13 @@ clean_dissolve_sel(Faces, #we{id=Id,fs=Ftab,holes=Holes,mirror=M}=We0, Acc) ->
 %%%
 
 intrude(St0) ->
-    {St,Sel} = wings_sel:mapfold(fun intrude/3, [], St0),
-    wings_move:setup(intrude, wings_sel:set(Sel, St)).
+    St = wings_sel:map_update_sel(fun intrude/2, St0),
+    wings_move:setup(intrude, St).
 
-intrude(Faces0, We0, SelAcc) ->
+intrude(Faces0, We0) ->
     We1 = wings_dissolve:faces(Faces0, wings_we:break_mirror(We0)),
     Faces = wings_we:new_items_as_ordset(face, We0, We1),
-    #we{id=Id,es=Etab,fs=Ftab,next_id=Wid} = We1,
+    #we{es=Etab,fs=Ftab,next_id=Wid} = We1,
     RootSet0 = foldl(
 		 fun(F, A) ->
 			 Edge = gb_trees:get(F, Ftab),
@@ -417,7 +397,7 @@ intrude(Faces0, We0, SelAcc) ->
 	false ->
 	    We5 = intrude_bridge(RootSet0, RootSet, We4),
 	    We = restore_mirror(We5, We0),
-	    {We,[{Id,Sel}|SelAcc]};
+	    {We,Sel};
 	true ->
 	    wings_u:error_msg(?__(1,"Intrude does not work with all faces selected."))
     end.
@@ -437,18 +417,20 @@ intrude_bridge([], [], We) -> We.
 %%% The Mirror command.
 %%%
 
-mirror_separate(St0) ->
-    St = wings_sel:fold(fun mirror_sep_faces/3, St0, St0),
-    wings_sel:clear(St).
-    
-mirror_sep_faces(Faces, We0, Acc) when is_list(Faces) ->
+mirror_separate(St) ->
+    CF = fun(Faces, We) ->
+                 New = mirror_sep_faces(Faces, We),
+                 {We,gb_sets:empty(),New}
+         end,
+    wings_sel:clone(CF, St).
+
+mirror_sep_faces(Faces, We0) ->
     Template = wings_we:invert_normals(We0),
-    foldl(fun(Face, A) ->
-		  We = mirror_vs(Face, Template),
-		  wings_shape:insert(We, mirror, A)
-	  end, Acc, Faces);
-mirror_sep_faces(Faces, We, Acc) ->
-    mirror_sep_faces(gb_sets:to_list(Faces), We, Acc).
+    Empty = gb_sets:empty(),
+    gb_sets:fold(fun(Face, A) ->
+                         We = mirror_vs(Face, Template),
+                         [{We,Empty,mirror}|A]
+                 end, [], Faces).
 
 mirror(St0) ->
     St = wings_sel:map(fun mirror_faces/2, St0),
@@ -637,17 +619,16 @@ do_flatten_normal(Faces, Center, We) ->
 %%% The Subdivide command.
 %%%
 
-subdiv(St0) ->
-    {St,Sel} = wings_sel:mapfold(fun subdiv/3, [], St0),
-    wings_sel:set(Sel, St).
+subdiv(St) ->
+    wings_sel:map_update_sel(fun subdiv/2, St).
 
-subdiv(Faces0, #we{id=Id}=We0, Acc) ->
+subdiv(Faces0, We0) ->
     Rs = wings_sel:face_regions(Faces0, We0),
     wings_pb:start(?__(1,"subdividing")),
     We1 = wings_pb:done(subdiv_regions(Rs, 1, length(Rs), We0)),
     NewSelFaces = wings_we:new_items_as_ordset(face, We0, We1),
     We = wings_we:mirror_flatten(We0, We1),
-    {We,[{Id,gb_sets:from_ordset(NewSelFaces)}|Acc]}.
+    {We,gb_sets:from_ordset(NewSelFaces)}.
 
 subdiv_regions([Faces0|Rs], I, N, #we{he=Htab}=We0) ->
     wings_pb:update(I/N, io_lib:format("~p/~p\n", [I,N])),
@@ -664,11 +645,10 @@ subdiv_regions([], _, _, We) -> We.
 %%% The Smooth command.
 %%%
 
-smooth(St0) ->
-    {St,Sel} = wings_sel:mapfold(fun smooth/3, [], St0),
-    wings_sel:set(Sel, St).
+smooth(St) ->
+    wings_sel:map_update_sel(fun smooth/2, St).
 
-smooth(Faces0, #we{id=Id}=We0, Acc) ->
+smooth(Faces0, We0) ->
     Rs = wings_sel:face_regions(Faces0, We0),
     wings_pb:start(?__(1,"smoothing")),
     We1 = wings_pb:done(smooth_regions(Rs, 1, length(Rs), We0)),
@@ -676,7 +656,7 @@ smooth(Faces0, #we{id=Id}=We0, Acc) ->
     NewVs = wings_we:new_items_as_ordset(vertex, We0, We1),
     We2 = smooth_connect(NewVs, NewSelFaces, We1),
     We = wings_we:mirror_flatten(We0, We2),
-    {We,[{Id,gb_sets:from_ordset(NewSelFaces)}|Acc]}.
+    {We,gb_sets:from_ordset(NewSelFaces)}.
 
 smooth_regions([Faces0|Rs], I, N, #we{he=Htab}=We0) ->
     wings_pb:update(I/N, io_lib:format("~p/~p\n", [I,N])),
@@ -746,160 +726,124 @@ smooth_connect_3(Va, Vb, Face, Hide, We0) ->
 	Face < 0 -> {We,[NewFace|Hide]};
 	true -> {We,Hide}
     end.
-    
+
 %%%
 %%% The Bridge command.
 %%%
 
-bridge(Reference, #st{shapes=Shapes0,sel=[{IdA,FacesA},{IdB,FacesB}]}=St0) ->
-    case {gb_sets:to_list(FacesA),gb_sets:to_list(FacesB)} of
-	{[FA],[FB0]} ->
-	    #we{next_id=Id}=WeA = wings_we:break_mirror(gb_trees:get(IdA, Shapes0)),
-	    #we{}=WeB0 = wings_we:break_mirror(gb_trees:get(IdB, Shapes0)),
-	    {WeB,[{face,FB}]} = wings_we:renumber(WeB0, Id, [{face,FB0}]),
-	    We = wings_we:merge(WeA, WeB),
-	    Shapes1 = gb_trees:delete(IdB, Shapes0),
-	    Shapes = gb_trees:update(IdA, We, Shapes1),
-	    Sel = [{IdA,gb_sets:from_list([FA,FB])}],
-	    St1 = wings_sel:set(Sel, St0),
-	    St = St1#st{shapes=Shapes},
-	    Reference0 =
-		case Reference of
-		    [{IdA,VrA},{IdB,VrB}] ->
-			[gb_sets:smallest(VrA),new_vertex_id(gb_sets:smallest(VrB),wings_face:vertices_ccw(FB0,WeB0),wings_face:vertices_ccw(FB,We))];
-		    [{IdB,VrB},{IdA,VrA}] ->
-			[gb_sets:smallest(VrB),new_vertex_id(gb_sets:smallest(VrA),wings_face:vertices_ccw(FA,We),wings_face:vertices_ccw(FB,We))];
-		    _ -> []
-		end,
-	    bridge(Reference0, St);
-	{[_],FB0} ->
-	    WeB0 = gb_trees:get(IdB, Shapes0),
-	    case wings_sel:face_regions(FB0, WeB0) of
-	      [Region] ->
-	        WeB = wings_dissolve:faces(Region, WeB0),
-	        Face = wings_we:new_items_as_gbset(face, WeB0, WeB),
-	        Shapes = gb_trees:update(IdB, WeB, Shapes0),
-	        St = St0#st{shapes=Shapes,sel=[{IdA,FacesA},{IdB,Face}]},
-	        bridge(Reference, St);
-	      _ -> bridge_error()
-	    end;
-	{FA0,[_]} ->
-	    WeA0 = gb_trees:get(IdA, Shapes0),
-	    case wings_sel:face_regions(FA0, WeA0) of
-	      [Region] ->
-	        WeA = wings_dissolve:faces(Region, WeA0),
-	        Face = wings_we:new_items_as_gbset(face, WeA0, WeA),
-	        Shapes = gb_trees:update(IdA, WeA, Shapes0),
-	        St = St0#st{shapes=Shapes,sel=[{IdA,Face},{IdB,FacesB}]},
-	        bridge(Reference, St);
-	      _ -> bridge_error()
-	    end;
-	{FA0,FB0} ->
-	    WeA0 = gb_trees:get(IdA, Shapes0),
-	    case wings_sel:face_regions(FA0, WeA0) of
-	      [RegionA] ->
-	        WeB0 = gb_trees:get(IdB, Shapes0),
-	        case wings_sel:face_regions(FB0, WeB0) of
-	          [RegionB] ->
-	            WeB = wings_dissolve:faces(RegionB, WeB0),
-	            FaceB = wings_we:new_items_as_gbset(face, WeB0, WeB),
-	            Shapes1 = gb_trees:update(IdB, WeB, Shapes0),
-	            WeA = wings_dissolve:faces(RegionA, WeA0),
-	            FaceA = wings_we:new_items_as_gbset(face, WeA0, WeA),
-	            Shapes = gb_trees:update(IdA, WeA, Shapes1),
-	            St = St0#st{shapes=Shapes,sel=[{IdA,FaceA},{IdB,FaceB}]},
-	            bridge(Reference, St);
-	          _ -> bridge_error()
-	        end;
-	      _ -> bridge_error()
-	    end
-    end;
-bridge(Reference, #st{shapes=Shapes0,sel=[{Id,Faces0}]}=St0) ->
+bridge(St) ->
+    CF = fun(Faces, We) -> bridge_combine(Faces, We) end,
+    wings_sel:combine(CF, St).
+
+bridge_combine(Faces0, We0) ->
     case gb_sets:to_list(Faces0) of
 	[FA,FB] ->
-	    We0 = gb_trees:get(Id, Shapes0),
-	    We = bridge_0(Reference, FA, FB, We0),
-	    Shapes = gb_trees:update(Id, We, Shapes0),
-	    St0#st{shapes=Shapes,sel=[]};
+	    We = bridge_0([], FA, FB, We0),
+            {We,gb_sets:empty()};
 	FaceSel ->
-	    We0 = gb_trees:get(Id, Shapes0),
 	    case wings_sel:face_regions(FaceSel, We0) of
-	      [_,_] ->
-	        We = wings_dissolve:faces(FaceSel, We0),
-	        Faces = wings_we:new_items_as_gbset(face, We0, We),
-	        Shapes = gb_trees:update(Id, We, Shapes0),
-	        St = St0#st{shapes=Shapes,sel=[{Id,Faces}]},
-	        bridge(Reference, St);
-	      _ -> bridge_error()
+                [_,_] ->
+                    We = wings_dissolve:faces(FaceSel, We0),
+                    Faces = wings_we:new_items_as_gbset(face, We0, We),
+                    bridge_combine(Faces, We);
+                _ ->
+                    bridge_error()
 	    end
-    end;
-bridge(_, _St) ->
-    bridge_error().
+    end.
 
-bridge_ref(#st{shapes=Shps, sel=[{IdA,FsA},{IdB,FsB}]}=St) ->
-    WeA = gb_trees:get(IdA,Shps),
-    WeB = gb_trees:get(IdB,Shps),
-    VsA = wings_face:to_vertices(FsA, WeA),
-    VsB = wings_face:to_vertices(FsB, WeB),
-    wings:ask(bridge_selection({IdA,VsA}, {IdB,VsB}), St, fun bridge_ref/2).
+%%% The bridge command with reference vertices.
 
-bridge_ref(Reference, St) ->
-    {save_state,wings_shape:recreate_folder_system(bridge(Reference, St))}.
+bridge_ref(#st{selmode=face}=St) ->
+    MF = fun(Faces, #we{id=Id}=We) ->
+                 Rs = wings_sel:face_regions(Faces, We),
+                 F = fun(Fs) ->
+                             Es = wings_face:outer_edges(Fs, We),
+                             Vs = wings_vertex:from_edges(Es, We),
+                             {Id,gb_sets:from_ordset(Vs)}
+                     end,
+                 [F(R) || R <- Rs]
+         end,
+    RF = fun erlang:'++'/2,
+    OrigSel = sort(wings_sel:dfold(MF, RF, [], St)),
 
-bridge_selection({IdA,VsA}, {IdB,VsB}) ->
+    %% Exactly two face regions must be selected. The regions must
+    %% not share even a single vertex.
+    case OrigSel of
+        [{Id0,Vs0},{Id1,Vs1}] ->
+            case Id0 =/= Id1 orelse gb_sets:is_disjoint(Vs0, Vs1) of
+                false -> bridge_error_neighbors();
+                true -> ok
+            end,
+            wings:ask(bridge_selection(OrigSel), St, fun bridge_ref/2);
+        _ ->
+            bridge_error()
+    end.
+
+bridge_ref(Ref0, St) ->
+    MF = fun(WeSels) ->
+                 WeRoot0 = [{We,bridge_root_set(Fs, Ref0, We)} ||
+                               {We,Fs} <- WeSels],
+                 {We0,WeRoot} = wings_we:merge_root_set(WeRoot0),
+                 Fs0 = sort([F || {face,F} <- WeRoot]),
+                 We1 = wings_dissolve:faces(Fs0, We0),
+                 Fs = wings_we:new_items_as_ordset(face, We0, We1),
+                 Vs0 = [V || {vertex,V} <- WeRoot],
+                 Ref = bridge_order_vs(Vs0, Fs, We1),
+                 case Fs of
+                     [FaceA,FaceB] ->
+                         We = bridge_0(Ref, FaceA, FaceB, We1),
+                         {We,gb_sets:empty()};
+                     _ ->
+                         bridge_error()
+                 end
+         end,
+    {save_state,wings_sel:merge(MF, St)}.
+
+bridge_root_set(Faces, Ref, #we{id=Id}) ->
+    Vs = [{vertex,V} || {I,V} <- Ref, I =:= Id],
+    [{face,F} || F <- gb_sets:to_list(Faces)] ++ Vs.
+
+bridge_order_vs(Vs, Fs, We) ->
+    L = [{F,V} || V <- Vs, F <- Fs, is_vertex_in_face(V, F, We)],
+    [V || {_,V} <- sort(L)].
+
+is_vertex_in_face(V, F, We) ->
+    member(V, wings_face:to_vertices([F], We)).
+
+bridge_selection(OrigSel) ->
     Desc  = ?__(1,"Select a single vertex as reference from each selected face or region border."),
     Desc1 = ?__(2,"Nothing selected."),
-    Desc2 = ?__(3,"You must select only one vertex on each face/region."),
-    Desc3 = ?__(4,"Invalid selection."),
-    Fun = fun
-	      (check, #st{sel=[]}) ->
+    Desc2 = ?__(3,"You must select one vertex in each face/region."),
+    Fun = fun (check, #st{sel=[]}) ->
 		  {none, Desc1};
-	      (check, #st{sel=[{Id,Vs}]}=_St) when Id =:= IdA; Id =:= IdB ->
-		  V =
-		  case Id of
-		      IdA -> bridge_sel_validate(Vs,VsA);
-		      IdB -> bridge_sel_validate(Vs,VsB)
-		  end,
-		  if V =:= false -> {none, Desc2};
-		      true -> {none, []}
+	      (check, St) ->
+                  case bridge_get_valid_sel(OrigSel, St) of
+                      error -> {none,Desc2};
+                      _ -> {none,[]}
 		  end;
-	      (check, #st{sel=[{IdA0,VsA0},{IdB0,VsB0}]}=_St)
-		  when IdA0 =:= IdA; IdB0 =:= IdB; IdA0 =:= IdB; IdB0 =:= IdA ->
-
-		  Aa = bridge_sel_validate(VsA0,VsA),
-		  Bb = bridge_sel_validate(VsB0,VsB),
-		  Ab = bridge_sel_validate(VsA0,VsB),
-		  Ba = bridge_sel_validate(VsB0,VsA),
-		  case {Aa,Bb,Ab,Ba} of
-		      {Va,Vb,false,false} when Va =/= false, Vb =/= false -> {none, []};
-		      {false,false,Vb,Va} when Vb =/= false, Va =/= false -> {none, []};
-		      _ -> {none, Desc2}
-		  end;
-	      (check, _St) ->
-		  {none, Desc3};
-	      (exit, {_,_,#st{sel=[{_,VsA0},{_,VsB0}]=Sel}}) ->
-		  Aa = bridge_sel_validate(VsA0,VsA),
-		  Bb = bridge_sel_validate(VsB0,VsB),
-		  Ba = bridge_sel_validate(VsB0,VsA),
-		  Ab = bridge_sel_validate(VsA0,VsB),
-		  case {Aa,Bb,Ba, Ab} of
-		      {false,_,false,_} -> error;
-		      {_,false,_,false} -> error;
-		      _ -> {result,Sel}
-		  end;
-	      (exit,_) -> error
+	      (exit, {_,_,St}) ->
+                  bridge_get_valid_sel(OrigSel, St)
 	  end,
     {[{Fun,Desc}],[],[],[vertex]}.
 
-bridge_sel_validate(Vs, VsList) ->
-    case gb_sets:to_list(Vs) of
-	[V] ->
-	    case lists:member(V, VsList) of
-		false -> false;
-		_ -> V
-	    end;
-	_ -> false
+bridge_get_valid_sel(OrigSel, St) ->
+    MF = fun(Vs, #we{id=Id}) ->
+                 [{Id,V} || V <- gb_sets:to_list(Vs)]
+         end,
+    RF = fun erlang:'++'/2,
+    Sel = sort(wings_sel:dfold(MF, RF, [], St)),
+    case is_bridge_sel_valid(Sel, OrigSel) of
+        false -> error;
+        true -> {result,Sel}
     end.
+
+is_bridge_sel_valid([_,_]=Sel, OrigSel) ->
+    M = [{Id1,Vs} || {Id0,V} <- Sel,
+                     {Id1,Vs} <- OrigSel,
+                     Id0 =:= Id1,
+                     gb_sets:is_member(V, Vs)],
+    sort(M) =:= OrigSel;
+is_bridge_sel_valid(_, _) -> false.
 
 bridge_0(Reference, FaceA, FaceB, We0) ->
     VsA0 = wings_face:vertices_ccw(FaceA, We0),
@@ -962,11 +906,13 @@ bridge_1(Reference, FaceA, VsA, FaceB, VsB, #we{vp=Vtab}=We) ->
 	_Dot ->
 	    case wings_face:are_neighbors(FaceA, FaceB, We) of
 		true ->
-		    bridge_error(?__(3,"Faces must not be neighbors."));
+                    bridge_error_neighbors();
 		false ->
 		    case Reference of
-			[VsAr,VsBr] -> bridge_ref(FaceA, VsAr, FaceB, VsBr, We);
-			_ -> bridge(FaceA, VsA, FaceB, VsB, We)
+			[VsAr,VsBr] ->
+			    bridge_ref(FaceA, VsAr, FaceB, VsBr, We);
+			_ ->
+			    bridge(FaceA, VsA, FaceB, VsB, We)
 		    end
 	    end
     end.
@@ -1102,15 +1048,12 @@ get_edge(Edge, Etab) ->
 	Erec -> Erec
     end.
 
-new_vertex_id(OldV, []=_OldVs, _NewVs) -> OldV;
-new_vertex_id(OldV, _OldVs, []=_NewVs) -> OldV;
-new_vertex_id(OldV, [OldV|_], [NewV|_]) -> NewV;
-new_vertex_id(OldV, [_|OldVs], [_|NewVs]) ->
-    new_vertex_id(OldV, OldVs, NewVs).
+-spec bridge_error_neighbors() -> no_return().
+bridge_error_neighbors() ->
+    bridge_error(?__(1,"Faces must not be neighbors.")).
 
 -spec bridge_error() -> no_return().
 bridge_error() ->
-    %?__(1,"Exactly two faces must be selected.")
     bridge_error(?__(2,"Exactly two face regions must be selected.")).
 
 -spec bridge_error(any()) -> no_return().
@@ -1133,34 +1076,42 @@ lift_selection(Dir, OrigSt) ->
 	  end,
     {[{Fun,Desc}],[],[],[vertex,edge]}.
 
-lift_check_selection(#st{selmode=edge,sel=EdgeSel}, OrigSt) ->
-    Res = wings_sel:fold(
-	    fun(_, _, error) -> error;
-	       (Faces, #we{id=Id}=We, [{Id,Edges}|More]) ->
-		    case lift_face_edge_pairs(Faces, Edges, We) of
-			error -> error;
-			_ -> More
-		    end;
-	       (_, _, _) -> error
-	    end, EdgeSel, OrigSt),
-    case Res of
-	[] -> {none,""};
-	_ -> {none,?__(1,"Face and edge selections don't match.")}
-    end;
-lift_check_selection(#st{selmode=vertex,sel=VsSel}, OrigSt) ->
-    Res = wings_sel:fold(
-	    fun(_, _, error) -> error;
-	       (Faces, #we{id=Id}=We, [{Id,Vs}|More]) ->
-		    case lift_face_vertex_pairs(Faces, Vs, We) of
-			error -> error;
-			_ -> More
-		    end;
-	       (_, _, _) -> error
-	    end, VsSel, OrigSt),
-    case Res of
-	[] -> {none,""};
-	_ -> {none,?__(2,"Face and vertex selections don't match.")}
+lift_check_selection(St, OrigSt) ->
+    {Mode,SelMap} = export_sel(St),
+    {F,Msg} = case Mode of
+                  edge ->
+                      {fun lift_face_edge_pairs/3,
+                       ?__(1,"Face and edge selections don't match.")};
+                  vertex ->
+                      {fun lift_face_vertex_pairs/3,
+                       ?__(2,"Face and vertex selections don't match.")}
+              end,
+    case lift_check_selection_1(F, SelMap, OrigSt) of
+	ok -> {none,""};
+	error -> {none,Msg}
     end.
+
+lift_check_selection_1(F, SelMap, #st{selmode=face}=St) ->
+    MF = fun(Faces, #we{id=Id}=We) ->
+                 case SelMap of
+                     #{Id:=Items} -> F(Faces, Items, We);
+                     #{} -> error
+                 end
+         end,
+    RF = fun(error, _) -> error;
+            (_, error) -> error;
+            (L, A) -> L ++ A
+         end,
+    case wings_sel:dfold(MF, RF, [], St) of
+        error -> error;
+        [_|_] -> ok
+    end.
+
+export_sel(#st{selmode=Mode}=St) ->
+    MF = fun(Items, #we{id=Id}) -> {Id,Items} end,
+    RF = fun(S, A) -> [S|A] end,
+    Sel = wings_sel:dfold(MF, RF, [], St),
+    {Mode,maps:from_list(Sel)}.
 
 lift({'ASK',Ask}, St) ->
     wings:ask(Ask, St, fun lift/2);
@@ -1171,39 +1122,46 @@ lift({Dir,vertex,VertexSel}, St) ->
 lift(Dir, St) ->
     wings:ask(lift_selection(Dir, St), St, fun lift/2).
 
-lift_setup_drag(Tvs, rotate, St) ->
-    wings_drag:setup(Tvs, [angle], St);
-lift_setup_drag(Tvs, free, St) ->
-    wings_drag:setup(Tvs, [dx,dy,dz], [screen_relative], St);
-lift_setup_drag(Tvs, _, St) ->
-    wings_drag:setup(Tvs, [distance], St).
+lift_setup_drag(F, rotate, St) ->
+    wings_drag:fold(F, [angle], St);
+lift_setup_drag(F, free, St) ->
+    wings_drag:fold(F, [dx,dy,dz], [screen_relative], St);
+lift_setup_drag(F, _, St) ->
+    wings_drag:fold(F, [distance], St).
 
 %%%
 %%% Lift from edge.
 %%%
 
-lift_from_edge(Dir, EdgeSel, St0) ->
-    Res = wings_sel:mapfold(
-	    fun(Faces, #we{id=Id}=We0, {[{Id,Edges}|ES],Tv0}) ->
-		    {We,Tv} = lift_from_edge(Dir, Faces, Edges, We0, Tv0),
-		    {We,{ES,Tv}};
-	       (_, _, _) -> lift_sel_mismatch()
-	    end, {EdgeSel,[]}, St0),
-    case Res of
-	{St,{[],Tvs}} -> lift_setup_drag(Tvs, Dir, St);
-	{_,_} -> lift_sel_mismatch()
-    end.
+lift_from_edge(Dir, EdgeSel0, St0) ->
+    EdgeSel = maps:from_list(EdgeSel0),
+    MF = fun(Faces, #we{id=Id}=We0) ->
+                 case EdgeSel of
+                     #{Id:=Edges} ->
+                         {We,Tv0} = lift_from_edge(Dir, Faces, Edges, We0),
+                         Tv = wings_drag:compose(Tv0),
+                         We#we{temp=Tv};
+                     #{} ->
+                         We0#we{temp=[]}
+                 end
+         end,
+    St = wings_sel:map(MF, St0),
+    FF = fun(_, #we{temp=[]}) -> lift_sel_mismatch();
+            (_, #we{temp=Tv}) -> Tv
+         end,
+    lift_setup_drag(FF, Dir, St).
 
 -spec lift_sel_mismatch() -> no_return().
 lift_sel_mismatch() ->
     wings_u:error_msg(?__(1,"Face and edge selections don't match.")).
-	
-lift_from_edge(Dir, Faces, Edges, We0, Tv) ->
+
+lift_from_edge(Dir, Faces, Edges, We0) ->
     case lift_face_edge_pairs(Faces, Edges, We0) of
-	error -> lift_sel_mismatch();		%Can happen if repeated.
+	error ->
+            lift_sel_mismatch();              %Can happen if repeated.
 	FaceEdgeRel ->
 	    We = wings_extrude_face:faces(Faces, We0),
-	    lift_from_edge_1(Dir, FaceEdgeRel, We0, We, Tv)
+	    lift_from_edge_1(Dir, FaceEdgeRel, We0, We, [])
     end.
 
 lift_from_edge_1(Dir, [{Face,Edge}|T], #we{es=Etab}=OrigWe, We0, Tv0) ->
@@ -1215,7 +1173,7 @@ lift_from_edge_1(Dir, [{Face,Edge}|T], #we{es=Etab}=OrigWe, We0, Tv0) ->
     lift_from_edge_1(Dir, T, OrigWe, We, Tv);
 lift_from_edge_1(_Dir, [], _OrigWe, We, Tv) -> {We,Tv}.
 
-lift_from_edge_2(Dir, Face, Edge, Side, #we{id=Id,es=Etab}=We0, Tv) ->
+lift_from_edge_2(Dir, Face, Edge, Side, #we{es=Etab}=We0, Tv) ->
     FaceVs0 = ordsets:from_list(wings_face:vertices_ccw(Face, We0)),
     #edge{vs=Va0,ve=Vb0} = array:get(Edge, Etab),
     {Va,Ea} = lift_edge_vs(Va0, FaceVs0, We0),
@@ -1231,12 +1189,12 @@ lift_from_edge_2(Dir, Face, Edge, Side, #we{id=Id,es=Etab}=We0, Tv) ->
 			left -> e3d_vec:norm_sub(VbPos, VaPos);
 			right -> e3d_vec:norm_sub(VaPos, VbPos)
 		   end,
-	    Rot = wings_rotate:rotate(Axis, VaPos, FaceVs, We, Tv),
-	    {We,Rot};
+	    Rot = wings_rotate:rotate(Axis, VaPos, FaceVs, We),
+	    {We,[Rot|Tv]};
 	_Other ->
 	    Vec = wings_util:make_vector(Dir),
 	    Move = wings_move:setup_we(vertex, Vec, FaceVs, We),
-	    {We,[{Id,Move}|Tv]}
+	    {We,[Move|Tv]}
     end.
 
 lift_edge_vs(V, FaceVs, We) ->
@@ -1273,27 +1231,33 @@ lift_face_edge_pairs(Faces, Edges, We) ->
 %%% Lift from vertex.
 %%%
 
-lift_from_vertex(Dir, VsSel, St0) ->
-    Res = wings_sel:mapfold(
-	    fun(Faces, #we{id=Id}=We0, {[{Id,Vs}|MoreVs],Tv0}) ->
-		    {We,Tv} = lift_from_vertex(Dir, Faces, Vs, We0, Tv0),
-		    {We,{MoreVs,Tv}};
-	       (_, _, _) -> lift_vtx_sel_mismatch()
-	    end, {VsSel,[]}, St0),
-    case Res of
-	{St,{[],Tvs}} -> lift_setup_drag(Tvs, Dir, St);
-	{_,_} -> lift_vtx_sel_mismatch()
-    end.
+lift_from_vertex(Dir, VsSel0, St0) ->
+    VsSel = maps:from_list(VsSel0),
+    MF = fun(Faces, #we{id=Id}=We0) ->
+                 case VsSel of
+                     #{Id:=Vs} ->
+                         {We,Tv0} = lift_from_vertex(Dir, Faces, Vs, We0),
+                         Tv = wings_drag:compose(Tv0),
+                         We#we{temp=Tv};
+                     #{} ->
+                         We0#we{temp=[]}
+                 end
+         end,
+    St = wings_sel:map(MF, St0),
+    FF = fun(_, #we{temp=[]}) -> lift_vtx_sel_mismatch();
+            (_, #we{temp=Tv}) -> Tv
+         end,
+    lift_setup_drag(FF, Dir, St).
 
 -spec lift_vtx_sel_mismatch() -> no_return().
 lift_vtx_sel_mismatch() ->
     wings_u:error_msg(?__(1,"Face and vertex selections don't match.")).
 
-lift_from_vertex(Dir, Faces, Vs, We, Tv) ->
+lift_from_vertex(Dir, Faces, Vs, We) ->
     case lift_face_vertex_pairs(Faces, Vs, We) of
 	error -> lift_vtx_sel_mismatch();	%Can happen if repeated.
 	FaceVtxRel ->
-	    lift_from_vertex_1(Dir, FaceVtxRel, We, Tv)
+	    lift_from_vertex_1(Dir, FaceVtxRel, We, [])
     end.
 
 lift_from_vertex_1(Dir, [{Face,V}|T], We0, Tv0) ->
@@ -1301,7 +1265,7 @@ lift_from_vertex_1(Dir, [{Face,V}|T], We0, Tv0) ->
     lift_from_vertex_1(Dir, T, We, Tv);
 lift_from_vertex_1(_Dir, [], We, Tv) -> {We,Tv}.
 
-lift_from_vertex_2(Dir, Face, V, #we{id=Id,next_id=Next}=We0, Tv) ->
+lift_from_vertex_2(Dir, Face, V, #we{next_id=Next}=We0, Tv) ->
     We1 = wings_extrude_face:faces([Face], We0),
     We = wings_vertex:fold(
 	   fun(Edge, _, _, W) when Edge >= Next ->
@@ -1326,12 +1290,12 @@ lift_from_vertex_2(Dir, Face, V, #we{id=Id,next_id=Next}=We0, Tv) ->
 	    M = e3d_vec:norm(e3d_vec:add(Vecs)),
 	    N = wings_face:normal(Face, We),
 	    Axis = e3d_vec:cross(M, N),
- 	    Rot = wings_rotate:rotate(Axis, Vpos, FaceVs, We, Tv),
-	    {We,Rot};
+            Rot = wings_rotate:rotate(Axis, Vpos, FaceVs, We),
+	    {We,[Rot|Tv]};
 	_Other ->
 	    Vec = wings_util:make_vector(Dir),
 	    Move = wings_move:setup_we(vertex, Vec, FaceVs, We),
-	    {We,[{Id,Move}|Tv]}
+	    {We,[Move|Tv]}
     end.
 
 %% Pair the face selection with the vertex selection (if possible).
@@ -1358,47 +1322,54 @@ lift_face_vertex_pairs(Faces, Vs, We) ->
 %%% The Put On command.
 %%%
 
-put_on(#st{sel=[{_,Faces}]}=St) ->
-    case gb_trees:size(Faces) of
-	1 ->
-	    wings:ask(put_on_selection(St), St, fun put_on/2);
-	_ ->
-	    wings_u:error_msg(?__(1,"There must only be one face selected."))
-    end;
-put_on(_) ->
-    wings_u:error_msg(?__(1,"There must only be one face selected.")).
+-spec put_clone_only_one() -> no_return().
 
-put_on_selection(OrigSt) ->
+put_clone_only_one() ->
+    wings_u:error_msg(?__(1,"There must be only one face selected.")).
+
+put_on(St) ->
+    MF = fun(Faces, #we{id=Id}) -> [{gb_sets:size(Faces),Id}] end,
+    RF = fun erlang:'++'/2,
+    case wings_sel:dfold(MF, RF, [], St) of
+	[{1,Id}] ->
+	    wings:ask(put_on_selection(Id), St, fun put_on/2);
+	_ ->
+            put_clone_only_one()
+    end.
+
+put_on_selection(Id) ->
     Desc = ?__(1,"Select target element on which to put source object"),
-    Fun = fun(check, St) -> put_on_check_selection(St, OrigSt);
-	     (exit, {_,_,#st{selmode=Mode,sel=Sel}=St}) ->
-		  case put_on_check_selection(St, OrigSt) of
-		      {_,[]} -> {[],[{Mode,Sel}]};
+    Fun = fun(check, St) ->
+                  put_on_check_selection(Id, St);
+	     (exit, {_,_,St}) ->
+		  case put_on_check_selection(Id, St) of
+		      {_,[]} -> {[],[clone_on_targets(St)]};
 		      {_,_} -> error
 		  end
 	  end,
     {[{Fun,Desc}],[],[],[face,edge,vertex]}.
 
-put_on_check_selection(#st{sel=[{Id,_}]}, #st{sel=[{Id,_}]}) ->
-    {none,?__(1,"Selection must not be in the same object.")};
-put_on_check_selection(#st{sel=[{_,Elems}]}, _) ->
-    case gb_trees:size(Elems) of
-	1 -> {none,""};
-	_ -> {none,?__(2,"Select only one element.")}
-    end;
-put_on_check_selection(_, _) ->
-    {none,?__(2,"Select only one element.")}.
+put_on_check_selection(Id, St) ->
+    MF = fun(Items, #we{id=OtherId}) ->
+                 [{gb_sets:size(Items),OtherId}]
+         end,
+    RF = fun erlang:'++'/2,
+    case wings_sel:dfold(MF, RF, [], St) of
+        [{_,Id}] ->
+            {none,?__(1,"Selection must not be in the same object.")};
+        [{1,_}] ->
+            {none,""};
+        [_|_] ->
+            {none,?__(2,"Select only one element.")}
+    end.
 
-put_on({Mode,[{Id,Els}]}, #st{shapes=Shs}=St0) ->
-    We0 = gb_trees:get(Id, Shs),
-    [El] = gb_sets:to_list(Els),
-    {Axis,Target} = on_target(Mode, El, We0),
+put_on([{Axis,Target}], St0) ->
     St = wings_sel:map(fun(Faces, We) ->
 			       [Face] = gb_sets:to_list(Faces),
 			       put_on_1(Face, Axis, Target, We)
 		       end, St0),
     {save_state,St}.
-    
+
 put_on_1(Face, Axis, Target, We) ->
     Vs = wings_face:vertices_ccw(Face, We),
     Center = wings_vertex:center(Vs, We),
@@ -1413,54 +1384,55 @@ put_on_1(Face, Axis, Target, We) ->
 %%% The "Clone On" command (RMB click on Put On).
 %%%
 
-clone_on(#st{sel=[{_,Faces}]}=St) ->
-    case gb_trees:size(Faces) of
-	1 ->
+clone_on(St) ->
+    MF = fun(Faces, _) -> gb_sets:size(Faces) end,
+    RF = fun erlang:'+'/2,
+    case wings_sel:dfold(MF, RF, 0, St) of
+        1 ->
 	    wings:ask(clone_on_selection(), St, fun clone_on/2);
-	_ ->
-	    wings_u:error_msg(?__(1,"There must only be one face selected."))
-    end;
-clone_on(_) ->
-    wings_u:error_msg(?__(1,"There must only be one face selected.")).
+        _ ->
+            put_clone_only_one()
+    end.
 
 clone_on_selection() ->
     Desc = ?__(1,"Select target elements on which to put clones"),
     Fun = fun(check, _) ->
 		  {none,""};
-	     (exit, {_,_,#st{selmode=Mode,sel=Sel}}) ->
-		  {[],[{Mode,Sel}]}
+	     (exit, {_,_,St}) ->
+		  {[],[clone_on_targets(St)]}
 	  end,
     {[{Fun,Desc}],[],[],[face,edge,vertex]}.
 
-clone_on({Mode,Sel}, #st{selmode=OrigMode,sel=[{Id,Faces}]=OrigSel,shapes=Shs0}=St0) ->
-    We = gb_trees:get(Id, Shs0),
-    [Face] = gb_sets:to_list(Faces),
-    Vs = wings_face:vertices_ccw(Face, We),
-    Center = wings_vertex:center(Vs, We),
-    Translate = e3d_mat:translate(e3d_vec:neg(Center)),
-    N = wings_face:face_normal_cw(Vs, We),
-    St = clone_on_1(Translate, N, We, St0#st{selmode=Mode,sel=Sel}),
-    {save_state,St#st{selmode=OrigMode,sel=OrigSel}}.
-    
-clone_on_1(Tr, N, Clone, St) ->
-    wings_sel:fold(
-      fun(Els, We, S) ->
-	      clone_2(gb_sets:to_list(Els), We, Tr, N, Clone, S)
-      end, St, St).
+clone_on(Targets, OrigSt) ->
+    CF = fun(Faces, We) ->
+                 [Face] = gb_sets:to_list(Faces),
+                 Vs = wings_face:vertices_ccw(Face, We),
+                 Center = wings_vertex:center(Vs, We),
+                 Translate = e3d_mat:translate(e3d_vec:neg(Center)),
+                 N = wings_face:face_normal_cw(Vs, We),
+                 New = [clone_on_one(Target, N, Translate, We) ||
+                           Target <- Targets],
+                 {We,Faces,New}
+         end,
+    wings_sel:clone(CF, OrigSt).
 
-clone_2([E|Els], We, Tr, N, Clone, St0) ->
-    St = clone_3(E, We, Tr, N, Clone, St0),
-    clone_2(Els, We, Tr, N, Clone, St);
-clone_2([], _, _, _, _, St) -> St.
-
-clone_3(El, We, Tr, N, Clone, #st{selmode=Mode}=St) ->
-    {Axis,Target} = on_target(Mode, El, We),
-    RotAxis = e3d_mat:rotate_s_to_t(N, Axis),
-    M0 = e3d_mat:translate(Target),
+clone_on_one({TargetAxis,TargetPoint}, N, Tr, We0) ->
+    RotAxis = e3d_mat:rotate_s_to_t(N, TargetAxis),
+    M0 = e3d_mat:translate(TargetPoint),
     M1 = e3d_mat:mul(M0, RotAxis),
     M = e3d_mat:mul(M1, Tr),
-    NewWe = wings_we:transform_vs(M, Clone),
-    wings_shape:insert(NewWe, clone, St).
+    We = wings_we:transform_vs(M, We0),
+    {We,gb_sets:empty(),clone}.
+
+clone_on_targets(#st{selmode=Mode}=St) ->
+    MF = fun(Items, We) ->
+                 gb_sets:fold(
+                   fun(Item, A) ->
+                           [on_target(Mode, Item, We)|A]
+                   end, [], Items)
+         end,
+    RF = fun erlang:'++'/2,
+    wings_sel:dfold(MF, RF, [], St).
 
 %%%
 %%% Hide/Unhide Faces

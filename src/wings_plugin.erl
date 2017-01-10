@@ -390,6 +390,7 @@ manager_command({edit,plugin_manager}, St) ->
 		  Disabled = [M || {M,false} <- Res],
 		  ?SET(wings_plugins, Ps -- Disabled),
 		  update_menus(Cps, Disabled),
+		  plugin_close_win(Disabled),
 		  update_disabled(Disabled, St)
 	  end,
     Dialog = mk_dialog(Cps, false),
@@ -426,8 +427,10 @@ update_plugin_menus([{Category, Ms}|Cps]) ->
 
 update_menu_category(_, []) -> ignore;
 update_menu_category(_, M) ->
-    Items = collect_menus([{file,render},{file,import},{file,export},{file,export_selected},
-			   {edit},{view},{select},{tools},{window},{help}], M),
+    Items = collect_menus([{file,render},{file,import},
+                           {file,export},{file,export_selected},
+			   {edit},{edit,plugin_preferences},
+                           {view},{select},{tools},{window},{help}], M),
     [delete_menu_item(Item) || Item <- Items].
 
 
@@ -724,3 +727,27 @@ restore_window(M, WinName, Pos, Size, CtmData, St) ->
 module_found(M,[M|_]) -> true;
 module_found(M,[_|T]) -> module_found(M,T);
 module_found(_,[]) -> false.
+
+
+%%%
+%%% Plugin Close Windows Utility
+%%%
+
+% It allows this module to close any plugin's window when a module is disabled.
+plugin_close_win([M|Ps]) ->
+    try M:win_name() of
+	WinName ->
+	    plugin_close_win_0(WinName),
+	    plugin_close_win(Ps)
+    catch
+    	_Exception:_Reason ->
+	    plugin_close_win(Ps)
+    end;
+plugin_close_win([]) -> none.
+
+plugin_close_win_0([]) -> ignore;
+plugin_close_win_0([Win|Wins]) ->
+    plugin_close_win_0(Win),
+    plugin_close_win_0(Wins);
+plugin_close_win_0(Win) ->
+    wings_frame:close(Win).

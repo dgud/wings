@@ -34,12 +34,16 @@
 	 empty_folder_bitmap/0, open_folder_bitmap/0, folder_fill_bitmap/0, closed_folder_bitmap/0
 	]).
 
+-export_type([suffix/0]).
+
 -define(FOLDERS,?MODULE).
 -define(NO_FLD, no_folder).
 
 -include("wings.hrl").
 -import(lists, [map/2,foldl/3,reverse/1,reverse/2,
 		keyfind/3,sort/1]).
+
+-type suffix() :: 'cut' | 'clone' | 'copy' | 'extract' | 'mirror' | 'sep'.
 
 %%%
 %%% Exported functions.
@@ -77,13 +81,10 @@ new(Name, #we{pst=WePst}=We0, #st{shapes=Shapes0,onext=Oid,mat=Mat,pst=StPst}=St
     end,
     add_to_folder(DefaultFolder, Oid, St#st{shapes=Shapes,onext=Oid+1}).
 
-%% new(We, Suffix, St0) -> St.
-%%  Suffix = cut | clone | copy | extract | sep
-%%
-%%  Create a new object based on an old object. The name
-%%  will be created from the old name (with digits and known
-%%  suffixes stripped) with the given Suffix and a number
-%%  appended.
+%% insert/3. Don't use directly -- use wings_sel:clone/2,3.
+
+-spec insert(#we{}, suffix(), #st{}) -> #st{}.
+
 insert(#we{id=Id,name=OldName}=We0, Suffix, #st{shapes=Shapes0,onext=Oid}=St) ->
     Name = new_name(OldName, Suffix, Oid),
     We = We0#we{id=Oid,name=Name},
@@ -426,6 +427,8 @@ create_folder(Folder, #st{pst=Pst0}=St) ->
     end,
     Pst = gb_trees:update(?FOLDERS, {Folder,Fld}, Pst0),
     St#st{pst=Pst}.
+
+rename_folder(OldName, OldName, St) -> St;
 
 rename_folder(OldName, NewName, St0) ->
     #st{pst=Pst0}=St1 = create_folder(NewName, St0),

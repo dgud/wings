@@ -19,7 +19,7 @@
 	 new_wrap_range/3,id/2,bump_id/1,
 	 new_id/1,new_ids/2,
 	 invert_normals/1,
-	 merge/1,merge/2,
+	 merge/1,merge/2,merge_root_set/1,
 	 renumber/2,renumber/3,
 	 uv_to_color/2,
 	 uv_mapped_faces/1,
@@ -350,7 +350,8 @@ break_mirror(#we{mirror=Face}=We0) ->
 %%  Merge two winged-edge structures. See merge/1.
 %%
 merge(We0, We1) ->
-    merge([We0,We1]).
+    {We,[]} = merge_root_set([{We0,[]},{We1,[]}]),
+    We.
 
 %% merge([We0]) -> We
 %%  Merge a list of winged-edge structures.
@@ -358,11 +359,23 @@ merge(We0, We1) ->
 %%  Holes will be automatically re-hidden in the combined
 %%  #we{} record, but invisible faces may become visible.
 %%
-merge([]) -> [];
-merge([We]) -> We;
-merge([#we{id=Id,name=Name}|_]=Wes0) ->
-    Wes1 = [break_mirror(We) || We <- Wes0],
-    Wes = merge_renumber(Wes1),
+merge(Wes) ->
+    {We,[]} = merge_root_set([{We,[]} || We <- Wes]),
+    We.
+
+%% merge_root_set([{We0,RootSet}]) -> {We,RootSet}
+%%  Merge a list of winged-edge structures.
+%%
+%%  Holes will be automatically re-hidden in the combined
+%%  #we{} record, but invisible faces may become visible.
+%%
+merge_root_set([]) -> [];
+merge_root_set([We]) -> We;
+merge_root_set([{#we{id=Id,name=Name},_}|_]=Wes0) ->
+    Wes1 = [{break_mirror(We),R} || {We,R} <- Wes0],
+    Wes2 = merge_renumber(Wes1),
+    {Wes,RootSet0} = lists:unzip(Wes2),
+    RootSet = lists:append(RootSet0),
     Pst = merge_plugins(Wes),
     MatTab = wings_facemat:merge(Wes),
     {Vpt0,Et0,Ht0,Holes} = merge_1(Wes),
@@ -372,13 +385,13 @@ merge([#we{id=Id,name=Name}|_]=Wes0) ->
     We0 = rebuild(#we{id=Id,name=Name,vc=undefined,fs=undefined,
 		      pst=Pst,vp=Vpt,es=Et,he=Ht,mat=MatTab,
 		      holes=Holes}),
-    case wings_va:merge(Wes, We0) of
-	#we{holes=[]}=We ->
-	    We;
-	#we{holes=Holes}=We ->
-	    %% Re-hide all holes that have become visible.
-	    create_holes(Holes, We#we{holes=[]})
-    end.
+    {case wings_va:merge(Wes, We0) of
+         #we{holes=[]}=We ->
+             We;
+         #we{holes=Holes}=We ->
+             %% Re-hide all holes that have become visible.
+             create_holes(Holes, We#we{holes=[]})
+     end,RootSet}.
 
 %%%
 %%% Local functions.
@@ -602,26 +615,27 @@ merge_plugins(Wes) ->
 	    end,
     Merged = lists:reverse(lists:foldl(Merge, [], PMods)),
     gb_trees:from_orddict(Merged).
-		    
-merge_renumber(Wes0) ->
-    [{_,We1}|Wes] = merge_bounds(Wes0, []),
-    We = wings_va:gc(We1),
-    merge_renumber(Wes, [We], []).
 
-merge_renumber([{Low,We}|Wes], [#we{next_id=Next}|_]=Done, NotDone)
+merge_renumber(Wes0) ->
+    [{_,We1,RootSet}|Wes] = merge_bounds(Wes0, []),
+    We = wings_va:gc(We1),
+    merge_renumber(Wes, [{We,RootSet}], []).
+
+merge_renumber([{Low,We,RootSet}|Wes], [{#we{next_id=Next},_}|_]=Done, NotDone)
   when Low >= Next ->
-    merge_renumber(Wes, [wings_va:gc(We)|Done], NotDone);
-merge_renumber([{_,We}|Wes], Done, NotDone) ->
-    merge_renumber(Wes, Done, [We|NotDone]);
-merge_renumber([], [#we{next_id=Next}|_]=Done, NotDone) ->
+    merge_renumber(Wes, [{wings_va:gc(We),RootSet}|Done], NotDone);
+merge_renumber([{_,We,RootSet}|Wes], Done, NotDone) ->
+    merge_renumber(Wes, Done, [{We,RootSet}|NotDone]);
+merge_renumber([], [{#we{next_id=Next},_}|_]=Done, NotDone) ->
     merge_renumber_rest(NotDone, Next, Done).
 
-merge_renumber_rest([We0|Wes], Next0, Acc) ->
-    #we{next_id=Next} = We = do_renumber(We0, Next0),
-    merge_renumber_rest(Wes, Next, [We|Acc]);
+merge_renumber_rest([{We0,RootSet0}|Wes], Next0, Acc) ->
+    {We,RootSet} = do_renumber(We0, Next0, RootSet0),
+    #we{next_id=Next} = We,
+    merge_renumber_rest(Wes, Next, [{We,RootSet}|Acc]);
 merge_renumber_rest([], _, Acc) -> Acc.
 
-merge_bounds([#we{vp=Vtab,fs=Ftab,es=Etab}=We0|Wes], Acc) ->
+merge_bounds([{#we{vp=Vtab,fs=Ftab,es=Etab}=We0,RootSet}|Wes], Acc) ->
     First = case wings_util:array_is_empty(Etab) of
 		true -> 0;
 		false ->
@@ -635,7 +649,7 @@ merge_bounds([#we{vp=Vtab,fs=Ftab,es=Etab}=We0|Wes], Acc) ->
 		    max(Min, 0)
 	    end,
     We = update_id_bounds(We0),
-    merge_bounds(Wes, [{First,We}|Acc]);
+    merge_bounds(Wes, [{First,We,RootSet}|Acc]);
 merge_bounds([], Acc) -> sort(Acc).
 
 %% Leaves the vc and fs fields undefined.

@@ -47,17 +47,17 @@ void main( void ) {
 	} else {
 		frequency1 = frequency;
 	}
-	
+
 	float aa = frequency1 / MAX_FREQUENCE * 0.00125;
 	float sine = float(abs( sin( ( rotatedCoords + offset ) * frequency1 * 10.0) ));
 	sine = step( sine, 0.1 +(0.9 *thickness/(100.0 + 0.00001)));
 	if (sine > (0.5 +aa)) {
-		color = color1;
+            color = color1;
 	} else if (sine < 0.5 -aa) {
-		color = color2;
+            color = color2;
 	} else {
-	    // that will produce a AA effect
-		color = color1*(1.0-sine) + color2*sine;
+            // that will produce a AA effect
+            color = color1*(1.0-sine) + color2*sine;
 	}
-	gl_FragColor = vec4(color.rgb,1.0-color.a);
+	gl_FragColor = color;
 }

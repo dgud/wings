@@ -213,7 +213,13 @@ copy(Source, Target0, BitSize) ->
 		ok = file:write_file(Target, Stripped),
 		%% Only allow read access.
 		ok = file:write_file_info(Target, #file_info{mode=8#444});
-	    _ ->
+            ".lang" ->
+                {ok,_} = file:copy(Source, Target),
+                ok = file:write_file_info(Target, #file_info{mode=8#444});
+            ".png" ->
+                {ok,_} = file:copy(Source, Target),
+                ok = file:write_file_info(Target, #file_info{mode=8#444});
+	    Ext ->
 		%% Could be an executable file. Make sure that we preserve
 		%% the execution bit. Always turn off the write bit.
 		{ok,_} = file:copy(Source, Target),
@@ -221,7 +227,7 @@ copy(Source, Target0, BitSize) ->
 		Info = Info0#file_info{mode=Mode band 8#555},
 		ok = file:write_file_info(Target, Info),
 		case Mode band 8#111 of
-		    0 ->
+		    0 when Ext =/= ".dll" ->
 			ok;
 		    _ ->
 			%% Strip all executable files.
@@ -264,10 +270,21 @@ strip(File) ->
     end.
 
 get_vsn(VsnFile, VsnVar) ->
-    {ok,Bin} = file:read_file(VsnFile),
-    Re = "^" ++ VsnVar ++ "\\s*=\\s*(\\S+)\\s*$",
-    {match,[Vsn]} = re:run(Bin, Re, [multiline,{capture,all_but_first,binary}]),
-    binary_to_list(Vsn).
+    case file:read_file(VsnFile) of
+        {ok,Bin} ->
+            Re = "^" ++ VsnVar ++ "\\s*=\\s*(\\S+)\\s*$",
+            {match,[Vsn]} = re:run(Bin, Re, [multiline,{capture,all_but_first,binary}]),
+            binary_to_list(Vsn);
+        {error, enoent} ->
+            DirPath = filename:dirname(VsnFile),
+            DirName = filename:basename(DirPath),
+            Appfile = filename:join([filename:dirname(VsnFile), ebin, DirName ++ ".app"]),
+            io:format("Reading: ~p~n",[Appfile]),
+            {ok, List} = file:consult(Appfile),
+            {_, _AppName, AppDefs} = lists:keyfind(application, 1, List),
+            {_, Vsn} = lists:keyfind(vsn, 1, AppDefs),
+            Vsn
+    end.
 
 run(Prog0, Args) ->
     Prog = case os:find_executable(Prog0) of

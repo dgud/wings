@@ -94,11 +94,13 @@
 -define(CHECK_ERROR(), ok).
 -endif.
 
+-define(dbg(Str,Args), io:format("~p:~p: " ++ Str, [?MODULE,?LINE|Args])).
+
 %% Use for non saved global gui resources, avoids the dictionary
 %% Example: runtime fonts
--define(GET(Key), wings_pref:get_value({temp, Key})).
--define(SET(Key,Value), wings_pref:set_value({temp, Key}, Value)).
--define(DELETE(Key), wings_pref:delete_value({temp, Key})).
+-define(GET(Key), wings_wm:get_value(Key)).
+-define(SET(Key,Value), wings_wm:set_value(Key, Value)).
+-define(DELETE(Key), wings_wm:delete_value(Key)).
 
 %%
 %% Types.
@@ -190,7 +192,8 @@
 						%  IDs.)
 	 mirror=none :: 'none' | non_neg_integer(),	%Mirror: none|Face
 	 light=none,				%Light data: none|Light
-	 holes=[] :: [integer()]		%List of hole faces.
+	 holes=[] :: [integer()],		%List of hole faces.
+         temp=[] :: term()
 	}).
 
 -define(IS_VISIBLE(Perm), (Perm =< 1)).

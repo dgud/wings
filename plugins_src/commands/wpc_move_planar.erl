@@ -102,26 +102,22 @@ selection_ask([magnet|Rest],Ask) ->
     selection_ask(Rest,[magnet|Ask]).
 
 %%%% Setup
-planar_setup(Axis0,#st{selmode=body,sel=Sel}=St) ->
-    Axis = axis_conversion(Axis0),
+planar_setup(Axis0, #st{selmode=body}=St) ->
+    Axis = wings_util:make_vector(Axis0),
     Fun = translate_fun(Axis),
-    Ids = [{Id,Fun} || {Id,_} <- Sel],
-    wings_drag:setup({matrix,Ids}, [dx,dy], St);
-
-planar_setup({Axis0,Mag},#st{selmode=Mode}=St) ->
-    Axis = axis_conversion(Axis0),
-    Tvs = wings_sel:fold(fun(Items,We,Acc) ->
-                setup(Mode, Axis, Items, We, Mag, Acc)
-                end,[],St),
-    Flags = wings_magnet:flags(Mag,[]),
-    wings_drag:setup(Tvs, [dx,dy|[falloff]], Flags, St);
-
-planar_setup(Axis0,#st{selmode=Mode}=St) ->
-    Axis = axis_conversion(Axis0),
-    Tvs = wings_sel:fold(fun(Items,We,Acc) ->
-                setup(Mode,Axis,Items,We,none,Acc)
-                end,[],St),
-    wings_drag:setup(Tvs, [dx,dy], St).
+    F = fun(_) -> Fun end,
+    wings_drag:matrix(F, [dx,dy], St);
+planar_setup({Axis0,Mag}, #st{selmode=Mode}=St) ->
+    Axis = wings_util:make_vector(Axis0),
+    Flags = wings_magnet:flags(Mag, []),
+    wings_drag:fold(fun(Items, We) ->
+                            setup(Mode, Axis, Items, We, Mag)
+                    end, [dx,dy,falloff], Flags, St);
+planar_setup(Axis0, #st{selmode=Mode}=St) ->
+    Axis = wings_util:make_vector(Axis0),
+    wings_drag:fold(fun(Items, We) ->
+                            setup(Mode, Axis, Items, We, none)
+                    end, [dx,dy], St).
 
 %%%% Body
 translate_fun({X,Y,Z}) when abs(Y)<1.0e-9 andalso abs(Z)<1.0e-9 ->  %% X
@@ -149,24 +145,23 @@ translate_fun(Axis0) ->
     end.
 
 %%%% Vertex, Edge, and Face selections
-setup(Mode,Axis,Items,We,Mag,Acc) when not is_list(Items) ->
-    setup(Mode, Axis, gb_sets:to_list(Items), We, Mag, Acc);
-setup(vertex,Axis,Items,We,Mag,Acc) ->
-    setup_2(Axis,Items,We,Mag,Acc);
-setup(edge,Axis,Items,We,Mag,Acc) ->
+setup(Mode, Axis, Items, We, Mag) when not is_list(Items) ->
+    setup(Mode, Axis, gb_sets:to_list(Items), We, Mag);
+setup(vertex, Axis, Items, We, Mag) ->
+    setup_2(Axis, Items, We, Mag);
+setup(edge, Axis, Items, We, Mag) ->
     Vs = wings_edge:to_vertices(Items, We),
-    setup_2(Axis,Vs,We,Mag,Acc);
-setup(face,Axis,Items,We,Mag,Acc) ->
-    Vs = wings_face:to_vertices(Items,We),
-    setup_2(Axis,Vs,We,Mag,Acc).
+    setup_2(Axis, Vs, We, Mag);
+setup(face, Axis, Items, We, Mag ) ->
+    Vs = wings_face:to_vertices(Items, We),
+    setup_2(Axis, Vs, We, Mag).
 
-setup_2(Axis,Vs,#we{id=Id}=We,none,Acc) ->
-    VsPos = wings_util:add_vpos(Vs,We),
-    [{Id,{Vs,planar_fun(VsPos,Axis)}}|Acc];
-
-setup_2(Axis, Vs, #we{id=Id}=We, Mag, Acc) ->
+setup_2(Axis, Vs, We, none) ->
+    VsPos = wings_util:add_vpos(Vs, We),
+    {Vs,planar_fun(VsPos, Axis)};
+setup_2(Axis, Vs, We, Mag) ->
     {VsInf,Magnet,Affected} = wings_magnet:setup(Mag, Vs, We),
-    [{Id,{Affected,magnet_planar_fun(Axis, VsInf, Magnet)}}|Acc].
+    {Affected,magnet_planar_fun(Axis, VsInf, Magnet)}.
 
 magnet_planar_fun(Axis, VsInf0, {_,R}=Magnet0) ->
     fun
@@ -214,18 +209,3 @@ planar(Vpos,{X,Y,Z},Dx,Dy) ->
     B = e3d_vec:norm(e3d_vec:cross({X,Y,Z},A)),
 	C = e3d_vec:add(Vpos, e3d_vec:mul(A, -Dx)),
 	e3d_vec:add(C, e3d_vec:mul(B, -Dy)).
-
-%%%% Utilities
-axis_conversion(Axis) ->
-    case Axis of
-      x -> {1.0,0.0,0.0};
-      y -> {0.0,1.0,0.0};
-      z -> {0.0,0.0,1.0};
-      last_axis ->
-          {_, Dir} = wings_pref:get_value(last_axis),
-          e3d_vec:norm(Dir);
-      default_axis ->
-          {_, Dir} = wings_pref:get_value(default_axis),
-          e3d_vec:norm(Dir);
-      {_,_,_} -> e3d_vec:norm(Axis)
-    end.

@@ -646,10 +646,10 @@ handle_event_3({action,{auv,quit}}, _St) ->
     cleanup_before_exit(),
     delete;
 handle_event_3({action,{{auv,_},Cmd}}, St) ->
-%%    io:format("Cmd ~p ~n", [Cmd]),
+    %%    io:format("Cmd ~p ~n", [Cmd]),
     handle_command(Cmd, St);
 handle_event_3({action,{auv,Cmd}}, St) ->
-%%    io:format("Cmd ~p ~n", [Cmd]),
+    %%    io:format("Cmd ~p ~n", [Cmd]),
     handle_command(Cmd, St);
 handle_event_3({action,{select,show_all}}, #st{bb=#uvstate{st=GeomSt,id=Id}}) ->
     wings_wm:send({autouv,Id}, {add_faces,object,GeomSt}),
@@ -671,7 +671,7 @@ handle_event_3({action,{view,toggle_background}}, _) ->
     put({?MODULE,show_background},not Old),
     wings_wm:dirty();
 
-handle_event_3({action,Ev}=Act, St) ->
+handle_event_3({action,Ev}=Act, #st{selmode=AUVSel, bb=#uvstate{st=#st{selmode=GSel}}}=St) ->
     case Ev of  %% Keyboard shortcuts end up here (I believe)
 	{_, {move,_}} ->
 	    handle_command(move,St);
@@ -690,17 +690,17 @@ handle_event_3({action,Ev}=Act, St) ->
 	    wings_view:command(aim, St1),
 	    get_event(St);
 	{view,highlight_aim} ->
-        #st{sel=Sel} = St,
-        case  Sel =:= [] of
-          true ->
+            #st{sel=Sel} = St,
+            case  Sel =:= [] of
+                true ->
 		    St1 = fake_selection(St),
-            wings_view:command(aim, St1),
-            get_event(St);
-          false ->
-            {{_,Cmd},St1} = wings:highlight_aim_setup(St),
-            wings_view:command(Cmd,St1),
-            get_event(St)
-        end;
+                    wings_view:command(aim, St1),
+                    get_event(St);
+                false ->
+                    {{_,Cmd},St1} = wings:highlight_aim_setup(St),
+                    wings_view:command(Cmd,St1),
+                    get_event(St)
+            end;
 	{view,Cmd} when Cmd == frame ->
 	    wings_view:command(Cmd,St),
 	    get_event(St);
@@ -710,10 +710,16 @@ handle_event_3({action,Ev}=Act, St) ->
 	    repeat(args, St);
 	{edit,repeat_drag} ->
 	    repeat(drag, St);
-	_ ->
-	    wings_wm:send_after_redraw(geom, Act),
-	    %% io:format("Miss Action ~P~n", [Ev, 20]),
-	    keep
+        _ when AUVSel =:= GSel ->
+            wings_wm:send_after_redraw(geom, Act),
+            keep;
+        {body, _} -> keep;
+        {face, _} -> keep;
+        {edge, _} -> keep;
+        {vertex,_} -> keep;
+        _ ->
+            wings_wm:send_after_redraw(geom, Act),
+            keep
     end;
 handle_event_3(got_focus, _) ->
     Msg1 = wings_msg:button_format(?__(1,"Select")),
@@ -1029,35 +1035,33 @@ do_drag(Other) ->
     Other.
 
 tighten(#st{selmode=vertex}=St) ->
-    tighten_1(fun vertex_tighten/3, St);
+    tighten_1(fun vertex_tighten/2, St);
 tighten(#st{selmode=body}=St) ->
-    tighten_1(fun(_, We, A) -> body_tighten(We, A) end, St).
+    tighten_1(fun(_, We) -> body_tighten(We) end, St).
 
-tighten_1(Tighten, St) ->    
-    Tvs = wings_sel:fold(Tighten, [], St),
-    wings_drag:setup(Tvs, [percent], St).
+tighten_1(Tighten, St) ->
+    wings_drag:fold(Tighten, [percent], St).
 
-vertex_tighten(Vs0, We, A) ->
+vertex_tighten(Vs0, We) ->
     Vis = gb_sets:from_ordset(wings_we:visible(We)),
     Vs = [V || V <- gb_sets:to_list(Vs0), not_bordering(V, Vis, We)],
-    wings_vertex_cmd:tighten(Vs, We, A).
+    wings_vertex_cmd:tighten_vs(Vs, We).
 
-body_tighten(#we{vp=Vtab}=We, A) ->
+body_tighten(#we{vp=Vtab}=We) ->
     Vis = gb_sets:from_ordset(wings_we:visible(We)),
     Vs = [V || V <- wings_util:array_keys(Vtab), not_bordering(V, Vis, We)],
-    wings_vertex_cmd:tighten(Vs, We, A).
+    wings_vertex_cmd:tighten_vs(Vs, We).
 
 tighten(Magnet, St) ->
-    Tvs = wings_sel:fold(fun(Vs, We, A) ->
-				 mag_vertex_tighten(Vs, We, Magnet, A)
-			 end, [], St),
     Flags = wings_magnet:flags(Magnet, []),
-    wings_drag:setup(Tvs, [percent,falloff], Flags, St).
+    wings_drag:fold(fun(Vs, We) ->
+                            mag_vertex_tighten(Vs, We, Magnet)
+                    end, [percent,falloff], Flags, St).
 
-mag_vertex_tighten(Vs0, We, Magnet, A) ->
+mag_vertex_tighten(Vs0, We, Magnet) ->
     Vis = gb_sets:from_ordset(wings_we:visible(We)),
     Vs = [V || V <- gb_sets:to_list(Vs0), not_bordering(V, Vis, We)],
-    wings_vertex_cmd:tighten(Vs, We, Magnet, A).
+    wings_vertex_cmd:tighten_vs(Vs, We, Magnet).
 
 equal_length(Op,St) ->
     wings_sel:map(fun(Es, We) ->
@@ -1862,13 +1866,9 @@ draw_background(#st{bb=#uvstate{matname=MatName,st=St,bg_img=Image}}) ->
     gl:lineWidth(1.0),
     gl:color3f(0.0, 0.0, 0.7),
     gl:translatef(0.0, 0.0, -0.5),
-    gl:'begin'(?GL_LINES),
-    G = fun(V) ->
-		gl:vertex2f(V,20.0),  gl:vertex2f(V,-20.0),
-		gl:vertex2f(20.0,V),  gl:vertex2f(-20.0,V)
-	end,
-    lists:foreach(G, lists:seq(-20,20)),
-    gl:'end'(),
+    Bin = << <<V:?F32,20.0:?F32, V:?F32,-20:?F32, 20.0:?F32,V:?F32, -20.0:?F32,V:?F32>>
+             || V <- lists:seq(-20,20) >>,
+    wings_vbo:draw(fun() -> gl:drawArrays(?GL_LINES, 0, 4*(20+20+1)) end, Bin, [vertex2d]),
     gl:lineWidth(3.0),
     gl:color3f(0.0, 0.0, 1.0),
     gl:recti(0, 0, 1, 1),
@@ -1878,20 +1878,22 @@ draw_background(#st{bb=#uvstate{matname=MatName,st=St,bg_img=Image}}) ->
     gl:color3f(1.0, 1.0, 1.0),			%Clear
     case get({?MODULE,show_background}) of
 	false -> ok;
-	_ -> 
+	_ ->
 	    Tx = case get_texture(MatName,St) of
 		     false -> wings_image:txid(Image);
 		     DiffId -> wings_image:txid(DiffId)
 		 end,
-	    gl:enable(?GL_TEXTURE_2D),
-	    gl:bindTexture(?GL_TEXTURE_2D, Tx)
+            case Tx of
+                none -> ignore; %% Avoid crash if TexImage is deleted
+                Tx ->
+                    gl:enable(?GL_TEXTURE_2D),
+                    gl:bindTexture(?GL_TEXTURE_2D, Tx)
+            end
     end,
-    gl:'begin'(?GL_QUADS),
-    gl:texCoord2f(0.0, 0.0),    gl:vertex3f(0.0, 0.0, -0.99999),
-    gl:texCoord2f(1.0, 0.0),    gl:vertex3f(1.0, 0.0, -0.99999),
-    gl:texCoord2f(1.0, 1.0),    gl:vertex3f(1.0, 1.0, -0.99999),
-    gl:texCoord2f(0.0, 1.0),    gl:vertex3f(0.0, 1.0, -0.99999),
-    gl:'end'(), 
+    Q = [{0.0, 0.0},{0.0, 0.0, -0.99999}, {1.0, 0.0},{1.0, 0.0, -0.99999},
+         {1.0, 1.0},{1.0, 1.0, -0.99999}, {0.0, 1.0},{0.0, 1.0, -0.99999}],
+    wings_vbo:draw(fun() -> gl:drawArrays(?GL_QUADS, 0, 4) end, Q, [uv, vertex]),
+
     gl:disable(?GL_TEXTURE_2D),
 
     gl:popAttrib().

@@ -19,12 +19,12 @@
 	 bumpid/1, default/1,
 	 is_normalmap/1, normal_cubemapid/0,
 	 next_id/0,delete_older/1,delete_from/1,delete/1,
-	 update/2,update_filename/2,draw_preview/5,
+	 update/2,update_filename/2,
 	 window/1]).
 -export([image_formats/0,image_read/1,image_write/1,
 	 e3d_to_wxImage/1, wxImage_to_e3d/1]).
 -export([loop/1]).
--export([draw_image/5,maybe_exceds_opengl_caps/1]).
+-export([maybe_exceds_opengl_caps/1]).
 
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
@@ -241,9 +241,6 @@ update(Id, Image) ->
 update_filename(Id, Filename) ->
     req({update_filename,Id,Filename}).
 
-draw_preview(X, Y, W, H, Id) ->
-    req({draw_preview,X,Y,W,H,Id}, false).
-
 req(Req) ->
     req(Req, true).
 
@@ -393,12 +390,7 @@ handle({update_filename,Id,NewName}, #ist{images=Images0}=S) ->
     Im0 = gb_trees:get(Id, Images0),
     Im = (image_rec(Im0))#e3d_image{filename=NewName},
     Images = gb_trees:update(Id, hide(Im, is_hidden(Im0)), Images0),
-    S#ist{images=Images};
-handle({draw_preview,X,Y,W,H,Id}, S) ->
-    {case get(Id) of
-	 undefined -> error;
-	 TxId -> draw_image(X, Y, W, H, TxId)
-     end,S}.
+    S#ist{images=Images}.
 
 create_bump(Id, BumpId, #ist{images=Images0}) ->
     delete_bump(Id),  %% update case..
@@ -422,8 +414,8 @@ create_bump(Id, BumpId, #ist{images=Images0}) ->
 		_ ->
 		    %% Scale ?? 4 is used in the only example I've seen.
 		    Img = e3d_image:convert(maybe_scale(E3D), r8g8b8, 1, lower_left),
-		    {#e3d_image{width=W,height=H,image=Bits},MipMaps} 
-			= e3d_image:height2normal(Img, 4, true),
+		    {#e3d_image{width=W,height=H,image=Bits},MipMaps}
+			= e3d_image:height2normal(Img, #{scale=>4.0}, true),
 		    [TxId] = gl:genTextures(1),
 		    gl:bindTexture(?GL_TEXTURE_2D, TxId),
 		    gl:texImage2D(?GL_TEXTURE_2D,0,?GL_RGB,W,H,0,?GL_RGB,
@@ -725,21 +717,6 @@ window(Id) ->
 	    wings_image_viewer:new(Name, info(Id)),
 	    keep
     end.
-
-draw_image(X, Y, W, H, TxId) ->
-    Ua = 0, Ub = 1,
-    Va = 1, Vb = 0,
-    gl:bindTexture(?GL_TEXTURE_2D, TxId),
-    gl:'begin'(?GL_QUADS),
-    gl:texCoord2i(Ua, Va),
-    gl:vertex2i(X, Y),
-    gl:texCoord2i(Ua, Vb),
-    gl:vertex2i(X, Y+H),
-    gl:texCoord2i(Ub, Vb),
-    gl:vertex2i(X+W, Y+H),
-    gl:texCoord2i(Ub, Va),
-    gl:vertex2i(X+W, Y),
-    gl:'end'().
 
 %%%
 %%% Creating images with pre-defined patterns.

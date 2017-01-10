@@ -111,11 +111,11 @@ connect_events(Canvas) ->
     wxWindow:setFocus(Canvas), %% Get keyboard focus
     ok.
 
-redraw(#wx{obj=Canvas, event=#wxPaint{}},_) ->
+redraw(#wx{obj=Canvas, event=#wxPaint{}}=Ev,_) ->
     %% Must do a PaintDC and destroy it
     DC = wxPaintDC:new(Canvas),
     wxPaintDC:destroy(DC),
-    wings ! #wx{event=#wxPaint{}},
+    wings ! Ev,
     ok;
 redraw(Ev, _) ->  %% For erase background events
     wings ! Ev#wx{event=#wxPaint{type=paint}}.

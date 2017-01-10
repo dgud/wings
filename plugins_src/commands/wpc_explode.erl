@@ -181,60 +181,61 @@ command(_,_) -> next.
 
 %% Explode
 explode({Axis0,Point}, St) ->
-    Axis = axis_conv(Axis0),
-    Ids = wings_sel:fold(fun(_,#we{id=Id}=We,Acc) ->
-        Center = wings_vertex:center(We),
-        Fun = explode_fun(Axis, Point, Center),
-        [{Id,Fun}|Acc]
-    end, [], St),    
-    wings_drag:setup({matrix,Ids}, [percent], St).
+    Axis = wings_util:make_vector(Axis0),
+    wings_drag:matrix(
+      fun(We) ->
+              Center = wings_vertex:center(We),
+              explode_fun(Axis, Point, Center)
+      end, [percent], St).
 
 %% Explode Uniform
 explode_uniform(Point, St) ->
-    Ids = wings_sel:fold(fun(_,#we{id=Id}=We,Acc) ->
-        Center = wings_vertex:center(We),
-        Fun = explode_uniform_fun(Point, Center),
-        [{Id,Fun}|Acc]
-    end, [], St),    
-    wings_drag:setup({matrix,Ids}, [percent], St).
+    wings_drag:matrix(
+      fun(We) ->
+              Center = wings_vertex:center(We),
+              explode_uniform_fun(Point, Center)
+      end, [percent], St).
 
 %% Explode Radial
 explode_radial({Axis0,Point}, St) ->
-    Axis = axis_conv(Axis0),
-    Ids = wings_sel:fold(fun(_,#we{id=Id}=We,Acc) ->
-        Center = wings_vertex:center(We),
-        Fun = explode_radial_fun(Axis, Point, Center),
-        [{Id,Fun}|Acc]
-    end, [], St),    
-    wings_drag:setup({matrix,Ids}, [percent], St).
+    Axis = wings_util:make_vector(Axis0),
+    wings_drag:matrix(
+      fun(We) ->
+              Center = wings_vertex:center(We),
+              explode_radial_fun(Axis, Point, Center)
+      end, [percent], St).
+
 
 %%%
 %%% Explode fun
 %%%
 
 explode_fun(Axis, Point, Center) ->
+    Dist = dist_along_vector(Center, Point, Axis),
     fun(Matrix, [Percent]) ->
-      Dist = dist_along_vector(Center, Point, Axis),
-      {X,Y,Z} = e3d_mat:mul_point(Matrix,e3d_vec:mul(Axis, Percent * Dist)),
-      e3d_mat:translate(X, Y, Z)
+            ScaledAxis = e3d_vec:mul(Axis, Percent * Dist),
+            TransVec = e3d_mat:mul_point(Matrix, ScaledAxis),
+            e3d_mat:translate(TransVec)
     end.
 
 explode_uniform_fun(Point, Center) ->
+    Axis = e3d_vec:norm_sub(Center, Point),
+    Dist = e3d_vec:dist(Center, Point),
     fun(Matrix, [Percent]) ->
-      Axis = e3d_vec:norm_sub(Center, Point),
-      Dist = abs(e3d_vec:dist(Center, Point)),
-      {X,Y,Z} = e3d_mat:mul_point(Matrix,e3d_vec:mul(Axis, Percent * Dist)),
-      e3d_mat:translate(X, Y, Z)
+            ScaledAxis = e3d_vec:mul(Axis, Percent * Dist),
+            TransVec = e3d_mat:mul_point(Matrix, ScaledAxis),
+            e3d_mat:translate(TransVec)
     end.
 
 explode_radial_fun(Axis, Point, Center) ->
+    Vec = e3d_vec:sub(Point, Center),
+    Cross = e3d_vec:cross(Vec, Axis),
+    Radial = e3d_vec:norm(e3d_vec:cross(Cross, Axis)),
+    Dist = dist_along_vector(Center, Point, Radial),
     fun(Matrix, [Percent]) ->
-      Vec = e3d_vec:sub(Point, Center),
-      Cross = e3d_vec:cross(Vec, Axis),
-      Radial = e3d_vec:norm(e3d_vec:cross(Cross, Axis)),
-      Dist = dist_along_vector(Center, Point, Radial),
-      {X,Y,Z} = e3d_mat:mul_point(Matrix,e3d_vec:mul(Radial, Percent * Dist)),
-      e3d_mat:translate(X, Y, Z)
+            ScaledRadial = e3d_vec:mul(Radial, Percent * Dist),
+            TransVec = e3d_mat:mul_point(Matrix, ScaledRadial),
+            e3d_mat:translate(TransVec)
     end.
 
 %%%
@@ -244,18 +245,3 @@ explode_radial_fun(Axis, Point, Center) ->
 dist_along_vector({Xa,Ya,Za},{Xb,Yb,Zb},{Vx,Vy,Vz}) ->
 %% Return Distance between PosA and PosB along Normalized Vector
     Vx*(Xa-Xb)+Vy*(Ya-Yb)+Vz*(Za-Zb).
-
-axis_conv(Axis) ->
-%% Converts an atom axis to a tuple axis.
-    case Axis of
-      x -> {1.0,0.0,0.0};
-      y -> {0.0,1.0,0.0};
-      z -> {0.0,0.0,1.0};
-      last_axis ->
-        {_, Dir} = wings_pref:get_value(last_axis),
-        Dir;
-      default_axis ->
-        {_, Dir} = wings_pref:get_value(default_axis),
-        Dir;
-      {X,Y,Z} -> {X,Y,Z}
-    end.

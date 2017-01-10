@@ -21,10 +21,14 @@
    plane/1,plane/2,plane/3,
    plane_side/2,plane_dist/2]).
 
+-export_type([vector/0]).
+
 -include("e3d.hrl").
 
 -compile(inline).
 -compile({inline_size,24}).
+
+-type vector() :: e3d_vector().
 
 -spec zero() -> e3d_vector().
     

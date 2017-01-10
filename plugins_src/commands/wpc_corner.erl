@@ -14,6 +14,8 @@
 -export([init/0,menu/2,command/2]).
 -include("wings.hrl").
 
+-import(lists, [foldl/3]).
+
 init() ->
     true.
 
@@ -44,35 +46,42 @@ command(_, _) ->
 
 %% Process Command
 corner(St0) ->
-    {St1,{Tvs,Sel}} = wings_sel:mapfold(fun(Edges, #we{id=Id}=We0, {Tvs0,Acc0}) ->
-        CornerEdges = corner_edges(Edges, Edges, We0, []),
-        {Vs,VD,We,EdgeSel} = lists:foldl(fun
-            ([H|_]=D, Acc) when is_list(D) ->
-                  MD = lists:max(D),
-                  Data = if MD =:= H -> D;
-                            true -> lists:reverse(D)
-                         end,
-                  % io:format("Data ~p\n",[Data]),
-                  complex_corner_0(Data, Acc);
-            ({Edge,Face,CV,Va}, {VList,VD0,We1,EsAcc}) ->
-                  {We2,NewVertex} = wings_edge:cut(Edge, 2, We1),
-                  [NewEdge] = wings_we:new_items_as_ordset(edge, We1, We2),
-                  {VData,We3} = connect_five_sided(NewVertex, CV, Va, Face, We2),
-                  NewEs = gb_sets:add(NewEdge, EsAcc),
-                  {[NewVertex|VList],[VData|VD0],We3,NewEs}
-        end, {[],[],We0,Edges}, CornerEdges),
-        EsVs = wings_edge:to_vertices(Edges, We) -- Vs,
-        EsVpos = wings_util:add_vpos(EsVs, We),
-        AllVs = Vs ++ EsVs,
-        Tvs1 = [{Id,{AllVs,corner_tension_fun(VD++EsVpos)}}|Tvs0],
-        {We,{Tvs1,[{Id,EdgeSel}|Acc0]}}
-    end, {[],[]}, St0),
-    if St0 =:= St1 ->
-         wings_u:error_msg(?__(1,"You can only add corners to edges that have a 3 sided\nface on one end, and a 5 sided face on the other."));
-       true ->
-         St = wings_sel:set(Sel, St1),
-         wings_drag:setup(Tvs, [angle], wings_sel:valid_sel(St))
-    end.
+    ErrorMsg = ?__(1,"You can only add corners to edges that have a 3 sided\n"
+                   "face on one end, and a 5 sided face on the other."),
+    F = fun(Edges, We0) ->
+                CornerEs = corner_edges(Edges, Edges, We0, []),
+                if
+                    CornerEs =:= [] ->
+                        wings_u:error_msg(ErrorMsg);
+                    true ->
+                        ok
+                end,
+                {Vs,VD,We,EdgeSel} = corner_1(Edges, CornerEs, We0),
+                EsVs = wings_edge:to_vertices(Edges, We) -- Vs,
+                EsVpos = wings_util:add_vpos(EsVs, We),
+                AllVs = Vs ++ EsVs,
+                Tv = {AllVs,corner_tension_fun(VD ++ EsVpos)},
+                {We#we{temp=Tv},EdgeSel}
+        end,
+    St = wings_sel:map_update_sel(F, St0),
+    DF = fun(_, #we{temp=Tv}) -> Tv end,
+    wings_drag:fold(DF, [angle], St).
+
+corner_1(Edges, CornerEdges, We0) ->
+    foldl(
+      fun([H|_]=D, Acc) when is_list(D) ->
+              MD = lists:max(D),
+              Data = if MD =:= H -> D;
+                        true -> lists:reverse(D)
+                     end,
+              complex_corner_0(Data, Acc);
+         ({Edge,Face,CV,Va}, {VList,VD0,We1,EsAcc}) ->
+              {We2,NewVertex} = wings_edge:cut(Edge, 2, We1),
+              [NewEdge] = wings_we:new_items_as_ordset(edge, We1, We2),
+              {VData,We3} = connect_five_sided(NewVertex, CV, Va, Face, We2),
+              NewEs = gb_sets:add(NewEdge, EsAcc),
+              {[NewVertex|VList],[VData|VD0],We3,NewEs}
+      end, {[],[],We0,Edges}, CornerEdges).
 
 corner_edges(Edges0, AllEs, #we{es=Etab}=We, Acc0) ->
     case gb_sets:is_empty(Edges0) of

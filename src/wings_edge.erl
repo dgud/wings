@@ -16,17 +16,17 @@
 %% Utilities.
 -export([from_vs/2,to_vertices/2,from_faces/2,
 	 select_region/1,
+         reachable_faces/3,
 	 select_edge_ring/1,select_edge_ring_incr/1,select_edge_ring_decr/1,
 	 cut/3,fast_cut/3,screaming_cut/3,
 	 dissolve_edges/2,dissolve_edge/2,
+         dissolve_isolated_vs/2,
 	 hardness/3,
 	 patch_edge/4,patch_edge/5,
 	 select_nth_ring/2,
 	 select_nth_loop/2,
 	 length/2
 	]).
-
--export([dissolve_isolated_vs/2]).
 
 -include("wings.hrl").
 -import(lists, [foldl/3,sort/1]).
@@ -76,13 +76,6 @@ cut(Edge, N, #we{es=Etab}=We) ->
     PosB = wings_vertex:pos(Vb, We),
     Vec = e3d_vec:mul(e3d_vec:sub(PosB, PosA), 1/N),
     cut_1(N, Edge, PosA, Vec, We).
-
-cut_1(2, Edge, _, _, We) ->
-    fast_cut(Edge, default, We);
-cut_1(N, Edge, Pos0, Vec, We0) ->
-    Pos = e3d_vec:add(Pos0, Vec),
-    {We,NewE} = fast_cut(Edge, Pos, We0),
-    cut_1(N-1, NewE, Pos, Vec, We).
 
 %% fast_cut(Edge, Position, We0) -> {We,NewElement}
 %%      NewElement = ID for the new vertex and the new Edge
@@ -178,6 +171,84 @@ dissolve_edges(Edges, We) when is_list(Edges) ->
     dissolve_edges(Edges, Faces, We);
 dissolve_edges(Edges, We) ->
     dissolve_edges(gb_sets:to_list(Edges), We).
+
+
+%% dissolve_isolated_vs([Vertex], We) -> We'
+%%  Remove all isolated vertices ("winged vertices", or vertices
+%%  having exactly two edges).
+dissolve_isolated_vs([_|_]=Vs, We) ->
+    dissolve_isolated_vs_1(Vs, We, []);
+dissolve_isolated_vs([], We) -> We.
+
+%%%
+%%% Setting hard/soft edges.
+%%%
+
+hardness(Edge, soft, Htab) -> gb_sets:delete_any(Edge, Htab);
+hardness(Edge, hard, Htab) -> gb_sets:add(Edge, Htab).
+
+%%%
+%%% "Select faces on one side of an edge loop."
+%%%
+%%% This description is pretty ambigous. If there are
+%%% multiple edge loops, it is not clear what to select.
+%%%
+%%% What we do for each object is to collect all faces
+%%% sandwhiched between one or more edge loops. We then
+%%% partition all those face collection into one partition
+%%% for each sub-object (if there are any). For each
+%%% sub-object, we arbitrarily pick the face collection
+%%% having the smallest number of faces.
+%%%
+
+select_region(#st{selmode=edge}=St) ->
+    wings_sel:update_sel(fun select_region/2, face, St);
+select_region(St) -> St.
+
+
+%%
+%% Collect all faces reachable from Face, without crossing
+%% any of the edges in Edges.
+%%
+
+-spec reachable_faces(Face, Edges, We) -> Faces when
+      Face :: face_num(),
+      Edges :: wings_sel:edge_set(),
+      We :: #we{},
+      Faces :: wings_sel:face_set().
+
+reachable_faces(Face, Edges, We) ->
+    collect_faces(gb_sets:singleton(Face), We, Edges, gb_sets:empty()).
+
+%%%
+%%% Edge Ring. (Based on Anders Conradi's plug-in.)
+%%%
+
+select_edge_ring(#st{selmode=edge}=St) ->
+    wings_sel:update_sel(fun build_selection/2, St);
+select_edge_ring(St) -> St.
+
+select_edge_ring_incr(#st{selmode=edge}=St) ->
+    wings_sel:update_sel(fun incr_ring_selection/2, St);
+select_edge_ring_incr(St) -> St.
+
+select_edge_ring_decr(#st{selmode=edge}=St) ->
+    wings_sel:update_sel(fun decr_ring_selection/2, St);
+select_edge_ring_decr(St) -> St.
+
+
+%%%
+%%% Local functions
+%%%
+
+cut_1(2, Edge, _, _, We) ->
+    fast_cut(Edge, default, We);
+cut_1(N, Edge, Pos0, Vec, We0) ->
+    Pos = e3d_vec:add(Pos0, Vec),
+    {We,NewE} = fast_cut(Edge, Pos, We0),
+    cut_1(N-1, NewE, Pos, Vec, We).
+
+%%% Dissolving edges.
 
 dissolve_edges(Edges0, Faces, We0) when is_list(Edges0) ->
     #we{es=Etab} = We1 = foldl(fun internal_dissolve_edge/2, We0, Edges0),
@@ -286,7 +357,7 @@ dissolve_edge_2(Edge, FaceRemove, FaceKeep,
 
     %% Update the incident vertex table for both vertices
     %% to make sure they point to the correct existing edges.
-    %% 
+    %%
     %% We used to simply set the 'vc' field to 'undefined' to
     %% force a complete rebuild of the vertex table, but that
     %% could cause Extrude (for regions) to become slow for certain
@@ -325,13 +396,6 @@ dissolve_edge_2(Edge, FaceRemove, FaceKeep,
 	    internal_dissolve_edge(AnEdge, We);
 	_Other -> We
     end.
-
-%% dissolve_isolated_vs([Vertex], We) -> We'
-%%  Remove all isolated vertices ("winged vertices", or vertices
-%%  having exactly two edges).
-dissolve_isolated_vs([_|_]=Vs, We) ->
-    dissolve_isolated_vs_1(Vs, We, []);
-dissolve_isolated_vs([], We) -> We.
 
 %% Since the dissolve operation will not keep the incident
 %% edge table for vertices updated, we'll need to lookup
@@ -376,7 +440,7 @@ dissolve_isolated_vs_2([], We0, Vs) ->
 %%  that the vertex is already non-existing (or is not isolated).
 %%  If a We is returned, the caller must call this function again
 %%  (after rebuilding the incident table) since there might be more
-%%  work to do. 
+%%  work to do.
 dissolve_vertex(V, Edge, #we{es=Etab}=We0) ->
     case array:get(Edge, Etab) of
 	#edge{vs=V,ltsu=AnEdge,rtpr=AnEdge}=Rec ->
@@ -499,43 +563,18 @@ stabile_neighbor(#edge{ltpr=Ea,ltsu=Eb,rtpr=Ec,rtsu=Ed}, Del) ->
 		   end, [], [Ea,Eb,Ec,Ed]),
     Edge.
 
-%%%
-%%% Setting hard/soft edges.
-%%%
+%%% Select region helpers.
 
-hardness(Edge, soft, Htab) -> gb_sets:delete_any(Edge, Htab);
-hardness(Edge, hard, Htab) -> gb_sets:add(Edge, Htab).
-
-%%%
-%%% "Select faces on one side of an edge loop."
-%%%
-%%% This description is pretty ambigous. If there are
-%%% multiple edge loops, it is not clear what to select.
-%%%
-%%% What we do for each object is to collect all faces
-%%% sandwhiched between one or more edge loops. We then
-%%% partition all those face collection into one partition
-%%% for each sub-object (if there are any). For each
-%%% sub-object, we arbitrarily pick the face collection
-%%% having the smallest number of faces.
-%%%
-
-select_region(#st{selmode=edge}=St) ->
-    Sel = wings_sel:fold(fun select_region/3, [], St),
-    wings_sel:set(face, Sel, St);
-select_region(St) -> St.
-
-select_region(Edges0, #we{id=Id}=We, Acc) ->
+select_region(Edges0, We) ->
     Part = wings_edge_loop:partition_edges(Edges0, We),
     Edges = select_region_borders(Edges0, We),
-    FaceSel0 = select_region_1(Part, Edges, We, []),
-    FaceSel = gb_sets:from_ordset(wings_we:visible(FaceSel0, We)),
-    [{Id,FaceSel}|Acc].
+    FaceSel = select_region_1(Part, Edges, We, []),
+    gb_sets:from_ordset(wings_we:visible(FaceSel, We)).
 
 select_region_1([[AnEdge|_]|Ps], Edges, #we{es=Etab}=We, Acc) ->
     #edge{lf=Lf,rf=Rf} = array:get(AnEdge, Etab),
-    Left = collect_faces(Lf, Edges, We),
-    Right = collect_faces(Rf, Edges, We),
+    Left = reachable_faces(Lf, Edges, We),
+    Right = reachable_faces(Rf, Edges, We),
 
     %% We'll let AnEdge identify the edge loop that each
     %% face collection borders to.
@@ -613,9 +652,6 @@ make_digraph_1(G, [E1|[E2|_]=Es]) ->
     digraph:add_edge(G, E1, E2),
     make_digraph_1(G, Es).
 
-collect_faces(Face, Edges, We) ->
-    collect_faces(gb_sets:singleton(Face), We, Edges, gb_sets:empty()).
-
 collect_faces(Work0, We, Edges, Acc0) ->
     case gb_sets:is_empty(Work0) of
 	true -> Acc0;
@@ -640,30 +676,13 @@ collect_maybe_add(Work, Face, Edges, We, Res) ->
 	      end
       end, Work, Face, We).
 
-%%%
-%%% Edge Ring. (Based on Anders Conradi's plug-in.)
-%%%
-
-select_edge_ring(#st{selmode=edge}=St) ->
-    Sel = wings_sel:fold(fun build_selection/3, [], St),
-    wings_sel:set(Sel, St);
-select_edge_ring(St) -> St.
-
-select_edge_ring_incr(#st{selmode=edge}=St) ->
-    Sel = wings_sel:fold(fun incr_ring_selection/3, [], St),
-    wings_sel:set(Sel, St);
-select_edge_ring_incr(St) -> St.
-
-select_edge_ring_decr(#st{selmode=edge}=St) ->
-    Sel = wings_sel:fold(fun decr_ring_selection/3, [], St),
-    wings_sel:set(Sel, St);
-select_edge_ring_decr(St) -> St.
+%%% Edge ring functions.
 
 -record(r,{id,l,r,
 	   ls=gb_sets:empty(),
 	   rs=gb_sets:empty()}).
 
-build_selection(Edges, #we{id=Id}=We, ObjAcc) ->
+build_selection(Edges, We) ->
     Init = init_edge_ring([],unknown,Edges,We,0,[]),
     Stops0 = foldl(fun(#r{id=MyId,ls=O},S0) ->
 			   gb_sets:fold(fun(E,S) -> [{E,MyId} | S] end,
@@ -672,7 +691,7 @@ build_selection(Edges, #we{id=Id}=We, ObjAcc) ->
     Stop = gb_trees:from_orddict(lists:sort(Stops0)),
     Sel0 = grow_rings(Init,[],Stop,We,gb_sets:empty()),
     Sel = wings_we:visible_edges(Sel0, We),
-    [{Id,gb_sets:union(Sel,Edges)}|ObjAcc].
+    gb_sets:union(Sel, Edges).
 
 grow_rings([First = #r{id=This}|R0],Rest0,Stop,We,Acc) ->
     case grow_ring1(First,Stop,We) of
@@ -784,12 +803,11 @@ next_edge(Edge, Face, #we{es=Etab})->
         #edge{rf=Face,rtsu=NextEdge} -> NextEdge
     end.
 
-incr_ring_selection(Edges, #we{id=Id}=We, ObjAcc) ->
-    [{Id,gb_sets:fold(
-	   fun(Edge, EdgeAcc) ->
-		   Es = incr_from_edge(Edge, We, EdgeAcc),
-		   wings_we:visible_edges(Es, We)
-	   end, gb_sets:empty(), Edges)}|ObjAcc].
+incr_ring_selection(Edges, We) ->
+    gb_sets:fold(fun(Edge, EdgeAcc) ->
+			 Es = incr_from_edge(Edge, We, EdgeAcc),
+			 wings_we:visible_edges(Es, We)
+		 end, gb_sets:empty(), Edges).
 
 incr_from_edge(Edge, We, Acc) ->
     Selected = gb_sets:add(Edge, Acc),
@@ -803,11 +821,10 @@ incr_from_edge(Edge, We, Acc) ->
 	Right -> gb_sets:add(Right, LeftSet)
     end.
 
-decr_ring_selection(Edges, #we{id=Id} = We, ObjAcc) ->
-    [{Id,gb_sets:fold(
-	   fun(Edge, EdgeAcc) ->
-		   decr_from_edge(Edge, We, Edges, EdgeAcc)
-	   end, Edges, Edges)}|ObjAcc].
+decr_ring_selection(Edges, We) ->
+    gb_sets:fold(fun(Edge, EdgeAcc) ->
+			 decr_from_edge(Edge, We, Edges, EdgeAcc)
+		 end, Edges, Edges).
 
 decr_from_edge(Edge, We, Orig, Acc) ->
     Left = opposing_edge(Edge, We, left),
@@ -879,12 +896,11 @@ patch_edge(Edge, ToEdge, Face, OrigEdge, Etab) ->
 %%%% Select every nth ring
 
 select_nth_ring(N, #st{selmode=edge}=St) ->
-    Sel = wings_sel:fold(fun(Edges, #we{id=Id}=We, ObjAcc) ->
-                EdgeRings = nth_ring_1(Edges, {N,N}, We, Edges, gb_sets:new()),
-                Sel0 = wings_we:visible_edges(EdgeRings, We),
-                [{Id,Sel0}|ObjAcc]
-        end,[],St),
-    wings_sel:set(Sel, St);
+    wings_sel:update_sel(
+      fun(Edges, We) ->
+	      EdgeRings = nth_ring_1(Edges, {N,N}, We, Edges, gb_sets:new()),
+	      wings_we:visible_edges(EdgeRings, We)
+      end, St);
 select_nth_ring(_N, St) ->
     St.
 
@@ -988,13 +1004,13 @@ nth_ring_5(_,_,Edges0,stop,_,Edges1,OrigEs) ->
 select_nth_loop(0, St) -> St;
 select_nth_loop(N, #st{selmode=edge}=St0) ->
     St = wings_edge_loop:stoppable_sel_loop(St0),
-    Sel = wings_sel:fold(fun(Edges, #we{id=Id}=We, SelAcc) ->
-                                 Links = wings_edge_loop:edge_links(Edges, We),
-                                 SelLoop = nth_loop(Links, N-1, []),
-                                 Sel0 = wings_we:visible_edges(gb_sets:from_list(SelLoop), We),
-                                 [{Id,Sel0}|SelAcc]
-			 end, [], St),
-    St#st{sel=lists:sort(Sel)};
+    wings_sel:update_sel(
+      fun(Edges, We) ->
+              Links = wings_edge_loop:edge_links(Edges, We),
+              SelLoop0 = nth_loop(Links, N-1, []),
+              SelLoop = gb_sets:from_list(SelLoop0),
+              wings_we:visible_edges(SelLoop, We)
+      end, St);
 select_nth_loop(_N, St) ->
     St.
 

@@ -23,7 +23,7 @@ void main(void)
 
     vec4 sum = vec4(0.0), tmp, result;
 
-    float f_sz = 5.0;
+    int f_sz = 5;
 
     float orig_x  = w3d_uv.x;
     float orig_y  = w3d_uv.y;
