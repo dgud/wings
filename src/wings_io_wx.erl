@@ -122,11 +122,21 @@ blank(PreDef) ->
     end.
 
 set_cursor(CursorId) ->
-    Cursors = ?GET(cursors),
-    Cursor = proplists:get_value(CursorId, Cursors),
-    wx_misc:setCursor(Cursor),
-    put(active_cursor, CursorId),
-    ok.
+    case get(active_cursor) of
+        CursorId -> ok;
+        _ ->
+            Cursors = ?GET(cursors),
+            Cursor = proplists:get_value(CursorId, Cursors),
+            case os:type() of
+                {win32, _} ->
+                    Frame = ?GET(top_frame),
+                    wxWindow:setCursor(Frame, Cursor);
+                {_, _} ->
+                    wx_misc:setCursor(Cursor)
+            end,
+            put(active_cursor, CursorId),
+            ok
+    end.
 
 get_mouse_state() ->
     wx:batch(fun() ->
