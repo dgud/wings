@@ -18,7 +18,8 @@
          selected_ids/1,
 	 map/2,map_obj/2,
          map_update_sel/2,map_update_sel/3,
-	 update_sel/2,update_sel/3,fold_obj/3,fold/3,dfold/4,mapfold/3,
+	 update_sel/2,update_sel/3,update_sel_all/2,
+         fold_obj/3,fold/3,dfold/4,mapfold/3,
 	 new_sel/3,make/3,valid_sel/1,valid_sel/3,
          clone/2,clone/3,combine/2,combine/3,merge/2,
 	 center/1,center_vs/1,
@@ -184,6 +185,17 @@ update_sel(F, #st{sel=Sel0,shapes=Shapes}=St) when is_function(F, 2) ->
     Sel = update_sel_1(Sel0, F, Shapes),
     set(Sel, St).
 
+%%
+%% Map over all objects, modifying the selection.
+%%
+
+-spec update_sel_all(Fun, #st{}) -> #st{} when
+      Fun :: fun((Items, #we{}) -> Items),
+      Items :: gb_sets:set(item_id()).
+
+update_sel_all(F, #st{sel=Sel0,shapes=Shapes}=St) when is_function(F, 2) ->
+    Sel = update_sel_all_1(gb_trees:values(Shapes), Sel0, F),
+    set(Sel, St).
 
 %%%
 %%% Distributed fold over the selection. The Map function
@@ -563,6 +575,23 @@ update_sel_1([{Id,Sel0}|T], F, Shapes) ->
 	    update_sel_1(T, F, Shapes)
     end;
 update_sel_1([], _, _) -> [].
+
+update_sel_all_1([#we{id=Id}=We|Wes], [{Id,Items0}|Sel], F) ->
+    Items = F(Items0, We),
+    case gb_sets:is_empty(Items) of
+	false ->
+	    [{Id,Items}|update_sel_all_1(Wes, Sel, F)];
+	true ->
+            update_sel_all_1(Wes, Sel, F)
+    end;
+update_sel_all_1([#we{id=Id,perm=P}|Wes]=Wes0, Sel, F) ->
+    if
+        ?IS_SELECTABLE(P) ->
+            update_sel_all_1(Wes0, [{Id,gb_sets:empty()}|Sel], F);
+        true ->
+            update_sel_all_1(Wes, Sel, F)
+    end;
+update_sel_all_1([], _, _) -> [].
 
 fold_1(F, Acc0, Shapes, [{Id,Items}|T]) ->
     We = gb_trees:get(Id, Shapes),
