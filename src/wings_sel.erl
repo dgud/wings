@@ -646,7 +646,7 @@ clone_add_sel(Items, Id, #st{sel=Sel}=St) ->
     end.
 
 
-comb_merge(MF, #st{shapes=Shs0,selmode=Mode,sel=[{Id,_}|_]=Sel0}=St0) ->
+comb_merge(MF, #st{shapes=Shs0,selmode=Mode,sel=[{Id,_}|_]=Sel0}=St) ->
     Shs1 = sofs:from_external(gb_trees:to_list(Shs0), [{id,object}]),
     Sel1 = sofs:from_external(Sel0, [{id,dummy}]),
     Sel2 = sofs:domain(Sel1),
@@ -658,8 +658,7 @@ comb_merge(MF, #st{shapes=Shs0,selmode=Mode,sel=[{Id,_}|_]=Sel0}=St0) ->
               true -> [];
               false -> [{Id,Items}]
           end,
-    St = St0#st{shapes=Shs,sel=Sel},
-    wings_shape:recreate_folder_system(St).
+    St#st{shapes=Shs,sel=Sel}.
 
 combine_zip([#we{id=Id}=We|Wes], [{Id,Items0}|Sel], Mode) ->
     RootSet = combine_root_set(Mode, Items0),

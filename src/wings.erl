@@ -113,7 +113,7 @@ init(File) ->
     St0 = new_st(),
     St1 = wings_sel:reset(St0),
     St2 = wings_undo:init(St1),
-    St = wings_shape:create_folder_system(St2),
+    St = wings_obj:create_folder_system(St2),
 
     group_leader(wings_console:start(), self()),
 
@@ -356,7 +356,7 @@ handle_event({crash_in_other_window,LogName}, St) ->
 handle_event({open_file,Name}, St0) ->
     case catch ?SLOW(wings_ff_wings:import(Name, St0)) of
 	#st{}=St1 ->
-	    St2 = wings_shape:recreate_folder_system(St1),
+	    St2 = wings_obj:recreate_folder_system(St1),
 	    USFile = wings_file:autosave_filename(wings_file:unsaved_filename()),
 	    St = case USFile of
 		     Name ->

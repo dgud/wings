@@ -162,7 +162,7 @@ command(dissolve, St) ->
 command(clean_dissolve, St) ->
     {save_state,wings_shape:update_folders(clean_dissolve(St))};
 command(bridge, St) ->
-    {save_state,wings_shape:recreate_folder_system(bridge(St))};
+    {save_state,bridge(St)};
 command({bridge,reference}, St) ->
     bridge_ref(St);
 command(smooth, St) ->

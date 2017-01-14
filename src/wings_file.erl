@@ -305,7 +305,7 @@ new(#st{saved=true}=St0) ->
     %% clean_st/1 will remove all saved view, but will not reset the view. For a new project we should reset it.
     wings_view:reset(),
     St2 = clean_images(wings_undo:init(St1)),
-    St = wings_shape:create_folder_system(St2),
+    St = wings_obj:create_folder_system(St2),
     wings_u:caption(St),
     {new,St#st{saved=true}};
 new(#st{}=St0) ->		      %File is not saved or autosaved.
@@ -344,12 +344,12 @@ confirmed_open(Name, St0) ->
 		  %%   Name: Original name of file to be opened.
 		  %%   File: Either original file or the autosave file
 		  St1 = clean_st(St0#st{file=undefined}),
-		  St2 = wings_shape:create_folder_system(wings_undo:init(St1)),
+		  St2 = wings_obj:create_folder_system(wings_undo:init(St1)),
 		  case ?SLOW(wings_ff_wings:import(File, St2)) of
 		      #st{}=St3 ->
 			  set_cwd(dirname(File)),
 			  St4 = clean_images(St3),
-			  St = wings_shape:recreate_folder_system(St4),
+			  St = wings_obj:recreate_folder_system(St4),
 			  add_recent(Name),
 			  wings_u:caption(St#st{saved=true,file=Name});
 		      {error,Reason} ->
@@ -394,7 +394,7 @@ merge(Name, St0) ->
 		      #st{}=St ->
 			  set_cwd(dirname(Name)),
 			  wings_u:caption(St#st{saved=false}),
-			  wings_shape:recreate_folder_system(St#st{saved=false})
+			  wings_obj:recreate_folder_system(St#st{saved=false})
 		  end
 	  end,
     use_autosave(Name, Fun).
@@ -678,10 +678,10 @@ recent_files_1([], _, _, Tail) -> Tail.
 
 revert(#st{file=undefined}=St) -> St;
 revert(#st{file=File}=St0) ->
-    St1 = wings_shape:create_folder_system(clean_st(St0)),
+    St1 = wings_obj:create_folder_system(clean_st(St0)),
     case ?SLOW(wings_ff_wings:import(File, St1)) of
 	#st{}=St2 ->
-	    St = wings_shape:recreate_folder_system(St2),
+	    St = wings_obj:recreate_folder_system(St2),
 	    clean_images(St);
 	{error,_}=Error ->
 	    Error
