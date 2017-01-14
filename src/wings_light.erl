@@ -134,7 +134,7 @@ command(edit, St) ->
 command({edit,Id}, St) ->
     edit(Id, St);
 command(delete, St) ->
-    {save_state,wings_shape:update_folders(delete(St))};
+    {save_state,delete(St)};
 command({duplicate,Dir}, St) ->
     duplicate(Dir, St).
 

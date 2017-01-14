@@ -158,9 +158,9 @@ command(mirror_separate, St) ->
 command(intrude, St) ->
     ?SLOW(intrude(St));
 command(dissolve, St) ->
-    {save_state,wings_shape:update_folders(dissolve(St))};
+    {save_state,dissolve(St)};
 command(clean_dissolve, St) ->
-    {save_state,wings_shape:update_folders(clean_dissolve(St))};
+    {save_state,clean_dissolve(St)};
 command(bridge, St) ->
     {save_state,bridge(St)};
 command({bridge,reference}, St) ->
@@ -178,7 +178,7 @@ command(put_on, St) ->
 command(clone_on, St) ->
     clone_on(St);
 command(collapse, St) ->
-    {save_state,wings_shape:update_folders(wings_collapse:collapse(St))};
+    {save_state,wings_collapse:collapse(St)};
 command({material,Cmd}, St) ->
     wings_material:command(Cmd, St);
 command({move,Type}, St) ->

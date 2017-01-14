@@ -170,9 +170,9 @@ command({duplicate,Dir}, St) ->
 command({duplicate_object,Ids}, St) ->
     {save_state,duplicate_object(Ids, St)};
 command(delete, St) ->
-    {save_state,wings_shape:update_folders(delete(St))};
+    {save_state,delete(St)};
 command({delete_object,Ids}, St) ->
-    {save_state,wings_shape:update_folders(delete_object(Ids, St))};
+    {save_state,delete_object(Ids, St)};
 command(tighten, St) ->
     tighten(St);
 command(smooth, St) ->
@@ -202,7 +202,7 @@ command(cleanup, St) ->
 command({cleanup,Ask}, St) ->
     cleanup(Ask, St);
 command(collapse, St) ->
-    {save_state,wings_shape:update_folders(wings_collapse:collapse(St))};
+    {save_state,wings_collapse:collapse(St)};
 command(rename, St) ->
     rename(St);
 command({rename,prefix}, St) ->
