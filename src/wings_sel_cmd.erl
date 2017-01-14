@@ -453,10 +453,10 @@ hide_selected(#st{selmode=Mode,shapes=Shs0,sel=Sel}=St) ->
     St#st{shapes=Shs,sel=[]}.
 
 hide_unselected(St) ->
-    update_unsel([], St).
+    update_unsel(?PERM_HIDDEN_BIT, St).
 
 lock_unselected(St) ->
-    update_unsel(1, St).
+    update_unsel(?PERM_LOCKED_BIT, St).
 
 update_unsel(Perm, #st{shapes=Shs0,sel=Sel}=St) ->
     Shs1 = map(fun(#we{id=Id,perm=0}=We) ->
@@ -890,7 +890,10 @@ by_id(#st{selmode=edge}=St) ->
 by_id(#st{selmode=face}=St) ->
     item_by_id("Face Id", St).
 
-item_by_id(Prompt, #st{sel=[{Id,_}]}=St) ->
+item_by_id(Prompt, #st{sel=[_]}=St) ->
+    MF = fun(_, #we{id=Id}) -> Id end,
+    RF = fun(I, []) -> I end,
+    Id = wings_sel:dfold(MF, RF, [], St),
     ask([{Prompt,0}],
 	fun([Item]) ->
 		{Prompt,[{Id,gb_sets:singleton(Item)}]}
@@ -972,24 +975,14 @@ sel_by_id({Prompt,Sel}, St) ->
 %%% Select lights.
 %%%
 
-select_lights(#st{selmode=Mode,shapes=Shapes}=St) ->
-    Sel = select_lights_1(gb_trees:values(Shapes), Mode),
-    St#st{selmode=Mode,sel=Sel}.
-
-select_lights_1([#we{perm=Perm}|Shs], Mode) when ?IS_NOT_SELECTABLE(Perm) ->
-    select_lights_1(Shs, Mode);
-select_lights_1([We|Shs], Mode) when not ?IS_LIGHT(We) ->
-    select_lights_1(Shs, Mode);
-select_lights_1([#we{id=Id}|Shs], body) ->
-    [{Id,gb_sets:singleton(0)}|select_lights_1(Shs, body)];
-select_lights_1([#we{id=Id,vp=Vtab,es=Etab,fs=Ftab}|Shs], Mode) ->
-    Sel = case Mode of
-	      vertex -> wings_util:array_keys(Vtab);
-	      edge -> wings_util:array_keys(Etab);
-	      face -> gb_trees:keys(Ftab)
-	  end,
-    [{Id,gb_sets:from_ordset(Sel)}|select_lights_1(Shs, Mode)];
-select_lights_1([], _) -> [].
+select_lights(#st{selmode=Mode}=St0) ->
+    SF = fun(_, We) when ?IS_LIGHT(We) ->
+                 gb_sets:singleton(0);
+            (_, _) ->
+                 gb_sets:empty()
+         end,
+    St = wings_sel:new_sel(SF, body, St0),
+    wings_sel_conv:mode(Mode, St).
 
 %%%
 %%% Select isolated vertices.

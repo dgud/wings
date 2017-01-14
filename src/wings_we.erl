@@ -35,11 +35,22 @@
 	 visible_edges/1,visible_edges/2,fully_visible_edges/2,
 	 validate_mirror/1,mirror_flatten/2,mirror_projection/1,
 	 create_mirror/2,freeze_mirror/1,break_mirror/1,
-     centroid/1,volume/1,perimeter/1,surface_area/1]).
+         centroid/1,volume/1,perimeter/1,surface_area/1]).
+
+-export_type([perm/0]).
 
 -include("wings.hrl").
 -include("e3d.hrl").
 -import(lists, [foreach/2,foldl/3,sort/1,keysort/2,reverse/1,zip/2,partition/2]).
+
+%% Permissions:
+%% 0 - Everything allowed.
+%% 1 - Visible, can't select.
+%% 2 - Hidden (unlocked).
+%% 3 - Hidden, locked.
+%% {Mode,GbSet} - Hidden, with saved selection.
+
+-type perm() :: 0..3 | {wings_sel:mode(),wings_sel:item_set()}.
 
 %%%
 %%% API.

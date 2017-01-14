@@ -87,7 +87,7 @@ process_obj(We, _) when ?IS_NOT_SELECTABLE(We#we.perm) ->
     We;
 process_obj(We, _) when ?IS_ANY_LIGHT(We) ->
     case We#we.name =/= ambient() of
-	true -> We#we{perm=[]};
+	true -> We#we{perm=?PERM_HIDDEN_BIT};
 	false -> We
     end;
 process_obj(We0, AO) ->

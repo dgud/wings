@@ -21,6 +21,10 @@
 
 -import(lists, [reverse/1,reverse/2]).
 
+-type elem_num() :: wings_vertex:vertex_num()
+                  | wings_edge:edge_num()
+                  | wings_face:face_num().
+
 %% Develop info.
 -record(info,
 	{change,
@@ -31,7 +35,7 @@
 %% The essential part of the state record.
 -record(est,
 	{shapes=[] :: list(#we{}) | gb_trees:tree(),
-	 selmode=face :: sel_mode(),
+	 selmode=face :: wings_sel:mode(),
 	 sel=[] :: list(),
 	 onext=1 :: elem_num(),
 	 mat=wings_material:default(),

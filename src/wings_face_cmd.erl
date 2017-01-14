@@ -1445,7 +1445,7 @@ hide_faces(St0) ->
 hide_faces_fun(Fs, We0) ->
     We = wings_we:hide_faces(Fs, We0),
     case wings_we:all_hidden(We) of
-	true -> We0#we{perm=[]};		%Hide entire object.
+	true -> We0#we{perm=?PERM_HIDDEN_BIT};  %Hide entire object.
 	false -> We
     end.
 

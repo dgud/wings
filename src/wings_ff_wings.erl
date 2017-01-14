@@ -1377,8 +1377,6 @@ hidden_faces(N, Props) -> [{num_hidden_faces,N}|Props].
 export_holes(#we{holes=[]}, Props) -> Props;
 export_holes(#we{holes=Holes}, Props) -> [{holes,Holes}|Props].
 
-export_perm(#we{perm=[]}) ->
-    [{state,hidden_locked}];	     %Only for backward compatibility.
 export_perm(#we{perm=0}) -> [];
 export_perm(#we{perm=1}) -> [{state,locked}];
 export_perm(#we{perm=2}) -> [{state,hidden}];
