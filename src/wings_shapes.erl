@@ -103,7 +103,7 @@ command(image, St) -> wings_image:create(St).
 build_shape(Prefix, Fs, Vs, #st{onext=Oid}=St) ->
     We = wings_we:build(Fs, Vs),
     Name = Prefix++integer_to_list(Oid),
-    wings_shape:new(Name, We, St).
+    wings_obj:new(Name, We, St).
 
 tetrahedron(Ask, St) when is_atom(Ask) ->
     Q = [{label_column, [

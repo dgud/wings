@@ -251,7 +251,7 @@ check_result(_M, {new_shape,Prefix,#e3d_object{}=Obj,Mat}, St) ->
 check_result(_M, {new_shape,Prefix,Fs,Vs}, St) ->
     Name = object_name(Prefix, St),
     #we{} = We = wings_we:build(Fs, Vs),
-    wings_shape:new(Name, We, St);
+    wings_obj:new(Name, We, St);
 check_result(_M, aborted, _St) -> aborted;
 check_result(_M, {drag,_}=Drag, _) -> Drag;
 check_result(_M, #st{}=St, _) -> St;

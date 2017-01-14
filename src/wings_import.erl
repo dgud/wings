@@ -54,9 +54,9 @@ import_attributes(We, #e3d_object{attr=Attr}) ->
 
 store_object(undefined, We, #st{onext=Oid}=St) ->
     Name = "unnamed_object" ++ integer_to_list(Oid),
-    wings_shape:new(Name, We, St);
+    wings_obj:new(Name, We, St);
 store_object(Name, We, St) ->
-    wings_shape:new(Name, We, St).
+    wings_obj:new(Name, We, St).
 
 import_object(#e3d_object{name=_Name,obj=Mesh0}) ->
     %%io:format("\n~s:\n", [_Name]),

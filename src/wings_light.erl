@@ -677,7 +677,7 @@ import(Lights, St) ->
     foldl(fun import_fun/2, St, Lights).
 
 import_fun({Name,Ps}, St) ->
-    wings_shape:new(Name, import(Ps), St).
+    wings_obj:new(Name, import(Ps), St).
 
 import(Ps) ->
     Visible = proplists:get_value(visible, Ps, []),
