@@ -107,7 +107,6 @@ MODULES= \
 	wings_sel_cmd \
 	wings_scale \
 	wings_shaders \
-	wings_shape \
 	wings_shapes \
 	wings_start \
 	wings_status \
