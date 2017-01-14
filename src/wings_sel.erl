@@ -319,7 +319,8 @@ make(Filter, Mode, St) when is_function(Filter, 2) ->
 %% Clone the selection.
 %%
 
--type clone_item() :: {#we{},item_set(),wings_shape:suffix()}.
+-type suffix() :: 'cut' | 'clone' | 'copy' | 'extract' | 'mirror' | 'sep'.
+-type clone_item() :: {#we{},item_set(),suffix()}.
 -type clone_out() :: {#we{},item_set(),[clone_item()]}.
 -type clone_fun() :: fun((item_set(), #we{}) -> clone_out()).
 
@@ -633,8 +634,12 @@ clone_fun(F, Items0, #we{id=Id}=We0, #st{shapes=Shs0}=St0) ->
     St = clone_add_sel(Items, Id, St1),
     clone_fun_add(New, St).
 
-clone_fun_add([{We,Items,Suffix}|T], #st{onext=Id}=St0) ->
-    St1 = wings_shape:insert(We, Suffix, St0),
+clone_fun_add([{#we{name=Name0}=We0,Items,Suffix}|T],
+              #st{onext=Id,shapes=Shs0}=St0) ->
+    Name = new_name(Name0, Suffix, Id),
+    We = We0#we{id=Id,name=Name},
+    Shs = gb_trees:insert(Id, We, Shs0),
+    St1 = St0#st{shapes=Shs,onext=Id+1},
     St = clone_add_sel(Items, Id, St1),
     clone_fun_add(T, St);
 clone_fun_add([], St) -> St.
@@ -645,6 +650,42 @@ clone_add_sel(Items, Id, #st{sel=Sel}=St) ->
         true -> St
     end.
 
+new_name(OldName, Suffix0, Id) ->
+    Suffix = suffix(Suffix0),
+    Base = base(reverse(OldName)),
+    reverse(Base, "_" ++ Suffix ++ integer_to_list(Id)).
+
+%% Note: Filename suffixes are intentionally not translated.
+%% If we are to translate them in the future, base/1 below
+%% must be updated to strip suffixes (both for the current language
+%% and for English).
+
+suffix(cut) -> "cut";
+suffix(clone) -> "clone";
+suffix(copy) -> "copy";
+suffix(extract) -> "extract";
+suffix(mirror) -> "mirror";
+suffix(sep) -> "sep".
+
+%% base_1(ReversedName) -> ReversedBaseName
+%%  Given an object name, strip digits and known suffixes to
+%%  create a base name. Returns the unchanged name if
+%%  no known suffix could be stripped.
+
+base(OldName) ->
+    case base_1(OldName) of
+	error -> OldName;
+	Base -> Base
+    end.
+
+base_1([H|T]) when $0 =< H, H =< $9 -> base_1(T);
+base_1("tuc_"++Base) -> Base;			%"_cut"
+base_1("enolc_"++Base) -> Base;			%"_clone"
+base_1("ypoc_"++Base) -> Base;			%"_copy"
+base_1("tcartxe_"++Base) -> Base;		%"_extract"
+base_1("rorrim_"++Base) -> Base;		%"_mirror"
+base_1("pes_"++Base) -> Base;			%"_sep"
+base_1(_Base) -> error.
 
 comb_merge(MF, #st{shapes=Shs0,selmode=Mode,sel=[{Id,_}|_]=Sel0}=St) ->
     Shs1 = sofs:from_external(gb_trees:to_list(Shs0), [{id,object}]),
