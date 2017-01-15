@@ -12,20 +12,35 @@
 %%
 
 -module(wings_sel_conv).
--export([mode/2,more/1,more/3,less/1,less/3]).
+-export([mode/2,mode/3,more/1,more/3,less/1,less/3]).
 
 -include("wings.hrl").
 -import(lists, [foldl/3,reverse/1]).
+
+-spec mode(ToMode, #st{}) -> #st{} when
+      ToMode :: wings:sel_mode().
 
 mode(Mode, #st{sel=[]}=St) ->
     St#st{selmode=Mode,sh=false};
 mode(Mode, St) ->
     mode_1(Mode, St#st{sh=false}).
 
-mode_1(vertex, St) -> vertex_selection(St);
-mode_1(edge, St) -> edge_selection(St);
-mode_1(face, St) -> face_selection(St);
-mode_1(body, St) -> body_selection(St).
+-spec mode(ToMode, {FromMode,InItems}, #we{}) -> OutItems when
+      ToMode :: wings:sel_mode(),
+      FromMode :: wings_sel:mode(),
+      InItems :: wings_sel:item_set(),
+      OutItems :: wings_sel:item_set().
+
+mode(vertex, {FromMode,Items}, We) ->
+    vertex_selection(FromMode, Items, We);
+mode(edge, {FromMode,Items}, We) ->
+    edge_selection(FromMode, Items, We);
+mode(face, {FromMode,Items}, We) ->
+    face_selection(FromMode, Items, We);
+mode(body, {FromMode,_}, #we{}) when is_atom(FromMode) ->
+    gb_sets:singleton(0).
+
+-spec more(#st{}) -> #st{}.
 
 more(#st{selmode=vertex}=St) ->
     vertex_more(St);
@@ -34,6 +49,8 @@ more(#st{selmode=edge}=St) ->
 more(#st{selmode=face}=St) ->
     face_more(St);
 more(St) -> St.
+
+-spec less(#st{}) -> #st{}.
 
 less(#st{selmode=vertex}=St) ->
     vertex_less(St);
@@ -69,27 +86,33 @@ less(edge, Es, We) ->
 less(face, Fs, We) ->
     face_less(Fs, We).
 
+%%%
+%%% Local functions.
+%%%
+
+mode_1(vertex, St) -> vertex_selection(St);
+mode_1(edge, St) -> edge_selection(St);
+mode_1(face, St) -> face_selection(St);
+mode_1(body, St) -> body_selection(St).
+
 %%
 %% Convert the current selection to a vertex selection.
 %%
 
-vertex_selection(#st{selmode=body}=St) ->
+vertex_selection(#st{selmode=Mode}=St) ->
     wings_sel:update_sel(
-      fun(_, We) ->
-	      gb_sets:from_list(wings_we:visible_vs(We))
-      end, vertex, St);
-vertex_selection(#st{selmode=face}=St) ->
-    wings_sel:update_sel(
-      fun(Fs, We) ->
-	      gb_sets:from_ordset(wings_vertex:from_faces(Fs, We))
-      end, vertex, St);
-vertex_selection(#st{selmode=edge}=St) ->
-    wings_sel:update_sel(
-      fun(Es, We) ->
-	      gb_sets:from_ordset(wings_vertex:from_edges(Es, We))
-      end, vertex, St);
-vertex_selection(#st{selmode=vertex}=St) ->
-    vertex_more(St).
+      fun(Items, We) ->
+	      vertex_selection(Mode, Items, We)
+      end, vertex, St).
+
+vertex_selection(body, _, We) ->
+    gb_sets:from_list(wings_we:visible_vs(We));
+vertex_selection(face, Fs, We) ->
+    gb_sets:from_ordset(wings_vertex:from_faces(Fs, We));
+vertex_selection(edge, Es, We) ->
+    gb_sets:from_ordset(wings_vertex:from_edges(Es, We));
+vertex_selection(vertex, Vs, We) ->
+    vertex_more(Vs, We).
 
 vertex_more(St) ->
     wings_sel:update_sel(fun vertex_more/2, St).
@@ -137,22 +160,20 @@ vertex_visible(V, We) ->
 %% Convert the current selection to an edge selection.
 %%
 
-edge_selection(#st{selmode=body}=St) ->
-    wings_sel:update_sel(fun(_, We) ->
-		     gb_sets:from_ordset(wings_we:visible_edges(We))
-	     end, edge, St);
-edge_selection(#st{selmode=face}=St) ->
+edge_selection(#st{selmode=Mode}=St) ->
     wings_sel:update_sel(
-      fun(Faces, We) ->
-	      wings_edge:from_faces(Faces, We)
-      end, edge, St);
-edge_selection(#st{selmode=edge}=St) ->
-    wings_sel:update_sel(
-      fun(Edges, We) ->
-	      edge_extend_sel(Edges, We)
-      end, edge, St);
-edge_selection(#st{selmode=vertex}=St) ->
-    wings_sel:update_sel(fun(Vs, We) -> wings_edge:from_vs(Vs, We) end, edge, St).
+      fun(Items, We) ->
+              edge_selection(Mode, Items, We)
+      end, edge, St).
+
+edge_selection(body, _, We) ->
+    gb_sets:from_ordset(wings_we:visible_edges(We));
+edge_selection(face, Faces, We) ->
+    wings_edge:from_faces(Faces, We);
+edge_selection(edge, Edges, We) ->
+    edge_extend_sel(Edges, We);
+edge_selection(vertex, Vs, We) ->
+    wings_edge:from_vs(Vs, We).
 
 edge_more(St) ->
     wings_sel:update_sel(fun edge_more/2, edge, St).
@@ -214,27 +235,23 @@ edge_extend_sel(Es0, #we{es=Etab}=We) ->
 %% Convert the current selection to a face selection.
 %%
 
-face_selection(#st{selmode=body}=St) ->
+face_selection(#st{selmode=Mode}=St) ->
     wings_sel:update_sel(
-      fun(_, We) ->
-	      wings_sel:get_all_items(face, We)
-      end, face, St);
-face_selection(#st{selmode=face}=St) ->
-    wings_sel:update_sel(
-      fun(Sel0, We) ->
-	      Sel = wings_face:extend_border(Sel0, We),
-	      remove_invisible_faces(Sel)
-      end, face, St);
-face_selection(#st{selmode=edge}=St) ->
-    wings_sel:update_sel(fun(Es, We) ->
-		     Fs = wings_face:from_edges(Es, We),
-		     remove_invisible_faces(Fs)
-	     end, face, St);
-face_selection(#st{selmode=vertex}=St) ->
-    wings_sel:update_sel(fun(Vs, We) ->
-		     Fs = wings_we:visible(wings_face:from_vs(Vs, We), We),
-		     gb_sets:from_ordset(Fs)
-	     end, face, St).
+      fun(Items, We) ->
+	      face_selection(Mode, Items, We)
+      end, face, St).
+
+face_selection(body, _, We) ->
+    wings_sel:get_all_items(face, We);
+face_selection(face, Fs0, We) ->
+    Fs = wings_face:extend_border(Fs0, We),
+    remove_invisible_faces(Fs);
+face_selection(edge, Es, We) ->
+    Fs = wings_face:from_edges(Es, We),
+    remove_invisible_faces(Fs);
+face_selection(vertex, Vs, We) ->
+    Fs = wings_we:visible(wings_face:from_vs(Vs, We), We),
+    gb_sets:from_ordset(Fs).
 
 face_more(St) ->
     wings_sel:update_sel(fun face_more/2, face, St).
