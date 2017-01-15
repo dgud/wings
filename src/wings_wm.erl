@@ -441,8 +441,8 @@ grab_focus() ->
 grab_focus(Name) ->
     case is_window(Name) of
 	true  ->
-%%	    {_, [_,Where|_]} = erlang:process_info(self(), current_stacktrace),
-%%	    io:format("Grab ~p~n",[Where]),
+	    %%{_, [_,Where|_]} = erlang:process_info(self(), current_stacktrace),
+	    %%io:format("Grab focus: ~p~n   ~p~n",[Name, Where]),
 	    case get(wm_focus_grab) of
 		undefined -> put(wm_focus_grab, [Name]);
 		Stack -> put(wm_focus_grab, [Name|Stack])
@@ -453,8 +453,12 @@ grab_focus(Name) ->
 release_focus() ->
     case get(wm_focus_grab) of
 	undefined -> ok;
-	[_] -> erase(wm_focus_grab);
-	[_|Stack] -> put(wm_focus_grab, Stack)
+	[_Name] ->
+            %%io:format("Release focus ~p~n",[_Name]),
+            erase(wm_focus_grab);
+	[_Name|Stack] ->
+            %%io:format("Release focus ~p~n",[_Name]),
+            put(wm_focus_grab, Stack)
     end.
 
 grabbed_focus_window() ->
@@ -703,6 +707,7 @@ dispatch_event(#wx{event=#wxActivate{active=Active}}) ->
 	    dirty(),
             true;
 	false ->
+            erase(wm_focus_grab),
 	    update_focus(none),
 	    true
     end;
