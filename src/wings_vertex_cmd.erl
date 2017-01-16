@@ -474,7 +474,8 @@ tighten(St) ->
     wings_drag:fold(fun tighten_vs/2, [percent], St).
 
 tighten_vs(Vs, We) when is_list(Vs) ->
-    [{tighten_vec(V, We),[V]} || V <- Vs];
+    Translate = [{tighten_vec(V, We),[V]} || V <- Vs],
+    wings_drag:translate_fun(Translate, We);
 tighten_vs(Vs, We) ->
     tighten_vs(gb_sets:to_list(Vs), We).
 
