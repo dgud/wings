@@ -399,7 +399,7 @@ invoke_menu(Indx, #{sel:=GeomHaveSel}, Shown, LC) ->
 		[group_replace_menu(array:get(SelIndex, Shown))] ++
 		[separator|Delete];
        true ->
-	   group_basic_menu(Current) ++
+	   group_basic_menu(array:get(SelIndex, Shown)) ++
 	    [separator|group_bool_menu(Current, array:get(SelIndex, Shown))] ++
 	    [separator|group_replace_menu(array:get(SelIndex, Shown))]
     end.
@@ -414,11 +414,11 @@ group_del_menu({_,SrcName}=SrcId) ->
 	 {?__(22,"Delete All"), menu_cmd(delete_groups,all), ?__(23,"Delete all groups")},
 	 {?__(24,"Remove Invalid Groups"), menu_cmd(delete_groups,invalid), ?__(25,"Removes all invalid groups")}].
 group_basic_menu(none) -> [];
-group_basic_menu({_,SrcName}=SrcId) ->
-    [{?__(5,"Add to Group"), menu_cmd(add_to_group,SrcId),
-      ?__(6,"Add current selection to group \"")++SrcName++"\""},
-     {?__(7,"Subtract from Group"), menu_cmd(subtract_from_group,SrcId),
-      ?__(8,"Subtract current selection from group \"")++SrcName++"\""}].
+group_basic_menu({_,DstName}=DstId) ->
+    [{?__(5,"Add to Group"), menu_cmd(add_to_group,DstId),
+      ?__(6,"Add current selection to group \"")++DstName++"\""},
+     {?__(7,"Subtract from Group"), menu_cmd(subtract_from_group,DstId),
+      ?__(8,"Subtract current selection from group \"")++DstName++"\""}].
 
 group_replace_menu(none) -> [];
 group_replace_menu({_,DstName}=DstId) ->
