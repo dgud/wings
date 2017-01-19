@@ -159,7 +159,7 @@ print_boxed(String) ->
     A = length(String),
     io:fwrite("\n", []),
     io:fwrite("+-~s-+\n", [lists:duplicate(A, "-")]),
-    io:fwrite("| ~s |\n", [String]),
+    io:fwrite("| ~ts |\n", [String]),
     io:fwrite("+-~s-+\n", [lists:duplicate(A, "-")]).
 
 e3dfaces_to_faces(E3dFaces) ->
