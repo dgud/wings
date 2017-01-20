@@ -61,7 +61,7 @@ make_image(Name,Ask,St) when is_atom(Ask) ->
     #e3d_image{}=Image ->
         make_image(Name,Image,Ask,St);
     {error,Error} ->
-        wpa:error_msg(?__(1,"Failed to load \"~s\": ~s\n"),
+        wpa:error_msg(?__(1,"Failed to load \"~ts\": ~s\n"),
               [Name,file:format_error(Error)])
     end.
 
