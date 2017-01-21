@@ -15,7 +15,8 @@
 
 -module(wings_collapse).
 -export([collapse/1,collapse_edge/2,collapse_edge/3,
-	 collapse_edges/2,fast_collapse_edge/2,collapse_vertices/2]).
+	 collapse_edges/2,fast_collapse_edge/2,collapse_vertices/2,
+         collapse_faces/2]).
 -export([uniform_collapse/1,clean_uniform_collapse/1]).
 -include("wings.hrl").
 -import(lists, [foldl/3,reverse/1,sort/1]).
@@ -81,10 +82,6 @@ collapse_vertices(Vs, We0) ->
     {We,_} = do_collapse_vertices(Vs, We0),
     We.
 
-%%%
-%%% Internal functions (for collapsing faces).
-%%%
-
 collapse_faces(Faces, #we{fs=Ftab}=We0)->
     F1 = gb_sets:size(Faces),
     F2 = gb_trees:size(Ftab),
@@ -100,6 +97,9 @@ collapse_faces(Faces, #we{fs=Ftab}=We0)->
 	    {#we{},gb_trees:empty()}
     end.
 
+%%%
+%%% Internal functions (for collapsing faces).
+%%%
 
 collapse_face(Face, #we{fs=Ftab}=We) ->
     %% This face could have have been removed earlier because it
