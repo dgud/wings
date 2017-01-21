@@ -626,7 +626,9 @@ slide(#cs{st=#st{shapes=Sh}=St0,we=Shape,v=[#vi{id=Id1,mm=MM}|_]}=C, S, E) ->
 	end,
     {Tv,Init} = slide_make_tvs(Id1, Curr, Start, End, C),
     FS = fun(_, #we{id=Id}) when Id =:= Shape ->
-                 gb_sets:singleton(Id1)
+                 gb_sets:singleton(Id1);
+            (_, _) ->
+                 gb_sets:empty()
          end,
     St = wings_sel:new_sel(FS, vertex, St0),
     Units = [{percent,{0.0+2*?EPS,1.0-2*?EPS}}],
