@@ -74,6 +74,7 @@ button_sh_filter(_, false) -> false;
 button_sh_filter(vertex, true) -> true;
 button_sh_filter(edge, true) -> true;
 button_sh_filter(face, true) -> true;
+button_sh_filter(body, true) -> true;
 button_sh_filter(_, _) -> false.
 
 init(Frame, Icons) ->

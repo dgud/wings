@@ -109,7 +109,7 @@ magnet_message(Msg, Right) ->
 			     wings_msg:rmb_format(?__(2,"Magnet options"))),
     wings_wm:message(Message, Right).
 
-mode_restriction(Modes, #st{selmode=Mode}=St) ->
+mode_restriction(#ss{selmodes=Modes}, #st{selmode=Mode}=St) ->
     wings:mode_restriction(Modes),
     case member(Mode, Modes) of
 	true -> St;
@@ -128,6 +128,11 @@ clear_sel() ->
 
 clear_sel(D, _) -> D#dlo{sel=none}.
 
+reset(#ss{selmodes=Modes}, #st{selmode=Mode}=St0) ->
+    St = wings_sel:set(Mode, [], St0),
+    Sh = 1 =:= length(Modes),
+    St#st{sh=Sh}.
+
 %%%
 %%% Event handler for secondary selection mode.
 %%%
@@ -137,10 +142,9 @@ get_event(Ss, St) ->
     wings_wm:dirty(),
     {replace,fun(Ev) -> handle_event(Ev, Ss, St) end}.
 
-handle_event({ask_init,Do,Done}, #ss{selmodes=Modes}=Ss,
-	     #st{selmode=Mode}=St0) ->
+handle_event({ask_init,Do,Done}, Ss, #st{selmode=Mode}=St0) ->
     wings_render:draw_orig_sel_dl(Mode),
-    St = wings_sel:reset(mode_restriction(Modes, St0)),
+    St = reset(Ss, mode_restriction(Ss, St0)),
     pick_next(Do, Done, Ss, St);
 handle_event(Event, Ss, St) ->
     case wings_camera:event(Event, St) of
@@ -203,6 +207,9 @@ handle_event_4({update_state,St}, #ss{f=Check}=Ss, _St0) ->
 handle_event_4(redraw, Ss, St) ->
     redraw(Ss, St),
     keep;
+handle_event_4({action,{select,deselect}}, Ss, #st{selmode=body} = St0) ->
+    St = reset(Ss,St0),
+    handle_event({new_state,St}, Ss, St);
 handle_event_4({action,{select,Cmd}}, Ss, St0) ->
     case wings_sel_cmd:command(Cmd, St0) of
 	#st{}=St0 -> keep;
@@ -286,7 +293,7 @@ pick_next_1([{Fun0,Desc}|More], Done, Ss, St) when is_function(Fun0) ->
 		       Other -> Other
 		     end
 	  end,
-    get_event(Ss#ss{f=Fun,is_axis=false,vec=none,info=""}, wings_sel:reset(St));
+    get_event(Ss#ss{f=Fun,is_axis=false,vec=none,info=""}, reset(Ss,St));
 pick_next_1([{Type,Desc}|More], Done, Ss, St0) ->
     MagnetPossible = magnet_possible_now(More, Ss),
     Check = case Type of
@@ -320,7 +327,7 @@ pick_next_1([{Type,Desc}|More], Done, Ss, St0) ->
 	     _ -> St0
 	 end,
     clear_sel(),
-    get_event(Ss#ss{f=Fun,is_axis=IsAxis,vec=none,info=""}, wings_sel:reset(St)).
+    get_event(Ss#ss{f=Fun,is_axis=IsAxis,vec=none,info=""}, reset(Ss,St)).
 
 redraw(#ss{info=Info,f=Message,vec=Vec}=Ss, St) ->
     Message(message, right_message(Ss)),

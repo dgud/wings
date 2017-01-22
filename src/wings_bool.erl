@@ -12,12 +12,13 @@
 %%
 
 -module(wings_bool).
--export([add/1,isect/1]).
+-export([add/1,isect/1,sub/1]).
 -include("wings.hrl").
 -include_lib("wings/e3d/e3d.hrl").
 
 -define(EPSILON, 1.0e-8).  %% used without SQRT() => 1.0e-4
--define(DEBUG,1).
+
+%-define(DEBUG,true).
 -ifdef(DEBUG).
 -define(DBG_TRY(Do,Err),
         try Do
@@ -28,50 +29,141 @@
                 Err
         end).
 -define(PUT(Id,We),put(Id,We)).
+-define(TEST, true).
+-define(D(F,A), ?dbg(F,A)).
 -else.
 -define(DBG_TRY(Do,Err), Do).
+-define(PUT(Id,We),ok).
+-define(TEST, false).
+-define(D(F,A), ok).
 -endif.
 
 
-add(St0) ->
+add(St) ->
     Map = fun(_, We) -> init_isect(We, add) end,
-    do_bool(St0, Map).
+    do_bool(St, Map).
 
-isect(St0) ->
+isect(St) ->
     Map = fun(_, We) -> init_isect(We, isect) end,
-    do_bool(St0, Map).
+    do_bool(St, Map).
 
-do_bool(#st{shapes=Sh0}=St0, Map) ->
-    Reduce = fun find_intersect/2,
-    {_, Merged} = wings_sel:dfold(Map, Reduce, {[], []}, St0),
-    %% This could be done in Reduce but would need St in Acc is that ok?
-    Upd = fun(#{we:=#we{id=Id}=We, delete:=Del}=MI, Sh) ->
-		  Sh1 = gb_trees:update(Id, We, gb_trees:delete_any(Del, Sh)),
+sub(#st{sel=OrigSel0}=St0) ->
+    case length(wings_sel:selected_ids(St0)) =:= 1 orelse ?TEST of
+        true ->
+            Do = fun(Subtract, St1) ->
+                         St = ?SLOW(wings_sel:valid_sel(sub(Subtract, St1))),
+                         {save_state, wings_obj:recreate_folder_system(St)}
+                 end,
+            OrigSel = gb_sets:from_list([Id || {Id, _} <- OrigSel0]),
+            wings:ask(sub_ask(OrigSel), St0, Do);
+        false ->
+            wings_u:error_msg(?__(1, "Select the object to subtract from"))
+    end.
+
+
+sub(Subtract, St0) ->
+    Map = fun(_, We) -> init_isect(We, add) end,
+    Reduce = fun(Bvh, Acc) -> find_intersect(Bvh, sub, Acc) end,
+    {Subs, Merged} = wings_sel:dfold(Map, Reduce, {Subtract, []}, St0),
+    case Subs of
+        Subtract -> St0;
+        _ -> repeat(Subs, Merged, Map, Reduce, St0)
+    end.
+
+do_bool(St, Map) ->
+    case length(wings_sel:selected_ids(St)) =:= 2 orelse ?TEST of
+        true ->
+            Reduce = fun(Bvh, Acc) -> find_intersect(Bvh, add, Acc) end,
+            {Bvhs, Merged} = wings_sel:dfold(Map, Reduce, {[], []}, St),
+            repeat(Bvhs, Merged, Map, Reduce, St);
+        false ->
+            wings_u:error_msg(?__(1, "Select two objects"))
+    end.
+
+repeat(Bvhs, [], _, _, St) ->
+    finish(Bvhs, St);
+repeat([], Merged, _, _, St) ->
+    finish(Merged, St);
+repeat(Bvhs0, Merged0, Map, Reduce, #st{shapes=Sh0}=St) ->
+    Redo = fun(#{we:=We, sel_es:=Es0}, Acc) ->
+                   Reduce(Map(gb_sets:empty(), We#we{temp={?MODULE,Es0}}),Acc)
+           end,
+    {Bvhs, Merged} = lists:foldl(Redo, {Bvhs0, []}, Merged0),
+    Sh = lists:foldl(fun(#{delete:=Del}, Sh) ->
+                             gb_trees:delete_any(Del, Sh)
+                     end, Sh0, Merged0),
+    case Bvhs0 =:= Bvhs of
+        true ->
+            finish(Bvhs++Merged, St);
+        false ->
+            repeat(Bvhs, Merged, Map, Reduce, St#st{shapes=Sh})
+    end.
+
+finish(Merged, #st{shapes=Sh0}=St0) ->
+    Upd = fun(#{we:=#we{id=Id}=We}=MI, Sh1) ->
+                  Sh2 = case maps:get(delete, MI, undefined) of
+                            undefined -> Sh1;
+                            Del -> gb_trees:delete_any(Del, Sh1)
+                        end,
+                  Sh3 = gb_trees:update(Id, We#we{temp=[]}, Sh2),
                   case maps:get(error, MI, undefined) of
-                      undefined -> Sh1;
+                      undefined -> Sh3;
                       #we{id=IdDbg}=WeDbg ->
-                          gb_trees:update(IdDbg, WeDbg, Sh1)
+                          gb_trees:update(IdDbg, WeDbg, Sh3)
                   end
 	  end,
     Sh = lists:foldl(Upd, Sh0, Merged),
-    Sel = [{Id,gb_sets:from_list(Es)} || #{we:=#we{id=Id}, es:=Es} <- Merged],
+    Sel = [{Id,gb_sets:from_list(Es)} || #{we:=#we{id=Id}, sel_es:=Es} <- Merged],
     wings_sel:set(edge, Sel, St0#st{shapes=Sh}).
+
+sub_ask(OrigSel) ->
+    Desc  = ?__(1,"Pick body to subtract from original selection"),
+    Desc2 = ?__(2,"Select one body that is not original selection"),
+    Fun = fun(check, St) ->
+                  Sel = wings_sel:selected_ids(St),
+                  case sub_is_valid_sel(Sel, OrigSel) of
+                      false -> {none,Desc2};
+                      true -> {none,[]}
+		  end;
+             (exit, {_, _, St}) ->
+                  Sel = wings_sel:selected_ids(St),
+                  case sub_is_valid_sel(Sel, OrigSel) of
+                      false -> error;
+                      true ->
+                          Map = fun(_, We) -> init_isect(We, sub) end,
+                          Reduce = fun(D,Acc) -> [D|Acc] end,
+                          Sub = wings_sel:dfold(Map, Reduce, [], St),
+                          {result, Sub}
+                  end
+	  end,
+    {[{Fun,Desc}],[],[],[body]}.
+
+sub_is_valid_sel([], _OrigSel) ->
+    false;
+sub_is_valid_sel(Sel, OrigSel) ->
+    Set = gb_sets:from_list(Sel),
+    case gb_sets:is_empty(gb_sets:intersection(Set, OrigSel)) of
+        true when length(Sel) =:= 1 orelse ?TEST -> true;
+        _ -> false
+    end.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-find_intersect(Bvh, {Bvhs0, Merged}) ->
-    case find_intersect(Bvh, Bvhs0, []) of
+find_intersect(Bvh, Op, {Bvhs0, Merged}) ->
+    case find_intersect_1(Bvh, Bvhs0, []) of
+        none when Op =:= sub -> {Bvhs0, [Bvh|Merged]};
         none -> {[Bvh|Bvhs0], Merged};
         {We, Bvhs} -> {Bvhs, [We|Merged]}
     end.
 
-find_intersect(#{bvh:=B1}=Head, [#{bvh:=B2}=H1|Rest], Tested) ->
+find_intersect_1(#{bvh:=B1}=Head, [#{bvh:=B2}=H1|Rest], Tested) ->
     case e3d_bvh:intersect(B1, B2) of
-	[] ->  find_intersect(Head,Rest,[H1|Tested]);
+	[] ->  find_intersect_1(Head,Rest,[H1|Tested]);
 	EdgeInfo -> {merge_0(EdgeInfo, Head, H1), Rest ++ Tested}
     end;
-find_intersect(_Head, [], _) ->
+find_intersect_1(_Head, [], _) ->
     none.
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -79,14 +171,14 @@ merge_0(EdgeInfo0, I1, I2) ->
     EdgeInfo = [remap(Edge, I1, I2) || Edge <- EdgeInfo0],
     ?PUT(we1,maps:get(we,I1)), ?PUT(we2,maps:get(we,I2)),
     case [{MF1,MF2} || {coplanar, MF1, MF2} <- EdgeInfo] of
-        [] -> ?DBG_TRY(merge_1(EdgeInfo, I1, I2), #{we=>get(we1),delete=>none, es=>[], error=>get(we2)});
+        [] -> ?DBG_TRY(merge_1(EdgeInfo, I1, I2), #{we=>get(we1),delete=>none, sel_es=>[], error=>get(we2)});
         Coplanar -> tesselate_and_restart(Coplanar, I1, I2)
     end.
 
-merge_1(EdgeInfo0, #{we:=We10,es:=Es10,op:=Op1}, #{we:=We20,es:=Es20,op:=Op2}) ->
-    ?dbg("~p~n",[?FUNCTION_NAME]),
+merge_1(EdgeInfo0, #{we:=We10,el:=EL10,op:=Op1}, #{we:=We20,el:=EL20,op:=Op2}) ->
+    ?D("~p~n",[?FUNCTION_NAME]),
     {Vmap, EdgeInfo} = make_vmap(EdgeInfo0, We10, We20),  %% Make vertex id => pos and update edges
-    %?dbg("Vmap: ~p~n",[array:to_orddict(Vmap)]),
+    %?D("Vmap: ~p~n",[array:to_orddict(Vmap)]),
     Loops0 = build_vtx_loops(EdgeInfo, []), %% Figure out edge loops
     L10 = [split_loop(Loop, Vmap, {We10,We20}) || Loop <- Loops0], % Split loops per We and precalc
     L20 = [split_loop(Loop, Vmap, {We20,We10}) || Loop <- Loops0], % some data
@@ -94,42 +186,42 @@ merge_1(EdgeInfo0, #{we:=We10,es:=Es10,op:=Op1}, #{we:=We20,es:=Es20,op:=Op2}) -
     Loops1 = [filter_tri_edges(Loop,We10,We20) || Loop <- lists:zip(L10,L20)],
     Loops = sort_largest(Loops1),
     %% Create vertices on the edge-loops
-    #{el1:=Es11, el2:=Es21} = R0 = make_verts(Loops, Vmap, We10, We20),
-    merge_2(R0#{el1:=Es11++Es10, el2:=Es21++Es20, op1=>Op1, op2=>Op2},We10,We20).
+    #{el1:=EL11, el2:=EL21} = R0 = make_verts(Loops, Vmap, We10, We20),
+    merge_2(R0#{el1:=EL11++EL10, el2:=EL21++EL20, op1=>Op1, op2=>Op2},We10,We20).
 
 %% Continuing: multiple edge loops have hit the same face. It was
 %% really hard to handle that in one pass, since faces are split and
 %% moved.  Solved it by doing the intersection test again for the new
 %% faces and start over
-merge_2(#{res:=cont,we1:=We11, el1:=Es1, fs1:=Fs1, op1:=Op1, op2:=Op2,
-          we2:=We21, el2:=Es2, fs2:=Fs2},We10,We20) ->
-    ?dbg("~p cont~n",[?FUNCTION_NAME]),
+merge_2(#{res:=cont,we1:=We11, el1:=EL1, fs1:=Fs1, op1:=Op1, op2:=Op2,
+          we2:=We21, el2:=EL2, fs2:=Fs2},We10,We20) ->
+    ?D("~p cont~n",[?FUNCTION_NAME]),
     {We1, Vmap1, B1} = remake_bvh(Fs1, We10, We11),
     {We2, Vmap2, B2} = remake_bvh(Fs2, We20, We21),
     EI0 = e3d_bvh:intersect(B1, B2),
-    I11 = #{we=>We1,map=>Vmap1,es=>Es1, op=>Op1},
-    I21 = #{we=>We2,map=>Vmap2,es=>Es2, op=>Op2},
+    I11 = #{we=>We1,map=>Vmap1,el=>EL1, op=>Op1},
+    I21 = #{we=>We2,map=>Vmap2,el=>EL2, op=>Op2},
     EI = [remap(Edge, I11, I21) || Edge <- EI0],
     %% We should crash if we have coplanar faces in this step
-    ?DBG_TRY(merge_1(EI,I11,I21), #{we=>We1,delete=>none, es=>[], error=>We2});
+    ?DBG_TRY(merge_1(EI,I11,I21), #{we=>We1,delete=>none, el=>[], sel_es=>[], error=>We2});
 %% All edge loops are in place, dissolve faces inside edge loops and
 %% merge the two we's
-merge_2(#{res:=done, we1:=We1, el1:=Es1, we2:=We2, el2:=Es2, op1:=Op1, op2:=Op2},
+merge_2(#{res:=done, we1:=We1, el1:=EL1, we2:=We2, el2:=EL2, op1:=Op1, op2:=Op2},
         #we{id=Id1}, #we{id=Id2}) ->
-    ?dbg("~p ~p ~p done~n",[?FUNCTION_NAME, We1#we.id, We2#we.id]),
-    %% ?dbg("Dissolve: ~p: ~w~n",[Id1,gb_sets:to_list(faces_in_region(Es1, We1))]),
-    %% ?dbg("~w ~n",[Es2]),
-    %% ?dbg("Dissolve: ~p: ~w~n",[Id2,gb_sets:to_list(faces_in_region(Es2, We2))]),
-    DRes1 = dissolve_faces_in_edgeloops(Es1, Op1, We1),
-    DRes2 = dissolve_faces_in_edgeloops(Es2, Op2, We2),
+    ?D("~p ~p ~p done~n",[?FUNCTION_NAME, We1#we.id, We2#we.id]),
+    %% ?D("Dissolve: ~p: ~w~n",[Id1,gb_sets:to_list(faces_in_region(EL1, We1))]),
+    %% ?D("~w ~n",[EL2]),
+    %% ?D("Dissolve: ~p: ~w~n",[Id2,gb_sets:to_list(faces_in_region(EL2, We2))]),
+    DRes1 = dissolve_faces_in_edgeloops(EL1, Op1, We1),
+    DRes2 = dissolve_faces_in_edgeloops(EL2, Op2, We2),
     Weld = fun() ->
                    {We,Es} = weld([DRes1, DRes2]),
                    [Del] = lists:delete(We#we.id, [Id1,Id2]),
                    ok = wings_we_util:validate(We),
-                   #{es=>Es, we=>We, delete=>Del}
+                   #{sel_es=>Es, we=>We, delete=>Del}
            end,
-    ?DBG_TRY(Weld(), #{we=>element(2, DRes1),delete=>none, es=>[], error=>element(2, DRes2)}).
-    %?DBG_TRY(Weld(), #{we=>We1,delete=>none, es=>[], error=>We2}).
+    ?DBG_TRY(Weld(), #{we=>element(2, DRes1),delete=>none, sel_es=>[], error=>element(2, DRes2)}).
+    %?DBG_TRY(Weld(), #{we=>We1,delete=>none, sel_es=>[], error=>We2}).
 
 sort_largest(Loops) ->
     OnV = fun(#{e:=on_vertex}) -> true; (_) -> false end,
@@ -139,7 +231,7 @@ sort_largest(Loops) ->
 
 remake_bvh(Fs0, We0, We1) ->
     Fs1 = gb_sets:union(Fs0,wings_we:new_items_as_gbset(face,We0,We1)),
-%    ?dbg("Tess ~w ~n", [gb_sets:to_list(Fs1)]),
+%    ?D("Tess ~w ~n", [gb_sets:to_list(Fs1)]),
     We = wings_tesselation:quadrangulate(Fs1, We1),
     Fs = gb_sets:union(Fs1,wings_we:new_items_as_gbset(face,We1,We)),
     {Vmap, Bvh} = make_bvh(gb_sets:to_list(Fs), We),
@@ -155,8 +247,8 @@ tesselate_and_restart(Coplanar, #{we:=#we{id=Id1}=We1, op:=Op1},
     {Vmap1, B1} = make_bvh(We10),
     {Vmap2, B2} = make_bvh(We20),
     EI0 = e3d_bvh:intersect(B1, B2),
-    I11 = #{we=>We10,map=>Vmap1,es=>[],op=>Op1},
-    I21 = #{we=>We20,map=>Vmap2,es=>[],op=>Op2},
+    I11 = #{we=>We10,map=>Vmap1,el=>[],op=>Op1},
+    I21 = #{we=>We20,map=>Vmap2,el=>[],op=>Op2},
     EI = [remap(Edge, I11, I21) || Edge <- EI0],
     merge_1(EI,I11,I21). %% We should crash if we have coplanar faces in this step
 
@@ -167,7 +259,11 @@ dissolve_faces_in_edgeloops(ELs, Op, #we{fs=Ftab} = We0) ->
              add -> wings_dissolve:faces(Fs0, We0);
              isect ->
                  Fs = gb_sets:difference(gb_sets:from_ordset(gb_trees:keys(Ftab)), Fs0),
-                 wings_dissolve:faces(Fs, We0)
+                 wings_dissolve:faces(Fs, We0);
+             sub ->
+                 Fs = gb_sets:difference(gb_sets:from_ordset(gb_trees:keys(Ftab)), Fs0),
+                 We1 = wings_dissolve:faces(Fs, We0),
+                 wings_we:invert_normals(We1)
          end,
     Faces = wings_we:new_items_as_ordset(face, We0, We),
     {order_loops(Faces, ELs, We),We}.
@@ -188,7 +284,7 @@ faces_in_region(ELs, #we{fs=All}=We) ->
     Es  = gb_sets:from_list([E || {Es,_} <- ELs, E <- Es]),
     Fs0 = gb_sets:from_list([F || {_,Fs} <- ELs, F <- Fs]),
     Fs  = gb_sets:intersection(gb_sets:from_ordset(gb_trees:keys(All)), Fs0),
-    %% ?dbg("~p~n",[gb_sets:to_list(Fs)]),
+    %% ?D("~p~n",[gb_sets:to_list(Fs)]),
     case gb_sets:is_empty(Fs) of
         true -> wings_edge:select_region(Es, We);
         false -> wings_edge:reachable_faces(Fs, Es, We)
@@ -197,18 +293,20 @@ faces_in_region(ELs, #we{fs=All}=We) ->
 %% Weld
 %% Merge the two We's and bridge corresponding face-pairs
 weld(FsWes) ->
-    WeRs = [{We,[{face, Fs, unused}]} || {Fs,We} <- FsWes],
-    {We0,[{face,Fs1,_},{face,Fs2,_}]} = wings_we:merge_root_set(WeRs),
+    WeRs = [{We,[{face, Fs, unused},{edge, Es, unused}]} || {Fs,#we{temp=Es}=We} <- FsWes],
+    {We0,Rs} = wings_we:merge_root_set(WeRs),
+    [Fs1,Fs2] = [Fs || {face,Fs,_} <- Rs],
     FacePairs = lists:zip(Fs1,Fs2),
-    %?dbg("After ~p: ~w~n",[We0#we.id,gb_trees:keys(We0#we.fs)]),
+    SelEs = lists:append([Es || {edge,Es,_} <- Rs]),
+    %?D("After ~p: ~w~n",[We0#we.id,gb_trees:keys(We0#we.fs)]),
     Weld = fun({F1,F2}, WeAcc) -> do_weld(F1,F2,WeAcc) end,
     {#we{es=Etab} = We1, Es} = lists:foldl(Weld, {We0,[]}, FacePairs),
-    Borders = ordsets:intersection(ordsets:from_list(Es),
+    Borders = ordsets:intersection(ordsets:from_list(Es++SelEs),
                                    wings_util:array_keys(Etab)),
     BorderFs = gb_sets:to_list(wings_face:from_edges(Borders, We1)),
     Fs = [Face || Face <- BorderFs, wings_face:vertices(Face, We1) > 5],
     We = wings_tesselation:quadrangulate(Fs, We1),
-    {We, Borders}.
+    {wings_facemat:gc(We), Borders}.
 
 do_weld(Fa, Fb, {We0, Acc}) ->
     [Va|_] = wings_face:vertices_ccw(Fa, We0),
@@ -274,7 +372,7 @@ check_if_used(Loop, Fs) ->
     end.
 
 make_verts_per_we(Loop, Vmap0, We0) ->
-    % ?dbg("We ~w Make verts:~n",[We0#we.id]),[io:format(" ~w~n", [E]) || E <- Loop],
+    % ?D("We ~w Make verts:~n",[We0#we.id]),[io:format(" ~w~n", [E]) || E <- Loop],
     {Vmap, We1} = cut_edges(Loop, Vmap0, We0),
     make_edge_loop(Loop, Vmap, [], [], We1).
 
@@ -342,21 +440,21 @@ make_edge_loop_1([#{op:=split_edge}=V1|Splits], Last, Vmap, EL0, IFs, We0) ->
         end,
     case edge_exists(V1,V2,Vmap,We0) of
         [] -> %% Standard case
-            %% ?dbg("Connect: ~w[~w] ~w[~w]~n",
+            %% ?D("Connect: ~w[~w] ~w[~w]~n",
             %%      [maps:get(v,V1), array:get(maps:get(v,V1),Vmap),
             %%       maps:get(v,V2), array:get(maps:get(v,V2), Vmap)]),
             {{We1, Edge}, Face} = connect_verts(V1,V2,FSs,Vmap,We0),
             ok = wings_we_util:validate(We1),
-%            ?dbg("~w: new edge ~w face ~w~n",[We0#we.id, Edge, Face]),
+%            ?D("~w: new edge ~w face ~w~n",[We0#we.id, Edge, Face]),
             {EL1,Vmap1,We} = make_face_vs(FSs, V1, Edge, Vmap, We1),
-            %% ?dbg("New: ~w~n",[EL1]),
-            %% ?dbg("Old: ~w~n",[EL0]),
+            %% ?D("New: ~w~n",[EL1]),
+            %% ?D("Old: ~w~n",[EL0]),
             make_edge_loop_1(Rest, Last, Vmap1, EL1++EL0, inside(Face,IFs), We);
         [{Edge,_F1,_F2}] ->
-            %% ?dbg("Recreate: ~w: ~w ~w edge ~p in Fs ~w ~w~n",
+            %% ?D("Recreate: ~w: ~w ~w edge ~p in Fs ~w ~w~n",
             %%      [We0#we.id, array:get(maps:get(v,V1),Vmap),array:get(maps:get(v,V2), Vmap),Edge,_F1,_F2]),
             {EL1,Face,Vmap1,We} = half_inset_face(V1,V2,FSs,Edge,Vmap,We0),
-%            ?dbg("~w: new face ~w~n",[We0#we.id, Face]),
+%            ?D("~w: new face ~w~n",[We0#we.id, Face]),
             make_edge_loop_1(Rest, Last, Vmap1, EL1++EL0, inside(Face,IFs), We)
     end.
 
@@ -377,16 +475,16 @@ connect_verts(V1, V2, Refs, Vmap, We) ->
 connect_verts_1(WeV1, WeV2, Face, CrossDir, #we{vp=Vtab}=We) ->
     case wings_vertex:edge_through(WeV1,WeV2,Face,We) of
         none ->
-%            ?dbg("~w: ~w ~w in ~w ~s~n",[We#we.id, WeV1, WeV2, Face, e3d_vec:format(CrossDir)]),
+%            ?D("~w: ~w ~w in ~w ~s~n",[We#we.id, WeV1, WeV2, Face, e3d_vec:format(CrossDir)]),
             N = wings_face:normal(Face, We),
             Dir = e3d_vec:cross(N,e3d_vec:norm_sub(array:get(WeV1,Vtab),array:get(WeV2,Vtab))),
-%            ?dbg("Swap: ~.3f~n", [e3d_vec:dot(CrossDir, Dir)]),
+%            ?D("Swap: ~.3f~n", [e3d_vec:dot(CrossDir, Dir)]),
             case 0 >= e3d_vec:dot(CrossDir, Dir) of
                 true  -> {wings_vertex:force_connect(WeV1,WeV2,Face,We), Face};
                 false -> {wings_vertex:force_connect(WeV2,WeV1,Face,We), Face}
             end;
         Edge ->
-%            ?dbg("Skip ~p ~p~n",[Edge,Face]),
+%            ?D("Skip ~p ~p~n",[Edge,Face]),
             {{We, Edge}, none}
     end.
 
@@ -406,13 +504,13 @@ pick_face(#{v:=V1,fs:=_Fs}=R0, #{v:=V2}=R1, Refs, Vmap, #we{es=_Etab, vp=_Vtab}=
     WeV1 = array:get(V1, Vmap),
     WeV2 = array:get(V2, Vmap),
     All = wings_vertex:per_face([WeV1,WeV2],We),
-    % ?dbg("~p in ~w => ~w ~n",[pick_ref_face(Refs, undefined),_Fs, [Face || {Face, [_,_]} <- All]]),
+    % ?D("~p in ~w => ~w ~n",[pick_ref_face(Refs, undefined),_Fs, [Face || {Face, [_,_]} <- All]]),
     case [Face || {Face, [_,_]} <- All] of
         [Face] -> {WeV1,WeV2,Face,N}
     end.
 
 pick_face_2(Wanted, Fs, Edge, #we{id=_Id,es=Etab}) ->
-    % ?dbg("id:~p Wanted ~w ~w Fs: ~p~n", [_Id, Wanted, Fs, array:get(Edge, Etab)]),
+    % ?D("id:~p Wanted ~w ~w Fs: ~p~n", [_Id, Wanted, Fs, array:get(Edge, Etab)]),
     #edge{lf=LF, rf=RF} = array:get(Edge, Etab),
     case Fs of
         {Wanted,_} -> LF;
@@ -430,7 +528,7 @@ half_inset_face(#{v:=EV1,o_n:=ON, fs:=CFs}=R0, #{v:=EV2}=R1, [#{v:=NV}=R2|FSs], 
     E2 = array:get(EV2, Vmap0),
     Wanted = pick_ref_face([R2|FSs], undefined),
     Face = pick_face_2(Wanted, CFs, RefEdge, We0),
-    % ?dbg("Half inset: ~p(~p) ~p(~p) in ~p~n",[EV1,E1,EV2,E2,Face]),
+    % ?D("Half inset: ~p(~p) ~p(~p) in ~p~n",[EV1,E1,EV2,E2,Face]),
     FVs0 = wings_face:vertices_ccw(Face, We0),
     FVs = order_vertex_list(E1, E2, FVs0),
     [E1,_Skip,E3|_FVs] = FVs,
@@ -459,7 +557,7 @@ half_inset_face(#{v:=EV1,o_n:=ON, fs:=CFs}=R0, #{v:=EV2}=R1, [#{v:=NV}=R2|FSs], 
     end.
 
 order_vertex_list(First, Last, FVs0) ->
-    %%?dbg("~w ~w in ~w~n",[First, Last, FVs0]),
+    %%?D("~w ~w in ~w~n",[First, Last, FVs0]),
     {VL1,VL2} = lists:splitwith(fun(V) when V =:= First -> false; (_) -> true end, FVs0),
     case VL2++VL1 of
         [First|[Last|_]=R] -> [First|lists:reverse(R)];
@@ -653,7 +751,7 @@ edge_to_face(#{op:=split_edge}=Orig) ->
 build_vtx_loops(Edges, _Acc) ->
     G = make_lookup_table(Edges),
     Comps = digraph_utils:components(G),
-    %% ?dbg("Cs: ~w~n",[Comps]),
+    %% ?D("Cs: ~w~n",[Comps]),
     Res = [build_vtx_loop(C, G) || C <- Comps],
     [] = digraph:edges(G), %% Assert that we have completed all edges
     digraph:delete(G),
@@ -688,7 +786,7 @@ build_vtx_loop(V0, G, Acc) ->
         [] -> {V0, Acc};
         Es ->
             {Edge, Next, Ei} = pick_edge(Es, V0, undefined),
-            %?dbg("~p in ~P~n => ~p ~n",[V0, Es, 10, Next]),
+            %?D("~p in ~P~n => ~p ~n",[V0, Es, 10, Next]),
             digraph:del_edge(G, Edge),
             build_vtx_loop(Next, G, [Ei,V0|Acc])
     end.
@@ -711,11 +809,11 @@ split_loop([Last|Loop], Vmap, We) ->
     split_loop(Loop, Last, Vmap, We, []).
 
 split_loop([V1,E|Loop], Last, Vmap, We, Acc) when is_integer(V1) ->
-%    ?dbg("~p: ~p in ~p~n",[(element(1,We))#we.id,V1,E]),
+%    ?D("~p: ~p in ~p~n",[(element(1,We))#we.id,V1,E]),
     Vertex = vertex_info(E, V1, Vmap, We),
     split_loop(Loop, Last, Vmap, We, [Vertex|Acc]);
 split_loop([V1], E, Vmap, We, Acc) ->
-%    ?dbg("~p: ~p in ~p~n",[(element(1,We))#we.id,V1,E]),
+%    ?D("~p: ~p in ~p~n",[(element(1,We))#we.id,V1,E]),
     Vertex = vertex_info(E, V1, Vmap, We),
     lists:reverse([Vertex|Acc]).
 
@@ -811,9 +909,11 @@ on_vertex(#{o:=Id, v:=V}=SF, Vmap) ->
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-init_isect(#we{id=Id}=We0, Op) ->
+init_isect(#we{id=Id, temp={?MODULE,Es}}=We0, Op) ->
     {Ts, Bvh} = make_bvh(We0),
-    #{id=>Id,map=>Ts,bvh=>Bvh,es=>[],we=>We0, op=>Op}.
+    #{id=>Id,map=>Ts,bvh=>Bvh,sel_es=>Es,el=>[],we=>We0, op=>Op, temp_es=>gb_sets:empty()};
+init_isect(We, Op) ->
+    init_isect(We#we{temp={?MODULE, []}}, Op).
 
 make_bvh(#we{fs=Fs0}=We) ->
     make_bvh(gb_trees:keys(Fs0), We).
