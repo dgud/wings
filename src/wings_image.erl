@@ -12,7 +12,7 @@
 %%
 
 -module(wings_image).
--export([init/1,
+-export([start_link/0,
 	 from_file/1,new/2,new_temp/2,new_hidden/2, create/1,
 	 rename/2,txid/1,info/1,images/0,
 	 screenshot/2,screenshot/1,viewport_screenshot/1,
@@ -33,8 +33,10 @@
 
 -define(DEFAULT, '$Default Img').
 
-init(Opt) ->
-    spawn_opt(fun() -> server(Opt) end, [link,{fullsweep_after,0}]).
+start_link() ->
+    Env = wings_io:get_process_option(),
+    Pid = proc_lib:spawn_opt(fun() -> server(Env) end, [link,{fullsweep_after,0}]),
+    {ok, Pid}.
 
 %%%
 %%% Interface against plug-ins.
@@ -270,16 +272,11 @@ req(Req, Notify) ->
 	 images					%All images (gb_trees).
 	}).
 
-server(Opt) ->
+server(Env) ->
     register(wings_image, self()),
     process_flag(trap_exit, true),
-    case Opt of
-	wings_not_running ->
-	    put(wings_not_running, true);
-	_ ->
-	    wings_io:set_process_option(Opt),
-	    init_background_tx()
-    end,
+    wings_io:set_process_option(Env),
+    init_background_tx(),
     loop(#ist{images=gb_trees:empty()}).
 
 loop(S0) ->
@@ -294,7 +291,8 @@ loop(S0) ->
 		#ist{}=S ->
 		    Client ! {Ref,ok};
 		{Resp,S} ->
-		    Client ! {Ref,Resp}
+		    Client ! {Ref,Resp};
+                error -> S = S0
 	    end,
 	    loop(S);
 	reload ->
@@ -390,7 +388,10 @@ handle({update_filename,Id,NewName}, #ist{images=Images0}=S) ->
     Im0 = gb_trees:get(Id, Images0),
     Im = (image_rec(Im0))#e3d_image{filename=NewName},
     Images = gb_trees:update(Id, hide(Im, is_hidden(Im0)), Images0),
-    S#ist{images=Images}.
+    S#ist{images=Images};
+handle(Req, _S) ->
+    io:format("~w: Bad request: ~w~n", [?MODULE, Req]),
+    error.
 
 create_bump(Id, BumpId, #ist{images=Images0}) ->
     delete_bump(Id),  %% update case..
