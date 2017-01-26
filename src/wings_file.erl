@@ -717,11 +717,11 @@ import_image(Name) ->
 	{error,Error} ->
 		case Error of
 		100902 -> % GLU_OUT_OF_MEMORY
-			wings_u:error_msg(?__(2,"The image cannot be loaded.~nFile: \"~s\"~n GLU Error: ~p - ~s~n"),
+			wings_u:error_msg(?__(2,"The image cannot be loaded.~nFile: \"~ts\"~n GLU Error: ~p - ~s~n"),
 				  	[Name,Error, glu:errorString(Error)]);
 		_ ->
-	    	wings_u:error_msg(?__(1,"Failed to load \"~s\": ~s\n"),
-				     [Name,file:format_error(Error)])
+			wings_u:error_msg(?__(1,"Failed to load \"~ts\": ~s\n"),
+				  	[Name,file:format_error(Error)])
 		end
     end.
 

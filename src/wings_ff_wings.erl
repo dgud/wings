@@ -931,7 +931,7 @@ import_image(Im,Dir) ->
 		W*H*PP =:= byte_size(Pixels) -> 
 		    ok;
 		true -> 
-		    Str = io_lib:format(?__(2,"Bad image: ~p\n"), [Name]),
+		    Str = io_lib:format(?__(2,"Bad image: ~ts\n"), [Name]),
 		    wings_u:message(lists:flatten(Str)),
 		    throw({bad_image,Name})
 	    end,
@@ -951,7 +951,7 @@ import_image(Im,Dir) ->
 		#e3d_image{}=E3D ->
 		    E3D#e3d_image{name=Name};
 		{error,_} ->
-		    Str = io_lib:format(?__(2,"Bad image: ~p\n"), [Name]),
+		    Str = io_lib:format(?__(2,"Bad image: ~ts\n"), [Name]),
 		    wings_u:message(lists:flatten(Str)),
 		    throw({bad_image,Name})
 	    end

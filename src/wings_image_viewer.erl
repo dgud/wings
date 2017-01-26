@@ -42,7 +42,7 @@ new(WinName, Image, Opts) ->
     Name = proplists:get_value(name, Opts, ""),
     H0 = wxImage:getHeight(Image),
     W0 = wxImage:getWidth(Image),
-    Title = lists:flatten(io_lib:format(?__(1,"Image: ~s [~wx~w]"),[Name,W0,H0])),
+    Title = lists:flatten(io_lib:format(?__(1,"Image: ~ts [~wx~w]"),[Name,W0,H0])),
     Size = {size,{min(800,max(200,W0+100)), min(600,max(150,H0+100))}},
     {Frame,Ps} = wings_frame:make_win(Title, [Size]),
     Window = wx_object:start_link(?MODULE, [Frame, WinName, Image, Opts], []),
