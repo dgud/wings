@@ -636,9 +636,15 @@ update_folders({Curr, Fld0}, TC) ->
 			   [{?NO_FLD,_}|T] -> T;
 			   T -> T
 		       end,
-		 Root = wxTreeCtrl:addRoot(TC, ?__(1, "Objects"), []),
-		 Sorted = lists:sort([{wings_util:cap(F),F} || {F,_} <- Fld]),
-		 Add = fun({_, Name}) -> {wxTreeCtrl:appendItem(TC, Root, Name, []), Name} end,
+		 {no_folder,{_,S0}} = lists:keyfind(?NO_FLD, 1, Fld0),
+		 Caption0 = io_lib:format("~ts (~p)",[?__(1, "Objects"), gb_trees:size(S0)]),
+		 Root = wxTreeCtrl:addRoot(TC, Caption0, []),
+
+		 Sorted = lists:sort([{wings_util:cap(F),F,gb_trees:size(S)} || {F,{_,S}} <- Fld]),
+		 Add = fun({_, Name, Qtd}) ->
+			    Caption = io_lib:format("~ts (~p)",[Name, Qtd]),
+			    {wxTreeCtrl:appendItem(TC, Root, Caption, []), Name}
+		       end,
 		 Leaves = lists:map(Add, Sorted),
 		 wxTreeCtrl:expand(TC, Root),
 		 All = [{Root,?NO_FLD}|Leaves],
@@ -810,10 +816,14 @@ handle_sync_event(#wx{event=#wxMouse{}} = Ev, _EvObj, #state{drag=Drag, self=Pid
 %% Calc item and column our selves send a generated event
 %% a bit tricky to get it working on all OS's
 handle_sync_event(#wx{obj=TC, event=#wxTree{type=command_tree_begin_label_edit, item=Indx}},
-		  From, #state{}) ->
+		  From, #state{tree=Tree}) ->
     case wxTreeCtrl:getItemParent(TC, Indx) of
 	0 -> wxTreeEvent:veto(From);  % 0 is returned for the root item: 'Objects'
-	_ -> ignore
+	_ ->
+	    case lists:keyfind(Indx, 1, Tree) of
+		{_, Name} -> wxTreeCtrl:setItemText(TC, Indx, Name);
+		_ -> ignore
+	    end
     end,
     ok;
 handle_sync_event(#wx{obj=LC, event=Event}=Ev, EvObj, #state{lc=LC, tw=TW, self=Pid}) ->
