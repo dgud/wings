@@ -79,7 +79,6 @@ WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR szCmdLine, int sw)
   if (argc > (1+i)) {
       _snwprintf(cmd_line+wcslen(cmd_line), 3*MAX_PATH, L" \"%s\"", argv[1+i]);
   }
-  _snwprintf(cmd_line+wcslen(cmd_line), 3*MAX_PATH, L" -extra \"%s\"", pref_dir);
 
   // fprintf(stderr, "Cmd %S\r\n", cmd_line);
   siStartInfo.cb = sizeof(STARTUPINFO); 

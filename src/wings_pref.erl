@@ -25,12 +25,6 @@
 -include("wings.hrl").
 -import(lists, [foreach/2,reverse/1,sort/1,last/1,foldl/3,member/2]).
 
--define(MAC_PREFS, "Library/Preferences/Wings3D/Preferences.txt").
--define(MAC_OLD_PREFS, "Library/Preferences/Wings 3D Preferences.txt").
--define(WIN32_PREFS, "Wings3D/Preferences.txt").
--define(UNIX_PREFS, ".wings3d/preferences.txt").
--define(OLD_UNIX_PREFS, ".wings").
-
 init() ->
     ets:new(wings_state, [named_table,public,ordered_set]),
     ets:new(wings_delayed_update, [named_table,public,ordered_set]),
@@ -201,57 +195,47 @@ win32_save_maximized() ->
 %%%
 
 old_pref_file() ->
-    case os:type() of
-	{unix,darwin} -> mac_pref();
-	{unix,_} -> unix_pref();
-	{win32,_} -> win32_pref()
+    PrefFiles = pref_dirs(),
+    old_pref_file(PrefFiles).
+
+old_pref_file([{Dir, File}|Rest]) ->
+    case try_location(Dir, File) of
+        none -> old_pref_file(Rest);
+        Path -> Path
     end.
+
+pref_dirs() ->
+    Dir = filename:basedir(user_config, "Wings3D"),
+    Old = case os:type() of
+              {win32,_} -> win32_pref();
+              {unix,darwin} -> mac_pref();
+              {unix,_} -> unix_pref()
+          end,
+    [{Dir, "Preferences.txt"}|Old].
 
 unix_pref() ->
     Home = os:getenv("HOME"),
-    case try_location(Home, ?UNIX_PREFS) of
-	none ->
-	    try_location(Home, ?OLD_UNIX_PREFS);
-	File -> File
-    end.
+    [{filename:join([Home, ".wings3d"]), "preferences.txt"},
+     {Home, ".wings"}].
 
 mac_pref() ->
     Home = os:getenv("HOME"),
-    case try_location(Home, ?MAC_PREFS) of
-	none ->
-	    case try_location(Home, ?MAC_OLD_PREFS) of
-		none -> unix_pref();
-		File -> File
-	    end;
-	File -> File
-    end.
+    [{filename:join([Home,"Library","Preferences","Wings3D"]), "Preferences.txt"},
+     {filename:join([Home,"Library","Preferences"]), "Wings 3D Preferences.txt"} |
+     unix_pref()].
 
 win32_pref() ->
-    case win32_appdata() of
-	none ->
-	    W = "Warning: Wings3D.exe provided no location "
-		"for the AppData folder.\n"
-		"Trying to locate preferences using the registry...\n",
-	    io:put_chars(W),
-	    self() ! {external,not_possible_to_save_prefs},
-	    win32_pref_registry(["AppData","Personal"]);
-	AppData ->
-	    case try_location(AppData, ?WIN32_PREFS) of
-		none ->
-		    %% We did not find a preference file
-		    %% in AppData. Continue searching using
-		    %% the registry.
-		    win32_pref_registry(["Personal"]);
-		File -> File
-	    end
-    end.
+    win32_pref_registry(["AppData","Personal"]).
 
 %% Try to find old preferences using the registry.
 win32_pref_registry(RegistryLocations) ->
-    {ok,R} = win32reg:open([read]),
-    Res = win32_pref_1(R, RegistryLocations),
-    ok = win32reg:close(R),
-    Res.
+    try
+        {ok,R} = win32reg:open([read]),
+        Res = win32_pref_1(R, RegistryLocations),
+        ok = win32reg:close(R),
+        Res
+    catch _:_ -> []
+    end.
 
 %% Search for a preference file in "special folders", such as "AppData"
 %% and "My Documents".
@@ -259,52 +243,22 @@ win32_pref_1(R, [FolderType|T]) ->
     case wings_u:win32_special_folder(R, FolderType) of
 	none -> win32_pref_1(R, T);
 	Path ->
-	    case try_location(Path, ?WIN32_PREFS) of
-		none -> win32_pref_1(R, T);
-		File -> File
-	    end
+            [{filename:join([Path,"Wings3D"]),"Preferences.txt"}|
+             win32_pref_1(R, T)]
     end;
-win32_pref_1(_, []) ->
-    %% This should normally never happen. See the "desperate
-    %% fallback" in win32_new_pref_1/2 below.
-    try_location(wings_util:lib_dir(wings), ?WIN32_PREFS).
+win32_pref_1(_, []) -> [].
 
 %%%
 %%% Return a suitable path for a new preference file.
 %%%
 
 new_pref_file() ->
-    case os:type() of
-	{unix,darwin} ->
-	    filename:join(os:getenv("HOME"), ?MAC_PREFS);
-	{unix,_} ->
-	    filename:join(os:getenv("HOME"), ?UNIX_PREFS);
-	{win32,_} ->
-	    win32_new_pref()
-    end.
-
-win32_new_pref() ->
-    case win32_appdata() of
-	none ->
-	    none;
-	AppData ->
-	    filename:join(AppData, ?WIN32_PREFS)
-    end.
+    [{Dir,File}|_] = pref_dirs(),
+    filename:join(Dir,File).
 
 %%%
 %%% Utilities.
 %%%
-
-win32_appdata() ->
-    case init:get_plain_arguments() of
-	[AppData] ->
-	    AppData;
-	[] ->
-	    %% No AppData location provided. Probably because
-	    %% a developer started Wings using a script that
-	    %% does not provide the location.
-	    none
-    end.
 
 try_location(Dir, File) ->
     Name = filename:join(Dir, File),
@@ -765,29 +719,8 @@ pref({load, Res0}, St) -> %% load a .pref
 
 %% Find the preferenece directory
 get_pref_directory(FileName) ->
-    DefaultDir = case old_pref_file() of
-      none ->
-        case new_pref_file() of
-          none -> [];
-          PrefDir -> PrefDir
-        end;
-      PrefDir -> PrefDir
-    end,
-    case DefaultDir of
-      [] -> get_value(current_directory);
-      Other ->
-        Str0 = lists:reverse(Other),
-        {Str1,_} = split_dir(Str0, []),
-        Str = lists:reverse(Str1),
-        Str ++ FileName
-    end.
-
-split_dir([$/|_]=Str, FileName) ->
-    {Str, FileName};
-split_dir([$\\|_]=Str, FileName) ->
-    {Str, FileName};
-split_dir([Char|Str], Acc) ->
-    split_dir(Str, [Char|Acc]).
+    [{Dir, _}|_] = pref_dirs(),
+    filename:join(Dir, FileName).
 
 write_pref(Dir, ColorPref) ->
     Format = "~p. \n",
@@ -827,7 +760,7 @@ update_recent_prefs(Dir) ->
     Recent1 = [Dir|lists:delete(Dir,Recent0)],
     Recent = lists:sublist(Recent1, 5),
     Update = fun(File, N) when N =< PrevLen ->
-                     {_,Pref} = split_dir(lists:reverse(File),[]),
+                     Pref = filename:basename(File),
                      wings_menu:update_menu(file, {load_pref, N}, Pref, recent_pref_help()),
                      N+1;
                 (_, N) ->
@@ -837,7 +770,7 @@ update_recent_prefs(Dir) ->
     case length(Recent) > PrevLen of
         false -> ok;
         true -> %% Add the last one
-            {_,Pref} = split_dir(lists:reverse(lists:last(Recent)),[]),
+            Pref = filename:basename(Recent),
             wings_menu:update_menu(file, {load_pref, Next},
                                    {append, -1, Pref},
                                    recent_pref_help())
@@ -850,7 +783,7 @@ recent_prefs() ->
 recent_prefs([Dir|Recent],N) ->
     case lists:suffix(".pref",Dir) of
         true ->
-            {_,Pref} = split_dir(lists:reverse(Dir),[]),
+            Pref = filename:basename(Dir),
             PrefEntries = [{Pref,N,recent_pref_help()}|recent_prefs(Recent,N+1)],
             case N of
                 1 -> [separator|PrefEntries];
