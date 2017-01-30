@@ -337,25 +337,28 @@
     {6,"Maximize verticalmente (Y)"}
    ]}
  ]}.
-{wpc_snap,
+{wpc_snap_win,
  [
-  {menu,
+  {proportional_scale,
    [
-    {1,"Aplicar Imagem"},
-    {2,"Inicia o modo de aplicação de imagem para \"aplicando\" coordenadas UV sobre uma imagem"},
-    {3,"Sair do Modo de Aplicação de Imagem"},
-    {4,"Sai do Modo de Aplicação de Imagem"},
-    {5,"Aplica a Imagem"},
-    {6,"Coloca a imagem de fundo nas faces selecionadas atribuindo coordenadas UV a elas"}
+    {1,"...para corrente X"},
+    {2,"Escala o valor de Y para ser proporcional ao corrente valor de X"},
+    {3,"...para corrente Y"},
+    {4,"Escala o valor de X para ser proporcional ao corrente valor de Y"},
+    {5,"Tamanho atual"},
+    {6,"Reinicia imagem para seu tamanho atual"}
    ]},
-  {select_image,
+  {snap_label,
    [
-    {1,"Sem imagens presentes, importe primeiro uma imagem."},
-    {2,"Escolha uma Imagem"}
-   ]},
-  {set_materials,
-   [
-    {1,"Não é possível usar uma imagem quando o objeto tem vértices coloridos"}
+    {1,"Selecione Imagem"},
+    {2,"Ativar"},
+    {3,"Desativar"},
+    {4,"Aplica Imagem"},
+    {5,"Opacidade"},
+    {6,"Rotacionar"},
+    {7,"Mover"},
+    {8,"Escalar"},
+    {9,"Preencher"}
    ]},
   {snap_menu,
    [
@@ -378,6 +381,35 @@
     {17,"Mover a imagem de fundo"},
     {18,"Move a imagem de fundo"},
     {19,"Sair do modo de aplicação de imagem"},
-    {20,"Sai do modo de aplicação de imagem"}
+    {20,"Sai do modo de aplicação de imagem"},
+    {22,"Ambos"},
+    {26,"Centra em X"},
+    {27,"Centra a imagem de fundo horizontalmente"},
+    {28,"Centra em Y"},
+    {29,"Centra a imagem de fundo verticalmente"},
+    {30,"Center"},
+    {31,"Centra a imagem de fundo em relação a area de trabalho"},
+    {32,"Proporcional"},
+    {33,"Escala a imagem de fundo proporcionalmente"}
+   ]},
+  {snap_tooltip,
+   [
+    {1,"Selecione a imagem a ser aplicada"},
+    {2,"Inicia o modo de aplicação de imagem para \"aplicando\" coordenadas UV sobre uma imagem"},
+    {3,"Sair do Modo de Aplicação de Imagem"},
+    {4,"Coloca a imagem de fundo nas faces selecionadas atribuindo coordenadas UV a elas"},
+    {5,"Define o quão translucida a imagem é na tela"},
+    {6,"Roda a imagem de fundo"},
+    {7,"Move a imagem de fundo"},
+    {8,"Escala a imagem de fundo"},
+    {9,"Faz com que a imagem de fundo preencha a tela"}
+   ]},
+  {snap_win_menu,
+   [
+    {2,"Mostra a janela para aplicação de Imagem"}
+   ]},
+  {title,
+   [
+    {1,"Aplicar Imagem"}
    ]}
  ]}.
