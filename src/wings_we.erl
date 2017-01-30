@@ -831,7 +831,12 @@ separate_1(#we{es=Etab0}=We, Smallest0, Acc) ->
 	    {Edge,Smallest} = smallest(Smallest0, Etab0),
 	    Ws = gb_sets:singleton(Edge),
 	    {EtabLeft,NewEtab} = separate(Ws, Etab0, array:new()),
-	    NewWe = copy_dependents(We#we{es=NewEtab}),
+	    NewWe0 = copy_dependents(We#we{es=NewEtab}),
+	    NewWe =
+		case wings_we:all_hidden(NewWe0) of
+		    true -> show_faces(NewWe0#we{perm=?PERM_HIDDEN_BIT});  %Hide entire object.
+		    false -> NewWe0
+		end,
 	    separate_1(We#we{es=EtabLeft}, Smallest, [NewWe|Acc])
     end.
 
