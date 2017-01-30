@@ -36,7 +36,7 @@ MODULES= \
 	auv_seg_ui \
 	auv_texture \
 	auv_util \
-	wpc_snap \
+	wpc_snap_win \
 	wpc_autouv
 
 
