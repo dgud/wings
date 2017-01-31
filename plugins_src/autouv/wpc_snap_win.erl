@@ -511,7 +511,7 @@ to_str(Val) ->
 init([Frame, Name, {OpaVal}=State]) ->
     #{bg:=BG, text:=_FG} = Cols = wings_frame:get_colors(),
     BGM = wings_color:rgb4bv(wings_pref:get_value(menu_color)),
-    Panel = wxPanel:new(Frame, [{style, ?wxNO_BORDER}, {size,{200,150}}]),
+    Panel = wxPanel:new(Frame, [{style, ?wxNO_BORDER}, {size,{200,300}}]),
     wxPanel:setFont(Panel, ?GET(system_font_wx)),
     wxWindow:setBackgroundColour(Panel, BG),
     Main = wxBoxSizer:new(?wxVERTICAL),
@@ -525,14 +525,15 @@ init([Frame, Name, {OpaVal}=State]) ->
     BAct = wxToggleButton:new(Panel, ?wxID_ANY, snap_label(activate)),
     wxWindow:setToolTip(BAct, wxToolTip:new(snap_tooltip(activate))),
     CtrlBox = wxPanel:new(Panel, [{style, ?wxNO_BORDER}]),
-    wxWindow:setBackgroundColour(CtrlBox, BGM),
+    wxWindow:setBackgroundColour(CtrlBox, BG),
+    %% layout settings for the first level controls
     Szr1 = wxBoxSizer:new(?wxVERTICAL),
     wxSizer:add(Szr1, ImgLbl, [{flag, ?wxEXPAND}]),
     wxSizer:add(Szr1, ImgLst, [{flag, ?wxEXPAND}]),
     wxSizer:add(Szr1, BAct, [{flag, ?wxEXPAND}]),
-    wxSizer:add(Szr1, CtrlBox, [{proportion, 0}, {border, 2}, {flag, ?wxEXPAND}]),
+    wxSizer:add(Szr1, CtrlBox, [{proportion, 1}, {border, 2}, {flag, ?wxEXPAND}]),
 
-    %% second level (Panel content): Opacity, Rotation, Snap Image
+    %% second level (Panel content): Snap Image, Opacity, Rotation
     BSnap = wxButton:new(CtrlBox, ?wxID_ANY, [{label,snap_label(snap)}]),
     wxWindow:setToolTip(BSnap, wxToolTip:new(snap_tooltip(snap))),
     OpaLbl = wxStaticText:new(CtrlBox, ?wxID_ANY, append_value(opacity,OpaVal*100.0)),
@@ -542,6 +543,8 @@ init([Frame, Name, {OpaVal}=State]) ->
     Rot = wxSlider:new(CtrlBox, ?wxID_ANY, 0, -360, 360),
     wxWindow:setToolTip(Rot, wxToolTip:new(snap_tooltip(rotate))),
     ModLbx = wxListBox:new(CtrlBox, ?wxID_ANY, [{style, ?wxLB_SINGLE}, {choices, mod_choices()}]),
+    wxWindow:setBackgroundColour(ModLbx, BGM),
+    %% layout settings for the second level controls
     Szr2 = wxBoxSizer:new(?wxVERTICAL),
     wxSizer:add(Szr2, BSnap, [{proportion, 0}, {border, 2}, {flag, ?wxEXPAND}]),
     wxSizer:addSpacer(Szr2, 3),
@@ -550,11 +553,10 @@ init([Frame, Name, {OpaVal}=State]) ->
     wxSizer:add(Szr2, RotLbl, [{proportion, 0}, {border, 2}, {flag, ?wxEXPAND}]),
     wxSizer:add(Szr2, Rot, [{proportion, 0}, {border, 2}, {flag, ?wxEXPAND}]),
     wxSizer:addSpacer(Szr2, 3),
-    wxSizer:add(Szr2, ModLbx, [{proportion, 0}, {border, 2}, {flag, ?wxEXPAND}]),
+    wxSizer:add(Szr2, ModLbx, [{proportion, 1}, {border, 2}, {flag, ?wxEXPAND}]),
     wxPanel:setSizer(CtrlBox, Szr2),
 
-    wxSizer:add(Main, Szr1, [{proportion, 0}, {flag, ?wxEXPAND}]),
-    wxSizer:setMinSize(Szr1, 200, 150),
+    wxSizer:add(Main, Szr1, [{proportion, 1}, {flag, ?wxEXPAND}]),
     wxSizer:fit(Main, Panel),
 
     wxToggleButton:enable(BAct, [{enable,false}]),
@@ -571,8 +573,8 @@ init([Frame, Name, {OpaVal}=State]) ->
 
     %% this will allow us to set the window as focused
     wxWindow:connect(ImgLst, enter_window, [{userData, {win, Panel}}]),
-    wxWindow:connect(BAct, enter_window, [{userData, {win, Panel}}]),
-    wxWindow:connect(BSnap, enter_window, [{userData, {win, Panel}}]),
+    wxWindow:connect(BAct, enter_window, [{userData, {win, Panel}}, {skip, true}]),
+    wxWindow:connect(BSnap, enter_window, [{userData, {win, Panel}}, {skip, true}]),
     wxWindow:connect(Opa, enter_window, [{userData, {win, Panel}}]),
     wxWindow:connect(Rot, enter_window, [{userData, {win, Panel}}]),
     wxWindow:connect(ModLbx, enter_window, [{userData, {win, Panel}}]),
@@ -752,5 +754,6 @@ code_change(_From, _To, State) ->
 
 terminate(_Reason, #state{name=Name}) ->
     %% io:format("terminate: ~p:~p (~p)~n",[?MODULE, Name, _Reason]),
+    wings_wm:psend(geom, {action,{snap_image,cancel}}),
     wings ! {wm, {delete, Name}},
     normal.
