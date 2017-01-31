@@ -352,25 +352,11 @@
     {6,"Skaluj arkusz tak, aby jego wysokość dopasowana była do tła"}
    ]}
  ]}.
-{wpc_snap,
+{wpc_snap_win,
  [
-  {menu,
+  {snap_label,
    [
-    {1,"Opuść obraz"},
-    {2,"Uaktywnij tryb opuszczania aby \"opuścić\" koordynaty UV na obraz tła"},
-    {3,"Wyjdź z trybu opuszczania"},
-    {4,"Wyjdź z trybu opuszczania obrazu"},
-    {5,"Opuść obraz"},
-    {6,"Umieść obraz tła na zaznaczonych płaszczyznach przydzielając im koordynaty UV"}
-   ]},
-  {select_image,
-   [
-    {1,"Nie ma obrazów, musisz zaimportować obrazy."},
-    {2,"Wybierz obraz do opuszczenia"}
-   ]},
-  {set_materials,
-   [
-    {1,"Nie można założyć obrazu kiedy obiekt ma przydzielone kolory punktów"}
+    {4,"Opuść obraz"}
    ]},
   {snap_menu,
    [
@@ -394,5 +380,18 @@
     {18,"Przesuń obraz tła"},
     {19,"Wyjdź z trybu opuszczania"},
     {20,"Wyjdź z trybu opuszczania obrazu"}
+   ]},
+  {snap_tooltip,
+   [
+    {1,"Wybierz obraz do opuszczenia"},
+    {2,"Uaktywnij tryb opuszczania aby \"opuścić\" koordynaty UV na obraz tła"},
+    {3,"Wyjdź z trybu opuszczania"},
+    {4,"Umieść obraz tła na zaznaczonych płaszczyznach przydzielając im koordynaty UV"},
+    {7,"Przesuń obraz tła"},
+    {8,"Skaluj obraz"}
+   ]},
+  {title,
+   [
+    {1,"Opuść obraz"}
    ]}
  ]}.

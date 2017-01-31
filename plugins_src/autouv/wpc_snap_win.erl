@@ -16,14 +16,14 @@
 
 -define(NEED_OPENGL, 1).
 
--include("wings.hrl").
--include("e3d_image.hrl").
+-include_lib("wings/src/wings.hrl").
+-include_lib("wings/e3d/e3d_image.hrl").
 
 -define(HUGE, 1.0E307).
 -define(WIN_NAME, {plugin,snap}).
 -define(LOCAL_MODULE, ?MODULE).
 
--export([init/0,menu/2,command/2,win_data/1,win_name/0]).
+-export([init/0,menu/2,command/2,active/0,win_data/1,win_name/0]).
 -export([window/1,window/5]).
 
 -export([init/1,
@@ -34,7 +34,7 @@
 
 init() -> true.
 
-menu({tools}, Menu) ->
+menu({window}, Menu) ->
     Menu ++ [snap_win_menu()];
 menu(_, Menu) -> Menu.
 
@@ -70,7 +70,7 @@ snap_menu(fit) ->
      {?__(3,"Vertical"),{auv_snap_fit,y}}].
 
 
-command({tools,snap_win}, St) ->
+command({window,snap_win}, St) ->
     window(St),
     keep;
 command({snap_image,start}, St) ->
@@ -89,13 +89,13 @@ command({_,{auv_snap_move,Op}}, St) ->
     move(Op,St);
 command({_,{auv_snap_fit,Op}}, St) ->
     fit(Op,St);
-%command({_,auv_snap_rotate}, St) ->
-%    io:format("auv_snap_rotate\n",[]),
-%    rotate(St);
 command({snap_image,{rotate,Rotate}}, St) ->
     rotate(Rotate, St);
 command(_, _) ->
     next.
+
+active() ->
+    get(?MODULE) =/= undefined.
 
 start(St0) ->
     #s{reply=ImgId} = get(?MODULE),
@@ -113,9 +113,9 @@ cancel() ->
     wings:unregister_postdraw_hook(geom, ?MODULE),
     erase(?MODULE).
 
-cancel(St0) ->
+cancel(St) ->
     cancel(),
-    St0.
+    St.
 
 snap(St0) ->
     #s{reply=Image,name=Name} = get(?MODULE),
@@ -183,17 +183,6 @@ rotate(Rotate, St) ->
     State=get(?MODULE),
     put(?MODULE, State#s{r=Rotate}),
     St.
-%    RotateFun = fun({finish,_}, Dlo) -> Dlo;
-%		   ([R], Dlo) ->
-%		       State = get(?MODULE),
-%		       put(?MODULE, State#s{r=R}),
-%		       Dlo
-%		end,
-%
-%    Tvs   = {general, [{find_a_id(St), RotateFun}]},
-%    Units = [{rx, {-360.0,360.0}}],
-%    Flags = [{initial, [R0]}],
-%    wings_drag:drag_only(RotateFun, Units, Flags, St).
 
 fit(Op, St) ->
     #s{w=IW,h=IH}=S = get(?MODULE),
@@ -211,15 +200,6 @@ opacity(Opacity, St) ->
     wings_pref:set_value(snap_opacity, Opacity),
     put(?MODULE, State#s{opacity=Opacity}),
     St.
-
-%find_a_id(#st{shapes=Shs}) ->
-%    Ida = [Id || #we{id=Id,perm=Perm} <- gb_trees:values(Shs),
-%	   ?IS_VISIBLE(Perm)],
-%    Id = case length(Ida) of
-%	     0 -> wpa:error_msg(?__(1,"Visible object required."));
-%	     _ -> lists:min(Ida)
-%	 end,
-%    Id.
 
 draw_image(Image,_St) ->
     gl:pushAttrib(?GL_ALL_ATTRIB_BITS),
@@ -240,11 +220,11 @@ draw_image(Image,_St) ->
     gl:texEnvi(?GL_TEXTURE_ENV, ?GL_TEXTURE_ENV_MODE, ?GL_MODULATE),
 
     #s{w=IW,h=IH,sx=Sx,sy=Sy,tx=Tx,ty=Ty,r=Rot,opacity=Opa} = get(?MODULE),
-    gl:'begin'(?GL_QUADS),
     gl:color4f(1.0, 1.0, 1.0, Opa),   %%Semitransparant
     {_,_,W,H} = wings_wm:viewport(),
     {Xs,Ys,Xe,Ye} = {0.0,0.0,1.0,1.0},
 
+    #s{w=IW,h=IH,sx=Sx,sy=Sy,tx=Tx,ty=Ty,r=Rot} = get(?MODULE),
     {X,Y} = scale(W,H,IW,IH),
 
     Center = 0.5,
@@ -252,22 +232,23 @@ draw_image(Image,_St) ->
     Xrange = (X*Size)/2,
     Yrange = (Y*Size)/2,
 
-    plot_uv({Tx/2,Ty/2},{-Sx*Xrange,-Sy*Yrange},Center,Rot),
-    gl:vertex2f(Xs,Ys),
-    plot_uv({Tx/2,Ty/2},{Sx*Xrange,-Sy*Yrange},Center,Rot),
-    gl:vertex2f(Xe,Ys),
-    plot_uv({Tx/2,Ty/2},{Sx*Xrange,Sy*Yrange},Center,Rot),
-    gl:vertex2f(Xe,Ye),
-    plot_uv({Tx/2,Ty/2},{-Sx*Xrange,Sy*Yrange},Center,Rot),
-    gl:vertex2f(Xs,Ye),
-
-    gl:'end'(),
+    Vs = [{Xs,Ys}, {Xe,Ys}, {Xe,Ye}, {Xs,Ye}],
+    UVs = [plot_uv({Tx/2,Ty/2},{-Sx*Xrange,-Sy*Yrange},Center,Rot),
+	   plot_uv({Tx/2,Ty/2},{Sx*Xrange,-Sy*Yrange},Center,Rot),
+	   plot_uv({Tx/2,Ty/2},{Sx*Xrange,Sy*Yrange},Center,Rot),
+	   plot_uv({Tx/2,Ty/2},{-Sx*Xrange,Sy*Yrange},Center,Rot)],
+    List = zip(UVs, Vs),
+    wings_vbo:draw(fun() -> gl:drawArrays(?GL_QUADS, 0, 4) end, List, [uv, vertex2d]),
     gl:popAttrib().
+
+zip([V|Vs], [UV|UVs]) ->
+    [V,UV|zip(Vs,UVs)];
+zip([], []) -> [].
 
 plot_uv({Tx,Ty},{OffX0,OffY0},Center,Degree) ->
     {OffX,OffY}=rotate_uv(Degree, {OffX0,OffY0}),
     {TxX,TyY}=rotate_uv(Degree, {Tx,Ty}),
-    gl:texCoord2f(TxX+(Center+OffX),TyY+(Center+OffY)).
+    {TxX+(Center+OffX),TyY+(Center+OffY)}.
 
 rotate_uv(Dgree0, {X,Y}) ->
     Dgree=(math:pi()/180.0*-Dgree0),
@@ -434,6 +415,12 @@ change_state(Window, St) ->
 
 forward_event(redraw, _Window, _St) -> keep;
 forward_event(init_opengl, _Window, _St) -> keep;
+forward_event({note,image_change}=Ev, Window, _St) ->
+    wx_object:cast(Window, Ev),
+    keep;
+forward_event({action,{wpc_snap_win,_}}=Ev, Window, _St) ->
+    wx_object:cast(Window, Ev),
+    keep;
 forward_event({apply, ReturnSt, Fun}, Window, St0) ->
     %% Apply ops from window in wings process
     case ReturnSt of
@@ -442,16 +429,13 @@ forward_event({apply, ReturnSt, Fun}, Window, St0) ->
 	    {replace, change_state(Window, St)};
 	false ->
 	    Fun(St0)
-    end;
-forward_event(Ev, Window, _) ->
-    wx_object:cast(Window, Ev),
-    keep.
+    end.
 
 get_state(?WIN_NAME) ->
     {wings_pref:get_value(snap_opacity, 0.5)}.
 
 snap_label(image) ->
-    ?__(1, "Image");
+    ?__(1, "Select Image");
 snap_label(activate) ->
     ?__(2, "Activate");
 snap_label(deactivate) ->
@@ -510,7 +494,6 @@ to_str(Val) ->
 
 init([Frame, Name, {OpaVal}=State]) ->
     #{bg:=BG, text:=_FG} = Cols = wings_frame:get_colors(),
-    BGM = wings_color:rgb4bv(wings_pref:get_value(menu_color)),
     Panel = wxPanel:new(Frame, [{style, ?wxNO_BORDER}, {size,{200,300}}]),
     wxPanel:setFont(Panel, ?GET(system_font_wx)),
     wxWindow:setBackgroundColour(Panel, BG),
@@ -518,8 +501,7 @@ init([Frame, Name, {OpaVal}=State]) ->
     wxPanel:setSizer(Panel, Main),
 
     %% first level: Images, Button and Panel
-    ImgLbl = wxStaticText:new(Panel, ?wxID_ANY, snap_label(image), [{pos, {2,2}}]),
-    ImgLst = wxChoice:new(Panel, ?wxID_ANY, [{style,?wxCB_SORT},{pos, {2,2}}]),
+    ImgLst = wxComboBox:new(Panel, ?wxID_ANY, [{style,?wxCB_SORT bor ?wxTE_PROCESS_ENTER},{pos, {2,2}}]),
     wxWindow:setToolTip(ImgLst, wxToolTip:new(snap_tooltip(image))),
     setup_image_list(ImgLst),
     BAct = wxToggleButton:new(Panel, ?wxID_ANY, snap_label(activate)),
@@ -528,7 +510,6 @@ init([Frame, Name, {OpaVal}=State]) ->
     wxWindow:setBackgroundColour(CtrlBox, BG),
     %% layout settings for the first level controls
     Szr1 = wxBoxSizer:new(?wxVERTICAL),
-    wxSizer:add(Szr1, ImgLbl, [{flag, ?wxEXPAND}]),
     wxSizer:add(Szr1, ImgLst, [{flag, ?wxEXPAND}]),
     wxSizer:add(Szr1, BAct, [{flag, ?wxEXPAND}]),
     wxSizer:add(Szr1, CtrlBox, [{proportion, 1}, {border, 2}, {flag, ?wxEXPAND}]),
@@ -543,7 +524,7 @@ init([Frame, Name, {OpaVal}=State]) ->
     Rot = wxSlider:new(CtrlBox, ?wxID_ANY, 0, -360, 360),
     wxWindow:setToolTip(Rot, wxToolTip:new(snap_tooltip(rotate))),
     ModLbx = wxListBox:new(CtrlBox, ?wxID_ANY, [{style, ?wxLB_SINGLE}, {choices, mod_choices()}]),
-    wxWindow:setBackgroundColour(ModLbx, BGM),
+    wxWindow:setBackgroundColour(ModLbx, BG),
     %% layout settings for the second level controls
     Szr2 = wxBoxSizer:new(?wxVERTICAL),
     wxSizer:add(Szr2, BSnap, [{proportion, 0}, {border, 2}, {flag, ?wxEXPAND}]),
@@ -562,7 +543,11 @@ init([Frame, Name, {OpaVal}=State]) ->
     wxToggleButton:enable(BAct, [{enable,false}]),
     wxPanel:enable(CtrlBox, [{enable,false}]),
 
-    wxChoice:connect(ImgLst, command_choice_selected),
+    wxComboBox:connect(ImgLst, command_combobox_selected),
+    %% needed to manage the fake option 'Select image'
+    wxComboBox:connect(ImgLst, command_text_updated),
+    wxComboBox:connect(ImgLst, command_text_enter),
+
     wxToggleButton:connect(BAct, command_togglebutton_clicked),
     wxButton:connect(BSnap, command_button_clicked),
     wxListBox:connect(ModLbx, left_up),
@@ -588,11 +573,11 @@ init([Frame, Name, {OpaVal}=State]) ->
 setup_image_list(Ctrl) ->
     Images = find_images(),
     SelStr =
-	case wxChoice:getSelection(Ctrl) of
+	case wxComboBox:getSelection(Ctrl) of
 	    ?wxNOT_FOUND -> ignore;
-	    Idx -> wxChoice:getString(Ctrl,Idx)
+	    Idx -> wxComboBox:getString(Ctrl,Idx)
 	end,
-    wxChoice:clear(Ctrl),
+    wxComboBox:clear(Ctrl),
     lists:foldl(fun(Choice,N) ->
 		    setup_choices(Choice, Ctrl, -1, N)
 		end, 0, Images),
@@ -600,20 +585,40 @@ setup_image_list(Ctrl) ->
     %% In case the image list be updated by an image addition or
     %% exclusion - check if the old is still there
     if SelStr =/= ignore ->
-    	wxChoice:setStringSelection(Ctrl, SelStr);
-    true -> false
+	wxComboBox:setStringSelection(Ctrl, SelStr);
+    true ->
+	wxComboBox:setValue(Ctrl, snap_label(image)),
+	false
     end.
 
 setup_choices({Str, Tag}, Ctrl, Def, N) ->
-    wxChoice:append(Ctrl, Str, Tag),
-    Def =:= Tag andalso wxChoice:setSelection(Ctrl, N),
+    wxComboBox:append(Ctrl, Str, Tag),
+    Def =:= Tag andalso wxComboBox:setSelection(Ctrl, N),
     N + 1.
+
+reset_choice_to_empty(Ctrl) ->
+    Str = snap_label(image),
+    wxComboBox:setValue(Ctrl, Str),
+    wxComboBox:setSelection(Ctrl, 0, length(Str)).
 
 %%%%%%%%%%%%%%%%%%%%%%
 
-handle_event(#wx{event=#wxCommand{type=command_choice_selected, cmdString=Name, commandInt=Op}, obj=Obj},
+handle_event(#wx{event=#wxCommand{type=command_text_enter, commandInt=Op}, obj=Obj}, State) ->
+    %% test for invalid text input when pressed Enter
+    case Op of
+	-1 -> reset_choice_to_empty(Obj);
+	_ -> ignore
+    end,
+    {noreply, State};
+handle_event(#wx{event=#wxCommand{type=command_text_updated, cmdString=Name}, obj=Obj}, State) ->
+    if Name =:= [] ->
+	reset_choice_to_empty(Obj);
+    true -> ok
+    end,
+    {noreply, State};
+handle_event(#wx{event=#wxCommand{type=command_combobox_selected, cmdString=Name, commandInt=Op}, obj=Obj},
 	     #state{ctrls=#{actbtn:=BAct}}=State) ->
-    ImgId = wxChoice:getClientData(Obj,Op),
+    ImgId = wxComboBox:getClientData(Obj,Op),
     #e3d_image{width=W, height=H, name=Name} = wings_image:info(ImgId),
     case wxToggleButton:getValue(BAct) of
 	true ->
@@ -636,13 +641,13 @@ handle_event(#wx{event=#wxCommand{type=command_togglebutton_clicked}, obj=Btn},
     wxToggleButton:setToolTip(Btn, snap_tooltip(Toggle)),
     case Toggled of
 	true ->
-        Op = wxChoice:getSelection(ImgLst),
-        ImgId = wxChoice:getClientData(ImgLst,Op),
-        #e3d_image{width=W, height=H, name=Name} = wings_image:info(ImgId),
-	    Snap = #{reply=>ImgId,name=>Name,w=>W,h=>H},
-        wings_wm:psend(geom, {action,{snap_image,{start,Snap}}});
+	    Op = wxComboBox:getSelection(ImgLst),
+	    ImgId = wxComboBox:getClientData(ImgLst,Op),
+	    #e3d_image{width=W, height=H, name=Name} = wings_image:info(ImgId),
+		Snap = #{reply=>ImgId,name=>Name,w=>W,h=>H},
+	    wings_wm:psend(geom, {action,{snap_image,{start,Snap}}});
 	_ ->
-        wings_wm:psend(geom, {action,{snap_image,cancel}})
+	    wings_wm:psend(geom, {action,{snap_image,cancel}})
     end,
     {noreply, State};
 handle_event(#wx{event=#wxCommand{type=command_button_clicked}}, State) ->
@@ -711,14 +716,12 @@ handle_event(#wx{event=#wxMouse{type=enter_window}}=Ev, State) ->
     wings_frame ! Ev,
     {noreply, State};
 handle_event(#wx{} = _Ev, State) ->
-    %% io:format("~p:~p Got unexpected event ~p~n", [?WIN_NAME,?LINE, _Ev]),
     {noreply, State}.
 
 
 %%%%%%%%%%%%%%%%%%%%%%
 
 handle_call(_Req, _From, State) ->
-    %% io:format("~p:~p Got unexpected call ~p~n", [?WIN_NAME,?LINE,_Req]),
     {reply, ok, State}.
 
 handle_cast({note,image_change}, #state{ctrls=#{imglst:=ImgLst,actbtn:=BAct}}=State) ->
@@ -740,11 +743,9 @@ handle_cast({action,_}=Cmd, State) ->
     wings_wm:psend(geom, Cmd),
     {noreply, State};
 handle_cast(_Req, State) ->
-    %% io:format("~p:~p Got unexpected cast ~p~n", [?WIN_NAME,?LINE, _Req]),
     {noreply, State}.
 
 handle_info(_Msg, State) ->
-    %% io:format("~p:~p Got unexpected info ~p~n", [?WIN_NAME,?LINE, _Msg]),
     {noreply, State}.
 
 %%%%%%%%%%%%%%%%%%%%%%
@@ -753,7 +754,6 @@ code_change(_From, _To, State) ->
     State.
 
 terminate(_Reason, #state{name=Name}) ->
-    %% io:format("terminate: ~p:~p (~p)~n",[?MODULE, Name, _Reason]),
     wings_wm:psend(geom, {action,{snap_image,cancel}}),
     wings ! {wm, {delete, Name}},
     normal.

@@ -334,21 +334,8 @@
     {6,"Mettre à l'échelle au maximum verticalement (Y)"}
    ]}
  ]}.
-{wpc_snap,
+{wpc_snap_win,
  [
-  {find_a_id,
-   [
-    {1,"Visible object required."}
-   ]},
-  {menu,
-   [
-    {1,"Épingler l'image"},
-    {2,"Démarrer le mode pour épingler les coordonnées UV sur une image"},
-    {3,"Quitter mode épinglage"},
-    {4,"Quitter le mode épinglage"},
-    {5,"Épingler l'image"},
-    {6,"Mettre l'image d'arrière-plan sur les facettes sélectionnées en leur assignant des coordonnées UV"}
-   ]},
   {proportional_scale,
    [
     {1,"...selon X courant"},
@@ -358,10 +345,9 @@
     {5,"Taille réelle"},
     {6,"Remet l'image à sa taille réelle"}
    ]},
-  {select_image,
+  {snap_label,
    [
-    {1,"Auncune image presente, importez d'abord une image."},
-    {2,"Choisissez l'image à épingler"}
+    {4,"Épingler l'image"}
    ]},
   {snap_menu,
    [
@@ -393,5 +379,19 @@
     {31,"Centre l'arrière-plan à la fenêtre"},
     {32,"Proportionellement"},
     {33,"Met à l'échelle l'image proportionellement"}
+   ]},
+  {snap_tooltip,
+   [
+    {1,"Choisissez l'image à épingler"},
+    {2,"Démarrer le mode pour épingler les coordonnées UV sur une image"},
+    {3,"Quitter mode épinglage"},
+    {4,"Mettre l'image d'arrière-plan sur les facettes sélectionnées en leur assignant des coordonnées UV"},
+    {7,"Déplacer l'image d'arrière-plan"},
+    {8,"Mise à l'échelle épinglée de l'image"},
+    {9,"Adapte l'image aux dimensions de la fenêtre"}
+   ]},
+  {title,
+   [
+    {1,"Épingler l'image"}
    ]}
  ]}.
