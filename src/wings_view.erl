@@ -18,8 +18,7 @@
 	 current/0,set_current/1,
 	 load_matrices/1,projection/0,projection/1,
 	 modelview/0,align_view_to_normal/1,
-	 eye_point/0,export_views/1,import_views/2,camera_info/2,
-	 freeze_mirror/1]).
+	 eye_point/0,export_views/1,import_views/2,camera_info/2]).
 
 -define(NEED_ESDL, 1).
 -define(NEED_OPENGL, 1).
@@ -250,28 +249,29 @@ virtual_mirror(create, #st{selmode=face}=St0) ->
     {save_state,St#st{sel=[]}};
 virtual_mirror(create, _) ->
     wings_u:error_msg(?__(1,"Virtual mirror requires a face selection."));
-virtual_mirror(break, St0) ->
-    case break_mirror(St0) of
-	St0 -> St0;
-	St -> {save_state,St}
-    end;
+virtual_mirror(break, St) ->
+    break_mirror(St);
 virtual_mirror(freeze, St0) ->
-    case freeze_mirror(St0) of
-	St0 -> St0;
-	St -> {save_state,wings_sel:valid_sel(St)}
-    end.
+    freeze_mirror(St0).
 
 wireframe_all(false, _) ->
     wings_wm:set_prop(wireframed_objects, gb_sets:empty());
 wireframe_all(true, St) ->
-    All = wings_shape:all_selectable(St),
+    All = all_selectable(St),
     wings_wm:set_prop(wireframed_objects, All);
 wireframe_all(toggle, St) ->
-    Selectable = wings_shape:all_selectable(St),
+    Selectable = all_selectable(St),
     Prev = wings_wm:get_prop(wireframed_objects),
     Changed = gb_sets:difference(Selectable, Prev),
     New = gb_sets:union(Changed, gb_sets:difference(Prev, Selectable)),
     wings_wm:set_prop(wireframed_objects, New).
+
+all_selectable(St) ->
+    F = fun(#{id:=I,perm:=P}, A) when ?IS_SELECTABLE(P) -> [I|A];
+           (#{}, A) -> A
+        end,
+    Selectable = wings_obj:fold(F, [], St),
+    gb_sets:from_list(Selectable).
 
 wireframe_sel(false, St) ->
     Prev = wings_wm:get_prop(wireframed_objects),
@@ -290,8 +290,8 @@ wireframe_sel(toggle, St) ->
     W = gb_sets:union(W1, gb_sets:difference(Sel, W0)),
     wings_wm:set_prop(wireframed_objects, W).
 
-sel_to_set(#st{sel=Sel0}) ->
-    Sel = foldl(fun({Id,_}, A) -> [Id|A] end, [], Sel0),
+sel_to_set(St) ->
+    Sel = wings_sel:selected_ids(St),
     gb_sets:from_list(Sel).
 
 virtual_mirror_fun(Faces, We0) ->
@@ -303,31 +303,36 @@ virtual_mirror_fun(Faces, We0) ->
 	    wings_u:error_msg(?__(1,"Only a single face must be selected per object."))
     end.
 
-break_mirror(#st{shapes=Shs0}=St) ->
-    Shs = foldl(fun(#we{id=Id}=We0, Shs) ->
-			We = wings_we:break_mirror(We0),
-			gb_trees:update(Id, We, Shs)
-		end, Shs0, sel_mirror_objects(St)),
-    St#st{shapes=Shs}.
+break_mirror(St) ->
+    with_mirror_objs(fun wings_we:break_mirror/1, St).
 
-freeze_mirror(#st{shapes=Shs0}=St) ->
-    Shs = foldl(fun(#we{id=Id}=We0, Shs) ->
-			We = wings_we:freeze_mirror(We0),
-			gb_trees:update(Id, We, Shs)
-		end, Shs0, sel_mirror_objects(St)),
-    St#st{shapes=Shs}.
+freeze_mirror(St) ->
+    with_mirror_objs(fun wings_we:freeze_mirror/1, St).
 
-sel_mirror_objects(#st{sel=[],shapes=Shs}) ->
-    foldl(fun(#we{mirror=none}, A) -> A;
-	     (#we{perm=P}, A) when ?IS_NOT_SELECTABLE(P) -> A;
-	     (We, A) -> [We|A]
-	  end, [], gb_trees:values(Shs));
+with_mirror_objs(Update, St0) when is_function(Update, 1) ->
+    case sel_mirror_objects(St0) of
+        [] ->
+            St0;
+        [_|_]=Mirrors ->
+            St = wings_obj:update(Update, Mirrors, St0),
+            {save_state,wings_sel:valid_sel(St)}
+    end.
+
+sel_mirror_objects(#st{sel=[]}=St) ->
+    MF = fun(#{id:=Id,perm:=P}, #we{mirror=Face})
+               when ?IS_SELECTABLE(P), is_integer(Face) ->
+                 [Id];
+            (_, _) ->
+                 []
+         end,
+    RF = fun erlang:'++'/2,
+    wings_obj:dfold(MF, RF, [], St);
 sel_mirror_objects(St) ->
-    wings_sel:fold(fun(_, #we{mirror=none}, A) -> A;
-		      (_, #we{perm=P}, A) when ?IS_NOT_SELECTABLE(P) -> A;
-		      (_, We, A) -> [We|A]
-		   end, [], St).
-
+    MF = fun(_, #we{mirror=none}) -> [];
+            (_, #we{id=Id}) -> [Id]
+         end,
+    RF = fun erlang:'++'/2,
+    wings_sel:dfold(MF, RF, [], St).
 
 
 -define(RANGE_FOV, {1.0,179.9}).
@@ -926,22 +931,23 @@ aim(#st{sel=[]}, _) ->
     set_current(View#view{origin=e3d_vec:zero()});
 aim(St, {_, _, original}) ->
     aim(St);
-aim(#st{shapes=Shapes}=St, {Id, _Elem, mirror}) ->
-    We = gb_trees:get(Id, Shapes),
-    #we{mirror=Face} = We,
-    MirNormal = wings_face:normal(Face,We),
-    Mirror = wings_face:center(Face,We),
-
-    Original = wings_sel:center(St),
-    Distance = dist_along_vector(Mirror,Original,MirNormal),
-    Origin0 = e3d_vec:add_prod(Original, MirNormal, Distance * 2),
-    Origin = e3d_vec:neg(Origin0),
-
+aim(St, {Id, _Elem, mirror}) ->
     #view{distance=Dist0} = View = current(),
-    Dist = case e3d_vec:dist(eye_point(), Origin0) of
-	       D when D < Dist0 -> D;
-	       _Other -> Dist0
-	   end,
+    EyePoint = eye_point(),
+    F = fun(#we{mirror=Face}=We) ->
+                MirNormal = wings_face:normal(Face, We),
+                Mirror = wings_face:center(Face, We),
+
+                Original = wings_sel:center(St),
+                Distance = dist_along_vector(Mirror, Original, MirNormal),
+                Origin0 = e3d_vec:add_prod(Original, MirNormal, Distance * 2),
+                Origin = e3d_vec:neg(Origin0),
+
+                Dist = min(e3d_vec:dist(EyePoint, Origin0), Dist0),
+
+                {Origin,Dist}
+        end,
+    {Origin,Dist} = wings_obj:with_we(F, Id, St),
     set_current(View#view{origin=Origin,distance=Dist,pan_x=0.0,pan_y=0.0}).
 
 dist_along_vector(PosA,PosB,Vector) ->
@@ -951,23 +957,32 @@ dist_along_vector(PosA,PosB,Vector) ->
     {Vx,Vy,Vz} = e3d_vec:norm(Vector),
     Vx*(Xa-Xb)+Vy*(Ya-Yb)+Vz*(Za-Zb).
 
-frame(#st{sel=[],shapes=Shs}) ->
-    BB = foldl(fun(#we{perm=P,vp=Vtab}=We, BB) when ?IS_VISIBLE(P) ->
-		       case wings_util:array_is_empty(Vtab) of
-			   false -> wings_vertex:bounding_box(We, BB);
-			   true -> BB
-		       end;
-		  (_, BB) -> BB
-	       end,
-	       none, gb_trees:values(Shs)),
+frame(#st{sel=[]}=St) ->
+    MF = fun(#{perm:=P}, #we{vp=Vtab}=We) when ?IS_VISIBLE(P) ->
+                 case wings_util:array_is_empty(Vtab) of
+                     false -> wings_vertex:bounding_box(We);
+                     true -> none
+                 end;
+            (_, _) -> none
+         end,
+    RF = fun(none, none) ->
+                 none;
+            ([_|_]=BB, none) ->
+                 BB;
+            (none, [_|_]=BB) ->
+                 BB;
+            ([_|_]=BB1, [_|_]=BB0) ->
+                 e3d_vec:bounding_box(BB1 ++ BB0)
+         end,
+    BB = wings_obj:dfold(MF, RF, none, St),
     frame_1(BB);
 frame(St0) ->
     St = case wings_pref:get_value(frame_disregards_mirror) of
-	true ->
-      kill_mirror(St0);
-	false -> 
-	  St0
-	end,
+             true ->
+                 kill_mirror(St0);
+             false ->
+                 St0
+         end,
     frame_1(wings_sel:bounding_box(St)).
 
 frame_1(none) -> ok;
@@ -979,15 +994,8 @@ frame_1([A,B]) ->
     set_current(View#view{origin=e3d_vec:neg(C),
 			  distance=Dist,pan_x=0.0,pan_y=0.0}).
 
-kill_mirror(#st{shapes=Shs0}=St) ->
-    Shs = kill_mirror_1(gb_trees:values(Shs0), []),
-    St#st{shapes=Shs}.
-
-kill_mirror_1([#we{id=Id}=We0|Wes], Acc) ->
-    We = wings_we:break_mirror(We0),
-    kill_mirror_1(Wes, [{Id,We}|Acc]);
-kill_mirror_1([], Acc) ->
-    gb_trees:from_orddict(lists:reverse(Acc)).
+kill_mirror(St) ->
+    wings_obj:we_map(fun wings_we:break_mirror/1, St).
 
 views({save,[Legend]}, #st{views={_,{}}}=St0) ->
     St = St0#st{views={1,{{current(),Legend}}},saved=false},

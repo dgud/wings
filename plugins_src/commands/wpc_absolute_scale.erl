@@ -47,9 +47,9 @@ draw(all, Mode) ->
     {?__(1, "Absolute Commands"), {absolute, draw(menu, Mode)}};
 draw(menu, Mode) ->
     [{?__(2,"Scale"),scale_fun(Mode),
-     {?__(3,"Scale to exact size in absolute coordinates."),
-      ?__(4,"Scale to target size."),
-      ?__(5,"Scale with centre picking.")},[]}].
+     {?__(3,"Scale to exact size in absolute coordinates"),
+      ?__(4,"Scale to target size"),
+      ?__(5,"Scale with center picking")},[]}].
 
 scale_fun(Mode) ->
     fun(1, _Ns) ->
@@ -62,24 +62,27 @@ scale_fun(Mode) ->
     end.
 
 command({_,{absolute,Mode}},St) when Mode == scale; Mode == ctscale; Mode == cscale ->
-            case Mode of
-                scale -> scale(St);
-                ctscale -> wings:ask(selection_ask([centre,target]), St, fun ctscale/2);
-                cscale -> wings:ask(selection_ask([centre]), St, fun cscale/2)
-            end;
+    case Mode of
+        scale ->
+            scale(St);
+        ctscale ->
+            wings:ask(selection_ask([center,target]), St, fun ctscale/2);
+        cscale ->
+            wings:ask(selection_ask([center]), St, fun cscale/2)
+    end;
 command(_,_) -> next.
 
 scale(St) ->
-    {Options,Sel} = extract([],St),
-    draw_window(Options, Sel, St).
+    Options = extract([], St),
+    draw_window(Options, St).
 
 ctscale({Center, TA, TB}, St) ->
-    {Options, Sel} = extract([{center,Center},{ta,TA},{tb,TB}],St),
-    draw_window(Options, Sel, St).
+    Options = extract([{center,Center},{ta,TA},{tb,TB}], St),
+    draw_window(Options, St).
 
 cscale(Center, St) ->
-    {Options, Sel} = extract([{center,Center}],St),
-    draw_window(Options, Sel, St).
+    Options = extract([{center,Center}], St),
+    draw_window(Options, St).
 
 %%
 %% extract(State)
@@ -90,50 +93,44 @@ cscale(Center, St) ->
 %%  (return values: {{atom,{float,float,float}},{atom,{float,float,float}},{atom,atom(always/never/ask)},{atom,bool}})
 %%
 
-extract(Options, #st{shapes=Shapes}=St) ->
-    Sel = get_selection(St),
-    {Center,Size0,BB0} = get_center_and_size(Sel,Shapes),
-    WholeObject = case Sel of
-                      [{_,GbSet}] ->
-			  case gb_sets:size(GbSet) of
-			      1 -> always;
-			      _ -> check_whole_obj(St#st{sel=Sel,selmode=vertex})
-			  end;
-                      _ -> check_whole_obj(St#st{sel=Sel,selmode=vertex})
-                  end,
-    {BB,Size} = if
-               WholeObject == always -> 
-                   [{Obj,_}] = Sel,
-                   We = gb_trees:get(Obj, Shapes),
-                   BB1 = wings_vertex:bounding_box(We),
-                   {normalizeBB(BB1),bb2size(BB1)};
-               true -> 
-                   {normalizeBB(BB0),Size0}
-           end,
+extract(Options, St) ->
+    Center = wings_sel:center_vs(St),
+    WholeObject = check_whole_obj(St),
+    BB = case check_whole_obj(St) of
+             always -> whole_bbox(St);
+             _ -> wings_sel:bounding_box(St)
+         end,
+    Size = bb2size(BB),
     TA = lookup(ta, Options, {0.0, 0.0, 0.0}),
     TB = lookup(tb, Options, Size),
     [{TX1,TY1,TZ1},{TX2,TY2,TZ2}] = TBB = normalizeBB([TA,TB]),
     NCenter = lookup(center, Options, Center),
-    OneObject = check_single_obj(Sel),
+    OneObject = check_single_obj(St),
     SugSize = {abs(TX1-TX2),abs(TY1-TY2),abs(TZ1-TZ2)},
     SugCenter = case lookup(ta, Options, false) of
                     false -> none;
-                    _ -> getSugestedCenter(BB, TBB)
+                    _ -> getSuggestedCenter(BB, TBB)
                 end,
-    {{{center,NCenter},{sugestcenter,SugCenter},{size,Size},{sugestsize,SugSize},{scalewhole,WholeObject},{oneobject,OneObject}},Sel}.
+    {{center,NCenter},{suggestcenter,SugCenter},{size,Size},
+     {suggestsize,SugSize},{scalewhole,WholeObject},{oneobject,OneObject}}.
+
+whole_bbox(St) ->
+    MF = fun(_, We) -> wings_vertex:bounding_box(We) end,
+    RF = fun(W, []) -> W end,
+    wings_sel:dfold(MF, RF, [], St).
 
 lookup(Key, List, Default) ->
-   case lists:keysearch(Key, 1, List) of
-      {value,{_,Value}} -> Value;
-      _ -> Default
+   case lists:keyfind(Key, 1, List) of
+       {_,Value} -> Value;
+       false -> Default
    end.
 
 normalizeBB([{AX1,AY1,AZ1},{AX2,AY2,AZ2}]) ->
     [{min(AX1,AX2), min(AY1,AY2), min(AZ1, AZ2)},
      {max(AX1,AX2), max(AY1,AY2), max(AZ1, AZ2)}].
 
-getSugestedCenter([{AX1,AY1,AZ1},{AX2,AY2,AZ2}], 
-                  [{BX1,BY1,BZ1},{BX2,BY2,BZ2}]) -> 
+getSuggestedCenter([{AX1,AY1,AZ1},{AX2,AY2,AZ2}],
+                   [{BX1,BY1,BZ1},{BX2,BY2,BZ2}]) ->
     {getC(AX1,AX2,BX1,BX2),
      getC(AY1,AY2,BY1,BY2),
      getC(AZ1,AZ2,BZ1,BZ2)}.
@@ -142,38 +139,24 @@ getC(A1, A2, B1, B2) when A1 =/= A2, B1 =/= B2 ->
     (B1*A2-B2*A1)/((A2-A1) - (B2-B1));
 getC(A1, A2, _, _) -> (A1+A2)/2.
 
-get_selection(#st{selmode=SelMode}=St) ->
-    #st{sel=Sel} = case SelMode of
-        vertex -> St;
-        _ -> wings_sel_conv:mode(vertex,St)
-    end,
-    Sel.
+bb2size([LL,UR]) ->
+    e3d_vec:sub(UR, LL).
 
-get_center_and_size(Sel,Shapes) ->
-    get_center_and_size(Sel,Shapes,[]).
+check_whole_obj(#st{selmode=Mode}=St0) ->
+    MF = fun(Items, We) ->
+                 Vs = wings_sel:to_vertices(Mode, Items, We),
+                 case {Vs,wings_we:visible_vs(We)} of
+                     {[_],_} -> always;
+                     {Vs,Vs} -> never;
+                     {_,_} -> ask
+                 end
+         end,
+    RF = fun(When, never) -> When;
+            (_, _) -> ask
+         end,
+    wings_sel:dfold(MF, RF, never, St0).
 
-get_center_and_size([],_,Now) ->
-    BB = e3d_vec:bounding_box(Now),
-    {e3d_vec:average(Now),bb2size(BB),BB};
-get_center_and_size([{Obj,Vset}|Rest],Shapes,Now) ->
-    We = gb_trees:get(Obj, Shapes),
-    Positions = gb_sets:fold(fun(Vert, Acc) ->
-                    [wings_vertex:pos(Vert, We)|Acc]
-                end, [], Vset),
-    get_center_and_size(Rest,Shapes,Now++Positions).
-
-bb2size([{X1,Y1,Z1},{X2,Y2,Z2}]) ->
-    {abs(X1-X2),abs(Y1-Y2),abs(Z1-Z2)}.
-
-check_whole_obj(St0) ->
-    St1 = wings_sel_conv:mode(body,St0),
-    St2 = wings_sel_conv:mode(vertex,St1),
-    case St2 == St0 of
-	true -> never;
-	false -> ask
-    end.
-
-check_single_obj([{_,_}]) -> true;
+check_single_obj(#st{sel=[_]}) -> true;
 check_single_obj(_) -> false.
 
 selection_ask(Asks) ->
@@ -181,13 +164,13 @@ selection_ask(Asks) ->
     {Ask,[],[],[vertex, edge, face, body]}.
 
 selection_ask([],Ask) -> lists:reverse(Ask);
-selection_ask([centre|Rest],Ask) ->
-    Desc = ?__(1,"Select scale centre"),
-    selection_ask(Rest,[{point,Desc}|Ask]);
-selection_ask([target|Rest],Ask) ->
+selection_ask([center|Rest], Ask) ->
+    Desc = ?__(1,"Select scale center"),
+    selection_ask(Rest, [{point,Desc}|Ask]);
+selection_ask([target|Rest], Ask) ->
     Desc1 = ?__(2,"Select target size - base point"),
     Desc2 = ?__(3,"Select target size - range point"),
-    selection_ask(Rest,[{point,Desc2},{point,Desc1}|Ask]).
+    selection_ask(Rest, [{point,Desc2},{point,Desc1}|Ask]).
 
 %%
 %% draw_window(Options,Selection,State)
@@ -196,7 +179,7 @@ selection_ask([target|Rest],Ask) ->
 %%  and calls do_scale(ProcessedOptions,Selection,State)
 %%
 
-draw_window({{_,{CX,CY,CZ}}, {_, SugCenter}, {_,{SX,SY,SZ}=Size}, {_, {SugX, SugY, SugZ}}, {_,Whole}, {_,Single}}, Sel, St) ->
+draw_window({{_,{CX,CY,CZ}}, {_, SugCenter}, {_,{SX,SY,SZ}=Size}, {_, {SugX, SugY, SugZ}}, {_,Whole}, {_,Single}}, St) ->
     Frame1 = [{hframe,
 	       [draw_window1(size, {{SX,SY,SZ},{SugX,SugY,SugZ}}),
 		draw_window1(aspect, {SX,SY,SZ}),
@@ -211,14 +194,14 @@ draw_window({{_,{CX,CY,CZ}}, {_, SugCenter}, {_,{SX,SY,SZ}=Size}, {_, {SugX, Sug
 	     end,
     Frame = [{vframe, Frame1 ++ Frame2 ++ Frame3}],
     Name = draw_window1(name,default),
-    wings_dialog:dialog(Name, {preview,Frame},
-			fun
-			    ({dialog_preview,Scale}) ->
-			       {preview,St,translate(Scale,SugCenter,Size,Sel,St)};
-			    (cancel) -> St;
-			    (Scale) ->
-			       {commit,St,translate(Scale,SugCenter,Size,Sel,St)}
-		       end).
+    F = fun({dialog_preview,Scale}) ->
+                {preview,St,translate(Scale,SugCenter, Size, St)};
+           (cancel) ->
+                St;
+           (Scale) ->
+                {commit,St,translate(Scale, SugCenter, Size, St)}
+        end,
+    wings_dialog:dialog(Name, {preview,Frame}, F).
 
 draw_window1(name,_) ->
     ?__(1,"Absolute scale options");
@@ -274,7 +257,7 @@ checkChained([{SX,OX,true}|Rest], List) ->
 checkChained([_|Rest], List) ->
     checkChained(Rest, List).
 
-translate(Options,SugCenter,{OX,OY,OZ}=Original,Sel,St) ->
+translate(Options, SugCenter, {OX,OY,OZ}=Original, St) ->
     SX = lookup(sx, Options, OX),
     SY = lookup(sy, Options, OY),
     SZ = lookup(sz, Options, OZ),
@@ -303,7 +286,7 @@ translate(Options,SugCenter,{OX,OY,OZ}=Original,Sel,St) ->
                  SugC -> SugCenter;
                  true -> {CX,CY,CZ}
              end,
-    do_scale([{NX,NY,NZ},Original,Center,{whole,Whole}],Sel,St).
+    do_scale([{NX,NY,NZ},Original,Center,{whole,Whole}], St).
 
 %%
 %% do_scale(Options,Selection,State)
@@ -311,7 +294,7 @@ translate(Options,SugCenter,{OX,OY,OZ}=Original,Sel,St) ->
 %% this is main absolute scale command, it returns new state.
 %%
 
-do_scale([{SX,SY,SZ},{OX,OY,OZ},{CX,CY,CZ},{_,Whole}], Sel, St) ->
+do_scale([{SX,SY,SZ},{OX,OY,OZ},{CX,CY,CZ},{_,Whole}], St) ->
     SX2 = if
         OX == 0.0 -> 1.0;
         Whole andalso (OX =< ?EPSILON) andalso (SX =< ?EPSILON) -> 1.0;
@@ -327,43 +310,45 @@ do_scale([{SX,SY,SZ},{OX,OY,OZ},{CX,CY,CZ},{_,Whole}], Sel, St) ->
         Whole andalso (OZ =< ?EPSILON) andalso SZ =< ?EPSILON -> 1.0;
         true -> SZ/OZ
     end,
-    {TX,TY,TZ} = {CX - CX*SX2, CY - CY*SY2, CZ - CZ*SZ2},
-    NewSel = if
-               Whole ->
-                   St1 = wings_sel_conv:mode(body,St),
-                   St2 = wings_sel_conv:mode(vertex,St1),
-                   St2#st.sel;
-               true ->
-                   Sel
-           end,
-    do_scale1({SX2,SY2,SZ2},{TX,TY,TZ},NewSel,St).
+    Pre = e3d_mat:translate(CX, CY, CZ),
+    Scale = e3d_mat:scale(SX2, SY2, SZ2),
+    Post = e3d_mat:translate(-CX, -CY, -CZ),
+    Mat = e3d_mat:mul(e3d_mat:mul(Pre, Scale), Post),
+    if
+        Whole ->
+            MF = fun(_, We) ->
+                         wings_we:transform_vs(Mat, We)
+                 end,
+            wings_sel:map(MF, St);
+        true ->
+            do_scale_1(Mat, St)
+    end.
 
-do_scale1(_,_,[],St) -> St;
-do_scale1(Scale, Transform, [{WeId,Vset}|Rest], #st{shapes=Shapes}=St) ->
-    We = gb_trees:get(WeId, Shapes),
-    Vtab = We#we.vp,
-    NewVtab = execute_scale(Scale, Transform, Vset, Vtab),
-    NewWe = We#we{vp=NewVtab},
-    NewShapes = gb_trees:update(WeId,NewWe,Shapes),
-    NewSt = St#st{shapes=NewShapes},
-    do_scale1(Scale, Transform, Rest, NewSt).
+do_scale_1(Mat, #st{selmode=Mode}=St) ->
+    MF = fun(Items, #we{vp=Vtab0}=We) ->
+                 Vs0 = wings_sel:to_vertices(Mode, Items, We),
+                 Vs = gb_sets:from_list(Vs0),
+                 Vtab = execute_scale(Mat, Vs, Vtab0),
+                 We#we{vp=Vtab}
+         end,
+    wings_sel:map(MF, St).
 
-execute_scale(S, T, Vset, Vtab) ->
-    execute_scale(array:sparse_size(Vtab)-1, S, T, Vset, Vtab).
+execute_scale(Mat, Vset, Vtab) ->
+    execute_scale(array:sparse_size(Vtab)-1, Mat, Vset, Vtab).
 
-execute_scale(-1, _, _, _, Vtab) ->
+execute_scale(-1, _, _, Vtab) ->
     Vtab;
-execute_scale(Vertex, {SX,SY,SZ}=S, {TX,TY,TZ}=T, Vset, Vtab0) ->
+execute_scale(Vertex, Mat, Vset, Vtab0) ->
     case array:get(Vertex, Vtab0) of
 	undefined ->
-	    execute_scale(Vertex-1, S, T, Vset, Vtab0);
-	{X,Y,Z} ->
+	    execute_scale(Vertex-1, Mat, Vset, Vtab0);
+	Pos0 ->
             Vtab = case gb_sets:is_element(Vertex, Vset) of
 		       true ->
-			   NewXYZ = {TX + SX*X, TY + SY*Y, TZ + SZ*Z},
-			   array:set(Vertex, NewXYZ, Vtab0);
+                           Pos = e3d_mat:mul_point(Mat, Pos0),
+			   array:set(Vertex, Pos, Vtab0);
 		       false ->
 			   Vtab0
 		   end,
-            execute_scale(Vertex-1, S, T, Vset, Vtab)
+            execute_scale(Vertex-1, Mat, Vset, Vtab)
     end.

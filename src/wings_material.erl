@@ -157,108 +157,81 @@ rename_qs(Ms) ->
       [{vframe,OldNames},
        {vframe,TextFields}]}].
 
-reassign_material(Old, New, St0) ->
-    %% It would be tempting to call select_material/2 here instead of
-    %% make_fake_selection/2, but we must make sure that even invisible
-    %% and locked objects gets selected.
-    case make_fake_selection(Old, St0) of
-	#st{sel=[]} -> St0;
-	St1 ->
-	    #st{shapes=Shs,mat=Mat} = set_material(New, St1),
-	    St0#st{shapes=Shs,mat=Mat}
+reassign_material(Old, New, St) ->
+    SF = set_material_fun(New, face),
+    F = fun(We) ->
+                Faces = faces_with_mat(Old, We),
+                case gb_sets:is_empty(Faces) of
+                    false -> SF(Faces, We);
+                    true -> We
+                end
+        end,
+    wings_obj:we_map(F, St).
+
+faces_with_mat(OldMat, #we{fs=Ftab,mat=OldMat}) ->
+    gb_sets:from_ordset(gb_trees:keys(Ftab));
+faces_with_mat(_, #we{mat=Atom}) when is_atom(Atom) ->
+    gb_sets:empty();
+faces_with_mat(OldMat, #we{mat=MatTab}) ->
+    Fs = [Face || {Face,Mat} <- MatTab, Mat =:= OldMat],
+    gb_sets:from_ordset(Fs).
+
+select_material(Mat, SelAct, #st{selmode=Mode}=St) ->
+    F = select_fun(SelAct, Mat, Mode),
+    case SelAct of
+        select ->
+            wings_sel:new_sel(F, Mode, St);
+        sel_add ->
+            wings_sel:update_sel_all(F, St);
+        sel_rem ->
+            wings_sel:update_sel(F, St)
     end.
 
-make_fake_selection(OldMat, #st{shapes=Shapes}=St) ->
-    Sel0 = gb_trees:values(Shapes),
-    Sel = make_fake_selection_1(Sel0, OldMat),
-    St#st{selmode=face,sel=Sel}.
-
-make_fake_selection_1([#we{id=Id,fs=Ftab,mat=OldMat}|Shs], OldMat) ->
-    [{Id,gb_trees:keys(Ftab)}|make_fake_selection_1(Shs, OldMat)];
-make_fake_selection_1([#we{mat=Atom}|Shs], OldMat) when is_atom(Atom) ->
-    make_fake_selection_1(Shs, OldMat);
-make_fake_selection_1([#we{id=Id,mat=MatTab}|Shs], OldMat) ->
-    case [Face || {Face,Mat} <- MatTab, Mat =:= OldMat] of
-	[] -> make_fake_selection_1(Shs, OldMat);
-	Sel -> [{Id,gb_sets:from_ordset(Sel)}|make_fake_selection_1(Shs, OldMat)]
+select_fun(select, Mat, Mode) ->
+    fun(_, We) ->
+            selected_items(Mode, Mat, We)
     end;
-make_fake_selection_1([], _) -> [].
-
-select_material(Mat,SelAct,#st{selmode=SelMode,sel=Sel0,shapes=Shs}=St) ->
-    Sel = foldl(fun(#we{id=Id,perm=Perm}=We, Acc) when ?IS_SELECTABLE(Perm) andalso not ?IS_ANY_LIGHT(We) ->
-            Sel1=lists:keyfind(Id, 1, Sel0), % check if Id is already in previous selection
-            Sel2=selected_we(SelMode, We, Mat), % get #we selection using Mat
-            select_material_1(SelAct,Sel1,Sel2,Acc);
-        (_, Acc) -> Acc  % process no selectable or light #we
-		end, [], gb_trees:values(Shs)),
-    wings_sel:set(Sel, St).
-
-%% sel_rem - remove #we's using Mat from any previous selection
-select_material_1(sel_rem,Sel1,Sel2,Acc) ->
-    case Sel1 of
-	false -> Acc; % #we ins't in previous selection - nothing to do
-	_ ->
-	    {_,GbNew}=Sel3 = subtract_sel(Sel1,Sel2),
-	    case gb_sets:is_empty(GbNew) of
-		true -> Acc;
-		_ -> [Sel3|Acc]
-	    end
+select_fun(sel_add, Mat, Mode) ->
+    fun(Items0, We) ->
+            Items = selected_items(Mode, Mat, We),
+            gb_sets:union(Items0, Items)
     end;
-%% select - select #we's using Mat - the original behavior
-%% sel_add - add #we's using Mat to any previous selection
-select_material_1(SelAct,Sel1,Sel2,Acc) ->
-    case Sel2 of
-	false ->
-	    case SelAct of
-		select -> Acc;
-		sel_add -> 
-		    case concat_sel(Sel1,false) of
-			[] -> Acc;
-			Sel3 -> [Sel3|Acc]  % preserve previous selection of #we
-		    end
-	    end;
-	Sel2 ->
-	    case SelAct of
-		select -> [Sel2|Acc]; % we are building a new selection 
-		sel_add -> [concat_sel(Sel1,Sel2)|Acc] % if so, we will update the previous selection
-	    end
+select_fun(sel_rem, Mat, Mode) ->
+    fun(Items0, We) ->
+            Items = selected_items(Mode, Mat, We),
+            gb_sets:difference(Items0, Items)
     end.
 
-%% select the elements (face/edge/vertice) using the Mat
-selected_we(SelMode,#we{id=Id,fs=Ftab}=We, Mat) ->
+%% Select the elements (face/edge/vertice) using Mat
+selected_items(Mode, Mat, #we{fs=Ftab}=We) ->
     MatFaces = wings_facemat:mat_faces(gb_trees:to_list(Ftab), We),
     case keyfind(Mat, 1, MatFaces) of
 	false ->
-	    false;
+	    gb_sets:empty();
 	{Mat,FaceInfoList} ->
 	    Fs = [F || {F,_} <- FaceInfoList, F >= 0],
-		SelItems = case SelMode of
-			vertex -> wings_face:to_vertices(Fs, We);
-			edge -> wings_face:to_edges(Fs, We);
-			_ -> Fs
-			end,
-		{Id,gb_sets:from_ordset(SelItems)}
-	end.
+            SelItems = case Mode of
+                           vertex -> wings_face:to_vertices(Fs, We);
+                           edge -> wings_face:to_edges(Fs, We);
+                           _ -> Fs
+                       end,
+            gb_sets:from_ordset(SelItems)
+    end.
 
-concat_sel(false,false) -> [];
-concat_sel(false,NewSel) -> NewSel;
-concat_sel(OldSel,false) -> OldSel;
-concat_sel({Id,GbSetOld},{Id,GbSetNew}) ->
-    {Id,gb_sets:union(GbSetOld,GbSetNew)}.
+set_material(Mat, #st{selmode=Mode}=St) ->
+    F = set_material_fun(Mat, Mode),
+    wings_sel:map(F, St).
 
-subtract_sel(OldSel,false) -> OldSel;
-subtract_sel({Id,GbSetOld},{Id,GbSetNew}) ->
-    {Id,gb_sets:subtract(GbSetOld,GbSetNew)}.
-    
-set_material(Mat, #st{selmode=face}=St) ->
-    wings_sel:map(fun(Faces, We) ->
-			  wings_facemat:assign(Mat, Faces, We)
-		  end, St);
-set_material(Mat, #st{selmode=body}=St) ->
-    wings_sel:map(fun(_, #we{fs=Ftab}=We) ->
-			  wings_facemat:assign(Mat, gb_trees:keys(Ftab), We)
-		  end, St);
-set_material(_, St) -> St.
+set_material_fun(Mat, face) ->
+    fun(Faces, We) ->
+            wings_facemat:assign(Mat, Faces, We)
+    end;
+set_material_fun(Mat, body) ->
+    fun(_, #we{fs=Ftab}=We) ->
+            wings_facemat:assign(Mat, gb_trees:keys(Ftab), We)
+    end;
+set_material_fun(_, _) ->
+    fun(_, We) -> We end.
 
 default() ->
     Dm = wings_pref:get_value(material_default),
@@ -554,14 +527,15 @@ no_texture() ->
 
 %% Return the materials used by the objects in the scene.
 
-used_materials(#st{shapes=Shs,mat=Mat0}) ->
-    Used0 = foldl(fun(We, A) ->
-			  [wings_facemat:used_materials(We)|A]
-		  end, [], gb_trees:values(Shs)),
-    Used1 = ordsets:union(Used0),
-    Used2 = sofs:from_external(Used1, [name]),
+used_materials(#st{mat=Mat0}=St) ->
+    MF = fun(_, We) ->
+                 wings_facemat:used_materials(We)
+         end,
+    RF = fun(M, A) -> ordsets:union(M, A) end,
+    Used0 = wings_obj:dfold(MF, RF, ordsets:new(), St),
+    Used1 = sofs:from_external(Used0, [name]),
     Mat = sofs:relation(gb_trees:to_list(Mat0), [{name,data}]),
-    Used = sofs:restriction(Mat, Used2),
+    Used = sofs:restriction(Mat, Used1),
     sofs:to_external(Used).
 
 %% Return all image ids used by materials.

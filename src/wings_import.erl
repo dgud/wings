@@ -50,13 +50,21 @@ translate_objects([], _, _, _, _, _, St) -> St.
 import_attributes(We, #e3d_object{attr=Attr}) ->
     Visible = proplists:get_value(visible, Attr, true),
     Locked = proplists:get_value(false, Attr, false),
-    wings_shape:permissions(We, Visible, Locked).
+    P0 = case Visible of
+	     true -> 0;
+	     false -> ?PERM_HIDDEN_BIT
+	 end,
+    P = case Locked of
+	    true -> P0 bor ?PERM_LOCKED_BIT;
+	    false -> P0
+	end,
+    We#we{perm=P}.
 
 store_object(undefined, We, #st{onext=Oid}=St) ->
     Name = "unnamed_object" ++ integer_to_list(Oid),
-    wings_shape:new(Name, We, St);
+    wings_obj:new(Name, We, St);
 store_object(Name, We, St) ->
-    wings_shape:new(Name, We, St).
+    wings_obj:new(Name, We, St).
 
 import_object(#e3d_object{name=_Name,obj=Mesh0}) ->
     %%io:format("\n~s:\n", [_Name]),

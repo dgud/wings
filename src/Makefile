@@ -90,6 +90,7 @@ MODULES= \
 	wings_menu_util \
 	wings_move \
 	wings_msg \
+	wings_obj \
 	wings_outliner \
 	wings_palette \
 	wings_pb \
@@ -106,7 +107,6 @@ MODULES= \
 	wings_sel_cmd \
 	wings_scale \
 	wings_shaders \
-	wings_shape \
 	wings_shapes \
 	wings_start \
 	wings_status \

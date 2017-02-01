@@ -46,7 +46,7 @@ read_objects(N, Bin, St0) ->
 	   io:format(?__(2,"  garbage: ~w\n"), [First]),
 	    St0;
 	{Name,We,Rest} ->
-	    St = wings_shape:new(Name, We, St0),
+	    St = wings_obj:new(Name, We, St0),
 	    read_objects(N-1, Rest, St)
     end.
 

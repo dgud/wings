@@ -17,7 +17,7 @@
 
 -define(NEED_ESDL, 1).
 -include("wings.hrl").
--import(lists, [foldl/3,reverse/1,sort/1,seq/2]).
+-import(lists, [foldl/3,mapfoldl/3,reverse/1,sort/1,seq/2]).
 
 menu(X, Y, St) ->
     Dir = wings_menu_util:directions(St),
@@ -170,9 +170,9 @@ command({duplicate,Dir}, St) ->
 command({duplicate_object,Ids}, St) ->
     {save_state,duplicate_object(Ids, St)};
 command(delete, St) ->
-    {save_state,wings_shape:update_folders(delete(St))};
+    {save_state,delete(St)};
 command({delete_object,Ids}, St) ->
-    {save_state,wings_shape:update_folders(delete_object(Ids, St))};
+    {save_state,delete_object(Ids, St)};
 command(tighten, St) ->
     tighten(St);
 command(smooth, St) ->
@@ -202,7 +202,7 @@ command(cleanup, St) ->
 command({cleanup,Ask}, St) ->
     cleanup(Ask, St);
 command(collapse, St) ->
-    {save_state,wings_shape:update_folders(wings_collapse:collapse(St))};
+    {save_state,wings_collapse:collapse(St)};
 command(rename, St) ->
     rename(St);
 command({rename,prefix}, St) ->
@@ -503,11 +503,8 @@ delete(St) ->
 %%% Delete called from the Outliner or Object window.
 %%%
 
-delete_object(Objects, #st{shapes=Shs0}=St) ->
-    Shs = foldl(fun(Id, Shs) ->
-			gb_trees:delete(Id, Shs)
-		end, Shs0, Objects),
-    wings_sel:valid_sel(St#st{shapes=Shs}).
+delete_object(Objects, St) ->
+    foldl(fun wings_obj:delete/2, St, Objects).
 
 %%%
 %%% The Flip command
@@ -682,23 +679,28 @@ cos_degrees(Angle) ->
 %%%
 
 %% used by wings_shape - Rename option - Selected
-rename_selected(Mask,St) ->
-    {_,Names,Wes} = wings_sel:fold(fun(_, We, {Idx,NAcc,WAcc}) ->
-					   Name0=get_masked_name(Mask,Idx),
-					   {Idx+1,[Name0|NAcc],[We|WAcc]}
-				   end, {1,[],[]}, St),
-    rename_1(Names, Wes, St).
+rename_selected(Mask, St) ->
+    Objs = wings_sel:fold_obj(fun(Obj, A) -> [Obj|A] end, [], St),
+    F = fun(_, I) ->
+                Name = get_masked_name(Mask, I),
+                {Name,I+1}
+        end,
+    {Names,_} = mapfoldl(F, 1, Objs),
+    rename_1(Names, Objs, St).
+
 %% used by wings_shape - Rename option - Filtered
-rename_filtered(Filter,Mask,#st{shapes=Shs}=St) ->
-    {_,Names,Wes}=foldl(fun({_,#we{name=Name}=We},{Idx,NAcc,WAcc}=Acc) ->
-				case wings_util:is_name_masked(Name,Filter) of
-				    true ->
-					Name0=get_masked_name(Mask,Idx),
-					{Idx+1,[Name0|NAcc],[We|WAcc]};
-				    false -> Acc
-				end
-			end,{1,[],[]},gb_trees:to_list(Shs)),
-    rename_1(Names, Wes, St).
+rename_filtered(Filter, Mask, St) ->
+    F = fun(#{name:=Name0}=Obj, {I,NameAcc,ObjAcc}=Acc) ->
+                case wings_util:is_name_masked(Name0, Filter) of
+                    true ->
+                        Name = get_masked_name(Mask, I),
+                        {I+1,[Name|NameAcc],[Obj|ObjAcc]};
+                    false ->
+                        Acc
+                end
+        end,
+    {_,Names,Objs} = wings_obj:fold(F, {1,[],[]}, St),
+    rename_1(Names, Objs, St).
 
 get_masked_name(Mask,SeqNum) ->
     Idx=string:chr(Mask,$%),
@@ -724,47 +726,48 @@ get_masked_name(Mask,SeqNum) ->
 	    Prefix++integer_to_list(SeqNum0)++Suffix
     end.
 
-rename_prefix(St0) ->
-    Wes = wings_sel:fold(fun(_, We, A) -> [We|A] end, [], St0),
+rename_prefix(St) ->
     Q = [{hframe,[{text,"Enter Prefix", []}]}],
-    wings_dialog:dialog(?__(1,"Prefix Selected Objects"), Q,
-			fun([Prefix]) ->
-				foldl(fun(#we{id=Id,name=Name}=We, #st{shapes=Shs0}=St) ->
-					      NewName = Prefix++Name,
-					      Shs = gb_trees:update(Id, We#we{name=NewName}, Shs0),
-					      St#st{shapes=Shs}
-				      end, St0, Wes)
-			end).
+    DF = fun([Prefix]) ->
+                 MF = fun(#{name:=Name0}=Obj) ->
+                              Name = Prefix ++ Name0,
+                              Obj#{name:=Name}
+                      end,
+                 wings_sel:map_obj(MF, St)
+         end,
+    wings_dialog:dialog(?__(1,"Prefix Selected Objects"), Q, DF).
 
 rename(St) ->
-    Wes = wings_sel:fold(fun(_, We, A) -> [We|A] end, [], St),
-    rename_1(Wes, St).
+    F = fun(Obj, A) -> [Obj|A] end,
+    Objs = wings_sel:fold_obj(F, [], St),
+    rename_1(Objs, St).
 
-rename(Objects, #st{shapes=Shs}=St) ->
-    Wes = foldl(fun(Id, A) -> [gb_trees:get(Id, Shs)|A] end, [], Objects),
-    rename_1(Wes, St).
+rename(Ids, St) ->
+    Objs = [wings_obj:get(Id, St) || Id <- Ids],
+    rename_1(Objs, St).
 
-rename_1(Wes, St) ->
-    Qs = rename_qs(Wes),
+rename_1(Objs, St) ->
+    Qs = rename_qs(Objs),
     wings_dialog:dialog(?__(1,"Rename"), Qs,
-			fun([[]]) -> ignore;
+			fun([[]]) ->
+                                ignore;
 			   (NewNames) ->
-				rename_1(NewNames, Wes, St)
+				rename_1(NewNames, Objs, St)
 			end).
 
-rename_1(Names, Wes, #st{shapes=Shs}=St) ->
-    rename_2(Names, Wes, Shs, St).
+rename_1(Names, Objs, St) ->
+    rename_2(Names, Objs, St).
 
-rename_2([[]|Ns], [#we{}|Wes], Shs0, St) ->
-    rename_2(Ns, Wes, Shs0, St);
-rename_2([N|Ns], [#we{id=Id}=We|Wes], Shs0, St) ->
-    Shs = gb_trees:update(Id, We#we{name=N}, Shs0),
-    rename_2(Ns, Wes, Shs, St);
-rename_2([], [], Shs, St) -> St#st{shapes=Shs}.
+rename_2([""|Ns], [#{}|Objs], St) ->
+    rename_2(Ns, Objs, St);
+rename_2([N|Ns], [Obj|Objs], St0) ->
+    St = wings_obj:put(Obj#{name:=N}, St0),
+    rename_2(Ns, Objs, St);
+rename_2([], [], St) -> St.
 
-rename_qs(Wes) ->
-    OldNames = [{label,Name} || #we{name=Name} <- Wes],
-    TextFields = [{text,Name,[]} || #we{name=Name} <- Wes],
+rename_qs(Objs) ->
+    OldNames = [{label,Name} || #{name:=Name} <- Objs],
+    TextFields = [{text,Name,[]} || #{name:=Name} <- Objs],
     [{hframe,
       [{vframe,OldNames},
        {vframe,TextFields}]}].

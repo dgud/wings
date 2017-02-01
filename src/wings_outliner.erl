@@ -24,7 +24,7 @@
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
 -include("e3d_image.hrl").
--import(lists, [keydelete/3]).
+-import(lists, [keydelete/3,reverse/1]).
 
 -dialyzer({nowarn_function, fake_enter_window/2}).
 
@@ -233,13 +233,14 @@ rename(Id, File) ->
     Name = filename:basename(File),
     wings_image:rename(Id, Name).
 
-rename_obj(Id, NewName, #st{shapes=Shs}=St) ->
-    case gb_trees:get(Id, Shs) of
-	#we{name=NewName} -> ignore;
-	We0 ->
-	    We = We0#we{name=NewName},
-	    Shapes = gb_trees:update(Id, We, Shs),
-	    wings_wm:send(geom, {new_state, St#st{shapes=Shapes}})
+rename_obj(Id, NewName, St0) ->
+    case wings_obj:get(Id, St0) of
+        #{name:=NewName} ->
+            ignore;
+        Obj0 ->
+            Obj = Obj0#{name:=NewName},
+            St = wings_obj:put(Obj, St0),
+	    wings_wm:send(geom, {new_state,St})
     end.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -277,15 +278,16 @@ forward_event(Ev, Window, _) ->
     wx_object:cast(Window, Ev),
     keep.
 
-get_state(#st{mat=Mat,shapes=Shs0}) ->
-    Lights = [light_info(We) || We <- gb_trees:values(Shs0),
-				?IS_ANY_LIGHT(We)],
+get_state(#st{mat=Mat}=St) ->
+    F = fun(#{light:=_,id:=Id,name:=Name}, A) ->
+                [#{type=>light,id=>Id,name=>Name}|A];
+           (#{}, A) ->
+                A
+        end,
+    Lights = reverse(wings_obj:fold(F, [], St)),
     Materials = [mat_info(M) || M <- gb_trees:to_list(Mat)],
     Images = [image_info(Im) || Im <- wings_image:images()],
     Lights ++ Materials ++ Images.
-
-light_info(#we{id=Id,name=Name}) ->
-    #{type=>light,id=>Id,name=>Name}.
 
 mat_info({Name,Mp}) ->
     OpenGL = proplists:get_value(opengl, Mp),

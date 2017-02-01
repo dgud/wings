@@ -297,7 +297,7 @@ import_vsn2_dlg(Shapes0, Materials0, Props5, Dir,
                        true -> St2
                     end,
                 St = wings_sel:valid_sel(merge_sel(SelOpt,Mode0,Sel0,St1)),
-                wings_shape:recreate_folder_system(St#st{saved=false})
+                wings_obj:recreate_folder_system(St#st{saved=false})
         end,
     wings_dialog:dialog("Merge", Qs, ?SLOW(Fun)),
     St0.
