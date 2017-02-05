@@ -282,12 +282,10 @@ try_args(F, [A|As], Num) ->
     try_args(F, As, Num+1);
 try_args(_, _, _) -> ok.
 
-try_arg(F, #st{shapes=Shapes}, N) ->
+try_arg(F, #st{}=St, N) ->
     arg(F, N),
-    foreach(fun({Id,Sh}) ->
-		    io:format(F, "Shape ~p\n", [Id]),
-		    dump_shape(F, Sh)
-	    end, gb_trees:to_list(Shapes));
+    Dump = fun(Obj, _) -> dump_object(F, Obj, St) end,
+    _ = wings_obj:fold(Dump, [], St);
 try_arg(F, #we{}=We, N) ->
     arg(F, N),
     dump_we(F, We);
@@ -305,14 +303,13 @@ try_arg(F, Tab, N) ->
 arg(F, N) ->
     io:format(F, "Argument #~p:\n", [N]).
 
-dump_shape(F, #we{}=We) ->
-    dump_we(F, We).
-
-dump_we(F, #we{name=Name,id=Id,es=Etab,fs=Ftab,
-	       next_id=Next}) ->
+dump_object(F, #{id:=Id,name:=Name}, St) ->
     io:put_chars(F, "\n"),
     io:format(F, "OBJECT ~p: ~p\n", [Id,Name]),
     io:format(F, "=======================\n", []),
+    wings_obj:with_we(fun(We) -> dump_we(F, We) end, Id, St).
+
+dump_we(F, #we{es=Etab,fs=Ftab,next_id=Next}) ->
     io:format(F, "   next_id=~p\n", [Next]),
     dump_faces(F, gb_trees:to_list(Ftab)),
     dump_edges(F, array:sparse_to_orddict(Etab)).
