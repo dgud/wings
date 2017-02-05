@@ -273,7 +273,7 @@ open_log_file(Name) ->
     io:format(F, "Dump written ~p-~p-~p_~p-~p\n", [Y,Mo,D,H,Mi]),
     F.
 
-analyse(F, [{_Mod,_Fun,Args}|_]) when is_list(Args) ->
+analyse(F, [{_Mod,_Fun,Args,_Loc}|_]) when is_list(Args) ->
     try_args(F, Args, 1);
 analyse(_, _) -> ok.
 
