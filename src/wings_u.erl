@@ -15,8 +15,9 @@
 -export([error_msg/1,error_msg/2,message/1,debug/1,
 	 get_matrices/2, geom_windows/0,
 	 yes_no/2,yes_no/3,yes_no_cancel/3,
-	 export_we/2,win_crash/1,win_crash/2,crash_log/2,crash_log/3,
-	 pretty_filename/1,relative_path_name/2,caption/1,win32_special_folder/2]).
+	 win_crash/1,win_crash/2,crash_log/2,crash_log/3,
+	 pretty_filename/1,relative_path_name/2,caption/1,
+         win32_special_folder/2]).
 
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
@@ -69,17 +70,6 @@ yes_no_cancel(Question, Yes, No) ->
 	  [{buttons, [yes, no, cancel]}, {key, result}, {position, mouse}]
 	 },
     wings_dialog:dialog("", Qs, fun([{result,Res}]) -> yes_no_cancel(Res, Yes, No, ignore) end).
-
-%% export_we(Filename, State)
-%%  Dump the winged-edge structure in a textual format.
-export_we(Name, #st{shapes=Shs}) ->
-    case file:open(Name, [write,delayed_write]) of
-	{ok,F} ->
-	    foreach(fun(We) -> dump_we(F, We) end, gb_trees:values(Shs)),
-	    file:close(F);
-	{error,_}=Error ->
-	    Error
-    end.
 
 win_crash(Reason) ->
     win_crash(wings_wm:this(), Reason).
