@@ -15,7 +15,7 @@
 
 -export([clear/1,reset/1,set/2,set/3,
 	 conditional_reset/1,
-         selected_ids/1,
+         selected_ids/1,unselected_ids/1,
 	 map/2,map_obj/2,
          map_update_sel/2,map_update_sel/3,
 	 update_sel/2,update_sel/3,update_sel_all/2,
@@ -99,6 +99,17 @@ set(Mode, Sel, St) ->
 
 selected_ids(#st{sel=Sel}) ->
     [Id || {Id,_} <- Sel].
+
+%%
+%% Return the Ids for all selected objects.
+%%
+
+-spec unselected_ids(#st{}) -> [non_neg_integer()].
+
+unselected_ids(#st{sel=Sel,shapes=Shs}) ->
+    SelIds = [Id || {Id,_} <- Sel],
+    AllIds = gb_trees:keys(Shs),
+    ordsets:subtract(AllIds, SelIds).
 
 %%%
 %%% Map over the selection, modifying the selected #we{}
