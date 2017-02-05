@@ -45,8 +45,6 @@
 	]).
 
 %% Commands from other processes
--export([get_state/0]).
--export([handle_external/2]).
 -export([format_error/1]).
 
 -include("wings.hrl").
@@ -580,24 +578,6 @@ quadrangulate(Faces, We) ->
 
 popup_console() ->
     wings_console:popup_window().
-
-%%% 
-%%% External commands
-%%%
-
-get_state() ->
-    wings ! {external, {get_state, self()}},
-    receive {state,St} -> St end.
-
-handle_external({get_state,Pid},#st{shapes=Sh,file=File,
-				    selmode=SelMode,sel=Sel,
-				    mat=Mat,pal=Pal}) ->
-    %% Copy only relevant information
-    Pid ! {state,#st{shapes=Sh,file=File,
-		     selmode=SelMode,sel=Sel,
-		     mat=Mat,pal=Pal}};
-handle_external(_, _St) ->
-    ignore.
 
 %% Return version string.
 version() ->

@@ -471,12 +471,8 @@ handle_event_3({external,not_possible_to_save_prefs}, _St) ->
     wings_help:not_possible_to_save_prefs();
 handle_event_3({external, win32_start_maximized}, _St) ->
     keep;
-handle_event_3({external, Fun}, St)
-  when is_function(Fun) ->
+handle_event_3({external, Fun}, St) when is_function(Fun) ->
     Fun(St);
-handle_event_3({external,Op}, St) ->
-    wpa:handle_external(Op,St),
-    keep;
 handle_event_3(#wx{event=#wxDropFiles{files=Fs0}}, St0) ->
     Send = fun(Op) -> wings ! {action, {file, Op}} end,
     ImgFms = wings_image:image_formats(),
