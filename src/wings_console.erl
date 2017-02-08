@@ -14,8 +14,11 @@
 -module(wings_console).
 
 %% I/O server and console server
--export([start/0,start/1,get_pid/0,stop/0,stop/1,
+-export([start_link/1,init/2,get_pid/0,stop/0,stop/1,
 	 setopts/1,getopts/1]).
+
+%% Also duplicates as event_handler for process crashes
+-export([init/1, handle_event/2]).
 
 %% Wings window
 -export([window/0,window/4,popup_window/0]).
@@ -35,6 +38,75 @@
 %% Internal exports
 -export([do_code_change/3]).
 
+%% Slim Event handler for error logging and forwarding events to wings process.
+init(_Type) ->
+    {ok, #{state=>normal}}.
+
+handle_event({info_report,_,{_,progress,_}}, St) ->
+    {ok, St};
+handle_event(_, #{state:=shutdown}=St) ->
+    {ok, St};
+handle_event({error_report,_GL,{_,supervisor_report,Report}}, #{state:=normal}=St) ->
+    Reason = proplists:get_value(reason, Report),
+    Context = proplists:get_value(errorContext, Report),
+    if Reason =:= shutdown  -> {ok, #{state=>shutdown}};
+       Reason =:= normal    -> {ok, #{state=>shutdown}};
+       Context =:= shutdown -> {ok, #{state=>shutdown}};
+       Context =:= child_terminated -> {ok, #{state=>shutdown}};
+       true ->
+            Off = proplists:get_value(offender, Report),
+            case proplists:get_value(restart_type, Off) of
+                permanent ->
+                    log_error(Off, Reason, St);
+                _Other ->
+                    Pid = proplists:get_value(pid, Off),
+                    wings ! {'EXIT', Pid, Reason},
+                    log_error(Off, Reason, St)
+            end
+    end;
+handle_event({error_report,_GL,{_Pid,crash_report,[Report,[]]}}, #{state:=normal}=St) ->
+    Error = proplists:get_value(error_info, Report),
+    log_error(Report, Error, St);
+handle_event({error_report,_GL,{Pid,crash_report,Report}}, #{state:=normal}=St) ->
+    log_error(Pid, Report, St),
+    {ok, St#{error=>Pid}};
+handle_event({_Type, _GL, _Msg}, State) ->
+    %% io:format("~p:~p:~p ~p ~p~n", [?MODULE, ?LINE, State, _Msg, Type]),
+    {ok, State}.
+
+log_error(_Off, _, #{error:=_} = St) ->
+    %% Already wrote one crash dump
+    {ok, St};
+log_error(Off, {exit, {Reason, Stacktrace}, [_|_]}, St) ->
+    log_error(Off, {Reason, Stacktrace}, St);
+log_error(Off, {Reason, [_|_]=Stacktrace}, St) ->
+    {Pid, Who} = who(Off),
+    LogName = wings_u:crash_log(Who, Reason, Stacktrace),
+    catch wings_wm:psend(geom, {crash_in_other_window,LogName}),
+    {ok, St#{error=>Pid}};
+log_error(Off, Reason, St) ->
+    {Pid, Who} = who(Off),
+    LogName = wings_u:crash_log(Who, Reason, []),
+    catch wings_wm:psend(geom, {crash_in_other_window,LogName}),
+    {ok, St#{error=>Pid}}.
+
+who(Pid) when is_pid(Pid) ->
+    {Pid, Pid};
+who([_|_]=PL) ->
+    Pid = proplists:get_value(pid, PL),
+    Id  = proplists:get_value(id, PL, undefined),
+    Name = proplists:get_value(registered_name, PL, []),
+    {Mod,_,_} = proplists:get_value(initial_call, PL, undefined),
+    Info = case {Id, Name, Mod} of
+               {undefined, [], undefined} -> Pid;
+               {undefined, [], Mod} -> [Mod, Pid];
+               {undefined, Name, undefined} -> [Name, Pid];
+               {undefined, Name, Mod} -> [Name, Mod, Pid];
+               {Id, [], Mod} -> [Id, Mod, Pid];
+               {Id, Name, Mod} -> [Id, Name, Mod, Pid]
+           end,
+    {Pid, Info}.
+
 %%% I/O server state record ---------------------------------------------------
 
 -record(state, {gmon,			% Monitor ref of original group leader
@@ -51,39 +123,22 @@
 
 %%% API -----------------------------------------------------------------------
 
-start() ->
-    start(group_leader()).
+start_link(Env) ->
+    GroupLeader = group_leader(),
+    proc_lib:start_link(?MODULE, init, [Env, GroupLeader]).
 
-start(GroupLeader) when is_pid(GroupLeader) ->
-    case whereis(?SERVER_NAME) of
-	Server when is_pid(Server) ->
-	    exit(already_started);
-	undefined ->
-	    Starter = self(),
-	    Server =
-		spawn_link(
-		  fun() ->
-			  process_flag(trap_exit, true),
-			  Self = self(),
-			  case catch register(?SERVER_NAME, Self) of
-			      true ->
-				  Starter ! {wings_console_started,Self},
-				  Gmon = erlang:monitor(process, GroupLeader),
-				  server_loop(
-				    #state{gmon=Gmon,
-					   group_leader=GroupLeader});
-			      _ ->
-				  exit(already_started)
-			  end
-		  end),
-	    Mref = erlang:monitor(process, Server),
-	    receive
-		{wings_console_started,Server} ->
-		    console_demonitor(Mref),
-		    Server;
-		{'DOWN',Mref,_,_,Reason} -> 
-		    exit(Reason)
-	    end
+init(Env, GroupLeader) ->
+    process_flag(trap_exit, true),
+    error_logger:add_report_handler(?MODULE),
+    case catch register(?SERVER_NAME, self()) of
+        true ->
+            wx:set_env(Env),
+            Gmon = erlang:monitor(process, GroupLeader),
+            group_leader(self(), whereis(wings_sup)),
+            proc_lib:init_ack({ok, self()}),
+            server_loop(#state{gmon=Gmon, group_leader=GroupLeader});
+        _ ->
+            exit(already_started)
     end.
 
 get_pid() ->
@@ -94,7 +149,7 @@ get_pid() ->
 	    exit(not_started)
     end.
 
-stop() -> req({stop,normal}).
+stop() -> req({stop,shutdown}).
 stop(Reason) -> req({stop,Reason}).
 
 setopts(Opts) when is_list(Opts) -> req({setopts,Opts}).
@@ -206,7 +261,7 @@ server_loop(#state{gmon=Gmon, win=Win}=State) ->
 	    server_loop(NewState);
 	{'EXIT', _, _} ->
 	    %% Wings main process down die
-	    exit(normal);
+	    exit(shutdown);
 	Unknown ->
 	    io:format(?MODULE_STRING++?STR(server_loop,1,":~w Received unknown: ~p~n"),
 		      [?LINE,Unknown]),

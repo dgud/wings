@@ -20,6 +20,7 @@
 /dialyzer_warnings.raw
 
 # /ebin/
+/ebin/*.app
 /ebin/*.bundle
 /ebin/*.lang
 

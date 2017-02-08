@@ -100,7 +100,7 @@ init(Frame) ->
     put(wm_windows, gb_trees:empty()),
     new(top_frame, Frame, {push, fun wings_frame:forward_event/1}),
     set_dd(top_frame, geom_display_lists), %% Selection mode updates
-    StatusBar = wings_status:start(Frame),
+    StatusBar = wings_status:get_statusbar(),
     new(message, StatusBar, {push, fun message_event/1}),
 
     case wings_pref:get_value(win32_start_maximized) of
@@ -747,19 +747,13 @@ dispatch_event(#wx{obj=Obj}=Event) ->
     end;
 dispatch_event({'EXIT', _Pid, normal}) ->
     true;
-dispatch_event({'EXIT', Pid, {Reason, StackTrace}}) ->
+dispatch_event({'EXIT', Pid, _Reason0}) ->
     Found = [Win || #win{name=Win, obj=Obj} <- gb_trees:values(get(wm_windows)),
 		    (catch wx_object:get_pid(Obj)) =:= Pid],
-    Name = case Found of
-	       [WName] -> WName;
-	       _ ->
-		   case process_info(Pid, registered_name) of
-		       undefined -> Pid;
-		       {registered_name,Reg} -> Reg
-		   end
-	   end,
-    LogName = wings_u:crash_log(Name, Reason, StackTrace),
-    send(geom, {crash_in_other_window,LogName}),
+    case Found of
+        [WName] -> (catch delete(WName));
+        _ -> ignore
+    end,
     true;
 dispatch_event(Event) ->
     case find_active() of
@@ -962,7 +956,9 @@ handle_event(State, Event, Stk) ->
 	    wings_u:message(Error),
 	    Stk;
 	exit:normal ->
-	    exit(normal);
+	    exit(shutdown);
+	exit:shutdown ->
+	    exit(shutdown);
 	exit:{crash_logged, _}=Reason ->
 	    exit(Reason);
 	exit:Exit ->

@@ -18,7 +18,7 @@
 	 done/0,done/1,done_stat/0,done_stat/1,
 	 cancel/0]).
 
--export([start_link/1, init/1,
+-export([start_link/0, init/1,
 	 handle_info/2, terminate/2, code_change/3, handle_call/3,
 	 handle_event/2, handle_cast/2]).
 
@@ -80,8 +80,9 @@ cancel() ->
 	  pb
 	}).
 
-start_link(Frame) ->
-    wx_object:start_link({local, ?PB}, ?MODULE, [Frame], []).
+start_link() ->
+    PB = wx_object:start_link({local,?PB}, ?MODULE, [wings_frame:get_top_frame()], []),
+    {ok, wx_object:get_pid(PB)}.
 
 init([Frame]) ->
     Dummy = wxPanel:new(Frame),

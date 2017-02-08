@@ -12,7 +12,7 @@
 %%
 
 -module(wings).
--export([start/0,start_halt/0,start_halt/1]).
+-export([start/0,start_link/1, init/1]).
 -export([redraw/1,redraw/2,init_opengl/1,command/2]).
 -export([mode_restriction/1,clear_mode_restriction/0,get_mode_restriction/0]).
 -export([ask/3]).
@@ -32,76 +32,28 @@
 -import(lists, [foldl/3,sort/1]).
 
 start() ->
-    do_spawn(none).
+    application:start(wings).
 
-start_halt() ->
-    spawn_halt(none).
+start_link(Env) ->
+    do_spawn(Env, [link]).
 
-start_halt([File|_]) ->
-    spawn_halt(File).
-
-spawn_halt(File) ->
-    spawn(fun() ->
-		  process_flag(trap_exit, true),
-		  Wings = do_spawn(File, [link]),
-		  halt_loop(Wings)
-	  end).
-
-halt_loop(Wings) ->
-    %% Handle normal and abnormal termination of the Wings process.
-    %% None of the strings are translated because when this code
-    %% executes, the ETS table that holds the translated strings
-    %% has been deleted.
-    receive
-	{'EXIT',Wings,normal} ->
-	    %% Normal termination.
-	    init:stop();
-	{'EXIT',Wings,{window_crash,Name,Reason,StkTrace}} ->
-	    %% Crash in a window with an error reason and stack trace.
-	    Log = wings_u:crash_log(Name, Reason, StkTrace),
-	    io:format("\n\n"),
-	    %% Intentionally not translated.
-	    io:format("Fatal internal error - log written to ~s\n",
-		      [Log]),
-	    ok;
-	{'EXIT',Wings,{crash_logged, Log}} ->
-	    io:format("Fatal internal error - log written to ~s\n",
-		      [Log]),
-	    ok;
-	{'EXIT',Wings,Reason} ->
-	    %% Some other crash.
-	    Log = wings_u:crash_log("<Unknown Window Name>", Reason, []),
-	    io:format("\n\n"),
-	    %% Intentionally not translated.
-	    io:format("Fatal internal error - log written to ~s\n",
-		      [Log]),
-	    ok;
-	_Other ->
-	    %% We are not supposed to receive any other messages,
-	    %% but it is good practice to always throw away
-	    %% unexpected messages.
-	    halt_loop(Wings)
-    end.
-
-do_spawn(File) ->
-    do_spawn(File, []).
-
-do_spawn(File, Flags0) ->
+do_spawn(Env, Flags0) ->
     %% Set a minimal heap size to avoiding garbage-collecting
     %% all the time. Don't set it too high to avoid keeping binaries
     %% too long.
-    Fun = fun() -> init(File) end,
     Flags1 = case erlang:system_info(version) >= "8.1" of
                  true -> [{message_queue_data, off_heap}|Flags0];
                  false -> Flags0
              end,
     Flags = [{fullsweep_after,16384},{min_heap_size,32*1204}|Flags1],
-    spawn_opt(erlang, apply, [Fun,[]], Flags).
+    {ok, proc_lib:start_link(?MODULE, init, [Env], infinity, Flags)}.
 
-init(File) ->
+init(Env) ->
     process_flag(trap_exit, true),
     register(wings, self()),
     erlang:system_flag(backtrace_depth, 25),
+    wx:set_env(Env),
+
     wings_pref:init(),
     wings_hotkey:set_default(),
     wings_pref:load(),
@@ -109,23 +61,28 @@ init(File) ->
     wings_plugin:init(),
     wings_sel_cmd:init(),
     wings_file:init(),
+    macosx_workaround(),
+    %% Ack that we are done, need to create top window now
+    proc_lib:init_ack(self()),
+    Frame = receive {frame_created, Window} -> Window end,
+    GeomGL = wings_gl:init(Frame),
+    wx_object:get_pid(Frame) ! opengl_initialized,
+    %% Wait for other mandatory processes to become initialized
+    receive supervisor_initialization_done -> ok end,
+    init_part2(Frame, GeomGL).
 
+init_part2(Frame, GeomGL) ->
     St0 = new_st(),
     St1 = wings_sel:reset(St0),
     St2 = wings_undo:init(St1),
     St = wings_obj:create_folder_system(St2),
 
-    group_leader(wings_console:start(), self()),
-
-    Frame = wings_frame:start(),
-    GeomGL = wings_gl:init(Frame),
     %% Needs to be initialized before make_geom_window
     %% and before the others that use gl functions
     wings_text:init(),
     wings_wm:init(Frame),
     check_requirements(),
 
-    wings_image:init(wings_io:get_process_option()),
     wings_color:init(),
     wings_io:init(),
 
@@ -135,20 +92,19 @@ init(File) ->
     wings_view:init(),
     wings_u:caption(St),
     wings_file:init_autosave(),
-    wings_pb:start_link(Frame),
     wings_dialog:init(),
     wings_job:init(),
     wings_develop:init(),
     wings_tweak:init(),
 
-    open_file(File),
+    open_file(),
     make_geom_window(GeomGL, St),
     restore_windows(St),
     case catch wings_wm:enter_event_loop() of
-	{'EXIT',normal} ->
-	    wings_pref:finish(),
-	    wings_io:quit();
-	{'EXIT',Reason} ->
+	{'EXIT',shutdown} ->
+	    wings_io:quit(),
+            exit(shutdown);
+        {'EXIT',Reason} ->
 	    io:format("~P\n", [Reason,20]),
 	    wings_io:quit(),
 	    exit(Reason)
@@ -168,6 +124,15 @@ make_geom_window(GeomGL, St) ->
 check_requirements() ->
     minor_gl_version(),
     have_fbo().
+
+macosx_workaround() ->
+    try 1.0/zero()
+    catch
+	error:_ -> ok
+    end.
+
+zero() ->
+    0.0.
 
 minor_gl_version() ->
     Major = 2,
@@ -201,7 +166,7 @@ fatal(Str) ->
     Dialog = wxMessageDialog:new(Parent, Str, [{caption,"Fatal Error"}]),
     wxMessageDialog:showModal(Dialog),
     wings_io:quit(),
-    exit(normal).
+    exit(fatal).
 
 new_st() ->
     Empty = gb_trees:empty(),
@@ -243,16 +208,25 @@ free_viewer_num(N) ->
 	true -> free_viewer_num(N+1)
     end.
 
-open_file(File0) ->
+open_file() ->
     USFile = wings_file:autosave_filename(wings_file:unsaved_filename()),
     Recovered = filelib:is_file(USFile),
     wings_pref:set_value(file_recovered, Recovered),
+
+    File1 = case application:get_env(wings, args) of
+                undefined -> none;
+                {ok, File0} ->
+                    case filelib:is_regular(File0) of
+                        true -> File0;
+                        false -> none
+                    end
+            end,
     %% On the Mac, if Wings was started by clicking on a .wings file,
     Msgs0 = wxe_master:fetch_msgs(),
     Msgs = [F || F <- Msgs0, filelib:is_regular(F)],
     File = case Msgs of
 	       [F|_] -> F;
-	       [] -> File0
+	       [] -> File1
 	   end,
     if Recovered ->
 	    wings_u:message(?__(1,"Wings3D has recovered an unsaved file.")),
@@ -446,6 +420,11 @@ handle_event_3(quit, St) ->
     case wings_wm:this() of
 	geom -> do_command({file,quit}, none, St);
 	_ -> keep
+    end;
+handle_event_3({'EXIT',Pid,shutdown}, _St) ->
+    case whereis(wings_sup) of
+        Pid -> exit(normal);
+        _ -> keep
     end;
 handle_event_3({new_state,St}, St0) ->
     info_line(),
@@ -676,7 +655,8 @@ command_response(keep, _, _) ->
     keep;
 command_response(quit, _, _) ->
     save_windows(),
-    exit(normal).
+    wings_pref:finish(),
+    exit(shutdown).
 
 remember_command({C,_}=Cmd, St) when C =:= vertex; C =:= edge;
                      C =:= face; C =:= body ->

@@ -45,7 +45,7 @@ new(WinName, Image, Opts) ->
     Title = lists:flatten(io_lib:format(?__(1,"Image: ~ts [~wx~w]"),[Name,W0,H0])),
     Size = {size,{min(800,max(200,W0+100)), min(600,max(150,H0+100))}},
     {Frame,Ps} = wings_frame:make_win(Title, [Size]),
-    Window = wx_object:start_link(?MODULE, [Frame, WinName, Image, Opts], []),
+    Window = wings_sup:window(undefined, ?MODULE, [Frame, WinName, Image, Opts]),
     wings_wm:toplevel(WinName, Window, Ps, {push, fun(Ev) -> forward_ev(Ev, WinName, Window) end}),
     wxWindow:refresh(Window),
     keep.

@@ -12,12 +12,13 @@
 -module(wings_frame).
 
 -export([top_menus/0, make_win/2, register_win/3, close/1, set_focus/1,set_title/2,
+         get_top_frame/0,
          show_toolbar/1,
 	 export_layout/0, import_layout/2,
 	 get_overlay/0, overlay_draw/3, overlay_hide/1,
 	 get_icon_images/0, get_colors/0, update_theme/0]).
 
--export([start/0, forward_event/1]).
+-export([start_link/0, forward_event/1]).
 
 %% Internal
 -behaviour(wx_object).
@@ -43,12 +44,10 @@
 
 %% API  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-start() ->
-    wx:new(),
-    macosx_workaround(),
+start_link() ->
     Frame = wx_object:start_link({local, ?MODULE}, ?MODULE, [args], []),
     ?SET(top_frame, Frame),
-    Frame.
+    {ok, wx_object:get_pid(Frame)}.
 
 top_menus() ->
     Tail0 = [{?__(7,"Help"),help,wings_help:menu()}],
@@ -141,6 +140,9 @@ get_overlay() ->
 
 show_toolbar(Show) ->
     wx_object:call(?MODULE, {show_toolbar, Show}).
+
+get_top_frame() ->
+    wx_object:call(?MODULE, get_top_frame).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -280,7 +282,8 @@ init(_Opts) ->
 	process_flag(trap_exit, true),
 	wings_pref:set_default(window_size, {780,570}),
 	TopSize = wings_pref:get_value(window_size),
-	Frame = wxFrame:new(wx:null(), -1, "Wings 3D", [{size, TopSize}]),
+	Frame0 = wxFrame:new(wx:null(), -1, "Wings 3D", [{size, TopSize}]),
+        Frame = wx_object:set_pid(Frame0, self()),
 	IconImgs = make_icons(),
 	set_icon(Frame),
 	Sizer = wxBoxSizer:new(?wxVERTICAL),
@@ -306,6 +309,9 @@ init(_Opts) ->
 	Wins = #{frame=>Frame, ch=>Top#split{w1=Canvas}, szr=>Sizer,
 		 loose=>#{}, action=>undefined, op=>undefined},
 	Overlay = make_overlay(Frame),
+        %% Init OpenGL from wings process
+        wings ! {frame_created, Frame},
+        receive opengl_initialized -> ok end,
 	{Frame, #state{toolbar=Toolbar, images=IconImgs, windows=Wins, overlay=Overlay}}
     catch _:Reason ->
 	    io:format("CRASH: ~p ~p ~p~n",[?MODULE, Reason, erlang:get_stacktrace()])
@@ -455,6 +461,9 @@ handle_call({show_toolbar, Bool}, _From, #state{windows=#{frame:=Frame}}=State) 
     wxWindow:refresh(Frame),
     {reply, ok, State};
 
+handle_call(get_top_frame, _, #state{windows=#{frame:=Frame}}=State) ->
+    {reply, Frame, State};
+
 handle_call(Req, _From, State) ->
     io:format("~p:~p Got unexpected call ~p~n", [?MODULE,?LINE, Req]),
     {reply, ok, State}.
@@ -541,7 +550,7 @@ code_change(_From, _To, State) ->
 terminate(_Reason, #state{windows=#{frame:=Frame}}) ->
     %% io:format("~p: terminate: ~p~n",[?MODULE, _Reason]),
     catch wxFrame:destroy(Frame),
-    normal.
+    shutdown.
 
 terminate_frame(_Ev, CB) ->
     %% always veto if we can, solves hanging on Mac
@@ -1220,15 +1229,6 @@ set_icon(Frame) ->
     Ebin = filename:dirname(code:which(?MODULE)),
     IconFile = filename:join(Ebin, "wings_icon_379x379"),
     wings_io:set_icon(Frame, IconFile).
-
-macosx_workaround() ->
-    try 1.0/zero()
-    catch
-	error:_ -> ok
-    end.
-
-zero() ->
-    0.0.
 
 %% Returns a list of wxImages
 make_icons() ->

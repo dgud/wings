@@ -51,7 +51,7 @@ window(St) ->
 window({_,Client}=Name, Pos, Size, Ps0, St) ->
     Shapes = get_shape_state(Name, St),
     {Frame,Ps} = wings_frame:make_win(title(Client), [{size, Size}, {pos, Pos}|Ps0]),
-    Window = wx_object:start_link(?MODULE, [Frame, Size, Ps, Name, Shapes], []),
+    Window = wings_sup:window(undefined, ?MODULE, [Frame, Size, Ps, Name, Shapes]),
     Fs = [{display_data, geom_display_lists}|Ps],
     wings_wm:toplevel(Name, Window, Fs, {push,change_state(Window, St)}),
     keep.
