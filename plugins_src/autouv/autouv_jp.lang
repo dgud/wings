@@ -550,28 +550,8 @@
     {6,"垂直方向に限界まで拡大します (Y軸方向)"}
    ]}
  ]}.
-{wpc_snap,
+{wpc_snap_win,
  [
-  {find_a_id,
-   [
-    % "Visible object required."
-    {1,"見えているオブジェクトが必要です."}
-   ]},
-  {menu,
-   [
-    % "Snap Image"
-    {1,"スナップ投影モード"},
-    % "Start snap mode for \"snapping\" UV coordinates onto an image"
-    {2,"オブジェクトの選択部分にテクスチャを平面投影します.モード実行中はツール群が右クリックメニューに追加されます; 《手順》【1】オブジェクトの向きや画像サイズを調整【2】張り付ける面を選択【3】面選択モード「※選択領域に画像をスナップ」で確定;【4】スナップモードを終了"},
-    % "Exit Snap Mode"
-    {3,"※スナップ投影モードを終了"},
-    % "Exit snap mode"
-    {4,"スナップモードを終了します"},
-    % "Snap Image"
-    {5,"※イメージを選択領域にスナップ"},
-    % "Put background image on selected faces by assigning UV coordinates to them"
-    {6,"投影中の画像をオブジェクトの選択領域へ張り付けます。(マテリアルやUV座標は自動作成されます)."}
-   ]},
   {proportional_scale,
    [
     % "...to Current X"
@@ -587,12 +567,10 @@
     % "Reset image to its actual size"
     {6,"イメージを画像の元のサイズに戻します"}
    ]},
-  {select_image,
+  {snap_label,
    [
-    % "No images present, import an image first."
-    {1,"使用可能なテクスチャ画像がありません. \n まず「ファイル＞イメージの読み込み」を使って\n画像を読み込んでください."},
-    % "Choose Image to snap"
-    {2,"投影イメージを選択"}
+    % "Snap Image"
+    {4,"スナップ投影モード"}
    ]},
   {snap_menu,
    [
@@ -656,5 +634,29 @@
     {34,"※回転"},
     % "Rotate the background image"
     {35,"イメージを回転させます"}
+   ]},
+  {snap_tooltip,
+   [
+    % "Choose Image to snap"
+    {1,"投影イメージを選択"},
+    % "Start snap mode for \"snapping\" UV coordinates onto an image"
+    {2,"オブジェクトの選択部分にテクスチャを平面投影します.モード実行中はツール群が右クリックメニューに追加されます; 《手順》【1】オブジェクトの向きや画像サイズを調整【2】張り付ける面を選択【3】面選択モード「※選択領域に画像をスナップ」で確定;【4】スナップモードを終了"},
+    % "Exit Snap Mode"
+    {3,"※スナップ投影モードを終了"},
+    % "Put background image on selected faces by assigning UV coordinates to them"
+    {4,"投影中の画像をオブジェクトの選択領域へ張り付けます。(マテリアルやUV座標は自動作成されます)."},
+    % "Rotate the background image"
+    {6,"イメージを回転させます"},
+    % "Move the background image"
+    {7,"イメージを移動します"},
+    % "Scale Snap Image"
+    {8,"※拡大縮小"},
+    % "Fit image to the dimensions of the viewport"
+    {9,"イメージをビューポートのサイズに合わせます."}
+   ]},
+  {title,
+   [
+    % "Snap Image"
+    {1,"スナップ投影モード"}
    ]}
  ]}.

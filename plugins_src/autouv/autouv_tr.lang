@@ -337,29 +337,11 @@
     {6,"Dikeyde (Y yönü) enbüyüt"}
    ]}
  ]}.
-{wpc_snap,
+{wpc_snap_win,
  [
-  {find_a_id,
+  {snap_label,
    [
-    {1,"Görünür nesne gerekli."}
-   ]},
-  {menu,
-   [
-    {1,"Enstantane Görüntü"},
-    {2,"UV koordinatlarını görüntüye iliştirmek için enstantane kipini başlat"},
-    {3,"Enstantane Kipinden Çık"},
-    {4,"Enstantane kipinden çık"},
-    {5,"Enstantane Görüntüsü"},
-    {6,"Arka plan resmini seçili yüzeylerin üstüne onlara UV koordinatları atayarak koy"}
-   ]},
-  {select_image,
-   [
-    {1,"Hiç görüntü mevcut değil, önce bir görüntü al."},
-    {2,"İliştirilecek görüntüyü seç"}
-   ]},
-  {set_materials,
-   [
-    {1,"Nesnenin köşe renkleri varken görüntüye konulamıyor"}
+    {4,"Enstantane Görüntü"}
    ]},
   {snap_menu,
    [
@@ -383,5 +365,18 @@
     {18,"Arka plan görüntüsünü taşı"},
     {19,"Enstantane Kipinden Çık"},
     {20,"Enstantane kipinden çık"}
+   ]},
+  {snap_tooltip,
+   [
+    {1,"İliştirilecek görüntüyü seç"},
+    {2,"UV koordinatlarını görüntüye iliştirmek için enstantane kipini başlat"},
+    {3,"Enstantane Kipinden Çık"},
+    {4,"Arka plan resmini seçili yüzeylerin üstüne onlara UV koordinatları atayarak koy"},
+    {7,"Arka plan görüntüsünü taşı"},
+    {8,"Enstantane Görüntüyü Ölçekle"}
+   ]},
+  {title,
+   [
+    {1,"Enstantane Görüntü"}
    ]}
  ]}.

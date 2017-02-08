@@ -30,14 +30,14 @@
 init() -> true.
 
 menu({body}, Menu) ->
-    case wpc_snap:active() of
+    case wpc_snap_win:active() of
 	true ->
 	    Menu;
 	false ->
 	    Menu ++ [separator,auv_menu()]
     end;
 menu({face}, Menu) ->
-    case wpc_snap:active() of
+    case wpc_snap_win:active() of
 	true ->
 	    Menu;
 	false ->
