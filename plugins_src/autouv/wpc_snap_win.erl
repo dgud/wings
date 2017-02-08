@@ -413,8 +413,6 @@ window(Name, Pos, Size, Ps0, St) ->
 change_state(Window, St) ->
     fun(Ev) -> forward_event(Ev, Window, St) end.
 
-forward_event(redraw, _Window, _St) -> keep;
-forward_event(init_opengl, _Window, _St) -> keep;
 forward_event({note,image_change}=Ev, Window, _St) ->
     wx_object:cast(Window, Ev),
     keep;
@@ -429,7 +427,9 @@ forward_event({apply, ReturnSt, Fun}, Window, St0) ->
 	    {replace, change_state(Window, St)};
 	false ->
 	    Fun(St0)
-    end.
+    end;
+forward_event(_, _Window, _St) ->
+    keep.
 
 get_state(?WIN_NAME) ->
     {wings_pref:get_value(snap_opacity, 0.5)}.
