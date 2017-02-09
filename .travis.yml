@@ -30,5 +30,5 @@ after_success:
   - dialyzer -n -Wno_improper_lists ebin/*.beam plugins/accel/*.beam plugins/autouv/*.beam plugins/commands/*.beam plugins/default/*.beam plugins/import_export/*.beam plugins/primitives/*.beam --statistics
 
 # Needs a compiled cl-1.2.3
-#after_script:
-#  - make unix
+after_script:
+  - make unix
