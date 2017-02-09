@@ -20,8 +20,8 @@ script:
   - make
 
 after_success:
-  - $ERL_TOP/bin/dialyzer --build_plt --apps erts kernel stdlib wx tools xmerl --statistics
-  - $ERL_TOP/bin/dialyzer -n -Wunknown ebin/*.beam plugins/accel/*.beam plugins/autouv/*.beam plugins/commands/*.beam plugins/default/*.beam plugins/import_export/*.beam plugins/primitives/*.beam --statistics
+  - dialyzer --build_plt --apps erts kernel stdlib wx tools xmerl --statistics
+  - dialyzer -n -Wunknown ebin/*.beam plugins/accel/*.beam plugins/autouv/*.beam plugins/commands/*.beam plugins/default/*.beam plugins/import_export/*.beam plugins/primitives/*.beam --statistics
 
 #after_script:
 #  - make unix
