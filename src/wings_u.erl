@@ -196,7 +196,7 @@ wings() ->
 wings_branch() ->
     %% Fool dialyzer
     case is_process_alive(self()) of
-        true -> ?wings_branch;
+        true -> {branch, ?wings_branch};
         false -> ""
     end.
 
