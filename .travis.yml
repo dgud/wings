@@ -12,6 +12,8 @@ addons:
   apt:
     packages:
     - git
+    - opencl-headers
+    - fglrx
 
 before_script:
   - set -e
@@ -20,6 +22,7 @@ before_script:
   - export MAKEFLAGS=-j6
 
 script:
+  - (cd cl && rebar compile)
   - make
 
 after_success:
