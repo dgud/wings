@@ -304,7 +304,8 @@
 	  face_uv  = none :: wings_vtx_buffer(), %UV coords
 	  face_ts  = none :: wings_vtx_buffer(), %Tangent vector
 	  face_vc  = none :: wings_vtx_buffer(), %Vertex Colors coords
-	  face_es  = none :: wings_vtx_buffer(), %Edges 2*Vertex coords
+	  face_es  = none ::
+            {0, binary()} | wings_vtx_buffer(),  %Edges 2*Vertex coords
 	  face_map = none,                       %FaceId -> {BinPos,TriCount}
 	  mat_map  = none                        %Face per Material draw info
 	 }).

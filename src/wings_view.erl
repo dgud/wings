@@ -719,8 +719,6 @@ auto_rotate_help() ->
     Message = wings_msg:join([Msg1,Msg2,P,M]),
     wings_wm:message(Message).
 
-set_auto_rotate_timer(#tim{delay=Delay}=Tim) when Delay < 16 ->
-    set_auto_rotate_timer(Tim#tim{delay=16});
 set_auto_rotate_timer(#tim{delay=Delay}=Tim0) ->
     Timer = wings_io:set_timer(Delay, {action, {view,rotate_left}}),
     Tim = Tim0#tim{timer=Timer},

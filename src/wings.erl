@@ -48,6 +48,7 @@ do_spawn(Env, Flags0) ->
     Flags = [{fullsweep_after,16384},{min_heap_size,32*1204}|Flags1],
     {ok, proc_lib:start_link(?MODULE, init, [Env], infinity, Flags)}.
 
+-spec init(term()) -> no_return().
 init(Env) ->
     process_flag(trap_exit, true),
     register(wings, self()),

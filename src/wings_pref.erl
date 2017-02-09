@@ -121,16 +121,9 @@ finish() ->
     foreach(fun({Key,Val}) ->
 		    set_value(Key, Val)
 	    end, ets:tab2list(wings_delayed_update)),
-    case new_pref_file() of
-	none ->
-	    %% No location for saving the preferences.
-	    %% The user has already been warned about this.
-	    %% Do nothing.
-	    ok;
-	PrefFile ->
-	    filelib:ensure_dir(PrefFile),
-	    finish_save_prefs(PrefFile)
-    end.
+    PrefFile = new_pref_file(),
+    filelib:ensure_dir(PrefFile),
+    finish_save_prefs(PrefFile).
 
 finish_save_prefs(PrefFile) ->
     List0 = prune_temp(ets:tab2list(wings_state)),
@@ -202,7 +195,10 @@ old_pref_file([{Dir, File}|Rest]) ->
     case try_location(Dir, File) of
         none -> old_pref_file(Rest);
         Path -> Path
-    end.
+    end;
+old_pref_file([]) ->
+    none.
+
 
 pref_dirs() ->
     Dir = filename:basedir(user_config, "Wings3D"),
