@@ -5,6 +5,9 @@ otp_release:
 
 sudo: false
 
+#notifications:
+#  email: false
+
 addons:
   apt:
     packages:
@@ -21,7 +24,8 @@ script:
 
 after_success:
   - dialyzer --build_plt --apps erts kernel stdlib wx tools xmerl --statistics
-  - dialyzer -n -Wunknown -Wno_improper_lists ebin/*.beam plugins/accel/*.beam plugins/autouv/*.beam plugins/commands/*.beam plugins/default/*.beam plugins/import_export/*.beam plugins/primitives/*.beam --statistics
+  - dialyzer -n -Wno_improper_lists ebin/*.beam plugins/accel/*.beam plugins/autouv/*.beam plugins/commands/*.beam plugins/default/*.beam plugins/import_export/*.beam plugins/primitives/*.beam --statistics
 
+# Needs a compiled cl-1.2.3
 #after_script:
 #  - make unix
