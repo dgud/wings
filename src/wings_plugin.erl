@@ -689,6 +689,12 @@ check_each_plugin(_, [], _, Acc) -> Acc.
 
 % Further restrictions to bar the output may be stated from within the plugin.
 % See wpc_magnet_mask.erl
+check_plugin_against_flag(_Flag, _PData, wings_shape, Acc) ->
+    %% FIXME: In the future, we really should stop using the plug-in
+    %% mechanism for handling folders (a built-in feature).
+    %% For now, make sure that we fail quickly without attempting
+    %% to load the non-existing wings_shape module from disk.
+    Acc;
 check_plugin_against_flag(Flag, PData, Plugin, Acc) ->
     case catch Plugin:get_data(Flag,PData,Acc) of
       {ok, Result} -> Result;
