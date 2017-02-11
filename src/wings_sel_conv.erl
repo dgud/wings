@@ -18,7 +18,7 @@
 -import(lists, [foldl/3,reverse/1]).
 
 -spec mode(ToMode, #st{}) -> #st{} when
-      ToMode :: wings:sel_mode().
+      ToMode :: wings_sel:mode().
 
 mode(Mode, #st{sel=[]}=St) ->
     St#st{selmode=Mode,sh=false};
@@ -26,7 +26,7 @@ mode(Mode, St) ->
     mode_1(Mode, St#st{sh=false}).
 
 -spec mode(ToMode, {FromMode,InItems}, #we{}) -> OutItems when
-      ToMode :: wings:sel_mode(),
+      ToMode :: wings_sel:mode(),
       FromMode :: wings_sel:mode(),
       InItems :: wings_sel:item_set(),
       OutItems :: wings_sel:item_set().
