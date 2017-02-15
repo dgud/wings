@@ -700,7 +700,13 @@ do_renumber(#we{vp=Vtab0,es=Etab0,fs=Ftab0,
 	       _ -> Perm0
 	   end,
 
-    Holes = [gb_trees:get(F, Fmap) || F <- Holes0],
+    Holes =
+    	lists:foldr(fun(F, Acc) ->
+			case gb_trees:lookup(F, Fmap) of
+			    {value,_} -> [F|Acc];
+			    none -> Acc
+			end
+		    end, [], Holes0),
 
     Mirror = if
 		 Mirror0 =:= none -> Mirror0;
