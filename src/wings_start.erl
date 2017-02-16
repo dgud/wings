@@ -18,18 +18,22 @@
 -include("wings.hrl").
 
 start() ->
+    application:set_env(wings, halt, false),
     common_start(fun() -> application:start(wings) end).
 
 start(Args) ->
     application:set_env(wings, args, Args),
+    application:set_env(wings, halt, false),
     common_start(fun() -> application:start(wings) end).
 
 start_halt() ->
-    common_start(fun() -> application:start(wings, permanent) end).
+    application:set_env(wings, halt, true),
+    common_start(fun() -> application:start(wings) end).
 
 start_halt(Args) ->
     application:set_env(wings, args, Args),
-    common_start(fun() -> application:start(wings, permanent) end).
+    application:set_env(wings, halt, true),
+    common_start(fun() -> application:start(wings) end).
 
 common_start(Start) ->
     case get_patches() of

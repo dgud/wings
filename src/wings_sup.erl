@@ -14,15 +14,21 @@
 -behaviour(supervisor).
 
 %% API
--export([start/2, start_link/0, window/3]).
+-export([start/2, start_link/0, stop/1, window/3]).
 
 %% Supervisor callbacks
 -export([init/1, init_done/0, window_sup/1, mandatory_sup/1, wx_object/3]).
 
 %% Main start function
 
-start(_Type, _StartArgs) ->
+start(_, _) ->
     start_link().
+
+stop(_) ->
+    case application:get_env(wings, halt) of
+        {ok, true} -> erlang:halt();
+        {ok, false} -> ok
+    end.
 
 %%--------------------------------------------------------------------
 %% @doc

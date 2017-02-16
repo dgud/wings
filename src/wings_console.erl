@@ -18,7 +18,7 @@
 	 setopts/1,getopts/1]).
 
 %% Also duplicates as event_handler for process crashes
--export([init/1, handle_event/2]).
+-export([init/1, handle_event/2, handle_info/2]).
 
 %% Wings window
 -export([window/0,window/4,popup_window/0]).
@@ -72,6 +72,9 @@ handle_event({error_report,_GL,{Pid,crash_report,Report}}, #{state:=normal}=St) 
     {ok, St#{error=>Pid}};
 handle_event({_Type, _GL, _Msg}, State) ->
     %% io:format("~p:~p:~p ~p ~p~n", [?MODULE, ?LINE, State, _Msg, Type]),
+    {ok, State}.
+
+handle_info(_, State)  ->
     {ok, State}.
 
 log_error(_Off, _, #{error:=_} = St) ->
@@ -245,6 +248,7 @@ server_loop(#state{gmon=Gmon, win=Win}=State) ->
 	{wings_console_request,From,ReplyAs,{stop,Reason}} when is_pid(From) ->
 	    Win =:= undefined orelse wxFrame:destroy(Win),
 	    wings_console_reply(From, ReplyAs, State#state.group_leader),
+            error_logger:delete_report_handler(?MODULE),
 	    exit(Reason);
 	{wings_console_request,From,ReplyAs,code_change} when is_pid(From) ->
 	    %% Code change exit point from old module
@@ -255,12 +259,14 @@ server_loop(#state{gmon=Gmon, win=Win}=State) ->
 	    server_loop(NewState);
 	{'DOWN',Gmon,_,_,Reason} ->
 	    %% Group leader is down - die
+            error_logger:delete_report_handler(?MODULE),
 	    exit(Reason);
 	#wx{} = WxEvent ->
 	    NewState = wings_console_event(State, WxEvent),
 	    server_loop(NewState);
 	{'EXIT', _, _} ->
 	    %% Wings main process down die
+            error_logger:delete_report_handler(?MODULE),
 	    exit(shutdown);
 	Unknown ->
 	    io:format(?MODULE_STRING++?STR(server_loop,1,":~w Received unknown: ~p~n"),
