@@ -754,13 +754,13 @@ enable_lighting(SceneLights) ->
 	    %% can't use some optimizations (e.g. reuse display lists)
 	    %% when drawing selected objects.
 	    gl:color4ub(255, 255, 255, 255), 
-	    gl:useProgram(Prog)
+	    wings_gl:use_prog(Prog)
     end.
 
 disable_lighting() ->
     gl:disable(?GL_LIGHTING),
     case get(light_shaders) /= undefined of
-	true -> gl:useProgram(0);
+	true  -> wings_gl:use_prog(0);
 	false -> ok
     end.
 

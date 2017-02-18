@@ -26,17 +26,18 @@ init() ->
 	  {"SkyColor", wings_pref:get_value(hl_skycol)},
 	  {"GroundColor", wings_pref:get_value(hl_groundcol)}],
     Programs = {{make_prog("hemilight", HL), "Hemispherical Lighting"},
-		{make_prog("gooch"), "Gooch Tone"},
-		{make_prog("toon"), "Toon"},
-		{make_prog("brick"), "Brick"},
-		{make_prog("envmap"), "Environment Mapping"},
-		{make_prog("vertex_color", [{"Flag", 0}]), "Vertex Normals Color"},
-		{make_prog("vertex_color", [{"Flag", 1}]), "Face Normals Color"},
-		{make_prog("spherical_ao"), "Spherical Ambient Occlusion"},
-		{make_prog("depth"), "Depth"},
-		{make_prog("harmonics", [{"Type", 5}]), "Spherical Harmonics 5"},
-		{make_prog("harmonics", [{"Type", 8}]), "Spherical Harmonics 8"},
-		{make_prog("harmonics", [{"Type", 9}]), "Spherical Harmonics 9"}},
+		%% {make_prog("gooch"), "Gooch Tone"},
+		%% {make_prog("toon"), "Toon"},
+		%% {make_prog("brick"), "Brick"},
+		{make_prog("envmap"), "Environment Mapping"}
+		%% {make_prog("vertex_color", [{"Flag", 0}]), "Vertex Normals Color"},
+		%% {make_prog("vertex_color", [{"Flag", 1}]), "Face Normals Color"},
+		%% {make_prog("spherical_ao"), "Spherical Ambient Occlusion"},
+		%% {make_prog("depth"), "Depth"},
+		%% {make_prog("harmonics", [{"Type", 5}]), "Spherical Harmonics 5"},
+		%% {make_prog("harmonics", [{"Type", 8}]), "Spherical Harmonics 8"},
+		%% {make_prog("harmonics", [{"Type", 9}]), "Spherical Harmonics 9"}
+               },
     ?CHECK_ERROR(),
     gl:useProgram(0),
     put(light_shaders, Programs),
@@ -69,13 +70,29 @@ make_prog(Name, Vars) ->
     Shf = wings_gl:compile(fragment, read_shader(Name ++ ".fs")),
     Prog = wings_gl:link_prog([Shv,Shf],[{?TANGENT_ATTR, "wings_tangent"}]),
     gl:useProgram(Prog),
-    envmap(Name, Prog),
-    wings_gl:set_uloc(Prog, "DiffuseMap", ?DIFFUSE_MAP_UNIT),
-    wings_gl:set_uloc(Prog, "NormalMap",  ?NORMAL_MAP_UNIT),
-    [wings_gl:set_uloc(Prog, Var, Val) || {Var,Val} <- Vars],
-    Prog.
+    N = gl:getProgramiv(Prog, ?GL_ACTIVE_UNIFORMS),
+    StrSize = gl:getProgramiv(Prog, ?GL_ACTIVE_UNIFORM_MAX_LENGTH),
+    Uniforms = fetch_uniforms(0, N, StrSize+1, Prog),
+    %% io:format("Prog: ~p ~s~n", [Prog, Name]),
+    %% [io:format("~5w ~s ~n",[Loc, Str]) || {Str, Loc} <- Uniforms],
+    envmap(Name),
+    Res = maps:from_list([{name,Name},{prog,Prog}|Uniforms]),
+    wings_gl:set_uloc(Res, "DiffuseMap", ?DIFFUSE_MAP_UNIT),
+    wings_gl:set_uloc(Res, "NormalMap",  ?NORMAL_MAP_UNIT),
+    wings_gl:set_uloc(Res, "EnvMap", ?ENV_MAP_UNIT),
+    [wings_gl:set_uloc(Res, Var, Val) || {Var,Val} <- Vars],
+    Res.
 
-envmap("envmap", Prog) -> 
+fetch_uniforms(N, Max, StrSize, Prog) when N < Max ->
+    {_, _, Name} = gl:getActiveUniform(Prog, N, StrSize),
+    %%io:format("  ~s: ~p~n",[Name, wings_gl:uloc(Prog, Name)]),
+    case wings_gl:uloc(Prog, Name) of
+        -1 -> fetch_uniforms(N+1, Max, StrSize, Prog); %% Builtin
+        Loc -> [{Name, Loc} | fetch_uniforms(N+1, Max, StrSize, Prog)]
+    end;
+fetch_uniforms(_N, _Max, _StrSize, _Prog) -> [].
+
+envmap("envmap") ->
     FileName = "grandcanyon.png",
     EnvImgRec = read_texture(FileName),
     #e3d_image{width=ImgW,height=ImgH,image=ImgData} = EnvImgRec,
@@ -88,6 +105,5 @@ envmap("envmap", Prog) ->
     gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MIN_FILTER, ?GL_LINEAR),
     gl:texImage2D(?GL_TEXTURE_2D, 0, ?GL_RGB, ImgW, ImgH, 0, ?GL_RGB,
 		  ?GL_UNSIGNED_BYTE, ImgData),
-    wings_gl:set_uloc(Prog, "EnvMap", ?ENV_MAP_UNIT),
     gl:activeTexture(?GL_TEXTURE0);
-envmap(_, _) -> ok.
+envmap(_) -> ok.

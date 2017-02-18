@@ -443,10 +443,8 @@ texture_var(normal) ->  "UseNormalMap".
 
 shader_texture(What, Enable) ->
     case get(active_shader) of
-       Prog when is_integer(Prog), Prog > 0 ->
-	    wings_gl:set_uloc(Prog, texture_var(What), enable(Enable));
-	_ ->
-	    ok
+        #{}=Prog -> wings_gl:set_uloc(Prog, texture_var(What), enable(Enable));
+	_ -> ok
     end.
 
 apply_texture(false) -> no_texture();
@@ -469,7 +467,7 @@ get_normal_map(Maps) ->
 	Map -> Map
     end.
 
-apply_normal_map(none) -> 
+apply_normal_map(none) ->
     shader_texture(normal, false),
     ok;
 apply_normal_map(TexId) ->

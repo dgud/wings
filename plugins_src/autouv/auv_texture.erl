@@ -932,7 +932,7 @@ shader_pass({value,#sh{id=Id, args=Args, tex_units=TexUnits}},
 	    gl:disable(?GL_ALPHA_TEST),
 	    gl:enable(?GL_BLEND),
 	    gl:blendFunc(?GL_SRC_ALPHA, ?GL_ONE_MINUS_SRC_ALPHA),
-	    gl:useProgram(Prog),
+	    wings_gl:use_prog(Prog),
 	    try
 		Conf = Config#sh_conf{prog=Prog,ts=Ts},
 		PerChartUniF = shader_uniforms(reverse(Args),Opts,Conf),
@@ -959,7 +959,7 @@ shader_pass({value,#sh{id=Id, args=Args, tex_units=TexUnits}},
 		    Stack = erlang:get_stacktrace(),
 		    io:format("AUV: Internal ERROR ~p:~n~p ~n",[What,Stack])
 	    after
-                gl:useProgram(0),
+                wings_gl:use_prog(0),
                 gl:disable(?GL_TEXTURE_2D),
                 gl:disableClientState(?GL_VERTEX_ARRAY),
                 gl:disableClientState(?GL_NORMAL_ARRAY),
