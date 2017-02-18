@@ -268,9 +268,7 @@ check_error(_Mod, _Line) ->
 support_shaders() ->
     is_ext(['GL_ARB_fragment_shader', 'GL_ARB_vertex_shader']). 
 
-use_prog(#{prog:=Prog}) ->
-    gl:useProgram(Prog);
-use_prog(Prog) ->
+use_prog(Prog) when is_integer(Prog) ->
     gl:useProgram(Prog).
 
 uloc(Prog, What) ->

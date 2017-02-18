@@ -35,6 +35,8 @@ menu() ->
      {"OpenGL Errors",opengl_errors,
       "Print information about OpenGL errors to the console",
       wings_menu_util:crossmark(develop_gl_errors)},
+     {"OpenGL Recompile Shaders", opengl_shaders,
+      "Recompile the light shaders"},
      separator,
      {"Print Scene Size",print_scene_size,
       "Print the scene size to the console"},
@@ -55,6 +57,10 @@ command(undo_stat, St) ->
     keep;
 command(opengl_errors, _) ->
     toggle(develop_gl_errors),
+    keep;
+command(opengl_shaders, _) ->
+    wings_shaders:init(),
+    wings_wm:dirty(),
     keep;
 command(print_scene_size, St) ->
     Words = erts_debug:size(St),

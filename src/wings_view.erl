@@ -79,7 +79,6 @@ menu() ->
      {?__(15,"Quick Smoothed Preview"),quick_preview,
       ?__(16,"Toggle the smooth proxy mode for all objects")},
      separator |
-     shader_submenu() ++
      [{?__(36,"Scene Lights"),scene_lights,
        ?__(37,"Use the lights defined in the scene"),
        crossmark(scene_lights)},
@@ -228,9 +227,6 @@ command(toggle_lights, St) ->
     St;
 command(scene_lights, St) ->
     toggle_option(scene_lights),
-    St;
-command({shader_set,N}, St) ->
-    shader_set(N),
     St;
 command(camera_settings, St) ->
     camera(St);
@@ -782,7 +778,6 @@ init() ->
     wings_pref:set_default(show_edges, true),
     wings_pref:set_default(show_backfaces, true),
     wings_pref:set_default(number_of_lights, 1),
-    wings_pref:set_default(active_shader, 1),
     wings_pref:set_default(show_normals, false),
     wings_pref:set_default(show_bb, true),
     wings_pref:set_default(show_bb_center, true),
@@ -868,17 +863,14 @@ modelview(IncludeLights) ->
     gl:matrixMode(?GL_MODELVIEW),
     gl:loadIdentity(),
 
-    case IncludeLights of
-	true ->
-	    UseSceneLights = wings_pref:get_value(scene_lights) andalso
-		wings_light:any_enabled_lights(),
-	    case UseSceneLights of
-		false -> wings_light:camera_lights();
-		true -> ok
-	    end;
-	false ->
-	    UseSceneLights = false
-    end,
+    UseSceneLights =
+        case IncludeLights of
+            true ->
+                wings_pref:get_value(scene_lights) andalso
+                    wings_light:any_enabled_lights();
+            false ->
+                false
+        end,
 
     TM0 = e3d_transform:translate(e3d_transform:identity(), {PanX, PanY, -Dist}),
     TM1 = e3d_transform:rotate(TM0, El, {1.0,0.0,0.0}),
@@ -1152,61 +1144,6 @@ toggle_lights() ->
 				  ?__(3,"Use a simple sky light simulation"))),
     Lights = 1 + (2 + Lights0) rem 2,
     wings_pref:set_value(number_of_lights, Lights).
-
-shader_set(N) ->
-    case wings_gl:support_shaders() of
-	true ->
-	    NumShaders = wings_pref:get_value(active_shader),
-	    NumProgs = tuple_size(get(light_shaders)),
-	    Shader = case N of
-			 next -> case NumShaders of
-				     NumProgs -> 1;
-				     _ -> NumShaders+1
-				 end;
-			 prev -> case NumShaders of
-				     1 -> NumProgs;
-				     _ -> NumShaders-1
-				 end;
-			 _ -> N
-		     end,
-	    %% Invalidate displaylists so that shader data get set correctly
-	    %% for materials
-	    wings_dl:map(fun(#dlo{proxy_data=PD}=D, _) ->
-				 D#dlo{work=none,smooth=none,
-				       proxy_data=wings_proxy:invalidate(PD, dl)}
-			 end, []),
-	    wings_pref:set_value(number_of_lights, 2),
-	    wings_shaders:set_active(Shader);
-	false ->
-	    toggle_lights()
-    end.
-
-shader_submenu() ->
-    case get(light_shaders) of
-	undefined ->
-	    [];
-	Progs0 when is_tuple(Progs0) ->
-	    Progs = tuple_to_list(Progs0),
-	    Names = [Name || {_,Name} <- Progs],
-	    Nums = lists:seq(1, tuple_size(Progs0)),
-	    SubMenu = lists:zip(Names, Nums) ++
-		[{"< "++?__(1,"Next")++" >",next},
-		 {"< "++?__(2,"Previous")++">",prev}],
-	    [{?__(3,"Shaders: ")++shader_index(),
-	      {shader_set,SubMenu}}]
-    end.
-
-%% Only call this function if shaders are known to be supported.
-shader_index() ->
-    case wings_pref:get_value(number_of_lights) of
-	2 ->
-	    Progs = get(light_shaders),
-	    NumShaders = wings_pref:get_value(active_shader),
-	    {_Prog,Name} = element(NumShaders, Progs),
-	    Name;
-	_ ->
-	    ""
-    end.
 
 along(x) -> along(x, -90.0, 0.0);
 along(y) -> along(y, 0.0, 90.0);

@@ -21,7 +21,7 @@
 -include("wings.hrl").
 
 init() ->
-    init_shaders(),
+    wings_shaders:init(),
     wings_pref:set_default(multisample, true),
     init_polygon_stipple().
 
@@ -80,11 +80,6 @@ non_polygon_offset(Offset, TPM) ->
 %%%
 %%% Internal functions follow.
 %%%
-
-init_shaders() ->
-    try wings_shaders:init()
-    catch _:_Err -> ok
-    end.
 
 init_polygon_stipple() ->
     P = <<16#DD,16#DD,16#DD,16#DD,16#77,16#77,16#77,16#77,
@@ -327,6 +322,19 @@ render_smooth(#dlo{work=Work,edges=Edges,smooth=Smooth0,transparent=Trans0,
     NeedPush andalso gl:popMatrix(),
     gl:matrixMode(?GL_MODELVIEW),
     draw_plugins(smooth,D,none).
+
+enable_lighting(false) ->
+    Lighting = wings_pref:get_value(number_of_lights),
+    gl:color4ub(255, 255, 255, 255), %% Needed when vertex colors are not set
+    wings_shaders:use_prog(Lighting);
+enable_lighting(_) ->
+    gl:color4ub(255, 255, 255, 255),
+    gl:enable(?GL_LIGHTING).
+
+disable_lighting() ->
+    wings_gl:use_prog(0),
+    gl:disable(?GL_LIGHTING),
+    gl:depthMask(?GL_TRUE).
 
 wire(#we{id=Id}) ->
     W = wings_wm:get_prop(wireframed_objects),
@@ -737,32 +745,6 @@ update_bb_center({{Cx,Cy,Cz}=Center,Color}) ->
 		gl:drawArrays(?GL_LINES, 1, 6)
 	end,
     wings_vbo:new(D, Data).
-
-enable_lighting(SceneLights) ->
-    Progs = get(light_shaders),
-    UseProg = Progs =/= undefined andalso
-	      not SceneLights andalso
-	      wings_pref:get_value(number_of_lights) =:= 2,
-    case UseProg of
-	false ->
-	    gl:enable(?GL_LIGHTING);
-	true ->
-	    NumShaders = wings_pref:get_value(active_shader),
-	    {Prog,_Name} = element(NumShaders, Progs),
-	    %% Reset color. Needed by some drivers.
-	    %% We put it here and not in apply_material, because we
-	    %% can't use some optimizations (e.g. reuse display lists)
-	    %% when drawing selected objects.
-	    gl:color4ub(255, 255, 255, 255), 
-	    wings_gl:use_prog(Prog)
-    end.
-
-disable_lighting() ->
-    gl:disable(?GL_LIGHTING),
-    case get(light_shaders) /= undefined of
-	true  -> wings_gl:use_prog(0);
-	false -> ok
-    end.
 
 mini_axis_icon(MM) ->
     case mini_axis_icon_key() of

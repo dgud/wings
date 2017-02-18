@@ -15,7 +15,7 @@
 -export([light_types/0,menu/3,command/2,is_any_light_selected/1,
 	 any_enabled_lights/0,info/1,
 	 create/2,update_dynamic/2,update_matrix/2,update/1,render/1,
-	 global_lights/0,camera_lights/0,camera_lights/1,
+	 global_lights/0,
 	 export/1,export_bc/1,export_camera_lights/0,
 	 import/2,import/1,shape_materials/2,
 	 light_pos/1]).
@@ -770,45 +770,6 @@ import_fix_face(FaceRec) when is_tuple(FaceRec) ->
 %%% Setting up lights.
 %%%
 
-camera_lights() ->
-    camera_lights(wings_pref:get_value(number_of_lights)).
-
-camera_lights(Type) ->
-    gl:enable(?GL_LIGHT0),
-    gl:disable(?GL_LIGHT2),
-    gl:disable(?GL_LIGHT3),
-    gl:disable(?GL_LIGHT4),
-    gl:disable(?GL_LIGHT5),
-    gl:disable(?GL_LIGHT6),
-    gl:disable(?GL_LIGHT7),
-    Amb = camera_ambient(),
-    gl:lightModelfv(?GL_LIGHT_MODEL_AMBIENT, Amb#light.ambient),
-    case Type of
-	1 ->
-	    L = camera_infinite_1_0(),
-	    gl:disable(?GL_LIGHT1),
-	    gl:lightfv(?GL_LIGHT0, ?GL_DIFFUSE,  L#light.diffuse),
-	    gl:lightfv(?GL_LIGHT0, ?GL_SPECULAR, L#light.specular),
-	    gl:lightfv(?GL_LIGHT0, ?GL_POSITION, infinite(L#light.aim));     
-	2 ->
-	    L20 = camera_infinite_2_0(),
-	    L21 = camera_infinite_2_1(),
-	    gl:enable(?GL_LIGHT1),
-	    gl:lightfv(?GL_LIGHT0, ?GL_DIFFUSE,  L20#light.diffuse), 
-	    gl:lightfv(?GL_LIGHT0, ?GL_SPECULAR, L20#light.specular),
-	    gl:lightfv(?GL_LIGHT0, ?GL_POSITION, infinite(L20#light.aim)),
-	    gl:lightfv(?GL_LIGHT1, ?GL_DIFFUSE,  L21#light.diffuse), 
-	    gl:lightfv(?GL_LIGHT1, ?GL_SPECULAR, L21#light.specular),
-	    gl:lightfv(?GL_LIGHT1, ?GL_POSITION, infinite(L21#light.aim));     
-	mat_preview ->
-	    D = 0.8,
-	    S = 0.7,
-	    gl:disable(?GL_LIGHT1),
-	    gl:lightfv(?GL_LIGHT0, ?GL_DIFFUSE, {D,D,D,1}),
- 	    gl:lightfv(?GL_LIGHT0, ?GL_SPECULAR, {S,S,S,1}),
-	    gl:lightfv(?GL_LIGHT0, ?GL_POSITION, {1,1,2,0})
-    end.
-
 global_lights() ->
     gl:lightModelfv(?GL_LIGHT_MODEL_AMBIENT, {0.0,0.0,0.0,1.0}),
     Lnum = wings_dl:fold(fun scene_lights_fun/2, ?GL_LIGHT0),
@@ -839,8 +800,6 @@ camera_infinite_2_1() ->
 	   ambient  = {0,0,0,1.0},
 	   aim      = {-0.71,-0.71,0.0}
 	  }.
-
-infinite({X,Y,Z}) -> {X,Y,Z,0.0}.
 
 disable_from(Lnum) when Lnum > ?GL_LIGHT7 -> ok;
 disable_from(Lnum) ->

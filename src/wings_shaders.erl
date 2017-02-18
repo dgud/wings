@@ -12,7 +12,7 @@
 %%
 
 -module(wings_shaders).
--export([init/0, read_texture/1, set_active/1]).
+-export([init/0, use_prog/1, read_texture/1]).
 
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
@@ -25,30 +25,32 @@ init() ->
     HL = [{"LightPosition", wings_pref:get_value(hl_lightpos)},
 	  {"SkyColor", wings_pref:get_value(hl_skycol)},
 	  {"GroundColor", wings_pref:get_value(hl_groundcol)}],
-    Programs = {{make_prog("hemilight", HL), "Hemispherical Lighting"},
-		%% {make_prog("gooch"), "Gooch Tone"},
-		%% {make_prog("toon"), "Toon"},
-		%% {make_prog("brick"), "Brick"},
-		{make_prog("envmap"), "Environment Mapping"}
-		%% {make_prog("vertex_color", [{"Flag", 0}]), "Vertex Normals Color"},
-		%% {make_prog("vertex_color", [{"Flag", 1}]), "Face Normals Color"},
-		%% {make_prog("spherical_ao"), "Spherical Ambient Occlusion"},
-		%% {make_prog("depth"), "Depth"},
-		%% {make_prog("harmonics", [{"Type", 5}]), "Spherical Harmonics 5"},
-		%% {make_prog("harmonics", [{"Type", 8}]), "Spherical Harmonics 8"},
-		%% {make_prog("harmonics", [{"Type", 9}]), "Spherical Harmonics 9"}
-               },
+    Programs =
+        [{1, make_prog(camera_light, "Two Camera Lights")},
+         {2, make_prog(hemilight, HL, "Hemispherical Lighting")},
+         {envmap, make_prog(envmap, "Environment Mapping")}
+         %% {make_prog("gooch"), "Gooch Tone"},
+         %% {make_prog("toon"), "Toon"},
+         %% {make_prog("brick"), "Brick"},
+         %% {make_prog("vertex_color", [{"Flag", 0}]), "Vertex Normals Color"},
+         %% {make_prog("vertex_color", [{"Flag", 1}]), "Face Normals Color"},
+         %% {make_prog("spherical_ao"), "Spherical Ambient Occlusion"},
+         %% {make_prog("depth"), "Depth"},
+         %% {make_prog("harmonics", [{"Type", 5}]), "Spherical Harmonics 5"},
+         %% {make_prog("harmonics", [{"Type", 8}]), "Spherical Harmonics 8"},
+         %% {make_prog("harmonics", [{"Type", 9}]), "Spherical Harmonics 9"}
+        ],
     ?CHECK_ERROR(),
     gl:useProgram(0),
-    put(light_shaders, Programs),
-    case wings_pref:get_value(active_shader) > tuple_size(Programs) of
-	true -> set_active(1);
-	false -> ok
-    end,
+    ?SET(light_shaders, maps:from_list(Programs)),
     io:format("Using GPU shaders.\n").
 
-set_active(Id) ->
-    wings_pref:set_value(active_shader, Id),
+use_prog(Name) ->
+    io:format("~p~n",[Name]),
+    #{Name:=Shader} = ?GET(light_shaders),
+    #{prog:=Prog} = Shader,
+    wings_gl:use_prog(Prog),
+    ?SET(active_shader, Shader),
     ok.
 
 read_texture(FileName) ->
@@ -57,17 +59,27 @@ read_texture(FileName) ->
     ImgRec = e3d_image:load(NewFileName, [{order,lower_left}]),
     ImgRec.
 
-read_shader(FileName) ->
+read_shader(FileName, Ext) ->
+    read_shader(FileName, undefined, Ext).
+
+read_shader(FileName, Orig, Ext) ->
     Path = filename:join(wings_util:lib_dir(wings), "shaders"),
     NewFileName = filename:join(Path, FileName),
-    {ok,Bin} = file:read_file(NewFileName),
-    Bin.
+    case file:read_file(NewFileName++Ext) of
+        {ok, Bin} -> Bin;
+        {error, _} when Orig =:= undefined ->
+            read_shader("standard", FileName, Ext);
+        {error, ER} ->
+            io:format("ERROR: failed reading ~s or ~s ~s~n",[FileName, Orig, Ext]),
+            error(ER)
+    end.
 
-make_prog(Name) ->
-    make_prog(Name, []).
-make_prog(Name, Vars) ->
-    Shv = wings_gl:compile(vertex, read_shader(Name ++ ".vs")),
-    Shf = wings_gl:compile(fragment, read_shader(Name ++ ".fs")),
+make_prog(Name, Desc) ->
+    make_prog(Name, [], Desc).
+make_prog(Name, Vars, Desc) ->
+    File = atom_to_list(Name),
+    Shv = wings_gl:compile(vertex, read_shader(File, ".vs")),
+    Shf = wings_gl:compile(fragment, read_shader(File, ".fs")),
     Prog = wings_gl:link_prog([Shv,Shf],[{?TANGENT_ATTR, "wings_tangent"}]),
     gl:useProgram(Prog),
     N = gl:getProgramiv(Prog, ?GL_ACTIVE_UNIFORMS),
@@ -76,7 +88,7 @@ make_prog(Name, Vars) ->
     %% io:format("Prog: ~p ~s~n", [Prog, Name]),
     %% [io:format("~5w ~s ~n",[Loc, Str]) || {Str, Loc} <- Uniforms],
     envmap(Name),
-    Res = maps:from_list([{name,Name},{prog,Prog}|Uniforms]),
+    Res = maps:from_list([{name,Name},{prog,Prog},{desc,Desc}|Uniforms]),
     wings_gl:set_uloc(Res, "DiffuseMap", ?DIFFUSE_MAP_UNIT),
     wings_gl:set_uloc(Res, "NormalMap",  ?NORMAL_MAP_UNIT),
     wings_gl:set_uloc(Res, "EnvMap", ?ENV_MAP_UNIT),
@@ -92,7 +104,7 @@ fetch_uniforms(N, Max, StrSize, Prog) when N < Max ->
     end;
 fetch_uniforms(_N, _Max, _StrSize, _Prog) -> [].
 
-envmap("envmap") ->
+envmap(envmap) ->
     FileName = "grandcanyon.png",
     EnvImgRec = read_texture(FileName),
     #e3d_image{width=ImgW,height=ImgH,image=ImgData} = EnvImgRec,

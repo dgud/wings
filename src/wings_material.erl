@@ -442,7 +442,7 @@ texture_var(diffuse) -> "UseDiffuseMap";
 texture_var(normal) ->  "UseNormalMap".
 
 shader_texture(What, Enable) ->
-    case get(active_shader) of
+    case ?GET(active_shader) of
         #{}=Prog -> wings_gl:set_uloc(Prog, texture_var(What), enable(Enable));
 	_ -> ok
     end.
@@ -469,13 +469,14 @@ get_normal_map(Maps) ->
 
 apply_normal_map(none) ->
     shader_texture(normal, false),
-    ok;
+    false;
 apply_normal_map(TexId) ->
     shader_texture(normal, true),
     Bump = wings_image:bumpid(TexId),
     gl:activeTexture(?GL_TEXTURE0 + ?NORMAL_MAP_UNIT),
     gl:bindTexture(?GL_TEXTURE_2D, Bump),
-    gl:activeTexture(?GL_TEXTURE0).
+    gl:activeTexture(?GL_TEXTURE0),
+    true.
 
 apply_texture_1(Image, TxId) ->
     shader_texture(diffuse, true),
@@ -727,7 +728,6 @@ mat_preview(Canvas, Common, Maps) ->
     gl:pushMatrix(),
     gl:loadIdentity(),
     gl:translatef(0.0, 0.0, -2.0),
-    wings_light:camera_lights(mat_preview),
     gl:shadeModel(?GL_SMOOTH),
     Alpha = wings_dialog:get_value(opacity, Common),
     Amb   = preview_mat(ambient, Common, Alpha),
@@ -744,19 +744,20 @@ mat_preview(Canvas, Common, Maps) ->
     gl:enable(?GL_DEPTH_TEST),
     gl:enable(?GL_CULL_FACE),
     gl:rotatef(-90.0,1.0,0.0,0.0),
+    gl:color4ub(255, 255, 255, 255),
+    wings_shaders:use_prog(1),
     Obj = glu:newQuadric(),
     glu:quadricDrawStyle(Obj, ?GLU_FILL),
     glu:quadricNormals(Obj, ?GLU_SMOOTH),
+    %% UseNormalMap = apply_normal_map(get_normal_map(Maps)), No bi-tangent..
     case apply_texture(prop_get(diffuse, Maps, false)) of
-	true ->
-	    glu:quadricTexture(Obj, ?GLU_TRUE);
-	false ->
-	    ignore
+	true -> glu:quadricTexture(Obj, ?GLU_TRUE);
+	false -> ignore
     end,
     glu:sphere(Obj, 0.9, 50, 50),
     glu:deleteQuadric(Obj),
     no_texture(),
-    gl:disable(?GL_LIGHTING),
+    wings_gl:use_prog(0),
     gl:disable(?GL_BLEND),
     gl:shadeModel(?GL_FLAT),
     gl:matrixMode(?GL_PROJECTION),
