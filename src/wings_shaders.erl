@@ -28,23 +28,17 @@ init() ->
     Programs =
         [{1, make_prog(camera_light, "Two Camera Lights")},
          {2, make_prog(hemilight, HL, "Hemispherical Lighting")},
+         {ambient_light, make_prog(ambient_light, "")},
+         {infinite_light, make_prog(infinite_light, "")},
+         {point_light, make_prog(point_light, "")},
+         {spot_light, make_prog(spot_light, "")},
          {envmap, make_prog(envmap, "Environment Mapping")}
-         %% {make_prog("gooch"), "Gooch Tone"},
-         %% {make_prog("toon"), "Toon"},
-         %% {make_prog("brick"), "Brick"},
-         %% {make_prog("vertex_color", [{"Flag", 0}]), "Vertex Normals Color"},
-         %% {make_prog("vertex_color", [{"Flag", 1}]), "Face Normals Color"},
-         %% {make_prog("spherical_ao"), "Spherical Ambient Occlusion"},
-         %% {make_prog("depth"), "Depth"},
-         %% {make_prog("harmonics", [{"Type", 5}]), "Spherical Harmonics 5"},
-         %% {make_prog("harmonics", [{"Type", 8}]), "Spherical Harmonics 8"},
-         %% {make_prog("harmonics", [{"Type", 9}]), "Spherical Harmonics 9"}
         ],
     ?CHECK_ERROR(),
     gl:useProgram(0),
     ?SET(light_shaders, maps:from_list(Programs)),
-    io:format("Using GPU shaders.\n"),
-    io:format("~p\n",[Programs]),
+    %io:format("Using GPU shaders.\n"),
+    %io:format("~p\n",[Programs]),
     ok.
 
 use_prog(Name) ->

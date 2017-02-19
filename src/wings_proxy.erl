@@ -12,8 +12,8 @@
 %%
 
 -module(wings_proxy).
--export([setup/1,quick_preview/1,update/2,draw/2,draw_smooth_edges/2,
-	 smooth/2, smooth_dl/1, invalidate/2,
+-export([setup/1,quick_preview/1,update/2,draw_smooth_edges/2,
+	 smooth/2, smooth_dl/1, flat_dl/1, invalidate/2,
 	 split_proxy/3, update_dynamic/3, reset_dynamic/1]).
 
 -define(NEED_OPENGL, 1).
@@ -77,6 +77,8 @@ invalidate(#sp{}, all) ->
 smooth_dl(#sp{smooth=Smooth}) when Smooth =/= none -> Smooth;
 smooth_dl(#sp{smooth=none, faces=FL}) when FL =/= none -> {[FL,[]], false};
 smooth_dl(_) -> {none, false}.
+
+flat_dl(#sp{faces=FL}) -> FL.
 
 setup(#st{sel=OrigSel}=St) ->
     wings_dl:map(fun(D, Sel) -> setup_1(D, Sel) end, OrigSel),
@@ -235,49 +237,14 @@ any_proxy() ->
     wings_dl:fold(fun(#dlo{proxy=false}, A) -> A;
 		     (#dlo{}, _) -> true end, false).
 
-
-draw(#dlo{proxy=false}, _) -> ok;
-draw(#dlo{proxy_data=#sp{faces=Dl},drag=none}=D, SceneLights) ->
-    draw_1(D, Dl, proxy_static_opacity, SceneLights);
-draw(#dlo{proxy_data=#sp{faces=Dl}}=D, SceneLights) ->
-    draw_1(D, Dl, proxy_moving_opacity, SceneLights).
-
-draw_1(#dlo{proxy_data=#sp{src_we=We}}, Dl, Key, SceneLights) ->
-    gl:shadeModel(?GL_SMOOTH),
-    wings_render:enable_lighting(SceneLights),
-    gl:enable(?GL_POLYGON_OFFSET_FILL),
-    wings_render:polygonOffset(3.0),
-    gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_FILL),
-    case wings_gl:is_ext('GL_ARB_imaging') of
-	false -> ok;
-	true ->
-	    case wings_pref:get_value(Key) of
-		1.0 -> ok;
-		Opacity ->
-		    gl:enable(?GL_BLEND),
-		    gl:blendFunc(?GL_CONSTANT_ALPHA, ?GL_ONE_MINUS_CONSTANT_ALPHA),
-		    gl:blendColor(0.0, 0.0, 0.0, Opacity)
-	    end
-    end,
-    case wings_we:is_open(We) andalso wings_pref:get_value(show_backfaces) of
-	true -> gl:disable(?GL_CULL_FACE);
-	false -> ignore
-    end,
-    wings_dl:call(Dl),
-    gl:enable(?GL_CULL_FACE),
-    gl:disable(?GL_POLYGON_OFFSET_FILL),
-    wings_render:disable_lighting(),
-    gl:disable(?GL_BLEND).
-
 draw_smooth_edges(#dlo{drag=none}=D, Style) ->
-    draw_edges(D, true, Style);
+    draw_edges(D, Style);
 draw_smooth_edges(D, _) ->
-    draw_edges(D, true, cage).
+    draw_edges(D, cage).
 
-draw_edges(_, false, _) -> ok;
-draw_edges(#dlo{edges=Edges}, true, cage) ->
+draw_edges(#dlo{edges=Edges}, cage) ->
     wings_dl:call(Edges);
-draw_edges(#dlo{proxy_data=#sp{proxy_edges=ProxyEdges}}, true, _) ->
+draw_edges(#dlo{proxy_data=#sp{proxy_edges=ProxyEdges}}, _) ->
     wings_dl:call(ProxyEdges).
 
 proxy_smooth(We0, Pd0, St) ->

@@ -13,9 +13,9 @@
 
 -module(wings_light).
 -export([light_types/0,menu/3,command/2,is_any_light_selected/1,
-	 any_enabled_lights/0,info/1,
+	 any_enabled_lights/0,info/1,setup_light/1,
 	 create/2,update_dynamic/2,update_matrix/2,update/1,render/1,
-	 global_lights/0,
+	 global_lights/1,
 	 export/1,export_bc/1,export_camera_lights/0,
 	 import/2,import/1,shape_materials/2,
 	 light_pos/1]).
@@ -764,10 +764,11 @@ import_fix_face(FaceRec) when is_tuple(FaceRec) ->
 %%% Setting up lights.
 %%%
 
-global_lights() ->
+global_lights(Lights0) ->
     gl:lightModelfv(?GL_LIGHT_MODEL_AMBIENT, {0.0,0.0,0.0,1.0}),
-    Lnum = wings_dl:fold(fun scene_lights_fun/2, ?GL_LIGHT0),
-    disable_from(Lnum).
+    Lights = lists:map(fun scene_lights_fun/1, Lights0),
+    IsAL = fun(#{light:=#light{type=Type}}) -> Type =:= ambient end,
+    lists:partition(IsAL, Lights).
 
 camera_ambient() ->
     #light{type = ambient, 
@@ -795,19 +796,11 @@ camera_infinite_2_1() ->
 	   aim      = {-0.71,-0.71,0.0}
 	  }.
 
-disable_from(Lnum) when Lnum > ?GL_LIGHT7 -> ok;
-disable_from(Lnum) ->
-    gl:disable(Lnum),
-    disable_from(Lnum+1).
-
-scene_lights_fun(_, Lnum) when Lnum > ?GL_LIGHT7 -> Lnum;
-scene_lights_fun(#dlo{src_we=We}, Lnum) 
-  when not ?IS_ANY_LIGHT(We)-> Lnum;
-scene_lights_fun(#dlo{transparent=#we{light=L}=We}, Lnum) ->
+scene_lights_fun(#dlo{transparent=#we{light=L}=We}) ->
     %% This happens when dragging a light in Body selection mode.
     %% (Not area light.)
-    setup_light(Lnum, L, We, none);
-scene_lights_fun(#dlo{drag=Drag,src_we=We0}=D, Lnum) ->
+    prepare_light(L, We, none);
+scene_lights_fun(#dlo{drag=Drag,src_we=We0}=D) ->
     %% Area lights handled here in all selection modes +
     %% other lights in vertex/edge/face modes.
     We = case We0 of
@@ -818,9 +811,9 @@ scene_lights_fun(#dlo{drag=Drag,src_we=We0}=D, Lnum) ->
 		 %% updating would use the resulting #we{}, but it does not
 		 %% exist until the drag is done.
 		 wings_draw:original_we(D);
-	     _ -> 
+	     _ ->
 		 %% Non-area lights drag the whole shape so they can use
-		 %% the dynamic part of the splitted shape 
+		 %% the dynamic part of the splitted shape
 		 %% (which is the whole shape).
 		 We0
 	 end,
@@ -828,70 +821,78 @@ scene_lights_fun(#dlo{drag=Drag,src_we=We0}=D, Lnum) ->
 	    {matrix,_Tr,_M0,M1} -> M1;
  	    _ -> none
  	end,
-    setup_light(Lnum, We#we.light, We, M).
+    prepare_light(We#we.light, We, M).
 
-setup_light(Lnum, #light{type=ambient,ambient=Amb}, _We, _M) ->
+prepare_light(#light{type=ambient,ambient=Amb}=L, _We, _M) ->
     gl:lightModelfv(?GL_LIGHT_MODEL_AMBIENT, Amb),
-    Lnum;
-setup_light(Lnum, #light{type=infinite,aim=Aim}=L, We, _M) ->
+    #{light=>L};
+prepare_light(#light{type=infinite,aim=Aim}=L, We, _M) ->
     {X,Y,Z} = e3d_vec:norm_sub(light_pos(We), Aim),
-    gl:lightfv(Lnum, ?GL_POSITION, {X,Y,Z,0.0}),
-    setup_color(Lnum, L),
-    gl:enable(Lnum),
-    Lnum+1;
-setup_light(Lnum, #light{type=point}=L, We, _M) ->
+    #{light=>L, pos=>{X,Y,Z,0.0}};
+prepare_light(#light{type=point}=L, We, _M) ->
     {X,Y,Z} = light_pos(We),
-    gl:lightfv(Lnum, ?GL_POSITION, {X,Y,Z,1.0}),
-    gl:lightf(Lnum, ?GL_SPOT_CUTOFF, 180.0),
-    setup_color(Lnum, L),
-    setup_attenuation(Lnum, L),
-    gl:enable(Lnum),
-    Lnum+1;
-setup_light(Lnum, #light{type=spot,aim=Aim,spot_angle=Angle,spot_exp=Exp}=L, 
-	    We, _M) ->
+    #{light=>L, pos=>{X,Y,Z,1.0}};
+prepare_light(#light{type=spot,aim=Aim}=L, We, _M) ->
     Pos = {X,Y,Z} = light_pos(We),
     Dir = e3d_vec:norm_sub(Aim, Pos),
-    gl:lightfv(Lnum, ?GL_POSITION, {X,Y,Z,1.0}),
-    gl:lightf(Lnum, ?GL_SPOT_CUTOFF, Angle),
-    gl:lightf(Lnum, ?GL_SPOT_EXPONENT, Exp),
-    gl:lightfv(Lnum, ?GL_SPOT_DIRECTION, Dir),
-    setup_color(Lnum, L),
-    setup_attenuation(Lnum, L),
-    gl:enable(Lnum),
-    Lnum+1;
-setup_light(Lnum, #light{type=area}=L, We, M) ->
+    #{light=>L, pos=>{X,Y,Z,1.0}, dir=>Dir};
+prepare_light(#light{type=area}=L, We, M) ->
     Apde = arealight_posdirexp(We),
-    setup_arealight(Lnum, L, Apde, M).
+    prepare_arealight(L, Apde, M).
 
-setup_arealight(Lnum, #light{type=area}=L, {Pos0,{0.0,0.0,0.0},_}, M) ->
-    {X,Y,Z} = 
-	case M of
-	    none -> Pos0;
-	    _ -> mul_point(M, Pos0)
-	end,
-    gl:lightfv(Lnum, ?GL_POSITION, {X,Y,Z,1}),
-    gl:lightf(Lnum, ?GL_SPOT_CUTOFF, 180.0),
-    setup_color(Lnum, L),
-    setup_attenuation(Lnum, L),
-    gl:enable(Lnum),
-    Lnum+1;
-setup_arealight(Lnum, #light{type=area}=L, {Pos0,Dir0,Exp}, M) ->
-    {{X,Y,Z},Dir} = 
+prepare_arealight(#light{type=area}=L, {Pos0,{0.0,0.0,0.0},_}, M) ->
+    {X,Y,Z} = case M of
+                  none -> Pos0;
+                  _ -> mul_point(M, Pos0)
+              end,
+    #{light=>L, pos=>{X,Y,Z,1.0}};
+prepare_arealight(#light{type=area}=L, {Pos0,Dir0,Exp}, M) ->
+    {{X,Y,Z},Dir} =
 	case M of
 	    none -> {Pos0,Dir0};
-	    _ -> 
+	    _ ->
 		Pos = mul_point(M, Pos0),
 		Aim = mul_point(M, e3d_vec:add(Dir0, Pos0)),
 		{Pos,e3d_vec:sub(Aim, Pos)}
 	end,
-    gl:lightfv(Lnum, ?GL_POSITION, {X,Y,Z,1}),
-    gl:lightf(Lnum, ?GL_SPOT_CUTOFF, 90.0),
-    gl:lightf(Lnum, ?GL_SPOT_EXPONENT, Exp),
-    gl:lightfv(Lnum, ?GL_SPOT_DIRECTION, Dir),
-    setup_color(Lnum, L),
-    setup_attenuation(Lnum, L),
-    gl:enable(Lnum),
-    Lnum+1.
+    #{light=>L, pos=>{X,Y,Z,1.0}, dir=>Dir, exp=>Exp}.
+
+setup_light(#{light:=#light{type=ambient,ambient=Amb}}) ->
+    gl:lightModelfv(?GL_LIGHT_MODEL_AMBIENT, Amb),
+    wings_shaders:use_prog(ambient_light);
+setup_light(#{light:=#light{type=infinite}=L, pos:=Pos}) ->
+    gl:lightfv(?GL_LIGHT0, ?GL_POSITION, Pos),
+    setup_color(?GL_LIGHT0, L),
+    wings_shaders:use_prog(infinite_light);
+setup_light(#{light:=#light{type=point}=L,pos:=Pos}) ->
+    gl:lightfv(?GL_LIGHT0, ?GL_POSITION, Pos),
+    gl:lightf(?GL_LIGHT0, ?GL_SPOT_CUTOFF, 180.0),
+    setup_color(?GL_LIGHT0, L),
+    setup_attenuation(?GL_LIGHT0, L),
+    wings_shaders:use_prog(point_light);
+setup_light(#{light:=#light{type=spot,spot_angle=Angle,spot_exp=Exp}=L,
+              pos:=Pos, dir:=Dir}) ->
+    gl:lightfv(?GL_LIGHT0, ?GL_POSITION, Pos),
+    gl:lightf(?GL_LIGHT0, ?GL_SPOT_CUTOFF, Angle),
+    gl:lightf(?GL_LIGHT0, ?GL_SPOT_EXPONENT, Exp),
+    gl:lightfv(?GL_LIGHT0, ?GL_SPOT_DIRECTION, Dir),
+    setup_color(?GL_LIGHT0, L),
+    setup_attenuation(?GL_LIGHT0, L),
+    wings_shaders:use_prog(spot_light);
+setup_light(#{light:=#light{type=area}=L, pos:=Pos, dir:=Dir, exp:=Exp}) ->
+    gl:lightfv(?GL_LIGHT0, ?GL_POSITION, Pos),
+    gl:lightf(?GL_LIGHT0, ?GL_SPOT_CUTOFF, 90.0),
+    gl:lightf(?GL_LIGHT0, ?GL_SPOT_EXPONENT, Exp),
+    gl:lightfv(?GL_LIGHT0, ?GL_SPOT_DIRECTION, Dir),
+    setup_color(?GL_LIGHT0, L),
+    setup_attenuation(?GL_LIGHT0, L),
+    wings_shaders:use_prog(spot_light);
+setup_light(#{light:=#light{type=area}=L, pos:=Pos}) ->
+    gl:lightfv(?GL_LIGHT0, ?GL_POSITION, Pos),
+    gl:lightf(?GL_LIGHT0, ?GL_SPOT_CUTOFF, 180.0),
+    setup_color(?GL_LIGHT0, L),
+    setup_attenuation(?GL_LIGHT0, L),
+    wings_shaders:use_prog(point_light).
 
 setup_color(Lnum, #light{diffuse=Diff,ambient=Amb,specular=Spec}) ->
     gl:lightfv(Lnum, ?GL_DIFFUSE, Diff),

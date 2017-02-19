@@ -35,8 +35,7 @@ render(#st{selmode=Mode}=St) ->
     ?CHECK_ERROR(),
     gl:pushAttrib(?GL_CURRENT_BIT bor ?GL_ENABLE_BIT bor
 		  ?GL_TEXTURE_BIT bor ?GL_POLYGON_BIT bor
-		  ?GL_LINE_BIT bor ?GL_COLOR_BUFFER_BIT bor
-		  ?GL_LIGHTING_BIT),
+		  ?GL_LINE_BIT bor ?GL_COLOR_BUFFER_BIT),
     gl:enable(?GL_DEPTH_TEST),
     gl:enable(?GL_CULL_FACE),
     case wings_pref:get_value(multisample) of
@@ -100,59 +99,84 @@ init_polygon_stipple() ->
 	 16#DD,16#DD,16#DD,16#DD,16#77,16#77,16#77,16#77>>,
     gl:polygonStipple(P).
 
-render_objects(Mode, PM, SceneLights) ->
+setup_scene_lights(false, _) ->
+    false;
+setup_scene_lights(true, Lights) ->
+    {Amb0, SL} = wings_light:global_lights(Lights),
+    case Amb0 of
+        [] ->
+            gl:lightModelfv(?GL_LIGHT_MODEL_AMBIENT, {0.0,0.0,0.0,1.0}),
+            wings_shaders:use_prog(ambient_light);
+        [Amb|_] ->
+            wings_light:setup_light(Amb)
+    end,
+    SL.
+
+render_objects(Mode, PM, UseSceneLights) ->
     Dls = wings_dl:display_lists(),
+    {Open,Closed,Lights} = split_objects(Dls, [], [], []),
+    render_lights(Lights),
+    SL = setup_scene_lights(UseSceneLights, Lights),
     case wings_wm:get_prop(workmode) of
 	false ->
-	    render_smooth_objects(Dls, SceneLights),
-	    render_smooth_objects(Dls, SceneLights),
+            case UseSceneLights of
+                true -> render_smooth_objects(Open, Closed, ambient); %% amb pass
+                false -> ignore
+            end,
+	    render_smooth_objects(Open, Closed, SL),
             render_wire(Dls, Mode, true),
             render_sel_highlight(Dls, Mode, true, PM);
 	true ->
-            render_work_objects(Dls, Mode, PM, SceneLights),
+            case UseSceneLights of
+                true -> render_work_objects(Open, Closed, ambient); %% amb pass
+                false -> ignore
+            end,
+            render_work_objects(Open, Closed, SL),
             render_wire(Dls, Mode, false),
             render_sel_highlight(Dls, Mode, false, PM)
     end.
 
-render_work_objects(Dls, Mode, PM, SceneLights) ->
+render_lights(Lights) ->
+    render_work_objects_0(Lights, false),
+    gl:color4ub(255, 255, 255, 255).
+
+render_work_objects(Open, Closed, SceneLights) ->
     gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_FILL),
     gl:enable(?GL_POLYGON_OFFSET_FILL),
     polygonOffset(2.0),
     gl:shadeModel(?GL_SMOOTH),
     enable_lighting(SceneLights),
-    case wings_pref:get_value(show_backfaces) of
-        true ->
-            {Open,Closed} = lists:partition(fun(#dlo{open=Open}) -> Open end, Dls),
-            render_work_objects_0(Closed, Mode, PM, SceneLights),
-            gl:lightModeli(?GL_LIGHT_MODEL_TWO_SIDE, ?GL_TRUE),
-            gl:disable(?GL_CULL_FACE),
-            render_work_objects_0(Open, Mode, PM, SceneLights),
-            gl:lightModeli(?GL_LIGHT_MODEL_TWO_SIDE, ?GL_FALSE),
-            gl:enable(?GL_CULL_FACE);
-        false ->
-            render_work_objects_0(Dls, Mode, PM, SceneLights)
-    end,
+    render_work_objects_0(Closed, SceneLights),
+    wings_pref:get_value(show_backfaces) andalso gl:disable(?GL_CULL_FACE),
+    render_work_objects_0(Open, SceneLights),
     gl:enable(?GL_CULL_FACE),
     disable_lighting(),
     gl:shadeModel(?GL_FLAT),
     ok.
 
-render_work_objects_0([D|Dls], Mode, PM, SceneLights) ->
+render_work_objects_0([D|Dls], SceneLights) ->
     render_object(D, true, false, SceneLights),
-    render_work_objects_0(Dls, Mode, PM, SceneLights);
-render_work_objects_0([], _, _, _) -> ok.
+    render_work_objects_0(Dls, SceneLights);
+render_work_objects_0([], _) -> ok.
 
-render_smooth_objects(Dls, SceneLights) ->
+render_smooth_objects(Open, Closed, SceneLights) ->
     gl:shadeModel(?GL_SMOOTH),
     gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_FILL),
     enable_lighting(SceneLights),
     gl:enable(?GL_POLYGON_OFFSET_FILL),
     polygonOffset(2.0),
-    render_smooth_objects_0(Dls, false, SceneLights),
+    gl:enable(?GL_CULL_FACE),
+    render_smooth_objects_0(Closed, false, SceneLights),
+    wings_pref:get_value(show_backfaces) andalso gl:disable(?GL_CULL_FACE),
+    render_smooth_objects_0(Open, false, SceneLights),
     gl:enable(?GL_BLEND),
     gl:blendFunc(?GL_SRC_ALPHA, ?GL_ONE_MINUS_SRC_ALPHA),
     gl:depthMask(?GL_FALSE),
-    render_smooth_objects_0(Dls, true, SceneLights),
+    gl:enable(?GL_CULL_FACE),
+    render_smooth_objects_0(Closed, true, SceneLights),
+    wings_pref:get_value(show_backfaces) andalso gl:disable(?GL_CULL_FACE),
+    render_smooth_objects_0(Open, true, SceneLights),
+    gl:enable(?GL_CULL_FACE),
     gl:disable(?GL_BLEND),
     gl:depthMask(?GL_TRUE).
 
@@ -180,48 +204,51 @@ render_object_1(#dlo{mirror=Matrix}=D, Work, RenderTrans, SceneLights) ->
     gl:popMatrix(),
     gl:frontFace(?GL_CCW).
 
-render_object_2(#dlo{src_we=We}=D, _, false, _) when ?IS_LIGHT(We) ->
-    wings_light:render(D),
-    gl:color4ub(255, 255, 255, 255);
-render_object_2(#dlo{src_we=We}, _, true, _) when ?IS_LIGHT(We) ->
-    ok;
 render_object_2(D, true, _, SceneLights) ->
     render_plain(D, SceneLights);
-render_object_2(#dlo{transparent=true}=D, false, true, SceneLights) ->
-    render_smooth(D, true, SceneLights);
 render_object_2(#dlo{transparent=true}=D, false, false, SceneLights) ->
     render_smooth(D, false, SceneLights);
-render_object_2(#dlo{transparent=false}=D, false, RenderTrans, SceneLights) ->
+render_object_2(D, false, RenderTrans, SceneLights) ->
     render_smooth(D, RenderTrans, SceneLights).
 
 render_plain(#dlo{work=Faces,src_we=We,proxy=false}, SceneLights) ->
-    %% Draw faces for winged-edge-objects.
-    Wire = wire(We),
-    case Wire of
+    case wire(We) of
 	false -> render_lighted(Faces, SceneLights);
         true -> ok
     end;
-render_plain(#dlo{}=D, SceneLights) ->
-    wings_proxy:draw(D, SceneLights).
+render_plain(#dlo{proxy_data=PD, drag=Drag}, SceneLights) ->
+    polygonOffset(3.0),
+    Faces = wings_proxy:flat_dl(PD),
+    Key = case Drag =:= none of
+              true  -> proxy_static_opacity;
+              false -> proxy_moving_opacity
+          end,
+    if SceneLights =:= false ->
+            Blend = wings_gl:is_ext('GL_ARB_imaging') andalso wings_pref:get_value(Key),
+            case Blend of
+                false ->
+                    render_lighted(Faces, SceneLights);
+                1.0 ->
+                    render_lighted(Faces, SceneLights);
+                _ ->
+                    gl:enable(?GL_BLEND),
+		    gl:blendFunc(?GL_CONSTANT_ALPHA, ?GL_ONE_MINUS_CONSTANT_ALPHA),
+		    gl:blendColor(0.0, 0.0, 0.0, Blend),
+                    render_lighted(Faces, SceneLights),
+                    gl:disable(?GL_BLEND)
+            end;
+       true ->
+            render_lighted(Faces, SceneLights)
+    end.
 
 render_smooth(#dlo{work=Work,smooth=Smooth0,transparent=Trans0,
-		   proxy=Proxy,proxy_data=PD,open=Open},
+		   proxy=Proxy,proxy_data=PD},
 	      RenderTrans, SceneLights) ->
-    {Smooth, Trans} =
+    {Smooth, _Trans} =
         case Proxy of
             true -> wings_proxy:smooth_dl(PD);
             false -> {Smooth0,Trans0}
         end,
-
-    case Trans orelse Open of
-	false -> gl:lightModeli(?GL_LIGHT_MODEL_TWO_SIDE, ?GL_FALSE);
-	true -> gl:lightModeli(?GL_LIGHT_MODEL_TWO_SIDE, ?GL_TRUE)
-    end,
-
-    case wings_pref:get_value(show_backfaces) of
-	true when Open -> gl:disable(?GL_CULL_FACE);
-	_ -> ok
-    end,
 
     Draw = case {Smooth,RenderTrans} of
                {none,false}   -> Work;
@@ -230,6 +257,35 @@ render_smooth(#dlo{work=Work,smooth=Smooth0,transparent=Trans0,
                {_,_} -> none
            end,
     render_lighted(Draw, SceneLights).
+
+render_lighted(Faces, false) ->
+    wings_dl:call(Faces);
+render_lighted(Faces, ambient) ->
+    wings_dl:call(Faces);
+render_lighted(Faces, Lights) ->
+    Do = fun(Light) ->
+                 wings_light:setup_light(Light),
+                 wings_dl:call(Faces)
+         end,
+    _ = [Do(Light) || Light <- Lights],
+    ok.
+
+enable_lighting(false) ->
+    Lighting = wings_pref:get_value(number_of_lights),
+    gl:color4ub(255, 255, 255, 255), %% Needed when vertex colors are not set
+    wings_shaders:use_prog(Lighting);
+enable_lighting(ambient) ->
+    ok;
+enable_lighting(_) ->
+    gl:color4ub(255, 255, 255, 255),
+    gl:depthFunc(?GL_LEQUAL),
+    gl:enable(?GL_BLEND),
+    gl:blendFunc(?GL_ONE, ?GL_ONE).
+
+disable_lighting() ->
+    wings_gl:use_prog(0),
+    gl:disable(?GL_BLEND),
+    gl:depthMask(?GL_TRUE).
 
 render_wire(Dls, SelMode, false) ->
     WOs = wings_wm:get_prop(wireframed_objects),
@@ -259,7 +315,9 @@ render_wire(Dls, SelMode, false) ->
             wings_wm:get_prop(show_wire_backfaces)
                 andalso gl:disable(?GL_CULL_FACE),
             _ = [render_wire_object(D, cage) || D <- Ws],
+            gl:disable(?GL_CULL_FACE),
             _ = [render_wire_object(D, cage) || D <- Os],
+            gl:enable(?GL_CULL_FACE),
             gl:color3fv(wings_pref:get_value(edge_color)),
             gl:lineWidth(1.0),
             _ = [render_wire_object(D, cage) || D <- PWs],
@@ -312,8 +370,15 @@ render_wire_object_1(#dlo{mirror=Matrix}=D, PStyle) ->
     gl:popMatrix(),
     gl:frontFace(?GL_CCW).
 
-split_wires([#dlo{src_we=We}|Dls], WOs, Show, Wires, Others, Proxis) when ?IS_LIGHT(We) ->
-    split_wires(Dls, WOs, Show, Wires, Others, Proxis);
+split_objects([#dlo{src_we=We}=D|Dls], Open, Closed, Lights) when ?IS_LIGHT(We) ->
+    split_objects(Dls, Open, Closed, [D|Lights]);
+split_objects([#dlo{open=true}=D|Dls], Open, Closed, Lights) ->
+    split_objects(Dls, [D|Open], Closed, Lights);
+split_objects([#dlo{open=false}=D|Dls], Open, Closed, Lights) ->
+    split_objects(Dls, Open, [D|Closed], Lights);
+split_objects([], Open, Closed, Lights) ->
+    {Open, Closed, Lights}.
+
 split_wires([#dlo{src_we=#we{id=Id}, proxy=Proxy}=D|Dls], WOs, Show, Wires, Others,Proxis) ->
     case gb_sets:is_member(Id, WOs) of
         true when Proxy -> split_wires(Dls, WOs, Show, Wires, Others, [D|Proxis]);
@@ -322,7 +387,8 @@ split_wires([#dlo{src_we=#we{id=Id}, proxy=Proxy}=D|Dls], WOs, Show, Wires, Othe
         false when Show -> split_wires(Dls, WOs, Show, Wires, [D|Others], Proxis);
         false -> split_wires(Dls, WOs, Show, Wires, Others,Proxis)
     end;
-split_wires([], _, _, Ws, Os, Ps) -> {Ws, Os, Ps}.
+split_wires([], _, _, Ws, Os, Ps) ->
+    {Ws, Os, Ps}.
 
 render_sel_highlight(Dls, SelMode, false, PM) ->
     gl:disable(?GL_POLYGON_OFFSET_LINE),
@@ -333,36 +399,16 @@ render_sel_highlight(Dls, SelMode, false, PM) ->
     gl:matrixMode(?GL_MODELVIEW),
     gl:depthFunc(?GL_LEQUAL),
     _ = [render_sel(D, SelMode, false) || D <- Dls],
-    case sel_need_matrix_push(Dls) of %% Bugbug
-        true ->
-            gl:matrixMode(?GL_PROJECTION),
-            gl:popMatrix(),
-            _ = [render_sel(D, SelMode, false) || D <- Dls];
-        false ->
-            _ = [render_sel(D, SelMode, true) || D <- Dls],
-            gl:matrixMode(?GL_PROJECTION),
-            gl:popMatrix()
-    end,
+    _ = [render_sel(D, SelMode, true) || D <- Dls],
+    gl:matrixMode(?GL_PROJECTION),
+    gl:popMatrix(),
     gl:depthFunc(?GL_LESS),
     gl:matrixMode(?GL_MODELVIEW),
     %% arbitrary placement in the grand scheme of things
     _ = [wings_plugin:draw(plain,D,SelMode) || D <- Dls],
     ok;
-render_sel_highlight(Dls, SelMode, true, PM) ->
-    case sel_need_matrix_push(Dls) of %% Bugbug
-        true ->
-            gl:matrixMode(?GL_PROJECTION),
-            gl:pushMatrix(),
-            non_polygon_offset(1.0, PM),
-            gl:matrixMode(?GL_MODELVIEW),
-            _ = [render_sel(D, SelMode, true) || D <- Dls],
-            gl:matrixMode(?GL_PROJECTION),
-            gl:popMatrix(),
-            gl:matrixMode(?GL_MODELVIEW);
-        false ->
-            _ = [render_sel(D, SelMode, true) || D <- Dls],
-            ok
-    end,
+render_sel_highlight(Dls, SelMode, true, _PM) ->
+    _ = [render_sel(D, SelMode, true) || D <- Dls],
     gl:depthFunc(?GL_LESS),
     %% arbitrary placement in the grand scheme of things
     _ = [wings_plugin:draw(smooth,D,none) || D <- Dls],
@@ -404,31 +450,9 @@ render_sel_2(#dlo{src_we=We}=D, _SelMode, true) ->
     end,
     draw_hilite(D).
 
-render_lighted(Faces, _Lights) ->
-    wings_dl:call(Faces).
-
-enable_lighting(false) ->
-    Lighting = wings_pref:get_value(number_of_lights),
-    gl:color4ub(255, 255, 255, 255), %% Needed when vertex colors are not set
-    wings_shaders:use_prog(Lighting);
-enable_lighting(_) ->
-    gl:color4ub(255, 255, 255, 255),
-    gl:enable(?GL_LIGHTING).
-
-disable_lighting() ->
-    wings_gl:use_prog(0),
-    gl:disable(?GL_LIGHTING),
-    gl:depthMask(?GL_TRUE).
-
 wire(#we{id=Id}) ->
     W = wings_wm:get_prop(wireframed_objects),
     gb_sets:is_member(Id, W).
-
-sel_need_matrix_push(#dlo{src_sel={edge,_}})   -> true;
-sel_need_matrix_push(#dlo{src_sel={vertex,_}}) -> true;
-sel_need_matrix_push(#dlo{hilite={edge,_}})    -> true;
-sel_need_matrix_push(#dlo{hilite={vertex,_}})  -> true;
-sel_need_matrix_push(_) -> false.
 
 draw_sel(#dlo{sel=none}) -> ok;
 draw_sel(#dlo{sel=SelDlist,src_sel={edge,_}}) ->

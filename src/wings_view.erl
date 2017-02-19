@@ -878,11 +878,6 @@ modelview(IncludeLights) ->
     TMM = e3d_transform:translate(TM2, Origin),
 
     gl:loadMatrixd(e3d_transform:matrix(TMM)),
-
-    case UseSceneLights of
-	false -> ok;
-	true -> wings_light:global_lights()
-    end,
     {UseSceneLights, TMM}.
 
 %% Calculate the location of the viewer in 3D space.
