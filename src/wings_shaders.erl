@@ -43,10 +43,11 @@ init() ->
     ?CHECK_ERROR(),
     gl:useProgram(0),
     ?SET(light_shaders, maps:from_list(Programs)),
-    io:format("Using GPU shaders.\n").
+    io:format("Using GPU shaders.\n"),
+    io:format("~p\n",[Programs]),
+    ok.
 
 use_prog(Name) ->
-    io:format("~p~n",[Name]),
     #{Name:=Shader} = ?GET(light_shaders),
     #{prog:=Prog} = Shader,
     wings_gl:use_prog(Prog),

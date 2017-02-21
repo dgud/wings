@@ -12,7 +12,7 @@
 %%
 
 -module(wings_proxy).
--export([setup/1,quick_preview/1,update/2,draw/3,draw_smooth_edges/1,
+-export([setup/1,quick_preview/1,update/2,draw/2,draw_smooth_edges/2,
 	 smooth/2, smooth_dl/1, invalidate/2,
 	 split_proxy/3, update_dynamic/3, reset_dynamic/1]).
 
@@ -231,14 +231,13 @@ any_proxy() ->
 		     (#dlo{}, _) -> true end, false).
 
 
-draw(#dlo{proxy=false}, _Wire, _) -> ok;
-draw(#dlo{proxy_data=#sp{faces=Dl},drag=none}=D, Wire, SceneLights) ->
-    draw_1(D, Dl, Wire, proxy_static_opacity, cage, SceneLights);
-draw(#dlo{proxy_data=#sp{faces=Dl}}=D, _Wire, SceneLights) ->
-    draw_1(D, Dl, true, proxy_moving_opacity, cage, SceneLights).
+draw(#dlo{proxy=false}, _) -> ok;
+draw(#dlo{proxy_data=#sp{faces=Dl},drag=none}=D, SceneLights) ->
+    draw_1(D, Dl, proxy_static_opacity, SceneLights);
+draw(#dlo{proxy_data=#sp{faces=Dl}}=D, SceneLights) ->
+    draw_1(D, Dl, proxy_moving_opacity, SceneLights).
 
-draw_1(#dlo{proxy_data=#sp{src_we=We}} = D, Dl, Wire,
-       Key, EdgeStyleKey, SceneLights) ->
+draw_1(#dlo{proxy_data=#sp{src_we=We}}, Dl, Key, SceneLights) ->
     gl:shadeModel(?GL_SMOOTH),
     wings_render:enable_lighting(SceneLights),
     gl:enable(?GL_POLYGON_OFFSET_FILL),
@@ -263,39 +262,17 @@ draw_1(#dlo{proxy_data=#sp{src_we=We}} = D, Dl, Wire,
     gl:enable(?GL_CULL_FACE),
     gl:disable(?GL_POLYGON_OFFSET_FILL),
     wings_render:disable_lighting(),
-    gl:shadeModel(?GL_FLAT),
-    draw_edges(D, Wire, EdgeStyleKey),
     gl:disable(?GL_BLEND).
 
-draw_smooth_edges(#dlo{drag=none}=D) ->
-    draw_edges(D, true, wings_pref:get_value(proxy_shaded_edge_style));
-draw_smooth_edges(D) ->
+draw_smooth_edges(#dlo{drag=none}=D, Style) ->
+    draw_edges(D, true, Style);
+draw_smooth_edges(D, _) ->
     draw_edges(D, true, cage).
 
 draw_edges(_, false, _) -> ok;
-draw_edges(D, true, EdgeStyle) ->
-    case wings_pref:get_value(aa_edges) of
-	true ->
-	    gl:enable(?GL_LINE_SMOOTH),
-	    gl:enable(?GL_BLEND),
-	    gl:blendFunc(?GL_SRC_ALPHA, ?GL_ONE_MINUS_SRC_ALPHA),
-	    gl:hint(?GL_LINE_SMOOTH_HINT, ?GL_NICEST);
-	false ->
-	    ok
-    end,
-    draw_edges_1(D, EdgeStyle).
-
-draw_edges_1(#dlo{edges=Edges}, cage) ->
-    gl:color3fv(wings_pref:get_value(edge_color)),
-    gl:lineWidth(1.0),
-    gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_LINE),
-    gl:disable(?GL_CULL_FACE),
-    wings_dl:call(Edges),
-    gl:enable(?GL_CULL_FACE);
-draw_edges_1(#dlo{proxy_data=#sp{proxy_edges=ProxyEdges}}, _) ->
-    gl:color3fv(wings_pref:get_value(edge_color)),
-    gl:lineWidth(1.0),
-    gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_LINE),
+draw_edges(#dlo{edges=Edges}, true, cage) ->
+    wings_dl:call(Edges);
+draw_edges(#dlo{proxy_data=#sp{proxy_edges=ProxyEdges}}, true, _) ->
     wings_dl:call(ProxyEdges).
 
 proxy_smooth(We0, Pd0, St) ->

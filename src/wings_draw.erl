@@ -926,7 +926,6 @@ do_draw_mat_faces(MatGroups, Mtab, ActiveColor) ->
 	      DeApply(),
 	      gl:popAttrib()
       end, MatGroups),
-    put(active_shader, 0),
     ok.
 
 %%
