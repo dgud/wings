@@ -395,44 +395,22 @@ apply_material(Name, Mtab, ActiveVertexColors) when is_atom(Name) ->
     Shine = prop_get(shininess, OpenGL)*128,
     gl:materialf(?GL_FRONT_AND_BACK, ?GL_SHININESS, Shine),
     gl:materialfv(?GL_FRONT_AND_BACK, ?GL_EMISSION, prop_get(emission, OpenGL)),
-    Maps0 = prop_get(maps, Mat, []),
     VertexColors = case ActiveVertexColors of
 		       false -> ignore;
 		       true -> prop_get(vertex_colors, OpenGL, ignore)
 		   end,
-    Def = fun() -> ok end,
-    {Maps,DeApply} =
-	case VertexColors of
-	    ignore ->
-		%% Ignore vertex colors. If the hemispherical lighting
-		%% shader is enabled, it is not enough to only disable
-		%% COLOR_MATERIAL, but we must also disable the color
-		%% array.
-		gl:disable(?GL_COLOR_MATERIAL),
-		case ActiveVertexColors of
-		    true ->
-			{Maps0,fun() ->
-				       gl:enableClientState(?GL_COLOR_ARRAY)
-			       end};
-		    false ->
-			{Maps0,Def}
-		   end;
-	    set ->
-		%% Vertex colors overrides diffuse and ambient color
-		%% and suppresses any texture.
-		gl:colorMaterial(?GL_FRONT_AND_BACK, ?GL_AMBIENT_AND_DIFFUSE),
-		gl:enable(?GL_COLOR_MATERIAL),
-		{[],Def};
-	    multiply ->
-		%% Vertex colors are multiplied with the texture.
-		gl:colorMaterial(?GL_FRONT_AND_BACK, ?GL_AMBIENT_AND_DIFFUSE),
-		gl:enable(?GL_COLOR_MATERIAL),
-		{Maps0,Def}
-	end,
+    DeApply = case VertexColors of
+                  ignore when ActiveVertexColors ->
+                      gl:disableClientState(?GL_COLOR_ARRAY),
+                      fun() -> gl:enableClientState(?GL_COLOR_ARRAY) end;
+                  _ ->
+                      fun() -> ok end
+              end,
     gl:materialfv(?GL_FRONT_AND_BACK, ?GL_DIFFUSE, prop_get(diffuse, OpenGL)),
     gl:materialfv(?GL_FRONT_AND_BACK, ?GL_AMBIENT, prop_get(ambient, OpenGL)),
+    Maps = prop_get(maps, Mat, []),
     apply_texture(prop_get(diffuse, Maps, false)),
-    apply_normal_map(get_normal_map(Maps0)),  %% Combine with vertex colors
+    apply_normal_map(get_normal_map(Maps)),  %% Combine with vertex colors
     DeApply.
 
 enable(true)  -> 1;
@@ -481,30 +459,12 @@ apply_normal_map(TexId) ->
 apply_texture_1(Image, TxId) ->
     shader_texture(diffuse, true),
     gl:enable(?GL_TEXTURE_2D),
-    gl:texEnvi(?GL_TEXTURE_ENV, ?GL_TEXTURE_ENV_MODE, ?GL_MODULATE),
     gl:bindTexture(?GL_TEXTURE_2D, TxId),
-    Ft=case wings_pref:get_value(filter_texture, false) of
-	   true -> ?GL_LINEAR;
-	   false -> ?GL_NEAREST
-       end,
-    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MAG_FILTER, Ft),
-    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MIN_FILTER, Ft),
-    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_S, ?GL_REPEAT),
-    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_T, ?GL_REPEAT),
-    case wings_gl:is_ext({1,2}) of
-	true ->
-	    %% Calculate specular color correctly on textured models.
-	    gl:lightModeli(?GL_LIGHT_MODEL_COLOR_CONTROL,
-			   ?GL_SEPARATE_SPECULAR_COLOR);
-	false -> ok
-    end,
     case wings_image:info(Image) of
 	#e3d_image{bytes_pp=4} ->
-%	    gl:enable(?GL_BLEND),
 	    gl:enable(?GL_ALPHA_TEST),
 	    gl:alphaFunc(?GL_GREATER, 0.3);
 	#e3d_image{type=a8} ->
-%	    gl:enable(?GL_BLEND),
 	    gl:enable(?GL_ALPHA_TEST),
 	    gl:alphaFunc(?GL_GREATER, 0.3);
 	_ ->
@@ -513,12 +473,6 @@ apply_texture_1(Image, TxId) ->
     true.
 
 no_texture() ->
-    case wings_gl:is_ext({1,2}) of
-	true ->
-	    gl:lightModeli(?GL_LIGHT_MODEL_COLOR_CONTROL, ?GL_SINGLE_COLOR);
-	false -> 
-	    ok
-    end,
     shader_texture(diffuse, false),
     gl:disable(?GL_TEXTURE_2D),
     gl:disable(?GL_ALPHA_TEST),
