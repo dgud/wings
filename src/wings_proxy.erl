@@ -153,8 +153,13 @@ update_edges(D, Pd) ->
 
 update_edges_1(_, _, cage) -> none;
 update_edges_1(_, #sp{vab=#vab{mat_map=MatMap}=Vab}, all) ->
-    [{_Mat,_Type,Start,MCount}|_] = MatMap,
-    Count = Start+MCount,
+    %% expects the materials to be reversed
+    Count = case MatMap of
+                [{_Mat,_Type,0,MCount}] -> MCount;
+                [{_Mat,_Type,Start,MCount}|_]
+                  when Start =/= 0 ->  %% Assert order of material faces
+                    Start + MCount
+            end,
     fun() ->
 	    Extra = [face_normals],
 	    wings_draw_setup:enable_pointers(Vab, Extra),
@@ -277,11 +282,9 @@ draw_edges(#dlo{proxy_data=#sp{proxy_edges=ProxyEdges}}, true, _) ->
 
 proxy_smooth(We0, Pd0, St) ->
     Level = wings_pref:get_value(proxy_opencl_level),
-    if is_integer(Level),Level > 0 ->
-	    Impl = wings_cc;
-       true ->
-	    Impl = ?MODULE
-    end,
+    Impl = if is_integer(Level),Level > 0 -> wings_cc;
+              true ->?MODULE
+           end,
     case proxy_needs_update(We0, Pd0) of
 	{false,_} ->
 	    Pd0;
