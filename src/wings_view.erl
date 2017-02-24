@@ -646,18 +646,20 @@ pget(Key, Props) -> proplists:get_value(Key, Props).
 -record(tim,
 	{timer, 				%Current timer.
 	 delay, 				%Current delay.
-	 st					%St record.
+	 st,					%St record.
+         start=erlang:monotonic_time(),
+         frames=-1
 	 }).
 
 auto_rotate(St) ->
     auto_rotate_help(),
-    Delay = 16,
-    ?SET(auto_rotate, min(0.1333, 0.0333+wings_pref:get_value(auto_rotate_angle)/5)),
-    Tim = #tim{delay=Delay,st=St},
+    Delay = 15,
+    ?SET(auto_rotate, max(1/120, wings_pref:get_value(auto_rotate_angle)/60)),
     Active = wings_wm:this(),
     {W,H} = wings_wm:win_size(Active),
     X = W div 2, Y = H div 2,
     wings_io:warp(X,Y),
+    Tim = #tim{delay=Delay,st=St},
     {seq,push,set_auto_rotate_timer(Tim)}.
 
 auto_rotate_event({action, Cmd={view, rotate_left}}, Tim) ->
@@ -682,32 +684,31 @@ auto_rotate_event_1(got_focus, _) -> keep;
 auto_rotate_event_1(#mousebutton{state=?SDL_PRESSED}, _) -> keep;
 auto_rotate_event_1(#keyboard{}=Kb, Tim) ->
     Deg = ?GET(auto_rotate),
-    Incr = max(0.1, abs(Deg)*0.1),
+    Incr = max(1/120, abs(Deg)*0.1),
     case wings_hotkey:event(Kb) of
 	{select,more} ->
-            ?SET(auto_rotate, min(15,  Deg+Incr)),
+            ?SET(auto_rotate, min(45/60,  Deg+Incr)),
             get_event(Tim);
 	{select,less} ->
             Deg = ?GET(auto_rotate),
-            ?SET(auto_rotate, max(-15, Deg-Incr)),
+            ?SET(auto_rotate, max(-45/60, Deg-Incr)),
 	    get_event(Tim);
 	_ ->
-	    keep
+	    stop_timer(Tim)
     end;
 auto_rotate_event_1({view,rotate_left=Cmd}, #tim{st=St}=Tim) ->
     command(Cmd, St),
     wings_wm:dirty(),
     set_auto_rotate_timer(Tim);
-auto_rotate_event_1(_Event, #tim{timer=Timer}) ->
-    wings_wm:dirty(),
-    wings_io:cancel_timer(Timer),
-    pop.
+auto_rotate_event_1(_Event, Tim) ->
+    stop_timer(Tim).
 
 auto_rotate_redraw(#tim{st=Redraw}) when is_function(Redraw) ->
     Redraw();
-auto_rotate_redraw(#tim{st=#st{}=St}) ->
+auto_rotate_redraw(#tim{st=#st{}=St}=Tim) ->
     wings_wm:clear_background(),
-    wings_render:render(St).
+    wings_render:render(St),
+    wings_io:info(timer_stats(Tim)).
 
 auto_rotate_help() ->
     Msg1 = wings_msg:button_format(?__(1,"Stop rotating")),
@@ -719,10 +720,20 @@ auto_rotate_help() ->
     Message = wings_msg:join([Msg1,Msg2,P,M]),
     wings_wm:message(Message).
 
-set_auto_rotate_timer(#tim{delay=Delay}=Tim0) ->
+stop_timer(#tim{timer=Timer}) ->
+    wings_wm:dirty(),
+    wings_io:cancel_timer(Timer),
+    pop.
+
+set_auto_rotate_timer(#tim{delay=Delay, frames=Fs}=Tim0) ->
     Timer = wings_io:set_timer(Delay, {action, {view,rotate_left}}),
-    Tim = Tim0#tim{timer=Timer},
+    Tim = Tim0#tim{timer=Timer, frames=Fs+1},
     get_event(Tim).
+
+timer_stats(#tim{start=T0, frames=Fs}) ->
+    T1 = erlang:monotonic_time(),
+    Time = erlang:convert_time_unit(T1-T0, native, millisecond),
+    io_lib:format("Rotate: ~.1f deg ~.1f fps", [?GET(auto_rotate)*60, 1000.0*Fs/Time]).
 
 get_event(Tim) ->
     {replace,fun(Ev) -> auto_rotate_event(Ev, Tim) end}.
