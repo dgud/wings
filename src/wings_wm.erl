@@ -713,6 +713,7 @@ dispatch_event(#wx{event=#wxActivate{active=Active}}) ->
     end;
 dispatch_event(#wx{obj=Obj, event=#wxSize{size={W,H}}}) ->
     ?CHECK_ERROR(),
+    erase(current_gl), %% resets wxGLCanvas:setCurrent().
     case W > 0 andalso H > 0 andalso not (wx2win(Obj) =:= none) of
 	true ->
 	    #win{name=Name} = Geom0 = get_window_data(Obj),

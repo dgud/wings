@@ -472,22 +472,19 @@ update_fun(infinite, SelColor, #we{light=#light{aim=Aim}}=We) ->
     LightCol = get_light_col(We),
     Vec = e3d_vec:norm_sub(Aim, LightPos),
     Data = [e3d_vec:mul(Vec, 0.2),e3d_vec:mul(Vec, 0.6)],
+    {Len, Tris,_} = wings_shapes:tri_sphere(#{subd=>3, scale=>0.08}),
     D = fun() ->
-		gl:lineWidth(1.0),
-		gl:color4fv(LightCol),
+		gl:lineWidth(1.5),
 		gl:pushMatrix(),
 		{X,Y,Z} = LightPos,
 		gl:translatef(X, Y, Z),
-		Obj = glu:newQuadric(),
-		glu:quadricDrawStyle(Obj, ?GLU_FILL),
-		glu:quadricNormals(Obj, ?GLU_SMOOTH),
-		glu:sphere(Obj, 0.08, 25, 25),
-		glu:deleteQuadric(Obj),
+		gl:color4fv(LightCol),
+                gl:drawArrays(?GL_TRIANGLES, 2, Len*3),
 		gl:color3fv(SelColor),
-		gl:drawArrays(?GL_LINES, 0, 2),
+                gl:drawArrays(?GL_LINES, 0, 2),
 		gl:popMatrix()
 	end,
-    wings_vbo:new(D, Data);
+    wings_vbo:new(D, Data++Tris);
 update_fun(point, SelColor, We) ->
     LightPos = light_pos(We),
     LightCol = get_light_col(We),
@@ -499,22 +496,19 @@ update_fun(point, SelColor, We) ->
 	     {0.0,0.71,0.71}],
     N = length(Data0) * 4,
     Data = lines(Data0),
+    {Len, Tris,_} = wings_shapes:tri_sphere(#{subd=>3, scale=>0.08}),
     D = fun() ->
 		gl:lineWidth(1.0),
 		gl:color4fv(LightCol),
 		gl:pushMatrix(),
 		{X,Y,Z} = LightPos,
 		gl:translatef(X, Y, Z),
-		Obj = glu:newQuadric(),
-		glu:quadricDrawStyle(Obj, ?GLU_FILL),
-		glu:quadricNormals(Obj, ?GLU_FLAT),
-		glu:sphere(Obj, 0.08, 25, 25),
-		glu:deleteQuadric(Obj),
+                gl:drawArrays(?GL_TRIANGLES, N, Len*3),
 		gl:color3fv(SelColor),
 		gl:drawArrays(?GL_LINES, 0, N),
 		gl:popMatrix()
 	end,
-    wings_vbo:new(D, Data);
+    wings_vbo:new(D, Data++Tris);
 update_fun(spot, SelColor, #we{light=#light{aim=Aim,spot_angle=Angle}}=We) ->
     Top = light_pos(We),
     LightCol = get_light_col(We),
@@ -528,25 +522,25 @@ update_fun(spot, SelColor, #we{light=#light{aim=Aim,spot_angle=Angle}}=We) ->
     H = math:cos(Rad),
     Translate = e3d_vec:mul(SpotDir, H),
     Rot = e3d_mat:rotate_s_to_t({0.0,0.0,1.0}, e3d_vec:neg(SpotDir)),
-    fun() ->
-	    gl:lineWidth(1.0),
-	    gl:color4fv(LightCol),
-	    gl:pushMatrix(),
-	    Obj = glu:newQuadric(),
-	    {Tx,Ty,Tz} = Top,
-	    gl:translatef(Tx, Ty, Tz),
-	    glu:quadricDrawStyle(Obj, ?GLU_FILL),
-	    glu:quadricNormals(Obj, ?GLU_SMOOTH),
-	    glu:sphere(Obj, 0.08, 25, 25),
-	    gl:color3fv(SelColor),
-	    {Dx,Dy,Dz} = Translate,
-	    gl:translatef(Dx, Dy, Dz),
-	    gl:multMatrixd(Rot),
-	    glu:quadricDrawStyle(Obj, ?GLU_LINE),
-	    glu:cylinder(Obj, R, 0.08, H, 12, 1),
-	    glu:deleteQuadric(Obj),
-	    gl:popMatrix()
-    end;
+    {Len, Tris,_} = wings_shapes:tri_sphere(#{subd=>3, scale=>0.08}),
+    D = fun() ->
+                gl:lineWidth(1.0),
+                gl:color4fv(LightCol),
+                gl:pushMatrix(),
+                {Tx,Ty,Tz} = Top,
+                gl:translatef(Tx, Ty, Tz),
+                gl:drawArrays(?GL_TRIANGLES, 0, Len*3),
+                gl:color3fv(SelColor),
+                {Dx,Dy,Dz} = Translate,
+                gl:translatef(Dx, Dy, Dz),
+                gl:multMatrixd(Rot),
+                Obj = glu:newQuadric(),
+                glu:quadricDrawStyle(Obj, ?GLU_LINE),
+                glu:cylinder(Obj, R, 0.08, H, 12, 1),
+                glu:deleteQuadric(Obj),
+                gl:popMatrix()
+        end,
+    wings_vbo:new(D, Tris);
 update_fun(ambient, _, _) ->
     fun() -> ok end.
 
