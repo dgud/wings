@@ -402,22 +402,17 @@ insert_vtx_data_1([], _Vtab, Acc) -> Acc.
 
 mirror_constrain(Tvs, #we{mirror=none}) ->
     Tvs;
-mirror_constrain(Tvs, #we{mirror=Face}=We) ->
+mirror_constrain({Vs,Tr0}=Tv, #we{mirror=Face}=We) when is_function(Tr0, 2) ->
     M = wings_we:mirror_projection(We),
-    Vs = wings_face:vertices_cw(Face, We),
-    VsSet = ordsets:from_list(Vs),
-    mirror_constrain_1(Tvs, VsSet, M, []).
-
-mirror_constrain_1([{Vs,Tr0}=Fun|Tvs], VsSet, M, Acc)
-  when is_function(Tr0, 2) ->
+    VsSet0 = wings_face:vertices_cw(Face, We),
+    VsSet = ordsets:from_list(VsSet0),
     case ordsets:intersection(ordsets:from_list(Vs), VsSet) of
 	[] ->
-	    mirror_constrain_1(Tvs, VsSet, M, [Fun|Acc]);
+            Tv;
 	[_|_]=Mvs ->
 	    Tr = constrain_fun(Tr0, M, Mvs),
-	    mirror_constrain_1(Tvs, VsSet, M, [{Vs,Tr}|Acc])
-    end;
-mirror_constrain_1([], _, _, Acc) -> Acc.
+	    {Vs,Tr}
+    end.
 
 constrain_fun(Tr0, M, Vs) ->
     fun(Cmd, Arg) ->
