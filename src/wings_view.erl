@@ -660,6 +660,10 @@ auto_rotate(St) ->
     X = W div 2, Y = H div 2,
     wings_io:warp(X,Y),
     Tim = #tim{delay=Delay,st=St},
+    case wings_pref:get_value(develop_time_commands, false) of
+        false -> ok;
+        true  -> wings_util:profile_start(fprof)
+    end,
     {seq,push,set_auto_rotate_timer(Tim)}.
 
 auto_rotate_event({action, Cmd={view, rotate_left}}, Tim) ->
@@ -721,6 +725,10 @@ auto_rotate_help() ->
     wings_wm:message(Message).
 
 stop_timer(#tim{timer=Timer}) ->
+    case wings_pref:get_value(develop_time_commands, false) of
+        false -> ok;
+        true  -> wings_util:profile_stop(fprof)
+    end,
     wings_wm:dirty(),
     wings_io:cancel_timer(Timer),
     pop.
@@ -732,7 +740,7 @@ set_auto_rotate_timer(#tim{delay=Delay, frames=Fs}=Tim0) ->
 
 timer_stats(#tim{start=T0, frames=Fs}) ->
     T1 = erlang:monotonic_time(),
-    Time = erlang:convert_time_unit(T1-T0, native, millisecond),
+    Time = 1+erlang:convert_time_unit(T1-T0, native, millisecond),
     io_lib:format("Rotate: ~.1f deg ~.1f fps", [?GET(auto_rotate)*60, 1000.0*Fs/Time]).
 
 get_event(Tim) ->
