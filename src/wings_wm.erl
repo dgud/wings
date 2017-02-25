@@ -845,7 +845,12 @@ redraw_all() ->
 redraw_win({Name, #win{w=W,h=H,obj=Obj}}) ->
     DoSwap = case use_opengl(Obj) of
 		 true ->
-		     wxGLCanvas:setCurrent(Obj),
+                     case get(current_gl) of
+                         Obj -> ignore;
+                         _ ->
+                             wxGLCanvas:setCurrent(Obj),
+                             put(current_gl, Obj)
+                     end,
 		     gl:viewport(0,0,W,H),
 		     gl:clear(?GL_COLOR_BUFFER_BIT bor ?GL_DEPTH_BUFFER_BIT),
 		     true;
