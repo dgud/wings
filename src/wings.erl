@@ -1203,8 +1203,13 @@ drop_command(cancel_drop, St) -> St.
 %%%
 
 save_windows() ->
-    TopSize = wxWindow:getSize(?GET(top_frame)),
-    wings_pref:set_value(window_size, TopSize),
+    Frame = ?GET(top_frame),
+    case wxTopLevelWindow:isMaximized(Frame) of
+	false ->
+	    TopSize = wxWindow:getSize(?GET(top_frame)),
+	    wings_pref:set_value(window_size, TopSize);
+	true -> ignore
+    end,
     {Contained, Free} = wings_frame:export_layout(),
     wings_pref:set_value(saved_windows2, {Contained, Free}).
 
