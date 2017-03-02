@@ -211,9 +211,22 @@ free_viewer_num(N) ->
 
 open_file() ->
     USFile = wings_file:autosave_filename(wings_file:unsaved_filename()),
-    Recovered = filelib:is_file(USFile),
-    wings_pref:set_value(file_recovered, Recovered),
+    case filelib:is_file(USFile) of
+	true ->
+	    wings_u:yes_no(?__(1,"Wings3D has detected an unsaved file.") ++"\n" ++
+			   ?__(2,"Would you like to recover it?"),
+			   fun() ->
+			       wings_pref:set_value(file_recovered, true),
+			       wings_wm:send_after_redraw(geom, {open_file,USFile})
+			   end,
+			   fun() ->
+			       wings_file:del_unsaved_file(),
+			       open_file_start()
+			   end);
+	_ -> open_file_start()
+    end.
 
+open_file_start() ->
     File1 = case application:get_env(wings, args) of
                 undefined -> none;
                 {ok, File0} ->
@@ -229,10 +242,7 @@ open_file() ->
 	       [F|_] -> F;
 	       [] -> File1
 	   end,
-    if Recovered ->
-	    wings_u:message(?__(1,"Wings3D has recovered an unsaved file.")),
-	    wings_wm:send_after_redraw(geom, {open_file,USFile});
-       File =:= none ->
+    if File =:= none ->
 	    timer:sleep(200), %% For splash screen :-)
 	    ignore;
        true ->

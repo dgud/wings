@@ -14,7 +14,7 @@
 -module(wings_file).
 -export([init/0,init_autosave/0,menu/0,command/2]).
 -export([import_filename/2,export_filename/2,export_filename/3]).
--export([unsaved_filename/0,autosave_filename/1]).
+-export([unsaved_filename/0,del_unsaved_file/0,autosave_filename/1]).
 -export([file_filters/1]).
 
 -include("wings.hrl").
