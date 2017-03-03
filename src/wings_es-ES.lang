@@ -942,7 +942,7 @@
    ]},
   {menu,
    [
-    {3,"Nueva"},
+    {3,"Nuevo"},
     {4,"Crear una escena nueva, vacía"},
     {5,"Abrir..."},
     {6,"Abrir una escena previamente guardada"},
