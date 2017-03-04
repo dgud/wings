@@ -1,0 +1,37 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_cylinder,
+ [
+  {cylinder,
+   [
+    {1,"Cilindro"}
+   ]},
+  {cylinder_dialog,
+   [
+    {1,"Secciones"},
+    {2,"Altura"},
+    {3,"Radio Superior X"},
+    {4,"Radio Superior Z"},
+    {5,"Radio Inferior X"},
+    {6,"Radio Inferior Z"},
+    {8,"Tubo"},
+    {9,"Engranaje"},
+    {10,"Tipo de Cilindro"},
+    {11,"Grosor"}
+   ]},
+  {make_cylinder,
+   [
+    {1,"Opciones del Cilindro"}
+   ]},
+  {make_gear,
+   [
+    {1,"Engranaje"}
+   ]},
+  {make_tube,
+   [
+    {1,"Tubo"}
+   ]},
+  {menu,
+   [
+    {2,"Crear un Cilindro"}
+   ]}
+ ]}.
