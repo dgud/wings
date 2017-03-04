@@ -9,7 +9,7 @@
   {create_bbox,
    [
     {1,"Crear Caja Delimitadora"},
-    {2,"Dimensiones de la Caja:"},
-    {3,"Centro de la Caja:"}
+    {2,"Dimensiones de la Caja: "},
+    {3,"Centro de la Caja: "}
    ]}
  ]}.
