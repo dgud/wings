@@ -228,12 +228,6 @@ command(toggle_lights, St) ->
     St;
 command(scene_lights, St) ->
     toggle_option(scene_lights),
-    %% Invalidate displaylists so that shader data get set correctly
-    %% for materials
-    wings_dl:map(fun(#dlo{proxy_data=PD}=D, _) ->
-			 D#dlo{work=none,smooth=none,
-			       proxy_data=wings_proxy:invalidate(PD, dl)}
-		 end, []),
     St;
 command({shader_set,N}, St) ->
     shader_set(N),
@@ -697,13 +691,20 @@ auto_rotate_event_1(#keyboard{}=Kb, Tim) ->
             Deg = ?GET(auto_rotate),
             ?SET(auto_rotate, max(-45/60, Deg-Incr)),
 	    get_event(Tim);
-	_ ->
+        next -> keep;
+        {view, toggle_lights} -> toggle_lights(), keep;
+        {view, scene_lights} -> toggle_option(scene_lights), keep;
+        {view, reset} -> reset(), keep;
+        {view, toggle_wireframe} -> toggle_option(workmode), keep;
+	_Cmd ->
 	    stop_timer(Tim)
     end;
 auto_rotate_event_1({view,rotate_left=Cmd}, #tim{st=St}=Tim) ->
     command(Cmd, St),
     wings_wm:dirty(),
     set_auto_rotate_timer(Tim);
+auto_rotate_event_1(lost_focus, _) ->
+    keep;
 auto_rotate_event_1(_Event, Tim) ->
     stop_timer(Tim).
 
@@ -735,13 +736,16 @@ stop_timer(#tim{timer=Timer}) ->
 
 set_auto_rotate_timer(#tim{delay=Delay, frames=Fs}=Tim0) ->
     Timer = wings_io:set_timer(Delay, {action, {view,rotate_left}}),
-    Tim = Tim0#tim{timer=Timer, frames=Fs+1},
+    Tim = case Fs > 300 of
+              true  -> Tim0#tim{timer=Timer, frames=0, start=erlang:monotonic_time()};
+              false -> Tim0#tim{timer=Timer, frames=Fs+1}
+          end,
     get_event(Tim).
 
 timer_stats(#tim{start=T0, frames=Fs}) ->
     T1 = erlang:monotonic_time(),
     Time = 1+erlang:convert_time_unit(T1-T0, native, millisecond),
-    io_lib:format("Rotate: ~.1f deg ~.1f fps", [?GET(auto_rotate)*60, 1000.0*Fs/Time]).
+    io_lib:format("Rotate: ~.1f deg ~w fps", [?GET(auto_rotate)*60, round(1000.0*Fs/Time)]).
 
 get_event(Tim) ->
     {replace,fun(Ev) -> auto_rotate_event(Ev, Tim) end}.
@@ -1138,10 +1142,6 @@ toggle_lights() ->
         true -> toggle_option(scene_lights)
     end,
 
-    wings_dl:map(fun(#dlo{proxy_data=PD}=D, _) ->
-			 D#dlo{work=none,smooth=none,
-			       proxy_data=wings_proxy:invalidate(PD, dl)}
-		 end, []),
     Lights0 = wings_pref:get_value(number_of_lights),
     wings_menu:update_menu(view, toggle_lights,
 			   one_of(Lights0 == 1,
