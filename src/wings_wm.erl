@@ -707,7 +707,6 @@ dispatch_event(#wx{event=#wxActivate{active=Active}}) ->
 	    dirty(),
             true;
 	false ->
-            erase(wm_focus_grab),
 	    update_focus(none),
 	    true
     end;

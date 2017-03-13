@@ -741,7 +741,8 @@ generic_event(#mousebutton{button=5,state=?SDL_RELEASED}, _, none) ->
     zoom_step(1);
 generic_event(#mousebutton{button=5,state=?SDL_RELEASED}, _Camera, _Redraw) ->
     zoom_step(1);
-
+generic_event(grab_lost, Camera, _Redraw) ->
+    stop_camera(Camera);
 generic_event(_, _, _) -> keep.
 
 aim_zoom(Dir, St0) ->

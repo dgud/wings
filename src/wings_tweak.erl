@@ -397,9 +397,10 @@ update_tweak_handler(T) ->
     tweak_drag_no_redraw(T).
 
 tweak_drag_no_redraw(T) ->
-    {replace,fun(Ev) ->
-		     handle_tweak_drag_event_0(Ev, T) end}.
+    {replace,fun(Ev) -> handle_tweak_drag_event_0(Ev, T) end}.
 
+handle_tweak_drag_event_0(grab_lost, T) ->
+    end_drag(T);
 handle_tweak_drag_event_0(redraw, #tweak{mode=Mode,st=St}=T) ->
     redraw(St),
     tweak_keys_info(),
