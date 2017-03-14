@@ -1,0 +1,21 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_ambocc,
+ [
+  {ambient,
+   [
+    {1,"Ambiental"}
+   ]},
+  {ambient_occlusion,
+   [
+    {1,"OpenGL OcAmb GL2 tiempo: ~.1fs (~s)\n"}
+   ]},
+  {menu,
+   [
+    {1,"Oclusión Ambiental"},
+    {2,"Añadir colores de vértice de Oclusión Ambiental a través del OpenGL"}
+   ]},
+  {process_obj,
+   [
+    {1,"Procesando: ~s\n"}
+   ]}
+ ]}.
