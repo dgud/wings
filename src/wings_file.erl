@@ -314,14 +314,18 @@ new(#st{}=St0) ->		      %File is not saved or autosaved.
 			  fun() -> {file,{save,{file,new}}} end,
 			  fun() -> {file,confirmed_new} end).
 
-open(#st{saved=true}) ->
-    confirmed_open_dialog();
-open(St) ->
-    wings_u:caption(St#st{saved=false}),		%Clear any autosave flag.
-    Confirmed = {file,confirmed_open_dialog},
-    wings_u:yes_no_cancel(str_save_changes(),
-			  fun() -> {file,{save,Confirmed}} end,
-			  fun() -> Confirmed end).
+open(#st{saved=Saved}=St) ->
+    case Saved orelse wings_obj:num_objects(St) =:= 0 of
+        true ->
+            confirmed_open_dialog();
+        false ->
+            %% Clear any autosave flag.
+            wings_u:caption(St#st{saved=false}),
+            Confirmed = {file,confirmed_open_dialog},
+            wings_u:yes_no_cancel(str_save_changes(),
+                                  fun() -> {file,{save,Confirmed}} end,
+                                  fun() -> Confirmed end)
+    end.
 
 confirmed_open_dialog() ->
     %% All confirmation questions asked. The former contents has either
@@ -359,14 +363,18 @@ confirmed_open(Name, St0) ->
 	  end,
     use_autosave(Name, Fun).
 
-named_open(Name, #st{saved=true}=St) ->
-    confirmed_open(Name, St);
-named_open(Name, St) ->
-    wings_u:caption(St#st{saved=false}),		%Clear any autosave flag.
-    Confirmed = {file,{confirmed_open,Name}},
-    wings_u:yes_no_cancel(str_save_changes(),
-			  fun() -> {file,{save,Confirmed}} end,
-			  fun() -> Confirmed end).
+named_open(Name, #st{saved=Saved}=St) ->
+    case Saved orelse wings_obj:num_objects(St) =:= 0 of
+        true ->
+            confirmed_open(Name, St);
+        false ->
+            %%Clear any autosave flag.
+            wings_u:caption(St#st{saved=false}),
+            Confirmed = {file,{confirmed_open,Name}},
+            wings_u:yes_no_cancel(str_save_changes(),
+                                  fun() -> {file,{save,Confirmed}} end,
+                                  fun() -> Confirmed end)
+    end.
 
 str_save_changes() ->
     ?__(1,"Do you want to save your changes?").
@@ -541,7 +549,8 @@ use_autosave_1(#file_info{mtime=SaveTime0}, File, Body) ->
 	    AutoTime = calendar:datetime_to_gregorian_seconds(AutoInfo0),
 	    if
 		AutoTime > SaveTime ->
-		    Msg = ?__(1,"An autosaved file with a later time stamp exists; do you want to load the autosaved file instead?"),
+		    Msg = ?__(1,"An autosaved file with a later time stamp exists;"
+                              " do you want to load the autosaved file instead?"),
 		    wings_u:yes_no(Msg, autosave_fun(Body, Auto),
 				   autosave_fun(Body, File));
 		true ->

@@ -313,6 +313,8 @@ init([Frame,  _Ps, Os]) ->
     Szr = wxBoxSizer:new(?wxVERTICAL),
     wxPanel:setBackgroundColour(Panel, BG),
     TC = make_tree(Panel, Cs, IL),
+    wxPanel:dragAcceptFiles(Panel, true),
+    wxPanel:connect(Panel, drop_files),
     wxSizer:add(Szr, TC, [{proportion,1}, {flag, ?wxEXPAND}]),
     wxPanel:setSizer(Panel, Szr),
     {Shown,IMap} = update_object(Os, TC, IL, IMap0),
@@ -430,6 +432,10 @@ handle_event(#wx{event=#wxFocus{}}=Ev, #state{top=Obj} = State) ->
     %% Windows sets focus to the tree each time it is updated
     %% fake a enter_window event
     wings_frame ! fake_enter_window(Ev, Obj),
+    {noreply, State};
+handle_event(#wx{event=#wxDropFiles{}}=Ev, State) ->
+    %% Let wings deal with this
+    wings_wm:psend(geom,Ev),
     {noreply, State};
 handle_event(#wx{event=_Ev}, State) ->
     %% io:format("~p:~p Got unexpected event ~p~n", [?MODULE,?LINE, _Ev])

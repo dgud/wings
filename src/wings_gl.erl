@@ -110,6 +110,8 @@ connect_events(Canvas) ->
 
     setup_std_events(Canvas),
     wxWindow:setFocus(Canvas), %% Get keyboard focus
+    wxFrame:dragAcceptFiles(Canvas, true),
+    wxFrame:connect(Canvas, drop_files),
     ok.
 
 redraw(#wx{obj=Canvas, event=#wxPaint{}}=Ev,_) ->

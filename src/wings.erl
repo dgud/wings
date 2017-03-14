@@ -468,13 +468,34 @@ handle_event_3({external,not_possible_to_save_prefs}, _St) ->
     wings_help:not_possible_to_save_prefs();
 handle_event_3({external, win32_start_maximized}, _St) ->
     keep;
-handle_event_3({external, Fun}, St) 
+handle_event_3({external, Fun}, St)
   when is_function(Fun) ->
     Fun(St);
 handle_event_3({external,Op}, St) ->
     wpa:handle_external(Op,St),
     keep;
+handle_event_3(#wx{event=#wxDropFiles{files=Fs0}}, St0) ->
+    Send = fun(Op) -> wings ! {action, {file, Op}} end,
+    ImgFms = wings_image:image_formats(),
+    {Images, Fs1} = lists:partition(fun(Image) -> filter_format(Image, ImgFms) end, Fs0),
+    _ = [Send({import_image, Image}) || Image <- Images],
+    %% Merge or open wings files
+    WngFms = [{".wings", ""}],
+    {Objects, Fs2} = lists:partition(fun(Obj) -> filter_format(Obj, WngFms) end, Fs1),
+    DoOpen = wings_obj:num_objects(St0) =:= 0,
+    Open = fun(File, true)  -> Send({confirmed_open, File}), false;
+              (File, false) -> Send({merge, File}), false
+           end,
+    lists:foldl(Open, DoOpen, Objects),
+    case Fs2 of
+        [] -> keep;
+        [File] -> wings_u:error_msg(?__(1,"Unknown file format: ~s"), [filename:basename(File)]);
+        [_|_]  -> wings_u:error_msg(?__(2,"Unknown file formats"))
+    end;
 handle_event_3(ignore, _St) ->
+    keep;
+handle_event_3({system,_,_}, _St) ->
+    %% observer or other system message
     keep;
 handle_event_3({adv_menu_abort, Ev}, _St) ->
     This = wings_wm:actual_focus_window(),
@@ -502,6 +523,10 @@ handle_popup_event(Ev, Xglobal, Yglobal, St0) ->
 	_ ->
 	    popup_menu(Xglobal, Yglobal, St0)
     end.
+
+filter_format(File, Formats) ->
+    Ext = filename:extension(File),
+    lists:keymember(Ext, 1, Formats).
 
 info_line() ->
     case wings_pref:get_value(tweak_active) of
