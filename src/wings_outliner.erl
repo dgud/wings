@@ -446,8 +446,14 @@ handle_call(_Req, _From, State) ->
     {reply, ok, State}.
 
 handle_cast({new_state, Os}, #state{tc=TC, il=IL, imap=IMap0} = State) ->
-    {Shown,IMap} = update_object(Os, TC, IL, IMap0),
-    {noreply, State#state{os=Os, shown=Shown, imap=IMap}};
+    try
+        {Shown,IMap} = update_object(Os, TC, IL, IMap0),
+        {noreply, State#state{os=Os, shown=Shown, imap=IMap}}
+    catch _:Reason ->
+            io:format("~p:~p: crashed ~P~n",[?MODULE,?LINE,Reason,30]),
+            io:format(" at: ~P~n",[Reason,30]),
+            {noreply, State}
+    end;
 handle_cast(quit, State) ->
     {noreply, State};
 handle_cast(_Req, State) ->
@@ -545,12 +551,12 @@ update_object(Os, TC, IL, Imap0) ->
 		     end,
 		 Acc = [{Item, O}|Acc0],
 		 if Type =:= mat ->
-		     case maps:get(maps, O, []) of
-			 [] -> {Acc, Imap};
-			 Maps ->
-			     add_maps(Maps, TC, Item, Name, IL, Imap, Os, Acc)
-		     end;
-		 true -> {Acc, Imap}
+                         case maps:get(maps, O, []) of
+                             [] -> {Acc, Imap};
+                             Maps ->
+                                 add_maps(Maps, TC, Item, Name, IL, Imap, Os, Acc)
+                         end;
+                    true -> {Acc, Imap}
 		 end
 		 %% {Node,_} = lists:keyfind(Curr, 2, All),
 		 %% wxTreeCtrl:selectItem(TC, Node),
@@ -616,7 +622,7 @@ image_maps_index(Type) ->
 	bump -> 6;
 	normal -> 7;
 	material -> 8;
-	_ -> undefined
+        _unknown -> 4
     end.
 
 load_icons() ->
