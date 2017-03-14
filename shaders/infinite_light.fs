@@ -53,13 +53,12 @@ void main(void)
     vec3 normal = get_normal();
     vec4 difftex = get_diffuse();
     vec3 lightVec0 = normalize(vec3(gl_LightSource[0].position));
-    vec3 diffuseColor = difftex.rgb * color.rgb;
 
     // Amb
     amb = vec3(gl_FrontMaterial.ambient) * vec3(gl_LightSource[0].ambient);
     // Diffuse
     costheta = clamp(dot(normal, lightVec0), 0, 1);
-    diff = diffuseColor*costheta*vec3(gl_LightSource[0].diffuse);
+    diff = color.rgb*costheta*vec3(gl_LightSource[0].diffuse);
 
     // Specular
     if(costheta == 0.0) {
@@ -76,9 +75,10 @@ void main(void)
     // Two sided lighting (calc only diffuse)
     if(!gl_FrontFacing) {
         costheta = clamp(dot(-normal, lightVec0), 0, 1);
-        diff += diffuseColor*costheta*vec3(gl_LightSource[0].diffuse);
+        diff += color.rgb*costheta*vec3(gl_LightSource[0].diffuse);
     }
-    gl_FragColor = vec4(emi+amb+diff+spec, difftex.a*color.a);
+    diff = clamp(emi+diff+amb, vec3(0.0), vec3(1.0));
+    gl_FragColor = vec4(diff*difftex.rgb+spec, difftex.a*color.a);
 }
 
 

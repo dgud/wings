@@ -164,7 +164,7 @@ make_image_0({ImageId,{MaxU,MaxV},{AspX,AspY}}, Arg, Owner, #st{mat=Mat0}=St0) -
     Mesh = #e3d_mesh{type=polygon,fs=Fs,vs=Vs,tx=UVs,he=HardEdges},
     Obj = #e3d_object{obj=Mesh},
     White = wings_color:white(),
-    Black = wings_color:white(),
+    Black = {0.0,0.0,0.0,1.0},
     WhiteT = if Transparent==true -> {1.0,1.0,1.0,0.999};
         true -> White end,
     M = [{MatId,
