@@ -1,0 +1,50 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_absolute_move,
+ [
+  {draw,
+   [
+    {1,"Comandos Absolutos"},
+    {2,"Mover"},
+    {3,"Mover a la posición exacta en coordenadas absolutas."},
+    {4,"Referencia"},
+    {5,"Mover a la selección secundaria."},
+    {6,"Mover usando el centro como referencia."},
+    {7,"Mover y mostrar la entrada numérica."},
+    {8,"Mover usando una selección secundaria como referencia."},
+    {9,"Mover usando una selección secundaria y una orientación como referencia."}
+   ]},
+  {draw_window,
+   [
+    {1,"Opciones de Mover Absoluto"},
+    {3,"Mover objetos"},
+    {4,"Mover objects"},
+    {8,"El punto de referencia es"},
+    {10,"Entre referencia y destino"}
+   ]},
+  {draw_window1,
+   [
+    {2,"Establecer posición"},
+    {6,"Alinear"},
+    {7,"Aplanar"},
+    {9,"Bloquear"}
+   ]},
+  {duplicate,
+   [
+    {5,"Duplicados"}
+   ]},
+  {mirror_error,
+   [
+    {1,"No se pueden mover vértices desde el plano espejo"}
+   ]},
+  {omove,
+   [
+    {1,"La línea y el plano son casi paralelos:\nNo se puede encontrar la intersección."}
+   ]},
+  {selection_ask,
+   [
+    {1,"Selecciona el punto de referencia para la operación"},
+    {2,"Selecciona el punto de destino para la operación"},
+    {3,"Seleccionar el eje de referencia para la orientación"},
+    {4,"Escoger el eje perpendicular al plano (el plano pasará a través de la base del eje)"}
+   ]}
+ ]}.
