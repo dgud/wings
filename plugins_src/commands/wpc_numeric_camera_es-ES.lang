@@ -1,0 +1,18 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_numeric_camera,
+ [
+  {menu_entry,
+   [
+    {1,"Posición Numérica de la Cámara"},
+    {2,"Ajusta la posición de la cámara numéricamente."}
+   ]},
+  {preview_fun,
+   [
+    {1,"Posicionar la Cámara Numéricamente"}
+   ]},
+  {set_camera_position,
+   [
+    {2,"Posición de la Cámara:"},
+    {3,"Punto Focal:"}
+   ]}
+ ]}.
