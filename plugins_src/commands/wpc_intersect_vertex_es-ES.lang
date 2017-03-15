@@ -1,0 +1,29 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_intersect_vertex,
+ [
+  {adv_submenu,
+   [
+    {1,"Permanecer en la línea, mover a la intersección con el plano"},
+    {2,"Permanecer en el plano, move a la línea"},
+    {3,"Seleccionar línea y plano"}
+   ]},
+  {intersect,
+   [
+    {1,"La línea y el plano son casi paralelos:\nno se puede encontrar la intersección."}
+   ]},
+  {menu_item,
+   [
+    {8,"Intersección"}
+   ]},
+  {submenu_items,
+   [
+    {1,"Elige la dirección de la línea - la línea pasará a través del(los) vértice(s) seleccionado(s)"},
+    {2,"Elige el plano a intersecar"},
+    {3,"Elige la normal del plano - el plano pasará a través del(los) vértice(s) seleccionado(s)"},
+    {4,"Elige la línea a intersecar"},
+    {5,"Elige la dirección de la línea"},
+    {6,"Elige el punto para que la línea pase a través"},
+    {7,"Elige la normal del plano"},
+    {8,"Elige el punto para que el plano pase a través"}
+   ]}
+ ]}.
