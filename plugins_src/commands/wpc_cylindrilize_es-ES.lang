@@ -1,0 +1,22 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_cylindrilize,
+ [
+  {axis_menu,
+   [
+    {1,"Inflar los vértices cilíndricamente alrededor del eje central ~s"},
+    {2,"Elige el punto central y el radio"}
+   ]},
+  {cylindrilize_menu,
+   [
+    {1,"Inflar Cilíndricamente"},
+    {2,"Infla los vértices cilíndricamente alrededor de XYZ"},
+    {3,"Elige el eje central"},
+    {4,"Elige el eje central, punto central y radio"}
+   ]},
+  {selection_ask,
+   [
+    {1,"Elige el eje central"},
+    {2,"Elige el punto central"},
+    {3,"Elige el radio"}
+   ]}
+ ]}.
