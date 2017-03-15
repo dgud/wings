@@ -1,0 +1,18 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_doosabin,
+ [
+  {doo_sabin,
+   [
+    {1,"Doo-Sabin"},
+    {2,"Paso de suavizado 1"},
+    {3,"Paso de suavizado 2"},
+    {4,"Paso de disolución 1"},
+    {5,"Paso de disolución 2"},
+    {6,"Actualizando Selección"}
+   ]},
+  {menu_entry,
+   [
+    {1,"Subdivisión Doo Sabin"},
+    {2,"Hace una subdivisión Doo-Sabin de acuerdo a WasaMonkey (ADVERTENCIA: desordena todas las coordenadas UV)"}
+   ]}
+ ]}.
