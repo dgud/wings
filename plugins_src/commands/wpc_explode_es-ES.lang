@@ -1,0 +1,29 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_explode,
+ [
+  {axis_menu,
+   [
+    {1,"Explota objetos a lo largo del eje ~s desde el punto medio de la selección"},
+    {2,"Elige punto"},
+    {3,"Explotar objetos radialmente a lo largo del eje predeterminado"},
+    {4,"Elige radial y punto"},
+    {5,"Elige radial y explota desde el punto medio de la selección"},
+    {6,"Radial"},
+    {7,"Explota objetos uniformemente desde el punto medio de la selección"}
+   ]},
+  {explode_menu,
+   [
+    {1,"Espacia los objetos a lo largo de un eje predeterminado con respecto a un punto"},
+    {2,"Elige eje y punto"},
+    {3,"Elige el eje y explotar desde el punto medio de la selección"}
+   ]},
+  {menu_heading,
+   [
+    {1,"Explotar"}
+   ]},
+  {radial_menu,
+   [
+    {1,"Explota objetos radialmente a lo largo del eje ~s"},
+    {2,"Elige punto"}
+   ]}
+ ]}.
