@@ -1,0 +1,64 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_sel_win,
+ [
+  {delete_groups,
+   [
+    {1,"¿Estás seguro de que deseas eliminar todos los grupos de selección?"},
+    {2,"¿Estás seguro de que deseas eliminar los grupos no válidos?"}
+   ]},
+  {group_basic_menu,
+   [
+    {5,"Añadir al Grupo"},
+    {6,"Añadir la selección actual al Grupo \""},
+    {7,"Restar del Grupo"},
+    {8,"Restar la selección actual del Grupo \""}
+   ]},
+  {group_bool_menu,
+   [
+    {11,"Unir Grupo"},
+    {12,"Unir Grupo \""},
+    {13,"\" con \""},
+    {14,"Restar Grupo"},
+    {15,"Restar Grupo \""},
+    {16,"\" de \""},
+    {17,"Intersecar Grupo"},
+    {18,"Intersecar Grupo \""},
+    {19,"\" con \""}
+   ]},
+  {group_del_menu,
+   [
+    {3,"Eliminar Grupo"},
+    {4,"Eliminar Grupo \""},
+    {20,"Renombrar"},
+    {21,"Renombrar Grupo \""},
+    {22,"Eliminar Todo"},
+    {23,"Eliminar todos los Grupos"},
+    {24,"Eliminar Grupos No válidos"},
+    {25,"Eliminar todos los Grupos No válidos"}
+   ]},
+  {group_ins_menu,
+   [
+    {1,"Nuevo Grupo..."},
+    {2,"Crear un nuevo Grupo de Selección"}
+   ]},
+  {group_replace_menu,
+   [
+    {4,"Reemplazar Grupo \""},
+    {26,"Reemplazar Grupo"}
+   ]},
+  {rename,
+   [
+    {1,"Renombrar"},
+    {2,"Nombre actual"},
+    {3,"Nuevo nombre"}
+   ]},
+  {sel_group_menu,
+   [
+    {1,"Administrar Grupos de Selección"},
+    {2,"Muestra la ventana de Grupos de Selección"}
+   ]},
+  {title,
+   [
+    {1,"Grupos de Selección"}
+   ]}
+ ]}.
