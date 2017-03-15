@@ -1,0 +1,22 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_grid_snap,
+ [
+  {command,
+   [
+    {1,"Origen de la Cuadrícula Virtual"}
+   ]},
+  {grid_snap_menu,
+   [
+    {1,"Introduce el origen numéricamente"},
+    {2,"Selecciona el punto de origen desde el que basar la cuadrícula"}
+   ]},
+  {menu_heading,
+   [
+    {1,"Ajustar cada vértice a una cuadrícula virtual"},
+    {2,"Ajustar a Cuadrícula"},
+    {3," a lo largo de X"},
+    {4," a lo largo de Y"},
+    {5," a lo largo de Z"},
+    {6," radialmente"}
+   ]}
+ ]}.
