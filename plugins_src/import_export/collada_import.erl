@@ -700,7 +700,7 @@ make_material(#{id:=Id, instance_effect:=[$#|Effect]}=Ref, Defs, Imgs) ->
 		   _ -> []
 	       end,
     %% io:format("Name: ~p Maps ~p~n", [Name, Textures]),
-    {list_to_atom(Name), [{opengl, DefList}|Textures]}.
+    {atom_name(Name), [{opengl, DefList}|Textures]}.
 
 prop_get(What, Def, Default) ->
     case maps:get(What, Def, undefined) of
@@ -813,3 +813,16 @@ test() ->
 		      ]),
     ok.
 -endif.
+
+%%%%
+%%%%   Provisory convertion from UTF16/32 - it make possible load a file
+%%%%   which materials name/id uses unicode
+%%%%   reported in: http://www.wings3d.com/forum/showthread.php?tid=2321
+atom_name(Name) ->
+    try list_to_atom(Name) of
+        Atom -> Atom
+    catch
+        error:_ ->
+            Name0 = unicode:characters_to_binary(Name),
+            binary_to_atom(Name0,latin1)
+    end.

@@ -50,7 +50,10 @@ void main(void)
     float costheta = dot(get_normal(), lightVec);
     float a = 0.5 + 0.5 * costheta;
     vec4 difftex = get_diffuse();
-    vec3 DiffuseColor = difftex.rgb * color.rgb;
-    gl_FragColor = vec4(DiffuseColor * mix(GroundColor, SkyColor, a), difftex.a*color.a);
+    vec3 DiffuseColor = color.rgb;
+    vec3 emi = vec3(gl_FrontMaterial.emission);
+    DiffuseColor = clamp(emi+DiffuseColor * mix(GroundColor, SkyColor, a),
+                         vec3(0.0), vec3(1.0));
+    gl_FragColor = vec4(difftex.rgb*DiffuseColor, difftex.a*color.a);
     //gl_FragColor = vec4(get_normal() * 0.5 + 0.5, 1.0);
 }

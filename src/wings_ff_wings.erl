@@ -297,7 +297,7 @@ import_vsn2_dlg(Shapes0, Materials0, Props5, Dir,
                        true -> St2
                     end,
                 St = wings_sel:valid_sel(merge_sel(SelOpt,Mode0,Sel0,St1)),
-                wings_shape:recreate_folder_system(St#st{saved=false})
+                wings_obj:recreate_folder_system(St#st{saved=false})
         end,
     wings_dialog:dialog("Merge", Qs, ?SLOW(Fun)),
     St0.
@@ -931,7 +931,7 @@ import_image(Im,Dir) ->
 		W*H*PP =:= byte_size(Pixels) -> 
 		    ok;
 		true -> 
-		    Str = io_lib:format(?__(2,"Bad image: ~p\n"), [Name]),
+		    Str = io_lib:format(?__(2,"Bad image: ~ts\n"), [Name]),
 		    wings_u:message(lists:flatten(Str)),
 		    throw({bad_image,Name})
 	    end,
@@ -951,7 +951,7 @@ import_image(Im,Dir) ->
 		#e3d_image{}=E3D ->
 		    E3D#e3d_image{name=Name};
 		{error,_} ->
-		    Str = io_lib:format(?__(2,"Bad image: ~p\n"), [Name]),
+		    Str = io_lib:format(?__(2,"Bad image: ~ts\n"), [Name]),
 		    wings_u:message(lists:flatten(Str)),
 		    throw({bad_image,Name})
 	    end
@@ -1377,8 +1377,6 @@ hidden_faces(N, Props) -> [{num_hidden_faces,N}|Props].
 export_holes(#we{holes=[]}, Props) -> Props;
 export_holes(#we{holes=Holes}, Props) -> [{holes,Holes}|Props].
 
-export_perm(#we{perm=[]}) ->
-    [{state,hidden_locked}];	     %Only for backward compatibility.
 export_perm(#we{perm=0}) -> [];
 export_perm(#we{perm=1}) -> [{state,locked}];
 export_perm(#we{perm=2}) -> [{state,hidden}];

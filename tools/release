@@ -183,7 +183,7 @@ copy_app(App0, Lib, BitSize) ->
     ok = file:set_cwd(AppDir),
     ok = file:set_cwd(".."),
     App = list_to_atom(filename:basename(AppDir)),
-    Wcs = [["ebin","*.{beam,bundle,png,lang}"],
+    Wcs = [["ebin","*.{beam,bundle,png,lang,app}"],
 	   ["plugins","**","*.{beam,so,dll,lang}"],
 	   ["plugins","autouv","*.{auv,fs,vs}"],
 	   ["priv","*.{so,dll}"],

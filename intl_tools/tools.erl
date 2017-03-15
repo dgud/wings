@@ -260,16 +260,13 @@ get_en_template_1([_|T]) ->
 %%% Parse transform follows.
 %%%
 
--define(STRINGS, wings_lang_transform_strings).
--define(FUNCTION, wings_lang_transform_function_name).
 -define(ERRORS, wings_lang_transform_errors).
 -define(FILENAME, wings_lang_transform_filename).
 
-parse_transform(Forms0, _Opts) ->
+parse_transform(Forms, _Opts) ->
     put(?ERRORS, []),
-    put(?STRINGS, []),
-    Forms = transform(Forms0),
-    check_strings(erase(?STRINGS)),
+    Strings = collect_strings(Forms),
+    check_strings(Strings),
     erase(?FILENAME),
     case erase(?ERRORS) of
 	[] ->
@@ -280,38 +277,35 @@ parse_transform(Forms0, _Opts) ->
 
 format_error({duplicate_key,Key,Line}) ->
     io_lib:format("Key ~p already used for a different string at line ~p",
-		  [Key,Line]).
+		  [Key,Line]);
+format_error(bad_key) ->
+    "bad key in ?__() or ?STR()".
 
-transform({attribute,_,file,{Filename,_}}=Form) ->
+collect_strings({attribute,_,file,{Filename,_}}) ->
     put(?FILENAME, Filename),
-    Form;
-transform({function,L,Name,Arity,Cs}) ->
-    put(?FUNCTION, Name),
-    {function,L,Name,Arity,transform(Cs)};
-transform({call,L,{remote,_,{atom,_,wings_lang},{atom,_,str}}=Rem,
-	   [{tuple,_,[{atom,_,M}=Mod,Key]},
-	    {string,_,S}=Str]}) ->
-    FunName = get(?FUNCTION),
+    [];
+collect_strings({function,_Line,_Name,_Arity,Cs}) ->
+    collect_strings(Cs);
+collect_strings({call,L,{remote,_,{atom,_,wings_lang},{atom,_,str}},
+	   [{tuple,_,[{atom,_,M},{atom,_,FunName},Key]},
+	    {string,_,S}]}) ->
     K = literal_key(Key),
-    add_string({{M,FunName,K},{S,L}}),
-    {call,L,Rem,[{tuple,L,[Mod,{atom,L,FunName},Key]},Str]};
-transform({string,_,_}=Str) ->
-    Str;
-transform({Tag,Line}=Tuple) when is_atom(Tag), is_integer(Line) ->
-    Tuple;
-transform({Tag,Line,Term}) when is_atom(Tag), is_integer(Line) ->
-    {Tag,Line,transform(Term)};
-transform([H|T]) ->
-    [transform(H)|transform(T)];
-transform(Tuple) when is_tuple(Tuple) ->
-    transform_tuple(1, size(Tuple), Tuple, []);
-transform(Term) -> Term.
+    [{{M,FunName,K},{S,L}}];
+collect_strings({string,_,_}) ->
+    [];
+collect_strings({Tag,Line}) when is_atom(Tag), is_integer(Line) ->
+    [];
+collect_strings({Tag,Line,Term}) when is_atom(Tag), is_integer(Line) ->
+    collect_strings(Term);
+collect_strings([H|T]) ->
+    collect_strings(H) ++ collect_strings(T);
+collect_strings(Tuple) when is_tuple(Tuple) ->
+    collect_from_tuple(1, tuple_size(Tuple), Tuple);
+collect_strings(_) -> [].
 
-transform_tuple(I, Size, Tuple, Acc) when I =< Size ->
-    E = transform(element(I, Tuple)),
-    transform_tuple(I+1, Size, Tuple, [E|Acc]);
-transform_tuple(_, _, _, Acc) ->
-    list_to_tuple(reverse(Acc)).
+collect_from_tuple(I, Size, Tuple) when I =< Size ->
+    collect_strings(element(I, Tuple)) ++ collect_from_tuple(I+1, Size, Tuple);
+collect_from_tuple(_, _, _) -> [].
 
 check_strings(Strs0) ->
     Strs1 = sofs:relation(Strs0),
@@ -328,12 +322,9 @@ check_string({{_,_,Key},[{Str,Line}|Ss]}) ->
 literal_key({atom,_,A}) -> A;
 literal_key({integer,_,I}) -> I;
 literal_key(Term) ->
-    add_error(element(2, Term), bad_literal),
-    bad_literal.
+    add_error(element(2, Term), bad_key),
+    bad_key.
 		   
-add_string(S) ->
-    put(?STRINGS, [S|get(?STRINGS)]).
-
 add_error(L, E0) ->
     E = {get(?FILENAME),[{L,?MODULE,E0}]},
     put(?ERRORS, [E|get(?ERRORS)]).

@@ -61,7 +61,7 @@ make_image(Name,Ask,St) when is_atom(Ask) ->
     #e3d_image{}=Image ->
         make_image(Name,Image,Ask,St);
     {error,Error} ->
-        wpa:error_msg(?__(1,"Failed to load \"~s\": ~s\n"),
+        wpa:error_msg(?__(1,"Failed to load \"~ts\": ~s\n"),
               [Name,file:format_error(Error)])
     end.
 
@@ -126,11 +126,11 @@ image_dialog(FileName, Helper) ->
      {?__(25,"Transparent back face"),false,[{info, ?__(26,"Assign transparent material to back face")},{key,transp}]}
     ].
 
-make_image_0({ImageId, {MaxU,MaxV}, {AspX,AspY}}, Arg, Owner, #st{mat=Mat0}=St) ->
+make_image_0({ImageId,{MaxU,MaxV},{AspX,AspY}}, Arg, Owner, #st{mat=Mat0}=St0) ->
     ArgDict = dict:from_list(Arg),
     Alignment = dict:fetch(alignment,ArgDict),
     UseName = dict:fetch(usename,ArgDict),
-    ImgName = dict:fetch(img_name,ArgDict),
+    ImgName0 = dict:fetch(img_name,ArgDict),
     FName = dict:fetch(fname,ArgDict),
     Offset = dict:fetch(offset,ArgDict),
     Rotation = dict:fetch(rotation,ArgDict),
@@ -164,7 +164,7 @@ make_image_0({ImageId, {MaxU,MaxV}, {AspX,AspY}}, Arg, Owner, #st{mat=Mat0}=St) 
     Mesh = #e3d_mesh{type=polygon,fs=Fs,vs=Vs,tx=UVs,he=HardEdges},
     Obj = #e3d_object{obj=Mesh},
     White = wings_color:white(),
-    Black = wings_color:white(),
+    Black = {0.0,0.0,0.0,1.0},
     WhiteT = if Transparent==true -> {1.0,1.0,1.0,0.999};
         true -> White end,
     M = [{MatId,
@@ -177,27 +177,31 @@ make_image_0({ImageId, {MaxU,MaxV}, {AspX,AspY}}, Arg, Owner, #st{mat=Mat0}=St) 
     Mat = if Transparent==true -> lists:flatten(lists:append(M,get_transp_mat(Mat0)));
         true -> M end,
 
-    ImgName0 = case UseName of
-        for_mat_obj -> FName;
-        _ ->
-            if ImgName==?DEF_NAME -> object_name(ImgName, St);
-            true -> ImgName end
-    end,
+    ImgName = case UseName of
+                  for_mat_obj ->
+                      FName;
+                  _ when ImgName0 =:= ?DEF_NAME ->
+                      object_name(ImgName0, St0);
+                  _ ->
+                      ImgName0
+              end,
 
-    File = #e3d_file{objs=[Obj#e3d_object{name=ImgName0,mat=Mat}]},
-    #st{shapes=Shapes}=St0=wings_import:import(File, St),
-    St0#st{shapes=lock_image(Lock,ImgName0,Shapes)}.
+    File = #e3d_file{objs=[Obj#e3d_object{name=ImgName,mat=Mat}]},
+    St = wings_import:import(File, St0),
+    lock_image(Lock, ImgName, St).
 
 object_name(Prefix, #st{onext=Oid}) ->
     Prefix++integer_to_list(Oid).
 
-lock_image(false,_,Shapes) -> Shapes;
-lock_image(true,Name,Shapes) ->
-    gb_trees:map(fun(_,#we{name=Name0}=We) ->
-        if Name==Name0 ->
-            We#we{perm=1};
-        true -> We end
-    end, Shapes).
+lock_image(false, _, St) ->
+    St;
+lock_image(true, Name, St) ->
+    MF = fun(#{name:=N}=Obj) when Name =:= N ->
+                 Obj#{perm:=?PERM_LOCKED_BIT};
+            (Obj) ->
+                 Obj
+         end,
+    wings_obj:map(MF, St).
 
 get_transp_mat(Mat) ->
     case gb_trees:lookup(transparency_ip, Mat) of

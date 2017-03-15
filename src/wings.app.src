@@ -1,0 +1,22 @@
+%%  wings.app --
+%%
+%%     Application file
+%%
+%%  Copyright (c) 2017 Dan Gudmundsson
+%%
+%%  See the file "license.terms" for information on usage and redistribution
+%%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+%%
+
+
+{application, wings,
+ [{description, "Wings 3D application"},
+  {vsn, "%VSN%"},
+  {modules, [%WINGS_MODS%]},
+  {registered, [wings_sup, wings]},
+  {applications, [kernel, stdlib]},
+  {env, []},
+  {mod, {wings_sup, []}},
+  {runtime_dependencies, ["erts-7.0","stdlib-3.1", "kernel-3.0"]}]}. %% cl e3d ...xmerl
+
+

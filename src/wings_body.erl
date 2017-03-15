@@ -17,7 +17,7 @@
 
 -define(NEED_ESDL, 1).
 -include("wings.hrl").
--import(lists, [foldl/3,reverse/1,sort/1,seq/2]).
+-import(lists, [foldl/3,mapfoldl/3,reverse/1,sort/1,seq/2]).
 
 menu(X, Y, St) ->
     Dir = wings_menu_util:directions(St),
@@ -170,9 +170,9 @@ command({duplicate,Dir}, St) ->
 command({duplicate_object,Ids}, St) ->
     {save_state,duplicate_object(Ids, St)};
 command(delete, St) ->
-    {save_state,wings_shape:update_folders(delete(St))};
+    {save_state,delete(St)};
 command({delete_object,Ids}, St) ->
-    {save_state,wings_shape:update_folders(delete_object(Ids, St))};
+    {save_state,delete_object(Ids, St)};
 command(tighten, St) ->
     tighten(St);
 command(smooth, St) ->
@@ -202,7 +202,7 @@ command(cleanup, St) ->
 command({cleanup,Ask}, St) ->
     cleanup(Ask, St);
 command(collapse, St) ->
-    {save_state,wings_shape:update_folders(wings_collapse:collapse(St))};
+    {save_state,wings_collapse:collapse(St)};
 command(rename, St) ->
     rename(St);
 command({rename,prefix}, St) ->
@@ -503,11 +503,8 @@ delete(St) ->
 %%% Delete called from the Outliner or Object window.
 %%%
 
-delete_object(Objects, #st{shapes=Shs0}=St) ->
-    Shs = foldl(fun(Id, Shs) ->
-			gb_trees:delete(Id, Shs)
-		end, Shs0, Objects),
-    wings_sel:valid_sel(St#st{shapes=Shs}).
+delete_object(Objects, St) ->
+    foldl(fun wings_obj:delete/2, St, Objects).
 
 %%%
 %%% The Flip command
@@ -682,23 +679,28 @@ cos_degrees(Angle) ->
 %%%
 
 %% used by wings_shape - Rename option - Selected
-rename_selected(Mask,St) ->
-    {_,Names,Wes} = wings_sel:fold(fun(_, We, {Idx,NAcc,WAcc}) ->
-					   Name0=get_masked_name(Mask,Idx),
-					   {Idx+1,[Name0|NAcc],[We|WAcc]}
-				   end, {1,[],[]}, St),
-    rename_1(Names, Wes, St).
+rename_selected(Mask, St) ->
+    Objs = wings_sel:fold_obj(fun(Obj, A) -> [Obj|A] end, [], St),
+    F = fun(_, I) ->
+                Name = get_masked_name(Mask, I),
+                {Name,I+1}
+        end,
+    {Names,_} = mapfoldl(F, 1, Objs),
+    rename_1(Names, Objs, St).
+
 %% used by wings_shape - Rename option - Filtered
-rename_filtered(Filter,Mask,#st{shapes=Shs}=St) ->
-    {_,Names,Wes}=foldl(fun({_,#we{name=Name}=We},{Idx,NAcc,WAcc}=Acc) ->
-				case wings_util:is_name_masked(Name,Filter) of
-				    true ->
-					Name0=get_masked_name(Mask,Idx),
-					{Idx+1,[Name0|NAcc],[We|WAcc]};
-				    false -> Acc
-				end
-			end,{1,[],[]},gb_trees:to_list(Shs)),
-    rename_1(Names, Wes, St).
+rename_filtered(Filter, Mask, St) ->
+    F = fun(#{name:=Name0}=Obj, {I,NameAcc,ObjAcc}=Acc) ->
+                case wings_util:is_name_masked(Name0, Filter) of
+                    true ->
+                        Name = get_masked_name(Mask, I),
+                        {I+1,[Name|NameAcc],[Obj|ObjAcc]};
+                    false ->
+                        Acc
+                end
+        end,
+    {_,Names,Objs} = wings_obj:fold(F, {1,[],[]}, St),
+    rename_1(Names, Objs, St).
 
 get_masked_name(Mask,SeqNum) ->
     Idx=string:chr(Mask,$%),
@@ -724,47 +726,48 @@ get_masked_name(Mask,SeqNum) ->
 	    Prefix++integer_to_list(SeqNum0)++Suffix
     end.
 
-rename_prefix(St0) ->
-    Wes = wings_sel:fold(fun(_, We, A) -> [We|A] end, [], St0),
+rename_prefix(St) ->
     Q = [{hframe,[{text,"Enter Prefix", []}]}],
-    wings_dialog:dialog(?__(1,"Prefix Selected Objects"), Q,
-			fun([Prefix]) ->
-				foldl(fun(#we{id=Id,name=Name}=We, #st{shapes=Shs0}=St) ->
-					      NewName = Prefix++Name,
-					      Shs = gb_trees:update(Id, We#we{name=NewName}, Shs0),
-					      St#st{shapes=Shs}
-				      end, St0, Wes)
-			end).
+    DF = fun([Prefix]) ->
+                 MF = fun(#{name:=Name0}=Obj) ->
+                              Name = Prefix ++ Name0,
+                              Obj#{name:=Name}
+                      end,
+                 wings_sel:map_obj(MF, St)
+         end,
+    wings_dialog:dialog(?__(1,"Prefix Selected Objects"), Q, DF).
 
 rename(St) ->
-    Wes = wings_sel:fold(fun(_, We, A) -> [We|A] end, [], St),
-    rename_1(Wes, St).
+    F = fun(Obj, A) -> [Obj|A] end,
+    Objs = wings_sel:fold_obj(F, [], St),
+    rename_1(Objs, St).
 
-rename(Objects, #st{shapes=Shs}=St) ->
-    Wes = foldl(fun(Id, A) -> [gb_trees:get(Id, Shs)|A] end, [], Objects),
-    rename_1(Wes, St).
+rename(Ids, St) ->
+    Objs = [wings_obj:get(Id, St) || Id <- Ids],
+    rename_1(Objs, St).
 
-rename_1(Wes, St) ->
-    Qs = rename_qs(Wes),
+rename_1(Objs, St) ->
+    Qs = rename_qs(Objs),
     wings_dialog:dialog(?__(1,"Rename"), Qs,
-			fun([[]]) -> ignore;
+			fun([[]]) ->
+                                ignore;
 			   (NewNames) ->
-				rename_1(NewNames, Wes, St)
+				rename_1(NewNames, Objs, St)
 			end).
 
-rename_1(Names, Wes, #st{shapes=Shs}=St) ->
-    rename_2(Names, Wes, Shs, St).
+rename_1(Names, Objs, St) ->
+    rename_2(Names, Objs, St).
 
-rename_2([[]|Ns], [#we{}|Wes], Shs0, St) ->
-    rename_2(Ns, Wes, Shs0, St);
-rename_2([N|Ns], [#we{id=Id}=We|Wes], Shs0, St) ->
-    Shs = gb_trees:update(Id, We#we{name=N}, Shs0),
-    rename_2(Ns, Wes, Shs, St);
-rename_2([], [], Shs, St) -> St#st{shapes=Shs}.
+rename_2([""|Ns], [#{}|Objs], St) ->
+    rename_2(Ns, Objs, St);
+rename_2([N|Ns], [Obj|Objs], St0) ->
+    St = wings_obj:put(Obj#{name:=N}, St0),
+    rename_2(Ns, Objs, St);
+rename_2([], [], St) -> St.
 
-rename_qs(Wes) ->
-    OldNames = [{label,Name} || #we{name=Name} <- Wes],
-    TextFields = [{text,Name,[]} || #we{name=Name} <- Wes],
+rename_qs(Objs) ->
+    OldNames = [{label,Name} || #{name:=Name} <- Objs],
+    TextFields = [{text,Name,[]} || #{name:=Name} <- Objs],
     [{hframe,
       [{vframe,OldNames},
        {vframe,TextFields}]}].
@@ -858,60 +861,50 @@ weld(Ask, _) when is_atom(Ask) ->
 	    {text,1.0E-3,[{range,{1.0E-5,10.0}}]}]}],
     wings_dialog:dialog(Ask, ?__(2,"Weld"), Qs,
 			fun(Res) -> {body,{weld,Res}} end);
-weld([Tolerance], #st{shapes=Shs0,sel=Sel0}=St0) ->
-    Unselected = gb_trees:keys(Shs0) -- [ Id || {Id,_} <- Sel0 ],
-    #st{shapes=Shs}=St1 = separate(St0),
-    Selected = gb_trees:keys(Shs) -- Unselected,
-    Sel = [ {Id, gb_sets:singleton(0)} || Id <- Selected ],
-    St = combine(St1#st{sel=Sel}),
-    weld_objects(Tolerance, gb_sets:empty(), status, St).
+weld([Tolerance], St) ->
+    CF = fun(_, We) ->
+                 weld_objects(Tolerance, gb_sets:empty(), We)
+         end,
+    wings_sel:combine(CF, vertex, St).
 
-%% Cycle over St until it doesn't change. This is done because matching faces
-%% that are connected by a single vertex can't be processed (as far as I've
-%% tried). So the hope is that another face pair in the shape will be connect
-%% the next time through the St, which will make the unprocessed face pair share
-%% at least one edge. All the same, not all shapes will be processed. If there
-%% only single vert matching face pairs, then nothing can be done. If you know
-%% how to weld faces with only one common vertex, append the code at
-%% "single vertex").
-weld_objects(Tolerance, SelAcc0, Status0, St0) ->
-    Empty = gb_sets:empty(),
+%% Cycle over #we{} until it doesn't change. This is done because
+%% matching faces that are connected by a single vertex can't be
+%% processed (as far as I've tried). So the hope is that another face
+%% pair in the shape will be connect the next time through the St,
+%% which will make the unprocessed face pair share at least one
+%% edge. All the same, not all shapes will be processed. If there only
+%% single vert matching face pairs, then nothing can be done.
+
+weld_objects(Tolerance, Vs0, We0) ->
     ErrorMsg = ?__(1,"Found no faces to weld."),
-    {St1,{Sel0,Status}} =
-	wings_sel:mapfold(fun(_, We0, Acc) ->
-				  case weld_1(Tolerance, We0, Acc) of
-				      {We0,_} when SelAcc0 =:= Empty ->
-					  wings_u:error_msg(ErrorMsg);
-				      Result ->
-					  Result
-				  end
-			  end, {[],Status0}, St0),
-    case Status of
-	_ when Sel0 =:= [] -> wings_u:error_msg(ErrorMsg);
-	single_vertex when St0 =/= St1 ->
-	    [{_,Vs}] = Sel0,
-	    SelAcc = gb_sets:union(SelAcc0,Vs),
-	    weld_objects(Tolerance, SelAcc, status, St1);
-	_ ->
-	    [{Id,Vs}] = Sel0,
-	    SelAcc = gb_sets:union(SelAcc0,Vs),
-	    St = wings_sel:set(vertex, [{Id,SelAcc}], St1),
-	    {save_state,wings_sel:valid_sel(St)}
+    case weld_1(Tolerance, We0) of
+        error ->
+            case gb_sets:is_empty(Vs0) of
+                true ->
+                    wings_u:error_msg(ErrorMsg);
+                false ->
+                    {We0,Vs0}
+            end;
+        {We,Vs1} ->
+            Vs = gb_sets:union(Vs0, Vs1),
+            AllVs = wings_sel:get_all_items(vertex, We),
+            SelectedVs = gb_sets:intersection(AllVs, Vs),
+            weld_objects(Tolerance, SelectedVs, We)
     end.
 
-weld_1(Tol, #we{id=Id,fs=Fs0}=We0, {Sel,Status0}) ->
+weld_1(Tol, #we{fs=Fs0}=We0) ->
     Fs = qualified_fs(gb_trees:keys(Fs0), Tol, We0, []),
     R = sofs:relation(Fs, [{key,face}]),
     F = sofs:relation_to_family(R),
-    Part0 = sofs:range(F),
-    Part1 = sofs:specification({external,fun([_]) -> false;
-					    (_) -> true end}, Part0),
-    Part = sofs:to_external(Part1),
-    case weld_part(Part, Tol, We0, Status0) of
-	{We0,Status} ->
-	    {We0,{[{Id,gb_sets:singleton(0)}],Status}}; % Nothing to weld or done
-	{We,Status} ->
-	    {We,{[{Id,weld_selection(lists:append(Part), We0, We)}|Sel],Status}}
+    Parts0 = sofs:range(F),
+    Parts1 = sofs:specification({external,fun([_]) -> false;
+                                             (_) -> true end}, Parts0),
+    Parts = sofs:to_external(Parts1),
+    case weld_parts(Parts, Tol, We0) of
+        We0 ->
+            error;
+        We ->
+            {We,weld_selection(lists:append(Parts), We0, We)}
     end.
 
 qualified_fs([F|Fs], Tol, We, Acc) ->
@@ -926,42 +919,48 @@ qualified_fs([], _, _, Acc) -> Acc.
 
 granularize(F, Tol) -> Tol*round(F/Tol).
 
-weld_part([P|Ps], Tol, We0, Status0) ->
-    {We,Status} = weld_part_1(P, Tol, We0, Status0),
-    weld_part(Ps, Tol, We, Status);
-weld_part([], _, We, Status) -> {We,Status}.
+weld_parts([P|Ps], Tol, We0) ->
+    We = weld_part(P, Tol, We0),
+    weld_parts(Ps, Tol, We);
+weld_parts([], _, We) -> We.
 
-weld_part_1([F|Fs], Tol, We, Status) ->
-    weld_part_2(F, Fs, Tol, We, [], Status);
-weld_part_1([], _, We, Status) -> {We,Status}.
+weld_part([F|Fs], Tol, We) ->
+    weld_part_1(F, Fs, Tol, We, []);
+weld_part([], _, We) -> We.
 
-weld_part_2(Fa, [Fb|Fs], Tol, We0, Acc, Status0) ->
-    case catch try_weld(Fa, Fb, Tol, We0, Status0) of
-        {We0,Status} -> weld_part_2(Fa, Fs, Tol, We0, [Fb|Acc], Status);
-        {#we{}=We,Status} -> weld_part_1(Fs++Acc, Tol, We, Status);
-        _ ->
+weld_part_1(Fa, [Fb|Fs], Tol, We0, Acc) ->
+    try try_weld(Fa, Fb, Tol, We0) of
+        error ->
+            weld_part_1(Fa, Fs, Tol, We0, [Fb|Acc]);
+        #we{}=We0 ->
+            weld_part_1(Fa, Fs, Tol, We0, [Fb|Acc]);
+        #we{}=We ->
+            weld_part(Fs++Acc, Tol, We)
+    catch
+        error:_ ->
             weld_error()
     end;
-weld_part_2(_, [], Tol, We, Acc, Status) ->
-    weld_part_1(Acc, Tol, We, Status).
+weld_part_1(_, [], Tol, We, Acc) ->
+    weld_part(Acc, Tol, We).
 
-try_weld(Fa, Fb, Tol, We, Status) ->
+try_weld(Fa, Fb, Tol, We) ->
     Na = wings_face:normal(Fa, We),
     Nb = wings_face:normal(Fb, We),
     case e3d_vec:dot(Na, Nb) of
 	Dot when Dot < -0.99 ->
 	    case wings_face:are_neighbors(Fa, Fb, We) of
 		true ->
-		    case shared_edges(Fa,Fb,We) of
-			[] ->  %io:format("~p\n",["single vertex"]),
-			    {We,single_vertex};
+		    case shared_edges(Fa, Fb, We) of
+			[] ->
+                            error;
 			CommonEs ->
-			    {weld_neighbors(Fa, Fb, CommonEs, Tol, We),Status}
+			    weld_neighbors(Fa, Fb, CommonEs, Tol, We)
 		    end;
 		false ->
-		    {try_weld_1(Fa, Fb, Tol, We),Status}
+		    try_weld_1(Fa, Fb, Tol, We)
 	    end;
-	_Dot -> {We,Status}
+	_Dot ->
+            error
     end.
 
 shared_edges(Fa, Fb, We) ->
@@ -979,21 +978,23 @@ get_shared_edges([]) ->
 
 weld_neighbors(Fa, Fb, CommonEs, Tol, We0) ->
     Vs0 = wings_edge:to_vertices(CommonEs,We0),
-    #we{fs=Ftab}=We1 = dissolve_edges(CommonEs,We0),
+    #we{fs=Ftab}=We1 = dissolve_edges(CommonEs, We0),
     ARemains = gb_trees:is_defined(Fa,Ftab),
     BRemains = gb_trees:is_defined(Fb,Ftab),
     case {ARemains,BRemains} of
         {true,false} ->
             case check_weld_neighbors(Fa, Vs0, Tol, We1) of
                 error ->
-                    wings_dissolve:faces([Fa,Fb],We0);
-                Other -> Other
+                    wings_dissolve:faces([Fa,Fb], We0);
+                Other ->
+                    Other
             end;
         {false,true} ->
             case check_weld_neighbors(Fb, Vs0, Tol, We1) of
                 error ->
-                    wings_dissolve:faces([Fa,Fb],We0);
-                Other -> Other
+                    wings_dissolve:faces([Fa,Fb], We0);
+                Other ->
+                    Other
             end;
         {_,_} ->
             We = wings_dissolve:faces([Fa,Fb],We0),
@@ -1003,22 +1004,26 @@ weld_neighbors(Fa, Fb, CommonEs, Tol, We0) ->
                         error -> We;
                         Other -> Other
                     end;
-                _ -> We
+                _ ->
+                    We
             end
     end.
 
 check_weld_neighbors(Face, Vs0, Tol, We) ->
     Vs1 = wings_face:to_vertices([Face], We),
     if
-	Vs0 =:= Vs1 -> error;
+	Vs0 =:= Vs1 ->
+            error;
 	true ->
-	    Vs =  Vs1 -- Vs0,
+	    Vs = Vs1 -- Vs0,
 	    if
-		Vs =:= [] -> error;
+		Vs =:= [] ->
+                    error;
 		true ->
 		    NVs = Vs0 -- Vs,
 		    case get_vs_pairs(Vs, Tol, Face, We) of
-			[] -> error;
+			[] ->
+                            error;
 			CPList ->
 			    connect_and_collapse(Face, CPList, NVs, [], We)
 		    end
@@ -1171,7 +1176,8 @@ weld_selection(Fs, OldWe, We) ->
 
 weld_selection([F|Fs], OldWe, #we{fs=Ftab}=We, Acc) ->
     case gb_trees:is_defined(F, Ftab) of
-	true -> weld_selection(Fs, OldWe, We, Acc);
+	true ->
+            weld_selection(Fs, OldWe, We, Acc);
 	false ->
 	    Vs = wings_face:vertices_ccw(F, OldWe),
 	    weld_selection(Fs, OldWe, We, Vs++Acc)

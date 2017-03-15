@@ -38,7 +38,6 @@ endif
 # rule to ensure that it gets compiled before all other modules.
 
 MODULES= \
-	array \
 	user_default \
 	wings \
 	wings_align \
@@ -90,6 +89,7 @@ MODULES= \
 	wings_menu_util \
 	wings_move \
 	wings_msg \
+	wings_obj \
 	wings_outliner \
 	wings_palette \
 	wings_pb \
@@ -106,11 +106,11 @@ MODULES= \
 	wings_sel_cmd \
 	wings_scale \
 	wings_shaders \
-	wings_shape \
 	wings_shapes \
 	wings_start \
 	wings_status \
 	wings_subdiv \
+	wings_sup \
 	wings_theme \
 	wings_toolbar \
 	wings_tesselation \
@@ -136,6 +136,12 @@ MODULES= \
 
 TARGET_FILES= $(MODULES:%=$(EBIN)/%.beam)
 
+WINGS_MODS= $(MODULES:%=%,)wings_lang
+
+APP_FILE   = wings.app
+APP_SRC    = $(APP_FILE).src
+APP_TARGET = $(EBIN)/$(APP_FILE)
+
 # ----------------------------------------------------
 # FLAGS
 # ----------------------------------------------------
@@ -149,7 +155,7 @@ ERL_COMPILE_FLAGS += -Werror -I ../e3d $(TYPE_FLAGS) \
 opt debug wx:
 	$(MAKE) TYPE=$@ common
 
-common: $(EBIN)/wings_lang.beam $(TARGET_FILES)
+common: $(EBIN)/wings_lang.beam $(TARGET_FILES) $(APP_TARGET)
 
 template: $(TARGET_FILES)
 	erl -pa $(WINGS_INTL) -noinput -run tools generate_template ../ebin -run erlang halt
@@ -167,6 +173,11 @@ $(EBIN)/wings_u.beam: $(ESRC)/wings_u.erl
 
 $(EBIN)/%.beam: $(ESRC)/%.erl
 	$(ERLC) $(ERL_COMPILE_FLAGS) -o$(EBIN) $<
+
+$(APP_TARGET): $(APP_SRC) ../vsn.mk Makefile
+	$(gen_verbose)sed -e 's;%WINGS_MODS%;$(WINGS_MODS);' $< > $@.tmp
+	$(vsn_verbose)sed -e 's;%VSN%;$(WINGS_VSN);' $@.tmp > $@
+	$(V_at)rm $@.tmp
 
 # ----------------------------------------------------
 # Dependencies

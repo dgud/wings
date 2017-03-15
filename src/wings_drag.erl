@@ -59,6 +59,8 @@
 	 we_funs :: [we_transform_fun()] %List of funs that operate on the We.
 	}).
 
+-type vertex_num() :: wings_vertex:vertex_num().
+
 -type vertices() :: [vertex_num()].
 
 -type mat_transform_fun() :: fun((e3d_matrix(), [float()]) -> e3d_matrix()).
@@ -400,22 +402,17 @@ insert_vtx_data_1([], _Vtab, Acc) -> Acc.
 
 mirror_constrain(Tvs, #we{mirror=none}) ->
     Tvs;
-mirror_constrain(Tvs, #we{mirror=Face}=We) ->
+mirror_constrain({Vs,Tr0}=Tv, #we{mirror=Face}=We) when is_function(Tr0, 2) ->
     M = wings_we:mirror_projection(We),
-    Vs = wings_face:vertices_cw(Face, We),
-    VsSet = ordsets:from_list(Vs),
-    mirror_constrain_1(Tvs, VsSet, M, []).
-
-mirror_constrain_1([{Vs,Tr0}=Fun|Tvs], VsSet, M, Acc)
-  when is_function(Tr0, 2) ->
+    VsSet0 = wings_face:vertices_cw(Face, We),
+    VsSet = ordsets:from_list(VsSet0),
     case ordsets:intersection(ordsets:from_list(Vs), VsSet) of
 	[] ->
-	    mirror_constrain_1(Tvs, VsSet, M, [Fun|Acc]);
+            Tv;
 	[_|_]=Mvs ->
 	    Tr = constrain_fun(Tr0, M, Mvs),
-	    mirror_constrain_1(Tvs, VsSet, M, [{Vs,Tr}|Acc])
-    end;
-mirror_constrain_1([], _, _, Acc) -> Acc.
+	    {Vs,Tr}
+    end.
 
 constrain_fun(Tr0, M, Vs) ->
     fun(Cmd, Arg) ->
@@ -628,7 +625,6 @@ handle_drag_event_0(#keyboard{sym=9, mod=Mod},Drag)->
 		false -> wings_pref:set_value(con_alternate,true)
 	    end, get_drag_event(Drag);
 	false ->
-	    ungrab(Drag),
 	    numeric_input(Drag)
     end;
 handle_drag_event_0(#mousebutton{button=2,state=?SDL_RELEASED},
@@ -645,6 +641,10 @@ handle_drag_event_0(#mousebutton{button=3,state=?SDL_RELEASED,mod=Mod}=Ev,
 
 handle_drag_event_0(Cancel, #drag{})
   when Cancel =:= grab_lost; Cancel =:= cancel ->
+    case Cancel of
+        grab_lost -> wings_wm:release_focus();
+        cancel -> ignore
+    end,
     wings_dl:map(fun invalidate_fun/2, []),
     wings_tweak:toggle_draw(true),
     wings_wm:later(revert_state),
@@ -756,7 +756,6 @@ handle_drag_event_2({numeric_preview,Move}, Drag0) ->
     Drag = ?SLOW(motion_update(Move, Drag1)),
     get_drag_event(Drag);
 handle_drag_event_2({drag_arguments,Move}, Drag0) ->
-    ungrab(Drag0),
     Drag1 = possible_falloff_update(Move, Drag0),
     Drag = ?SLOW(motion_update(Move, Drag1)),
     St = normalize(Move, Drag),
@@ -821,6 +820,7 @@ invalidate_fun(#dlo{src_we=We,proxy_data=PD}=D, _) ->
 
 numeric_input(Drag0) ->
     {_,X,Y} = wings_wm:local_mouse_state(),
+    ungrab(Drag0),
     Ev = #mousemotion{x=X,y=Y,state=0,mod=0},
     {Move0,Drag} = case mouse_translate(Ev, Drag0) of
 		       {{_,M},D} -> {M,D};

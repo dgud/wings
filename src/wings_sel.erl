@@ -15,10 +15,13 @@
 
 -export([clear/1,reset/1,set/2,set/3,
 	 conditional_reset/1,
-	 map/2,map_update_sel/2,map_update_sel/3,
-	 update_sel/2,update_sel/3,fold/3,dfold/4,mapfold/3,
+         selected_ids/1,
+	 map/2,map_obj/2,
+         map_update_sel/2,map_update_sel/3,
+	 update_sel/2,update_sel/3,update_sel_all/2,
+         fold_obj/3,fold/3,dfold/4,mapfold/3,
 	 new_sel/3,make/3,valid_sel/1,valid_sel/3,
-         clone/2,clone/3,combine/2,merge/2,
+         clone/2,clone/3,combine/2,combine/3,merge/2,
 	 center/1,center_vs/1,
 	 bbox_center/1,bounding_box/1,
 	 face_regions/2,strict_face_regions/2,edge_regions/2,
@@ -26,12 +29,19 @@
 	 get_all_items/2,get_all_items/3,
 	 inverse_items/3,to_vertices/3]).
 
--export_type([edge_set/0,face_set/0,item_id/0,item_set/0,vertex_set/0]).
+-export_type([mode/0,
+              edge_set/0,face_set/0,item_id/0,item_set/0,vertex_set/0]).
 
 -include("wings.hrl").
 -include("e3d.hrl").
 
 -import(lists, [foldl/3,reverse/1,reverse/2,sort/1,keydelete/3,keymember/3]).
+
+-type mode() :: 'vertex' | 'edge' | 'face' | 'body'.
+
+-type vertex_num() :: wings_vertex:vertex_num().
+-type edge_num() :: wings_edge:edge_num().
+-type visible_face_num() :: wings_face:visible_face_num().
 
 -type vertex_set() :: gb_sets:set(vertex_num()).
 -type edge_set() :: gb_sets:set(edge_num()).
@@ -71,7 +81,8 @@ set([], St) ->
 set(Sel, St) ->
     St#st{sel=sort(Sel),sh=false}.
 
--spec set(sel_mode(), Sel, #st{}) -> #st{} when
+-spec set(Mode, Sel, #st{}) -> #st{} when
+      Mode :: mode(),
       Sel :: [{item_id(),item_set()}].
 
 set(Mode, [], St) ->
@@ -79,8 +90,19 @@ set(Mode, [], St) ->
 set(Mode, Sel, St) ->
     St#st{selmode=Mode,sel=sort(Sel),sh=false}.
 
+
+%%
+%% Return the Ids for all selected objects.
+%%
+
+-spec selected_ids(#st{}) -> [non_neg_integer()].
+
+selected_ids(#st{sel=Sel}) ->
+    [Id || {Id,_} <- Sel].
+
 %%%
-%%% Map over the selection, modifying the selected objects.
+%%% Map over the selection, modifying the selected #we{}
+%%% records.
 %%%
 
 -spec map(Fun, #st{}) -> #st{} when
@@ -92,12 +114,32 @@ map(F, #st{shapes=Shs0,sel=Sel}=St) ->
     Shs = map_1(F, Sel, Shs1, St, []),
     St#st{shapes=Shs}.
 
+
+%%%
+%%% Map over the selection, modifying the object maps.
+%%%
+
+-spec map_obj(F, #st{}) -> #st{} when
+      F :: fun((InObj) -> OutObj),
+      InObj :: wings_obj:obj(),
+      OutObj :: wings_obj:obj().
+
+map_obj(F, #st{sel=Sel}=St) ->
+    SF = fun(#{id:=Id}=Obj) ->
+                 case keymember(Id, 1, Sel) of
+                     false -> Obj;
+                     true -> F(Obj)
+                 end
+         end,
+    wings_obj:map(SF, St).
+
 %%
 %% Map over the selection, modifying the objects and the selection.
 %%
 
--spec map_update_sel(Fun, sel_mode(), #st{}) -> #st{} when
+-spec map_update_sel(Fun, Mode, #st{}) -> #st{} when
       Fun :: fun((InItems, #we{}) -> {#we{},OutItems}),
+      Mode :: mode(),
       InItems :: item_set(),
       OutItems :: item_set().
 
@@ -125,8 +167,9 @@ map_update_sel(F, St0) when is_function(F, 2) ->
 %% Map over the selection, modifying the selection.
 %%
 
--spec update_sel(Fun, sel_mode(), #st{}) -> #st{} when
+-spec update_sel(Fun, Mode, #st{}) -> #st{} when
       Fun :: fun((InItems, #we{}) -> OutItems),
+      Mode :: mode(),
       InItems :: item_set(),
       OutItems :: item_set().
 
@@ -142,6 +185,17 @@ update_sel(F, #st{sel=Sel0,shapes=Shapes}=St) when is_function(F, 2) ->
     Sel = update_sel_1(Sel0, F, Shapes),
     set(Sel, St).
 
+%%
+%% Map over all objects, modifying the selection.
+%%
+
+-spec update_sel_all(Fun, #st{}) -> #st{} when
+      Fun :: fun((Items, #we{}) -> Items),
+      Items :: gb_sets:set(item_id()).
+
+update_sel_all(F, #st{sel=Sel0,shapes=Shapes}=St) when is_function(F, 2) ->
+    Sel = update_sel_all_1(gb_trees:values(Shapes), Sel0, F),
+    set(Sel, St).
 
 %%%
 %%% Distributed fold over the selection. The Map function
@@ -172,6 +226,25 @@ dfold_1([{Id,Items}|T], Map, Reduce, Shapes, Acc0) ->
     dfold_1(T, Map, Reduce, Shapes, Acc);
 dfold_1([], _, _, _, Acc) -> Acc.
 
+%%%
+%%% Fold over the selection of objects (not #we{} records).
+%%%
+
+-spec fold_obj(Fun, Acc0, #st{}) -> Acc1 when
+      Fun :: fun((wings_obj:obj(), AccIn) -> AccOut),
+      Acc0 :: term(),
+      Acc1 :: term(),
+      AccIn :: term(),
+      AccOut :: term().
+
+fold_obj(F, Acc0, #st{sel=Sel}=St) ->
+    FF = fun(#{id:=Id}=Obj, A) ->
+                 case keymember(Id, 1, Sel) of
+                     false -> A;
+                     true -> F(Obj, A)
+                 end
+         end,
+    wings_obj:fold(FF, Acc0, St).
 
 %%%
 %%% Fold over the selection.
@@ -211,8 +284,9 @@ mapfold(F, Acc0, #st{shapes=Shs0,sel=Sel}=St) ->
 %% Light can only be selected in body mode.
 %%
 
--spec new_sel(Fun, sel_mode(), #st{}) -> #st{} when
+-spec new_sel(Fun, Mode, #st{}) -> #st{} when
       Fun :: fun((InItems, #we{}) -> OutItems),
+      Mode :: mode(),
       InItems :: item_set(),
       OutItems :: item_set().
 
@@ -230,8 +304,9 @@ new_sel(F, Mode, #st{shapes=Shapes}=St) when is_function(F, 2) ->
 %%  edge number, vertex number, or 0 depending on Mode).
 %%
 
--spec make(Fun, sel_mode(), #st{}) -> #st{} when
+-spec make(Fun, Mode, #st{}) -> #st{} when
       Fun :: fun((Items, #we{}) -> boolean()),
+      Mode :: mode(),
       Items :: item_set().
 
 make(Filter, Mode, St) when is_function(Filter, 2) ->
@@ -244,7 +319,8 @@ make(Filter, Mode, St) when is_function(Filter, 2) ->
 %% Clone the selection.
 %%
 
--type clone_item() :: {#we{},item_set(),wings_shape:suffix()}.
+-type suffix() :: 'cut' | 'clone' | 'copy' | 'extract' | 'mirror' | 'sep'.
+-type clone_item() :: {#we{},item_set(),suffix()}.
 -type clone_out() :: {#we{},item_set(),[clone_item()]}.
 -type clone_fun() :: fun((item_set(), #we{}) -> clone_out()).
 
@@ -260,7 +336,7 @@ clone(F, St0) ->
 
 -spec clone(Fun, Mode, #st{}) -> #st{} when
       Fun :: clone_fun(),
-      Mode :: sel_mode().
+      Mode :: mode().
 
 clone(Fun, Mode, St0) ->
     St = clone(Fun, St0),
@@ -282,6 +358,14 @@ combine(F, St) ->
                  F(Items, We)
          end,
     comb_merge(MF, St).
+
+-spec combine(Fun, Mode, #st{}) -> #st{} when
+      Fun :: fun((item_set(), #we{}) -> {#we{},item_set()}),
+      Mode :: mode().
+
+combine(F, Mode, St0) ->
+    St = combine(F, St0),
+    St#st{selmode=Mode}.
 
 -spec merge(Fun, #st{}) -> #st{} when
       Fun :: fun(({#we{},item_set()}) -> {#we{},item_set()}).
@@ -399,7 +483,8 @@ edge_regions(Edges, We) ->
 valid_sel(#st{sel=Sel,selmode=Mode}=St) ->
     St#st{sel=valid_sel(Sel, Mode, St)}.
 
--spec valid_sel(SelIn, sel_mode(), #st{}) -> SelOut when
+-spec valid_sel(SelIn, Mode, #st{}) -> SelOut when
+      Mode :: mode(),
       SelIn :: [{item_id(),item_set()}],
       SelOut :: [{item_id(),item_set()}].
 
@@ -436,18 +521,24 @@ deselect_object(Id, #st{sel=Sel0}=St) ->
     Sel = keydelete(Id, 1, Sel0),
     St#st{sel=Sel}.
 
--spec inverse_items(sel_mode(), item_set(), #we{}) -> item_set().
+-spec inverse_items(Mode, InItems, #we{}) -> OutItems when
+      Mode :: mode(),
+      InItems :: item_set(),
+      OutItems :: item_set().
 
 inverse_items(Mode, Elems, We) ->
     gb_sets:difference(get_all_items(Mode, We), Elems).
 
--spec get_all_items(sel_mode(), obj_id(), #st{}) -> item_set().
+-spec get_all_items(mode(), obj_id(), #st{}) -> item_set().
 
 get_all_items(Mode, Id, #st{shapes=Shapes}) ->
     We = gb_trees:get(Id, Shapes),
     get_all_items(Mode, We).
 
--spec to_vertices(sel_mode(), item_set(), #we{}) -> [vertex_num()].
+-spec to_vertices(Mode, Items, #we{}) -> Vertices when
+      Mode :: mode(),
+      Items :: item_set(),
+      Vertices :: [vertex_num()].
 
 to_vertices(vertex, Vs, _) ->
     gb_sets:to_list(Vs);
@@ -485,6 +576,23 @@ update_sel_1([{Id,Sel0}|T], F, Shapes) ->
 	    update_sel_1(T, F, Shapes)
     end;
 update_sel_1([], _, _) -> [].
+
+update_sel_all_1([#we{id=Id}=We|Wes], [{Id,Items0}|Sel], F) ->
+    Items = F(Items0, We),
+    case gb_sets:is_empty(Items) of
+	false ->
+	    [{Id,Items}|update_sel_all_1(Wes, Sel, F)];
+	true ->
+            update_sel_all_1(Wes, Sel, F)
+    end;
+update_sel_all_1([#we{id=Id,perm=P}|Wes]=Wes0, Sel, F) ->
+    if
+        ?IS_SELECTABLE(P) ->
+            update_sel_all_1(Wes0, [{Id,gb_sets:empty()}|Sel], F);
+        true ->
+            update_sel_all_1(Wes, Sel, F)
+    end;
+update_sel_all_1([], _, _) -> [].
 
 fold_1(F, Acc0, Shapes, [{Id,Items}|T]) ->
     We = gb_trees:get(Id, Shapes),
@@ -526,8 +634,12 @@ clone_fun(F, Items0, #we{id=Id}=We0, #st{shapes=Shs0}=St0) ->
     St = clone_add_sel(Items, Id, St1),
     clone_fun_add(New, St).
 
-clone_fun_add([{We,Items,Suffix}|T], #st{onext=Id}=St0) ->
-    St1 = wings_shape:insert(We, Suffix, St0),
+clone_fun_add([{#we{name=Name0}=We0,Items,Suffix}|T],
+              #st{onext=Id,shapes=Shs0}=St0) ->
+    Name = new_name(Name0, Suffix, Id),
+    We = We0#we{id=Id,name=Name},
+    Shs = gb_trees:insert(Id, We, Shs0),
+    St1 = St0#st{shapes=Shs,onext=Id+1},
     St = clone_add_sel(Items, Id, St1),
     clone_fun_add(T, St);
 clone_fun_add([], St) -> St.
@@ -538,8 +650,44 @@ clone_add_sel(Items, Id, #st{sel=Sel}=St) ->
         true -> St
     end.
 
+new_name(OldName, Suffix0, Id) ->
+    Suffix = suffix(Suffix0),
+    Base = base(reverse(OldName)),
+    reverse(Base, "_" ++ Suffix ++ integer_to_list(Id)).
 
-comb_merge(MF, #st{shapes=Shs0,selmode=Mode,sel=[{Id,_}|_]=Sel0}=St0) ->
+%% Note: Filename suffixes are intentionally not translated.
+%% If we are to translate them in the future, base/1 below
+%% must be updated to strip suffixes (both for the current language
+%% and for English).
+
+suffix(cut) -> "cut";
+suffix(clone) -> "clone";
+suffix(copy) -> "copy";
+suffix(extract) -> "extract";
+suffix(mirror) -> "mirror";
+suffix(sep) -> "sep".
+
+%% base_1(ReversedName) -> ReversedBaseName
+%%  Given an object name, strip digits and known suffixes to
+%%  create a base name. Returns the unchanged name if
+%%  no known suffix could be stripped.
+
+base(OldName) ->
+    case base_1(OldName) of
+	error -> OldName;
+	Base -> Base
+    end.
+
+base_1([H|T]) when $0 =< H, H =< $9 -> base_1(T);
+base_1("tuc_"++Base) -> Base;			%"_cut"
+base_1("enolc_"++Base) -> Base;			%"_clone"
+base_1("ypoc_"++Base) -> Base;			%"_copy"
+base_1("tcartxe_"++Base) -> Base;		%"_extract"
+base_1("rorrim_"++Base) -> Base;		%"_mirror"
+base_1("pes_"++Base) -> Base;			%"_sep"
+base_1(_Base) -> error.
+
+comb_merge(MF, #st{shapes=Shs0,selmode=Mode,sel=[{Id,_}|_]=Sel0}=St) ->
     Shs1 = sofs:from_external(gb_trees:to_list(Shs0), [{id,object}]),
     Sel1 = sofs:from_external(Sel0, [{id,dummy}]),
     Sel2 = sofs:domain(Sel1),
@@ -551,8 +699,7 @@ comb_merge(MF, #st{shapes=Shs0,selmode=Mode,sel=[{Id,_}|_]=Sel0}=St0) ->
               true -> [];
               false -> [{Id,Items}]
           end,
-    St = St0#st{shapes=Shs,sel=Sel},
-    wings_shape:recreate_folder_system(St).
+    St#st{shapes=Shs,sel=Sel}.
 
 combine_zip([#we{id=Id}=We|Wes], [{Id,Items0}|Sel], Mode) ->
     RootSet = combine_root_set(Mode, Items0),

@@ -292,7 +292,7 @@ calc_matmap([{Mat,Fs}|Mfs], Start, Ftab0, Mul, FMap0, Acc) ->
     calc_matmap(Mfs, Next, Ftab, Mul, FMap, 
 		[{Mat, ?GL_QUADS, Start*4, (Next-Start)*4}|Acc]);
 calc_matmap([], Total, _, _, FMap, Acc) ->
-    {Total, reverse(Acc), gb_trees:from_orddict(lists:sort(FMap))}.
+    {Total, Acc, gb_trees:from_orddict(lists:sort(FMap))}.
 
 calc_matmap_1([Id|Fs], [Vs|Ftab], Mul, Count, FMap) ->
     VSize = length(Vs),

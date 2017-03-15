@@ -105,13 +105,7 @@
 %%
 %% Types.
 %%
--type vertex_num() :: non_neg_integer().
--type edge_num() :: non_neg_integer().
--type face_num() :: integer().
--type visible_face_num() :: non_neg_integer().
--type elem_num() :: vertex_num() | edge_num() | face_num().
 
--type sel_mode() :: 'vertex' | 'edge' | 'face' | 'body'.
 -type bounding_box() :: [{float(),float(),float()}].
 
 -type wings_cmd() :: tuple() | atom().
@@ -124,13 +118,13 @@
 %% Main state record containing all objects and other important state.
 -record(st,
 	{shapes=gb_trees:empty() :: gb_trees:tree(),%All visible objects
-	 selmode=face :: sel_mode(),		%Selection mode.
+	 selmode=face :: wings_sel:mode(),          %Selection mode.
 	 sh=false :: boolean(),			%Smart highlighting active.
 	 sel=[],				%Current sel: [{Id,GbSet}]
 	 ssels=gb_trees:empty() :: gb_trees:tree(),   %Saved selections:
 
 	 %% Selection only temporary?
-	 temp_sel=none :: 'none' | {sel_mode(),boolean()},
+	 temp_sel=none :: 'none' | {wings_sel:mode(),boolean()},
 
 	 mat=gb_trees:empty() :: gb_trees:tree(),%Defined materials (GbTree).
 	 pal=[],                                %Palette
@@ -167,13 +161,7 @@
 %% See http://www.cs.mtu.edu/~shene/COURSES/cs3621/NOTES/model/winged-e.html
 -record(we,
 	{id :: non_neg_integer()|undefined,	%Shape id. (undefined during construction)
-	 perm=0,				%Permissions:
-						% 0 - Everything allowed.
-						% 1 - Visible, can't select.
-						% [] or {Mode,GbSet} -
-						%  Invisible, can't select.
-						%  The GbSet contains the
-						%  object's selection.
+	 perm=0 :: wings_we:perm(),             %See wings_we.erl.
 	 name="" :: string() | tuple(),		%Name. (AutoUV stores other things here.)
 	 es=array:new() :: array:array(),	%array containing edges
 	 lv=none :: 'none' | array:array(),	%Left vertex attributes
@@ -200,6 +188,9 @@
 -define(IS_NOT_VISIBLE(Perm), (Perm > 1)).
 -define(IS_SELECTABLE(Perm), (Perm =:= 0)).
 -define(IS_NOT_SELECTABLE(Perm), (Perm =/= 0)).
+
+-define(PERM_LOCKED_BIT, 1).
+-define(PERM_HIDDEN_BIT, 2).
 
 %%
 %% Macros for testing for lights. We don't want to put the record
@@ -232,14 +223,14 @@
 %%                /       \           
 %%                               	   
 -record(edge,
-	{vs=0 :: vertex_num(),			%Start vertex for edge
-	 ve=0 :: vertex_num(),			%End vertex for edge
-	 lf=0 :: face_num(),			%Left face
-	 rf=0 :: face_num(),			%Right face
-	 ltpr=0 :: edge_num(),			%Left traversal predecessor
-	 ltsu=0 :: edge_num(),			%Left traversal successor
-	 rtpr=0 :: edge_num(),			%Right traversal predecessor
-	 rtsu=0	:: edge_num()			%Right traversal successor
+	{vs=0   :: wings_vertex:vertex_num(),     %Start vertex for edge
+	 ve=0   :: wings_vertex:vertex_num(),     %End vertex for edge
+	 lf=0   :: wings_face:face_num(),         %Left face
+	 rf=0   :: wings_face:face_num(),         %Right face
+	 ltpr=0 :: wings_edge:edge_num(), %Left traversal predecessor
+	 ltsu=0 :: wings_edge:edge_num(), %Left traversal successor
+	 rtpr=0 :: wings_edge:edge_num(), %Right traversal predecessor
+	 rtsu=0	:: wings_edge:edge_num()  %Right traversal successor
 	}).
 
 %% The current view/camera.
@@ -313,7 +304,8 @@
 	  face_uv  = none :: wings_vtx_buffer(), %UV coords
 	  face_ts  = none :: wings_vtx_buffer(), %Tangent vector
 	  face_vc  = none :: wings_vtx_buffer(), %Vertex Colors coords
-	  face_es  = none :: wings_vtx_buffer(), %Edges 2*Vertex coords
+	  face_es  = none ::
+            {0, binary()} | wings_vtx_buffer(),  %Edges 2*Vertex coords
 	  face_map = none,                       %FaceId -> {BinPos,TriCount}
 	  mat_map  = none                        %Face per Material draw info
 	 }).

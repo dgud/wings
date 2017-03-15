@@ -477,7 +477,7 @@ misc_prefs() ->
 	       {text,num_undo_levels,[{range,{1,128}}]}]},
       {vframe,
        [{label_column,
-	 [{?__(5,"Angle"),auto_rotate_angle}]}],
+	 [{?__(5,"Angle per second"),auto_rotate_angle}]}],
        [{title,?__(7,"Auto Rotate")}]},
       {vframe,
        [{vframe,

@@ -19,11 +19,16 @@
 -include("e3d_image.hrl").
 -import(lists, [foldl/3,keydelete/3,reverse/1,last/1]).
 
-export(Exporter, Name, Ps, St0) ->
-	#st{shapes=Shs} = St = wings_view:freeze_mirror(St0),
-    Objs = foldl(fun(W, A) ->
-			 export_1(W, Ps, A)
-		 end, [], gb_trees:values(Shs)),
+export(Exporter, Name, Ps, St) ->
+    MF = fun(#{perm:=P}, We) when ?IS_NOT_VISIBLE(P); ?IS_ANY_LIGHT(We) ->
+                 [];
+            (#{name:=ObjName}, We0) ->
+                 We = wings_we:freeze_mirror(We0),
+                 Mesh = make_mesh(We, Ps),
+                 [#e3d_object{name=ObjName,obj=Mesh}]
+         end,
+    RF = fun erlang:'++'/2,
+    Objs = wings_obj:dfold(MF, RF, [], St),
     wings_pb:start(?__(1,"exporting")),
     wings_pb:update(0.01,?__(2,"preparing")),
     Creator = "Wings 3D " ++ ?WINGS_VERSION,
@@ -54,12 +59,6 @@ save_images(#e3d_file{mat=Mat0}=E3DFile, Dir, Filetype) ->
 %%%
 %%% Local functions.
 %%%
-
-export_1(#we{perm=Perm}, _, Acc) when ?IS_NOT_VISIBLE(Perm) -> Acc;
-export_1(#we{name=Name}=We, Ps, Acc) when not ?IS_ANY_LIGHT(We) ->
-    Mesh = make_mesh(We, Ps),
-    [#e3d_object{name=Name,obj=Mesh}|Acc];
-export_1(_, _, Acc) -> Acc.
 
 make_mesh(We0, Ps) ->
     SubDivs = proplists:get_value(subdivisions, Ps, 0),

@@ -157,108 +157,81 @@ rename_qs(Ms) ->
       [{vframe,OldNames},
        {vframe,TextFields}]}].
 
-reassign_material(Old, New, St0) ->
-    %% It would be tempting to call select_material/2 here instead of
-    %% make_fake_selection/2, but we must make sure that even invisible
-    %% and locked objects gets selected.
-    case make_fake_selection(Old, St0) of
-	#st{sel=[]} -> St0;
-	St1 ->
-	    #st{shapes=Shs,mat=Mat} = set_material(New, St1),
-	    St0#st{shapes=Shs,mat=Mat}
+reassign_material(Old, New, St) ->
+    SF = set_material_fun(New, face),
+    F = fun(We) ->
+                Faces = faces_with_mat(Old, We),
+                case gb_sets:is_empty(Faces) of
+                    false -> SF(Faces, We);
+                    true -> We
+                end
+        end,
+    wings_obj:we_map(F, St).
+
+faces_with_mat(OldMat, #we{fs=Ftab,mat=OldMat}) ->
+    gb_sets:from_ordset(gb_trees:keys(Ftab));
+faces_with_mat(_, #we{mat=Atom}) when is_atom(Atom) ->
+    gb_sets:empty();
+faces_with_mat(OldMat, #we{mat=MatTab}) ->
+    Fs = [Face || {Face,Mat} <- MatTab, Mat =:= OldMat],
+    gb_sets:from_ordset(Fs).
+
+select_material(Mat, SelAct, #st{selmode=Mode}=St) ->
+    F = select_fun(SelAct, Mat, Mode),
+    case SelAct of
+        select ->
+            wings_sel:new_sel(F, Mode, St);
+        sel_add ->
+            wings_sel:update_sel_all(F, St);
+        sel_rem ->
+            wings_sel:update_sel(F, St)
     end.
 
-make_fake_selection(OldMat, #st{shapes=Shapes}=St) ->
-    Sel0 = gb_trees:values(Shapes),
-    Sel = make_fake_selection_1(Sel0, OldMat),
-    St#st{selmode=face,sel=Sel}.
-
-make_fake_selection_1([#we{id=Id,fs=Ftab,mat=OldMat}|Shs], OldMat) ->
-    [{Id,gb_trees:keys(Ftab)}|make_fake_selection_1(Shs, OldMat)];
-make_fake_selection_1([#we{mat=Atom}|Shs], OldMat) when is_atom(Atom) ->
-    make_fake_selection_1(Shs, OldMat);
-make_fake_selection_1([#we{id=Id,mat=MatTab}|Shs], OldMat) ->
-    case [Face || {Face,Mat} <- MatTab, Mat =:= OldMat] of
-	[] -> make_fake_selection_1(Shs, OldMat);
-	Sel -> [{Id,gb_sets:from_ordset(Sel)}|make_fake_selection_1(Shs, OldMat)]
+select_fun(select, Mat, Mode) ->
+    fun(_, We) ->
+            selected_items(Mode, Mat, We)
     end;
-make_fake_selection_1([], _) -> [].
-
-select_material(Mat,SelAct,#st{selmode=SelMode,sel=Sel0,shapes=Shs}=St) ->
-    Sel = foldl(fun(#we{id=Id,perm=Perm}=We, Acc) when ?IS_SELECTABLE(Perm) andalso not ?IS_ANY_LIGHT(We) ->
-            Sel1=lists:keyfind(Id, 1, Sel0), % check if Id is already in previous selection
-            Sel2=selected_we(SelMode, We, Mat), % get #we selection using Mat
-            select_material_1(SelAct,Sel1,Sel2,Acc);
-        (_, Acc) -> Acc  % process no selectable or light #we
-		end, [], gb_trees:values(Shs)),
-    wings_sel:set(Sel, St).
-
-%% sel_rem - remove #we's using Mat from any previous selection
-select_material_1(sel_rem,Sel1,Sel2,Acc) ->
-    case Sel1 of
-	false -> Acc; % #we ins't in previous selection - nothing to do
-	_ ->
-	    {_,GbNew}=Sel3 = subtract_sel(Sel1,Sel2),
-	    case gb_sets:is_empty(GbNew) of
-		true -> Acc;
-		_ -> [Sel3|Acc]
-	    end
+select_fun(sel_add, Mat, Mode) ->
+    fun(Items0, We) ->
+            Items = selected_items(Mode, Mat, We),
+            gb_sets:union(Items0, Items)
     end;
-%% select - select #we's using Mat - the original behavior
-%% sel_add - add #we's using Mat to any previous selection
-select_material_1(SelAct,Sel1,Sel2,Acc) ->
-    case Sel2 of
-	false ->
-	    case SelAct of
-		select -> Acc;
-		sel_add -> 
-		    case concat_sel(Sel1,false) of
-			[] -> Acc;
-			Sel3 -> [Sel3|Acc]  % preserve previous selection of #we
-		    end
-	    end;
-	Sel2 ->
-	    case SelAct of
-		select -> [Sel2|Acc]; % we are building a new selection 
-		sel_add -> [concat_sel(Sel1,Sel2)|Acc] % if so, we will update the previous selection
-	    end
+select_fun(sel_rem, Mat, Mode) ->
+    fun(Items0, We) ->
+            Items = selected_items(Mode, Mat, We),
+            gb_sets:difference(Items0, Items)
     end.
 
-%% select the elements (face/edge/vertice) using the Mat
-selected_we(SelMode,#we{id=Id,fs=Ftab}=We, Mat) ->
+%% Select the elements (face/edge/vertice) using Mat
+selected_items(Mode, Mat, #we{fs=Ftab}=We) ->
     MatFaces = wings_facemat:mat_faces(gb_trees:to_list(Ftab), We),
     case keyfind(Mat, 1, MatFaces) of
 	false ->
-	    false;
+	    gb_sets:empty();
 	{Mat,FaceInfoList} ->
 	    Fs = [F || {F,_} <- FaceInfoList, F >= 0],
-		SelItems = case SelMode of
-			vertex -> wings_face:to_vertices(Fs, We);
-			edge -> wings_face:to_edges(Fs, We);
-			_ -> Fs
-			end,
-		{Id,gb_sets:from_ordset(SelItems)}
-	end.
+            SelItems = case Mode of
+                           vertex -> wings_face:to_vertices(Fs, We);
+                           edge -> wings_face:to_edges(Fs, We);
+                           _ -> Fs
+                       end,
+            gb_sets:from_ordset(SelItems)
+    end.
 
-concat_sel(false,false) -> [];
-concat_sel(false,NewSel) -> NewSel;
-concat_sel(OldSel,false) -> OldSel;
-concat_sel({Id,GbSetOld},{Id,GbSetNew}) ->
-    {Id,gb_sets:union(GbSetOld,GbSetNew)}.
+set_material(Mat, #st{selmode=Mode}=St) ->
+    F = set_material_fun(Mat, Mode),
+    wings_sel:map(F, St).
 
-subtract_sel(OldSel,false) -> OldSel;
-subtract_sel({Id,GbSetOld},{Id,GbSetNew}) ->
-    {Id,gb_sets:subtract(GbSetOld,GbSetNew)}.
-    
-set_material(Mat, #st{selmode=face}=St) ->
-    wings_sel:map(fun(Faces, We) ->
-			  wings_facemat:assign(Mat, Faces, We)
-		  end, St);
-set_material(Mat, #st{selmode=body}=St) ->
-    wings_sel:map(fun(_, #we{fs=Ftab}=We) ->
-			  wings_facemat:assign(Mat, gb_trees:keys(Ftab), We)
-		  end, St);
-set_material(_, St) -> St.
+set_material_fun(Mat, face) ->
+    fun(Faces, We) ->
+            wings_facemat:assign(Mat, Faces, We)
+    end;
+set_material_fun(Mat, body) ->
+    fun(_, #we{fs=Ftab}=We) ->
+            wings_facemat:assign(Mat, gb_trees:keys(Ftab), We)
+    end;
+set_material_fun(_, _) ->
+    fun(_, We) -> We end.
 
 default() ->
     Dm = wings_pref:get_value(material_default),
@@ -381,7 +354,7 @@ load_map_1(File0, Dir) ->
 	    Name = filename:rootname(filename:basename(File)),
 	    wings_image:new(Name, Im);
 	{error,Error} ->
-	    io:format(?__(1,"Failed to load") ++ " \"~s\": ~s\n",
+	    io:format(?__(1,"Failed to load") ++ " \"~ts\": ~s\n",
 		      [File,file:format_error(Error)]),
 	    none
     end.
@@ -422,44 +395,22 @@ apply_material(Name, Mtab, ActiveVertexColors) when is_atom(Name) ->
     Shine = prop_get(shininess, OpenGL)*128,
     gl:materialf(?GL_FRONT_AND_BACK, ?GL_SHININESS, Shine),
     gl:materialfv(?GL_FRONT_AND_BACK, ?GL_EMISSION, prop_get(emission, OpenGL)),
-    Maps0 = prop_get(maps, Mat, []),
     VertexColors = case ActiveVertexColors of
 		       false -> ignore;
 		       true -> prop_get(vertex_colors, OpenGL, ignore)
 		   end,
-    Def = fun() -> ok end,
-    {Maps,DeApply} =
-	case VertexColors of
-	    ignore ->
-		%% Ignore vertex colors. If the hemispherical lighting
-		%% shader is enabled, it is not enough to only disable
-		%% COLOR_MATERIAL, but we must also disable the color
-		%% array.
-		gl:disable(?GL_COLOR_MATERIAL),
-		case ActiveVertexColors of
-		    true ->
-			{Maps0,fun() ->
-				       gl:enableClientState(?GL_COLOR_ARRAY)
-			       end};
-		    false ->
-			{Maps0,Def}
-		   end;
-	    set ->
-		%% Vertex colors overrides diffuse and ambient color
-		%% and suppresses any texture.
-		gl:colorMaterial(?GL_FRONT_AND_BACK, ?GL_AMBIENT_AND_DIFFUSE),
-		gl:enable(?GL_COLOR_MATERIAL),
-		{[],Def};
-	    multiply ->
-		%% Vertex colors are multiplied with the texture.
-		gl:colorMaterial(?GL_FRONT_AND_BACK, ?GL_AMBIENT_AND_DIFFUSE),
-		gl:enable(?GL_COLOR_MATERIAL),
-		{Maps0,Def}
-	end,
+    DeApply = case VertexColors of
+                  ignore when ActiveVertexColors ->
+                      gl:disableClientState(?GL_COLOR_ARRAY),
+                      fun() -> gl:enableClientState(?GL_COLOR_ARRAY) end;
+                  _ ->
+                      fun() -> ok end
+              end,
     gl:materialfv(?GL_FRONT_AND_BACK, ?GL_DIFFUSE, prop_get(diffuse, OpenGL)),
     gl:materialfv(?GL_FRONT_AND_BACK, ?GL_AMBIENT, prop_get(ambient, OpenGL)),
+    Maps = prop_get(maps, Mat, []),
     apply_texture(prop_get(diffuse, Maps, false)),
-    apply_normal_map(get_normal_map(Maps0)),  %% Combine with vertex colors
+    apply_normal_map(get_normal_map(Maps)),  %% Combine with vertex colors
     DeApply.
 
 enable(true)  -> 1;
@@ -469,11 +420,9 @@ texture_var(diffuse) -> "UseDiffuseMap";
 texture_var(normal) ->  "UseNormalMap".
 
 shader_texture(What, Enable) ->
-    case get(active_shader) of
-       Prog when is_integer(Prog), Prog > 0 ->
-	    wings_gl:set_uloc(Prog, texture_var(What), enable(Enable));
-	_ ->
-	    ok
+    case ?GET(active_shader) of
+        #{}=Prog -> wings_gl:set_uloc(Prog, texture_var(What), enable(Enable));
+	_ -> ok
     end.
 
 apply_texture(false) -> no_texture();
@@ -496,43 +445,26 @@ get_normal_map(Maps) ->
 	Map -> Map
     end.
 
-apply_normal_map(none) -> 
+apply_normal_map(none) ->
     shader_texture(normal, false),
-    ok;
+    false;
 apply_normal_map(TexId) ->
     shader_texture(normal, true),
     Bump = wings_image:bumpid(TexId),
     gl:activeTexture(?GL_TEXTURE0 + ?NORMAL_MAP_UNIT),
     gl:bindTexture(?GL_TEXTURE_2D, Bump),
-    gl:activeTexture(?GL_TEXTURE0).
+    gl:activeTexture(?GL_TEXTURE0),
+    true.
 
 apply_texture_1(Image, TxId) ->
     shader_texture(diffuse, true),
     gl:enable(?GL_TEXTURE_2D),
-    gl:texEnvi(?GL_TEXTURE_ENV, ?GL_TEXTURE_ENV_MODE, ?GL_MODULATE),
     gl:bindTexture(?GL_TEXTURE_2D, TxId),
-    Ft=case wings_pref:get_value(filter_texture, false) of
-	   true -> ?GL_LINEAR;
-	   false -> ?GL_NEAREST
-       end,
-    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MAG_FILTER, Ft),
-    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MIN_FILTER, Ft),
-    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_S, ?GL_REPEAT),
-    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_T, ?GL_REPEAT),
-    case wings_gl:is_ext({1,2}) of
-	true ->
-	    %% Calculate specular color correctly on textured models.
-	    gl:lightModeli(?GL_LIGHT_MODEL_COLOR_CONTROL,
-			   ?GL_SEPARATE_SPECULAR_COLOR);
-	false -> ok
-    end,
     case wings_image:info(Image) of
 	#e3d_image{bytes_pp=4} ->
-%	    gl:enable(?GL_BLEND),
 	    gl:enable(?GL_ALPHA_TEST),
 	    gl:alphaFunc(?GL_GREATER, 0.3);
 	#e3d_image{type=a8} ->
-%	    gl:enable(?GL_BLEND),
 	    gl:enable(?GL_ALPHA_TEST),
 	    gl:alphaFunc(?GL_GREATER, 0.3);
 	_ ->
@@ -541,12 +473,6 @@ apply_texture_1(Image, TxId) ->
     true.
 
 no_texture() ->
-    case wings_gl:is_ext({1,2}) of
-	true ->
-	    gl:lightModeli(?GL_LIGHT_MODEL_COLOR_CONTROL, ?GL_SINGLE_COLOR);
-	false -> 
-	    ok
-    end,
     shader_texture(diffuse, false),
     gl:disable(?GL_TEXTURE_2D),
     gl:disable(?GL_ALPHA_TEST),
@@ -554,14 +480,15 @@ no_texture() ->
 
 %% Return the materials used by the objects in the scene.
 
-used_materials(#st{shapes=Shs,mat=Mat0}) ->
-    Used0 = foldl(fun(We, A) ->
-			  [wings_facemat:used_materials(We)|A]
-		  end, [], gb_trees:values(Shs)),
-    Used1 = ordsets:union(Used0),
-    Used2 = sofs:from_external(Used1, [name]),
+used_materials(#st{mat=Mat0}=St) ->
+    MF = fun(_, We) ->
+                 wings_facemat:used_materials(We)
+         end,
+    RF = fun(M, A) -> ordsets:union(M, A) end,
+    Used0 = wings_obj:dfold(MF, RF, ordsets:new(), St),
+    Used1 = sofs:from_external(Used0, [name]),
     Mat = sofs:relation(gb_trees:to_list(Mat0), [{name,data}]),
-    Used = sofs:restriction(Mat, Used2),
+    Used = sofs:restriction(Mat, Used1),
     sofs:to_external(Used).
 
 %% Return all image ids used by materials.
@@ -755,7 +682,6 @@ mat_preview(Canvas, Common, Maps) ->
     gl:pushMatrix(),
     gl:loadIdentity(),
     gl:translatef(0.0, 0.0, -2.0),
-    wings_light:camera_lights(mat_preview),
     gl:shadeModel(?GL_SMOOTH),
     Alpha = wings_dialog:get_value(opacity, Common),
     Amb   = preview_mat(ambient, Common, Alpha),
@@ -772,19 +698,20 @@ mat_preview(Canvas, Common, Maps) ->
     gl:enable(?GL_DEPTH_TEST),
     gl:enable(?GL_CULL_FACE),
     gl:rotatef(-90.0,1.0,0.0,0.0),
+    gl:color4ub(255, 255, 255, 255),
+    wings_shaders:use_prog(1),
     Obj = glu:newQuadric(),
     glu:quadricDrawStyle(Obj, ?GLU_FILL),
     glu:quadricNormals(Obj, ?GLU_SMOOTH),
+    %% UseNormalMap = apply_normal_map(get_normal_map(Maps)), No bi-tangent..
     case apply_texture(prop_get(diffuse, Maps, false)) of
-	true ->
-	    glu:quadricTexture(Obj, ?GLU_TRUE);
-	false ->
-	    ignore
+	true -> glu:quadricTexture(Obj, ?GLU_TRUE);
+	false -> ignore
     end,
     glu:sphere(Obj, 0.9, 50, 50),
     glu:deleteQuadric(Obj),
     no_texture(),
-    gl:disable(?GL_LIGHTING),
+    wings_gl:use_prog(0),
     gl:disable(?GL_BLEND),
     gl:shadeModel(?GL_FLAT),
     gl:matrixMode(?GL_PROJECTION),

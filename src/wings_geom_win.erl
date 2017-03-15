@@ -25,9 +25,10 @@
 
 -define(NEED_ESDL, true).
 -include("wings.hrl").
--import(lists, [foldl/3,keymember/3]).
+-import(lists, [all/2,foldl/3,keymember/3,member/2]).
 
 -dialyzer({nowarn_function, gen_event/5}).
+
 %%%
 %%% Geometry Graph window.
 %%%
@@ -50,7 +51,7 @@ window(St) ->
 window({_,Client}=Name, Pos, Size, Ps0, St) ->
     Shapes = get_shape_state(Name, St),
     {Frame,Ps} = wings_frame:make_win(title(Client), [{size, Size}, {pos, Pos}|Ps0]),
-    Window = wx_object:start_link(?MODULE, [Frame, Size, Ps, Name, Shapes], []),
+    Window = wings_sup:window(undefined, ?MODULE, [Frame, Size, Ps, Name, Shapes]),
     Fs = [{display_data, geom_display_lists}|Ps],
     wings_wm:toplevel(Name, Window, Fs, {push,change_state(Window, St)}),
     keep.
@@ -111,38 +112,38 @@ rename_filtered_dialog(ManyObjs) ->
 %% Inside wings (process)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-visibility(Id, single, #st{shapes=Shs}=St0) ->
-    St = case gb_trees:get(Id, Shs) of
-	     #we{perm=Perm} when ?IS_VISIBLE(Perm) ->
-		 wings_shape:hide_object(Id, St0);
-	     _ -> wings_shape:show_object(Id, St0)
+visibility(Id, single, St0) ->
+    St = case wings_obj:get(Id, St0) of
+	     #{perm:=Perm} when ?IS_VISIBLE(Perm) ->
+                 wings_obj:hide([Id], St0);
+	     #{} ->
+                 wings_obj:unhide([Id], St0)
 	 end,
     send_client({update_state,St});
-visibility(Id, folder, #st{shapes=Shs, pst=Pst0}=St0) ->
-    #we{pst=WePst} = gb_trees:get(Id, Shs),
-    Folder = gb_trees:get(?FOLDERS, WePst),
-    {_,Fld} = gb_trees:get(?FOLDERS, Pst0),
-    {_,Ids0} = orddict:fetch(Folder, Fld),
-    Ids = gb_sets:to_list(Ids0),
-    Objs = foldl(fun(Obj, A) ->
-        [gb_trees:get(Obj, Shs)|A]
-    end, [], Ids),
-    St = case are_all_visible(Objs, Id) of
-	     false -> wings_shape:show_all_in_folder(Ids, St0);
-	     true -> wings_shape:hide_others_in_folder(Id, Ids, St0)
-	 end,
-    send_client({update_state,St});
-visibility(Id, all, #st{shapes=Shs}=St0) ->
-    Objs = gb_trees:values(Shs),
-    St = case are_all_visible(Objs, Id) of
-	     false -> wings_shape:show_all(St0);
-	     true -> wings_shape:hide_others(Id, St0)
-	 end,
+visibility(Id, Action, St0) ->
+    Objs = case Action of
+               folder ->
+                   #{folder:=Folder} = wings_obj:get(Id, St0),
+                   other_objs_in_folder(Id, Folder, St0);
+               all ->
+                   all_other_objects(Id, St0)
+           end,
+    Ids = [I || #{id:=I} <- Objs],
+    St = case are_all_visible(Objs) of
+             false ->
+                 wings_obj:unhide([Id|Ids], St0);
+             true ->
+                 wings_obj:hide(Ids, St0)
+         end,
     send_client({update_state,St}).
 
-selection(Id, single, #st{sel=Sel, shapes=Shs}=St0) ->
-    #we{perm=Perm} = gb_trees:get(Id, Shs),
-    case keymember(Id, 1, Sel) of
+are_all_visible(Objs) ->
+    VisibleP = fun(#{perm:=P}) -> ?IS_VISIBLE(P) end,
+    all(VisibleP, Objs).
+
+selection(Id, single, St0) ->
+    #{perm:=Perm} = wings_obj:get(Id, St0),
+    case member(Id, wings_sel:selected_ids(St0)) of
 	false when ?IS_SELECTABLE(Perm) ->
 	    St = wings_sel:select_object(Id, St0),
 	    send_client({new_state,St});
@@ -150,53 +151,43 @@ selection(Id, single, #st{sel=Sel, shapes=Shs}=St0) ->
 	    St = wings_sel:deselect_object(Id, St0),
 	    send_client({new_state,St});
 	false ->
-	    ok
+	    keep
     end;
-selection(Id0, folder, #st{shapes=Shs, pst=Pst0, selmode=Mode, sel=Sel0}=St0) ->
-    #we{pst=WePst} = gb_trees:get(Id0, Shs),
-    Folder = gb_trees:get(?FOLDERS, WePst),
-    {_,Fld} = gb_trees:get(?FOLDERS, Pst0),
-    {_,Ids0} = orddict:fetch(Folder, Fld),
-    Ids = gb_sets:to_list(Ids0),
-    SelIds0 = orddict:fetch_keys(Sel0),
-    SelIds1 = Ids -- SelIds0,
-    Sel = case SelIds1 =:= [] of
+selection(Id0, Action, #st{selmode=Mode}=St0) ->
+    Objs = case Action of
+               folder ->
+                   #{folder:=Folder} = wings_obj:get(Id0, St0),
+                   other_objs_in_folder(Id0, Folder, St0);
+               all ->
+                   all_other_objects(Id0, St0)
+           end,
+    Ids = ordsets:from_list([I || #{id:=I} <- Objs]),
+    SelIds = wings_sel:selected_ids(St0),
+    case ordsets:is_subset(Ids, SelIds) of
         true ->
-            foldl(fun(Id, A) ->
-                orddict:erase(Id, A)
-            end, Sel0, lists:delete(Id0, Ids));
+            %% Unselect all other objects in the folder.
+            Sel = gb_sets:from_ordset(Ids),
+            F = fun(Items, #we{id=Id}) ->
+                        case gb_sets:is_member(Id, Sel) of
+                            true -> gb_sets:empty();
+                            false -> Items
+                        end
+                end,
+            St = wings_sel:update_sel(F, St0),
+            send_client({new_state,St});
         false ->
-            Sel2 = foldl(fun(Id, A) ->
-                #we{perm=P} = gb_trees:get(Id, Shs),
-                case ?IS_SELECTABLE(P) of
-                    true ->
-                        Items = wings_sel:get_all_items(Mode, Id, St0),
-                        orddict:store(Id, Items, A);
-                    false -> A
-                end
-            end, Sel0, Ids),
-            case Sel0 =:= Sel2 of
-                true ->
-                    foldl(fun(Id, A) ->
-                        orddict:erase(Id, A)
-                    end, Sel0, lists:delete(Id0, Ids));
-                false -> Sel2
-            end
-    end,
-    St = St0#st{sel=Sel},
-    send_client({new_state,St});
-selection(_Id, all, #st{sel=[]}=St0) ->
-    St = wings_sel_cmd:select_all(St0),
-    send_client({new_state,St});
-selection(Id, all, #st{sel=[{Id,_}]}=St0) ->
-    St = wings_sel_cmd:select_all(St0#st{sel=[]}),
-    send_client({new_state,St});
-selection(Id, all, #st{shapes=Shs}=St) ->
-    case gb_trees:get(Id, Shs) of
-	#we{id=Id,perm=P} when ?IS_SELECTABLE(P) ->
-	    send_client({new_state,wings_sel:select_object(Id, St#st{sel=[]})});
-	_ ->
-	    ok
+            %% Select all objects in the folder.
+            Sel = gb_sets:from_list([Id0|Ids]),
+            F = fun(Items, #we{id=Id}=We) ->
+                        case gb_sets:is_member(Id, Sel) of
+                            true ->
+                                wings_sel:get_all_items(Mode, We);
+                            false ->
+                                Items
+                        end
+                end,
+            St = wings_sel:update_sel_all(F, St0),
+            send_client({new_state,St})
     end.
 
 wire(Id, Where, St) ->
@@ -205,117 +196,97 @@ wire(Id, Where, St) ->
     wings_wm:set_prop(Client, wireframed_objects, W),
     wings_draw:refresh_dlists(St),
     wings_wm:dirty(),
-    wx_object:cast(wings_wm:wxwindow(This), {new_state,  get_shape_state(St)}).
+    wx_object:cast(wings_wm:wxwindow(This), {new_state,get_shape_state(St)}).
 
 wire(W0, Id, single, _St) ->
     case gb_sets:is_member(Id, W0) of
 	false -> gb_sets:insert(Id, W0);
 	true  -> gb_sets:delete(Id, W0)
     end;
-wire(W0, Id0, folder, #st{shapes=Shs, pst=Pst0}=St0) ->
-    #we{pst=WePst} = gb_trees:get(Id0, Shs),
-    Folder = gb_trees:get(?FOLDERS, WePst),
-    {_,Fld} = gb_trees:get(?FOLDERS, Pst0),
-    {_,Ids} = orddict:fetch(Folder, Fld),
-    All = gb_sets:intersection(wings_shape:all_selectable(St0), Ids),
-    {_,Client} = wings_wm:this(),
-    W0 = wings_wm:get_prop(Client, wireframed_objects),
-    W1 = gb_sets:difference(W0,All), %% Locked WireFrame
-    Id = case gb_sets:is_member(Id0,W0) of
-	     true -> gb_sets:add(Id0,gb_sets:empty());
-	     false -> gb_sets:empty()
-	 end,
-    case gb_sets:is_empty(gb_sets:difference(All,W0)) of
-	true -> gb_sets:union(W1,Id);
-	false -> 
-	    case gb_sets:is_member(Id0,W0) of
-		true -> gb_sets:union(gb_sets:add(Id0,W1),All);
-		false -> 
-		    case gb_sets:is_empty(gb_sets:difference(gb_sets:delete_any(Id0,All),W0)) of
-			true -> gb_sets:union(W1,Id);
-			false -> gb_sets:delete_any(Id0,gb_sets:union(W1,All))
-		    end
-	    end
-    end;
-wire(W0, Id0, all, St) ->
-    All = wings_shape:all_selectable(St),
-    W1 = gb_sets:difference(W0,All), %% Locked WireFrame
-    Id = case gb_sets:is_member(Id0,W0) of
-	     true -> gb_sets:add(Id0,gb_sets:empty());
-	     false -> gb_sets:empty()
-	 end,
-    case gb_sets:is_empty(gb_sets:difference(All,W0)) of
-	true -> gb_sets:union(W1,Id);
-	false ->
-	    case gb_sets:is_member(Id0,W0) of
-		true -> gb_sets:union(gb_sets:add(Id0,W1),All);
-		false ->
-		    Set = gb_sets:difference(gb_sets:delete_any(Id0,All),W0),
-		    case gb_sets:is_empty(Set) of
-			true -> gb_sets:union(W1,Id);
-			false -> gb_sets:delete_any(Id0,gb_sets:union(W1,All))
-		    end
-	    end
+wire(W0, Id, Action, St) ->
+    Objs = case Action of
+               folder ->
+                   #{folder:=Folder} = wings_obj:get(Id, St),
+                   other_objs_in_folder(Id, Folder, St);
+               all ->
+                   all_other_objects(Id, St)
+           end,
+    Ids0 = gb_sets:from_list([I || #{id:=I} <- Objs]),
+    F = fun(#{id:=I,perm:=P}, A) when ?IS_SELECTABLE(P) -> [I|A];
+           (#{}, A) -> A
+        end,
+    Selectable0 = wings_obj:fold(F, [], St),
+    Selectable = gb_sets:from_list(Selectable0),
+    Ids = gb_sets:intersection(Selectable, Ids0),
+    Keep = gb_sets:difference(W0, Ids),
+    Single = gb_sets:singleton(Id),
+    case gb_sets:is_disjoint(Ids, W0) of
+        false ->
+            %% Turn off wire for all expcept Id.
+            gb_sets:union(Keep, Single);
+        true ->
+            %% Turn on wire for all.
+            gb_sets:union([Keep,Single,Ids])
     end.
 
-lock(Id, single, #st{shapes=Shs}=St0) ->
-    case gb_trees:get(Id, Shs) of
-	#we{perm=Perm}  when ?IS_NOT_VISIBLE(Perm) -> keep;
-	#we{id=Id,perm=Perm} when ?IS_SELECTABLE(Perm) ->
-	    send_client({update_state,wings_shape:lock_object(Id, St0)});
-	_ ->
-	    send_client({update_state,wings_shape:unlock_object(Id, St0)})
+lock(Id, single, St0) ->
+    case wings_obj:get(Id, St0) of
+	#{perm:=Perm} when ?IS_NOT_VISIBLE(Perm) ->
+            keep;
+	#{perm:=Perm} when ?IS_SELECTABLE(Perm) ->
+            St = wings_obj:lock([Id], St0),
+	    send_client({update_state,St});
+	#{} ->
+            St = wings_obj:unlock([Id], St0),
+	    send_client({update_state,St})
     end;
-lock(Id, folder, #st{shapes=Shs, pst=Pst0}=St0) ->
-    #we{pst=WePst} = gb_trees:get(Id, Shs),
-    Folder = gb_trees:get(?FOLDERS, WePst),
-    {_,Fld} = gb_trees:get(?FOLDERS, Pst0),
-    {_,Ids0} = orddict:fetch(Folder, Fld),
-    Ids = gb_sets:to_list(Ids0),
-    Objs = foldl(fun(Obj, A) ->
-        [gb_trees:get(Obj, Shs)|A]
-    end, [], Ids),
-    St = case are_all_visible_locked(Objs, Id) of
-	     true -> wings_shape:unlock_all_in_folder(Ids, St0);
-	     false -> wings_shape:lock_others_in_folder(Id, Ids, St0)
-	 end,
-    send_client({update_state,St});
-lock(Id, all, #st{shapes=Shs}=St0) ->
-    Objs = gb_trees:values(Shs),
-    St = case are_all_visible_locked(Objs, Id) of
-	     true -> wings_shape:unlock_all(St0);
-	     false -> wings_shape:lock_others(Id, St0)
-	 end,
+lock(Id, Action, St0) ->
+    Objs = case Action of
+               folder ->
+                   #{folder:=Folder} = wings_obj:get(Id, St0),
+                   other_objs_in_folder(Id, Folder, St0);
+               all ->
+                   all_other_objects(Id, St0)
+           end,
+    Ids = [I || #{id:=I} <- Objs],
+    St = case are_all_visible_locked(Objs) of
+             true -> wings_obj:unlock([Id|Ids], St0);
+             false -> wings_obj:lock(Ids, St0)
+         end,
     send_client({update_state,St}).
 
-rename(Id, NewName, #st{shapes=Shs}=St) ->
-    case gb_trees:get(Id, Shs) of
-	#we{name=NewName} -> ignore;
-	We0 ->
-	    We = We0#we{name=NewName},
-	    Shapes = gb_trees:update(Id, We, Shs),
-	    send_client({new_state, St#st{shapes=Shapes}})
+are_all_visible_locked(Objs) ->
+    Pred = fun(#{perm:=P}) ->
+                   ?IS_NOT_VISIBLE(P) orelse ?IS_NOT_SELECTABLE(P)
+           end,
+    all(Pred, Objs).
+
+rename(Id, NewName, St0) ->
+    case wings_obj:get(Id, St0) of
+        #{name:=NewName} ->
+            ignore;
+        Obj0 ->
+            Obj = Obj0#{name:=NewName},
+            St = wings_obj:put(Obj, St0),
+            send_client({new_state,St})
     end.
 
 action({objects,Action}, St0) ->
     case Action of
 	{remove_from_folder,Id} ->
-	    {update_state, wings_shape:move_to_folder(?NO_FLD, [Id], St0)};
+	    {update_state,move_to_folder(?NO_FLD, [Id], St0)};
 	{empty_folder,Folder} ->
-	    {update_state, wings_shape:empty_folder(Folder, St0)};
+	    {update_state,empty_folder(Folder, St0)};
 	{move_to_folder,Folder} ->
-	    {update_state, wings_shape:move_to_folder(Folder, St0)};
+	    {update_state,move_to_folder(Folder, St0)};
 	{delete_folder,Folder} ->
-	    {new_state,wings_shape:delete_folder(Folder, St0)};
+	    {new_state,delete_folder(Folder, St0)};
 	{delete_object,Id} ->
 	    {action,{body,{delete_object,[Id]}}};
 	{duplicate_object,Id} ->
 	    {action,{body,{duplicate_object,[Id]}}};
 	{rename_objects,normal} ->
-	    Ids=wings_sel:fold(
-		  fun(_,#we{id=Id},Acc) ->
-			  Acc++[Id]
-		  end, [], St0),
+            Ids = wings_sel:selected_ids(St0),
 	    {action,{body,{rename,Ids}}};
 	{rename_object,Id} ->
 	    {action,{body,{rename,[Id]}}};
@@ -325,16 +296,98 @@ action({objects,Action}, St0) ->
 action(Action, St0) ->
     case Action of
 	{create_folder,[Folder]} ->
-	    {update_state,wings_shape:create_folder(Folder, St0)};
+	    {update_state,create_folder(Folder, St0)};
 	{move_to_folder, Folder, Ids} ->
-	    {update_state, wings_shape:move_to_folder(Folder, Ids, St0)};
+	    {update_state,move_to_folder(Folder, Ids, St0)};
 	{rename_folder,[OldName,NewName]} ->
-	    {update_state, wings_shape:rename_folder(OldName, NewName, St0)};
+	    {update_state,rename_folder(OldName, NewName, St0)};
 	{rename_selected_objects,[Mask]} ->
-	    {update_state, wings_body:rename_selected(Mask,St0)};
+	    {update_state,wings_body:rename_selected(Mask, St0)};
 	{rename_filtered_objects,[Filter,Mask]} ->
-	    {update_state,wings_body:rename_filtered(Filter,Mask,St0)}
+	    {update_state,wings_body:rename_filtered(Filter, Mask, St0)}
     end.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% Folder handling (inside wings process)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+create_folder(Folder, #st{pst=Pst0}=St) ->
+    {_,Fs0} = gb_trees:get(?FOLDERS, Pst0),
+    Fs = case orddict:is_key(Folder, Fs0) of
+             true ->
+                 E = ?__(1,"A folder by that name already exists"),
+                 wings_u:error_msg(E);
+             false ->
+                 orddict:store(Folder, {open,gb_sets:new()}, Fs0)
+         end,
+    Pst = gb_trees:update(?FOLDERS, {Folder,Fs}, Pst0),
+    St#st{pst=Pst}.
+
+%% Delete folder and its contents.
+delete_folder(Folder, #st{pst=Pst0}=St0) ->
+    {_,Fld0} = gb_trees:get(?FOLDERS, Pst0),
+    Fld = orddict:erase(Folder, Fld0),
+    Current = case Fld of
+                  [] -> ?NO_FLD;
+                  [{Current0,_}|_] -> Current0
+              end,
+    Pst = gb_trees:update(?FOLDERS, {Current,Fld}, Pst0),
+    Ids = ids_in_folder(Folder, St0),
+    St = foldl(fun(Id, S) -> wings_obj:delete(Id, S) end, St0, Ids),
+    St#st{pst=Pst}.
+
+move_to_folder(Folder, St) ->
+    Ids = wings_sel:selected_ids(St),
+    move_to_folder(Folder, Ids, St).
+
+move_to_folder(Folder, Ids0, St) ->
+    Ids = gb_sets:from_list(Ids0),
+    MF = fun(#{id:=Id}=Obj) ->
+                 case gb_sets:is_member(Id, Ids) of
+                     false -> Obj;
+                     true -> Obj#{folder:=Folder}
+                 end
+         end,
+    wings_obj:map(MF, St).
+
+rename_folder(OldName, OldName, St) ->
+    St;
+rename_folder(OldName, NewName, St0) ->
+    St = create_folder(NewName, St0),
+    Ids = ids_in_folder(OldName, St),
+    move_to_folder(NewName, Ids, St).
+
+empty_folder(Folder, St) ->
+    Ids = ids_in_folder(Folder, St),
+    move_to_folder(?NO_FLD, Ids, St).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% Utilities (inside wings process)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+ids_in_folder(Folder, St) ->
+    F = fun(#{folder:=F,id:=Id}, A) when F =:= Folder ->
+                [Id|A];
+           (_, A) ->
+                A
+        end,
+    wings_obj:fold(F, [], St).
+
+other_objs_in_folder(Id, Folder, St) ->
+    F = fun(#{folder:=F,id:=I}=Obj, A) when F =:= Folder, Id =/= I ->
+                [Obj|A];
+           (_, A) ->
+                A
+        end,
+    wings_obj:fold(F, [], St).
+
+all_other_objects(Id, St) ->
+    F = fun(#{id:=I}=Obj, A) when Id =/= I ->
+                [Obj|A];
+           (_, A) ->
+                A
+        end,
+    wings_obj:fold(F, [], St).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -359,7 +412,7 @@ forward_event({apply, ReturnSt, Fun}, Window, St0) ->
 	    Fun(St0)
     end;
 forward_event({action,{objects,{rename_objects,masked}}}, _Window, #st{sel=Sel}) ->
-    rename_filtered_dialog(length(Sel)>1);
+    rename_filtered_dialog(length(Sel) > 1);
 forward_event({action,{objects, create_folder}}, _, _St) ->
     create_folder_dialog();
 forward_event({action,{objects, {rename_folder, OldName}}}, _, _St) ->
@@ -374,13 +427,17 @@ forward_event(Ev, Window, _) ->
 
 get_shape_state(St) ->
     get_shape_state(wings_wm:this(),St).
-get_shape_state({_,Client}, #st{sel=Sel, shapes=Shs, pst=Pst}) ->
+get_shape_state({_,Client}, #st{pst=Pst}=St) ->
     Folds = gb_trees:get(?FOLDERS, Pst),
-    #{sel => [Id || {Id, _} <- Sel],
-      shs => [#{id=>Id, name=>Name, perm=>Perm, light=>?IS_ANY_LIGHT(We)} ||
-		 #we{id=Id,name=Name,perm=Perm} = We <- gb_trees:values(Shs)],
+    {Current,_} = Folds,
+    Ids = wings_sel:selected_ids(St),
+    F = fun(Obj, A) -> [Obj|A] end,
+    Shapes = wings_obj:fold(F, [], St),
+    #{sel => Ids,
+      shs => Shapes,
       wire => wings_wm:get_prop(Client, wireframed_objects),
-      folders => Folds
+      folders => Folds,
+      current => Current
      }.
 
 
@@ -636,9 +693,15 @@ update_folders({Curr, Fld0}, TC) ->
 			   [{?NO_FLD,_}|T] -> T;
 			   T -> T
 		       end,
-		 Root = wxTreeCtrl:addRoot(TC, ?__(1, "Objects"), []),
-		 Sorted = lists:sort([{wings_util:cap(F),F} || {F,_} <- Fld]),
-		 Add = fun({_, Name}) -> {wxTreeCtrl:appendItem(TC, Root, Name, []), Name} end,
+		 {no_folder,{_,S0}} = lists:keyfind(?NO_FLD, 1, Fld0),
+		 Caption0 = io_lib:format("~ts (~p)",[?__(1, "Objects"), gb_trees:size(S0)]),
+		 Root = wxTreeCtrl:addRoot(TC, Caption0, []),
+
+		 Sorted = lists:sort([{wings_util:cap(F),F,gb_trees:size(S)} || {F,{_,S}} <- Fld]),
+		 Add = fun({_, Name, Qtd}) ->
+			    Caption = io_lib:format("~ts (~p)",[Name, Qtd]),
+			    {wxTreeCtrl:appendItem(TC, Root, Caption, []), Name}
+		       end,
 		 Leaves = lists:map(Add, Sorted),
 		 wxTreeCtrl:expand(TC, Root),
 		 All = [{Root,?NO_FLD}|Leaves],
@@ -660,7 +723,8 @@ update_shapes(Sorted, #{sel:=Sel, wire:=Wire}, _, LC) ->
     Indx = get_selection(LC),
     Update = wxListCtrl:getItemCount(LC) == length(Sorted),
     Update orelse wxListCtrl:deleteAllItems(LC),
-    Add = fun({_, #{id:=Id, name:=Name, perm:=Perm, light:=Light}}, J) ->
+    Add = fun({_, #{id:=Id,name:=Name,perm:=Perm}=Obj}, J) ->
+                  Light = maps:is_key(light, Obj),
 		  case Update of
 		      true  ->
 			  Img = [{imageId, bm_sel(Id, Sel, Light)}],
@@ -679,22 +743,11 @@ update_shapes(Sorted, #{sel:=Sel, wire:=Wire}, _, LC) ->
 	wxListCtrl:setItemState(LC, Indx, 16#FFFF, ?wxLIST_STATE_SELECTED),
     Sorted.
 
-sort_folder(#{shs:=Shs, folders:={Current, Fld0}}) ->
-    case lists:keyfind(Current, 1, Fld0) of
-	false -> [];
-	{_,{_,Ids}} -> sort_folder(Ids, Shs)
-    end.
-
-sort_folder(Ids, Shs) ->
-    Names0 = foldl(fun(Id, Acc) ->
-                           case wings_util:mapsfind(Id, id, Shs) of
-                               #{name:=Name}=We ->
-                                   [{wings_util:cap(Name),We}|Acc];
-                               false ->
-                                   Acc
-                           end
-		   end, [], gb_sets:to_list(Ids)),
-    lists:sort(Names0).
+sort_folder(#{shs:=Shs,current:=Current}) ->
+    Ns = [{wings_util:cap(Name),Obj} ||
+             #{folder:=Folder,name:=Name}=Obj <- Shs,
+             Folder =:= Current],
+    lists:sort(Ns).
 
 get_selection(LC) ->
     case wxListCtrl:getSelectedItemCount(LC) of
@@ -810,10 +863,14 @@ handle_sync_event(#wx{event=#wxMouse{}} = Ev, _EvObj, #state{drag=Drag, self=Pid
 %% Calc item and column our selves send a generated event
 %% a bit tricky to get it working on all OS's
 handle_sync_event(#wx{obj=TC, event=#wxTree{type=command_tree_begin_label_edit, item=Indx}},
-		  From, #state{}) ->
+		  From, #state{tree=Tree}) ->
     case wxTreeCtrl:getItemParent(TC, Indx) of
 	0 -> wxTreeEvent:veto(From);  % 0 is returned for the root item: 'Objects'
-	_ -> ignore
+	_ ->
+	    case lists:keyfind(Indx, 1, Tree) of
+		{_, Name} -> wxTreeCtrl:setItemText(TC, Indx, Name);
+		_ -> ignore
+	    end
     end,
     ok;
 handle_sync_event(#wx{obj=LC, event=Event}=Ev, EvObj, #state{lc=LC, tw=TW, self=Pid}) ->
@@ -919,28 +976,6 @@ help(Name) ->
 	   wings_msg:mod_format(0, 3, ?__(2, "Toogle all visible objects or show menu")),
 	   wings_msg:mod_format(?SHIFT_BITS, 3, ?__(3, "Toggle objects in all folders"))],
     wings_status:message(Name, wings_msg:join(Msg)).
-
-are_all_visible([#we{id=Id}|T], Id) ->
-    are_all_visible(T, Id);
-are_all_visible([#we{perm=P}|T], Id) ->
-    case ?IS_VISIBLE(P) of
-	false -> false;
-	true -> are_all_visible(T, Id)
-    end;
-are_all_visible([], _) -> true.
-
-are_all_visible_locked([#we{id=Id}|T], Id) ->
-    are_all_visible_locked(T, Id);
-are_all_visible_locked([#we{perm=P}|T], Id) ->
-    case ?IS_VISIBLE(P) of
-	false ->
-	    are_all_visible_locked(T, Id);
-	true when ?IS_NOT_SELECTABLE(P) ->
-	    are_all_visible_locked(T, Id);
-	true ->
-	    false
-    end;
-are_all_visible_locked([], _) -> true.
 
 rename_menu(Id) ->
     fun(1, _Ns) ->

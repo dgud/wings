@@ -315,13 +315,16 @@ get_widget(Key, Store) ->
     Wx.
 
 get_value(Key, Store) ->
-    [In] = ets:lookup(Store, Key),
-    get_curr_value(In).
+    try ets:lookup(Store, Key) of
+        [In] -> get_curr_value(In)
+    catch _:_ -> ok end.
 
 set_value(Key, Value, Store) ->
-    [In] = ets:lookup(Store, Key),
-    _ = set_value_impl(In, Value, Store),
-    Store.
+    try ets:lookup(Store, Key) of
+        [In] ->
+            _ = set_value_impl(In, Value, Store),
+            Store
+    catch _:_ -> ok end.
 
 set_value_impl(#in{wx=Ctrl, type=choice}, {Def, Entries}, _) when is_list(Entries) ->
     wxChoice:clear(Ctrl),
@@ -433,15 +436,15 @@ enter_dialog(true, no_preview, Dialog, Fields, Fun) -> %% No preview cmd / modal
     set_dialog_parent(Dialog),
     case wxDialog:showModal(Dialog) of
 	?wxID_CANCEL ->
-	    true = ets:delete(element(1, Fields)),
 	    reset_dialog_parent(Dialog),
 	    wxDialog:destroy(Dialog),
+	    true = ets:delete(element(1, Fields)),
 	    keep;
 	Result ->
 	    Values = get_output(Result, Fields),
-	    true = ets:delete(element(1, Fields)),
 	    reset_dialog_parent(Dialog),
 	    wxDialog:destroy(Dialog),
+	    true = ets:delete(element(1, Fields)),
 	    return_result(Fun, Values, wings_wm:this())
     end;
 enter_dialog(true, PreviewType, Dialog, Fields, Fun) ->
@@ -462,9 +465,9 @@ enter_dialog(true, PreviewType, Dialog, Fields, Fun) ->
 			     wings_wm:psend(send_after_redraw, dialog_blanket, preview),
 			     receive
 				 closed ->
-				     true = ets:delete(element(1, Fields)),
 				     reset_dialog_parent(Dialog),
-				     wxDialog:destroy(Dialog)
+				     wxDialog:destroy(Dialog),
+                                     true = ets:delete(element(1, Fields))
 			     end
 		     end),
     State = #eh{fs=Fields, apply=Fun, owner=wings_wm:this(),

@@ -24,8 +24,13 @@
 	 pos/2,outer_vertices_ccw/2,reachable/2,
 	 isolated/1,edge_through/3,edge_through/4]).
 
+-export_type([vertex_num/0]).
+
 -include("wings.hrl").
 -import(lists, [member/2,foldl/3,reverse/1,sort/1]).
+
+-type vertex_num() :: non_neg_integer().
+-type edge_num() :: wings_edge:edge_num().
 
 %% from_faces(FaceGbSet, We) -> VertexList
 %%  Convert a set of faces to a list of vertices.

@@ -44,7 +44,7 @@ window(Name0, Pos, Size, Ps0, St) ->
     Name = {tweak, Name0},
     State = get_state(Name),
     {Frame,Ps} = wings_frame:make_win(title(Name), [{size, Size}, {pos, Pos}|Ps0]),
-    Window = wx_object:start_link(?MODULE, [Frame, Name, State], []),
+    Window = wings_sup:window(undefined, ?MODULE, [Frame, Name, State]),
     wings_wm:toplevel(Name, Window, Ps, {push,change_state(Window, St)}),
     keep.
 

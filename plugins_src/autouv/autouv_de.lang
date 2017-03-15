@@ -332,21 +332,8 @@
     {6,"Vertikal maximieren (Richtung Y)"}
    ]}
  ]}.
-{wpc_snap,
+{wpc_snap_win,
  [
-  {find_a_id,
-   [
-    {1,"Sichtbares Objekt erforderlich."}
-   ]},
-  {menu,
-   [
-    {1,"Bild einrasten"},
-    {2,"Einrasten-Modus starten für \"Snapping\" UV-Koordinaten auf einem Bild"},
-    {3,"Einrasten-Modus beenden"},
-    {4,"Einrasten-Modus beenden"},
-    {5,"Bild einrasten"},
-    {6,"Hintergrundbild auf ausgewählten Flächen platzieren durch Zuweisung der UV-Koordinaten zu diesen"}
-   ]},
   {proportional_scale,
    [
     {1,"...auf aktuell X"},
@@ -355,11 +342,6 @@
     {4,"X-Wert des Bildes proportional auf seinen aktuellen Y-Wert skalieren"},
     {5,"Tatsächliche Größe"},
     {6,"Bild auf seine tatsächliche Größe zurücksetzen"}
-   ]},
-  {select_image,
-   [
-    {1,"Keine Bilder präsent, zuerst ein Bild importieren."},
-    {2,"Bild zum Einrasten wählen"}
    ]},
   {snap_menu,
    [
@@ -393,5 +375,24 @@
     {33,"Bildskalierung proportional erzeugen"},
     {34,"Eingerastetes Bild drehen"},
     {35,"Das Hintergrundbild drehen"}
+   ]},
+  {snap_label,
+   [
+    {4,"Snape Image"}
+   ]},
+  {snap_tooltip,
+   [
+    {1,"Bild zum Einrasten wählen"},
+    {2,"Einrasten-Modus starten für \"Snapping\" UV-Koordinaten auf einem Bild"},
+    {3,"Einrasten-Modus beenden"},
+    {4,"Hintergrundbild auf ausgewählten Flächen platzieren durch Zuweisung der UV-Koordinaten zu diesen"},
+    {6,"Das Hintergrundbild drehen"},
+    {7,"Das Hintergrundbild verschieben"},
+    {8,"Eingerastetes Bild skalieren"},
+    {9,"Bild auf die Dimensionen des Viewports anpassen"}
+   ]},
+  {title,
+   [
+    {1,"Bild einrasten"}
    ]}
  ]}.

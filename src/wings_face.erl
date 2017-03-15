@@ -34,9 +34,14 @@
 	 delete_bad_faces/2,
 	 are_neighbors/3,is_planar/3]).
 
+-export_type([face_num/0,visible_face_num/0]).
+
 -include("wings.hrl").
 -include("e3d.hrl").
 -import(lists, [reverse/1,sort/1]).
+
+-type face_num() :: integer().
+-type visible_face_num() :: non_neg_integer().
 
 from_edges(Es, #we{es=Etab}) when is_list(Es) ->
     from_edges_1(Es, Etab, []);

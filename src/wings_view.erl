@@ -18,8 +18,7 @@
 	 current/0,set_current/1,
 	 load_matrices/1,projection/0,projection/1,
 	 modelview/0,align_view_to_normal/1,
-	 eye_point/0,export_views/1,import_views/2,camera_info/2,
-	 freeze_mirror/1]).
+	 eye_point/0,export_views/1,import_views/2,camera_info/2]).
 
 -define(NEED_ESDL, 1).
 -define(NEED_OPENGL, 1).
@@ -80,7 +79,6 @@ menu() ->
      {?__(15,"Quick Smoothed Preview"),quick_preview,
       ?__(16,"Toggle the smooth proxy mode for all objects")},
      separator |
-     shader_submenu() ++
      [{?__(36,"Scene Lights"),scene_lights,
        ?__(37,"Use the lights defined in the scene"),
        crossmark(scene_lights)},
@@ -229,15 +227,6 @@ command(toggle_lights, St) ->
     St;
 command(scene_lights, St) ->
     toggle_option(scene_lights),
-    %% Invalidate displaylists so that shader data get set correctly
-    %% for materials
-    wings_dl:map(fun(#dlo{proxy_data=PD}=D, _) ->
-			 D#dlo{work=none,smooth=none,
-			       proxy_data=wings_proxy:invalidate(PD, dl)}
-		 end, []),
-    St;
-command({shader_set,N}, St) ->
-    shader_set(N),
     St;
 command(camera_settings, St) ->
     camera(St);
@@ -250,28 +239,29 @@ virtual_mirror(create, #st{selmode=face}=St0) ->
     {save_state,St#st{sel=[]}};
 virtual_mirror(create, _) ->
     wings_u:error_msg(?__(1,"Virtual mirror requires a face selection."));
-virtual_mirror(break, St0) ->
-    case break_mirror(St0) of
-	St0 -> St0;
-	St -> {save_state,St}
-    end;
+virtual_mirror(break, St) ->
+    break_mirror(St);
 virtual_mirror(freeze, St0) ->
-    case freeze_mirror(St0) of
-	St0 -> St0;
-	St -> {save_state,wings_sel:valid_sel(St)}
-    end.
+    freeze_mirror(St0).
 
 wireframe_all(false, _) ->
     wings_wm:set_prop(wireframed_objects, gb_sets:empty());
 wireframe_all(true, St) ->
-    All = wings_shape:all_selectable(St),
+    All = all_selectable(St),
     wings_wm:set_prop(wireframed_objects, All);
 wireframe_all(toggle, St) ->
-    Selectable = wings_shape:all_selectable(St),
+    Selectable = all_selectable(St),
     Prev = wings_wm:get_prop(wireframed_objects),
     Changed = gb_sets:difference(Selectable, Prev),
     New = gb_sets:union(Changed, gb_sets:difference(Prev, Selectable)),
     wings_wm:set_prop(wireframed_objects, New).
+
+all_selectable(St) ->
+    F = fun(#{id:=I,perm:=P}, A) when ?IS_SELECTABLE(P) -> [I|A];
+           (#{}, A) -> A
+        end,
+    Selectable = wings_obj:fold(F, [], St),
+    gb_sets:from_list(Selectable).
 
 wireframe_sel(false, St) ->
     Prev = wings_wm:get_prop(wireframed_objects),
@@ -290,8 +280,8 @@ wireframe_sel(toggle, St) ->
     W = gb_sets:union(W1, gb_sets:difference(Sel, W0)),
     wings_wm:set_prop(wireframed_objects, W).
 
-sel_to_set(#st{sel=Sel0}) ->
-    Sel = foldl(fun({Id,_}, A) -> [Id|A] end, [], Sel0),
+sel_to_set(St) ->
+    Sel = wings_sel:selected_ids(St),
     gb_sets:from_list(Sel).
 
 virtual_mirror_fun(Faces, We0) ->
@@ -303,31 +293,36 @@ virtual_mirror_fun(Faces, We0) ->
 	    wings_u:error_msg(?__(1,"Only a single face must be selected per object."))
     end.
 
-break_mirror(#st{shapes=Shs0}=St) ->
-    Shs = foldl(fun(#we{id=Id}=We0, Shs) ->
-			We = wings_we:break_mirror(We0),
-			gb_trees:update(Id, We, Shs)
-		end, Shs0, sel_mirror_objects(St)),
-    St#st{shapes=Shs}.
+break_mirror(St) ->
+    with_mirror_objs(fun wings_we:break_mirror/1, St).
 
-freeze_mirror(#st{shapes=Shs0}=St) ->
-    Shs = foldl(fun(#we{id=Id}=We0, Shs) ->
-			We = wings_we:freeze_mirror(We0),
-			gb_trees:update(Id, We, Shs)
-		end, Shs0, sel_mirror_objects(St)),
-    St#st{shapes=Shs}.
+freeze_mirror(St) ->
+    with_mirror_objs(fun wings_we:freeze_mirror/1, St).
 
-sel_mirror_objects(#st{sel=[],shapes=Shs}) ->
-    foldl(fun(#we{mirror=none}, A) -> A;
-	     (#we{perm=P}, A) when ?IS_NOT_SELECTABLE(P) -> A;
-	     (We, A) -> [We|A]
-	  end, [], gb_trees:values(Shs));
+with_mirror_objs(Update, St0) when is_function(Update, 1) ->
+    case sel_mirror_objects(St0) of
+        [] ->
+            St0;
+        [_|_]=Mirrors ->
+            St = wings_obj:update(Update, Mirrors, St0),
+            {save_state,wings_sel:valid_sel(St)}
+    end.
+
+sel_mirror_objects(#st{sel=[]}=St) ->
+    MF = fun(#{id:=Id,perm:=P}, #we{mirror=Face})
+               when ?IS_SELECTABLE(P), is_integer(Face) ->
+                 [Id];
+            (_, _) ->
+                 []
+         end,
+    RF = fun erlang:'++'/2,
+    wings_obj:dfold(MF, RF, [], St);
 sel_mirror_objects(St) ->
-    wings_sel:fold(fun(_, #we{mirror=none}, A) -> A;
-		      (_, #we{perm=P}, A) when ?IS_NOT_SELECTABLE(P) -> A;
-		      (_, We, A) -> [We|A]
-		   end, [], St).
-
+    MF = fun(_, #we{mirror=none}) -> [];
+            (_, #we{id=Id}) -> [Id]
+         end,
+    RF = fun erlang:'++'/2,
+    wings_sel:dfold(MF, RF, [], St).
 
 
 -define(RANGE_FOV, {1.0,179.9}).
@@ -641,18 +636,24 @@ pget(Key, Props) -> proplists:get_value(Key, Props).
 -record(tim,
 	{timer, 				%Current timer.
 	 delay, 				%Current delay.
-	 st					%St record.
+	 st,					%St record.
+         start=erlang:monotonic_time(),
+         frames=-1
 	 }).
 
 auto_rotate(St) ->
     auto_rotate_help(),
-    Delay = 16,
-    ?SET(auto_rotate, min(0.1333, 0.0333+wings_pref:get_value(auto_rotate_angle)/5)),
-    Tim = #tim{delay=Delay,st=St},
+    Delay = 15,
+    ?SET(auto_rotate, max(1/120, wings_pref:get_value(auto_rotate_angle)/60)),
     Active = wings_wm:this(),
     {W,H} = wings_wm:win_size(Active),
     X = W div 2, Y = H div 2,
     wings_io:warp(X,Y),
+    Tim = #tim{delay=Delay,st=St},
+    case wings_pref:get_value(develop_time_commands, false) of
+        false -> ok;
+        true  -> wings_util:profile_start(fprof)
+    end,
     {seq,push,set_auto_rotate_timer(Tim)}.
 
 auto_rotate_event({action, Cmd={view, rotate_left}}, Tim) ->
@@ -677,32 +678,38 @@ auto_rotate_event_1(got_focus, _) -> keep;
 auto_rotate_event_1(#mousebutton{state=?SDL_PRESSED}, _) -> keep;
 auto_rotate_event_1(#keyboard{}=Kb, Tim) ->
     Deg = ?GET(auto_rotate),
-    Incr = max(0.1, abs(Deg)*0.1),
+    Incr = max(1/120, abs(Deg)*0.1),
     case wings_hotkey:event(Kb) of
 	{select,more} ->
-            ?SET(auto_rotate, min(15,  Deg+Incr)),
+            ?SET(auto_rotate, min(45/60,  Deg+Incr)),
             get_event(Tim);
 	{select,less} ->
             Deg = ?GET(auto_rotate),
-            ?SET(auto_rotate, max(-15, Deg-Incr)),
+            ?SET(auto_rotate, max(-45/60, Deg-Incr)),
 	    get_event(Tim);
-	_ ->
-	    keep
+        next -> keep;
+        {view, toggle_lights} -> toggle_lights(), keep;
+        {view, scene_lights} -> toggle_option(scene_lights), keep;
+        {view, reset} -> reset(), keep;
+        {view, toggle_wireframe} -> toggle_option(workmode), keep;
+	_Cmd ->
+	    stop_timer(Tim)
     end;
 auto_rotate_event_1({view,rotate_left=Cmd}, #tim{st=St}=Tim) ->
     command(Cmd, St),
     wings_wm:dirty(),
     set_auto_rotate_timer(Tim);
-auto_rotate_event_1(_Event, #tim{timer=Timer}) ->
-    wings_wm:dirty(),
-    wings_io:cancel_timer(Timer),
-    pop.
+auto_rotate_event_1(lost_focus, _) ->
+    keep;
+auto_rotate_event_1(_Event, Tim) ->
+    stop_timer(Tim).
 
 auto_rotate_redraw(#tim{st=Redraw}) when is_function(Redraw) ->
     Redraw();
-auto_rotate_redraw(#tim{st=#st{}=St}) ->
+auto_rotate_redraw(#tim{st=#st{}=St}=Tim) ->
     wings_wm:clear_background(),
-    wings_render:render(St).
+    wings_render:render(St),
+    wings_io:info(timer_stats(Tim)).
 
 auto_rotate_help() ->
     Msg1 = wings_msg:button_format(?__(1,"Stop rotating")),
@@ -714,12 +721,27 @@ auto_rotate_help() ->
     Message = wings_msg:join([Msg1,Msg2,P,M]),
     wings_wm:message(Message).
 
-set_auto_rotate_timer(#tim{delay=Delay}=Tim) when Delay < 16 ->
-    set_auto_rotate_timer(Tim#tim{delay=16});
-set_auto_rotate_timer(#tim{delay=Delay}=Tim0) ->
+stop_timer(#tim{timer=Timer}) ->
+    case wings_pref:get_value(develop_time_commands, false) of
+        false -> ok;
+        true  -> wings_util:profile_stop(fprof)
+    end,
+    wings_wm:dirty(),
+    wings_io:cancel_timer(Timer),
+    pop.
+
+set_auto_rotate_timer(#tim{delay=Delay, frames=Fs}=Tim0) ->
     Timer = wings_io:set_timer(Delay, {action, {view,rotate_left}}),
-    Tim = Tim0#tim{timer=Timer},
+    Tim = case Fs > 300 of
+              true  -> Tim0#tim{timer=Timer, frames=0, start=erlang:monotonic_time()};
+              false -> Tim0#tim{timer=Timer, frames=Fs+1}
+          end,
     get_event(Tim).
+
+timer_stats(#tim{start=T0, frames=Fs}) ->
+    T1 = erlang:monotonic_time(),
+    Time = 1+erlang:convert_time_unit(T1-T0, native, millisecond),
+    io_lib:format("Rotate: ~.1f deg ~w fps", [?GET(auto_rotate)*60, round(1000.0*Fs/Time)]).
 
 get_event(Tim) ->
     {replace,fun(Ev) -> auto_rotate_event(Ev, Tim) end}.
@@ -756,7 +778,6 @@ init() ->
     wings_pref:set_default(show_edges, true),
     wings_pref:set_default(show_backfaces, true),
     wings_pref:set_default(number_of_lights, 1),
-    wings_pref:set_default(active_shader, 1),
     wings_pref:set_default(show_normals, false),
     wings_pref:set_default(show_bb, true),
     wings_pref:set_default(show_bb_center, true),
@@ -842,17 +863,14 @@ modelview(IncludeLights) ->
     gl:matrixMode(?GL_MODELVIEW),
     gl:loadIdentity(),
 
-    case IncludeLights of
-	true ->
-	    UseSceneLights = wings_pref:get_value(scene_lights) andalso
-		wings_light:any_enabled_lights(),
-	    case UseSceneLights of
-		false -> wings_light:camera_lights();
-		true -> ok
-	    end;
-	false ->
-	    UseSceneLights = false
-    end,
+    UseSceneLights =
+        case IncludeLights of
+            true ->
+                wings_pref:get_value(scene_lights) andalso
+                    wings_light:any_enabled_lights();
+            false ->
+                false
+        end,
 
     TM0 = e3d_transform:translate(e3d_transform:identity(), {PanX, PanY, -Dist}),
     TM1 = e3d_transform:rotate(TM0, El, {1.0,0.0,0.0}),
@@ -860,11 +878,6 @@ modelview(IncludeLights) ->
     TMM = e3d_transform:translate(TM2, Origin),
 
     gl:loadMatrixd(e3d_transform:matrix(TMM)),
-
-    case UseSceneLights of
-	false -> ok;
-	true -> wings_light:global_lights()
-    end,
     {UseSceneLights, TMM}.
 
 %% Calculate the location of the viewer in 3D space.
@@ -926,22 +939,23 @@ aim(#st{sel=[]}, _) ->
     set_current(View#view{origin=e3d_vec:zero()});
 aim(St, {_, _, original}) ->
     aim(St);
-aim(#st{shapes=Shapes}=St, {Id, _Elem, mirror}) ->
-    We = gb_trees:get(Id, Shapes),
-    #we{mirror=Face} = We,
-    MirNormal = wings_face:normal(Face,We),
-    Mirror = wings_face:center(Face,We),
-
-    Original = wings_sel:center(St),
-    Distance = dist_along_vector(Mirror,Original,MirNormal),
-    Origin0 = e3d_vec:add_prod(Original, MirNormal, Distance * 2),
-    Origin = e3d_vec:neg(Origin0),
-
+aim(St, {Id, _Elem, mirror}) ->
     #view{distance=Dist0} = View = current(),
-    Dist = case e3d_vec:dist(eye_point(), Origin0) of
-	       D when D < Dist0 -> D;
-	       _Other -> Dist0
-	   end,
+    EyePoint = eye_point(),
+    F = fun(#we{mirror=Face}=We) ->
+                MirNormal = wings_face:normal(Face, We),
+                Mirror = wings_face:center(Face, We),
+
+                Original = wings_sel:center(St),
+                Distance = dist_along_vector(Mirror, Original, MirNormal),
+                Origin0 = e3d_vec:add_prod(Original, MirNormal, Distance * 2),
+                Origin = e3d_vec:neg(Origin0),
+
+                Dist = min(e3d_vec:dist(EyePoint, Origin0), Dist0),
+
+                {Origin,Dist}
+        end,
+    {Origin,Dist} = wings_obj:with_we(F, Id, St),
     set_current(View#view{origin=Origin,distance=Dist,pan_x=0.0,pan_y=0.0}).
 
 dist_along_vector(PosA,PosB,Vector) ->
@@ -951,23 +965,32 @@ dist_along_vector(PosA,PosB,Vector) ->
     {Vx,Vy,Vz} = e3d_vec:norm(Vector),
     Vx*(Xa-Xb)+Vy*(Ya-Yb)+Vz*(Za-Zb).
 
-frame(#st{sel=[],shapes=Shs}) ->
-    BB = foldl(fun(#we{perm=P,vp=Vtab}=We, BB) when ?IS_VISIBLE(P) ->
-		       case wings_util:array_is_empty(Vtab) of
-			   false -> wings_vertex:bounding_box(We, BB);
-			   true -> BB
-		       end;
-		  (_, BB) -> BB
-	       end,
-	       none, gb_trees:values(Shs)),
+frame(#st{sel=[]}=St) ->
+    MF = fun(#{perm:=P}, #we{vp=Vtab}=We) when ?IS_VISIBLE(P) ->
+                 case wings_util:array_is_empty(Vtab) of
+                     false -> wings_vertex:bounding_box(We);
+                     true -> none
+                 end;
+            (_, _) -> none
+         end,
+    RF = fun(none, none) ->
+                 none;
+            ([_|_]=BB, none) ->
+                 BB;
+            (none, [_|_]=BB) ->
+                 BB;
+            ([_|_]=BB1, [_|_]=BB0) ->
+                 e3d_vec:bounding_box(BB1 ++ BB0)
+         end,
+    BB = wings_obj:dfold(MF, RF, none, St),
     frame_1(BB);
 frame(St0) ->
     St = case wings_pref:get_value(frame_disregards_mirror) of
-	true ->
-      kill_mirror(St0);
-	false -> 
-	  St0
-	end,
+             true ->
+                 kill_mirror(St0);
+             false ->
+                 St0
+         end,
     frame_1(wings_sel:bounding_box(St)).
 
 frame_1(none) -> ok;
@@ -979,15 +1002,8 @@ frame_1([A,B]) ->
     set_current(View#view{origin=e3d_vec:neg(C),
 			  distance=Dist,pan_x=0.0,pan_y=0.0}).
 
-kill_mirror(#st{shapes=Shs0}=St) ->
-    Shs = kill_mirror_1(gb_trees:values(Shs0), []),
-    St#st{shapes=Shs}.
-
-kill_mirror_1([#we{id=Id}=We0|Wes], Acc) ->
-    We = wings_we:break_mirror(We0),
-    kill_mirror_1(Wes, [{Id,We}|Acc]);
-kill_mirror_1([], Acc) ->
-    gb_trees:from_orddict(lists:reverse(Acc)).
+kill_mirror(St) ->
+    wings_obj:we_map(fun wings_we:break_mirror/1, St).
 
 views({save,[Legend]}, #st{views={_,{}}}=St0) ->
     St = St0#st{views={1,{{current(),Legend}}},saved=false},
@@ -1113,10 +1129,6 @@ toggle_lights() ->
         true -> toggle_option(scene_lights)
     end,
 
-    wings_dl:map(fun(#dlo{proxy_data=PD}=D, _) ->
-			 D#dlo{work=none,smooth=none,
-			       proxy_data=wings_proxy:invalidate(PD, dl)}
-		 end, []),
     Lights0 = wings_pref:get_value(number_of_lights),
     wings_menu:update_menu(view, toggle_lights,
 			   one_of(Lights0 == 1,
@@ -1127,61 +1139,6 @@ toggle_lights() ->
 				  ?__(3,"Use a simple sky light simulation"))),
     Lights = 1 + (2 + Lights0) rem 2,
     wings_pref:set_value(number_of_lights, Lights).
-
-shader_set(N) ->
-    case wings_gl:support_shaders() of
-	true ->
-	    NumShaders = wings_pref:get_value(active_shader),
-	    NumProgs = tuple_size(get(light_shaders)),
-	    Shader = case N of
-			 next -> case NumShaders of
-				     NumProgs -> 1;
-				     _ -> NumShaders+1
-				 end;
-			 prev -> case NumShaders of
-				     1 -> NumProgs;
-				     _ -> NumShaders-1
-				 end;
-			 _ -> N
-		     end,
-	    %% Invalidate displaylists so that shader data get set correctly
-	    %% for materials
-	    wings_dl:map(fun(#dlo{proxy_data=PD}=D, _) ->
-				 D#dlo{work=none,smooth=none,
-				       proxy_data=wings_proxy:invalidate(PD, dl)}
-			 end, []),
-	    wings_pref:set_value(number_of_lights, 2),
-	    wings_shaders:set_active(Shader);
-	false ->
-	    toggle_lights()
-    end.
-
-shader_submenu() ->
-    case get(light_shaders) of
-	undefined ->
-	    [];
-	Progs0 when is_tuple(Progs0) ->
-	    Progs = tuple_to_list(Progs0),
-	    Names = [Name || {_,Name} <- Progs],
-	    Nums = lists:seq(1, tuple_size(Progs0)),
-	    SubMenu = lists:zip(Names, Nums) ++
-		[{"< "++?__(1,"Next")++" >",next},
-		 {"< "++?__(2,"Previous")++">",prev}],
-	    [{?__(3,"Shaders: ")++shader_index(),
-	      {shader_set,SubMenu}}]
-    end.
-
-%% Only call this function if shaders are known to be supported.
-shader_index() ->
-    case wings_pref:get_value(number_of_lights) of
-	2 ->
-	    Progs = get(light_shaders),
-	    NumShaders = wings_pref:get_value(active_shader),
-	    {_Prog,Name} = element(NumShaders, Progs),
-	    Name;
-	_ ->
-	    ""
-    end.
 
 along(x) -> along(x, -90.0, 0.0);
 along(y) -> along(y, 0.0, 90.0);

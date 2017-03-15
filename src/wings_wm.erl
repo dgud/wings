@@ -100,7 +100,7 @@ init(Frame) ->
     put(wm_windows, gb_trees:empty()),
     new(top_frame, Frame, {push, fun wings_frame:forward_event/1}),
     set_dd(top_frame, geom_display_lists), %% Selection mode updates
-    StatusBar = wings_status:start(Frame),
+    StatusBar = wings_status:get_statusbar(),
     new(message, StatusBar, {push, fun message_event/1}),
 
     case wings_pref:get_value(win32_start_maximized) of
@@ -441,8 +441,8 @@ grab_focus() ->
 grab_focus(Name) ->
     case is_window(Name) of
 	true  ->
-%%	    {_, [_,Where|_]} = erlang:process_info(self(), current_stacktrace),
-%%	    io:format("Grab ~p~n",[Where]),
+	    %%{_, [_,Where|_]} = erlang:process_info(self(), current_stacktrace),
+	    %%io:format("Grab focus: ~p~n   ~p~n",[Name, Where]),
 	    case get(wm_focus_grab) of
 		undefined -> put(wm_focus_grab, [Name]);
 		Stack -> put(wm_focus_grab, [Name|Stack])
@@ -453,8 +453,12 @@ grab_focus(Name) ->
 release_focus() ->
     case get(wm_focus_grab) of
 	undefined -> ok;
-	[_] -> erase(wm_focus_grab);
-	[_|Stack] -> put(wm_focus_grab, Stack)
+	[_Name] ->
+            %%io:format("Release focus ~p~n",[_Name]),
+            erase(wm_focus_grab);
+	[_Name|Stack] ->
+            %%io:format("Release focus ~p~n",[_Name]),
+            put(wm_focus_grab, Stack)
     end.
 
 grabbed_focus_window() ->
@@ -708,6 +712,7 @@ dispatch_event(#wx{event=#wxActivate{active=Active}}) ->
     end;
 dispatch_event(#wx{obj=Obj, event=#wxSize{size={W,H}}}) ->
     ?CHECK_ERROR(),
+    erase(current_gl), %% resets wxGLCanvas:setCurrent().
     case W > 0 andalso H > 0 andalso not (wx2win(Obj) =:= none) of
 	true ->
 	    #win{name=Name} = Geom0 = get_window_data(Obj),
@@ -742,19 +747,13 @@ dispatch_event(#wx{obj=Obj}=Event) ->
     end;
 dispatch_event({'EXIT', _Pid, normal}) ->
     true;
-dispatch_event({'EXIT', Pid, {Reason, StackTrace}}) ->
+dispatch_event({'EXIT', Pid, _Reason0}) ->
     Found = [Win || #win{name=Win, obj=Obj} <- gb_trees:values(get(wm_windows)),
 		    (catch wx_object:get_pid(Obj)) =:= Pid],
-    Name = case Found of
-	       [WName] -> WName;
-	       _ ->
-		   case process_info(Pid, registered_name) of
-		       undefined -> Pid;
-		       {registered_name,Reg} -> Reg
-		   end
-	   end,
-    LogName = wings_u:crash_log(Name, Reason, StackTrace),
-    send(geom, {crash_in_other_window,LogName}),
+    case Found of
+        [WName] -> (catch delete(WName));
+        _ -> ignore
+    end,
     true;
 dispatch_event(Event) ->
     case find_active() of
@@ -846,7 +845,12 @@ redraw_all() ->
 redraw_win({Name, #win{w=W,h=H,obj=Obj}}) ->
     DoSwap = case use_opengl(Obj) of
 		 true ->
-		     wxGLCanvas:setCurrent(Obj),
+                     case get(current_gl) of
+                         Obj -> ignore;
+                         _ ->
+                             wxGLCanvas:setCurrent(Obj),
+                             put(current_gl, Obj)
+                     end,
 		     gl:viewport(0,0,W,H),
 		     gl:clear(?GL_COLOR_BUFFER_BIT bor ?GL_DEPTH_BUFFER_BIT),
 		     true;
@@ -957,7 +961,9 @@ handle_event(State, Event, Stk) ->
 	    wings_u:message(Error),
 	    Stk;
 	exit:normal ->
-	    exit(normal);
+	    exit(shutdown);
+	exit:shutdown ->
+	    exit(shutdown);
 	exit:{crash_logged, _}=Reason ->
 	    exit(Reason);
 	exit:Exit ->

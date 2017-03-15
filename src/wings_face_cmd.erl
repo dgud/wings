@@ -158,11 +158,11 @@ command(mirror_separate, St) ->
 command(intrude, St) ->
     ?SLOW(intrude(St));
 command(dissolve, St) ->
-    {save_state,wings_shape:update_folders(dissolve(St))};
+    {save_state,dissolve(St)};
 command(clean_dissolve, St) ->
-    {save_state,wings_shape:update_folders(clean_dissolve(St))};
+    {save_state,clean_dissolve(St)};
 command(bridge, St) ->
-    {save_state,wings_shape:recreate_folder_system(bridge(St))};
+    {save_state,bridge(St)};
 command({bridge,reference}, St) ->
     bridge_ref(St);
 command(smooth, St) ->
@@ -178,7 +178,7 @@ command(put_on, St) ->
 command(clone_on, St) ->
     clone_on(St);
 command(collapse, St) ->
-    {save_state,wings_shape:update_folders(wings_collapse:collapse(St))};
+    {save_state,wings_collapse:collapse(St)};
 command({material,Cmd}, St) ->
     wings_material:command(Cmd, St);
 command({move,Type}, St) ->
@@ -1445,7 +1445,7 @@ hide_faces(St0) ->
 hide_faces_fun(Fs, We0) ->
     We = wings_we:hide_faces(Fs, We0),
     case wings_we:all_hidden(We) of
-	true -> We0#we{perm=[]};		%Hide entire object.
+	true -> We0#we{perm=?PERM_HIDDEN_BIT};  %Hide entire object.
 	false -> We
     end.
 

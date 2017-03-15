@@ -305,7 +305,7 @@ new(#st{saved=true}=St0) ->
     %% clean_st/1 will remove all saved view, but will not reset the view. For a new project we should reset it.
     wings_view:reset(),
     St2 = clean_images(wings_undo:init(St1)),
-    St = wings_shape:create_folder_system(St2),
+    St = wings_obj:create_folder_system(St2),
     wings_u:caption(St),
     {new,St#st{saved=true}};
 new(#st{}=St0) ->		      %File is not saved or autosaved.
@@ -314,14 +314,18 @@ new(#st{}=St0) ->		      %File is not saved or autosaved.
 			  fun() -> {file,{save,{file,new}}} end,
 			  fun() -> {file,confirmed_new} end).
 
-open(#st{saved=true}) ->
-    confirmed_open_dialog();
-open(St) ->
-    wings_u:caption(St#st{saved=false}),		%Clear any autosave flag.
-    Confirmed = {file,confirmed_open_dialog},
-    wings_u:yes_no_cancel(str_save_changes(),
-			  fun() -> {file,{save,Confirmed}} end,
-			  fun() -> Confirmed end).
+open(#st{saved=Saved}=St) ->
+    case Saved orelse wings_obj:num_objects(St) =:= 0 of
+        true ->
+            confirmed_open_dialog();
+        false ->
+            %% Clear any autosave flag.
+            wings_u:caption(St#st{saved=false}),
+            Confirmed = {file,confirmed_open_dialog},
+            wings_u:yes_no_cancel(str_save_changes(),
+                                  fun() -> {file,{save,Confirmed}} end,
+                                  fun() -> Confirmed end)
+    end.
 
 confirmed_open_dialog() ->
     %% All confirmation questions asked. The former contents has either
@@ -344,12 +348,12 @@ confirmed_open(Name, St0) ->
 		  %%   Name: Original name of file to be opened.
 		  %%   File: Either original file or the autosave file
 		  St1 = clean_st(St0#st{file=undefined}),
-		  St2 = wings_shape:create_folder_system(wings_undo:init(St1)),
+		  St2 = wings_obj:create_folder_system(wings_undo:init(St1)),
 		  case ?SLOW(wings_ff_wings:import(File, St2)) of
 		      #st{}=St3 ->
 			  set_cwd(dirname(File)),
 			  St4 = clean_images(St3),
-			  St = wings_shape:recreate_folder_system(St4),
+			  St = wings_obj:recreate_folder_system(St4),
 			  add_recent(Name),
 			  wings_u:caption(St#st{saved=true,file=Name});
 		      {error,Reason} ->
@@ -359,14 +363,18 @@ confirmed_open(Name, St0) ->
 	  end,
     use_autosave(Name, Fun).
 
-named_open(Name, #st{saved=true}=St) ->
-    confirmed_open(Name, St);
-named_open(Name, St) ->
-    wings_u:caption(St#st{saved=false}),		%Clear any autosave flag.
-    Confirmed = {file,{confirmed_open,Name}},
-    wings_u:yes_no_cancel(str_save_changes(),
-			  fun() -> {file,{save,Confirmed}} end,
-			  fun() -> Confirmed end).
+named_open(Name, #st{saved=Saved}=St) ->
+    case Saved orelse wings_obj:num_objects(St) =:= 0 of
+        true ->
+            confirmed_open(Name, St);
+        false ->
+            %%Clear any autosave flag.
+            wings_u:caption(St#st{saved=false}),
+            Confirmed = {file,{confirmed_open,Name}},
+            wings_u:yes_no_cancel(str_save_changes(),
+                                  fun() -> {file,{save,Confirmed}} end,
+                                  fun() -> Confirmed end)
+    end.
 
 str_save_changes() ->
     ?__(1,"Do you want to save your changes?").
@@ -394,7 +402,7 @@ merge(Name, St0) ->
 		      #st{}=St ->
 			  set_cwd(dirname(Name)),
 			  wings_u:caption(St#st{saved=false}),
-			  wings_shape:recreate_folder_system(St#st{saved=false})
+			  wings_obj:recreate_folder_system(St#st{saved=false})
 		  end
 	  end,
     use_autosave(Name, Fun).
@@ -541,7 +549,8 @@ use_autosave_1(#file_info{mtime=SaveTime0}, File, Body) ->
 	    AutoTime = calendar:datetime_to_gregorian_seconds(AutoInfo0),
 	    if
 		AutoTime > SaveTime ->
-		    Msg = ?__(1,"An autosaved file with a later time stamp exists; do you want to load the autosaved file instead?"),
+		    Msg = ?__(1,"An autosaved file with a later time stamp exists;"
+                              " do you want to load the autosaved file instead?"),
 		    wings_u:yes_no(Msg, autosave_fun(Body, Auto),
 				   autosave_fun(Body, File));
 		true ->
@@ -678,10 +687,10 @@ recent_files_1([], _, _, Tail) -> Tail.
 
 revert(#st{file=undefined}=St) -> St;
 revert(#st{file=File}=St0) ->
-    St1 = wings_shape:create_folder_system(clean_st(St0)),
+    St1 = wings_obj:create_folder_system(clean_st(St0)),
     case ?SLOW(wings_ff_wings:import(File, St1)) of
 	#st{}=St2 ->
-	    St = wings_shape:recreate_folder_system(St2),
+	    St = wings_obj:recreate_folder_system(St2),
 	    clean_images(St);
 	{error,_}=Error ->
 	    Error
@@ -717,11 +726,11 @@ import_image(Name) ->
 	{error,Error} ->
 		case Error of
 		100902 -> % GLU_OUT_OF_MEMORY
-			wings_u:error_msg(?__(2,"The image cannot be loaded.~nFile: \"~s\"~n GLU Error: ~p - ~s~n"),
+			wings_u:error_msg(?__(2,"The image cannot be loaded.~nFile: \"~ts\"~n GLU Error: ~p - ~s~n"),
 				  	[Name,Error, glu:errorString(Error)]);
 		_ ->
-	    	wings_u:error_msg(?__(1,"Failed to load \"~s\": ~s\n"),
-				     [Name,file:format_error(Error)])
+			wings_u:error_msg(?__(1,"Failed to load \"~ts\": ~s\n"),
+				  	[Name,file:format_error(Error)])
 		end
     end.
 

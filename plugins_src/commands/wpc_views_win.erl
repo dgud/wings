@@ -79,7 +79,7 @@ window(St) ->
 window(WinName, Pos, Size, Ps0, St) ->
     View = get_view_state(St),
     {Frame,Ps} = wings_frame:make_win(title(), [{size, Size}, {pos, Pos}|Ps0]),
-    Window = wx_object:start_link(?MODULE, [Frame, Ps, View], []),
+    Window = wings_sup:window(undefined, ?MODULE, [Frame, Ps, View]),
     Fs = [{display_data, geom_display_lists}|Ps],
     wings_wm:toplevel(WinName, Window, Fs, {push,change_state(Window, St)}),
     keep.

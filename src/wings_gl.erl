@@ -19,6 +19,7 @@
 
 %% GLSL exports
 -export([support_shaders/0,
+         use_prog/1,
 	 uloc/2, set_uloc/3,
 	 compile/2, link_prog/1, link_prog/2]).
 
@@ -109,6 +110,8 @@ connect_events(Canvas) ->
 
     setup_std_events(Canvas),
     wxWindow:setFocus(Canvas), %% Get keyboard focus
+    wxFrame:dragAcceptFiles(Canvas, true),
+    wxFrame:connect(Canvas, drop_files),
     ok.
 
 redraw(#wx{obj=Canvas, event=#wxPaint{}}=Ev,_) ->
@@ -267,6 +270,9 @@ check_error(_Mod, _Line) ->
 support_shaders() ->
     is_ext(['GL_ARB_fragment_shader', 'GL_ARB_vertex_shader']). 
 
+use_prog(Prog) when is_integer(Prog) ->
+    gl:useProgram(Prog).
+
 uloc(Prog, What) ->
     try gl:getUniformLocation(Prog, What) of
 	-1 -> -1;
@@ -277,6 +283,13 @@ uloc(Prog, What) ->
 	    throw(lists:flatten(Err))
     end.
 
+set_uloc(#{}=Map, Var, Val) ->
+    case maps:get(Var,Map, undefined) of
+        undefined ->
+            ok;
+        Pos ->
+            set_uloc(Pos, Val)
+    end;
 set_uloc(Prog, Var, Val) ->
     case uloc(Prog, Var) of
 	-1 ->  ok;
@@ -300,7 +313,7 @@ compile(fragment, Bin) when is_binary(Bin) ->
     compile2(?GL_FRAGMENT_SHADER, "Fragment", Bin).
 
 compile2(Type,Str,Src) ->
-    Handle = gl:createShaderObjectARB(Type),    
+    Handle = gl:createShaderObjectARB(Type),
     ok = shaderSource(Handle, [Src]),
     ok = gl:compileShader(Handle),
     check_status(Handle,Str, ?GL_OBJECT_COMPILE_STATUS_ARB),
@@ -320,10 +333,10 @@ link_prog(Objs, Attribs) when is_list(Objs) ->
 
 check_status(Handle,Str, What) ->
     case gl:getObjectParameterivARB(Handle, What) of
-	1 -> 
+	1 ->
 	    %% printInfo(Handle,Str), %% Check status even if ok
 	    Handle;
-	_E -> 	    
+	_E ->
 	    printInfo(Handle,Str),
 	    throw("Compilation failed")
     end.

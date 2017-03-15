@@ -11,7 +11,9 @@
 
 -module(wings_status).
 
--export([start/1, active/1, message/2, message/3, message_right/2]).
+-export([start_link/0,
+         active/1, message/2, message/3, message_right/2,
+         get_statusbar/0]).
 
 -export([init/1, handle_info/2, terminate/2, code_change/3, handle_call/3,
 	 handle_event/2, handle_cast/2]).
@@ -24,8 +26,9 @@
 
 -behaviour(wx_object).
 
-start(Frame) ->
-    wx_object:start_link({local, ?MODULE}, ?MODULE, [Frame], []).
+start_link() ->
+    Status = wx_object:start_link({local,?MODULE}, ?MODULE, [wings_frame:get_top_frame()], []),
+    {ok, wx_object:get_pid(Status)}.
 
 message(Win, Str) ->
     wx_object:cast(?MODULE, {message, Win, Str, undefined}).
@@ -39,9 +42,13 @@ message_right(Win, Right) ->
 active(Win) ->
     wx_object:cast(?MODULE, {active, Win}).
 
+get_statusbar() ->
+    wx_object:call(?MODULE, get_statusbar).
+
 init([Frame]) ->
     try
-	SB = wxStatusBar:new(Frame),
+	SB0 = wxStatusBar:new(Frame),
+        SB = wx_object:set_pid(SB0, self()),
 	wxStatusBar:setFieldsCount(SB, 2),
 	wxStatusBar:setStatusWidths(SB, [-1, 500]),
 	wxStatusBar:setStatusStyles(SB, [?wxSB_FLAT, ?wxSB_NORMAL]),
@@ -67,6 +74,8 @@ handle_cast({message, Win, Left, Right}, #state{sb=SB, prev=Prev, msgs=GB0}=Stat
 handle_cast({active, Win}, #state{sb=SB, prev=Prev, msgs=GB}=State) ->
     {noreply, State#state{prev=update_status(gb_trees:lookup(Win, GB), Prev, SB)}}.
 
+handle_call(get_statusbar, _From, #state{sb=SB}=State) ->
+    {reply, SB, State};
 handle_call(_Call, _From, State) ->
     %% io:format("Call ~p~n",[_Call]),
     {reply, keep, State}.

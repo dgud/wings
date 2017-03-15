@@ -24,7 +24,7 @@
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
 -include("e3d_image.hrl").
--import(lists, [keydelete/3]).
+-import(lists, [keydelete/3,reverse/1]).
 
 -dialyzer({nowarn_function, fake_enter_window/2}).
 
@@ -49,7 +49,7 @@ window(St) ->
 window(Pos, Size, Ps0, St) ->
     Shapes = get_state(St),
     {Frame,Ps} = wings_frame:make_win(title(), [{size, Size}, {pos, Pos}|Ps0]),
-    Window = wx_object:start_link(?MODULE, [Frame, Ps, Shapes], []),
+    Window = wings_sup:window(undefined, ?MODULE, [Frame, Ps, Shapes]),
     Fs = [{display_data, geom_display_lists}|Ps],
     wings_wm:toplevel(?MODULE, Window, Fs, {push, change_state(Window, St)}),
     keep.
@@ -233,13 +233,14 @@ rename(Id, File) ->
     Name = filename:basename(File),
     wings_image:rename(Id, Name).
 
-rename_obj(Id, NewName, #st{shapes=Shs}=St) ->
-    case gb_trees:get(Id, Shs) of
-	#we{name=NewName} -> ignore;
-	We0 ->
-	    We = We0#we{name=NewName},
-	    Shapes = gb_trees:update(Id, We, Shs),
-	    wings_wm:send(geom, {new_state, St#st{shapes=Shapes}})
+rename_obj(Id, NewName, St0) ->
+    case wings_obj:get(Id, St0) of
+        #{name:=NewName} ->
+            ignore;
+        Obj0 ->
+            Obj = Obj0#{name:=NewName},
+            St = wings_obj:put(Obj, St0),
+	    wings_wm:send(geom, {new_state,St})
     end.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -277,15 +278,16 @@ forward_event(Ev, Window, _) ->
     wx_object:cast(Window, Ev),
     keep.
 
-get_state(#st{mat=Mat,shapes=Shs0}) ->
-    Lights = [light_info(We) || We <- gb_trees:values(Shs0),
-				?IS_ANY_LIGHT(We)],
+get_state(#st{mat=Mat}=St) ->
+    F = fun(#{light:=_,id:=Id,name:=Name}, A) ->
+                [#{type=>light,id=>Id,name=>Name}|A];
+           (#{}, A) ->
+                A
+        end,
+    Lights = reverse(wings_obj:fold(F, [], St)),
     Materials = [mat_info(M) || M <- gb_trees:to_list(Mat)],
     Images = [image_info(Im) || Im <- wings_image:images()],
     Lights ++ Materials ++ Images.
-
-light_info(#we{id=Id,name=Name}) ->
-    #{type=>light,id=>Id,name=>Name}.
 
 mat_info({Name,Mp}) ->
     OpenGL = proplists:get_value(opengl, Mp),
@@ -311,6 +313,8 @@ init([Frame,  _Ps, Os]) ->
     Szr = wxBoxSizer:new(?wxVERTICAL),
     wxPanel:setBackgroundColour(Panel, BG),
     TC = make_tree(Panel, Cs, IL),
+    wxPanel:dragAcceptFiles(Panel, true),
+    wxPanel:connect(Panel, drop_files),
     wxSizer:add(Szr, TC, [{proportion,1}, {flag, ?wxEXPAND}]),
     wxPanel:setSizer(Panel, Szr),
     {Shown,IMap} = update_object(Os, TC, IL, IMap0),
@@ -429,6 +433,10 @@ handle_event(#wx{event=#wxFocus{}}=Ev, #state{top=Obj} = State) ->
     %% fake a enter_window event
     wings_frame ! fake_enter_window(Ev, Obj),
     {noreply, State};
+handle_event(#wx{event=#wxDropFiles{}}=Ev, State) ->
+    %% Let wings deal with this
+    wings_wm:psend(geom,Ev),
+    {noreply, State};
 handle_event(#wx{event=_Ev}, State) ->
     %% io:format("~p:~p Got unexpected event ~p~n", [?MODULE,?LINE, _Ev])
     {noreply, State}.
@@ -438,8 +446,14 @@ handle_call(_Req, _From, State) ->
     {reply, ok, State}.
 
 handle_cast({new_state, Os}, #state{tc=TC, il=IL, imap=IMap0} = State) ->
-    {Shown,IMap} = update_object(Os, TC, IL, IMap0),
-    {noreply, State#state{os=Os, shown=Shown, imap=IMap}};
+    try
+        {Shown,IMap} = update_object(Os, TC, IL, IMap0),
+        {noreply, State#state{os=Os, shown=Shown, imap=IMap}}
+    catch _:Reason ->
+            io:format("~p:~p: crashed ~P~n",[?MODULE,?LINE,Reason,30]),
+            io:format(" at: ~P~n",[Reason,30]),
+            {noreply, State}
+    end;
 handle_cast(quit, State) ->
     {noreply, State};
 handle_cast(_Req, State) ->
@@ -537,12 +551,12 @@ update_object(Os, TC, IL, Imap0) ->
 		     end,
 		 Acc = [{Item, O}|Acc0],
 		 if Type =:= mat ->
-		     case maps:get(maps, O, []) of
-			 [] -> {Acc, Imap};
-			 Maps ->
-			     add_maps(Maps, TC, Item, Name, IL, Imap, Os, Acc)
-		     end;
-		 true -> {Acc, Imap}
+                         case maps:get(maps, O, []) of
+                             [] -> {Acc, Imap};
+                             Maps ->
+                                 add_maps(Maps, TC, Item, Name, IL, Imap, Os, Acc)
+                         end;
+                    true -> {Acc, Imap}
 		 end
 		 %% {Node,_} = lists:keyfind(Curr, 2, All),
 		 %% wxTreeCtrl:selectItem(TC, Node),
@@ -608,7 +622,7 @@ image_maps_index(Type) ->
 	bump -> 6;
 	normal -> 7;
 	material -> 8;
-	_ -> undefined
+        _unknown -> 4
     end.
 
 load_icons() ->

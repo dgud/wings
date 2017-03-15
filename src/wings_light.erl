@@ -13,9 +13,9 @@
 
 -module(wings_light).
 -export([light_types/0,menu/3,command/2,is_any_light_selected/1,
-	 any_enabled_lights/0,info/1,
+	 any_enabled_lights/0,info/1,setup_light/1,
 	 create/2,update_dynamic/2,update_matrix/2,update/1,render/1,
-	 global_lights/0,camera_lights/0,camera_lights/1,
+	 global_lights/1,
 	 export/1,export_bc/1,export_camera_lights/0,
 	 import/2,import/1,shape_materials/2,
 	 light_pos/1]).
@@ -134,7 +134,7 @@ command(edit, St) ->
 command({edit,Id}, St) ->
     edit(Id, St);
 command(delete, St) ->
-    {save_state,wings_shape:update_folders(delete(St))};
+    {save_state,delete(St)};
 command({duplicate,Dir}, St) ->
     duplicate(Dir, St).
 
@@ -472,22 +472,19 @@ update_fun(infinite, SelColor, #we{light=#light{aim=Aim}}=We) ->
     LightCol = get_light_col(We),
     Vec = e3d_vec:norm_sub(Aim, LightPos),
     Data = [e3d_vec:mul(Vec, 0.2),e3d_vec:mul(Vec, 0.6)],
+    {Len, Tris,_} = wings_shapes:tri_sphere(#{subd=>3, scale=>0.08}),
     D = fun() ->
-		gl:lineWidth(1.0),
-		gl:color4fv(LightCol),
+		gl:lineWidth(1.5),
 		gl:pushMatrix(),
 		{X,Y,Z} = LightPos,
 		gl:translatef(X, Y, Z),
-		Obj = glu:newQuadric(),
-		glu:quadricDrawStyle(Obj, ?GLU_FILL),
-		glu:quadricNormals(Obj, ?GLU_SMOOTH),
-		glu:sphere(Obj, 0.08, 25, 25),
-		glu:deleteQuadric(Obj),
+		gl:color4fv(LightCol),
+                gl:drawArrays(?GL_TRIANGLES, 2, Len*3),
 		gl:color3fv(SelColor),
-		gl:drawArrays(?GL_LINES, 0, 2),
+                gl:drawArrays(?GL_LINES, 0, 2),
 		gl:popMatrix()
 	end,
-    wings_vbo:new(D, Data);
+    wings_vbo:new(D, Data++Tris);
 update_fun(point, SelColor, We) ->
     LightPos = light_pos(We),
     LightCol = get_light_col(We),
@@ -499,22 +496,19 @@ update_fun(point, SelColor, We) ->
 	     {0.0,0.71,0.71}],
     N = length(Data0) * 4,
     Data = lines(Data0),
+    {Len, Tris,_} = wings_shapes:tri_sphere(#{subd=>3, scale=>0.08}),
     D = fun() ->
 		gl:lineWidth(1.0),
 		gl:color4fv(LightCol),
 		gl:pushMatrix(),
 		{X,Y,Z} = LightPos,
 		gl:translatef(X, Y, Z),
-		Obj = glu:newQuadric(),
-		glu:quadricDrawStyle(Obj, ?GLU_FILL),
-		glu:quadricNormals(Obj, ?GLU_FLAT),
-		glu:sphere(Obj, 0.08, 25, 25),
-		glu:deleteQuadric(Obj),
+                gl:drawArrays(?GL_TRIANGLES, N, Len*3),
 		gl:color3fv(SelColor),
 		gl:drawArrays(?GL_LINES, 0, N),
 		gl:popMatrix()
 	end,
-    wings_vbo:new(D, Data);
+    wings_vbo:new(D, Data++Tris);
 update_fun(spot, SelColor, #we{light=#light{aim=Aim,spot_angle=Angle}}=We) ->
     Top = light_pos(We),
     LightCol = get_light_col(We),
@@ -528,25 +522,25 @@ update_fun(spot, SelColor, #we{light=#light{aim=Aim,spot_angle=Angle}}=We) ->
     H = math:cos(Rad),
     Translate = e3d_vec:mul(SpotDir, H),
     Rot = e3d_mat:rotate_s_to_t({0.0,0.0,1.0}, e3d_vec:neg(SpotDir)),
-    fun() ->
-	    gl:lineWidth(1.0),
-	    gl:color4fv(LightCol),
-	    gl:pushMatrix(),
-	    Obj = glu:newQuadric(),
-	    {Tx,Ty,Tz} = Top,
-	    gl:translatef(Tx, Ty, Tz),
-	    glu:quadricDrawStyle(Obj, ?GLU_FILL),
-	    glu:quadricNormals(Obj, ?GLU_SMOOTH),
-	    glu:sphere(Obj, 0.08, 25, 25),
-	    gl:color3fv(SelColor),
-	    {Dx,Dy,Dz} = Translate,
-	    gl:translatef(Dx, Dy, Dz),
-	    gl:multMatrixd(Rot),
-	    glu:quadricDrawStyle(Obj, ?GLU_LINE),
-	    glu:cylinder(Obj, R, 0.08, H, 12, 1),
-	    glu:deleteQuadric(Obj),
-	    gl:popMatrix()
-    end;
+    {Len, Tris,_} = wings_shapes:tri_sphere(#{subd=>3, scale=>0.08}),
+    D = fun() ->
+                gl:lineWidth(1.0),
+                gl:color4fv(LightCol),
+                gl:pushMatrix(),
+                {Tx,Ty,Tz} = Top,
+                gl:translatef(Tx, Ty, Tz),
+                gl:drawArrays(?GL_TRIANGLES, 0, Len*3),
+                gl:color3fv(SelColor),
+                {Dx,Dy,Dz} = Translate,
+                gl:translatef(Dx, Dy, Dz),
+                gl:multMatrixd(Rot),
+                Obj = glu:newQuadric(),
+                glu:quadricDrawStyle(Obj, ?GLU_LINE),
+                glu:cylinder(Obj, R, 0.08, H, 12, 1),
+                glu:deleteQuadric(Obj),
+                gl:popMatrix()
+        end,
+    wings_vbo:new(D, Tris);
 update_fun(ambient, _, _) ->
     fun() -> ok end.
 
@@ -636,8 +630,6 @@ get_light_1(#we{light=L,pst=Pst}=We, BC) ->
 	     end,
     [{opengl,OpenGL}|Prop].
 
-export_perm([], Ps) ->
-    [{visible,false},{locked,false}|Ps];
 export_perm({_,_}, Ps) ->
     [{visible,false},{locked,false}|Ps];
 export_perm(P, Ps) when is_integer(P) ->
@@ -679,7 +671,7 @@ import(Lights, St) ->
     foldl(fun import_fun/2, St, Lights).
 
 import_fun({Name,Ps}, St) ->
-    wings_shape:new(Name, import(Ps), St).
+    wings_obj:new(Name, import(Ps), St).
 
 import(Ps) ->
     Visible = proplists:get_value(visible, Ps, []),
@@ -772,49 +764,11 @@ import_fix_face(FaceRec) when is_tuple(FaceRec) ->
 %%% Setting up lights.
 %%%
 
-camera_lights() ->
-    camera_lights(wings_pref:get_value(number_of_lights)).
-
-camera_lights(Type) ->
-    gl:enable(?GL_LIGHT0),
-    gl:disable(?GL_LIGHT2),
-    gl:disable(?GL_LIGHT3),
-    gl:disable(?GL_LIGHT4),
-    gl:disable(?GL_LIGHT5),
-    gl:disable(?GL_LIGHT6),
-    gl:disable(?GL_LIGHT7),
-    Amb = camera_ambient(),
-    gl:lightModelfv(?GL_LIGHT_MODEL_AMBIENT, Amb#light.ambient),
-    case Type of
-	1 ->
-	    L = camera_infinite_1_0(),
-	    gl:disable(?GL_LIGHT1),
-	    gl:lightfv(?GL_LIGHT0, ?GL_DIFFUSE,  L#light.diffuse),
-	    gl:lightfv(?GL_LIGHT0, ?GL_SPECULAR, L#light.specular),
-	    gl:lightfv(?GL_LIGHT0, ?GL_POSITION, infinite(L#light.aim));     
-	2 ->
-	    L20 = camera_infinite_2_0(),
-	    L21 = camera_infinite_2_1(),
-	    gl:enable(?GL_LIGHT1),
-	    gl:lightfv(?GL_LIGHT0, ?GL_DIFFUSE,  L20#light.diffuse), 
-	    gl:lightfv(?GL_LIGHT0, ?GL_SPECULAR, L20#light.specular),
-	    gl:lightfv(?GL_LIGHT0, ?GL_POSITION, infinite(L20#light.aim)),
-	    gl:lightfv(?GL_LIGHT1, ?GL_DIFFUSE,  L21#light.diffuse), 
-	    gl:lightfv(?GL_LIGHT1, ?GL_SPECULAR, L21#light.specular),
-	    gl:lightfv(?GL_LIGHT1, ?GL_POSITION, infinite(L21#light.aim));     
-	mat_preview ->
-	    D = 0.8,
-	    S = 0.7,
-	    gl:disable(?GL_LIGHT1),
-	    gl:lightfv(?GL_LIGHT0, ?GL_DIFFUSE, {D,D,D,1}),
- 	    gl:lightfv(?GL_LIGHT0, ?GL_SPECULAR, {S,S,S,1}),
-	    gl:lightfv(?GL_LIGHT0, ?GL_POSITION, {1,1,2,0})
-    end.
-
-global_lights() ->
+global_lights(Lights0) ->
     gl:lightModelfv(?GL_LIGHT_MODEL_AMBIENT, {0.0,0.0,0.0,1.0}),
-    Lnum = wings_dl:fold(fun scene_lights_fun/2, ?GL_LIGHT0),
-    disable_from(Lnum).
+    Lights = lists:map(fun scene_lights_fun/1, Lights0),
+    IsAL = fun(#{light:=#light{type=Type}}) -> Type =:= ambient end,
+    lists:partition(IsAL, Lights).
 
 camera_ambient() ->
     #light{type = ambient, 
@@ -842,21 +796,11 @@ camera_infinite_2_1() ->
 	   aim      = {-0.71,-0.71,0.0}
 	  }.
 
-infinite({X,Y,Z}) -> {X,Y,Z,0.0}.
-
-disable_from(Lnum) when Lnum > ?GL_LIGHT7 -> ok;
-disable_from(Lnum) ->
-    gl:disable(Lnum),
-    disable_from(Lnum+1).
-
-scene_lights_fun(_, Lnum) when Lnum > ?GL_LIGHT7 -> Lnum;
-scene_lights_fun(#dlo{src_we=We}, Lnum) 
-  when not ?IS_ANY_LIGHT(We)-> Lnum;
-scene_lights_fun(#dlo{transparent=#we{light=L}=We}, Lnum) ->
+scene_lights_fun(#dlo{transparent=#we{light=L}=We}) ->
     %% This happens when dragging a light in Body selection mode.
     %% (Not area light.)
-    setup_light(Lnum, L, We, none);
-scene_lights_fun(#dlo{drag=Drag,src_we=We0}=D, Lnum) ->
+    prepare_light(L, We, none);
+scene_lights_fun(#dlo{drag=Drag,src_we=We0}=D) ->
     %% Area lights handled here in all selection modes +
     %% other lights in vertex/edge/face modes.
     We = case We0 of
@@ -867,9 +811,9 @@ scene_lights_fun(#dlo{drag=Drag,src_we=We0}=D, Lnum) ->
 		 %% updating would use the resulting #we{}, but it does not
 		 %% exist until the drag is done.
 		 wings_draw:original_we(D);
-	     _ -> 
+	     _ ->
 		 %% Non-area lights drag the whole shape so they can use
-		 %% the dynamic part of the splitted shape 
+		 %% the dynamic part of the splitted shape
 		 %% (which is the whole shape).
 		 We0
 	 end,
@@ -877,70 +821,78 @@ scene_lights_fun(#dlo{drag=Drag,src_we=We0}=D, Lnum) ->
 	    {matrix,_Tr,_M0,M1} -> M1;
  	    _ -> none
  	end,
-    setup_light(Lnum, We#we.light, We, M).
+    prepare_light(We#we.light, We, M).
 
-setup_light(Lnum, #light{type=ambient,ambient=Amb}, _We, _M) ->
+prepare_light(#light{type=ambient,ambient=Amb}=L, _We, _M) ->
     gl:lightModelfv(?GL_LIGHT_MODEL_AMBIENT, Amb),
-    Lnum;
-setup_light(Lnum, #light{type=infinite,aim=Aim}=L, We, _M) ->
+    #{light=>L};
+prepare_light(#light{type=infinite,aim=Aim}=L, We, _M) ->
     {X,Y,Z} = e3d_vec:norm_sub(light_pos(We), Aim),
-    gl:lightfv(Lnum, ?GL_POSITION, {X,Y,Z,0.0}),
-    setup_color(Lnum, L),
-    gl:enable(Lnum),
-    Lnum+1;
-setup_light(Lnum, #light{type=point}=L, We, _M) ->
+    #{light=>L, pos=>{X,Y,Z,0.0}};
+prepare_light(#light{type=point}=L, We, _M) ->
     {X,Y,Z} = light_pos(We),
-    gl:lightfv(Lnum, ?GL_POSITION, {X,Y,Z,1.0}),
-    gl:lightf(Lnum, ?GL_SPOT_CUTOFF, 180.0),
-    setup_color(Lnum, L),
-    setup_attenuation(Lnum, L),
-    gl:enable(Lnum),
-    Lnum+1;
-setup_light(Lnum, #light{type=spot,aim=Aim,spot_angle=Angle,spot_exp=Exp}=L, 
-	    We, _M) ->
+    #{light=>L, pos=>{X,Y,Z,1.0}};
+prepare_light(#light{type=spot,aim=Aim}=L, We, _M) ->
     Pos = {X,Y,Z} = light_pos(We),
     Dir = e3d_vec:norm_sub(Aim, Pos),
-    gl:lightfv(Lnum, ?GL_POSITION, {X,Y,Z,1.0}),
-    gl:lightf(Lnum, ?GL_SPOT_CUTOFF, Angle),
-    gl:lightf(Lnum, ?GL_SPOT_EXPONENT, Exp),
-    gl:lightfv(Lnum, ?GL_SPOT_DIRECTION, Dir),
-    setup_color(Lnum, L),
-    setup_attenuation(Lnum, L),
-    gl:enable(Lnum),
-    Lnum+1;
-setup_light(Lnum, #light{type=area}=L, We, M) ->
+    #{light=>L, pos=>{X,Y,Z,1.0}, dir=>Dir};
+prepare_light(#light{type=area}=L, We, M) ->
     Apde = arealight_posdirexp(We),
-    setup_arealight(Lnum, L, Apde, M).
+    prepare_arealight(L, Apde, M).
 
-setup_arealight(Lnum, #light{type=area}=L, {Pos0,{0.0,0.0,0.0},_}, M) ->
-    {X,Y,Z} = 
-	case M of
-	    none -> Pos0;
-	    _ -> mul_point(M, Pos0)
-	end,
-    gl:lightfv(Lnum, ?GL_POSITION, {X,Y,Z,1}),
-    gl:lightf(Lnum, ?GL_SPOT_CUTOFF, 180.0),
-    setup_color(Lnum, L),
-    setup_attenuation(Lnum, L),
-    gl:enable(Lnum),
-    Lnum+1;
-setup_arealight(Lnum, #light{type=area}=L, {Pos0,Dir0,Exp}, M) ->
-    {{X,Y,Z},Dir} = 
+prepare_arealight(#light{type=area}=L, {Pos0,{0.0,0.0,0.0},_}, M) ->
+    {X,Y,Z} = case M of
+                  none -> Pos0;
+                  _ -> mul_point(M, Pos0)
+              end,
+    #{light=>L, pos=>{X,Y,Z,1.0}};
+prepare_arealight(#light{type=area}=L, {Pos0,Dir0,Exp}, M) ->
+    {{X,Y,Z},Dir} =
 	case M of
 	    none -> {Pos0,Dir0};
-	    _ -> 
+	    _ ->
 		Pos = mul_point(M, Pos0),
 		Aim = mul_point(M, e3d_vec:add(Dir0, Pos0)),
 		{Pos,e3d_vec:sub(Aim, Pos)}
 	end,
-    gl:lightfv(Lnum, ?GL_POSITION, {X,Y,Z,1}),
-    gl:lightf(Lnum, ?GL_SPOT_CUTOFF, 90.0),
-    gl:lightf(Lnum, ?GL_SPOT_EXPONENT, Exp),
-    gl:lightfv(Lnum, ?GL_SPOT_DIRECTION, Dir),
-    setup_color(Lnum, L),
-    setup_attenuation(Lnum, L),
-    gl:enable(Lnum),
-    Lnum+1.
+    #{light=>L, pos=>{X,Y,Z,1.0}, dir=>Dir, exp=>Exp}.
+
+setup_light(#{light:=#light{type=ambient,ambient=Amb}}) ->
+    gl:lightModelfv(?GL_LIGHT_MODEL_AMBIENT, Amb),
+    wings_shaders:use_prog(ambient_light);
+setup_light(#{light:=#light{type=infinite}=L, pos:=Pos}) ->
+    gl:lightfv(?GL_LIGHT0, ?GL_POSITION, Pos),
+    setup_color(?GL_LIGHT0, L),
+    wings_shaders:use_prog(infinite_light);
+setup_light(#{light:=#light{type=point}=L,pos:=Pos}) ->
+    gl:lightfv(?GL_LIGHT0, ?GL_POSITION, Pos),
+    gl:lightf(?GL_LIGHT0, ?GL_SPOT_CUTOFF, 180.0),
+    setup_color(?GL_LIGHT0, L),
+    setup_attenuation(?GL_LIGHT0, L),
+    wings_shaders:use_prog(point_light);
+setup_light(#{light:=#light{type=spot,spot_angle=Angle,spot_exp=Exp}=L,
+              pos:=Pos, dir:=Dir}) ->
+    gl:lightfv(?GL_LIGHT0, ?GL_POSITION, Pos),
+    gl:lightf(?GL_LIGHT0, ?GL_SPOT_CUTOFF, Angle),
+    gl:lightf(?GL_LIGHT0, ?GL_SPOT_EXPONENT, Exp),
+    gl:lightfv(?GL_LIGHT0, ?GL_SPOT_DIRECTION, Dir),
+    setup_color(?GL_LIGHT0, L),
+    setup_attenuation(?GL_LIGHT0, L),
+    wings_shaders:use_prog(spot_light);
+setup_light(#{light:=#light{type=area}=L, pos:=Pos, dir:=Dir, exp:=Exp}) ->
+    gl:lightfv(?GL_LIGHT0, ?GL_POSITION, Pos),
+    gl:lightf(?GL_LIGHT0, ?GL_SPOT_CUTOFF, 90.0),
+    gl:lightf(?GL_LIGHT0, ?GL_SPOT_EXPONENT, Exp),
+    gl:lightfv(?GL_LIGHT0, ?GL_SPOT_DIRECTION, Dir),
+    setup_color(?GL_LIGHT0, L),
+    setup_attenuation(?GL_LIGHT0, L),
+    wings_shaders:use_prog(spot_light);
+setup_light(#{light:=#light{type=area}=L, pos:=Pos}) ->
+    gl:lightfv(?GL_LIGHT0, ?GL_POSITION, Pos),
+    gl:lightf(?GL_LIGHT0, ?GL_SPOT_CUTOFF, 180.0),
+    setup_color(?GL_LIGHT0, L),
+    setup_attenuation(?GL_LIGHT0, L),
+    wings_shaders:use_prog(point_light).
 
 setup_color(Lnum, #light{diffuse=Diff,ambient=Amb,specular=Spec}) ->
     gl:lightfv(Lnum, ?GL_DIFFUSE, Diff),

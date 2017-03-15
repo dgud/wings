@@ -28,9 +28,12 @@
 	 length/2
 	]).
 
+-export_type([edge_num/0]).
+
 -include("wings.hrl").
 -import(lists, [foldl/3,sort/1]).
 
+-type edge_num() :: non_neg_integer().
 
 length(Ei, #we{es=Etab,vp=VPos}) ->
     #edge{vs=VS,ve=VE} = array:get(Ei,Etab),
@@ -212,7 +215,7 @@ select_region(St) -> St.
 %%
 
 -spec reachable_faces(Face, Edges, We) -> Faces when
-      Face :: face_num(),
+      Face :: wings_face:face_num(),
       Edges :: wings_sel:edge_set(),
       We :: #we{},
       Faces :: wings_sel:face_set().
