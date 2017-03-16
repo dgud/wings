@@ -2296,6 +2296,7 @@ export_dialog_qs(Op, Attr) ->
     {ApertureIdx,_} = f_stop_find(f_stop_str(Aperture),ApertureList),
     ImageFormats = images_format(),
     BrowseProps = [{dialog_type,open_dialog}, {extensions,ImageFormats}],
+    FontProps = [{dialog_type,open_dialog}, {extensions,[{".ttf","True Type Fonts"}]}],
 
     Hook_Enable = fun(Key, Value, Store) ->
         case Key of
@@ -2915,7 +2916,7 @@ export_dialog_qs(Op, Attr) ->
                                                              [{key,badge_custom_icon_path}, {props,BrowseProps}]}}},
                     {?__(240, "Font size factor"), {text, get_pref(badge_font_size_factor,Attr), [range(badge_font_size_factor), {key,badge_font_size_factor}]}},
                     {?__(241, "Custom font path "), {button,{text, get_pref(badge_font_path,Attr),
-                                                             [{key,badge_font_path}, {props,BrowseProps}]}}}
+                                                             [{key,badge_font_path}, {props,FontProps}]}}}
                 ]}
             ],[{title,""}, {margin,true}]}
         },
