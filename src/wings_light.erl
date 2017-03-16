@@ -14,7 +14,7 @@
 -module(wings_light).
 -export([light_types/0,menu/3,command/2,is_any_light_selected/1,
 	 any_enabled_lights/0,info/1,setup_light/1,
-	 create/2,update_dynamic/2,update_matrix/2,update/1,render/1,
+	 create/2,update_dynamic/2,update_matrix/2,update/1,
 	 global_lights/1,
 	 export/1,export_bc/1,export_camera_lights/0,
 	 import/2,import/1,shape_materials/2,
@@ -553,9 +553,6 @@ lines([]) -> [].
 
 get_light_col(#we{light=#light{diffuse=Diff}}) ->
     Diff.
-
-render(#dlo{work=Light}) ->
-    wings_dl:call(Light).
 
 %%%
 %%% Exporting lights.
