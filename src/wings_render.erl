@@ -138,6 +138,7 @@ render_objects(Mode, PM, UseSceneLights) ->
     end.
 
 render_lights(Lights) ->
+    wings_shaders:use_prog(1),
     render_work_objects_0(Lights, false),
     gl:color4ub(255, 255, 255, 255).
 
@@ -371,7 +372,7 @@ render_wire_object_1(#dlo{mirror=Matrix}=D, PStyle) ->
     gl:popMatrix(),
     gl:frontFace(?GL_CCW).
 
-split_objects([#dlo{src_we=We}=D|Dls], Open, Closed, Lights) when ?IS_LIGHT(We) ->
+split_objects([#dlo{src_we=We}=D|Dls], Open, Closed, Lights) when ?IS_ANY_LIGHT(We) ->
     split_objects(Dls, Open, Closed, [D|Lights]);
 split_objects([#dlo{open=true}=D|Dls], Open, Closed, Lights) ->
     split_objects(Dls, [D|Open], Closed, Lights);
