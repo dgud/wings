@@ -658,20 +658,21 @@ auto_rotate(St) ->
 
 auto_rotate_event({action, Cmd={view, rotate_left}}, Tim) ->
     auto_rotate_event_1(Cmd, Tim);
-auto_rotate_event(Event, #tim{timer=Timer,st=St}=Tim) ->
+auto_rotate_event(Event, #tim{st=St, timer=Timer}=Tim) ->
     case wings_camera:event(Event, St) of
 	next -> auto_rotate_event_1(Event, Tim);
 	Other ->
-	    wings_io:cancel_timer(Timer),
-	    {seq,fun(Ev) ->
+            wings_io:cancel_timer(Timer),
+            Do = fun(Ev) ->
 			 auto_rotate_help(),
 			 wings_io:putback_event(Ev),
-			 set_auto_rotate_timer(Tim)
-		 end,Other}
+                         set_auto_rotate_timer(Tim#tim{frames=301})
+		 end,
+	    {seq, Do, Other}
     end.
 
 auto_rotate_event_1(redraw, Tim) ->
-    auto_rotate_redraw(Tim),
+    wings_io:batch(fun() -> auto_rotate_redraw(Tim) end),
     keep;
 auto_rotate_event_1(#mousemotion{}, _) -> keep;
 auto_rotate_event_1(got_focus, _) -> keep;
