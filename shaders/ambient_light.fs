@@ -21,11 +21,11 @@ vec4 get_diffuse() {
 
 void main(void)
 {
-    vec3 amb  = vec3(0.0,0.0,0.0);
+    vec4 amb;
     vec4 difftex = get_diffuse();
-    vec3 diffuseColor = difftex.rgb * color.rgb;
+    vec4 diffuseColor = difftex * color;
 
     // Amb
-    amb = vec3(gl_FrontMaterial.ambient) * vec3(gl_LightModel.ambient);
-    gl_FragColor = vec4(amb, difftex.a*color.a);
+    amb = diffuseColor * gl_LightModel.ambient;
+    gl_FragColor = amb;
 }

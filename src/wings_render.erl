@@ -106,11 +106,12 @@ setup_scene_lights(true, Lights) ->
     case Amb0 of
         [] ->
             gl:lightModelfv(?GL_LIGHT_MODEL_AMBIENT, {0.0,0.0,0.0,1.0}),
-            wings_shaders:use_prog(ambient_light);
-        [Amb|_] ->
-            wings_light:setup_light(Amb)
-    end,
-    SL.
+            wings_shaders:use_prog(ambient_light),
+            SL;
+        [Amb|RestAmb] ->
+            wings_light:setup_light(Amb),
+            RestAmb ++ SL
+    end.
 
 render_objects(Mode, PM, UseSceneLights) ->
     Dls = wings_dl:display_lists(),
