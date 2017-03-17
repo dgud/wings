@@ -731,13 +731,13 @@ import_we(#light{}=Light, OpenGL, {X,Y,Z}) ->
 import_perm([]=_Visible,[]=_Locked) ->  % it will match when a new light is added to project  
     import_perm(true,false);
 import_perm(false,false) ->
-    [];
+    ?PERM_HIDDEN_BIT;
 import_perm(true,false) ->
     0;
 import_perm(true,true) ->
-    1;
+    ?PERM_LOCKED_BIT;
 import_perm(false,true) ->
-    3.
+    ?PERM_HIDDEN_BIT bor ?PERM_LOCKED_BIT.
 
 import_fix_mesh(#e3d_mesh{fs=Fs0}=Mesh0) ->
     Fs = [import_fix_face(F) || F <- Fs0],
