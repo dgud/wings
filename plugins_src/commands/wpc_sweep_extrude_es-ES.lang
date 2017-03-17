@@ -1,0 +1,62 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_sweep_extrude,
+ [
+  {axis_menu,
+   [
+    {2,"Extruir con respecto al porcentaje del radio de la selección"}
+   ]},
+  {axis_menu_string,
+   [
+    {1,"Barrer libremente en relación con la pantalla"},
+    {3,"Si el eje ~s es perpendicular a la normal de la extrusión, todo el movimiento será restringido a su plano radial. De lo contrario, actúa como un componente fuera del eje."}
+   ]},
+  {base_help,
+   [
+    {1,"  [4] Congelar Base"},
+    {2,"  [4] Descongelar Base"}
+   ]},
+  {cntr_help,
+   [
+    {1,"[1] Centro en la Selección"},
+    {2,"[1] Centro en la Región"}
+   ]},
+  {lock_help,
+   [
+    {1,"  [3] Restringido al Eje"},
+    {2,"  [3] Relativo a la Pantalla"}
+   ]},
+  {menu_string_1,
+   [
+    {1,"Extruir a lo largo de la normal, utilizando el eje predeterminado de lado a lado"},
+    {2,"Extruir la región a lo largo de su normal, utilizando el eje predeterminado de lado a lado"},
+    {3,"Extraer y extruir la región a lo largo de su normal, utilizando el eje predeterminado de lado a lado"}
+   ]},
+  {menu_title,
+   [
+    {1,"Barrer"},
+    {2,"Barrer Región"},
+    {3,"Barrer y Extraer"}
+   ]},
+  {selection_ask,
+   [
+    {1,"La elección de un eje perpendicular a la normal de la extrusión, restringirá todo el movimiento a su plano radial. De lo contrario, actúa como un componente fuera del eje."}
+   ]},
+  {sweep_error,
+   [
+    {3,"Barrer Región no funcionará para selecciones donde el promedio de la normal sea (0,0,0)"}
+   ]},
+  {sweep_menu,
+   [
+    {3,"Selecciona eje"},
+    {4,"Seleccionar un eje y extruir en relación al porcentaje del radio de la selección"}
+   ]},
+  {sweep_menu_headings,
+   [
+    {1,"Hacer una extrusión de inglete que se puede escalar y retorcida interactivamente"}
+   ]},
+  {warp_help,
+   [
+    {1,"  [2] Mantener Forma"},
+    {2,"  [2] Permitir Deformación"}
+   ]}
+ ]}.
