@@ -315,7 +315,7 @@ new(#st{}=St0) ->		      %File is not saved or autosaved.
 			  fun() -> {file,confirmed_new} end).
 
 open(#st{saved=Saved}=St) ->
-    case Saved orelse wings_obj:num_objects(St) =:= 0 of
+    case Saved =:= true orelse wings_obj:num_objects(St) =:= 0 of
         true ->
             confirmed_open_dialog();
         false ->
@@ -364,7 +364,7 @@ confirmed_open(Name, St0) ->
     use_autosave(Name, Fun).
 
 named_open(Name, #st{saved=Saved}=St) ->
-    case Saved orelse wings_obj:num_objects(St) =:= 0 of
+    case Saved =:= true orelse wings_obj:num_objects(St) =:= 0 of
         true ->
             confirmed_open(Name, St);
         false ->
