@@ -1,0 +1,21 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_obj,
+ [
+  {dialog,
+   [
+    {1,"Un grupo por material"},
+    {2,"Solución alternativa Vue d'Esprit"}
+   ]},
+  {do_export,
+   [
+    {1,"Opciones de exportación de Wavefront"}
+   ]},
+  {do_import,
+   [
+    {1,"Opciones de importación de Wavefront"}
+   ]},
+  {props,
+   [
+    {1,"Archivo Wavefront"}
+   ]}
+ ]}.
