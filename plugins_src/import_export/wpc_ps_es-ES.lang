@@ -1,0 +1,21 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_ps,
+ [
+  {command,
+   [
+    {2,"Número de bisecciones de arista"},
+    {4,"Opciones de importación PS/EPS"},
+    {5,"Archivo PostScript"},
+    {6,"Archivo PostScript Encapsulado"}
+   ]},
+  {make_ps,
+   [
+    {1,"Error de importación de PS"},
+    {2,"Error interno de importación de PS"}
+   ]},
+  {try_import_ps,
+   [
+    {1,"No es un archivo Adobe PostScript"},
+    {2,"El archivo no tiene una estructura de marcadores válida"}
+   ]}
+ ]}.
