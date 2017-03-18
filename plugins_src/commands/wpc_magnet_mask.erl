@@ -17,7 +17,7 @@
 -module(wpc_magnet_mask).
 
 -export([init/0,menu/2,command/2]).
--export([update_dlist/3,draw/4,get_locked_vs/1,get_data/3,merge_we/1]).
+-export([update_dlist/3,draw/5,get_locked_vs/1,get_data/3,merge_we/1]).
 
 -define(NEED_OPENGL, 1).
 -define(NEED_ESDL, 1).
@@ -225,8 +225,9 @@ update_dlist({vs,LockedVs}, #dlo{plugins=Pdl,src_we=#we{vp=Vtab}=We}=D, _) ->
 	    D#dlo{plugins=[{Key,none}|Pdl]};
 	Data ->
 	    N = byte_size(Data) div 12,
-	    Draw0 = fun() ->
-			    gl:drawArrays(?GL_POINTS, 0, N)
+	    Draw0 = fun(RS) ->
+			    gl:drawArrays(?GL_POINTS, 0, N),
+                            RS
 		    end,
 	    Draw = wings_vbo:new(Draw0, Data),
 	    D#dlo{plugins=[{Key,Draw}|Pdl]}
@@ -269,28 +270,29 @@ get_data_2(Data, Acc) ->
     LockedVs = gb_trees:get(vs,Data),
     {ok, [{plugin, {?MODULE, {vs, LockedVs}}}|Acc]}.
 
-draw(plain, List, _D, Selmode) ->
+draw(plain, List, _D, Selmode, RS0) ->
     case wings_pref:get_value(show_magnet_mask) of
-      true ->
-        {R0,G0,B0,A} = wings_pref:get_value(masked_vertex_color),
-        PtSize = wings_pref:get_value(masked_vertex_size),
-        case wings_pref:get_value(magnet_mask_on) of
-          true ->
-            Colour = gl:color4f(R0, G0, B0, A),
-            Size = PtSize;
-          false ->
-            Colour = gl:color4f(1-R0, 1-G0, 1-B0, A),
-            Size = PtSize*0.8
-        end,
-        gl:pointSize(vert_display(Size,Selmode)),
-        gl:enable(?GL_BLEND),
-        gl:blendFunc(?GL_SRC_ALPHA, ?GL_ONE_MINUS_SRC_ALPHA),
-        Colour,
-        wings_dl:call(List),
-        gl:disable(?GL_BLEND);
-      false-> ok
+        true ->
+            {R0,G0,B0,A} = wings_pref:get_value(masked_vertex_color),
+            PtSize = wings_pref:get_value(masked_vertex_size),
+            case wings_pref:get_value(magnet_mask_on) of
+                true ->
+                    Colour = gl:color4f(R0, G0, B0, A),
+                    Size = PtSize;
+                false ->
+                    Colour = gl:color4f(1-R0, 1-G0, 1-B0, A),
+                    Size = PtSize*0.8
+            end,
+            gl:pointSize(vert_display(Size,Selmode)),
+            gl:enable(?GL_BLEND),
+            gl:blendFunc(?GL_SRC_ALPHA, ?GL_ONE_MINUS_SRC_ALPHA),
+            Colour,
+            RS = wings_dl:call(List, RS0),
+            gl:disable(?GL_BLEND),
+            RS;
+        false-> RS0
     end;
-draw(_,_,_,_) -> ok.
+draw(_,_,_,_, RS) -> RS.
 
 vert_display(Size,vertex) ->
     VSize = wings_pref:get_value(selected_vertex_size),
