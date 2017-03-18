@@ -11,7 +11,7 @@
 
 -module(wpc_sculpt).
 -export([init/0,menu/2,command/2]).
--export([update_dlist/3,draw/4,get_data/3]).
+-export([update_dlist/3,draw/5,get_data/3]).
 
 -export([sculpt_menu/3]).
 
@@ -1099,10 +1099,11 @@ update_dlist({edge_info,EdgeInfo},#dlo{plugins=Pdl,src_we=#we{vp=Vtab}}=D, _) ->
 
 draw_fun(Data) ->
     N = byte_size(Data) div (4*3*4),
-    F = fun() ->
+    F = fun(RS) ->
 		gl:depthFunc(?GL_LEQUAL),
 		gl:drawArrays(?GL_LINES, 0, N),
-		gl:depthFunc(?GL_LESS)
+		gl:depthFunc(?GL_LESS),
+                RS
 	end,
     wings_vbo:new(F, Data, [vertex,color]).
 
@@ -1139,10 +1140,10 @@ get_data(update_dlist, Data, Acc) ->  % for draw lists
 
 %% It'll use the list prepared by 'update_dlist' function and then
 %% draw it (only for plain draw).
-draw(plain, DrawEdges, _D, SelMode) ->
+draw(plain, DrawEdges, _D, SelMode, RS) ->
     gl:lineWidth(edge_width(SelMode)),
-    wings_dl:call(DrawEdges);
-draw(_,_,_,_) -> ok.
+    wings_dl:call(DrawEdges, RS);
+draw(_,_,_,_, RS) -> RS.
 
 edge_width(edge) -> wings_pref:get_value(edge_width);
 edge_width(_) -> 1.

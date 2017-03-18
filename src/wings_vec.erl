@@ -728,7 +728,7 @@ erase_vector() ->
     draw_vec(none).
 
 draw_vec(Vec) ->
-    wings_dl:draw(current_vector, Vec, fun make_vec_fun/1).
+    wings_dl:draw(current_vector, Vec, fun make_vec_fun/1, #{}).
 
 make_vec_fun({Center,Vec0}) ->
     Vec = e3d_vec:mul(Vec0, wings_pref:get_value(active_vector_size)),
@@ -749,11 +749,12 @@ make_vec_fun({Center,Vec0}) ->
     Color = wings_pref:get_value(active_vector_color),
     Data = [Center,End, End,Arrow1, End,Arrow2],
     N = length(Data),
-    D = fun() ->
+    D = fun(RS) ->
 		gl:color3fv(Color),
 		gl:pointSize(Width*3.5),
 		gl:lineWidth(Width),
-		gl:drawArrays(?GL_LINES, 0, N)
+		gl:drawArrays(?GL_LINES, 0, N),
+                RS
 	end,
     wings_vbo:new(D, Data);
 make_vec_fun({_,_,_}=Vec) ->

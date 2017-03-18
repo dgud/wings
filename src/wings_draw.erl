@@ -366,15 +366,17 @@ make_edge_dl(Ns) ->
                                            gl:drawArrays(?GL_POLYGON, Start, N),
                                            {N+Start, <<Ss/binary, Start:?UI32>>, <<Ls/binary, N:?UI32>>}
                                    end, {0, <<>>, <<>>}, PsLens),
-                 fun() ->
-                         gl:multiDrawArrays(?GL_POLYGON, Ss, Ls)
+                 fun(RS) ->
+                         gl:multiDrawArrays(?GL_POLYGON, Ss, Ls),
+                         RS
                  end;
              false ->
-                 fun() ->
+                 fun(RS) ->
                          foldl(fun(Length, Start) ->
                                        gl:drawArrays(?GL_POLYGON, Start, Length),
                                        Length+Start
-                               end, 0, PsLens)
+                               end, 0, PsLens),
+                         RS
                  end
          end,
     P = wings_vbo:new(DP, Polys),
@@ -416,8 +418,9 @@ vertices_f32([]) -> <<>>.
 
 vbo_draw_arrays(Type, Data) ->
     N = byte_size(Data) div 12,
-    D = fun() ->
-		gl:drawArrays(Type, 0, N)
+    D = fun(RS) ->
+		gl:drawArrays(Type, 0, N),
+                RS
 	end,
     wings_vbo:new(D, Data).
 
@@ -480,10 +483,11 @@ update_sel(#dlo{}=D) -> D.
 %% Select all faces.
 update_sel_all(#dlo{vab=#vab{face_vs=Vs}=Vab}=D) when Vs =/= none ->
     Count = wings_draw_setup:face_vertex_count(D),
-    F = fun() ->
+    F = fun(RS) ->
 		wings_draw_setup:enable_pointers(Vab, []),
 		gl:drawArrays(?GL_TRIANGLES, 0, Count),
-		wings_draw_setup:disable_pointers(Vab, [])
+		wings_draw_setup:disable_pointers(Vab, []),
+                RS
 	end,
     D#dlo{sel={call,F,Vab}};
 update_sel_all(#dlo{src_we=#we{fs=Ftab}}=D) ->
@@ -500,17 +504,19 @@ update_face_sel(Fs0, #dlo{src_we=We,vab=#vab{face_vs=Vs,face_map=Map}=Vab}=D)
                                   {<<Ss/binary, Start:?UI32>>, <<Es/binary, NoElements:?UI32>>}
                           end,
                 {Start,NoElements} = lists:foldl(Collect, {<<>>,<<>>}, lists:reverse(Fs)),
-                fun() ->
+                fun(RS) ->
                         wings_draw_setup:enable_pointers(Vab, []),
                         gl:multiDrawArrays(?GL_TRIANGLES, Start, NoElements),
-                        wings_draw_setup:disable_pointers(Vab, [])
+                        wings_draw_setup:disable_pointers(Vab, []),
+                        RS
                 end;
             false ->
                 SN = [array:get(Face, Map) || Face <- Fs],
-                fun() ->
+                fun(RS) ->
                         wings_draw_setup:enable_pointers(Vab, []),
                         [gl:drawArrays(?GL_TRIANGLES, S, N) || {S,N} <- SN],
-                        wings_draw_setup:disable_pointers(Vab, [])
+                        wings_draw_setup:disable_pointers(Vab, []),
+                        RS
                 end
         end,
     Sel = {call,F,Vab},
@@ -897,25 +903,22 @@ draw_smooth_faces(#vab{mat_map=MatMap}=Vab, #st{mat=Mtab}) ->
 
 draw_mat_faces(Vab, Extra, MatGroups, Mtab) ->
     ActiveColor = wings_draw_setup:has_active_color(Vab),
-    D = fun() ->
+    D = fun(RS0) ->
 		wings_draw_setup:enable_pointers(Vab, Extra),
-		do_draw_mat_faces(MatGroups, Mtab, ActiveColor),
-		wings_draw_setup:disable_pointers(Vab, Extra)
+		RS = do_draw_mat_faces(MatGroups, Mtab, ActiveColor, RS0),
+		wings_draw_setup:disable_pointers(Vab, Extra),
+                RS
 	end,
     {call,D,Vab}.
 
-do_draw_mat_faces(MatGroups, Mtab, ActiveColor) ->
+do_draw_mat_faces(MatGroups, Mtab, ActiveColor, RS0) ->
     %% Show materials.
-    foreach(
-      fun({Mat,Type,Start,NumElements}) ->
-	      gl:pushAttrib(?GL_TEXTURE_BIT),
-	      DeApply = wings_material:apply_material(Mat, Mtab,
-						      ActiveColor),
+    foldl(
+      fun({Mat,Type,Start,NumElements}, RS1) ->
+	      DeApply = wings_material:apply_material(Mat, Mtab, ActiveColor, RS1),
 	      gl:drawArrays(Type, Start, NumElements),
-	      DeApply(),
-	      gl:popAttrib()
-      end, MatGroups),
-    ok.
+              DeApply()
+      end, RS0, MatGroups).
 
 %%
 %% Draw normals for the selected elements.

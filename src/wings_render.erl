@@ -14,11 +14,14 @@
 
 -module(wings_render).
 -export([init/0,
-	 render/1,polygonOffset/1,
-	 enable_lighting/1,disable_lighting/0]).
+	 render/1
+        %,polygonOffset/1, enable_lighting/1,disable_lighting/0
+        ]).
 
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
+
+-import(lists, [foldl/3]).
 
 init() ->
     wings_shaders:init(),
@@ -99,126 +102,134 @@ init_polygon_stipple() ->
 	 16#DD,16#DD,16#DD,16#DD,16#77,16#77,16#77,16#77>>,
     gl:polygonStipple(P).
 
-setup_scene_lights(false, _) ->
-    false;
-setup_scene_lights(true, Lights) ->
+setup_scene_lights(false, _, RS) ->
+    {false, RS};
+setup_scene_lights(true, Lights, RS0) ->
     {Amb0, SL} = wings_light:global_lights(Lights),
     case Amb0 of
         [] ->
             gl:lightModelfv(?GL_LIGHT_MODEL_AMBIENT, {0.0,0.0,0.0,1.0}),
-            wings_shaders:use_prog(ambient_light),
-            SL;
+            RS = wings_shaders:use_prog(ambient_light, RS0),
+            {SL, RS};
         [Amb|RestAmb] ->
-            wings_light:setup_light(Amb),
-            RestAmb ++ SL
+            RS = wings_light:setup_light(Amb, RS0),
+            {RestAmb ++ SL, RS}
     end.
 
 render_objects(Mode, PM, UseSceneLights) ->
     Dls = wings_dl:display_lists(),
     {Open,Closed,Lights} = split_objects(Dls, [], [], []),
-    render_lights(Lights),
-    SL = setup_scene_lights(UseSceneLights, Lights),
+    RS0 = #{},
+    RS1 = render_lights(Lights, RS0),
+    {SL, RS2} = setup_scene_lights(UseSceneLights, Lights, RS1),
     case wings_wm:get_prop(workmode) of
 	false ->
-            case UseSceneLights of
-                true -> render_smooth_objects(Open, Closed, ambient); %% amb pass
-                false -> ignore
-            end,
-	    render_smooth_objects(Open, Closed, SL),
-            render_wire(Dls, Mode, true),
-            render_sel_highlight(Dls, Mode, true, PM);
+            RS10 = case UseSceneLights of
+                       true -> render_smooth_objects(Open, Closed, ambient, RS2); %% amb pass
+                       false -> RS2
+                   end,
+            RS21 = render_smooth_objects(Open, Closed, SL, RS10),
+            RS22 = render_wire(Dls, Mode, true, RS21),
+            render_sel_highlight(Dls, Mode, true, PM, RS22);
 	true ->
-            case UseSceneLights of
-                true -> render_work_objects(Open, Closed, ambient); %% amb pass
-                false -> ignore
-            end,
-            render_work_objects(Open, Closed, SL),
-            render_wire(Dls, Mode, false),
-            render_sel_highlight(Dls, Mode, false, PM)
+            RS10 = case UseSceneLights of
+                       true -> render_work_objects(Open, Closed, ambient, RS2); %% amb pass
+                       false -> RS2
+                  end,
+            RS21 = render_work_objects(Open, Closed, SL, RS10),
+            RS22 = render_wire(Dls, Mode, false, RS21),
+            render_sel_highlight(Dls, Mode, false, PM, RS22)
     end.
 
-render_lights(Lights) ->
-    wings_shaders:use_prog(1),
-    render_work_objects_0(Lights, false),
-    gl:color4ub(255, 255, 255, 255).
+render_lights(Lights, RS0) ->
+    RS1 = wings_shaders:use_prog(1, RS0),
+    gl:color4ub(255, 255, 255, 255),
+    RS = render_work_objects_0(Lights, false, RS1),
+    gl:color4ub(255, 255, 255, 255),
+    RS.
 
-render_work_objects(Open, Closed, SceneLights) ->
+render_work_objects(Open, Closed, SceneLights, RS0) ->
     gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_FILL),
     gl:enable(?GL_POLYGON_OFFSET_FILL),
     polygonOffset(2.0),
     gl:shadeModel(?GL_SMOOTH),
-    enable_lighting(SceneLights),
-    render_work_objects_0(Closed, SceneLights),
+    RS1 = enable_lighting(SceneLights, RS0),
+    RS2 = render_work_objects_0(Closed, SceneLights, RS1),
     wings_pref:get_value(show_backfaces) andalso gl:disable(?GL_CULL_FACE),
-    render_work_objects_0(Open, SceneLights),
+    RS3 = render_work_objects_0(Open, SceneLights, RS2),
     gl:enable(?GL_CULL_FACE),
-    disable_lighting(),
+    RS = disable_lighting(RS3),
     gl:shadeModel(?GL_FLAT),
-    ok.
+    RS.
 
-render_work_objects_0([D|Dls], SceneLights) ->
-    render_object(D, true, false, SceneLights),
-    render_work_objects_0(Dls, SceneLights);
-render_work_objects_0([], _) -> ok.
+render_work_objects_0([D|Dls], SceneLights, RS0) ->
+    RS = render_object(D, true, false, SceneLights, RS0),
+    render_work_objects_0(Dls, SceneLights, RS);
+render_work_objects_0([], _, RS) -> RS.
 
-render_smooth_objects(Open, Closed, SceneLights) ->
+render_smooth_objects(Open, Closed, SceneLights, RS0) ->
     gl:shadeModel(?GL_SMOOTH),
     gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_FILL),
-    enable_lighting(SceneLights),
+    RS1 = enable_lighting(SceneLights, RS0),
     gl:enable(?GL_POLYGON_OFFSET_FILL),
     polygonOffset(2.0),
     gl:enable(?GL_CULL_FACE),
-    render_smooth_objects_0(Closed, false, SceneLights),
+    RS2 = render_smooth_objects_0(Closed, false, SceneLights, RS1),
     wings_pref:get_value(show_backfaces) andalso gl:disable(?GL_CULL_FACE),
-    render_smooth_objects_0(Open, false, SceneLights),
+    RS3 = render_smooth_objects_0(Open, false, SceneLights, RS2),
     gl:enable(?GL_BLEND),
     gl:blendFunc(?GL_SRC_ALPHA, ?GL_ONE_MINUS_SRC_ALPHA),
     gl:depthMask(?GL_FALSE),
     gl:enable(?GL_CULL_FACE),
-    render_smooth_objects_0(Closed, true, SceneLights),
+    RS4 = render_smooth_objects_0(Closed, true, SceneLights, RS3),
     wings_pref:get_value(show_backfaces) andalso gl:disable(?GL_CULL_FACE),
-    render_smooth_objects_0(Open, true, SceneLights),
+    RS5 = render_smooth_objects_0(Open, true, SceneLights, RS4),
+    RS = disable_lighting(RS5),
     gl:enable(?GL_CULL_FACE),
     gl:disable(?GL_BLEND),
-    gl:depthMask(?GL_TRUE).
+    gl:depthMask(?GL_TRUE),
+    RS.
 
-render_smooth_objects_0([D|Dls], RenderTrans, SceneLights) ->
-    render_object(D, false, RenderTrans, SceneLights),
-    render_smooth_objects_0(Dls, RenderTrans, SceneLights);
-render_smooth_objects_0([], _, _) -> ok.
+render_smooth_objects_0([D|Dls], RenderTrans, SceneLights, RS0) ->
+    RS = render_object(D, false, RenderTrans, SceneLights, RS0),
+    render_smooth_objects_0(Dls, RenderTrans, SceneLights, RS);
+render_smooth_objects_0([], _, _, RS) -> RS.
 
-render_object(#dlo{drag={matrix,_,_,Matrix}}=D, Work, RT, SceneLights) ->
+render_object(#dlo{drag={matrix,_,_,Matrix}}=D, Work, RT, SceneLights, RS0) ->
     gl:pushMatrix(),
     gl:multMatrixf(Matrix),
-    render_object_1(D, Work, RT, SceneLights),
-    gl:popMatrix();
-render_object(D, Work, RT, SceneLights) ->
-    render_object_1(D, Work, RT, SceneLights).
+    RS = render_object_1(D, Work, RT, SceneLights, RS0),
+    gl:popMatrix(),
+    RS;
+render_object(D, Work, RT, SceneLights, RS) ->
+    render_object_1(D, Work, RT, SceneLights, RS).
 
-render_object_1(#dlo{mirror=none}=D, Work, RenderTrans, SceneLights) ->
-    render_object_2(D, Work, RenderTrans, SceneLights);
-render_object_1(#dlo{mirror=Matrix}=D, Work, RenderTrans, SceneLights) ->
-    render_object_2(D, Work, RenderTrans, SceneLights),
+render_object_1(#dlo{mirror=none}=D, Work, RenderTrans, SceneLights, RS) ->
+    render_object_2(D, Work, RenderTrans, SceneLights, RS);
+render_object_1(#dlo{mirror=Matrix}=D, Work, RenderTrans, SceneLights, RS0) ->
+    RS1 = render_object_2(D, Work, RenderTrans, SceneLights, RS0),
     gl:frontFace(?GL_CW),
     gl:pushMatrix(),
     gl:multMatrixf(Matrix),
-    render_object_2(D, Work, RenderTrans, SceneLights),
+    RS = render_object_2(D, Work, RenderTrans, SceneLights, RS1),
     gl:popMatrix(),
-    gl:frontFace(?GL_CCW).
+    gl:frontFace(?GL_CCW),
+    RS.
 
-render_object_2(D, true, _, SceneLights) ->
-    render_plain(D, SceneLights);
-render_object_2(#dlo{transparent=true}=D, false, false, SceneLights) ->
-    render_smooth(D, false, SceneLights);
-render_object_2(D, false, RenderTrans, SceneLights) ->
-    render_smooth(D, RenderTrans, SceneLights).
+render_object_2(D, true, _, SceneLights, RS) ->
+    render_plain(D, SceneLights, RS);
+render_object_2(#dlo{transparent=true}=D, false, false, SceneLights, RS) ->
+    render_smooth(D, false, SceneLights, RS);
+render_object_2(D, false, RenderTrans, SceneLights, RS) ->
+    render_smooth(D, RenderTrans, SceneLights, RS).
 
-render_plain(#dlo{work=Faces,src_we=We,proxy=false}, SceneLights) ->
+render_plain(#dlo{work=Faces,src_we=We,proxy=false}, SceneLights, RS) ->
     case wire(We) of
-	false -> render_lighted(Faces, SceneLights);
-        true -> ok
+        false -> render_lighted(Faces, SceneLights, RS);
+        _ when ?IS_LIGHT(We) -> render_lighted(Faces, SceneLights, RS);
+        true -> RS
     end;
-render_plain(#dlo{proxy_data=PD, drag=Drag}, SceneLights) ->
+render_plain(#dlo{proxy_data=PD, drag=Drag}, SceneLights, RS0) ->
     polygonOffset(3.0),
     Faces = wings_proxy:flat_dl(PD),
     Key = case Drag =:= none of
@@ -229,23 +240,24 @@ render_plain(#dlo{proxy_data=PD, drag=Drag}, SceneLights) ->
             Blend = wings_gl:is_ext('GL_ARB_imaging') andalso wings_pref:get_value(Key),
             case Blend of
                 false ->
-                    render_lighted(Faces, SceneLights);
+                    render_lighted(Faces, SceneLights, RS0);
                 1.0 ->
-                    render_lighted(Faces, SceneLights);
+                    render_lighted(Faces, SceneLights, RS0);
                 _ ->
                     gl:enable(?GL_BLEND),
 		    gl:blendFunc(?GL_CONSTANT_ALPHA, ?GL_ONE_MINUS_CONSTANT_ALPHA),
 		    gl:blendColor(0.0, 0.0, 0.0, Blend),
-                    render_lighted(Faces, SceneLights),
-                    gl:disable(?GL_BLEND)
+                    RS = render_lighted(Faces, SceneLights, RS0),
+                    gl:disable(?GL_BLEND),
+                    RS
             end;
        true ->
-            render_lighted(Faces, SceneLights)
+            render_lighted(Faces, SceneLights, RS0)
     end.
 
 render_smooth(#dlo{work=Work,smooth=Smooth0,transparent=Trans0,
 		   proxy=Proxy,proxy_data=PD},
-	      RenderTrans, SceneLights) ->
+	      RenderTrans, SceneLights, RS) ->
     {Smooth, _Trans} =
         case Proxy of
             true -> wings_proxy:smooth_dl(PD);
@@ -258,42 +270,43 @@ render_smooth(#dlo{work=Work,smooth=Smooth0,transparent=Trans0,
                {[_,Tr],true}  -> Tr;
                {_,_} -> none
            end,
-    render_lighted(Draw, SceneLights).
+    render_lighted(Draw, SceneLights, RS).
 
-render_lighted(Faces, false) ->
-    wings_dl:call(Faces);
-render_lighted(Faces, ambient) ->
-    wings_dl:call(Faces);
-render_lighted(Faces, Lights) ->
-    Do = fun(Light) ->
-                 wings_light:setup_light(Light),
-                 wings_dl:call(Faces)
+render_lighted(Faces, false, RS) ->
+    wings_dl:call(Faces, RS);
+render_lighted(Faces, ambient, RS) ->
+    wings_dl:call(Faces, RS);
+render_lighted(Faces, Lights, RS0) ->
+    Do = fun(Light, RS1) ->
+                 RS = wings_light:setup_light(Light, RS1),
+                 wings_dl:call(Faces, RS)
          end,
-    _ = [Do(Light) || Light <- Lights],
-    ok.
+    foldl(Do, RS0, Lights).
 
-enable_lighting(false) ->
+enable_lighting(false, #{}=RS) ->
     Lighting = wings_pref:get_value(number_of_lights),
     gl:color4ub(255, 255, 255, 255), %% Needed when vertex colors are not set
-    wings_shaders:use_prog(Lighting);
-enable_lighting(ambient) ->
-    ok;
-enable_lighting(_) ->
+    wings_shaders:use_prog(Lighting, RS);
+enable_lighting(ambient, RS) ->
+    RS;
+enable_lighting(_, RS) ->
     gl:color4ub(255, 255, 255, 255),
     gl:depthFunc(?GL_LEQUAL),
     gl:enable(?GL_BLEND),
-    gl:blendFunc(?GL_ONE, ?GL_ONE).
+    gl:blendFunc(?GL_ONE, ?GL_ONE),
+    RS.
 
-disable_lighting() ->
-    wings_gl:use_prog(0),
+disable_lighting(RS0) ->
+    RS = wings_shaders:use_prog(0, RS0),
     gl:disable(?GL_BLEND),
-    gl:depthMask(?GL_TRUE).
+    gl:depthMask(?GL_TRUE),
+    RS.
 
-render_wire(Dls, SelMode, false) ->
+render_wire(Dls, SelMode, false, RS0) ->
     WOs = wings_wm:get_prop(wireframed_objects),
     Show = wings_pref:get_value(show_edges),
     case split_wires(Dls, WOs, Show, [], [], []) of
-        {[],[],[]} -> ok;
+        {[],[],[]} -> RS0;
         {Ws,Os,PWs} ->
             case {SelMode,wings_pref:get_value(edge_color)} of
 		{body,{0.0,0.0,0.0}} ->
@@ -316,21 +329,23 @@ render_wire(Dls, SelMode, false) ->
             gl:depthFunc(?GL_LEQUAL),
             wings_wm:get_prop(show_wire_backfaces)
                 andalso gl:disable(?GL_CULL_FACE),
-            _ = [render_wire_object(D, cage) || D <- Ws],
+            Cage = fun(D,RS) -> render_wire_object(D, cage, RS) end,
+            RS1 = foldl(Cage, RS0, Ws),
             gl:disable(?GL_CULL_FACE),
-            _ = [render_wire_object(D, cage) || D <- Os],
+            RS2 = foldl(Cage, RS1, Os),
             gl:enable(?GL_CULL_FACE),
             gl:color3fv(wings_pref:get_value(edge_color)),
             gl:lineWidth(1.0),
-            _ = [render_wire_object(D, cage) || D <- PWs],
+            RS3 = foldl(Cage, RS2, PWs),
             gl:enable(?GL_CULL_FACE),
-            gl:depthFunc(?GL_LESS)
+            gl:depthFunc(?GL_LESS),
+            RS3
     end;
-render_wire(Dls, _, true) ->
+render_wire(Dls, _, true, RS0) ->
     gl:enable(?GL_CULL_FACE),
     gl:disable(?GL_POLYGON_OFFSET_FILL),
     gl:depthMask(?GL_TRUE),
-    disable_lighting(),
+    RS1 = disable_lighting(RS0),
     gl:shadeModel(?GL_FLAT),
     gl:depthFunc(?GL_LEQUAL),
     WOs = wings_wm:get_prop(wireframed_objects),
@@ -338,39 +353,41 @@ render_wire(Dls, _, true) ->
     gl:color3fv(wings_pref:get_value(edge_color)),
     gl:lineWidth(1.0),
     gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_LINE),
-    _ = [render_wire_object(D, cage) || D <- Ws],
+    RS2 = foldl(fun(D,RS) -> render_wire_object(D, cage, RS) end, RS1, Ws),
     Style = wings_pref:get_value(proxy_shaded_edge_style),
-    _ = [render_wire_object(D, Style) || D <- PWs],
-    ok.
+    foldl(fun(D,RS) -> render_wire_object(D, Style, RS) end, RS2, PWs).
 
-render_wire_object(#dlo{drag={matrix,_,_,Matrix}}=D, PStyle) ->
+render_wire_object(#dlo{drag={matrix,_,_,Matrix}}=D, PStyle, RS0) ->
     gl:pushMatrix(),
     gl:multMatrixf(Matrix),
-    render_wire_object_1(D, PStyle),
-    gl:popMatrix();
-render_wire_object(D, PStyle) ->
-    render_wire_object_1(D, PStyle).
+    RS1 = render_wire_object_1(D, PStyle, RS0),
+    gl:popMatrix(),
+    RS1;
+render_wire_object(D, PStyle, RS) ->
+    render_wire_object_1(D, PStyle, RS).
 
-render_wire_object_1(#dlo{mirror=none, edges=Edges, proxy=false}, _) ->
-    wings_dl:call(Edges);
-render_wire_object_1(#dlo{mirror=Matrix, edges=Edges, proxy=false}, _) ->
-    wings_dl:call(Edges),
+render_wire_object_1(#dlo{mirror=none, edges=Edges, proxy=false}, _, RS) ->
+    wings_dl:call(Edges, RS);
+render_wire_object_1(#dlo{mirror=Matrix, edges=Edges, proxy=false}, _, RS0) ->
+    RS1 = wings_dl:call(Edges, RS0),
     gl:frontFace(?GL_CW),
     gl:pushMatrix(),
     gl:multMatrixf(Matrix),
-    wings_dl:call(Edges),
+    RS = wings_dl:call(Edges, RS1),
     gl:popMatrix(),
-    gl:frontFace(?GL_CCW);
-render_wire_object_1(#dlo{mirror=none}=D, PStyle) ->
-    wings_proxy:draw_smooth_edges(D, PStyle);
-render_wire_object_1(#dlo{mirror=Matrix}=D, PStyle) ->
-    wings_proxy:draw_smooth_edges(D, PStyle),
+    gl:frontFace(?GL_CCW),
+    RS;
+render_wire_object_1(#dlo{mirror=none}=D, PStyle, RS) ->
+    wings_proxy:draw_smooth_edges(D, PStyle, RS);
+render_wire_object_1(#dlo{mirror=Matrix}=D, PStyle, RS0) ->
+    RS1 = wings_proxy:draw_smooth_edges(D, PStyle, RS0),
     gl:frontFace(?GL_CW),
     gl:pushMatrix(),
     gl:multMatrixf(Matrix),
-    wings_proxy:draw_smooth_edges(D, PStyle),
+    RS = wings_proxy:draw_smooth_edges(D, PStyle, RS1),
     gl:popMatrix(),
-    gl:frontFace(?GL_CCW).
+    gl:frontFace(?GL_CCW),
+    RS.
 
 split_objects([#dlo{src_we=We}=D|Dls], Open, Closed, Lights) when ?IS_ANY_LIGHT(We) ->
     split_objects(Dls, Open, Closed, [D|Lights]);
@@ -381,6 +398,8 @@ split_objects([#dlo{open=false}=D|Dls], Open, Closed, Lights) ->
 split_objects([], Open, Closed, Lights) ->
     {Open, Closed, Lights}.
 
+split_wires([#dlo{src_we=We}|Dls], WOs, Show, Wires, Others, Proxis) when ?IS_LIGHT(We) ->
+    split_wires(Dls, WOs, Show, Wires, Others, Proxis);
 split_wires([#dlo{src_we=#we{id=Id}, proxy=Proxy}=D|Dls], WOs, Show, Wires, Others,Proxis) ->
     case gb_sets:is_member(Id, WOs) of
         true when Proxy -> split_wires(Dls, WOs, Show, Wires, Others, [D|Proxis]);
@@ -392,7 +411,7 @@ split_wires([#dlo{src_we=#we{id=Id}, proxy=Proxy}=D|Dls], WOs, Show, Wires, Othe
 split_wires([], _, _, Ws, Os, Ps) ->
     {Ws, Os, Ps}.
 
-render_sel_highlight(Dls, SelMode, false, PM) ->
+render_sel_highlight(Dls, SelMode, false, PM, RS0) ->
     gl:disable(?GL_POLYGON_OFFSET_LINE),
     gl:disable(?GL_POLYGON_OFFSET_FILL),
     gl:matrixMode(?GL_PROJECTION),
@@ -400,130 +419,135 @@ render_sel_highlight(Dls, SelMode, false, PM) ->
     non_polygon_offset(1.0, PM),
     gl:matrixMode(?GL_MODELVIEW),
     gl:depthFunc(?GL_LEQUAL),
-    _ = [render_sel(D, SelMode, false) || D <- Dls],
-    _ = [render_sel(D, SelMode, true) || D <- Dls],
+    RS1 = foldl(fun(D, RS) -> render_sel(D, SelMode, false, RS) end, RS0, Dls),
+    RS2 = foldl(fun(D, RS) -> render_sel(D, SelMode, true, RS) end, RS1, Dls),
     gl:matrixMode(?GL_PROJECTION),
     gl:popMatrix(),
     gl:depthFunc(?GL_LESS),
     gl:matrixMode(?GL_MODELVIEW),
     %% arbitrary placement in the grand scheme of things
-    _ = [wings_plugin:draw(plain,D,SelMode) || D <- Dls],
-    ok;
-render_sel_highlight(Dls, SelMode, true, _PM) ->
-    _ = [render_sel(D, SelMode, true) || D <- Dls],
+    foldl(fun(D, RS) -> wings_plugin:draw(plain,D,SelMode,RS) end, RS2, Dls);
+render_sel_highlight(Dls, SelMode, true, _PM, RS0) ->
+    RS1 = foldl(fun(D, RS) -> render_sel(D, SelMode, true, RS) end, RS0, Dls),
     gl:depthFunc(?GL_LESS),
     %% arbitrary placement in the grand scheme of things
-    _ = [wings_plugin:draw(smooth,D,none) || D <- Dls],
-    ok.
+    foldl(fun(D, RS) -> wings_plugin:draw(smooth,D,none,RS) end, RS1, Dls).
 
-render_sel(#dlo{drag={matrix,_,_,Matrix}}=D, Mode, Sel) ->
+render_sel(#dlo{drag={matrix,_,_,Matrix}}=D, Mode, Sel, RS0) ->
     gl:pushMatrix(),
     gl:multMatrixf(Matrix),
-    render_sel_1(D, Mode, Sel),
-    gl:popMatrix();
-render_sel(D, Mode, Sel) ->
-    render_sel_1(D, Mode, Sel).
+    RS = render_sel_1(D, Mode, Sel, RS0),
+    gl:popMatrix(),
+    RS;
+render_sel(D, Mode, Sel, RS) ->
+    render_sel_1(D, Mode, Sel, RS).
 
-render_sel_1(#dlo{mirror=none}=D, Mode, Sel) ->
-    render_sel_2(D, Mode, Sel);
-render_sel_1(#dlo{mirror=Matrix}=D, Mode, Sel) ->
-    render_sel_2(D, Mode, Sel),
+render_sel_1(#dlo{mirror=none}=D, Mode, Sel, RS) ->
+    render_sel_2(D, Mode, Sel, RS);
+render_sel_1(#dlo{mirror=Matrix}=D, Mode, Sel, RS0) ->
+    RS1 = render_sel_2(D, Mode, Sel, RS0),
     gl:frontFace(?GL_CW),
     gl:pushMatrix(),
     gl:multMatrixf(Matrix),
-    render_sel_2(D, Mode, Sel),
+    RS = render_sel_2(D, Mode, Sel, RS1),
     gl:popMatrix(),
-    gl:frontFace(?GL_CCW).
+    gl:frontFace(?GL_CCW),
+    RS.
 
-render_sel_2(#dlo{}=D, SelMode, false) ->
-    draw_hard_edges(D, SelMode),
-    draw_vertices(D, SelMode),
-    draw_normals(D);
-render_sel_2(#dlo{src_we=We}=D, _SelMode, true) ->
-    case wire(We) of
-	true ->
-	    gl:disable(?GL_CULL_FACE),
-	    draw_orig_sel(D),
-	    draw_sel(D),
-	    gl:enable(?GL_CULL_FACE);
-	false ->
-            draw_orig_sel(D),
-	    draw_sel(D)
-    end,
-    draw_hilite(D).
+render_sel_2(#dlo{}=D, SelMode, false, RS0) ->
+    RS1 = draw_hard_edges(D, SelMode, RS0),
+    RS2 = draw_vertices(D, SelMode, RS1),
+    draw_normals(D, RS2);
+render_sel_2(#dlo{src_we=We}=D, _SelMode, true, RS0) ->
+    RS = case wire(We) of
+             true ->
+                 gl:disable(?GL_CULL_FACE),
+                 RS1 = draw_orig_sel(D, RS0),
+                 RS2 = draw_sel(D, RS1),
+                 gl:enable(?GL_CULL_FACE),
+                 RS2;
+             false ->
+                 RS1 = draw_orig_sel(D, RS0),
+                 draw_sel(D, RS1)
+         end,
+    draw_hilite(D, RS).
 
 wire(#we{id=Id}) ->
     W = wings_wm:get_prop(wireframed_objects),
     gb_sets:is_member(Id, W).
 
-draw_sel(#dlo{sel=none}) -> ok;
-draw_sel(#dlo{sel=SelDlist,src_sel={edge,_}}) ->
+draw_sel(#dlo{sel=none}, RS) -> RS;
+draw_sel(#dlo{sel=SelDlist,src_sel={edge,_}}, RS0) ->
     gl:lineWidth(wings_pref:get_value(selected_edge_width)),
-    sel_color(),
-    wings_dl:call(SelDlist);
-draw_sel(#dlo{sel=SelDlist,src_sel={vertex,_}}) ->
+    RS = sel_color(RS0),
+    wings_dl:call(SelDlist, RS);
+draw_sel(#dlo{sel=SelDlist,src_sel={vertex,_}}, RS0) ->
     gl:pointSize(wings_pref:get_value(selected_vertex_size)),
-    sel_color(),
-    wings_dl:call(SelDlist);
-draw_sel(#dlo{open=Open,sel=SelDlist}) ->
-    sel_color(),
+    RS = sel_color(RS0),
+    wings_dl:call(SelDlist, RS);
+draw_sel(#dlo{open=Open,sel=SelDlist}, RS0) ->
+    RS1 = sel_color(RS0),
     gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_FILL),
     gl:enable(?GL_POLYGON_OFFSET_FILL),
     polygonOffset(1.0),
     %Stippled selection style.
     gl:enable(?GL_POLYGON_STIPPLE),
-    draw_face_sel(Open, SelDlist),
+    RS = draw_face_sel(Open, SelDlist, RS1),
     gl:disable(?GL_POLYGON_STIPPLE),
-    gl:disable(?GL_POLYGON_OFFSET_FILL).
+    gl:disable(?GL_POLYGON_OFFSET_FILL),
+    RS.
 
-draw_face_sel(true, SelDlist) ->
+draw_face_sel(true, SelDlist, RS0) ->
     case wings_pref:get_value(show_backfaces) of
         true ->
             gl:disable(?GL_CULL_FACE),
-            wings_dl:call(SelDlist),
-            gl:enable(?GL_CULL_FACE);
+            RS = wings_dl:call(SelDlist, RS0),
+            gl:enable(?GL_CULL_FACE),
+            RS;
         _ ->
-            wings_dl:call(SelDlist)
+            wings_dl:call(SelDlist, RS0)
     end;
-draw_face_sel(false, SelDlist) ->
-    wings_dl:call(SelDlist).
+draw_face_sel(false, SelDlist, RS) ->
+    wings_dl:call(SelDlist, RS).
 
-sel_color() ->
+sel_color(_RS) ->
     gl:color3fv(wings_pref:get_value(selected_color)).
 
-draw_vertices(#dlo{src_we=#we{perm=P},vs=VsDlist}, vertex) when ?IS_SELECTABLE(P) ->
+draw_vertices(#dlo{src_we=#we{perm=P},vs=VsDlist}, vertex, RS0) when ?IS_SELECTABLE(P) ->
     {R,G,B} = wings_pref:get_value(vertex_color),
 	Size = wings_pref:get_value(vertex_size),
     gl:pointSize(Size),
     gl:color3f(R,G,B),
-    wings_dl:call(VsDlist);
-draw_vertices(_, _) -> ok.
+    wings_dl:call(VsDlist, RS0);
+draw_vertices(_, _, RS) -> RS.
 
-draw_hilite(#dlo{hilite=none}) -> ok;
-draw_hilite(#dlo{hilite={_Mode,DL}}) ->
-    wings_dl:call(DL).
+draw_hilite(#dlo{hilite=none}, RS) -> RS;
+draw_hilite(#dlo{hilite={_Mode,DL}}, RS) ->
+    wings_dl:call(DL, RS).
 
-draw_orig_sel(#dlo{orig_sel=none}) -> ok;
-draw_orig_sel(#dlo{orig_sel=Dlist,orig_mode=Mode}) ->
-    draw_orig_sel_1(Mode, Dlist).
+draw_orig_sel(#dlo{orig_sel=none}, RS) -> RS;
+draw_orig_sel(#dlo{orig_sel=Dlist,orig_mode=Mode}, RS) ->
+    draw_orig_sel_1(Mode, Dlist, RS).
 
-draw_orig_sel_1(vertex, DlistSel) ->
+draw_orig_sel_1(vertex, DlistSel, RS0) ->
     gl:pointSize(wings_pref:get_value(selected_vertex_size)*2),
     gl:enable(?GL_BLEND),
     gl:blendFunc(?GL_SRC_ALPHA, ?GL_ONE_MINUS_SRC_ALPHA),
     {R0,G0,B0} = wings_pref:get_value(selected_color),
     gl:color4f(R0, G0, B0, 0.5),
-    wings_dl:call(DlistSel),
-    gl:disable(?GL_BLEND);
-draw_orig_sel_1(edge, DlistSel) ->
+    RS = wings_dl:call(DlistSel, RS0),
+    gl:disable(?GL_BLEND),
+    RS;
+draw_orig_sel_1(edge, DlistSel, RS0) ->
     gl:lineWidth(wings_pref:get_value(selected_edge_width)*2),
     gl:enable(?GL_BLEND),
     gl:blendFunc(?GL_SRC_ALPHA, ?GL_ONE_MINUS_SRC_ALPHA),
     {R0,G0,B0} = wings_pref:get_value(selected_color),
     gl:color4f(R0, G0, B0, 0.5),
-    wings_dl:call(DlistSel),
-    gl:disable(?GL_BLEND);
-draw_orig_sel_1(_, DlistSel) ->
+    RS = wings_dl:call(DlistSel, RS0),
+    gl:disable(?GL_BLEND),
+    RS;
+draw_orig_sel_1(_, DlistSel, RS0) ->
     gl:enable(?GL_BLEND),
     gl:blendFunc(?GL_SRC_ALPHA, ?GL_ONE_MINUS_SRC_ALPHA),
     {R0,G0,B0} = wings_pref:get_value(selected_color),
@@ -531,20 +555,21 @@ draw_orig_sel_1(_, DlistSel) ->
     gl:enable(?GL_POLYGON_OFFSET_FILL),
     gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_FILL),
     polygonOffset(1.0),
-    wings_dl:call(DlistSel),
-    gl:disable(?GL_POLYGON_OFFSET_FILL).
+    RS = wings_dl:call(DlistSel, RS0),
+    gl:disable(?GL_POLYGON_OFFSET_FILL),
+    RS.
 
-draw_hard_edges(#dlo{hard=none}, _) -> ok;
-draw_hard_edges(#dlo{hard=Hard}, SelMode) ->
+draw_hard_edges(#dlo{hard=none}, _, RS) -> RS;
+draw_hard_edges(#dlo{hard=Hard}, SelMode, RS) ->
     gl:lineWidth(hard_edge_width(SelMode)),
     gl:color3fv(wings_pref:get_value(hard_edge_color)),
-    wings_dl:call(Hard).
+    wings_dl:call(Hard, RS).
 
-draw_normals(#dlo{normals=none}) -> ok;
-draw_normals(#dlo{normals=Ns}) ->
+draw_normals(#dlo{normals=none}, RS) -> RS;
+draw_normals(#dlo{normals=Ns}, RS) ->
     gl:color3f(0.0, 0.0, 1.0),
     gl:lineWidth(wings_pref:get_value(normal_vector_width)),
-    wings_dl:call(Ns).
+    wings_dl:call(Ns, RS).
 
 edge_width(edge) -> wings_pref:get_value(edge_width);
 edge_width(_) -> 1.
@@ -569,12 +594,12 @@ ground_and_axes(PM,MM) ->
 		  none
 	  end,
     Update = fun(Data) ->
-		     D = fun() ->
+		     D = fun(_) ->
 				 gl:drawArrays(?GL_LINES, 0, 3*4)
 			 end,
 		     wings_vbo:new(D, Data, [color,vertex])
 	     end,
-    wings_dl:draw(axes, Key, Update),
+    wings_dl:draw(axes, Key, Update, #{}),
     Yon.
 
 get_pref(Key) ->
@@ -655,7 +680,7 @@ show_camera_image_plane() ->
 	    Poly = << <<X:?F32,Y:?F32,Z:?F32>> || {X,Y,Z} <- Quads >>,
 
 	    Update = fun draw_camera_image_plane/1,
-	    wings_dl:draw(draw_cam_imageplane, {Poly,{X1,Y1,X2,Y2}}, Update)
+	    wings_dl:draw(draw_cam_imageplane, {Poly,{X1,Y1,X2,Y2}}, Update, #{})
     end.
 
 draw_camera_image_plane({Poly,{X1,Y1,X2,Y2}}) ->
@@ -747,13 +772,13 @@ groundplane(Axes, PM, MM) ->
 	      false ->
 		  none
 	  end,
-    wings_dl:draw(groundplane, Key, fun update_groundplane/1),
+    wings_dl:draw(groundplane, Key, fun update_groundplane/1, #{}),
     float(GridSize).
 
 update_groundplane({Along,Sz,Axes,Color}) ->
     Data = groundplane_2(-Sz, Sz, Sz, Axes),
     N = length(Data),
-    Draw = fun() ->
+    Draw = fun(RS) ->
 		   gl:color3fv(Color),
 		   gl:lineWidth(1.0),
 		   gl:matrixMode(?GL_MODELVIEW),
@@ -765,7 +790,8 @@ update_groundplane({Along,Sz,Axes,Color}) ->
 		   end,
 		   gl:drawArrays(?GL_LINES, 0, N),
 		   gl:popMatrix(),
-		   ?CHECK_ERROR()
+		   ?CHECK_ERROR(),
+                   RS
 	   end,
     wings_vbo:new(Draw, Data).
 
@@ -782,7 +808,7 @@ groundplane_2(X, Last, Sz, Axes) ->
 show_saved_bb(St) ->
     Key = get_saved_bb_key(St),
     Update = fun update_saved_bb/1,
-    wings_dl:draw(saved_bb, Key, Update).
+    wings_dl:draw(saved_bb, Key, Update, #{}).
 
 get_saved_bb_key(#st{bb=BB}) ->
     case {wings_pref:get_value(show_bb),BB} of
@@ -812,20 +838,21 @@ update_saved_bb({{X1,Y1,Z1},{X2,Y2,Z2},Color}) ->
 	    {X2,Y2,Z2},
 	    {X2,Y1,Z1},
 	    {X2,Y1,Z2}],
-    D = fun() ->
+    D = fun(RS) ->
 		gl:enable(?GL_LINE_STIPPLE),
 		gl:lineStipple(4, 2#1110111011101110),
 		gl:color3fv(Color),
 		gl:drawArrays(?GL_LINE_STRIP, 0, 10),
 		gl:drawArrays(?GL_LINES, 10, 6),
-		gl:disable(?GL_LINE_STIPPLE)
+		gl:disable(?GL_LINE_STIPPLE),
+                RS
 	end,
     wings_vbo:new(D, Data).
 
 show_bb_center(St) ->
     Key = get_bb_center_key(St),
     Update = fun update_bb_center/1,
-    wings_dl:draw(saved_bb_center, Key, Update).
+    wings_dl:draw(saved_bb_center, Key, Update, #{}).
 
 get_bb_center_key(#st{bb=BB}) ->
     case {wings_pref:get_value(show_bb_center),BB} of
@@ -845,11 +872,12 @@ update_bb_center({{Cx,Cy,Cz}=Center,Color}) ->
 	    {Cx-0.2,Cy,Cz},
 	    {Cx,Cy,Cz+0.2},
 	    {Cx,Cy,Cz-0.2}],
-    D = fun() ->
+    D = fun(RS) ->
 		gl:color3fv(Color),
 		gl:pointSize(8.0),
 		gl:drawArrays(?GL_POINTS, 0, 1),
-		gl:drawArrays(?GL_LINES, 1, 6)
+		gl:drawArrays(?GL_LINES, 1, 6),
+                RS
 	end,
     wings_vbo:new(D, Data).
 
@@ -876,7 +904,7 @@ draw_mini_axis_icon(Key, MM) ->
     gl:loadMatrixd(Matrix),
 
     Update = fun update_mini_axis_icon/1,
-    wings_dl:draw(mini_axis_icon, Key, Update),
+    wings_dl:draw(mini_axis_icon, Key, Update, #{}),
 
     gl:popMatrix(),
     gl:matrixMode(?GL_PROJECTION),
@@ -908,8 +936,9 @@ update_mini_axis_icon({Along,{X,Y,Z}}) ->
 	    none -> 3*2 + 3*4;
 	    _ -> 3*2 + 2*4
 	end,
-    D = fun() ->
-		gl:drawArrays(?GL_LINES, 0, N)
+    D = fun(RS) ->
+		gl:drawArrays(?GL_LINES, 0, N),
+                RS
 	end,
     wings_vbo:new(D, Data, [color,vertex]).
 

@@ -12,7 +12,7 @@
 %%
 
 -module(wings_shaders).
--export([init/0, use_prog/1, read_texture/1]).
+-export([init/0, use_prog/2, read_texture/1]).
 
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
@@ -41,12 +41,18 @@ init() ->
     %io:format("~p\n",[Programs]),
     ok.
 
-use_prog(Name) ->
-    #{Name:=Shader} = ?GET(light_shaders),
-    #{prog:=Prog} = Shader,
-    wings_gl:use_prog(Prog),
-    ?SET(active_shader, Shader),
-    ok.
+use_prog(0, RS) ->
+    wings_gl:use_prog(0),
+    RS#{shader=>0};
+use_prog(Name, RS) ->
+    Active = maps:get(shader, RS, 0),
+    case ?GET(light_shaders) of
+        #{Name:=Active} -> RS;
+        #{Name:=Shader} ->
+            #{prog:=Prog} = Shader,
+            wings_gl:use_prog(Prog),
+            RS#{shader=>Shader}
+    end.
 
 read_texture(FileName) ->
     Path = filename:join(wings_util:lib_dir(wings), "textures"),

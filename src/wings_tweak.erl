@@ -17,7 +17,7 @@
 	 tweak_info_line/0,tweak_magnet_help/0,statusbar/0]).
 
 -export([toggle_draw/1,point_center/3]).
--export([update_dlist/3,draw/4,get_data/3]).
+-export([update_dlist/3,draw/5,get_data/3]).
 
 -export([tweak_keys/0, menu/0, tweak_magnet_menu/0, constraints_menu/0]).  %% For wings_tweak_win only
 
@@ -2423,7 +2423,7 @@ edge_fun(EdList, ClBin, Vtab) ->
     gl:bufferData(?GL_ARRAY_BUFFER, byte_size(ClBin), ClBin, ?GL_STATIC_DRAW),
     gl:bindBuffer(?GL_ARRAY_BUFFER, 0),
     N = byte_size(EdBin) div 12,
-    D = fun() ->
+    D = fun(RS) ->
 		gl:depthFunc(?GL_LEQUAL),
 		gl:bindBuffer(?GL_ARRAY_BUFFER, VboEs),
 		gl:vertexPointer(3, ?GL_FLOAT, 0, 0),
@@ -2435,7 +2435,8 @@ edge_fun(EdList, ClBin, Vtab) ->
 		gl:drawArrays(?GL_LINES, 0, N),
 		gl:disableClientState(?GL_VERTEX_ARRAY),
 		gl:disableClientState(?GL_COLOR_ARRAY),
-		gl:depthFunc(?GL_LESS)
+		gl:depthFunc(?GL_LESS),
+                RS
 	end,
     {call,D,[{vbo,VboEs},{vbo,VboCl}]}.
 
@@ -2463,10 +2464,10 @@ get_data(update_dlist, Data, Acc) ->  % for draw lists
     end.
 
 %% It'll use the list prepared by 'update_dlist' function and then draw it (only for plain draw)
-draw(plain, EdgeList, _D, SelMode) ->
+draw(plain, EdgeList, _D, SelMode, RS) ->
     gl:lineWidth(edge_width(SelMode)),
-    wings_dl:call(EdgeList);
-draw(_,_,_,_) -> ok.
+    wings_dl:call(EdgeList, RS);
+draw(_,_,_,_, RS) -> RS.
 
 edge_width(edge) -> wings_pref:get_value(edge_width);
 edge_width(_) -> 1.

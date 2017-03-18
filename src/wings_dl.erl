@@ -18,7 +18,7 @@
 -export([init/0,delete_dlists/0,
 	 update/2,map/2,fold/2,changed_materials/1,
 	 display_lists/0,
-	 call/1,mirror_matrix/1,draw/3]).
+	 call/2,mirror_matrix/1,draw/4]).
 
 %%% This module manages Vertex Buffer Objects (VBOs, represented by
 %%% #vab{} records) for all objects in a Geometry or AutoUV window.
@@ -142,16 +142,16 @@ fold(Fun, Acc) ->
 %%  Call OpenGL to render the geometry using the VBOs embedded in
 %%  the term.
 
-call(none) -> none;
-call({call,Dl,_}) -> call(Dl);
-call({call_in_this_win,Win,Dl}) ->
+call(none, State) -> State;
+call({call,Dl,_}, State) -> call(Dl, State);
+call({call_in_this_win,Win,Dl}, State) ->
     case wings_wm:this() of
-	Win -> call(Dl);
-	_ -> ok
+	Win -> call(Dl, State);
+	_ -> State
     end;
-call([H|T]) -> call(H), call(T);
-call([]) -> ok;
-call(Draw) when is_function(Draw, 0) -> Draw().
+call([H|T], State0) -> State = call(H, State0), call(T, State);
+call([], State) -> State;
+call(Draw, State) when is_function(Draw, 1) -> Draw(State).
 
 %% mirror_matrix(Id)
 %%  Return the mirror matrix for the object having id Id.
@@ -162,7 +162,7 @@ mirror_matrix(#dlo{mirror=Matrix,src_we=#we{id=Id}}, Id) -> Matrix;
 mirror_matrix(_, Acc) -> Acc.
 
 
-%% draw(Category, Key, Update) -> ok.
+%% draw(Category, Key, Update, RS) -> ok.
 %%  Draw a non-object graphic thing by calling:
 %%
 %%    call(Update(Key))
@@ -175,33 +175,34 @@ mirror_matrix(_, Acc) -> Acc.
 %%  The key 'none' is specially handled. It means that nothing
 %%  should be drawn and that Update/1 will not be called.
 
-draw(Category, Key, Update)
+draw(Category, Key, Update, RS)
   when is_atom(Category), is_function(Update, 1) ->
     case get_dl_data() of
 	#du{extra=#{Category:={Key,Drawable}}} ->
-	    call(Drawable);
+	    call(Drawable, RS);
 	#du{extra=#{Category:={_,OldDrawable}}=Extra0}=Du ->
 	    NotUsed = ordsets:from_list(update_seen_1(OldDrawable, [])),
 	    gl:deleteBuffers(NotUsed),
 	    case Key of
 		none ->
 		    Extra = maps:remove(Category, Extra0),
-		    put_dl_data(Du#du{extra=Extra});
+		    put_dl_data(Du#du{extra=Extra}),
+                    RS;
 		_ ->
 		    Drawable = Update(Key),
 		    Extra = Extra0#{Category:={Key,Drawable}},
 		    put_dl_data(Du#du{extra=Extra}),
-		    call(Drawable)
+		    call(Drawable, RS)
 	    end;
 	#du{extra=Extra0}=Du ->
 	    case Key of
 		none ->
-		    ok;
+		    RS;
 		_ ->
 		    Drawable = Update(Key),
 		    Extra = Extra0#{Category=>{Key,Drawable}},
 		    put_dl_data(Du#du{extra=Extra}),
-		    call(Drawable)
+		    call(Drawable, RS)
 	    end
     end.
 

@@ -12,14 +12,14 @@
 %%
 
 -module(wings_proxy).
--export([setup/1,quick_preview/1,update/2,draw_smooth_edges/2,
+-export([setup/1,quick_preview/1,update/2,draw_smooth_edges/3,
 	 smooth/2, smooth_dl/1, flat_dl/1, invalidate/2,
 	 split_proxy/3, update_dynamic/3, reset_dynamic/1]).
 
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
 
--import(lists, [foreach/2,foldl/3,reverse/1,any/2,sort/1]).
+-import(lists, [foldl/3,reverse/1]).
 
 -record(split,
 	{upd_fs,			        % Update only these faces
@@ -162,11 +162,12 @@ update_edges_1(_, #sp{vab=#vab{mat_map=MatMap}=Vab}, all) ->
                   when Start =/= 0 ->  %% Assert order of material faces
                     Start + MCount
             end,
-    fun() ->
+    fun(RS) ->
 	    Extra = [face_normals],
 	    wings_draw_setup:enable_pointers(Vab, Extra),
 	    gl:drawArrays(?GL_QUADS, 0, Count),
-	    wings_draw_setup:disable_pointers(Vab, Extra)
+	    wings_draw_setup:disable_pointers(Vab, Extra),
+            RS
     end;
 update_edges_1(#dlo{}, #sp{type={wings_cc,_}, vab=#vab{face_es={0,Bin}}}, some) ->
     vbo_draw_arrays(?GL_LINES, Bin);
@@ -179,19 +180,20 @@ update_edges_1(#dlo{src_we=#we{vp=OldVtab}}, #sp{we=#we{vp=Vtab,es=Etab}=We}, so
 	false ->
 	    Edges = Edges0
     end,
-    Bin = lists:foldl(fun(E, Bin) ->
-			      #edge{vs=Va,ve=Vb} = array:get(E, Etab),
-			      {X1,Y1,Z1} = array:get(Va,Vtab),
-			      {X2,Y2,Z2} = array:get(Vb,Vtab),
-			      <<Bin/binary,X1:?F32,Y1:?F32,Z1:?F32,
-			       X2:?F32,Y2:?F32,Z2:?F32>>
-		      end, <<>>, Edges),
+    Bin = foldl(fun(E, Bin) ->
+                        #edge{vs=Va,ve=Vb} = array:get(E, Etab),
+                        {X1,Y1,Z1} = array:get(Va,Vtab),
+                        {X2,Y2,Z2} = array:get(Vb,Vtab),
+                        <<Bin/binary,X1:?F32,Y1:?F32,Z1:?F32,
+                          X2:?F32,Y2:?F32,Z2:?F32>>
+                end, <<>>, Edges),
     vbo_draw_arrays(?GL_LINES, Bin).
 
 vbo_draw_arrays(Type, Data) ->
     N = byte_size(Data) div 12,
-    D = fun() ->
-		gl:drawArrays(Type, 0, N)
+    D = fun(RS) ->
+		gl:drawArrays(Type, 0, N),
+                RS
 	end,
     wings_vbo:new(D, Data).
 
@@ -237,15 +239,15 @@ any_proxy() ->
     wings_dl:fold(fun(#dlo{proxy=false}, A) -> A;
 		     (#dlo{}, _) -> true end, false).
 
-draw_smooth_edges(#dlo{drag=none}=D, Style) ->
-    draw_edges(D, Style);
-draw_smooth_edges(D, _) ->
-    draw_edges(D, cage).
+draw_smooth_edges(#dlo{drag=none}=D, Style, RS) ->
+    draw_edges(D, Style, RS);
+draw_smooth_edges(D, _, RS) ->
+    draw_edges(D, cage, RS).
 
-draw_edges(#dlo{edges=Edges}, cage) ->
-    wings_dl:call(Edges);
-draw_edges(#dlo{proxy_data=#sp{proxy_edges=ProxyEdges}}, _) ->
-    wings_dl:call(ProxyEdges).
+draw_edges(#dlo{edges=Edges}, cage, RS) ->
+    wings_dl:call(Edges, RS);
+draw_edges(#dlo{proxy_data=#sp{proxy_edges=ProxyEdges}}, _, RS) ->
+    wings_dl:call(ProxyEdges, RS).
 
 proxy_smooth(We0, Pd0, St) ->
     Level = wings_pref:get_value(proxy_opencl_level),
@@ -472,7 +474,7 @@ tangent_flat_faces([], Pd, _Start, Vs, FaceMap0, MatInfo, {VsTs0, RevF2V}) ->
     VsTs = array:map(fun(_V, {T, BT}) ->
 			     {e3d_vec:norm(T), e3d_vec:norm(BT)}
 		     end, VsTs0),
-    Data = wings_draw_setup:add_tangents(lists:reverse(RevF2V), VsTs, Vs),
+    Data = wings_draw_setup:add_tangents(reverse(RevF2V), VsTs, Vs),
     What = [vertices,face_normals,uvs],
     Vab = wings_draw_setup:create_tangent_vab(What, Vs, Data,
 					      FaceMap, MatInfo),
@@ -535,7 +537,7 @@ col_tangent_faces([], Pd, _Start, Vs, FaceMap0, MatInfo, {VsTs0, RevF2V}) ->
     VsTs = array:map(fun(_V, {T,BT}) ->
 			     {e3d_vec:norm(T),e3d_vec:norm(BT)}
 		     end, VsTs0),
-    Data = wings_draw_setup:add_tangents(lists:reverse(RevF2V), VsTs, Vs),
+    Data = wings_draw_setup:add_tangents(reverse(RevF2V), VsTs, Vs),
     What = [vertices,face_normals,colors,uvs],
     Vab = wings_draw_setup:create_tangent_vab(What, Vs, Data,
 					      FaceMap, MatInfo),

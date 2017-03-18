@@ -42,7 +42,7 @@ draw(Draw0, Data, Layout) ->
     gl:bindBuffer(?GL_ARRAY_BUFFER, Vbo),
     gl:bufferData(?GL_ARRAY_BUFFER, byte_size(Data), Data, ?GL_STATIC_DRAW),
     Draw = parse_layout(Layout, Vbo, Draw0),
-    Draw(),
+    _ = Draw(#{}),
     gl:deleteBuffers(Buffers),
     ok.
 
@@ -52,21 +52,23 @@ delete({call,_D,{vbo,Vbo}}) ->
     gl:deleteBuffers([Vbo]).
 
 parse_layout([vertex], Vbo, Draw) ->
-    fun() ->
+    fun(RS0) ->
 	    gl:bindBuffer(?GL_ARRAY_BUFFER, Vbo),
 	    gl:vertexPointer(3, ?GL_FLOAT, 0, 0),
 	    gl:enableClientState(?GL_VERTEX_ARRAY),
+	    RS = Draw(RS0),
 	    gl:bindBuffer(?GL_ARRAY_BUFFER, 0),
-	    Draw(),
-	    gl:disableClientState(?GL_VERTEX_ARRAY)
+	    gl:disableClientState(?GL_VERTEX_ARRAY),
+            RS
     end;
 parse_layout({predefined, Bufs}, Vbo, dynamic) ->
-    fun(Draw) ->
+    fun(Draw, RS0) ->
 	    gl:bindBuffer(?GL_ARRAY_BUFFER, Vbo),
 	    enable_buffers(Bufs),
-	    Draw(),
+	    RS = Draw(RS0),
 	    gl:bindBuffer(?GL_ARRAY_BUFFER, 0),
-	    disable_buffers(Bufs)
+	    disable_buffers(Bufs),
+            RS
     end;
 parse_layout(Layout, Vbo, Draw) ->
     Stride = case Layout of
@@ -74,12 +76,13 @@ parse_layout(Layout, Vbo, Draw) ->
 		 _ -> lists:sum([fsize(L) || L <- Layout])
 	     end,
     Bufs = parse_layout_1(Layout, Stride, 0),
-    fun() ->
+    fun(RS0) ->
 	    gl:bindBuffer(?GL_ARRAY_BUFFER, Vbo),
 	    enable_buffers(Bufs),
-	    Draw(),
+	    RS = Draw(RS0),
 	    gl:bindBuffer(?GL_ARRAY_BUFFER, 0),
-	    disable_buffers(Bufs)
+	    disable_buffers(Bufs),
+            RS
     end.
 
 parse_layout_1([Type|T], Stride, Addr) ->

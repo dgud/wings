@@ -14,7 +14,7 @@
 -module(wings_plugin).
 -export([init/0,menu/2,dialog/2,dialog_result/2,command/2,call_ui/1]).
 -export([install/1]).
--export([draw/3,check_plugins/2,get_win_data/1,restore_window/6]).
+-export([draw/4,check_plugins/2,get_win_data/1,restore_window/6]).
 -include("wings.hrl").
 -include("e3d.hrl").
 -import(lists, [sort/1,reverse/1,member/2]).
@@ -653,14 +653,14 @@ plugin_default_menu() ->
 % which relate to the view style of the model and determine if the Plugin should
 % be drawn in that view mode. Other restrictions can be stated from within the
 % Plugin itself. See wpc_magnet_mask.erl as an example.
-draw(Flag, #dlo{plugins=Pdl}=D, Selmode) ->
-    draw_1(Flag, Pdl, D, Selmode).
+draw(Flag, #dlo{plugins=Pdl}=D, Selmode, RS) ->
+    draw_1(Flag, Pdl, D, Selmode, RS).
 
-draw_1(Flag, [{Plugin,List}|Pdl], D, Selmode) ->
-    Plugin:draw(Flag, List, D, Selmode),
-    draw_1(Flag, Pdl, D, Selmode);
+draw_1(Flag, [{Plugin,List}|Pdl], D, Selmode, RS0) ->
+    RS = Plugin:draw(Flag, List, D, Selmode, RS0),
+    draw_1(Flag, Pdl, D, Selmode, RS);
 
-draw_1(_, [], _, _) -> ok.
+draw_1(_, [], _, _, RS) -> RS.
 
 % PstTree -> { PluginName , PluginValue }
 % PluginValue is a gb_tree.

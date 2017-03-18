@@ -17,7 +17,7 @@
 	 update_materials/2,
 	 update_image/4,used_images/1,
 	 used_materials/1,has_texture/2,
-	 apply_material/3,is_transparent/2,
+	 apply_material/4,is_transparent/2,
 	 needed_attributes/2]).
 
 -define(NEED_OPENGL, 1).
@@ -388,7 +388,15 @@ has_texture(Mat) ->
     Maps = prop_get(maps, Mat, []),
     none =/= prop_get(diffuse, Maps, none).
 
-apply_material(Name, Mtab, ActiveVertexColors) when is_atom(Name) ->
+apply_material(Name, Mtab, ActiveVertexColors, RS) ->
+    case maps:get(material, RS, undefined) of
+        Name -> fun() -> RS end;
+        _Active ->
+            apply_material_1(Name, Mtab, ActiveVertexColors, RS)
+    end.
+
+apply_material_1(Name, Mtab, ActiveVertexColors, #{shader:=Shader}=RS)
+  when is_atom(Name) ->
     Mat = gb_trees:get(Name, Mtab),
     OpenGL = prop_get(opengl, Mat),
     gl:materialfv(?GL_FRONT_AND_BACK, ?GL_SPECULAR, prop_get(specular, OpenGL)),
@@ -402,15 +410,15 @@ apply_material(Name, Mtab, ActiveVertexColors) when is_atom(Name) ->
     DeApply = case VertexColors of
                   ignore when ActiveVertexColors ->
                       gl:disableClientState(?GL_COLOR_ARRAY),
-                      fun() -> gl:enableClientState(?GL_COLOR_ARRAY) end;
+                      fun() -> gl:enableClientState(?GL_COLOR_ARRAY), RS end;
                   _ ->
-                      fun() -> ok end
+                      fun() -> RS#{material=>Name} end
               end,
     gl:materialfv(?GL_FRONT_AND_BACK, ?GL_DIFFUSE, prop_get(diffuse, OpenGL)),
     gl:materialfv(?GL_FRONT_AND_BACK, ?GL_AMBIENT, prop_get(ambient, OpenGL)),
     Maps = prop_get(maps, Mat, []),
-    apply_texture(prop_get(diffuse, Maps, false)),
-    apply_normal_map(get_normal_map(Maps)),  %% Combine with vertex colors
+    apply_texture(prop_get(diffuse, Maps, false), Shader),
+    apply_normal_map(get_normal_map(Maps), Shader),  %% Combine with vertex colors
     DeApply.
 
 enable(true)  -> 1;
@@ -419,23 +427,20 @@ enable(false) -> 0.
 texture_var(diffuse) -> "UseDiffuseMap";
 texture_var(normal) ->  "UseNormalMap".
 
-shader_texture(What, Enable) ->
-    case ?GET(active_shader) of
-        #{}=Prog -> wings_gl:set_uloc(Prog, texture_var(What), enable(Enable));
-	_ -> ok
-    end.
+shader_texture(What, Enable, #{}=Shader) ->
+    wings_gl:set_uloc(Shader, texture_var(What), enable(Enable)).
 
-apply_texture(false) -> no_texture();
-apply_texture(Image) ->
+apply_texture(false, Shader) -> no_texture(Shader);
+apply_texture(Image, Shader) ->
     case wings_pref:get_value(show_textures) of
-	false -> no_texture();
+	false -> no_texture(Shader);
 	true ->
 	    case wings_image:txid(Image) of
 		none ->
 		    %% Image was deleted.
-		    no_texture();
+		    no_texture(Shader);
 		TxId ->
-		    apply_texture_1(Image, TxId)
+		    apply_texture_1(Image, TxId, Shader)
 	    end
     end.
 
@@ -445,20 +450,19 @@ get_normal_map(Maps) ->
 	Map -> Map
     end.
 
-apply_normal_map(none) ->
-    shader_texture(normal, false),
+apply_normal_map(none, Shader) ->
+    shader_texture(normal, false, Shader),
     false;
-apply_normal_map(TexId) ->
-    shader_texture(normal, true),
+apply_normal_map(TexId, Shader) ->
+    shader_texture(normal, true, Shader),
     Bump = wings_image:bumpid(TexId),
     gl:activeTexture(?GL_TEXTURE0 + ?NORMAL_MAP_UNIT),
     gl:bindTexture(?GL_TEXTURE_2D, Bump),
     gl:activeTexture(?GL_TEXTURE0),
     true.
 
-apply_texture_1(Image, TxId) ->
-    shader_texture(diffuse, true),
-    gl:enable(?GL_TEXTURE_2D),
+apply_texture_1(Image, TxId, Shader) ->
+    shader_texture(diffuse, true, Shader),
     gl:bindTexture(?GL_TEXTURE_2D, TxId),
     case wings_image:info(Image) of
 	#e3d_image{bytes_pp=4} ->
@@ -472,9 +476,8 @@ apply_texture_1(Image, TxId) ->
     end,
     true.
 
-no_texture() ->
-    shader_texture(diffuse, false),
-    gl:disable(?GL_TEXTURE_2D),
+no_texture(Shader) ->
+    shader_texture(diffuse, false, Shader),
     gl:disable(?GL_ALPHA_TEST),
     false.
 
@@ -699,19 +702,19 @@ mat_preview(Canvas, Common, Maps) ->
     gl:enable(?GL_CULL_FACE),
     gl:rotatef(-90.0,1.0,0.0,0.0),
     gl:color4ub(255, 255, 255, 255),
-    wings_shaders:use_prog(1),
+    RS0 = wings_shaders:use_prog(1, #{}),
     Obj = glu:newQuadric(),
     glu:quadricDrawStyle(Obj, ?GLU_FILL),
     glu:quadricNormals(Obj, ?GLU_SMOOTH),
     %% UseNormalMap = apply_normal_map(get_normal_map(Maps)), No bi-tangent..
-    case apply_texture(prop_get(diffuse, Maps, false)) of
-	true -> glu:quadricTexture(Obj, ?GLU_TRUE);
-	false -> ignore
-    end,
+    RS1 = case apply_texture(prop_get(diffuse, Maps, false), RS0) of
+              true -> glu:quadricTexture(Obj, ?GLU_TRUE), RS0;
+              false -> RS0
+          end,
     glu:sphere(Obj, 0.9, 50, 50),
     glu:deleteQuadric(Obj),
-    no_texture(),
-    wings_gl:use_prog(0),
+    no_texture(RS1),
+    wings_shader:use_prog(0, RS1),
     gl:disable(?GL_BLEND),
     gl:shadeModel(?GL_FLAT),
     gl:matrixMode(?GL_PROJECTION),

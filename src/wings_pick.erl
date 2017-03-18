@@ -250,15 +250,15 @@ insert_hilite_dl_1(#dlo{open=Open,src_we=#we{id=Id}=We}=D,
     DrawExtra = Extra(We),
     HiliteColor = hilite_color(Hit, St),
     DrawHilite = hilite_draw_sel_fun(Mode, Item, D),
-    Draw0 = [fun() -> gl:color3fv(HiliteColor) end,
+    Draw0 = [fun(RS) -> gl:color3fv(HiliteColor), RS end,
 	     DrawHilite,DrawExtra],
     ShowBack = wings_pref:get_value(show_backfaces),
     SelBack = wings_wm:lookup_prop(select_backface) =:= {value,true},
     Draw = if
 	       SelBack; ShowBack andalso Open ->
-		   [fun() -> gl:disable(?GL_CULL_FACE) end,
+		   [fun(RS) -> gl:disable(?GL_CULL_FACE), RS end,
 		    Draw0,
-		    fun() -> gl:enable(?GL_CULL_FACE) end];
+		    fun(RS) -> gl:enable(?GL_CULL_FACE),RS end];
 	       true ->
 		   Draw0
 	   end,
@@ -317,51 +317,56 @@ draw_tweak_vector_fun(Center, Normal) ->
     Color = wings_pref:get_value(tweak_vector_color),
     Point = e3d_vec:add_prod(Center, Normal, Length),
     Data = [Center,Point],
-    D = fun() ->
+    D = fun(RS) ->
 		gl:lineWidth(Width),
 		gl:pointSize(Width+2),
 		gl:color3fv(Color),
 		gl:drawArrays(?GL_LINES, 0, 2),
-		gl:drawArrays(?GL_POINTS, 1, 1)
+		gl:drawArrays(?GL_POINTS, 1, 1),
+                RS
 	end,
     wings_vbo:new(D, Data).
 
 hilite_draw_sel_fun(vertex, V, #dlo{src_we=#we{vp=Vtab}}) ->
     PointSize = wings_pref:get_value(selected_vertex_size),
     Data = [array:get(V, Vtab)],
-    D = fun() ->
+    D = fun(RS) ->
 		gl:pointSize(PointSize),
-		gl:drawArrays(?GL_POINTS, 0, 1)
+		gl:drawArrays(?GL_POINTS, 0, 1),
+                RS
 	end,
     wings_vbo:new(D, Data);
 hilite_draw_sel_fun(edge, Edge, #dlo{src_we=#we{es=Etab,vp=Vtab}}) ->
     #edge{vs=Va,ve=Vb} = array:get(Edge, Etab),
     LineWidth = wings_pref:get_value(selected_edge_width),
     Data = [array:get(Va, Vtab),array:get(Vb, Vtab)],
-    D = fun() ->
+    D = fun(RS) ->
 		gl:lineWidth(LineWidth),
-		gl:drawArrays(?GL_LINES, 0, 2)
+		gl:drawArrays(?GL_LINES, 0, 2),
+                RS
 	end,
     wings_vbo:new(D, Data);
 hilite_draw_sel_fun(face, Face, #dlo{vab=#vab{face_map=Map}=Vab}) ->
     {Start,NoElements} = array:get(Face, Map),
-    fun() ->
+    fun(RS) ->
 	    gl:enable(?GL_POLYGON_STIPPLE),
 	    gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_FILL),
 	    wings_draw_setup:enable_pointers(Vab, []),
 	    gl:drawArrays(?GL_TRIANGLES, Start, NoElements),
 	    wings_draw_setup:disable_pointers(Vab, []),
-	    gl:disable(?GL_POLYGON_STIPPLE)
+	    gl:disable(?GL_POLYGON_STIPPLE),
+            RS
     end;
 hilite_draw_sel_fun(body, _, #dlo{vab=#vab{}=Vab}=D) ->
-    fun() ->
+    fun(RS) ->
 	    gl:enable(?GL_POLYGON_STIPPLE),
 	    gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_FILL),
 	    wings_draw_setup:enable_pointers(Vab, []),
 	    Count = wings_draw_setup:face_vertex_count(D),
 	    gl:drawArrays(?GL_TRIANGLES, 0, Count),
 	    wings_draw_setup:disable_pointers(Vab, []),
-	    gl:disable(?GL_POLYGON_STIPPLE)
+	    gl:disable(?GL_POLYGON_STIPPLE),
+            RS
     end.
 
 enhanced_hl_info(Base,#hl{redraw=#st{sel=[],shapes=Shs},prev=Prev}) when is_tuple(Prev) ->
