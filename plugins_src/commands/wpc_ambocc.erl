@@ -196,10 +196,10 @@ is_plain_geometry(#we{perm=P}=We) ->
 	 ?IS_ANY_LIGHT(We)).
 
 draw_vab(Vab) ->
-    wings_draw_setup:enable_pointers(Vab, []),
+    RS = wings_draw_setup:enable_pointers(Vab, [], #{}),
     Count = wings_draw_setup:face_vertex_count(Vab),
     gl:drawArrays(?GL_TRIANGLES, 0, Count),
-    wings_draw_setup:disable_pointers(Vab, []).
+    wings_draw_setup:disable_pointers(Vab, RS).
 
 get_ao_factor(Buffer) ->
     NumWhitePixels = num_white(Buffer, 0),

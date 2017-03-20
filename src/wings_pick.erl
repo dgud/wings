@@ -348,25 +348,23 @@ hilite_draw_sel_fun(edge, Edge, #dlo{src_we=#we{es=Etab,vp=Vtab}}) ->
     wings_vbo:new(D, Data);
 hilite_draw_sel_fun(face, Face, #dlo{vab=#vab{face_map=Map}=Vab}) ->
     {Start,NoElements} = array:get(Face, Map),
-    fun(RS) ->
+    fun(RS0) ->
 	    gl:enable(?GL_POLYGON_STIPPLE),
 	    gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_FILL),
-	    wings_draw_setup:enable_pointers(Vab, []),
+	    RS = wings_draw_setup:enable_pointers(Vab, [], RS0),
 	    gl:drawArrays(?GL_TRIANGLES, Start, NoElements),
-	    wings_draw_setup:disable_pointers(Vab, []),
 	    gl:disable(?GL_POLYGON_STIPPLE),
-            RS
+            wings_draw_setup:disable_pointers(Vab, RS)
     end;
 hilite_draw_sel_fun(body, _, #dlo{vab=#vab{}=Vab}=D) ->
-    fun(RS) ->
+    fun(RS0) ->
 	    gl:enable(?GL_POLYGON_STIPPLE),
 	    gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_FILL),
-	    wings_draw_setup:enable_pointers(Vab, []),
+	    RS = wings_draw_setup:enable_pointers(Vab, [], RS0),
 	    Count = wings_draw_setup:face_vertex_count(D),
 	    gl:drawArrays(?GL_TRIANGLES, 0, Count),
-	    wings_draw_setup:disable_pointers(Vab, []),
 	    gl:disable(?GL_POLYGON_STIPPLE),
-            RS
+            wings_draw_setup:disable_pointers(Vab, RS)
     end.
 
 enhanced_hl_info(Base,#hl{redraw=#st{sel=[],shapes=Shs},prev=Prev}) when is_tuple(Prev) ->

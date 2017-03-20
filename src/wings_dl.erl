@@ -151,7 +151,8 @@ call({call_in_this_win,Win,Dl}, State) ->
     end;
 call([H|T], State0) -> State = call(H, State0), call(T, State);
 call([], State) -> State;
-call(Draw, State) when is_function(Draw, 1) -> Draw(State).
+call(Draw, #{}=State) when is_function(Draw, 1) ->
+    #{} = Draw(State).
 
 %% mirror_matrix(Id)
 %%  Return the mirror matrix for the object having id Id.

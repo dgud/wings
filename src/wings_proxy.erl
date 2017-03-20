@@ -162,12 +162,11 @@ update_edges_1(_, #sp{vab=#vab{mat_map=MatMap}=Vab}, all) ->
                   when Start =/= 0 ->  %% Assert order of material faces
                     Start + MCount
             end,
-    fun(RS) ->
+    fun(RS0) ->
 	    Extra = [face_normals],
-	    wings_draw_setup:enable_pointers(Vab, Extra),
+	    RS = wings_draw_setup:enable_pointers(Vab, Extra,RS0),
 	    gl:drawArrays(?GL_QUADS, 0, Count),
-	    wings_draw_setup:disable_pointers(Vab, Extra),
-            RS
+            wings_draw_setup:disable_pointers(Vab,RS)
     end;
 update_edges_1(#dlo{}, #sp{type={wings_cc,_}, vab=#vab{face_es={0,Bin}}}, some) ->
     vbo_draw_arrays(?GL_LINES, Bin);

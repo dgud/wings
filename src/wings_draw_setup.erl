@@ -16,7 +16,7 @@
 -export([we/3]).  %% For plugins
 
 -export([work/2,smooth/2,prepare/3,prepare/4,flat_faces/2]).
--export([enable_pointers/2,disable_pointers/2]).
+-export([enable_pointers/3,disable_pointers/2]).
 -export([face_vertex_count/1,has_active_color/1]).
 
 %% Used by wings_proxy.
@@ -93,46 +93,56 @@ check_attrib(_, D) ->
 has_active_color(#vab{face_vc=Color}) ->
     Color =/= none.
 
-%% enable_pointers(#vab{}, [ExtraPointer]) ->
+%% enable_pointers(#vab{}, [ExtraPointer], RS) ->
 %%    ExtraPointer = face_normals | vertex_normals | colors | uvs | tangents
 %%  Enable the vertex buffer pointer, and optionally other pointers.
 
-enable_pointers(#vab{id=Vbo,face_vs={Stride,BinVs}}=Vab, Extra) ->
+enable_pointers(#vab{id=Vbo,face_vs={Stride,BinVs}}=Vab, Extra, RS0) ->
     gl:bindBuffer(?GL_ARRAY_BUFFER, Vbo),
     gl:vertexPointer(3, ?GL_FLOAT, Stride, BinVs),
-    gl:enableClientState(?GL_VERTEX_ARRAY),
-    [enable_pointer(What, Vab) || What <- Extra],
-    gl:bindBuffer(?GL_ARRAY_BUFFER, 0).
-
-%% disable_pointers(#vab{}, [ExtraPointer])
-%%    ExtraPointer = face_normals | vertex_normals | colors | uvs | tangents
-%%  Disable the vertex buffer pointer, and optionally other pointers.
-
-disable_pointers(#vab{}=Vab, Extra) ->
-    gl:disableClientState(?GL_VERTEX_ARRAY),
-    [disable_pointer(What, Vab) || What <- Extra],
+    CS = foldl(fun(What,Acc) ->
+                       case enable_pointer(What, Vab) of
+                           ok -> Acc;
+                           State -> [State|Acc]
+                       end
+               end, [?GL_VERTEX_ARRAY], Extra),
+    OldCs = maps:get({vbo,Vbo}, RS0, []),
+    %io:format("Enable: ~p => ~p~n", [CS, CS -- OldCs]),
+    [enable_state(State)  || State <- CS],
+    %io:format("Disable: ~p => ~p~n", [OldCs, OldCs -- CS]),
+    [disable_state(State) || State <- OldCs -- CS],
     gl:bindBuffer(?GL_ARRAY_BUFFER, 0),
-    ok.
+    RS0#{{vbo,Vbo}=>CS}.
+
+%% disable_pointers(RS)
+%%  Disable the active pointers
+
+disable_pointers(#vab{id=Vbo}, RS0) ->
+    OldCs = maps:get({vbo, Vbo}, RS0, []),
+    [disable_state(What) || What <- OldCs],
+    gl:bindBuffer(?GL_ARRAY_BUFFER, 0),
+    RS0#{{vbo, Vbo}=>[]}.
 
 enable_pointer(face_normals, #vab{face_fn={Stride,Ns}}) ->
     gl:normalPointer(?GL_FLOAT, Stride, Ns),
-    gl:enableClientState(?GL_NORMAL_ARRAY);
+    ?GL_NORMAL_ARRAY;
 enable_pointer(vertex_normals, #vab{id=MainVbo,face_sn={vbo,Vbo}}) ->
     gl:bindBuffer(?GL_ARRAY_BUFFER, Vbo),
     gl:normalPointer(?GL_FLOAT, 0, 0),
-    gl:enableClientState(?GL_NORMAL_ARRAY),
-    gl:bindBuffer(?GL_ARRAY_BUFFER, MainVbo);
+    enable_state(?GL_NORMAL_ARRAY),
+    gl:bindBuffer(?GL_ARRAY_BUFFER, MainVbo),
+    ok;
 enable_pointer(vertex_normals, #vab{face_sn={Stride,Ns}}) ->
     %% Only used by wings_cc.
     gl:normalPointer(?GL_FLOAT, Stride, Ns),
-    gl:enableClientState(?GL_NORMAL_ARRAY);
+    ?GL_NORMAL_ARRAY;
 enable_pointer(colors, #vab{face_vc=FaceCol}) ->
     case FaceCol of
 	none ->
 	    ok;
 	{Stride,Color} ->
 	    gl:colorPointer(3, ?GL_FLOAT, Stride, Color),
-	    gl:enableClientState(?GL_COLOR_ARRAY)
+	    ?GL_COLOR_ARRAY
     end;
 enable_pointer(uvs, #vab{face_uv=FaceUV}) ->
     case FaceUV of
@@ -140,7 +150,7 @@ enable_pointer(uvs, #vab{face_uv=FaceUV}) ->
 	    ok;
 	{Stride,UV} ->
 	    gl:texCoordPointer(2, ?GL_FLOAT, Stride, UV),
-	    gl:enableClientState(?GL_TEXTURE_COORD_ARRAY)
+	    ?GL_TEXTURE_COORD_ARRAY
     end;
 enable_pointer(tangents, #vab{face_ts=FaceTs}) ->
     case FaceTs of
@@ -149,28 +159,18 @@ enable_pointer(tangents, #vab{face_ts=FaceTs}) ->
 	{Stride,Ts} ->
 	    gl:vertexAttribPointer(?TANGENT_ATTR, 4, ?GL_FLOAT,
 				   ?GL_FALSE, Stride, Ts),
-	    gl:enableVertexAttribArray(?TANGENT_ATTR)
+	    {attrib, ?TANGENT_ATTR}
     end.
 
-disable_pointer(face_normals, _) ->
-    gl:disableClientState(?GL_NORMAL_ARRAY);
-disable_pointer(vertex_normals, _) ->
-    gl:disableClientState(?GL_NORMAL_ARRAY);
-disable_pointer(colors, #vab{face_vc=FaceVc}) ->
-    case FaceVc of
-	none -> ok;
-	{_,_} -> gl:disableClientState(?GL_COLOR_ARRAY)
-    end;
-disable_pointer(uvs, #vab{face_uv=FaceUV}) ->
-    case FaceUV of
-	none -> ok;
-	{_,_} -> gl:disableClientState(?GL_TEXTURE_COORD_ARRAY)
-    end;
-disable_pointer(tangents, #vab{face_ts=FaceTs}) ->
-    case FaceTs of
-	none -> ok;
-	{_,_} -> gl:disableVertexAttribArray(?TANGENT_ATTR)
-    end.
+enable_state({attrib, Attr}) ->
+    gl:enableVertexAttribArray(Attr);
+enable_state(Attr) ->
+    gl:enableClientState(Attr).
+
+disable_state({attrib, Attr}) ->
+    gl:disableVertexAttribArray(Attr);
+disable_state(Attr) ->
+    gl:disableClientState(Attr).
 
 face_vertex_count(#dlo{vab=#vab{mat_map=[{_Mat,_Type,Start,Count}|_]}}) ->
     Start+Count;

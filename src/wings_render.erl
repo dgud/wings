@@ -411,7 +411,7 @@ split_wires([#dlo{src_we=#we{id=Id}, proxy=Proxy}=D|Dls], WOs, Show, Wires, Othe
 split_wires([], _, _, Ws, Os, Ps) ->
     {Ws, Os, Ps}.
 
-render_sel_highlight(Dls, SelMode, false, PM, RS0) ->
+render_sel_highlight(Dls, SelMode, false, PM, #{}=RS0) ->
     gl:disable(?GL_POLYGON_OFFSET_LINE),
     gl:disable(?GL_POLYGON_OFFSET_FILL),
     gl:matrixMode(?GL_PROJECTION),
@@ -419,8 +419,8 @@ render_sel_highlight(Dls, SelMode, false, PM, RS0) ->
     non_polygon_offset(1.0, PM),
     gl:matrixMode(?GL_MODELVIEW),
     gl:depthFunc(?GL_LEQUAL),
-    RS1 = foldl(fun(D, RS) -> render_sel(D, SelMode, false, RS) end, RS0, Dls),
-    RS2 = foldl(fun(D, RS) -> render_sel(D, SelMode, true, RS) end, RS1, Dls),
+    #{} = RS1 = foldl(fun(D, RS) -> render_sel(D, SelMode, false, RS) end, RS0, Dls),
+    #{} = RS2 = foldl(fun(D, RS) -> render_sel(D, SelMode, true, RS) end, RS1, Dls),
     gl:matrixMode(?GL_PROJECTION),
     gl:popMatrix(),
     gl:depthFunc(?GL_LESS),
@@ -462,12 +462,12 @@ render_sel_2(#dlo{src_we=We}=D, _SelMode, true, RS0) ->
     RS = case wire(We) of
              true ->
                  gl:disable(?GL_CULL_FACE),
-                 RS1 = draw_orig_sel(D, RS0),
-                 RS2 = draw_sel(D, RS1),
+                 #{} = RS1 = draw_orig_sel(D, RS0),
+                 #{} = RS2 = draw_sel(D, RS1),
                  gl:enable(?GL_CULL_FACE),
                  RS2;
              false ->
-                 RS1 = draw_orig_sel(D, RS0),
+                 #{} = RS1 = draw_orig_sel(D, RS0),
                  draw_sel(D, RS1)
          end,
     draw_hilite(D, RS).
@@ -510,8 +510,9 @@ draw_face_sel(true, SelDlist, RS0) ->
 draw_face_sel(false, SelDlist, RS) ->
     wings_dl:call(SelDlist, RS).
 
-sel_color(_RS) ->
-    gl:color3fv(wings_pref:get_value(selected_color)).
+sel_color(RS) ->
+    gl:color3fv(wings_pref:get_value(selected_color)),
+    RS.
 
 draw_vertices(#dlo{src_we=#we{perm=P},vs=VsDlist}, vertex, RS0) when ?IS_SELECTABLE(P) ->
     {R,G,B} = wings_pref:get_value(vertex_color),
@@ -594,8 +595,9 @@ ground_and_axes(PM,MM) ->
 		  none
 	  end,
     Update = fun(Data) ->
-		     D = fun(_) ->
-				 gl:drawArrays(?GL_LINES, 0, 3*4)
+		     D = fun(RS) ->
+				 gl:drawArrays(?GL_LINES, 0, 3*4),
+                                 RS
 			 end,
 		     wings_vbo:new(D, Data, [color,vertex])
 	     end,

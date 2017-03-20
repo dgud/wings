@@ -483,11 +483,10 @@ update_sel(#dlo{}=D) -> D.
 %% Select all faces.
 update_sel_all(#dlo{vab=#vab{face_vs=Vs}=Vab}=D) when Vs =/= none ->
     Count = wings_draw_setup:face_vertex_count(D),
-    F = fun(RS) ->
-		wings_draw_setup:enable_pointers(Vab, []),
+    F = fun(RS0) ->
+		RS = wings_draw_setup:enable_pointers(Vab, [], RS0),
 		gl:drawArrays(?GL_TRIANGLES, 0, Count),
-		wings_draw_setup:disable_pointers(Vab, []),
-                RS
+                wings_draw_setup:disable_pointers(Vab, RS)
 	end,
     D#dlo{sel={call,F,Vab}};
 update_sel_all(#dlo{src_we=#we{fs=Ftab}}=D) ->
@@ -504,19 +503,17 @@ update_face_sel(Fs0, #dlo{src_we=We,vab=#vab{face_vs=Vs,face_map=Map}=Vab}=D)
                                   {<<Ss/binary, Start:?UI32>>, <<Es/binary, NoElements:?UI32>>}
                           end,
                 {Start,NoElements} = lists:foldl(Collect, {<<>>,<<>>}, lists:reverse(Fs)),
-                fun(RS) ->
-                        wings_draw_setup:enable_pointers(Vab, []),
+                fun(RS0) ->
+                        RS = wings_draw_setup:enable_pointers(Vab, [], RS0),
                         gl:multiDrawArrays(?GL_TRIANGLES, Start, NoElements),
-                        wings_draw_setup:disable_pointers(Vab, []),
-                        RS
+                        wings_draw_setup:disable_pointers(Vab, RS)
                 end;
             false ->
                 SN = [array:get(Face, Map) || Face <- Fs],
-                fun(RS) ->
-                        wings_draw_setup:enable_pointers(Vab, []),
+                fun(RS0) ->
+                        RS = wings_draw_setup:enable_pointers(Vab, [], RS0),
                         [gl:drawArrays(?GL_TRIANGLES, S, N) || {S,N} <- SN],
-                        wings_draw_setup:disable_pointers(Vab, []),
-                        RS
+                        wings_draw_setup:disable_pointers(Vab, RS)
                 end
         end,
     Sel = {call,F,Vab},
@@ -904,10 +901,9 @@ draw_smooth_faces(#vab{mat_map=MatMap}=Vab, #st{mat=Mtab}) ->
 draw_mat_faces(Vab, Extra, MatGroups, Mtab) ->
     ActiveColor = wings_draw_setup:has_active_color(Vab),
     D = fun(RS0) ->
-		wings_draw_setup:enable_pointers(Vab, Extra),
-		RS = do_draw_mat_faces(MatGroups, Mtab, ActiveColor, RS0),
-		wings_draw_setup:disable_pointers(Vab, Extra),
-                RS
+		RS1 = wings_draw_setup:enable_pointers(Vab, Extra, RS0),
+		RS = do_draw_mat_faces(MatGroups, Mtab, ActiveColor, RS1),
+                wings_draw_setup:disable_pointers(Vab, RS)
 	end,
     {call,D,Vab}.
 
@@ -928,9 +924,10 @@ make_normals_dlist(#dlo{normals=none,src_we=We,src_sel={Mode,Elems}}=D) ->
     Normals = make_normals_dlist_1(Mode, Elems, We),
     VectorColor = wings_pref:get_value(normal_vector_color),
     N = byte_size(Normals) div 12,
-    Draw0 = fun() ->
+    Draw0 = fun(RS) ->
 		    gl:color3fv(VectorColor),
-		    gl:drawArrays(?GL_LINES, 0, N)
+		    gl:drawArrays(?GL_LINES, 0, N),
+                    RS
 	    end,
     Draw = wings_vbo:new(Draw0, Normals),
     D#dlo{normals=Draw};
