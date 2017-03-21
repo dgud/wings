@@ -400,38 +400,119 @@ has_texture(Mat) ->
     Maps = prop_get(maps, Mat, []),
     none =/= prop_get(diffuse, Maps, none).
 
-apply_material(Name, Mtab, ActiveVertexColors, RS) ->
+apply_material(Name, Mtab, false, RS) ->
     case maps:get(material, RS, undefined) of
         Name -> fun() -> RS end;
         _Active ->
-            apply_material_1(Name, Mtab, ActiveVertexColors, RS)
+            apply_material_1(Name, Mtab, false, RS#{material=>Name})
+    end;
+apply_material(Name, Mtab, true, RS) ->
+    apply_material_1(Name, Mtab, true, RS#{material=>Name}).
+
+apply_material_1(Name, Mtab, ActiveVertexColors, RS0) when is_atom(Name) ->
+    case maps:get({material, Name}, RS0, undefined) of
+        undefined ->
+            Props = material_prop(Name, Mtab),
+            apply_material_2(Props, ActiveVertexColors, RS0#{{material, Name}=>Props});
+        Props ->
+            apply_material_2(Props, ActiveVertexColors, RS0)
     end.
 
-apply_material_1(Name, Mtab, ActiveVertexColors, #{shader:=Shader}=RS)
-  when is_atom(Name) ->
+apply_material_2(Props0, true, RS0) ->
+    case lists:keytake(vertex_colors, 1, Props0) of
+        {value, {_, ignore}, Props} ->
+            gl:disableClientState(?GL_COLOR_ARRAY),
+            RS = lists:foldl(fun apply_material_3/2, RS0, Props),
+            fun() -> gl:enableClientState(?GL_COLOR_ARRAY), RS end;
+        _ ->
+            RS = lists:foldl(fun apply_material_3/2, RS0, Props0),
+            fun() -> RS end
+    end;
+apply_material_2(Props, _, RS0) ->
+    RS = lists:foldl(fun apply_material_3/2, RS0, Props),
+    fun() -> RS end.
+
+apply_material_3({shininess, Shine}, Rs0) ->
+    case maps:get(shininess, Rs0, undefined) of
+        Shine -> Rs0;
+        _ -> gl:materialf(?GL_FRONT_AND_BACK, ?GL_SHININESS, Shine*128),
+             Rs0#{shininess=>Shine}
+    end;
+apply_material_3({diff_tex, TexId}, #{shader:=Shader}=Rs0) ->
+    case maps:get({diff_tex, Shader}, Rs0, undefined) of
+        TexId -> Rs0;
+        _ -> apply_texture(TexId, Shader),
+             Rs0#{{diff_tex,Shader}=>TexId}
+    end;
+apply_material_3({norm_tex, TexId}, #{shader:=Shader}=Rs0) ->
+    case maps:get({norm_tex,Shader}, Rs0, undefined) of
+        TexId -> Rs0;
+        _ -> apply_normal_map(TexId, Shader),
+             Rs0#{{norm_tex,Shader}=>TexId}
+    end;
+apply_material_3({Type, RGBA}, Rs0)
+  when Type =:= specular; Type =:= diffuse; Type =:= ambient; Type =:= emission ->
+    case maps:get(Type, Rs0, undefined) of
+        RGBA -> Rs0;
+        _ -> gl:materialfv(?GL_FRONT_AND_BACK, enum(Type), RGBA),
+             Rs0#{Type=>RGBA}
+    end;
+apply_material_3({_Type,_}, Rs0) ->
+    %% io:format("~p:~p: unsupported type ~p~n",[?MODULE,?LINE,_Type]),
+    Rs0.
+
+enum(diffuse) -> ?GL_DIFFUSE;
+enum(ambient) -> ?GL_AMBIENT;
+enum(specular) -> ?GL_SPECULAR;
+enum(emission) -> ?GL_EMISSION.
+
+material_prop(Name, Mtab) ->
     Mat = gb_trees:get(Name, Mtab),
     OpenGL = prop_get(opengl, Mat),
-    gl:materialfv(?GL_FRONT_AND_BACK, ?GL_SPECULAR, prop_get(specular, OpenGL)),
-    Shine = prop_get(shininess, OpenGL)*128,
-    gl:materialf(?GL_FRONT_AND_BACK, ?GL_SHININESS, Shine),
-    gl:materialfv(?GL_FRONT_AND_BACK, ?GL_EMISSION, prop_get(emission, OpenGL)),
-    VertexColors = case ActiveVertexColors of
-		       false -> ignore;
-		       true -> prop_get(vertex_colors, OpenGL, ignore)
-		   end,
-    DeApply = case VertexColors of
-                  ignore when ActiveVertexColors ->
-                      gl:disableClientState(?GL_COLOR_ARRAY),
-                      fun() -> gl:enableClientState(?GL_COLOR_ARRAY), RS end;
-                  _ ->
-                      fun() -> RS#{material=>Name} end
-              end,
-    gl:materialfv(?GL_FRONT_AND_BACK, ?GL_DIFFUSE, prop_get(diffuse, OpenGL)),
-    gl:materialfv(?GL_FRONT_AND_BACK, ?GL_AMBIENT, prop_get(ambient, OpenGL)),
     Maps = prop_get(maps, Mat, []),
-    apply_texture(prop_get(diffuse, Maps, false), Shader),
-    apply_normal_map(get_normal_map(Maps), Shader),  %% Combine with vertex colors
-    DeApply.
+    [{diff_tex, get_texture_map(Maps)},
+     {norm_tex, get_normal_map(Maps)}
+     |OpenGL].
+
+get_normal_map(Maps) ->
+    case wings_pref:get_value(show_textures) of
+        true -> case prop_get(normal, Maps, none) of
+                    none -> image_id(normal, prop_get(bump, Maps, none));
+                    Map -> image_id(normal, Map)
+                end;
+        false -> none
+    end.
+
+get_texture_map(Maps) ->
+    case wings_pref:get_value(show_textures) of
+        true -> image_id(diffuse, prop_get(diffuse, Maps, none));
+        false -> none
+    end.
+
+image_id(_, none) -> none;
+image_id(diffuse, Map) -> wings_image:txid(Map);
+image_id(normal, Map) -> wings_image:bumpid(Map).
+
+no_texture(Shader) ->
+    shader_texture(diffuse, false, Shader),
+    false.
+
+apply_texture(none, Shader) ->
+    no_texture(Shader);
+apply_texture(TxId, Shader) ->
+    shader_texture(diffuse, true, Shader),
+    gl:bindTexture(?GL_TEXTURE_2D, TxId),
+    true.
+
+apply_normal_map(none, Shader) ->
+    shader_texture(normal, false, Shader),
+    false;
+apply_normal_map(TexId, Shader) ->
+    shader_texture(normal, true, Shader),
+    gl:activeTexture(?GL_TEXTURE0 + ?NORMAL_MAP_UNIT),
+    gl:bindTexture(?GL_TEXTURE_2D, TexId),
+    gl:activeTexture(?GL_TEXTURE0),
+    true.
 
 enable(true)  -> 1;
 enable(false) -> 0.
@@ -441,57 +522,6 @@ texture_var(normal) ->  "UseNormalMap".
 
 shader_texture(What, Enable, #{}=Shader) ->
     wings_gl:set_uloc(Shader, texture_var(What), enable(Enable)).
-
-apply_texture(false, Shader) -> no_texture(Shader);
-apply_texture(Image, Shader) ->
-    case wings_pref:get_value(show_textures) of
-	false -> no_texture(Shader);
-	true ->
-	    case wings_image:txid(Image) of
-		none ->
-		    %% Image was deleted.
-		    no_texture(Shader);
-		TxId ->
-		    apply_texture_1(Image, TxId, Shader)
-	    end
-    end.
-
-get_normal_map(Maps) ->
-    case prop_get(normal, Maps, none) of
-	none -> prop_get(bump, Maps, none);
-	Map -> Map
-    end.
-
-apply_normal_map(none, Shader) ->
-    shader_texture(normal, false, Shader),
-    false;
-apply_normal_map(TexId, Shader) ->
-    shader_texture(normal, true, Shader),
-    Bump = wings_image:bumpid(TexId),
-    gl:activeTexture(?GL_TEXTURE0 + ?NORMAL_MAP_UNIT),
-    gl:bindTexture(?GL_TEXTURE_2D, Bump),
-    gl:activeTexture(?GL_TEXTURE0),
-    true.
-
-apply_texture_1(Image, TxId, Shader) ->
-    shader_texture(diffuse, true, Shader),
-    gl:bindTexture(?GL_TEXTURE_2D, TxId),
-    case wings_image:info(Image) of
-	#e3d_image{bytes_pp=4} ->
-	    gl:enable(?GL_ALPHA_TEST),
-	    gl:alphaFunc(?GL_GREATER, 0.3);
-	#e3d_image{type=a8} ->
-	    gl:enable(?GL_ALPHA_TEST),
-	    gl:alphaFunc(?GL_GREATER, 0.3);
-	_ ->
-	    gl:disable(?GL_ALPHA_TEST)
-    end,
-    true.
-
-no_texture(Shader) ->
-    shader_texture(diffuse, false, Shader),
-    gl:disable(?GL_ALPHA_TEST),
-    false.
 
 %% Return the materials used by the objects in the scene.
 
@@ -592,7 +622,7 @@ edit_dialog(Name, Assign, St=#st{mat=Mtab0}, Mat0) ->
     Shine0 = prop_get(shininess, OpenGL0),
     {Emiss0,_} = ask_prop_get(emission, OpenGL0),
     Preview = fun(GLCanvas, Fields) ->
-		      mat_preview(GLCanvas,Fields,prop_get(maps,Mat0))
+                      mat_preview(GLCanvas,Fields,prop_get(maps,Mat0))
 	      end,
     Refresh = fun(_Key, _Value, Fields) ->
 		      GLCanvas = wings_dialog:get_widget(preview, Fields),
@@ -702,31 +732,27 @@ mat_preview(Canvas, Common, Maps) ->
     Amb   = preview_mat(ambient, Common, Alpha),
     Diff  = preview_mat(diffuse, Common, Alpha),
     Spec  = preview_mat(specular, Common, Alpha),
-    Shine = wings_dialog:get_value(shininess, Common),
-    gl:materialf(?GL_FRONT, ?GL_SHININESS, Shine*128.0),
-    gl:materialfv(?GL_FRONT, ?GL_AMBIENT, Amb),
-    gl:materialfv(?GL_FRONT, ?GL_DIFFUSE, Diff),
-    gl:materialfv(?GL_FRONT, ?GL_SPECULAR, Spec),
-    gl:blendFunc(?GL_SRC_ALPHA, ?GL_ONE_MINUS_SRC_ALPHA),
-    gl:enable(?GL_LIGHTING),
+    Emis  = preview_mat(emission, Common, Alpha),
+    Shine = {shininess, wings_dialog:get_value(shininess, Common)},
+    Material = [Amb, Diff, Spec, Emis, Shine,
+                {diff_tex, get_texture_map(Maps)}],
+
+    Obj = glu:newQuadric(),
     gl:enable(?GL_BLEND),
     gl:enable(?GL_DEPTH_TEST),
     gl:enable(?GL_CULL_FACE),
     gl:rotatef(-90.0,1.0,0.0,0.0),
     gl:color4ub(255, 255, 255, 255),
-    RS0 = wings_shaders:use_prog(1, #{}),
-    Obj = glu:newQuadric(),
     glu:quadricDrawStyle(Obj, ?GLU_FILL),
     glu:quadricNormals(Obj, ?GLU_SMOOTH),
-    %% UseNormalMap = apply_normal_map(get_normal_map(Maps)), No bi-tangent..
-    RS1 = case apply_texture(prop_get(diffuse, Maps, false), RS0) of
-              true -> glu:quadricTexture(Obj, ?GLU_TRUE), RS0;
-              false -> RS0
-          end,
+    glu:quadricTexture(Obj, ?GLU_TRUE),
+
+    RS0 = wings_shaders:use_prog(1, #{}),
+    RS1 = lists:foldl(fun apply_material_3/2, RS0, Material),
     glu:sphere(Obj, 0.9, 50, 50),
     glu:deleteQuadric(Obj),
-    no_texture(RS1),
-    wings_shader:use_prog(0, RS1),
+    no_texture(maps:get(shader, RS1)),
+    wings_shaders:use_prog(0, RS1),
     gl:disable(?GL_BLEND),
     gl:shadeModel(?GL_FLAT),
     gl:matrixMode(?GL_PROJECTION),
@@ -737,7 +763,7 @@ mat_preview(Canvas, Common, Maps) ->
 
 preview_mat(Key, Colors, Alpha) ->
     {R,G,B} = wings_dialog:get_value(Key, Colors),
-    {R,G,B,Alpha}.
+    {Key, {R,G,B,Alpha}}.
 
 %%% Return color in texture for the given UV coordinates.
 
