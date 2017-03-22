@@ -54,6 +54,6 @@ void main(void)
     vec3 emi = vec3(gl_FrontMaterial.emission);
     DiffuseColor = clamp(emi+DiffuseColor * mix(GroundColor, SkyColor, a),
                          vec3(0.0), vec3(1.0));
-    gl_FragColor = vec4(difftex.rgb*DiffuseColor, difftex.a*color.a);
-    //gl_FragColor = vec4(get_normal() * 0.5 + 0.5, 1.0);
+    //gl_FragColor = vec4(difftex.rgb*DiffuseColor, difftex.a*color.a);
+    gl_FragColor = vec4(get_normal() * 0.5 + 0.5, 1.0);
 }

@@ -388,12 +388,14 @@ has_texture(Mat) ->
     Maps = prop_get(maps, Mat, []),
     none =/= prop_get(diffuse, Maps, none).
 
-apply_material(Name, Mtab, ActiveVertexColors, RS) ->
+apply_material(Name, Mtab, false, RS) ->
     case maps:get(material, RS, undefined) of
         Name -> fun() -> RS end;
         _Active ->
-            apply_material_1(Name, Mtab, ActiveVertexColors, RS)
-    end.
+            apply_material_1(Name, Mtab, false, RS#{material=>Name})
+    end;
+apply_material(Name, Mtab, true, RS) ->
+    apply_material_1(Name, Mtab, true, RS#{material=>Name}).
 
 apply_material_1(Name, Mtab, ActiveVertexColors, RS0) when is_atom(Name) ->
     case maps:get({material, Name}, RS0, undefined) of
