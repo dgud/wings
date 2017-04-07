@@ -41,49 +41,67 @@ insert_before_image([]) ->
     [image_menu()].
 
 image_menu() ->
-    {?__(1,"Image Plane..."),image_plane,?__(2,"Create a plane containing an image"),[option]}.
+    {?__(1,"Image Plane..."),image_plane(),
+     {?__(2,"Create a plane containing an image"),
+      ?__(3,"Create a plane whithout thickness and containing an image"),
+      ?__(4,"Create a plane with some extra controls")},[option]}.
 
 command({shape,{image_plane,Ask}}, _St) when is_atom(Ask) ->
     make_image(Ask);
-command({shape,{image_plane,{FileName,Ask}}}, St) when is_atom(Ask) ->
-    make_image(FileName,Ask,St);
+command({shape,{image_plane_nothickness,Ask}}, _St) when is_atom(Ask) ->
+    make_image_nothickness(Ask);
+command({shape,{image_plane,{FileName,Thickness,Ask}}}, St) when is_atom(Ask) ->
+    make_image(FileName,Thickness,Ask,St);
 command({shape,{image_plane,{params,{ImData,Arg}}}}, St) ->
     make_image_0(ImData,Arg,wings_wm:this(),St);
-command(_, _) -> next.
+command(_A, _) -> next.
+
+image_plane() ->
+    fun(1, _Ns) ->
+            {shape, {image_plane, false}};
+       (2, _Ns) ->
+            {shape, {image_plane_nothickness, false}};
+       (3, _Ns) ->
+            {shape, {image_plane, true}}
+    end.
 
 make_image(Ask) ->
     Ps = [{extensions,wpa:image_formats()}],
-    wpa:import_filename(Ps, fun(N) -> {shape,{image_plane,{N,Ask}}} end).
+    wpa:import_filename(Ps, fun(N) -> {shape,{image_plane,{N,true,Ask}}} end).
 
-make_image(Name,Ask,St) when is_atom(Ask) ->
+make_image_nothickness(Ask) ->
+    Ps = [{extensions,wpa:image_formats()}],
+    wpa:import_filename(Ps, fun(N) -> {shape,{image_plane,{N,false,Ask}}} end).
+
+make_image(Name,Thickness,Ask,St) when is_atom(Ask) ->
     Props = [{filename,Name}],
     case wpa:image_read(Props) of
     #e3d_image{}=Image ->
-        make_image(Name,Image,Ask,St);
+        make_image(Name,Image,Thickness,Ask,St);
     {error,Error} ->
         wpa:error_msg(?__(1,"Failed to load \"~ts\": ~s\n"),
               [Name,file:format_error(Error)])
     end.
 
 
-make_image(FileName, Image0, Ask, St) when is_atom(Ask) ->
+make_image(FileName, Image0, Thickness, Ask, St) when is_atom(Ask) ->
     {Id_Img_Plane,_,_}=ImData=load_img_plane(FileName,Image0),
     Img_Helper = load_ip_helper(),
     Owner = wings_wm:this(),
     wings_dialog:dialog(Ask, ?__(2,"Image Plane"), 
-			{preview,image_dialog(FileName, Img_Helper)},
+			{preview,image_dialog(FileName, Thickness, Img_Helper)},
 			fun({dialog_preview,Res}) ->
 				St1 = make_image_0(ImData,Res,Owner,St),
-				{preview,St1,St1};
+				{preview,St,St1};
 			   (cancel) ->
 				unload_img_plane(Id_Img_Plane,St),
 				St;
 			   (Res) ->
 				St1 = make_image_0(ImData,Res,Owner,St),
-				{commit,St1,St1}
+				{commit,St,St1}
 			end).
 
-image_dialog(FileName, Helper) ->
+image_dialog(FileName, Thickness, Helper) ->
     FName = filename:rootname(filename:basename(FileName)),
     Disable_Hook = fun(Key, Value, Store) ->
             case Key of
@@ -121,9 +139,12 @@ image_dialog(FileName, Helper) ->
 		       {label,?__(21,"Rotation")}]},
 	      {text,0.0,[{info, ?__(22,"Rotation around the origin (positive is counterclockwise)")},{hook,Disable_Hook},{key,rotation},{width,7}]}
 	     ]},
-            separator,
-     {?__(23,"Lock after create"),false,[{info, ?__(24,"Lock image plane object")},{key,locked}]},
-     {?__(25,"Transparent back face"),false,[{info, ?__(26,"Assign transparent material to back face")},{key,transp}]}
+     separator,
+     {hframe, [
+         {?__(23,"Lock after create"),false,[{info, ?__(24,"Lock image plane object")},{key,locked}]},
+         {?__(25,"Transparent back face"),false,[{info, ?__(26,"Assign transparent material to back face")},{key,transp}]},
+         {?__(27,"Thickness"),Thickness,[{info, ?__(28,"Create the image plane with thickness")},{key,thickness}]}
+     ]}
     ].
 
 make_image_0({ImageId,{MaxU,MaxV},{AspX,AspY}}, Arg, Owner, #st{mat=Mat0}=St0) ->
@@ -136,6 +157,7 @@ make_image_0({ImageId,{MaxU,MaxV},{AspX,AspY}}, Arg, Owner, #st{mat=Mat0}=St0) -
     Rotation = dict:fetch(rotation,ArgDict),
     Lock = dict:fetch(locked,ArgDict),
     Transparent = dict:fetch(transp,ArgDict),
+    Thickness = dict:fetch(thickness,ArgDict),
 
     MatName = if UseName == for_none -> ?DEF_NAME;
         true -> FName end,
@@ -143,22 +165,33 @@ make_image_0({ImageId,{MaxU,MaxV},{AspX,AspY}}, Arg, Owner, #st{mat=Mat0}=St0) -
     Mt = if Transparent==true -> [transparency_ip];
         true -> [] end,
     Mi = [MatId],
-    Fs = [#e3d_face{vs=[0,3,2,1],mat=Mt},
-      #e3d_face{vs=[2,3,7,6],tx=[6,2,3,7],mat=Mi},
-      #e3d_face{vs=[0,4,7,3],mat=Mt},
-      #e3d_face{vs=[1,2,6,5],mat=Mt},
-      #e3d_face{vs=[4,5,6,7],mat=Mt},
-      if Transparent==true -> #e3d_face{vs=[0,1,5,4],mat=Mt};
-      true -> #e3d_face{vs=[0,1,5,4],tx=[4,0,1,5],mat=Mi} end ],
-
-    UVs = [{0.0,MaxV},{MaxU,MaxV},{0.0,0.0},{MaxU,0.0},
-           {0.0,0.0},{MaxU,0.0},{0.0,MaxV},{MaxU,MaxV}],
-    HardEdges = [{0,3},{2,3},{1,2},{0,1},{3,7},{6,7},
-                 {2,6},{0,4},{4,7},{4,5},{5,6},{1,5}],
     D = 1.0e-3/2,
-    Vs0 = [{-D,-AspY,AspX},{-D,AspY,AspX},{D,AspY,AspX},{D,-AspY,AspX},
-          {-D,-AspY,-AspX},{-D,AspY,-AspX},{D,AspY,-AspX},{D,-AspY,-AspX}],
 
+    if Thickness =:= true ->
+        Fs = [#e3d_face{vs=[0,3,2,1],mat=Mt},
+              #e3d_face{vs=[2,3,7,6],tx=[6,2,3,7],mat=Mi},
+              #e3d_face{vs=[0,4,7,3],mat=Mt},
+              #e3d_face{vs=[1,2,6,5],mat=Mt},
+              #e3d_face{vs=[4,5,6,7],mat=Mt},
+              if Transparent==true -> #e3d_face{vs=[0,1,5,4],mat=Mt};
+              true -> #e3d_face{vs=[0,1,5,4],tx=[4,0,1,5],mat=Mi}
+              end ],
+        UVs = [{0.0,MaxV},{MaxU,MaxV},{0.0,0.0},{MaxU,0.0},
+               {0.0,0.0},{MaxU,0.0},{0.0,MaxV},{MaxU,MaxV}],
+        HardEdges = [{0,3},{2,3},{1,2},{0,1},{3,7},{6,7},
+                     {2,6},{0,4},{4,7},{4,5},{5,6},{1,5}],
+        Vs0 = [{-D,-AspY,AspX},{-D,AspY,AspX},{D,AspY,AspX},{D,-AspY,AspX},
+               {-D,-AspY,-AspX},{-D,AspY,-AspX},{D,AspY,-AspX},{D,-AspY,-AspX}];
+    true ->
+        Fs = [#e3d_face{vs=[0,1,2,3],tx=[1,0,3,2],mat=Mi},
+              if Transparent==true -> #e3d_face{vs=[3,2,1,0],mat=Mt};
+              true -> #e3d_face{vs=[3,2,1,0],tx=[2,3,0,1],mat=Mi}
+              end ],
+
+        UVs = [{0.0,0.0},{0.0,MaxV},{MaxU,MaxV},{MaxU,0.0}],
+        HardEdges = [{0,3},{2,3},{1,2},{0,1}],
+        Vs0 = [{-D,AspY,AspX},{-D,-AspY,AspX},{D,-AspY,-AspX},{D,AspY,-AspX}]
+    end,
     Vs=do_new_place(Alignment, if Alignment=:=view -> Owner;
                                 true -> Rotation end, Offset, Vs0),
     Mesh = #e3d_mesh{type=polygon,fs=Fs,vs=Vs,tx=UVs,he=HardEdges},
