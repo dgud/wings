@@ -15,12 +15,13 @@
 	.fig .dvi .tex .class .java .pdf .psframe .pscrop
 
 ESRC=.
-WINGS_INTL=../../intl_tools
-EBIN=../../plugins/import_export
+WINGS_INTL=../../../intl_tools
+#EBIN=D:/apps/wings3d205/lib/wings-2.0.5/plugins/import_export
+EBIN=F:/apps/wings-2.0.5.73.ga4d1/lib/wings-2.0.5.73.ga4d1/plugins/import_export
 ERLC=erlc
-WINGS_SRC=../../src
-WINGS_EBIN=../../ebin
-WINGS_E3D=../../e3d
+WINGS_SRC=../../../src
+WINGS_EBIN=../../../ebin
+WINGS_E3D=../../../e3d
 
 ifeq ($(TYPE),debug)
 TYPE_FLAGS=-DDEBUG
@@ -28,32 +29,14 @@ else
 TYPE_FLAGS=
 endif
 
-MODULES= \
-	wpc_3ds \
-	wpc_ai \
-	wpc_bzw \
-	wpc_collada \
-	collada_import \
-	wpc_hlines \
-	wpc_kerky \
-	wpc_lwo \
-	wpc_obj \
-	wpc_pov \
-	wpc_ps \
-	wpc_rwx \
-	wpc_stl \
-	wpc_svg_path \
-	wpc_wrl \
-	wpc_x \
-	wpc_yafaray \
-    wpc_thebounty
+MODULES= wpc_thebounty
 
 TARGET_FILES= $(MODULES:%=$(EBIN)/%.beam)
 
 # ----------------------------------------------------
 # FLAGS
 # ----------------------------------------------------
-ERL_COMPILE_FLAGS += -Werror \
+ERL_COMPILE_FLAGS += -W3 \
   -pa $(WINGS_EBIN) -pa $(WINGS_INTL) -I $(WINGS_INTL) \
   -I $(WINGS_SRC) -I $(WINGS_E3D) $(TYPE_FLAGS) +debug_info
 
