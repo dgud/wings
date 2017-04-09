@@ -237,12 +237,18 @@ create_folder_system(#st{pst=Pst0}=St) ->
 
 recreate_folder_system(#st{pst=Pst0}=St) ->
     {Current,Fs0} = gb_trees:get(?FOLDERS, Pst0),
-    InUse0 = orddict:fetch_keys(Fs0),
-    F = fun(#{folder:=F}, A) -> [F|A] end,
-    InUse1 = fold(F, InUse0, St),
-    InUse = ordsets:from_list(InUse1),
-    NewFolder = {open,gb_sets:empty()},
-    Fs = [{Folder,NewFolder} || Folder <- InUse],
+    F = fun(#{folder:=F,id:=Id}, A) ->
+            case orddict:is_key(F, A) of
+                true ->
+                    {S,Ids0} = orddict:fetch(F, A),
+                    Ids = gb_sets:add_element(Id, Ids0),
+                    orddict:store(F, {S,Ids}, A);
+                false ->
+                    Ids = gb_sets:add(Id, gb_sets:new()),
+                    orddict:store(F, {open,Ids}, A)
+            end
+        end,
+    Fs = fold(F, Fs0, St),
     Pst = gb_trees:update(?FOLDERS, {Current,Fs}, Pst0),
     St#st{pst=Pst}.
 
