@@ -579,6 +579,7 @@ smart_set_value_1(Key, Val, St) ->
 			    "effect the next time Wings 3D is started."),
 		    wings_u:message(Str);
                 show_toolbar ->
+                    delayed_set_value(Key, OldVal, Val),
                     wings_frame:show_toolbar(Val);
 		extended_toolbar ->
 		    delayed_set_value(Key, OldVal, Val),
