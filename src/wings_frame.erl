@@ -446,6 +446,12 @@ handle_call(get_overlay, _From, #state{overlay=Overlay}=State) ->
     {reply, Overlay, State};
 
 handle_call({update_layout,Contained0}, _From, #state{windows=#{ch:=Split}}=State) ->
+    {W, H} = TopSize = wings_pref:get_value(window_size),
+    Frame = ?GET(top_frame),
+    case wxWindow:getSize(Frame) of
+	TopSize -> ignore;
+	_ -> wxWindow:setSize(Frame, W, H)
+    end,
     Contained = [C || C = {Type, _, _} <- Contained0, Type=:=split orelse Type=:=split_rev],
     update_layout(Contained, Split),
     {reply, ok, State};

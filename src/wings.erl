@@ -1216,7 +1216,7 @@ save_windows() ->
     Frame = ?GET(top_frame),
     case wxTopLevelWindow:isMaximized(Frame) of
 	false ->
-	    TopSize = wxWindow:getSize(?GET(top_frame)),
+	    TopSize = wxWindow:getSize(Frame),
 	    wings_pref:set_value(window_size, TopSize);
 	true -> ignore
     end,
