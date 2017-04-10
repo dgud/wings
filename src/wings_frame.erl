@@ -14,7 +14,7 @@
 -export([top_menus/0, make_win/2, register_win/3, close/1, set_focus/1,set_title/2,
          get_top_frame/0,
          show_toolbar/1,
-	 export_layout/0, import_layout/2,
+	 export_layout/0, import_layout/2, reinit_layout/0,
 	 get_overlay/0, overlay_draw/3, overlay_hide/1,
 	 get_icon_images/0, get_colors/0, update_theme/0]).
 
@@ -112,6 +112,18 @@ export_layout() ->
     Contained = filter_contained(Contained0, AddProps, []),
     Free = [AddProps(Win) || Win <- Free0, save_window(element(1,Win))],
     {Contained, Free}.
+
+reinit_layout() ->
+    {Contained, Free} = wx_object:call(?MODULE, get_windows),
+    Delete = fun(Name) ->
+	wings_wm:delete(Name),
+	case ?IS_GEOM(Name) of
+	    true  -> ignore;
+	    false -> receive {wm, {delete, Name}} -> ok end
+	end
+	     end,
+    [Delete(Win) || {Win, _, _, _} <- Contained ++ Free, not save_window(Win)],
+    ok.
 
 get_icon_images() ->
     wx_object:call(?MODULE, get_images).
