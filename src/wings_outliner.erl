@@ -341,7 +341,27 @@ handle_sync_event(#wx{event=#wxTree{item=Indx}}, Drag,
 	    wx_object:get_pid(TC) ! {drag, Obj};
 	_ -> ignore %% for now
     end,
+    ok;
+
+handle_sync_event(#wx{event=#wxKey{type=char, keyCode=KC}}, EvObj, #state{tc=TC, shown=Shown}) ->
+    Indx = wxTreeCtrl:getSelection(TC),
+    case {key_to_op(KC), obj_to_type_and_param(lists:keyfind(Indx, 1, Shown))} of
+	{Act, {Elm, Param}} when Act =/= ignore ->
+	    Cmd = list_to_atom(Act++"_"++Elm),
+	    wings_wm:psend(?MODULE, {action, {?MODULE, {Cmd, Param}}});
+	_ ->  % false is returned for the root items: 'Lights', 'Materials', 'Images'
+	    wxEvent:skip(EvObj)
+    end,
     ok.
+
+key_to_op(?WXK_DELETE) -> "delete";
+key_to_op(?WXK_F2) -> "rename";
+key_to_op(_) -> ignore.
+
+obj_to_type_and_param({_, #{type:=mat, name:=Name}}) -> {"material", Name};
+obj_to_type_and_param({_, #{type:=image, id:=Id}}) -> {"image", Id};
+obj_to_type_and_param({_, #{type:=light, id:=Id}}) -> {"object", Id};
+obj_to_type_and_param(_) -> ignore.
 
 handle_event(#wx{event=#wxMouse{type=right_up, x=X, y=Y}}, #state{tc=TC} = State) ->
     {Indx, _} = wxTreeCtrl:hitTest(TC, {X,Y}),
@@ -509,6 +529,7 @@ make_tree(Parent, #{bg:=BG, text:=FG}, IL) ->
     wxWindow:connect(TC, command_tree_item_activated, []),
     wxWindow:connect(TC, enter_window, [{userData, {win, Parent}}]),
     wxWindow:connect(TC, motion, [{skip, true}]),
+    wxWindow:connect(TC, char, [callback]),
     case os:type() of
 	{win32, _} ->
 	    wxWindow:connect(TC, command_tree_item_menu, [{skip, false}]),
