@@ -341,7 +341,27 @@ handle_sync_event(#wx{event=#wxTree{item=Indx}}, Drag,
 	    wx_object:get_pid(TC) ! {drag, Obj};
 	_ -> ignore %% for now
     end,
+    ok;
+
+handle_sync_event(#wx{event=#wxKey{type=char, keyCode=KC}}, EvObj, #state{tc=TC, shown=Shown}) ->
+    Indx = wxTreeCtrl:getSelection(TC),
+    case {key_to_op(KC), obj_to_type_and_param(lists:keyfind(Indx, 1, Shown))} of
+	{Act, {Elm, Param}} when Act =/= ignore ->
+	    Cmd = list_to_atom(Act++"_"++Elm),
+	    wings_wm:psend(?MODULE, {action, {?MODULE, {Cmd, Param}}});
+	_ ->  % false is returned for the root items: 'Lights', 'Materials', 'Images'
+	    wxEvent:skip(EvObj)
+    end,
     ok.
+
+key_to_op(?WXK_DELETE) -> "delete";
+key_to_op(?WXK_F2) -> "rename";
+key_to_op(_) -> ignore.
+
+obj_to_type_and_param({_, #{type:=mat, name:=Name}}) -> {"material", Name};
+obj_to_type_and_param({_, #{type:=image, id:=Id}}) -> {"image", Id};
+obj_to_type_and_param({_, #{type:=light, id:=Id}}) -> {"object", Id};
+obj_to_type_and_param(_) -> ignore.
 
 handle_event(#wx{event=#wxMouse{type=right_up, x=X, y=Y}}, #state{tc=TC} = State) ->
     {Indx, _} = wxTreeCtrl:hitTest(TC, {X,Y}),
@@ -509,6 +529,7 @@ make_tree(Parent, #{bg:=BG, text:=FG}, IL) ->
     wxWindow:connect(TC, command_tree_item_activated, []),
     wxWindow:connect(TC, enter_window, [{userData, {win, Parent}}]),
     wxWindow:connect(TC, motion, [{skip, true}]),
+    wxWindow:connect(TC, char, [callback]),
     case os:type() of
 	{win32, _} ->
 	    wxWindow:connect(TC, command_tree_item_menu, [{skip, false}]),
@@ -701,16 +722,16 @@ do_menu(#{type:=mat, name:=Name}) ->
      {?__(7,"Duplicate"),menu_cmd(duplicate_material, Name),
       ?__(8,"Duplicate this material")},
      {?__(9,"Delete"),menu_cmd(delete_material, Name),
-      ?__(10,"Delete this material")},
+      ?__(10,"Delete this material"),[{hotkey,wings_hotkey:format_hotkey({?SDLK_DELETE,[]},pretty)}]},
      {?__(11,"Rename"),menu_cmd(rename_material, Name),
-      ?__(12,"Rename this material")}];
+      ?__(12,"Rename this material"),[{hotkey,wings_hotkey:format_hotkey({?SDLK_F2,[]},pretty)}]}, []];
 do_menu(#{type:=object, id:=Id}) ->
     [{?__(13,"Duplicate"),menu_cmd(duplicate_object, Id),
       ?__(14,"Duplicate this object")},
      {?__(15,"Delete"),menu_cmd(delete_object, Id),
-      ?__(16,"Delete this object")},
+      ?__(16,"Delete this object"),[{hotkey,wings_hotkey:format_hotkey({?SDLK_DELETE,[]},pretty)}]},
      {?__(17,"Rename"),menu_cmd(rename_object, Id),
-      ?__(18,"Rename this object")}];
+      ?__(18,"Rename this object"),[{hotkey,wings_hotkey:format_hotkey({?SDLK_F2,[]},pretty)}]}];
 do_menu(#{type:=light, id:=Id}) ->
     [{?__(19,"Edit Light..."),menu_cmd(edit_light, Id),
       ?__(20,"Edit light properties")},
@@ -718,9 +739,9 @@ do_menu(#{type:=light, id:=Id}) ->
      {?__(21,"Duplicate"),menu_cmd(duplicate_object, Id),
       ?__(22,"Duplicate this light")},
      {?__(23,"Delete"),menu_cmd(delete_object, Id),
-      ?__(24,"Delete this light")},
+      ?__(24,"Delete this light"),[{hotkey,wings_hotkey:format_hotkey({?SDLK_DELETE,[]},pretty)}]},
      {?__(25,"Rename"),menu_cmd(rename_object, Id),
-      ?__(26,"Rename this light")}];
+      ?__(26,"Rename this light"),[{hotkey,wings_hotkey:format_hotkey({?SDLK_F2,[]},pretty)}]}];
 do_menu(#{type:=image, id:=Id, image:=Im}=Map) ->
     image_menu(Id, Im, maps:get(mat, Map, unused)).
 
@@ -738,7 +759,8 @@ image_menu_1(Id, _, Mat) ->
 
 image_menu_2(Id, unused) ->
     [separator,
-     {?__(1,"Delete"),menu_cmd(delete_image, Id), ?__(2,"Delete selected image")}
+     {?__(1,"Delete"),menu_cmd(delete_image, Id),
+      ?__(2,"Delete selected image"),[{hotkey,wings_hotkey:format_hotkey({?SDLK_DELETE,[]},pretty)}]}
      |command_image_menu(Id)];
 image_menu_2(Id, {Mat, Type}) ->
     [separator,
@@ -757,7 +779,7 @@ command_image_menu(Id) ->
      {?__(3,"Duplicate"),menu_cmd(duplicate_image, Id),
       ?__(4,"Duplicate selected image")},
      {?__(7,"Rename"),menu_cmd(rename_image, Id),
-      ?__(8,"Rename selected image")}
+      ?__(8,"Rename selected image"),[{hotkey,wings_hotkey:format_hotkey({?SDLK_F2,[]},pretty)}]}
     ].
 
 handle_drop(#{type:=image, id:=Id}, #{type:=mat, name:=Name}) ->
