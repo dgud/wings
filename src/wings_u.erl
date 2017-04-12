@@ -59,14 +59,14 @@ yes_no(Question, Yes) ->
 yes_no(Question, Yes, No) ->
     Qs = {vframe_dialog,
 	  [{label,Question,[{break,75*?CHAR_WIDTH}]}],
-	  [{buttons, [yes, no]}, {key, result}]
+	  [{buttons, [yes, no]}, {key, result}, {position, mouse}]
 	 },
     wings_dialog:dialog("", Qs, fun([{result,Res}]) -> yes_no_cancel(Res, Yes, No, ignore) end).
 
 yes_no_cancel(Question, Yes, No) ->
     Qs = {vframe_dialog,
 	  [{label,Question,[{break,75*?CHAR_WIDTH}]}],
-	  [{buttons, [yes, no, cancel]}, {key, result}]
+	  [{buttons, [yes, no, cancel]}, {key, result}, {position, mouse}]
 	 },
     wings_dialog:dialog("", Qs, fun([{result,Res}]) -> yes_no_cancel(Res, Yes, No, ignore) end).
 
