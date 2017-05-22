@@ -60,6 +60,17 @@ auv_menu(1,_What) -> {?MODULE, segment};
 auv_menu(2,_) -> {?MODULE, segment_old};
 auv_menu(3,_) -> {?MODULE, force_seg}.
 
+auv_show_menu(Action) ->
+    Cmd = {show,toggle_background},
+    case Action of
+	true ->
+	    Label = ?__(1,"Show/Hide Background Image"),
+	    Help = ?__(2,"Toggle display of the background texture image"),
+	    wings_menu:update_menu(view, Cmd, {append, 0, Label},Help);
+	false ->
+	    wings_menu:update_menu(view, Cmd, delete)
+    end.
+
 command({body,{?MODULE, Op}} , St) ->
     start_uvmap(Op, St);
 command({face,{?MODULE, Op}} , St) ->
@@ -666,11 +677,6 @@ handle_event_3({action,{edit,repeat_args}}, St) ->
     repeat(args, St);
 handle_event_3({action,{edit,repeat_drag}}, St) ->
     repeat(drag, St);
-handle_event_3({action,{view,toggle_background}}, _) ->
-    Old = get({?MODULE,show_background}),
-    put({?MODULE,show_background},not Old),
-    wings_wm:dirty();
-
 handle_event_3({action,Ev}=Act, #st{selmode=AUVSel, bb=#uvstate{st=#st{selmode=GSel}}}=St) ->
     case Ev of  %% Keyboard shortcuts end up here (I believe)
 	{_, {move,_}} ->
@@ -685,6 +691,10 @@ handle_event_3({action,Ev}=Act, #st{selmode=AUVSel, bb=#uvstate{st=#st{selmode=G
 	    handle_command(slide,St);
 	{_, circularise} ->
 	    handle_command(circularise,St);
+	{view,{show,toggle_background}} ->
+	    Old = get({?MODULE,show_background}),
+	    put({?MODULE,show_background},not Old),
+	    wings_wm:dirty();
 	{view,aim} ->
 	    St1 = fake_selection(St),
 	    wings_view:command(aim, St1),
@@ -727,7 +737,11 @@ handle_event_3(got_focus, _) ->
     Msg3 = wings_msg:button_format([], [], ?__(2,"Show menu")),
     Message = wings_msg:join([Msg1,Msg2,Msg3]),
     wings_wm:message(Message, ""),
+    auv_show_menu(true),
     wings_wm:dirty();
+handle_event_3(lost_focus, _) ->
+    auv_show_menu(false),
+    keep;
 handle_event_3(_Event, _) ->
     %% io:format("MissEvent ~P~n", [_Event, 20]),
     keep.
@@ -767,7 +781,7 @@ new_state(#st{bb=#uvstate{}=Uvs}=St0) ->
     St = update_selected_uvcoords(St1),
     get_event(St).
 
-handle_command(Cmd, St0) ->    
+handle_command(Cmd, St0) ->
     case handle_command_1(Cmd,remember_command(Cmd,St0)) of
 	Drag = {drag, _} -> do_drag(Drag);
 	Result -> Result
