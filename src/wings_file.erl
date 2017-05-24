@@ -629,11 +629,11 @@ autosave(#st{file=Name}=St) ->
 autosave_filename(File) ->
     Base = filename:basename(File),
     Dir = filename:dirname(File),
-    filename:join(Dir, "#" ++ Base ++ "#").
+    Dir ++ "/#" ++ Base ++ "#".
 
 unsaved_filename() ->
     Dir = wings_pref:get_dir(),
-    filename:join(Dir, ?UNSAVED_NAME).
+    Dir ++ "/" ++ ?UNSAVED_NAME.
 
 backup_filename(File) ->
     File ++ "~".
