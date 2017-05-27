@@ -410,7 +410,13 @@ skip_blanks(S) -> S.
 
 read_open(Name) ->
     case file:open(Name, [binary,read,raw]) of
-	{ok,Fd} -> {ok,{Fd,<<>>}};
+	{ok,Fd} ->
+	    {ok,Bin} = file:read(Fd,4),
+	    %% provisionally remove the BOM mark if present. The code needs to be
+	    %% rewritten to manage unicode files
+	    {_,Bytes} = unicode:bom_to_encoding(Bin),
+	    file:position(Fd,Bytes),
+	    {ok,{Fd,<<>>}};
 	{error,_}=Error -> Error
     end.
 
