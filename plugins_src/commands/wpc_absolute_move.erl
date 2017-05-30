@@ -373,7 +373,7 @@ disable(all, Bool, Store) ->
     catch _:_ -> ignore end;
 disable(What, Bool, Store) ->
     try
-	wings_dialog:enable(depend(What), Bool, Store)
+	wings_dialog:enable(depend(What), not Bool, Store)
     catch _:_ -> ignore end.
 
 depend(lx) -> x;
