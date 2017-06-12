@@ -13,8 +13,25 @@
 -module(collada_import).
 -export([import/1]).
 -include_lib("wings/e3d/e3d.hrl").
-%% Sigh using local function in state machine
--compile(export_all).
+%% Local exports callbacks
+-export([ignored/4, asset/3, lib_geom/4, mesh/4, source/4,
+         param/4, vertices/4, make_polys/1, polys/4,
+         lib_material/4, lib_images/4, effects/4,
+         scene/3, lib_scenes/4, node/4, matrix/4,
+         common_mat/4, common_newparam/4, surface/4,
+         sampler2D/4, sloppy_color/3, chars/3,
+         pop/1, replace/2, to_floats/1, make_float/1,
+         make_float2/1, make_float3/1, make_float4/2,
+         to_ints/1, to_tuple/2, to_tuple2/1, to_tuple3/1,
+         to_tuple4/1, to_tuple5/1,
+         pack_source/1, make_mesh/1, pick_source/2, pick_src_1/2,
+         pick_mesh/2, pick_mesh_1/2, mesh_type/2,
+         polygon_type/1, polygon_type_1/2,
+         make_faces/2, sort_inputs/2, remove_duplicates/1,
+         pick_faces/5, pick_tristrips/5, pick_polygons/4,
+         pick_polygon/3, pick_verts/4, pick_vert/4,
+         add_vert_info/3, rev_face/2, rev_face/1
+        ]).
 
 -record(mat,
         {refs=#{},

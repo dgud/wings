@@ -30,8 +30,6 @@
 	 render/2,
 	 render_to_binary/2, render_to_binary/3]).
 
--compile(export_all).
-
 -include_lib("wx/include/wx.hrl").
 -include_lib("wx/include/gl.hrl").
 
@@ -390,14 +388,6 @@ calc_tex_size(X, Y, No, CW, CH, Prev = {BestArea,Dec}, BestCoord)
 calc_tex_size(_, _, _, _, _, _, BestCoord) ->
     BestCoord.
 
-floor(T,N) ->
-    X = T div N,
-    if (T rem N) =:= 0 ->
-	    X;
-       true ->
-	    X+1
-    end.
-
 tsize(X0) ->
     Pow = trunc(log2(X0)),
     case (1 bsl Pow) of
@@ -408,24 +398,19 @@ tsize(X0) ->
 log2(X) ->
     math:log(X) / math:log(2).
 
-check_pow2(NoX, W, Pow2) when NoX * W > Pow2 ->
-    check_pow2(NoX, W, Pow2*2);
-check_pow2(NoX, W, Pow2) ->
-    {trunc((Pow2 - NoX*W)/W), Pow2}.
-
-debug(W,H, Bin0) ->
-    Bin = << <<G:8, G:8, G:8>> || <<_:8, G:8>> <= Bin0>>,
-    Image = wxImage:new(W,H,Bin),
-    Title = io_lib:format("DEBUG ~px~p", [W,H]),
-    Frame = wxFrame:new(wx:null(), ?wxID_ANY, Title, [{size, {W+40, H+40}}]),
-    Panel = wxPanel:new(Frame),
-    Paint = fun(_,_) ->
-		    DC=wxPaintDC:new(Panel),
-		    Bmp = wxBitmap:new(Image),
-		    wxDC:drawBitmap(DC, Bmp, {0,0}),
-		    wxPaintDC:destroy(DC),
-		    wxBitmap:destroy(Bmp)
-	    end,
-    %% wxImage:destroy(Image),
-    wxFrame:connect(Panel, paint, [{callback, Paint}]),
-    wxFrame:show(Frame).
+%% debug(W,H, Bin0) ->
+%%     Bin = << <<G:8, G:8, G:8>> || <<_:8, G:8>> <= Bin0>>,
+%%     Image = wxImage:new(W,H,Bin),
+%%     Title = io_lib:format("DEBUG ~px~p", [W,H]),
+%%     Frame = wxFrame:new(wx:null(), ?wxID_ANY, Title, [{size, {W+40, H+40}}]),
+%%     Panel = wxPanel:new(Frame),
+%%     Paint = fun(_,_) ->
+%% 		    DC=wxPaintDC:new(Panel),
+%% 		    Bmp = wxBitmap:new(Image),
+%% 		    wxDC:drawBitmap(DC, Bmp, {0,0}),
+%% 		    wxPaintDC:destroy(DC),
+%% 		    wxBitmap:destroy(Bmp)
+%% 	    end,
+%%     %% wxImage:destroy(Image),
+%%     wxFrame:connect(Panel, paint, [{callback, Paint}]),
+%%     wxFrame:show(Frame).

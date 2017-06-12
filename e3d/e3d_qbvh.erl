@@ -23,6 +23,8 @@
 
 -export([ray/2, ray/4, ray_trace/2]). 
 
+-compile({no_auto_import,[ceil/1]}).
+
 %%-define(DEBUG,1).
 -ifdef(DEBUG).
 -export([print_tree/3, print_stack/1, print_split/4]).
