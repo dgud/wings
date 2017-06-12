@@ -19,8 +19,6 @@
 %%%  done my own solution but if an adaptiv solution shall be implemented
 %%%  check out the paper above.
 %%%  
-%%%  wings_cc_ref: contains an erlang reference implementation which
-%%%                can be debugged. Keep it up to date.
 %%%
 
 -module(wings_cc).
