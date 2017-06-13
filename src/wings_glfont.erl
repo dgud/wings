@@ -155,9 +155,9 @@ gen_glfont(Font, Options) ->
     {NoChars, Chars0} = all_chars(Ranges0),
     {W, H, Chars} = get_char_info(Chars0, Font),
     {TW,TH0} = calc_tex_size(NoChars, W, H),
-    {UsedHeight, {Bin, HaveAlpha, Glyphs0}} = make_glyphs(Font,Chars,H,TW,TH0),
+    {UsedHeight, {Bin, Glyphs0}} = make_glyphs(Font,Chars,H,TW,TH0),
     TH = tex_size(Options, UsedHeight),
-    TexId = gen_texture(TW,TH,Bin,HaveAlpha,Options),
+    TexId = gen_texture(TW,TH,Bin,Options),
     %% debug(TW,TH,Bin),
     Glyphs = recalc_glyphs(Glyphs0, TH0, TH),
 
@@ -226,9 +226,9 @@ make_glyphs(Font,Chars,H, TW,TH) ->
 %% Minimize texture space, use greyscale images
 greyscale(BinData, false, Glyphs) ->  %% Alpha use gray scale value
     Bin = << <<255:8, A:8>> || <<A:8,_:8,_:8>> <= BinData>>,
-    {Bin, true, Glyphs};
+    {Bin, Glyphs};
 greyscale(BinData, Alpha, Glyphs) ->
-    {greyscale2(BinData, Alpha, <<>>), true, Glyphs}.
+    {greyscale2(BinData, Alpha, <<>>), Glyphs}.
 
 greyscale2(<<R:8,_:8,_:8, Cs/bytes>>, <<A:8, As/bytes>>, Acc) ->
     greyscale2(Cs, As, <<Acc/bytes, R:8, A:8>>);
@@ -263,7 +263,7 @@ make_glyph(DC, {Width, CharH, Char}, X0, Y0, Height, TW, TH, Acc0) ->
     end.
 
 
-gen_texture(TW,TH,Bin,HaveAlpha,Options) ->
+gen_texture(TW,TH,Bin,Options) ->
     [TexId] = gl:genTextures(1),
     gl:bindTexture(?GL_TEXTURE_2D, TexId),
 
@@ -289,16 +289,9 @@ gen_texture(TW,TH,Bin,HaveAlpha,Options) ->
     end,
 
     %% io:format("HaveAlpha ~p ~n",[HaveAlpha]),
-    case HaveAlpha of
-	true ->
-	    gl:texImage2D(?GL_TEXTURE_2D, 0, ?GL_LUMINANCE8_ALPHA8,
-			  TW, TH,  0, ?GL_LUMINANCE_ALPHA,
-			  ?GL_UNSIGNED_BYTE, Bin);
-	false ->
-	    gl:texImage2D(?GL_TEXTURE_2D, 0, ?GL_LUMINANCE8,
-			  TW, TH,  0, ?GL_LUMINANCE,
-			  ?GL_UNSIGNED_BYTE, Bin)
-    end,
+    gl:texImage2D(?GL_TEXTURE_2D, 0, ?GL_LUMINANCE8_ALPHA8,
+                  TW, TH,  0, ?GL_LUMINANCE_ALPHA,
+                  ?GL_UNSIGNED_BYTE, Bin),
     gl:bindTexture(?GL_TEXTURE_2D, 0),
     TexId.
 
