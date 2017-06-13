@@ -1884,7 +1884,7 @@ draw_background(#st{bb=#uvstate{matname=MatName,st=St,bg_img=Image}}) ->
     gl:translatef(0.0, 0.0, -0.5),
     Bin = << <<V:?F32,20.0:?F32, V:?F32,-20:?F32, 20.0:?F32,V:?F32, -20.0:?F32,V:?F32>>
              || V <- lists:seq(-20,20) >>,
-    wings_vbo:draw(fun() -> gl:drawArrays(?GL_LINES, 0, 4*(20+20+1)) end, Bin, [vertex2d]),
+    wings_vbo:draw(fun(_) -> gl:drawArrays(?GL_LINES, 0, 4*(20+20+1)) end, Bin, [vertex2d]),
     gl:lineWidth(3.0),
     gl:color3f(0.0, 0.0, 1.0),
     gl:recti(0, 0, 1, 1),
@@ -1908,7 +1908,7 @@ draw_background(#st{bb=#uvstate{matname=MatName,st=St,bg_img=Image}}) ->
     end,
     Q = [{0.0, 0.0},{0.0, 0.0, -0.99999}, {1.0, 0.0},{1.0, 0.0, -0.99999},
          {1.0, 1.0},{1.0, 1.0, -0.99999}, {0.0, 1.0},{0.0, 1.0, -0.99999}],
-    wings_vbo:draw(fun() -> gl:drawArrays(?GL_QUADS, 0, 4) end, Q, [uv, vertex]),
+    wings_vbo:draw(fun(_) -> gl:drawArrays(?GL_QUADS, 0, 4) end, Q, [uv, vertex]),
 
     gl:disable(?GL_TEXTURE_2D),
 

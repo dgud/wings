@@ -612,7 +612,7 @@ gldraw_connect(Pos0, Pos1) ->
     glu:ortho2D(0.0, W, 0.0, H),
     gl:matrixMode(?GL_MODELVIEW),
     gl:loadIdentity(),
-    wings_vbo:draw(fun() ->
+    wings_vbo:draw(fun(_) ->
 			   gl:drawArrays(?GL_LINES, 0, 2)
 		   end, [Pos0,Pos1]),
     gl:popAttrib().

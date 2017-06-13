@@ -265,7 +265,7 @@ draw_image(Image,_St) ->
 	   plot_uv({Tx/2,Ty/2},{Sx*Xrange,Sy*Yrange},Center,Rot),
 	   plot_uv({Tx/2,Ty/2},{-Sx*Xrange,Sy*Yrange},Center,Rot)],
     List = zip(UVs, Vs),
-    wings_vbo:draw(fun() -> gl:drawArrays(?GL_QUADS, 0, 4) end, List, [uv, vertex2d]),
+    wings_vbo:draw(fun(_) -> gl:drawArrays(?GL_QUADS, 0, 4) end, List, [uv, vertex2d]),
     gl:popAttrib().
 
 zip([V|Vs], [UV|UVs]) ->

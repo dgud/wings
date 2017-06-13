@@ -77,7 +77,7 @@ dialog(Dialog, Ps) when is_list(Ps) ->
 
 dialog_1(Dialog, Ps, [M|Tail]) ->
     case catch M:dialog(Dialog, Ps) of
-	{'EXIT',{undef,_}} ->
+	{'EXIT',{undef,[{M,dialog, _, _}|_]}} ->
 	    dialog_1(Dialog, Ps, Tail);
 	{'EXIT',Reason} ->
 	    io:format("~w:dialog/2: crashed: ~P\n", [M,Reason,20]),

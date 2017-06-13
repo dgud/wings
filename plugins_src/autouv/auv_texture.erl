@@ -412,7 +412,7 @@ draw_texture_square() ->
                    1.0:?F32,0.0:?F32, 1.0:?F32,0.0:?F32,
                    1.0:?F32,1.0:?F32, 1.0:?F32,1.0:?F32,
                    0.0:?F32,1.0:?F32, 0.0:?F32,1.0:?F32>>,
-    wings_vbo:draw(fun() -> gl:drawArrays(?GL_QUADS, 0, 4) end, VertexUvQ, [vertex2d, uv]).
+    wings_vbo:draw(fun(_) -> gl:drawArrays(?GL_QUADS, 0, 4) end, VertexUvQ, [vertex2d, uv]).
 
 fill_bg_tex(#sh_conf{fbo_w=Prev}) ->
     gl:drawBuffer(?GL_COLOR_ATTACHMENT1_EXT),
@@ -951,7 +951,7 @@ shader_pass({value,#sh{id=Id, args=Args, tex_units=TexUnits}},
                                          end,
                                      foreach(R,Fas)
                              end,
-                        EnableVbo(fun() -> foreach(DC, Charts) end)
+                        EnableVbo(fun(_) -> foreach(DC, Charts) end, #{})
                 end
             catch throw:What ->
                     io:format("AUV: ERROR ~s ~n",[What]);
