@@ -716,9 +716,14 @@ setup_hook(#in{key=Key, wx=Ctrl, type=table, hook=UserHook}, Fields) ->
 setup_hook(#in{wx=Canvas, type=custom_gl, hook=CustomRedraw}, Fields) ->
     Env = wx:get_env(),
     Custom = fun() ->
-		     wxGLCanvas:setCurrent(Canvas),
-		     CustomRedraw(Canvas, Fields),
-		     wxGLCanvas:swapBuffers(Canvas)
+                     try
+                         wxGLCanvas:setCurrent(Canvas),
+                         CustomRedraw(Canvas, Fields),
+                         wxGLCanvas:swapBuffers(Canvas)
+                     catch _:Reason ->
+                             io:format("GL Custom callback crashed ~p~n~p~n",
+                                       [Reason, erlang:get_stacktrace()])
+                     end
 	     end,
     Redraw = fun(#wx{}, _) ->
 		     case os:type() of
