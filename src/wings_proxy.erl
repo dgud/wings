@@ -61,7 +61,7 @@ invalidate(#sp{}=Pd, 'vab') ->
     %% Used when there are changes having to do with UV coordinates and/or
     %% vertex colors (including toggling their visibility using
     %% View|Show Colors or View|Show Textures).
-    Pd#sp{faces=none,smooth=none,vab=none};
+    Pd#sp{faces=none,smooth=none,vab=none,proxy_edges=none};
 invalidate(#sp{}=Pd, 'dl') ->
     %% Invalidate displays lists.
     Pd#sp{faces=none,smooth=none};

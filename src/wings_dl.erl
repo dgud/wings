@@ -57,9 +57,12 @@
 init() ->
     Dl = case get_dl_data() of
 	     undefined -> [];
-	     #du{dl=Dl0,used=Used} ->
+	     #du{dl=Dl0,used=Used, extra=Extra} ->
 		 ?CHECK_ERROR(),
-		 gl:deleteBuffers(Used),
+                 All = [update_seen_1(DA, []) ||
+                           {_, {_, DA}} <- maps:to_list(Extra)],
+                 delete_buffers(ordsets:from_list(lists:append(All)), ?FUNCTION_NAME),
+		 delete_buffers(Used, ?FUNCTION_NAME),
 		 gl:getError(),			%Clear error.
 		 clear_old_dl(Dl0)
 	 end,
@@ -143,15 +146,19 @@ fold(Fun, Acc) ->
 %%  the term.
 
 call(none) -> none;
-call({call,Dl,_}) -> call(Dl);
+call({call,Dl,_Vbo}) ->
+    %%    erlang:display({call, element(2, _Vbo)}),
+    call(Dl);
 call({call_in_this_win,Win,Dl}) ->
     case wings_wm:this() of
 	Win -> call(Dl);
 	_ -> ok
     end;
-call([H|T]) -> call(H), call(T);
+call([H|T]) ->
+    call(H), call(T);
 call([]) -> ok;
-call(Draw) when is_function(Draw, 0) -> Draw().
+call(Draw) when is_function(Draw, 0) ->
+    Draw().
 
 %% mirror_matrix(Id)
 %%  Return the mirror matrix for the object having id Id.
@@ -182,7 +189,7 @@ draw(Category, Key, Update)
 	    call(Drawable);
 	#du{extra=#{Category:={_,OldDrawable}}=Extra0}=Du ->
 	    NotUsed = ordsets:from_list(update_seen_1(OldDrawable, [])),
-	    gl:deleteBuffers(NotUsed),
+	    delete_buffers(NotUsed, ?FUNCTION_NAME),
 	    case Key of
 		none ->
 		    Extra = maps:remove(Category, Extra0),
@@ -212,14 +219,14 @@ draw(Category, Key, Update)
 delete_dlists() ->
     case erase(wings_wm:get_dd()) of
 	#du{used=Used} ->
-	    gl:deleteBuffers(Used),
+	    delete_buffers(Used, ?FUNCTION_NAME),
 	    gl:getError();			%Clear error.
 	_ ->
 	    ok
     end.
 
 clear_old_dl([#dlo{src_we=We,proxy_data=Pd0,ns=Ns}|T]) ->
-    Pd = wings_proxy:invalidate(Pd0, dl),
+    Pd = wings_proxy:invalidate(Pd0, vab),
     [#dlo{src_we=We,mirror=none,proxy_data=Pd,ns=Ns}|clear_old_dl(T)];
 clear_old_dl([]) -> [].
 
@@ -284,7 +291,7 @@ update_last(Data, Seen, Acc) ->
 	[] ->
 	    ok;
 	[_|_]=NotUsed ->
-	    gl:deleteBuffers(NotUsed)
+	    delete_buffers(NotUsed, ?FUNCTION_NAME)
     end,
     Data.
 
@@ -315,3 +322,8 @@ update_seen_1(Dl, Seen) when is_tuple(Dl), element(1, Dl) =:= sp ->
     %% Proxy DL's
     update_seen_0(tuple_size(Dl), Dl, Seen);
 update_seen_1(_, Seen) -> Seen.
+
+
+delete_buffers(NotUsed, _From) ->
+    %% erlang:display({delete,{?MODULE, _From}, NotUsed}),
+    gl:deleteBuffers(NotUsed).
