@@ -99,6 +99,13 @@ crash_log(WinName, Reason, StackTrace) ->
     F = open_log_file(LogName),
     io:format("Internal Error~n",[]),
     [io:format(Fd, "Version: ~s\n", [?WINGS_VERSION]) || Fd <- [F, group_leader()]],
+    try
+	[io:format(Fd, "OS: ~ts\n", [wx_misc:getOsDescription()])  || Fd <- [F, group_leader()]],
+	[io:format(Fd, "GPU: ~ts | ~ts\n",
+		   [gl:getString(?GL_VENDOR), gl:getString(?GL_RENDERER)])  || Fd <- [F, group_leader()]]
+    catch
+	_ -> ignore
+    end,
     [io:format(Fd, "Window: ~p\n", [WinName])  || Fd <- [F, group_leader()]],
     [io:format(Fd, "Reason: ~p\n\n", [Reason]) || Fd <- [F, group_leader()]],
     report_stacktrace(F, StackTrace),
