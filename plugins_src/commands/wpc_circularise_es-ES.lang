@@ -1,0 +1,70 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_circularise,
+ [
+  {angle_help,
+   [
+    {1,"  [3] Usar ángulo obtuso"},
+    {2,"  [3] Usar ángulo agudo"}
+   ]},
+  {check_selection,
+   [
+    {1,"Nada seleccionado"},
+    {2,"El vértice debe ser del bucle de aristas original"},
+    {4,"Sólo se puede seleccionar una sola arista o vértice"}
+   ]},
+  {circ_norm_help,
+   [
+    {1,"  [2] Normal del Plano Inverso "},
+    {2,"  [2] Normal del Plano Original"}
+   ]},
+  {circ_sel_error,
+   [
+    {3,"La selección debe consistir en uno o más bucles de aristas abierto\no un solo bucle cerrado"}
+   ]},
+  {circ_sel_error_1,
+   [
+    {1,"Los bucles de aristas seleccionados no pueden compartir vértices"}
+   ]},
+  {circ_sel_error_3,
+   [
+    {2,"No se pueden procesar selecciones que incluyan aristas individuales"}
+   ]},
+  {circ_sel_error_4,
+   [
+    {2,"Los bucles de aristas seleccionados deben ser no-intersecantes, y deben estar o todos abiertos o todos cerrado."}
+   ]},
+  {circular_arc_menu,
+   [
+    {1,"Circular"},
+    {2,"Aplanar, igualar e inflar los bucles de aristas seleccionados haciéndolos circulares"},
+    {5,"Elije un plano común al que se aplanarán los bucles"},
+    {6,"Especificar usando selecciones secundarias"}
+   ]},
+  {flatten_help,
+   [
+    {1,"[1] No aplanar"},
+    {2,"[1] Aplanar"}
+   ]},
+  {norm_help,
+   [
+    {1,"  [2] Invertir la Normal del Arco"},
+    {2,"  [2] Normal del Arco Original"}
+   ]},
+  {radius_help,
+   [
+    {1,"  [3] Usar Diámetro Absoluto"},
+    {2,"  [3] Usar Diámetro Relativo"}
+   ]},
+  {secondary_sel_ask,
+   [
+    {1,"Selecciona una sola arista o vértice del bucle de aristas original marcando el rayo estable desde el punto central"},
+    {2,"Selecciona el punto central"},
+    {3,"Selecciona el plano"}
+   ]},
+  {selection_ask,
+   [
+    {1,"Selecciona el plano"},
+    {2,"Selecciona el punto central"},
+    {3,"Selecciona el punto desde el cual se calculará el centro en relación con el plano elegido y los extremos de la selección de la arista"}
+   ]}
+ ]}.

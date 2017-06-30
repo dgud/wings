@@ -1,0 +1,18 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_turnedge,
+ [
+  {command_help,
+   [
+    {turn_ccw,"Girar la arista hacia la izquierda"},
+    {turn_cw,"Girar la arista hacia la derecha"},
+    {turn_optimized,"Girar la arista (hacia la derecha) sólo si la nueva arista fuese más corta"}
+   ]},
+  {command_name,
+   [
+    {turn,"Girar"}
+   ]},
+  {validate_edges,
+   [
+    {1,"Las aristas seleccionadas no deben estar en la misma cara."}
+   ]}
+ ]}.

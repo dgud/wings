@@ -1,0 +1,64 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_tt,
+ [
+  {findtab,
+   [
+    {1,"No "},
+    {2," tabla"}
+   ]},
+  {font_file,
+   [
+    {1,"Fuentes"}
+   ]},
+  {gen,
+   [
+    {1,"El texto ha fallado: "},
+    {2,"error capturado: "},
+    {3,"El texto ha fallado: error interno"},
+    {4,"El texto ha fallado: error al localizar el archivo TTF para la fuente seleccionada"}
+   ]},
+  {getdirs,
+   [
+    {1,"Formato de dir erróneo"}
+   ]},
+  {gettabs,
+   [
+    {1,"Offsets/tamaños de tabla incorrectos"}
+   ]},
+  {help,
+   [
+    {1,"Sólo se pueden usar fuentes TrueType y deben instalarse en el directorio estándar del sistema operativo para las fuentes."}
+   ]},
+  {help_button,
+   [
+    {1,"Buscando Fuentes en Windows"}
+   ]},
+  {make_text,
+   [
+    {1,"Crear Texto"},
+    {2,"Texto"},
+    {3,"Fuente TrueType"},
+    {5,"Número de bisecciones de arista"}
+   ]},
+  {menu_entry,
+   [
+    {1,"Texto"},
+    {2,"Convertir texto en un objeto 3D"}
+   ]},
+  {parsecmaptab,
+   [
+    {1,"Ningún mapa de caracteres adecuado"}
+   ]},
+  {parsett,
+   [
+    {1,"Offset de tabla incorrecto"}
+   ]},
+  {trygen,
+   [
+    {1,"No se puede encontrar la sección TrueType en "}
+   ]},
+  {win_font_substitutes,
+   [
+    {1,"FontSubstitutes"}
+   ]}
+ ]}.

@@ -1,0 +1,377 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{auv_mapping,
+ [
+  {chart_normal,
+   [
+    {1,"No se puede calcular la normal para el gráfico."}
+   ]},
+  {find_axes,
+   [
+    {1,"Actualmente no puedo Esférico/Cilíndrico mapear este tipo de mapa/cortes,\nNo puedo determinar qué ejes deseas como X, Y y Z,\npor favor usa Desenvolver o uno de los mapas de proyección."}
+   ]},
+  {get_face_vspos,
+   [
+    {1,"Error: La cara no está triangulizada ~p con ~p vértices"}
+   ]},
+  {map_chart,
+   [
+    {1,"Una superficie cerrada no puede ser mapeada. (Divídela en dos o más mapas, o córtala a lo largo de algunas aristas.)"},
+    {2,"Un corte en una superficie cerrada debe consistir de al menos dos aristas."},
+    {3,"Se deben seleccionar al menos 2 vértices (por mapa)"},
+    {4,"Error:"},
+    {5,"Error Interno"}
+   ]},
+  {map_chart_1,
+   [
+    {1,"Problema numérico, probablemente una cara errónea con un área vacía."},
+    {2,"Error Interno:"},
+    {3,"Error"}
+   ]},
+  {stretch_iter,
+   [
+    {1,"iteración"}
+   ]},
+  {stretch_opt,
+   [
+    {1,"optimizando"},
+    {2,"iniciando"},
+    {3,"Después de Estirar suma (media) ~p"}
+   ]},
+  {stretch_setup,
+   [
+    {1,"Estirar suma (peor) ~p"},
+    {2,"Estirar suma (media) ~p"}
+   ]}
+ ]}.
+{auv_seg_ui,
+ [
+  {mappers,
+   [
+    {1,"Desenvolver"},
+    {2,"Proyección Normal"},
+    {3,"Proyección de Cámara"},
+    {4,"Mapa Esférico"},
+    {5,"Mapa Cilíndrico"}
+   ]},
+  {seg_event,
+   [
+    {1,"Segmentando"}
+   ]},
+  {seg_event_3,
+   [
+    {1,"Continuar"},
+    {2,"Segmentar por"},
+    {3,"Proyección"},
+    {4,"Detección de Características"}
+   ]},
+  {seg_init_message,
+   [
+    {1,"Seleccionar"},
+    {2,"Mostrar el menú"}
+   ]},
+  {seg_map_charts,
+   [
+    {1,"preparando mapeado"},
+    {2,"segmentando"},
+    {3,"normalizando"},
+    {4,"cortando"},
+    {5,"No hay caras mapeables."},
+    {6,"mapeando"}
+   ]},
+  {seg_map_charts_1,
+   [
+    {1,"mapa"}
+   ]},
+  {seg_mode_menu,
+   [
+    {1,"Marcar las Aristas para Cortar"},
+    {2,"Desmarcar las Aristas"},
+    {3,"Seleccionar las Aristas Marcadas"},
+    {4,"Ignorar Caras"},
+    {5,"Seleccionar"}
+   ]}
+ ]}.
+{auv_texture,
+ [
+  {background,
+   [
+    {1,"Fondo"}
+   ]},
+  {draw_options,
+   [
+    {1,"Tamaño"},
+    {2,"Render"},
+    {3,"Opciones de Dibujado"}
+   ]},
+  {options,
+   [
+    {1,"Imagen"},
+    {2,"Color"},
+    {3,"Dibujar todas las Aristas"},
+    {4,"Dibujar las Aristas de Borde"},
+    {5,"Color de Arista:"},
+    {6,"Ancho de Arista:"},
+    {8,"Usar los Colores de Vértice (en aristas de borde)"}
+   ]},
+  {render_passes,
+   [
+    {1,"Fondo"},
+    {2,"Opciones"},
+    {3,"Opciones"}
+   ]},
+  {renderers,
+   [
+    {1,"Nada"},
+    {2,"Dibujar Aristas"},
+    {3,"Dibujar Caras"}
+   ]}
+ ]}.
+{wpc_autouv,
+ [
+  {align_error,
+   [
+    {1,"Seleccione dos vértices o una arista"}
+   ]},
+  {auv_menu,
+   [
+    {1,"Mapeado UV"},
+    {2,"Generar mapeado UV o textura"},
+    {3,"Fuerza al modo de segmentación (eliminar segmentos antiguos)"},
+    {25,"Re-segmentar objeto(s)"}
+   ]},
+  {command_menu,
+   [
+    {2,"Mover"},
+    {3,"Mover los mapas seleccionados"},
+    {4,"Escalar"},
+    {5,"Escalar los mapas seleccionados"},
+    {6,"Rotar"},
+    {7,"Rotar los mapas seleccionados"},
+    {8,"Mover a"},
+    {9,"Centro"},
+    {10,"Mover al centro"},
+    {11,"Centrar en X"},
+    {12,"Mover al centro horizontal"},
+    {13,"Centrar en Y"},
+    {14,"Mover al centro vertical"},
+    {15,"Abajo"},
+    {16,"Mover al borde inferior"},
+    {17,"Arriba"},
+    {18,"Mover al borde superior"},
+    {19,"Izquierda"},
+    {20,"Mover al borde izquierdo"},
+    {21,"Derecha"},
+    {22,"Mover al borde derecho"},
+    {23,"Mover mapas a la posición"},
+    {24,"Voltear"},
+    {25,"Horizontal"},
+    {26,"Voltea la selección horizontalmente"},
+    {27,"Vertical"},
+    {28,"Voltea la selección verticalmente"},
+    {29,"Voltear los mapas seleccionados"},
+    {30,"Apretar"},
+    {31,"Mover las coordenadas UV hacia el punto medio"},
+    {32,"Ocultar"},
+    {33,"Ocultar los mapas seleccionados pero mantener las coordenadas UV"},
+    {34,"Eliminar"},
+    {35,"Eliminar las coordenadas UV de los mapas seleccionados"},
+    {36,"Re-Mapear UV"},
+    {37,"Optimizar Estiramiento"},
+    {38,"Optimizar el Estiramiento del mapa"},
+    {39,"Desenvolver"},
+    {40,"Desenvolver el mapa"},
+    {41,"Proyectar Normal"},
+    {42,"Proyectar las UVs desde la normal del mapa"},
+    {43,"Esférico"},
+    {44,"Mapeo Esférico"},
+    {45,"Calcular nuevas UVs con el algoritmo elegido"},
+    {47,"Mover"},
+    {48,"Mover las caras seleccionadas"},
+    {49,"Escalar"},
+    {50,"Escalar las caras seleccionadas"},
+    {51,"Rotar"},
+    {52,"Rotar las caras seleccionadas"},
+    {53,"Libre"},
+    {54,"Rotar la selección libremente"},
+    {55,"Mapa a X"},
+    {56,"Rotar el mapa para alinear la arista seleccionada al eje X"},
+    {57,"Mapa a Y"},
+    {58,"Rotar el mapa para alinear la arista seleccionada al eje Y"},
+    {60,"Mover"},
+    {61,"Mover las aristas seleccionadas"},
+    {62,"Escalar"},
+    {63,"Escalar las aristas seleccionadas"},
+    {64,"Rotar"},
+    {65,"Comandos de Rotación"},
+    {66,"Coser"},
+    {67,"Coser aristas/mapas"},
+    {68,"Cortar"},
+    {69,"Cortar las aristas seleccionadas"},
+    {70,"Libre"},
+    {71,"Rotar la selección libremente"},
+    {72,"Mapa a X"},
+    {73,"Rotar el mapa para alinear (imaginariamente) la arista que une los vértices seleccionados al eje X"},
+    {74,"Mapa a Y"},
+    {75,"Rotar el mapa para alinear (imaginariamente) la arista que une los vértices seleccionados al eje Y"},
+    {77,"Mover"},
+    {78,"Mover los vértices seleccionados"},
+    {79,"Escalar"},
+    {80,"Escalar los vértices seleccionados"},
+    {81,"Rotar"},
+    {82,"Comandos de Rotación"},
+    {83,"Aplanar"},
+    {84,"Aplanar horizontalmente"},
+    {85,"Aplanar verticalmente"},
+    {86,"Aplanar los vértices seleccionados"},
+    {87,"Apretar"},
+    {88,"Mover las coordenadas UV hacia el punto medio"},
+    {89,"Desenvolver"},
+    {90,"Desenvolver el mapa (sin mover los vértices seleccionados)"},
+    {91,"Mapa Esférico"},
+    {92,"Crea un mapeado esférico con los vértices seleccionados siendo el polo Norte/Sur"},
+    {411,"Normalizar Tamaños"},
+    {412,"Normalizar los Tamaños de los Mapas para que cada uno tenga su área 2d correspondiente"},
+    {521,"Proyectar-Desenvolver"},
+    {522,"Proyectar las caras seleccionadas desde la normal y Desenvolver el resto del mapa"},
+    {641,"Deslizar"},
+    {642,"Deslizar a lo largo de las aristas adyacentes"},
+    {643,"Distribuir"},
+    {644,"Distribuir horizontalmente"},
+    {645,"Distribuir verticalmente"},
+    {646,"Distribuir Vértices uniformemente"}
+   ]},
+  {create_window,
+   [
+    {1,"Segmentando"}
+   ]},
+  {drag_filter,
+   [
+    {1,"Soltar: Cambiar la imagen de textura"}
+   ]},
+  {handle_event_3,
+   [
+    {1,"Seleccionar"},
+    {2,"Mostrar menú"}
+   ]},
+  {menu,
+   [
+    {1,"Ventana AutoUV"},
+    {2,"Abre una ventana del Editor UV para cada objeto seleccionado"}
+   ]},
+  {move_directions,
+   [
+    {1,"Libre"},
+    {2,"Mover en ambas direcciones"},
+    {3,"Horizontal"},
+    {4,"Mover horizontalmente (dir X)"},
+    {5,"Vertical"},
+    {6,"Mover verticalmente (dir Y)"}
+   ]},
+  {option_menu,
+   [
+    {1,"Crear Textura"},
+    {2,"Hacer y Asignar una textura al modelo"}
+   ]},
+  {remap,
+   [
+    {1,"remapeando"},
+    {2,"mapa"}
+   ]},
+  {reunfold,
+   [
+    {1,"Selecciona dos vértices, el Polo Norte y Sur"},
+    {2,"Por lo menos dos vértices por mapa deben ser fijados"},
+    {3,"remapeando"},
+    {4,"mapa"},
+    {5,"No se pueden fijar todos los vértices"}
+   ]},
+  {scale_directions,
+   [
+    {1,"Uniforme"},
+    {2,"Escalar en ambas direcciones"},
+    {3,"Horizontal"},
+    {4,"Escalar horizontalmente (dir X)"},
+    {5,"Vertical"},
+    {6,"Escalar verticalmente (dir Y)"}
+   ]},
+  {start_uvmap,
+   [
+    {1,"Nada seleccionado"}
+   ]},
+  {stitch_charts,
+   [
+    {1,"Hmm, no puedo coser tantos mapas al mismo tiempo"}
+   ]},
+  {stretch_directions,
+   [
+    {1,"Max Uniforme"},
+    {2,"Maximizar horizontalmente o verticalmente"},
+    {3,"Max Horizontal"},
+    {4,"Maximizar horizontalmente (dir X)"},
+    {5,"Max Vertical"},
+    {6,"Maximizar verticalmente (dir Y)"}
+   ]}
+ ]}.
+{wpc_snap,
+ [
+  {find_a_id,
+   [
+    {1,"Se requiere un objeto visible."}
+   ]},
+  {menu,
+   [
+    {1,"Proyectar Imagen"},
+    {2,"Iniciar el Modo de Proyección para \"proyectar\" las coordenadas UV en una imagen"},
+    {3,"Salir de Proyectar Imagen"},
+    {4,"Salir del Modo de Proyección"},
+    {5,"Proyectar Imagen"},
+    {6,"Aplicar la imagen proyectada a las caras seleccionadas asignándoles coordenadas UV"}
+   ]},
+  {proportional_scale,
+   [
+    {1,"...al valor X Actual"},
+    {2,"Escalar el valor de Y de la imagen para que sea proporcional a su valor actual de X"},
+    {3,"...al valor Y Actual"},
+    {4,"Escalar el valor de X de la imagen para que sea proporcional a su valor actual de Y"},
+    {5,"Tamaño Real"},
+    {6,"Restablece la imagen a su tamaño real"}
+   ]},
+  {select_image,
+   [
+    {1,"No hay imágenes presentes, primero importa una imagen."},
+    {2,"Elige la Imagen para proyectar"}
+   ]},
+  {snap_menu,
+   [
+    {1,"Horizontal"},
+    {2,"Escalar la imagen de fondo horizontalmente"},
+    {3,"Vertical"},
+    {4,"Escalar la imagen de fondo verticalmente"},
+    {5,"Libre"},
+    {6,"Escalar la imagen de fondo libremente"},
+    {7,"Uniforme"},
+    {8,"Escalar la imagen de fondo uniformemente"},
+    {10,"Mover la imagen de fondo horizontalmente"},
+    {12,"Mover la imagen de fondo verticalmente"},
+    {14,"Mover la imagen de fondo libremente"},
+    {15,"Escalar la Imagen de Proyección"},
+    {16,"Escalar la imagen de fondo"},
+    {17,"Mover la Imagen de Proyección"},
+    {18,"Mover la imagen de fondo"},
+    {19,"Salir de Proyectar Imagen"},
+    {20,"Salir del Modo de Proyección"},
+    {21,"Ajustar la Imagen de Proyección"},
+    {22,"Ambas"},
+    {25,"Ajusta la imagen a las dimensiones de la ventana gráfica"},
+    {26,"Centrar X"},
+    {27,"Centrar la imagen de fondo horizontalmente"},
+    {28,"Centrar Y"},
+    {29,"Centrar la imagen de fondo verticalmente"},
+    {30,"Centrar"},
+    {31,"Centrar la imagen de fondo en la ventana de visualización"},
+    {32,"Proporcional"},
+    {33,"Hacer que la imagen se escale proporcionalmente"},
+    {34,"Rotar la Imagen de Proyección"},
+    {35,"Rotar la imagen de fondo"}
+   ]}
+ ]}.

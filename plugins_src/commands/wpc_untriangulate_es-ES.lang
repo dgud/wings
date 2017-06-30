@@ -1,0 +1,39 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_untriangulate,
+ [
+  {get_ask_list,
+   [
+    {1,"Fuerza del Algoritmo"},
+    {2,"Una Fuerza de Algoritmo más alta es más lenta, pero puede producir mejores resultados"},
+    {3,"Ángulo máximo de la Arista"},
+    {4,"Ángulo máximo de las Aristas que serán disueltas"},
+    {5,"Revisar Materiales"},
+    {6,"No disolver las aristas a lo largo de los límites del Material"},
+    {7,"Revisar Coordenadas UV"},
+    {8,"No disolver las aristas a lo largo de límites de coordenadas de textura disjuntas"},
+    {9,"Revisar Aristas Duras"},
+    {10,"No disolver las Aristas Duras"},
+    {11,"Revisar Concavidad"},
+    {12,"No producir polígonos cóncavos"}
+   ]},
+  {menu,
+   [
+    {1,"Destriangulizar"},
+    {2,"Convertir conjuntos de triángulos en cuadrados"},
+    {3,"Destriangulizar"}
+   ]},
+  {pref_edit,
+   [
+    {1,"Preferencias de Destriangulizar (v0.2)"}
+   ]},
+  {process_edges,
+   [
+    {1,"Destriangulizando"},
+    {2,"Selecciónando las Aristas de destino"},
+    {3,"Haciendo el Árbol de Selección"}
+   ]},
+  {untriangulate,
+   [
+    {1,"Destriangulizar (v0.2)"}
+   ]}
+ ]}.

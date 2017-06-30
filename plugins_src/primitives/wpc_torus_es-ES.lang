@@ -1,0 +1,27 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_torus,
+ [
+  {make_torus,
+   [
+    {1,"Opciones de Toroide"}
+   ]},
+  {torus_dialog,
+   [
+    {1,"Cortes Transversales"},
+    {2,"Cortes Longitudinales"},
+    {3,"Radio Mayor X"},
+    {4,"Radio Mayor Z"},
+    {5,"Radio Menor"},
+    {6,"Suave"},
+    {7,"Aterronado"},
+    {8,"Espiral"},
+    {9,"Tipo de Toroide"},
+    {10,"Nodos"},
+    {11,"Altura del Nodo"}
+   ]},
+  {torus_menu,
+   [
+    {1,"Toroide"},
+    {2,"Crear un Toroide"}
+   ]}
+ ]}.

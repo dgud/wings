@@ -1,0 +1,159 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_constraints,
+ [
+  {angle_error,
+   [
+    {1,"Deben seleccionarse exactamente dos elementos"}
+   ]},
+  {axis_to_string,
+   [
+    {2,"a lo largo del vector <~s  ~s  ~s>"},
+    {3,"a lo largo del eje ~s"}
+   ]},
+  {check_selection,
+   [
+    {1,"Nada seleccionado"},
+    {3,"La longitud actual es demasiado corta. Selecciona aristas que no sean perpendiculares al eje elegido."},
+    {4," Original ~s ~s\n Actual ~s ~s\n Porcentaje ~s%  Recíproco ~s%"},
+    {5,"El porcentaje resultante es demasiado pequeño"},
+    {6,"La diferencia es demasiado pequeña"},
+    {7," Original ~s ~s\n Actual ~s ~s\n Diferencia ~s"},
+    {8,"La distancia entre centros es demasiado corta"},
+    {9," Centro original ~s\n Centro actual ~s\n Distancia ~s ~s"},
+    {10,"El área actual es demasiado pequeña"},
+    {11," Ángulo Original ~s"},
+    {12,"\n Ángulo Actual ~s"},
+    {13,"\n Diferencia ~s"},
+    {14,"Selecciona exactamente dos aristas o dos caras para definir el ángulo"},
+    {15," Original"},
+    {16," Ángulo ~s"}
+   ]},
+  {element_error,
+   [
+    {1,"Se debe seleccionar un sólo elemento"}
+   ]},
+  {general_menu,
+   [
+    {1,"Establecer Restricción"}
+   ]},
+  {general_menu2,
+   [
+    {1,"Elije un eje diferente para medir la segunda selección"}
+   ]},
+  {length_check,
+   [
+    {1,"La selección debe tener un área mayor que cero"},
+    {2,"La selección debe tener una longitud mayor que cero"},
+    {3,"La longitud a lo largo del vector es demasiado corta"},
+    {4,"La longitud a lo largo del eje ~s es demasiado corta"}
+   ]},
+  {menu_heading,
+   [
+    {1,"Normal"},
+    {2,"Escoger"},
+    {3,"Directa"},
+    {4,"Ángulo"},
+    {5,"15"},
+    {6,"22.5"},
+    {7,"30"},
+    {8,"45"},
+    {9,"60"},
+    {10,"90"}
+   ]},
+  {menu_string1,
+   [
+    {1,"Total de las longitudes de las aristas seleccionadas y guarda el resultado como una restricción de distancia en las Preferencias"},
+    {2,"Calcula la longitud media de las aristas seleccionadas y guarda el resultado como una restricción de distancia en las Preferencias"},
+    {3,"Calcula el ángulo entre dos ~s guarda el resultado como una restricción de rotación en las Preferencias"},
+    {4,"Calcula la diferencia entre dos ángulos y guarda el resultado como una restricción de rotación en las Preferencias"},
+    {5,"Mide el ángulo entre una solo ~s y un eje predeterminado o vector definido. Guarda el resultado como una restricción de rotación en las Preferencias"},
+    {6,"Calcula la diferencia de escala entre el ~s de dos ~s selecciones y guarda el resultado como una restricción de escala en las Preferencias"},
+    {7,"Calcula la diferencia en ~s entre dos ~s selecciones y guarda el resultado como una restricción de distancia en las Preferencias"},
+    {8,"Calcula la distancia entre los puntos centrales de dos selecciones y guarda el resultado como una restricción de distancia en las Preferencias"}
+   ]},
+  {menu_string2,
+   [
+    {1,"Mide la ~s de ambas selecciones de acuerdo con sus normales ~s"},
+    {2,"Elige un eje a lo largo del cual medir ~s de ambas selecciones"},
+    {3,"Mide la ~s de ambas selecciones ~s sólo a lo largo del eje ~s"}
+   ]},
+  {menu_string3,
+   [
+    {1,"Mide las aristas seleccionadas a lo largo de sus normales"},
+    {2,"Elige un eje a lo largo del cual medir las aristas seleccionadas"},
+    {3,"Mide las aristas seleccionadas sólo a lo largo del eje ~s"},
+    {4,"Mide el ángulo seleccionado"},
+    {5,"Especifica el eje desde el que medir el ángulo seleccionado"},
+    {6,"Mide el ángulo seleccionado como se ve desde el eje ~s"},
+    {7,"Mide la distancia entre los centros de las dos selecciones"},
+    {8,"Elige un eje a lo largo del cual se mide la distancia entre los centros de las dos selecciones"},
+    {9,"Mide sólo la distancia a lo largo del eje ~s entre los centros de las dos selecciones"},
+    {11,"Elige un eje a lo largo del cual se mide ~s de la selección ~s ~s"},
+    {12,"Mide la ~s de la selección ~s ~s sólo a lo largo del eje ~s"},
+    {13,"Mide la ~s de la selección ~s ~s a lo largo de sus normales"},
+    {18,"Restar el ángulo actualmente seleccionado de ~s"},
+    {19,"Elige un segundo ángulo desde el cual restar el ángulo actualmente seleccionado"},
+    {20,"Elige un vector y calcula el ángulo con el ~s original"},
+    {21,"Calcular el ángulo desde el eje ~s al ~s original"},
+    {22," y luego calcula su longitud media"}
+   ]},
+  {menu_title,
+   [
+    {1,"Longitud Total"},
+    {2,"Longitud Media"},
+    {3,"Ángulo"},
+    {4,"Restar Ángulo"},
+    {5,"Arista a Eje"},
+    {6,"Cara a Eje"},
+    {7,"Porcentaje"},
+    {8,"Diferencia"},
+    {9,"Centros"}
+   ]},
+  {mod_string,
+   [
+    {1,". Restricción vinculada para albergar las tecla(s) modificadora(s)."}
+   ]},
+  {mode_strings,
+   [
+    {1,"vértices"},
+    {2,"aristas"},
+    {3,"caras"},
+    {4,"vértice"},
+    {5,"arista"},
+    {6,"cara"},
+    {8,"segundo"},
+    {9,"distancia"},
+    {10,"longitudes"},
+    {11,"áreas"}
+   ]},
+  {secondary_sel_ask,
+   [
+    {1,"Selecciona las aristas a dividir en la selección original"},
+    {2,"Selecciona las aristas para restar de la selección original"},
+    {3,"El centro de selección determinará la distancia desde el centro de la selección original"},
+    {4,"Selecciona las caras cuya área total se dividirá en el área de la primera selección"},
+    {5,"Selecciona un ángulo formado por dos aristas o dos caras desde el que sustraer el ángulo original"}
+   ]},
+  {selection_ask,
+   [
+    {1,"Elige el eje en el que se medirá cada arista a lo largo"},
+    {2," para la primera selección"},
+    {3," para la segunda selección"},
+    {4,"Elige el eje a lo largo del cual el ángulo se medirá ortográficamente"},
+    {5,"Elige un eje para medir la distancia entre los centros de las selecciones"},
+    {6,"Elige un eje a lo largo del cual las áreas de la primera selección se medirán ortográficamente"},
+    {7,"Elige un eje a lo largo del cual las áreas de la segunda selección se medirán ortográficamente"},
+    {8,"Elige el vector para calcular el ángulo a la selección original"}
+   ]},
+  {set_constraint,
+   [
+    {1,"La restricción ~ts ligada a ~ts se ha establecido a ~p"}
+   ]},
+  {tag,
+   [
+    {1,"Rotación"},
+    {2,"Factor de Escala"},
+    {3,"Distancia"},
+    {4,"Distancia Alternativa"}
+   ]}
+ ]}.

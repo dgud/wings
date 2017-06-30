@@ -1,0 +1,45 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_image,
+ [
+  {image_dialog,
+   [
+    {3,"Frente"},
+    {4,"Detrás"},
+    {5,"Derecha"},
+    {6,"Izquierda"},
+    {7,"Superior"},
+    {8,"Inferior"},
+    {9,"Vista"},
+    {10,"Alineado con..."},
+    {11,"Ubicación de acuerdo con el ayudante de colocación (imagen a la derecha)"},
+    {12,"Material "},
+    {13,"Material y Objeto "},
+    {14,"Ninguno "},
+    {15,"Usar el nombre de la imagen para..."},
+    {16,"Para permitir que el nombre de la Imagen se use para el material del Plano de Imagen y/u objeto"},
+    {17,"Nombre"},
+    {18,"Nombre del objeto Plano de Imagen"},
+    {19,"Desplazamiento"},
+    {20,"Desplazamiento desde el origen (sólo valores positivos)"},
+    {21,"Rotación"},
+    {22,"Rotación alrededor del origen (Positivo es antihorario)"},
+    {23,"Bloquear después de crear"},
+    {24,"Bloquear objeto Plano de Imagen"},
+    {25,"Cara trasera transparente"},
+    {26,"Asignar material transparente a la cara trasera"}
+   ]},
+  {image_menu,
+   [
+    {1,"Plano de Imagen..."},
+    {2,"Crear un plano que contenga una imagen"}
+   ]},
+  {load_img_plane,
+   [
+    {1,"La imagen no se puede cargar como textura.~nArchivo: \"~s\"~n Error GLU: ~p - ~s~n"}
+   ]},
+  {make_image,
+   [
+    {1,"Falló al cargar \"~s\": ~s\n"},
+    {2,"Plano de Imagen"}
+   ]}
+ ]}.

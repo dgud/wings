@@ -1,0 +1,22 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_shift,
+ [
+  {adv_submenu,
+   [
+    {1,"Desplazamiento Planar"},
+    {2,"Desplazamiento Esférico"},
+    {3,"Desplazamiento Cilíndrico"}
+   ]},
+  {menu_heading,
+   [
+    {1,"Desplazar"}
+   ]},
+  {submenu_items,
+   [
+    {1,"Escoge eje"},
+    {2,"Escoge punto"},
+    {3,"Escoge centro"},
+    {4,"Escoge eje"},
+    {5,"Escoge punto"}
+   ]}
+ ]}.

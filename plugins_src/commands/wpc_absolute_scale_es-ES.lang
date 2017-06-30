@@ -1,0 +1,28 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_absolute_scale,
+ [
+  {draw,
+   [
+    {1,"Comandos Absolutos"},
+    {2,"Escalar"},
+    {3,"Escalar al tamaño exacto en coordenadas absolutas."},
+    {4,"Escalar al tamaño del destino."},
+    {5,"Escalar escogiendo el centro."}
+   ]},
+  {draw_window1,
+   [
+    {1,"Opciones de Escalar Absoluto"},
+    {2,"Establecer nuevo tamaño"},
+    {3,"Establecer el dentro del escalado"},
+    {4,"Escalar todo el objeto"},
+    {5,"Escalar todos los objetos"},
+    {6,"Enlazar"},
+    {7,"Ajustar la selección al destino"}
+   ]},
+  {selection_ask,
+   [
+    {1,"Seleccionar el dentro del escalado"},
+    {2,"Seleccionar el tamaño del objetivo - punto base"},
+    {3,"Seleccionar el tamaño del objetivo - punto final"}
+   ]}
+ ]}.

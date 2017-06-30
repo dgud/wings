@@ -1,0 +1,55 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_inset,
+ [
+  {abs_rel_help,
+   [
+    {1,"Distancia"},
+    {2,"Porcentaje"}
+   ]},
+  {extrude_norm_help1,
+   [
+    {1,"Resalte: Normal a la Cara"},
+    {2,"Resalte: Normal a la Región"}
+   ]},
+  {lmb_help,
+   [
+    {1,"Insertar una cara dentro de cada cara seleccionada"}
+   ]},
+  {loop_error_1,
+   [
+    {1,"Insertar/Excluir una Región no funciona para objetos seleccionados completamente"}
+   ]},
+  {loop_error_2,
+   [
+    {1,"Excluir una Región requiere que las caras vecinas\ncompartan al menos una arista"}
+   ]},
+  {mmb_help,
+   [
+    {1,"Excluir una Región crea nuevas aristas alrededor de cada grupo de caras seleccionadas"}
+   ]},
+  {mode_help,
+   [
+    {1,"Escalar por el Vector más Corto por: "}
+   ]},
+  {rmb_help,
+   [
+    {1,"Insertar una Región crea nuevas aristas dentro de cada grupo de caras seleccionadas"}
+   ]},
+  {stop_edge_help,
+   [
+    {1,"Parar en las aristas"},
+    {2,"Continuar más allá de las aristas"}
+   ]},
+  {string,
+   [
+    {2,"A lo largo de las Aristas"},
+    {3,"Promedio"},
+    {4,"Objeto"},
+    {5,"Cara"},
+    {6,"Promedio a lo largo de las Aristas"}
+   ]},
+  {title,
+   [
+    {1,"Insertar"}
+   ]}
+ ]}.

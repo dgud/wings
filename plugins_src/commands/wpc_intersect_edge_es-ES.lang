@@ -1,0 +1,37 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_intersect_edge,
+ [
+  {intersect,
+   [
+    {1,"Las aristas seleccionadas no pueden compartir ningún vértice"}
+   ]},
+  {intersect_edges,
+   [
+    {1,"La línea y el plano son casi paralelos:\nno se puede encontrar la intersección."}
+   ]},
+  {intl_vec,
+   [
+    {1,"último eje"},
+    {2,"eje predeterminado"}
+   ]},
+  {menu_item,
+   [
+    {1,"Intersección"}
+   ]},
+  {standard_plane_fun,
+   [
+    {1,"Intersectar la arista con el plano definido por el"},
+    {2,"Intersectar la arista con el"},
+    {3,"plano"},
+    {4,"Elige punto en el plano"}
+   ]},
+  {submenu,
+   [
+    {1,"Intersectar planos por defecto"},
+    {2,"Elige plano y punto de ref en plano"},
+    {3,"Elige plano"},
+    {4,"Elige eje perpendicular al plano"},
+    {5,"Elige punto a atravesar por el plano"},
+    {6,"Elige eje perpendicular al plano (el plano pasará a través de la base del eje)"}
+   ]}
+ ]}.

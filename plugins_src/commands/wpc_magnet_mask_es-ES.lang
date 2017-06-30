@@ -1,0 +1,29 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_magnet_mask,
+ [
+  {mask_on_off,
+   [
+    {1,"Desactivar Máscara"},
+    {2,"Activar/Desactivar Máscara"},
+    {3,"Activar Máscara"}
+   ]},
+  {tools_menu_entry,
+   [
+    {1,"Máscara de Magnetismo"},
+    {2,"Bloquear"},
+    {3,"Desbloquear"},
+    {4,"Invertir"},
+    {6,"Bloquear la selección ante la influencia del Magnetismo"},
+    {7,"Desbloquear cualquier elemento bloqueado en la selección"},
+    {8,"Invertir los elementos bloqueados y desbloqueados"},
+    {9,"Deseleccionar"},
+    {10,"Restar elementos bloqueados de la selección actual"},
+    {11,"Seleccionar"},
+    {12,"Añadir elementos bloqueados a la selección actual"}
+   ]},
+  {view_menu_entry,
+   [
+    {1,"Mostrar Máscara de Magnetismo"},
+    {2,"Mostrar la máscara de magnetismo"}
+   ]}
+ ]}.

@@ -1,0 +1,26 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_views_win,
+ [
+  {camera_menu,
+   [
+    {1,"Administrar Vistas Guardadas"},
+    {2,"Muestra todas las vistas guardadas"}
+   ]},
+  {title,
+   [
+    {1,"Vistas Guardadas"}
+   ]},
+  {views_menu,
+   [
+    {1,"Guardar Nueva..."},
+    {2,"Crear una nueva vista guardada"},
+    {3,"Reemplazar "},
+    {4,"Reemplaza \""},
+    {5,"Renombrar..."},
+    {6,"Renombra \""},
+    {7,"Eliminar"},
+    {8,"Eliminar \""},
+    {9,"Eliminar Todo..."},
+    {10,"Eliminar todas las vistas guardadas"}
+   ]}
+ ]}.
