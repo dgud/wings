@@ -437,6 +437,7 @@ language_name("cs") -> [268,"esk",253]; %Czech
 language_name("en") -> "English";
 language_name("de") -> "Deutsch";
 language_name("es") -> ["Espa",241,"ol"];
+language_name("es-ES") -> ["Espa",241,"ol"];
 language_name("fi") -> "Suomi";
 language_name("fr") -> ["Fran",231,"ais"];
 language_name("hu") -> "Hungarian";
