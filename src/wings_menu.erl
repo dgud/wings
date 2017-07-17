@@ -40,6 +40,7 @@
 -define(VIEW_ORTHO, 91).
 -define(VIEW_AXES, 90).
 -define(VIEW_GROUND, 89).
+-define(CHECK_MARK, [10003,32]).  % 10003 = unicode for check mark character
 
 %% menu entries, the name, type and opts are used differently
 %% depending on if they are used in top_level menus or pop menus
@@ -412,11 +413,15 @@ popup_result(#menu{type=menu,name=Name,opts=Opts}, {Click,MagnetClick}, Names, O
     Cmd =:= ignore orelse wings_wm:send_after_redraw(Owner, {action,Cmd}),
     pop.
 
-calc_min_sizes([#menu{type=Type, desc=Desc, hk=HK}|Es], Win, C1, C2)
+calc_min_sizes([#menu{type=Type, desc=Desc, opts=Ps, hk=HK}|Es], Win, C1, C2)
   when Type=:=menu;Type=:=submenu ->
+    case proplists:get_value(crossmark, Ps) of
+	true -> {WChk, _, _, _} = wxWindow:getTextExtent(Win, ?CHECK_MARK);
+	_ -> WChk = 0
+    end,
     {WStr, _, _, _} = wxWindow:getTextExtent(Win, Desc),
     {WHK, _, _, _} = wxWindow:getTextExtent(Win, get_hotkey(1,HK)),
-    calc_min_sizes(Es, Win, max(WStr+5, C1), max(WHK+5, C2));
+    calc_min_sizes(Es, Win, max(WChk+WStr+5, C1), max(WHK+5, C2));
 calc_min_sizes([#menu{}|Es], Win, C1, C2) ->
     calc_min_sizes(Es, Win, C1, C2);
 calc_min_sizes([], _, C1, C2) ->
@@ -465,8 +470,10 @@ setup_popup([#menu{type=menu, wxid=Id, desc=Desc, help=Help, opts=Props, hk=HK}=
     Panel = wxPanel:new(Parent, [{winid, Id}]),
     setup_colors([Panel], Cs),
     Line  = wxBoxSizer:new(?wxHORIZONTAL),
+    Checked = proplists:get_value(crossmark, Props) =:= true,
     wxSizer:addSpacer(Line, 3),
-    wxSizer:add(Line, T1 = wxStaticText:new(Panel, Id, Desc),[{proportion, 0},{flag, ?wxALIGN_CENTER}]),
+    ChkM = if Checked -> ?CHECK_MARK; true -> "" end,
+    wxSizer:add(Line, T1 = wxStaticText:new(Panel, Id, ChkM++Desc),[{proportion, 0},{flag, ?wxALIGN_CENTER}]),
     wxSizer:setItemMinSize(Line, T1, Sz1, -1),
     wxSizer:addSpacer(Line, 10),
     wxSizer:addStretchSpacer(Line),
