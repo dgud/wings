@@ -1048,6 +1048,8 @@ views({jump,J}, #st{views={CurrentView,Views}}=St) ->
     views_jump(J, St, CurrentView, Views);
 views({move,J}, #st{views={CurrentView,Views}}=St) ->
     views_move(J, St, CurrentView, Views);
+views({rename,Idx}, #st{views={_,Views}}=St) ->
+    views(rename, St#st{views={Idx,Views}});
 views(rename, #st{views={CurrentView,Views}}=St) ->
     J = view_index(CurrentView, tuple_size(Views)),
     {View,Legend} = element(J, Views),

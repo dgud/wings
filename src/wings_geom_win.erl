@@ -353,9 +353,10 @@ move_to_folder(Folder, Ids0, St) ->
 rename_folder(OldName, OldName, St) ->
     St;
 rename_folder(OldName, NewName, St0) ->
-    St = create_folder(NewName, St0),
-    Ids = ids_in_folder(OldName, St),
-    move_to_folder(NewName, Ids, St).
+    St1 = create_folder(NewName, St0),
+    Ids = ids_in_folder(OldName, St1),
+    St = move_to_folder(NewName, Ids, St1),
+    delete_folder(OldName, St).
 
 empty_folder(Folder, St) ->
     Ids = ids_in_folder(Folder, St),
@@ -835,12 +836,14 @@ connect_events(TC, LC) ->
     wxWindow:connect(TC, command_tree_end_label_edit),
     wxWindow:connect(TC, command_tree_sel_changed),
     wxWindow:connect(TC, command_tree_item_menu, [{skip, true}]),
+    wxWindow:connect(TC, char, [callback]),
     %% wxWindow:connect(TC, left_up, [{skip,true}]),
 
     wxWindow:connect(LC, enter_window),
     wxWindow:connect(LC, command_list_begin_drag),
     wxWindow:connect(LC, command_list_end_label_edit),
     wxWindow:connect(LC, size, [{skip, true}]),
+    wxWindow:connect(LC, char, [callback]),
     %% See handle_sync_event below for the following callbacks
     wxWindow:connect(LC, left_up, [callback]),
     wxWindow:connect(LC, right_up, [callback]),
@@ -873,6 +876,33 @@ handle_sync_event(#wx{obj=TC, event=#wxTree{type=command_tree_begin_label_edit, 
 	    end
     end,
     ok;
+handle_sync_event(#wx{obj=Obj,event=#wxKey{type=char, keyCode=KC}}, EvObj,
+		  #state{tc=TC, lc=LC, name=Name, shown=Shown, tree=Tree}) ->
+    ItemParam =
+	case Obj of
+	    TC ->
+		Indx = wxTreeCtrl:getSelection(TC),
+		{_, Folder} = lists:keyfind(Indx, 1, Tree),
+		{"folder", Folder};
+	    LC ->
+		Opts = [{geometry, ?wxLIST_NEXT_ALL}, {state, ?wxLIST_STATE_SELECTED}],
+		Indx = wxListCtrl:getNextItem(LC, -1, Opts),
+		Id =
+		    if Indx >= 0 ->
+			{shape, Id0} = get_id(Indx, Shown),
+			Id0;
+		    true ->
+			Indx
+		    end,
+		{"object", Id}
+	end,
+    case {key_to_op(KC),validate_item_param(ItemParam)} of
+	{Act, {Elm, Param}} when Act =/= ignore ->
+	    Cmd = list_to_atom(Act++"_"++Elm),
+	    wings_wm:psend(Name, {action, {objects, {Cmd, Param}}});
+	_ -> wxEvent:skip(EvObj, [{skip, true}])
+    end,
+    ok;
 handle_sync_event(#wx{obj=LC, event=Event}=Ev, EvObj, #state{lc=LC, tw=TW, self=Pid}) ->
     try
 	{ok, Which, Pos} = event_info(Event, LC),
@@ -889,6 +919,14 @@ handle_sync_event(#wx{obj=LC, event=Event}=Ev, EvObj, #state{lc=LC, tw=TW, self=
 	    %% io:format("~p: ~p ~p~n",[?LINE, _Reason, erlang:get_stacktrace()]),
 	    ok
     end.
+
+key_to_op(?WXK_DELETE) -> "delete";
+key_to_op(?WXK_F2) -> "rename";
+key_to_op(_) -> ignore.
+
+validate_item_param({_, no_folder}) -> ignore;
+validate_item_param({_, -1}) -> ignore;
+validate_item_param({_, _}=ItemParam) -> ItemParam.
 
 event_info(#wxCommand{type=command_left_click}, LC) ->
     #wxMouseState{x=SX,y=SY} = wx_misc:getMouseState(),
@@ -951,22 +989,26 @@ folder_menu(Folder) ->
     [{?__(11,"Move to Folder"),menu_cmd(move_to_folder, Folder),
       ?__(12,"Move selected objects to this folder")},
      {?__(13,"Empty Folder"),menu_cmd(empty_folder, Folder)},
-     {?__(8,"Rename Folder"),menu_cmd(rename_folder, Folder)},
+     {?__(8,"Rename Folder"),menu_cmd(rename_folder, Folder),"",
+      [{hotkey,wings_hotkey:format_hotkey({?SDLK_F2,[]},pretty)}]},
      separator,
      {?__(7,"Create Folder"),menu_cmd(create_folder)},
      {?__(9,"Delete Folder"),menu_cmd(delete_folder, Folder),
-      ?__(10,"Delete folder and its contents")}
+      ?__(10,"Delete folder and its contents"),
+      [{hotkey,wings_hotkey:format_hotkey({?SDLK_DELETE,[]},pretty)}]}
     ].
 
 object_menu(Id) ->
     [{?STR(do_menu,1,"Duplicate"),menu_cmd(duplicate_object, Id),
       ?STR(do_menu,2,"Duplicate selected objects")},
      {?STR(do_menu,3,"Delete"),menu_cmd(delete_object, Id),
-      ?STR(do_menu,4,"Delete selected objects")},
+      ?STR(do_menu,4,"Delete selected objects"),
+      [{hotkey,wings_hotkey:format_hotkey({?SDLK_DELETE,[]},pretty)}]},
      {?STR(do_menu,5,"Rename"),rename_menu(Id),
       {?STR(do_menu,6,"Rename selected objects"),
        ?STR(do_menu,14,"Rename all selected objects"),
-       ?STR(do_menu,15,"Rename objects using Search and Replace")},[]},
+       ?STR(do_menu,15,"Rename objects using Search and Replace")},
+      [{hotkey,wings_hotkey:format_hotkey({?SDLK_F2,[]},pretty)}]},
      separator,
      {?__(7,"Create Folder"),menu_cmd(create_folder)},
      {?__(17,"Remove From Folder"),menu_cmd(remove_from_folder, Id)}].

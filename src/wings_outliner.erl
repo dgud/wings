@@ -722,16 +722,16 @@ do_menu(#{type:=mat, name:=Name}) ->
      {?__(7,"Duplicate"),menu_cmd(duplicate_material, Name),
       ?__(8,"Duplicate this material")},
      {?__(9,"Delete"),menu_cmd(delete_material, Name),
-      ?__(10,"Delete this material")},
+      ?__(10,"Delete this material"),[{hotkey,wings_hotkey:format_hotkey({?SDLK_DELETE,[]},pretty)}]},
      {?__(11,"Rename"),menu_cmd(rename_material, Name),
-      ?__(12,"Rename this material")}];
+      ?__(12,"Rename this material"),[{hotkey,wings_hotkey:format_hotkey({?SDLK_F2,[]},pretty)}]}, []];
 do_menu(#{type:=object, id:=Id}) ->
     [{?__(13,"Duplicate"),menu_cmd(duplicate_object, Id),
       ?__(14,"Duplicate this object")},
      {?__(15,"Delete"),menu_cmd(delete_object, Id),
-      ?__(16,"Delete this object")},
+      ?__(16,"Delete this object"),[{hotkey,wings_hotkey:format_hotkey({?SDLK_DELETE,[]},pretty)}]},
      {?__(17,"Rename"),menu_cmd(rename_object, Id),
-      ?__(18,"Rename this object")}];
+      ?__(18,"Rename this object"),[{hotkey,wings_hotkey:format_hotkey({?SDLK_F2,[]},pretty)}]}];
 do_menu(#{type:=light, id:=Id}) ->
     [{?__(19,"Edit Light..."),menu_cmd(edit_light, Id),
       ?__(20,"Edit light properties")},
@@ -739,9 +739,9 @@ do_menu(#{type:=light, id:=Id}) ->
      {?__(21,"Duplicate"),menu_cmd(duplicate_object, Id),
       ?__(22,"Duplicate this light")},
      {?__(23,"Delete"),menu_cmd(delete_object, Id),
-      ?__(24,"Delete this light")},
+      ?__(24,"Delete this light"),[{hotkey,wings_hotkey:format_hotkey({?SDLK_DELETE,[]},pretty)}]},
      {?__(25,"Rename"),menu_cmd(rename_object, Id),
-      ?__(26,"Rename this light")}];
+      ?__(26,"Rename this light"),[{hotkey,wings_hotkey:format_hotkey({?SDLK_F2,[]},pretty)}]}];
 do_menu(#{type:=image, id:=Id, image:=Im}=Map) ->
     image_menu(Id, Im, maps:get(mat, Map, unused)).
 
@@ -759,7 +759,8 @@ image_menu_1(Id, _, Mat) ->
 
 image_menu_2(Id, unused) ->
     [separator,
-     {?__(1,"Delete"),menu_cmd(delete_image, Id), ?__(2,"Delete selected image")}
+     {?__(1,"Delete"),menu_cmd(delete_image, Id),
+      ?__(2,"Delete selected image"),[{hotkey,wings_hotkey:format_hotkey({?SDLK_DELETE,[]},pretty)}]}
      |command_image_menu(Id)];
 image_menu_2(Id, {Mat, Type}) ->
     [separator,
@@ -778,7 +779,7 @@ command_image_menu(Id) ->
      {?__(3,"Duplicate"),menu_cmd(duplicate_image, Id),
       ?__(4,"Duplicate selected image")},
      {?__(7,"Rename"),menu_cmd(rename_image, Id),
-      ?__(8,"Rename selected image")}
+      ?__(8,"Rename selected image"),[{hotkey,wings_hotkey:format_hotkey({?SDLK_F2,[]},pretty)}]}
     ].
 
 handle_drop(#{type:=image, id:=Id}, #{type:=mat, name:=Name}) ->
