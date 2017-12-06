@@ -1,21 +1,21 @@
 %%
-%%  wpc_camuflage.auv --
+%%  wpc_camouflage.auv --
 %%
-%%     Config file for camuflage shaders
+%%     Config file for camouflage shaders
 %%
 %%  Copyright (c) 2015 Micheus
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
-%%     $Id: wpc_camuflage.auv,v 1.0 2015/12/02 21:40:0 micheus Exp $
+%%     $Id: wpc_camouflage.auv,v 1.0 2015/12/02 21:40:0 micheus Exp $
 %%
 
 %%  Everything behind a '%' is a comment
 
-{name, "Camuflage"}.                % The name in the shader selector
+{name, "Camouflage"}.               % The name in the shader selector
 {vertex_shader, "standard.vs"}.     % Vertex shader used
-{fragment_shader, "camuflage.fs"}.  % Fragment shader used
+{fragment_shader, "camouflage.fs"}. % Fragment shader used
 {auv, auv_bbpos3d}.                 % Use bounding box for positions
 %% Uses these uniforms:
 %% {uniform, Type, VarID in shader, DefaultValue, StringInGUI}
