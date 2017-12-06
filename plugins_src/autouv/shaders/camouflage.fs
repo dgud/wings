@@ -1,5 +1,5 @@
 //
-//  camuflage.fs --
+//  camouflage.fs --
 //
 //     Camuflage 3D shader based on three 2D I found at GLSL SandBox:
 //     - Checker: http://glslsandbox.com/e#23824.0
@@ -11,7 +11,7 @@
 //  See the file "license.terms" for information on usage and redistribution
 //  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-//     $Id: camuflage.fs,v 1.0 2015/12/02 21:40:0 micheus Exp $
+//     $Id: camouflage.fs,v 1.0 2015/12/02 21:40:0 micheus Exp $
 //
 
 uniform int type;
