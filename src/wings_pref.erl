@@ -918,10 +918,16 @@ save_pref_category([{windows,Bool}|Options], List, Defaults, St, Acc0) ->
     C1 = lists:keyfind(console_height,1,List),
     C2 = lists:keyfind(console_save_lines,1,List),
     C3 = lists:keyfind(console_width,1,List),
-    WinSize = lists:keyfind(window_size,1,List),
+    WinSize0 = lists:keyfind(window_size,1,List),
     WCWF = wings_frame:export_layout(),
-    Windows = [WinSize,C1,C2,C3],
-    Acc = if Bool -> [{saved_windows2,WCWF}|Acc0];
+    Windows = [WinSize0,C1,C2,C3],
+    Frame = ?GET(top_frame),
+    WinSize =
+	case wxTopLevelWindow:isMaximized(Frame) of
+	    false -> wxWindow:getSize(Frame);
+	    true -> WinSize0
+	end,
+    Acc = if Bool -> [{window_size,WinSize},{saved_windows2,WCWF}]++Acc0;
              true -> Acc0
           end,
     NewList = (List--Windows)--[{saved_windows2,WCWF}],
@@ -947,6 +953,10 @@ load_pref_category([{windows,true}|Options], List, St) ->
     %% Load preference windows and remove any old windows
     case lists:keyfind(saved_windows2, 1, List) of
         {saved_windows2, {_WC,_WF} = WCWF} ->
+	    case lists:keyfind(window_size, 1, List) of
+		false -> ignore;
+		{_,WinSize} -> wings_pref:set_value(window_size, WinSize)
+	    end,
             wings_frame:import_layout(WCWF, St);
         _ -> ok
     end,

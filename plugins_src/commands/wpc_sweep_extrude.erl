@@ -186,7 +186,7 @@ collect_data([Fs0|Rs], #we{mirror=M}=We, Axis0, SelC0, AllVs0, State,
                 true ->
                      LoopVs0
     end,
-    Axis = wings_util:make_vector(Axis0),
+    Axis = axis_conversion(Axis0),
 
     ExVs = ordsets:subtract(RegVs, LoopVs),
     AllVs = ordsets:union(RegVs ,AllVs0),
@@ -487,6 +487,20 @@ seed_face(_,Vpos,{{_,_,LoopNorm,_,_,Axis},{Norm,Center}},{Angle,_Dist,_Rotate,_S
     end.
 
 %%%%  Helper functions
+axis_conversion(Axis) ->
+    case Axis of
+        x -> wings_util:make_vector(Axis);
+        y -> wings_util:make_vector(Axis);
+        z ->  wings_util:make_vector(Axis);
+        free -> view_vector();
+        last_axis ->
+            {_, Dir} = wings_pref:get_value(last_axis),
+            Dir;
+        default_axis ->
+            {_, Dir} = wings_pref:get_value(default_axis),
+            Dir;
+        {_,_,_} ->  wings_util:make_vector(Axis)
+    end.
 
 intersect_vec_plane(PosA,PosB,PlaneNorm) ->
     %% Return point where Vector through PosA intersects with plane at PosB

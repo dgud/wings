@@ -90,6 +90,7 @@ init(Frame, Icons) ->
     %% wxToolBar:connect(TB, comand_tool_rclicked, [{skip, true}]),
     %% wxToolBar:connect(TB, comand_tool_enter, [{skip, true}]),
     wxToolBar:realize(TB),
+    wxToolBar:show(TB, [{show, wings_pref:get_value(show_toolbar)}]),
     State = #{me=>TB, mode=>vertex, sh=>true, restr=>none, bs=>Bs, active=>geom, wins=>#{}},
     update({selmode, geom, face, true}, State).
 

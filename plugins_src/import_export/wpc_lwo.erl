@@ -261,14 +261,18 @@ make_vmad_uv2(IndexedFaces, UVcoords) ->
 	#e3d_face{tx=FaceUVs,vs=FaceVerts} = E3dFace,
 	FaceIdxs = lists:duplicate(length(FaceVerts), FaceIdx),
 	RawFaceUvs = [lists:nth(Index+1, UVcoords) || Index <- FaceUVs],
-	FaceVertsB = [<<I:16>> || I <- FaceVerts],
-	FaceIdxsB  = [<<I:16>> || I <- FaceIdxs],
 	RawFaceUvsB = [<<U:32/float, V:32/float>> || {U,V} <- RawFaceUvs],
-	Line = zip_lists_3(FaceVertsB, FaceIdxsB, RawFaceUvsB),
-	list_to_binary(Line)
-	end,
+	case RawFaceUvs of
+	    [] -> [];
+	    _ ->
+		FaceVertsB = [<<I:16>> || I <- FaceVerts],
+		FaceIdxsB  = [<<I:16>> || I <- FaceIdxs],
+		Line = zip_lists_3(FaceVertsB, FaceIdxsB, RawFaceUvsB),
+		list_to_binary(Line)
+	end
+    end,
     Vmads = lists:map(FaceToBinary, IndexedFaces),
-    Vmads.
+    lists:flatten(Vmads).
 
 make_auth(Creator) ->
     Comment = make_nstring("----> Exported from: " ++ Creator ++ " <----"),

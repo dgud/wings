@@ -352,10 +352,12 @@ move_to_folder(Folder, Ids0, St) ->
 
 rename_folder(OldName, OldName, St) ->
     St;
-rename_folder(OldName, NewName, St0) ->
-    St = create_folder(NewName, St0),
-    Ids = ids_in_folder(OldName, St),
-    move_to_folder(NewName, Ids, St).
+rename_folder(OldName, NewName, St2) ->
+    St1 = create_folder(NewName, St2),
+    Ids = ids_in_folder(OldName, St1),
+    St0 = move_to_folder(NewName, Ids, St1),
+    St = delete_folder(OldName, St0),
+    wings_obj:recreate_folder_system(St).
 
 empty_folder(Folder, St) ->
     Ids = ids_in_folder(Folder, St),
@@ -694,12 +696,12 @@ update_folders({Curr, Fld0}, TC) ->
 			   T -> T
 		       end,
 		 {no_folder,{_,S0}} = lists:keyfind(?NO_FLD, 1, Fld0),
-		 Caption0 = io_lib:format("~ts (~p)",[?__(1, "Objects"), gb_trees:size(S0)]),
+		 Caption0 = format_fold_label(?__(1, "Objects"), gb_trees:size(S0)),
 		 Root = wxTreeCtrl:addRoot(TC, Caption0, []),
 
 		 Sorted = lists:sort([{wings_util:cap(F),F,gb_trees:size(S)} || {F,{_,S}} <- Fld]),
 		 Add = fun({_, Name, Qtd}) ->
-			    Caption = io_lib:format("~ts (~p)",[Name, Qtd]),
+			    Caption = format_fold_label(Name, Qtd),
 			    {wxTreeCtrl:appendItem(TC, Root, Caption, []), Name}
 		       end,
 		 Leaves = lists:map(Add, Sorted),
@@ -716,6 +718,12 @@ update_folders({Curr, Fld0}, TC) ->
 		 All
 	 end,
     wx:batch(Do).
+
+format_fold_label(Label, Qtd) ->
+    case Qtd of
+	0 -> Label;
+	ObjNum -> io_lib:format("~ts (~p)",[Label, ObjNum])
+    end.
 
 update_shapes(_Sorted, Prev, Prev, _LC) ->
     Prev;

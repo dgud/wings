@@ -14,7 +14,7 @@
 -module(wings_file).
 -export([init/0,init_autosave/0,menu/0,command/2]).
 -export([import_filename/2,export_filename/2,export_filename/3]).
--export([unsaved_filename/0,autosave_filename/1]).
+-export([unsaved_filename/0,del_unsaved_file/0,autosave_filename/1]).
 -export([file_filters/1]).
 
 -include("wings.hrl").
@@ -303,6 +303,7 @@ confirmed_new(#st{file=File}=St) ->
 new(#st{saved=true}=St0) ->
     St1 = clean_st(St0#st{file=undefined}),
     %% clean_st/1 will remove all saved view, but will not reset the view. For a new project we should reset it.
+    wings_frame:reinit_layout(),
     wings_view:reset(),
     St2 = clean_images(wings_undo:init(St1)),
     St = wings_obj:create_folder_system(St2),
@@ -348,6 +349,7 @@ confirmed_open(Name, St0) ->
 		  %%   Name: Original name of file to be opened.
 		  %%   File: Either original file or the autosave file
 		  St1 = clean_st(St0#st{file=undefined}),
+		  wings_frame:reinit_layout(),
 		  St2 = wings_obj:create_folder_system(wings_undo:init(St1)),
 		  case ?SLOW(wings_ff_wings:import(File, St2)) of
 		      #st{}=St3 ->
@@ -627,11 +629,11 @@ autosave(#st{file=Name}=St) ->
 autosave_filename(File) ->
     Base = filename:basename(File),
     Dir = filename:dirname(File),
-    filename:join(Dir, "#" ++ Base ++ "#").
+    Dir ++ "/#" ++ Base ++ "#".
 
 unsaved_filename() ->
     Dir = wings_pref:get_dir(),
-    filename:join(Dir, ?UNSAVED_NAME).
+    Dir ++ "/" ++ ?UNSAVED_NAME.
 
 backup_filename(File) ->
     File ++ "~".
