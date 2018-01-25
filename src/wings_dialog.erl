@@ -772,7 +772,7 @@ label_col({Label,Def}) -> {Label, {text,Def}};
 label_col({Label,Def,Flags}) -> {Label, {text,Def, Flags}}.
 
 build_dialog(false, _Title, Qs) ->
-    {DialogData,_} = build(false, Qs, undefined, undefined),
+    {_,DialogData,_} = build(false, Qs, undefined, undefined),
     {undefined, DialogData};
 build_dialog(AskType, Title, Qs) ->
     wx:batch(fun() ->
@@ -789,7 +789,7 @@ build_dialog(AskType, Title, Qs) ->
 		     Top    = wxBoxSizer:new(?wxVERTICAL),
 		     Sizer  = wxBoxSizer:new(?wxVERTICAL),
 		     try build(AskType, Qs, Panel, Sizer) of
-			 {DialogData, Fs} ->
+			 {Location, DialogData, Fs} ->
 			     set_keyboard_focus(Dialog, Fs),
 			     wxWindow:setSizer(Panel, Sizer),
 			     wxSizer:add(Top, Panel, [{proportion, 1},
@@ -797,6 +797,22 @@ build_dialog(AskType, Title, Qs) ->
 						      {border, 5}]),
 			     setup_buttons(Dialog, Top, DialogData),
 			     wxWindow:setSizerAndFit(Dialog, Top),
+			     if Location=:=mouse;Location=:=center ->
+				 Ws = wxSystemSettings:getMetric(?wxSYS_SCREEN_X),
+				 Hs = wxSystemSettings:getMetric(?wxSYS_SCREEN_Y),
+				 {Wd, Hd} = wxWindow:getSize(Dialog),
+				 {X, Y} =
+				     case Location of
+					 mouse ->
+					     {Xm,Ym} = wx_misc:getMousePosition(),
+					     {min(Xm, Ws-Wd-5)+5, min(Ym, Hs-Hd-5)+5};
+					 center ->
+					     {trunc((Ws-Wd)/2), trunc((Hs-Hd)/2)}
+				     end,
+				 wxWindow:setSize(Dialog, X, Y, Wd, Hd);
+			     true ->
+				 ignore
+			     end,
 			     setup_hooks(DialogData),
 			     {Dialog, DialogData}
 		     catch Class:Reason ->
@@ -829,17 +845,18 @@ set_keyboard_focus(Dialog, Fields) ->
     end.
 
 build(Ask, Qs, Parent, Sizer) ->
-    Fields = build(Ask, Qs, Parent, Sizer, []),
+    {Location,Fields} = build(Ask, Qs, Parent, Sizer, []),
     {Fs, _} = lists:mapfoldl(fun(In=#in{key=undefined},N) -> {In#in{key=N}, N+1};
 				(In=#in{}, N) -> {In, N+1}
 			     end, 1, lists:reverse(Fields)),
     Table = ets:new(?MODULE, [{keypos, #in.key}, public]),
     true = ets:insert(Table, Fs),
-    {{Table, [Key || #in{key=Key} <- Fs]}, Fs}.
+    {Location, {Table, [Key || #in{key=Key} <- Fs]}, Fs}.
 
 
 build(Ask, {vframe_dialog, Qs, Flags}, Parent, Sizer, []) ->
     Def = proplists:get_value(value, Flags, ?wxID_OK),
+    Location = proplists:get_value(position, Flags, {-1,-1}),
     Buttons = proplists:get_value(buttons, Flags, [ok, cancel]),
     HelpFun = proplists:get_value(help, Flags, undefined),
     ButtMask = lists:foldl(fun(ok, Butts)     -> ?wxOK bor Butts;
@@ -878,9 +895,9 @@ build(Ask, {vframe_dialog, Qs, Flags}, Parent, Sizer, []) ->
 		     Ok
 	     end,
     In = build(Ask, {vframe, Qs, [{proportion,1}]}, Parent, Sizer, []),
-    [#in{key=proplists:get_value(key,Flags), def=Def,
-	 output= undefined =/= proplists:get_value(key,Flags),
-	 type=dialog_buttons, wx=Create}|In];
+    {Location, [#in{key=proplists:get_value(key,Flags), def=Def,
+		     output= undefined =/= proplists:get_value(key,Flags),
+		     type=dialog_buttons, wx=Create}|In]};
 
 build(Ask, {oframe, Tabs, Def, Flags}, Parent, WinSizer, In0)
   when Ask =/= false ->
