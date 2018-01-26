@@ -196,12 +196,9 @@ init([Frame, _Ps, SS]) ->
     wxWindow:connect(LC, command_list_item_selected, [{callback, IgnoreForPopup}]),
     wxWindow:connect(LC, command_list_item_activated),
     wxWindow:connect(LC, right_up),
-    case os:type() of
-	{win32,nt} ->
-	    %% Mouse right_up does not arrive on items in windows
-            wxWindow:connect(LC, command_list_item_right_click);
-	_ ->
-	    ok
+    case os:type() of %% Mouse right_up does not arrive on items in windows
+	{win32,nt} -> wxWindow:connect(LC, command_list_item_right_click);
+	_ -> ok
     end,
     wxWindow:connect(LC, command_list_end_label_edit),
     wxWindow:connect(LC, size, [{skip, true}]),

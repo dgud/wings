@@ -168,14 +168,10 @@ init([Frame, _Ps, VS]) ->
     wxWindow:connect(LC, command_list_item_selected, [{callback, IgnoreForPopup}]),
     wxWindow:connect(LC, command_list_item_activated),
     wxWindow:connect(LC, enter_window, [{userData, {win, Panel}}]),
-    case os:type() of
-	{win32,nt} ->
-	    %% list_item_right_click does not work outside of items
-	    %% on windows use this instead
-	    wxWindow:connect(LC, command_right_click);
-	_ ->
-	    wxWindow:connect(LC, command_list_item_right_click),
-	    ok
+    wxWindow:connect(LC, right_up),
+    case os:type() of %% Mouse right_up does not arrive on items in windows
+	{win32,nt} -> wxWindow:connect(LC, command_list_item_right_click);
+	_ -> ok
     end,
     wxWindow:connect(LC, command_list_end_label_edit),
     wxWindow:connect(LC, command_list_begin_drag),
@@ -234,7 +230,7 @@ handle_event(#wx{event=#wxList{type=command_list_item_selected, itemIndex=Indx}}
     Indx >= 0 andalso wings_wm:psend(geom_focused(), {action, {view, {views, {jump,Indx+1}}}}),
     {noreply, State#state{views={Indx+1, Vs}}};
 
-handle_event(#wx{event=#wxCommand{type=command_right_click}}, State) ->
+handle_event(#wx{event=#wxMouse{type=right_up}}, State) ->
     invoke_menu(State),
     {noreply, State};
 handle_event(#wx{event=#wxList{type=command_list_item_right_click}}, State) ->
