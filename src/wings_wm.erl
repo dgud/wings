@@ -967,10 +967,12 @@ handle_event(State, Event, Stk) ->
 	exit:{crash_logged, _}=Reason ->
 	    exit(Reason);
 	exit:Exit ->
+            erase(wm_focus_grab),
 	    [#se{h=CrashHandler}] = pop_all_but_one(Stk),
 	    handle_response(CrashHandler({crash,Exit}), Event,
 			    default_stack(this()));
 	error:Reason ->
+            erase(wm_focus_grab),
 	    [#se{h=CrashHandler}] = pop_all_but_one(Stk),
 	    handle_response(CrashHandler({crash,Reason}), Event,
 			    default_stack(this()))
