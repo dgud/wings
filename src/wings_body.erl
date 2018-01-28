@@ -166,7 +166,7 @@ command(invert, St) ->
 command(duplicate, St) ->
     {save_state,duplicate(none, St)};
 command({duplicate,Dir}, St) ->
-    save_state,duplicate(Dir, St);
+    {save_state,duplicate(Dir, St)};
 command({duplicate_object,Ids}, St) ->
     {save_state,duplicate_object(Ids, St)};
 command(delete, St) ->
@@ -476,18 +476,12 @@ duplicate(Dir, St0) ->
 %%% Duplicate called from the Outliner or Object window.
 %%%
 
-duplicate_object(Objects0, St) ->
-    Objects = gb_sets:from_list(Objects0),
-    CF = fun(Items, #we{id=Id}=We) ->
-                 New = case gb_sets:is_element(Id, Objects) of
-                           true ->
-                               [{We,gb_sets:empty(),copy}];
-                           false ->
-                               []
-                       end,
-                 {We,Items,New}
+duplicate_object(Objects0, St0) ->
+    St = wings_sel:set(body, [{Id, gb_sets:singleton(0)} || Id <- Objects0], St0),
+    CF = fun(Items, #we{id=_Id}=We) ->
+                 {We,Items,[{We,gb_sets:empty(),copy}]}
          end,
-    wings_sel:clone(CF, St).
+    wings_sel:clone(CF, body, St).
 
 %%%
 %%% The Delete command.
