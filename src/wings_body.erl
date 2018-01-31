@@ -166,7 +166,7 @@ command(invert, St) ->
 command(duplicate, St) ->
     {save_state,duplicate(none, St)};
 command({duplicate,Dir}, St) ->
-    {save_state,duplicate(Dir, St)};
+    duplicate(Dir, St);
 command({duplicate_object,Ids}, St) ->
     {save_state,duplicate_object(Ids, St)};
 command(delete, St) ->
