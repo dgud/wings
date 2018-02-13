@@ -264,7 +264,6 @@ redraw(Info, St) ->
 	fun() ->
 		wings_wm:clear_background(),
 		wings_render:render(St),
-		call_post_hook(St),
 		TweakInfo = wings_tweak:statusbar(),
 		case Info =/= [] andalso wings_wm:get_prop(show_info_text) of
 		    true when TweakInfo =:= [] ->
@@ -279,12 +278,6 @@ redraw(Info, St) ->
 		wings_tweak:tweak_keys_info()
 	end,
     wings_io:batch(Render).
-
-call_post_hook(St) ->
-    case wings_wm:lookup_prop(postdraw_hook) of
-    none -> ok;
-    {value,{_Id,Fun}} -> Fun(St)
-    end.
 
 register_postdraw_hook(Window, Id, Fun) ->
     case wings_wm:lookup_prop(Window, postdraw_hook) of
