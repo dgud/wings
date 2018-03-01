@@ -14,7 +14,7 @@
 
 -module(wings_develop).
 -export([init/0,menu/0,command/2,
-	 time_command/2,gl_error_check/1]).
+	 time_command/2,gl_error_check/1, state_check/2]).
 
 -include("wings.hrl").
 
@@ -32,8 +32,8 @@ menu() ->
      {"Undo Stat",undo_stat,
       "Show statistics for how much memory each Undo state consumes",
       wings_menu_util:crossmark(develop_undo_stat)},
-     {"OpenGL Errors",opengl_errors,
-      "Print information about OpenGL errors to the console",
+     {"Check for Errors", opengl_errors,
+      "Print information about OpenGL and other errors to the console",
       wings_menu_util:crossmark(develop_gl_errors)},
      {"OpenGL Recompile Shaders", opengl_shaders,
       "Recompile the light shaders"},
@@ -101,6 +101,19 @@ gl_error_check(Cmd) ->
 	false -> ok;
 	true -> gl_error_check_1(Cmd)
     end.
+
+state_check(#st{sel=Sel0}, Str) ->
+    case wings_pref:get_value(develop_gl_errors) of
+        false -> ok;
+        true ->
+            Sel = lists:sort(Sel0),
+            if Sel =/= Sel0 ->
+                    io:format("Selection is not sorted: ~s", [Str]);
+               true ->
+                    ok
+            end
+    end,
+    gl_error_check(Str).
 
 %%%
 %%% Internal functions.

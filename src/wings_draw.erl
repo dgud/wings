@@ -48,7 +48,7 @@ refresh_dlists(St) ->
     invalidate_dlists(St),
     build_dlists(St),
     update_sel_dlist(),
-    wings_develop:gl_error_check("Refresh of display lists").
+    wings_develop:state_check(St, "Refresh of display lists").
 
 invalidate_dlists(#st{selmode=Mode,sel=Sel}=St) ->
     prepare_dlists(St),
