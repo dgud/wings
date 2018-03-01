@@ -655,9 +655,16 @@ redraw(St) ->
     Render =
 	fun() ->
 		wings_wm:clear_background(),
-		wings_render:render(St)
+		wings_render:render(St),
+	    	call_post_hook(St)
 	end,
     wings_io:batch(Render).
+
+call_post_hook(St) ->
+    case wings_wm:lookup_prop(postdraw_hook) of
+	none -> ok;
+	{value,{_Id,Fun}} -> Fun(St)
+    end.
 
 %%%
 %%% Magnet Radius Adjustments

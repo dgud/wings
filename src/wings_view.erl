@@ -710,6 +710,7 @@ auto_rotate_redraw(#tim{st=Redraw}) when is_function(Redraw) ->
 auto_rotate_redraw(#tim{st=#st{}=St}=Tim) ->
     wings_wm:clear_background(),
     wings_render:render(St),
+    call_post_hook(St),
     wings_io:info(timer_stats(Tim)).
 
 auto_rotate_help() ->
@@ -746,6 +747,12 @@ timer_stats(#tim{start=T0, frames=Fs}) ->
 
 get_event(Tim) ->
     {replace,fun(Ev) -> auto_rotate_event(Ev, Tim) end}.
+
+call_post_hook(St) ->
+    case wings_wm:lookup_prop(postdraw_hook) of
+	none -> ok;
+	{value,{_Id,Fun}} -> Fun(St)
+    end.
 
 %%%
 %%% Other stuff.
