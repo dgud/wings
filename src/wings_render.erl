@@ -53,8 +53,8 @@ render(#st{selmode=Mode}=St) ->
     axis_letters(PM,MM,Yon),
     show_camera_image_plane(),
     gl:popAttrib(),
-    wings_develop:gl_error_check("Rendering scene"),
-    call_post_hook(St).
+    call_post_hook(St),
+    wings_develop:gl_error_check("Rendering scene").
 
 call_post_hook(St) ->
     case wings_wm:lookup_prop(postdraw_hook) of
