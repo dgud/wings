@@ -429,15 +429,17 @@ forward_event(Ev, Window, _) ->
 get_shape_state(St) ->
     get_shape_state(wings_wm:this(),St).
 get_shape_state({_,Client}, #st{pst=Pst}=St) ->
-    Folds = gb_trees:get(?FOLDERS, Pst),
-    {Current,_} = Folds,
+    Folds0 = gb_trees:get(?FOLDERS, Pst),
+    {Current, Folds1} = Folds0,
+    Folds = [{Folder, State, length(ids_in_folder(Folder, St))}
+             || {Folder, {State, _}} <- Folds1],
     Ids = wings_sel:selected_ids(St),
     F = fun(Obj, A) -> [Obj|A] end,
     Shapes = wings_obj:fold(F, [], St),
     #{sel => Ids,
       shs => Shapes,
       wire => wings_wm:get_prop(Client, wireframed_objects),
-      folders => Folds,
+      folders => {Current, Folds},
       current => Current
      }.
 
@@ -689,16 +691,11 @@ unsplit_window(Splitter, TC) ->
 update_folders({Curr, Fld0}, TC) ->
     Do = fun() ->
 		 wxTreeCtrl:deleteAllItems(TC),
-		 %% Img = {image, image_idx(folder)},
-		 Fld = case Fld0 of
-			   [{?NO_FLD,_}|T] -> T;
-			   T -> T
-		       end,
-		 {no_folder,{_,S0}} = lists:keyfind(?NO_FLD, 1, Fld0),
-		 Caption0 = io_lib:format("~ts (~p)",[?__(1, "Objects"), gb_trees:size(S0)]),
+		 [{no_folder,_,S0}|Fld] = Fld0,
+		 Caption0 = io_lib:format("~ts (~p)",[?__(1, "Objects"), S0]),
 		 Root = wxTreeCtrl:addRoot(TC, Caption0, []),
 
-		 Sorted = lists:sort([{wings_util:cap(F),F,gb_trees:size(S)} || {F,{_,S}} <- Fld]),
+		 Sorted = lists:sort([{wings_util:cap(F),F,S} || {F,_,S} <- Fld]),
 		 Add = fun({_, Name, Qtd}) ->
 			    Caption = io_lib:format("~ts (~p)",[Name, Qtd]),
 			    {wxTreeCtrl:appendItem(TC, Root, Caption, []), Name}
