@@ -34,7 +34,8 @@ endif
 
 LIBDIR = ../../plugins/accel
 
-ERL_DIR := $(shell echo 'io:format("~s~n",[code:root_dir()]),init:stop().' | erl | sed -n '/^1>/s/^1> //p')
+FRD = 'io:fwrite("~n=:~s~n",[code:root_dir()]),init:stop().'
+ERL_DIR := $(shell echo $(FRD) | erl | sed -n '/^=:/s/^=://p')
 ERL_INC = "$(ERL_DIR)/usr/include"
 BEAM = $(LIBDIR)/wpc_pick.beam
 
