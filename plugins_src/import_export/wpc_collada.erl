@@ -129,7 +129,8 @@ export_1(Filename, Contents0, Attr) ->
     Collada = #xmlElement{name='COLLADA',content=ColladaNodes,
 			  attributes=ColladaAtts},
     FileContents = xmerl:export_simple(["\n",Collada],xmerl_xml),
-    ok = file:write_file(Filename, [FileContents]).
+    io:format("~p~n",[FileContents]),
+    ok = file:write_file(Filename, unicode:characters_to_binary(FileContents)).
 
 make_library_materials(#c_exp{matl_defs=MatlDefs}) ->
     Matls = map(fun (Matl) ->

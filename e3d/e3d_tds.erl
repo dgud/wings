@@ -530,7 +530,7 @@ make_objects([#e3d_object{name=Name,obj=Mesh0}|Objs], MatMap) ->
     Mesh1 = assign_smooth_groups(Mesh0),
     Mesh = e3d_mesh:triangulate(Mesh1),
     MeshChunk = make_mesh(Mesh, MatMap),
-    Chunk = make_chunk(16#4000, [Name,0,MeshChunk]),
+    Chunk = make_chunk(16#4000, [utf8(Name),0,MeshChunk]),
     [Chunk|make_objects(Objs, MatMap)];
 make_objects([], _) -> [].
 
@@ -624,7 +624,7 @@ make_face_mat(Fs, MatMap) ->
     map(fun({Name0,Faces}) ->
 		Name1 = atom_to_list(Name0),
 		Name = gb_trees:get(Name1, MatMap),
-		Chunk = [Name,0,
+		Chunk = [utf8(Name),0,
 			 <<(length(Faces)):16/little>>,
 			 [<<Face:16/little>> || Face <- Faces]],
 		make_chunk(16#4130, Chunk)
@@ -647,7 +647,7 @@ make_material(Filename, Mat) ->
     [make_material_1(Base, M) || M <- Mat].
 
 make_material_1(Base, {Name,Mat}) ->
-    NameChunk = make_chunk(16#A000, [atom_to_list(Name),0]),
+    NameChunk = make_chunk(16#A000, [utf8(atom_to_list(Name)),0]),
     OpenGL = proplists:get_value(opengl, Mat),
     Maps = proplists:get_value(maps, Mat),
     MatChunks = make_material_2(OpenGL, []),
@@ -685,7 +685,7 @@ export_map(ChunkId, #e3d_image{filename=none,name=Name}=Image, Root) ->
     ok = e3d_image:save(Image, MapFile),
     export_map(ChunkId, Image#e3d_image{filename=MapFile}, Root);
 export_map(ChunkId, #e3d_image{filename=MapFile}, _Root) ->
-    FnameChunk = make_chunk(16#A300, [filename:basename(MapFile),0]),
+    FnameChunk = make_chunk(16#A300, [utf8(filename:basename(MapFile)),0]),
     ParamChunk = make_chunk(16#A351, [0,1]),
     make_chunk(ChunkId, [FnameChunk,ParamChunk]).
 
@@ -903,3 +903,6 @@ split_dummy_uvs_1([#e3d_face{tx=[_,_,_]}=F|T], UV, Acc) ->
 split_dummy_uvs_1([F|T], UV, Acc) ->
     split_dummy_uvs_1(T, UV, [F#e3d_face{tx=[UV,UV,UV]}|Acc]);
 split_dummy_uvs_1([], _, Acc) -> reverse(Acc).
+
+utf8(Name) ->
+    unicode:characters_to_binary(Name).
