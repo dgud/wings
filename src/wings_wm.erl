@@ -1135,9 +1135,10 @@ geom_below(Pos) ->
 	true -> none;
 	false ->
             All = windows(),
+	    Geoms1 = [Geom|| {plugin,{_ModName,geom}}=Geom <- All],
             Geoms0 = [geom|[Geom|| {Win,_}=Geom <- All,
                                    Win =:= geom orelse Win =:= autouv]],
-            Geoms = [get_window_data(Name) || Name <- Geoms0],
+            Geoms = [get_window_data(Name) || Name <- Geoms0++Geoms1],
             find_window(Geoms, Geoms, Win0)
     end.
 
