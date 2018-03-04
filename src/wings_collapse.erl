@@ -91,8 +91,9 @@ collapse_faces(Faces, #we{fs=Ftab}=We0)->
     case F1 =:= F2 of
 	false ->
 	    We1 = gb_sets:fold(fun collapse_face/2, We0, Faces),
-	    We = wings_facemat:gc(We1),
-	    check_consistency(We),
+	    We2 = wings_facemat:gc(We1),
+	    check_consistency(We2),
+            We = remove_bad_holes(We2),
 	    Sel = wings_we:new_items_as_gbset(vertex, We0, We),
 	    {We,Sel};
 	true ->
@@ -216,8 +217,12 @@ edge_collapse(Post, Edges, #we{es=Etab}=We0) ->
 				Center = wings_vertex:center(Vs, We0),
 				uniform_collapse(Es, Center, WeAcc)
 			end, We0, EdgeSets),
+
 	    check_consistency(We1),
-	    We = Post(We0, We1),
+	    We2 = Post(We0, We1),
+
+            %% Remove holes that now refer to non-existing faces.
+            We = remove_bad_holes(We2),
 
 	    %% Create selection.
 	    Sel0 = wings_edge:to_vertices(Edges, We0),
@@ -313,8 +318,9 @@ collapse_vertices_cmd(Vs, #we{vp=Vtab}=We0) ->
     V2 = wings_util:array_entries(Vtab),
     case V1 =:= V2 of
 	false ->
-	    {We,Sel0} = do_collapse_vertices(gb_sets:to_list(Vs), We0),
-	    check_consistency(We),
+	    {We1,Sel0} = do_collapse_vertices(gb_sets:to_list(Vs), We0),
+	    check_consistency(We1),
+            We = remove_bad_holes(We1),
 	    AllItems = wings_sel:get_all_items(face, We),
 	    Sel = gb_sets:intersection(Sel0, AllItems),
 	    {We,Sel};
@@ -523,3 +529,9 @@ delete_if_bad(Face, #we{fs=Ftab,es=Etab}=We) ->
 	    end;
 	none -> We
     end.
+
+%% Remove holes refering to faces that no longer exist.
+
+remove_bad_holes(#we{fs=Ftab,holes=Holes0}=We) ->
+    Holes = ordsets:intersection(gb_trees:keys(Ftab), Holes0),
+    We#we{holes=Holes}.
