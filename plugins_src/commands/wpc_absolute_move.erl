@@ -445,12 +445,7 @@ do_move_1(Origin, DuOrg, DupRT, Move, #st{selmode=Mode}=St) ->
          end,
     wings_sel:clone(CF, St).
 
-do_move_2(Vs, We, Origin, DuOrg, DupRT, Params) when DuOrg > 0 ->
-    [We|do_move_3(Vs, We, Origin, DuOrg, DupRT, Params)];
-do_move_2(Vs, We, Origin, DuOrg, DupRT, Params) ->
-    do_move_3(Vs, We, Origin, DuOrg, DupRT, Params).
-
-do_move_3(Vs, We0, Origin, DuOrg, DupRT,
+do_move_2(Vs, We0, Origin, DuOrg, DupRT,
           [CommonCenter,Pos,Wo,Align,Flatten,Du]) ->
     Center = wings_vertex:center(Vs, We0),
     D0 = d(Pos, Align, CommonCenter, Center),
