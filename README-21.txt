@@ -1,3 +1,57 @@
+--- 2.1.6 --------------------------------------------
+- Object count for each folder in Geometry Graph was missing. Thanks to tkbd [micheus]
+
+- Added snap window and removed the old tools/snap command [micheus]
+
+- Implement dnd support for wings files and images from OS
+  Doesn't work on mac for unknown reason, wx only supports old simple
+  dnd and the might not work with wxWidgets on mac. [dgud]
+
+- Fixed PS/EPS importer which was not importing files properly.
+  It should import Adobe Illustrator, LibreOffice and Inkscape files correctly.
+  Scribus file may not to have some objects loaded. Thanks to tkbd for all support. [micheus]
+
+- Improved PS/EPS importer [dgud]
+
+- Added Spanish Translation [dgud]
+
+- Added the hotkeys "F2" and "Delete" for rename and delete operations respectively. [micheus]
+
+- Dialogs will now be shown near to the mouse pointer. [micheus]
+
+- The AutoUV Editor option to show/hide the background image is back. [micheus]
+
+- Added a dialog to allow user to decide if an unsaved file must be
+  recovered. Thanks to ggaliens. [micheus]
+
+- The option in Preferences to disabling the toolbar to be shown was not
+  working - it continued to be shown every time Wings3D started. Thanks to nemyax [micheus]
+
+- Fixed a crash in Lightwave exporter when there is wrong UV info. Thanks
+  to ScifiX. [micheus]
+
+- When all faces of one object that was combined with other is hidden,
+  when user separate them that object cannot be seen anyway. Thaks to Hank. [micheus]
+
+- When collapsing faces, edges, or vertices around holes, the
+  hole faces could be deleted, but still be marked as holes. That
+  would lead to a crash when attempting to save the file or when
+  using the Combine command. The Collapse command now makes sure
+  that holes for any deleted faces are removed. [Björn Gustavsson]
+
+- Optimized the rendering code, large models works better now.
+  All rendering is now shader based, bump maps and normal maps
+  are now visible in "two lights" mode and lighting is improved. [dgud]
+
+- Fixed some mouse focus issues. [dgud]
+
+- Largs code rewrite for further optimizations,
+  which might have caused new issues, please report. [Björn Gustavsson]
+
+- Spanish Translation [asticles]
+
+- Fixed some exporter unicode problems. [dgud]
+
 --- 2.1.5 --------------------------------------------
 - Added Make Normal-Map command, in outliner.
   And improved bump-map to normal-map calculations. [Micheus]
