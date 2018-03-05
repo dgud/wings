@@ -1,3 +1,4 @@
+
 %%
 %%  wings_wm.erl --
 %%
@@ -1135,8 +1136,13 @@ geom_below(Pos) ->
 	true -> none;
 	false ->
             All = windows(),
-            Geoms0 = [geom|[Geom|| {Win,_}=Geom <- All,
-                                   Win =:= geom orelse Win =:= autouv]],
+            Filter = fun(geom) -> true;
+                        ({geom,_}) -> true;
+                        ({autouv,_}) -> true;
+                        ({plugin, {_, geom}}) -> true;
+                        (_) -> false
+                     end,
+            Geoms0 = lists:filter(Filter, All),
             Geoms = [get_window_data(Name) || Name <- Geoms0],
             find_window(Geoms, Geoms, Win0)
     end.
