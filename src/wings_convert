@@ -308,8 +308,9 @@ export_file_2(#format{mod=nendo}, FileName, _Opts) ->
     call_wings({file, {export, {ndo, FileName}}});
 export_file_2(#format{ext_type=Type, option=false}, _FN, _Opts) ->
     call_wings({file,{export,Type}});
-export_file_2(#format{ext_type=Type, option=true}, _F, #opts{modify=Modify}) ->
-    call_wings({file,{export,{Type,Modify}}}).
+export_file_2(#format{ext_type=Type, option=true}, _F, _Opts) ->
+    Mods = [{include_uvs, true}, {include_normals, true}],
+    call_wings({file,{export,{Type, Mods}}}).
 
 verbose(F,A) ->
     get(verbose) andalso io:format(F,A).
