@@ -89,7 +89,8 @@ do_export(Attr, _Op, Exporter, _St) when is_list(Attr) ->
     HardEdges = proplists:get_bool(include_normals, Attr),
     Ps = [{include_uvs,Uvs},{units,Units},{include_hard_edges,HardEdges},
 	  {subdivisions,SubDivs}|props()],
-    Exporter(Ps, export_fun(Attr)).
+    Exporter(Ps, export_fun(Attr)),
+    keep.
 
 export_fun(Attr) ->
     fun(Filename, Contents) ->
@@ -129,7 +130,6 @@ export_1(Filename, Contents0, Attr) ->
     Collada = #xmlElement{name='COLLADA',content=ColladaNodes,
 			  attributes=ColladaAtts},
     FileContents = xmerl:export_simple(["\n",Collada],xmerl_xml),
-    io:format("~p~n",[FileContents]),
     ok = file:write_file(Filename, unicode:characters_to_binary(FileContents)).
 
 make_library_materials(#c_exp{matl_defs=MatlDefs}) ->

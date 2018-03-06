@@ -259,6 +259,7 @@ check_result(_M, {save_state,#st{}}=SS, _) -> SS;
 check_result(_M, {push,_}=Push, _) -> Push;
 check_result(_M, {seq,_,_}=Seq, _) -> Seq;
 check_result(_M, keep, _) -> keep;
+check_result(_M, ok, _) -> keep; %% Exporters have always returned ok
 check_result(M, Other, St) ->
     io:format("~w:command/3: bad return value: ~P\n", [M,Other,20]),
     St.

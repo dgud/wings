@@ -27,10 +27,7 @@
 -define(PH, 20).
 
 start(Msg) when is_list(Msg) ->
-    case get(wings_not_running) of
-	undefined ->  wx_object:cast(?PB,{start,Msg,percent});
-	_ -> ignore
-    end.
+    wx_object:cast(?PB,{start,Msg,percent}).
 
 update(Percent) when is_float(Percent) ->
     wx_object:cast(?PB, {update,"",Percent}).

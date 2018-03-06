@@ -32,18 +32,18 @@ import(Name, St) ->
     end.
 
 import_1(<<_:8,NumObjs:16,_:8,Objs/binary>>, St) ->
-    io:format(?__(1,"~w object(s)\n"), [NumObjs]),
+    %% io:format(?__(1,"~w object(s)\n"), [NumObjs]),
     read_objects(NumObjs, Objs, St).
 
 read_objects(0, _, St) -> St;
-read_objects(N, <<>>, St) ->
-    io:format(?__(1,"  ~w empty object(s)\n"), [N]),
+read_objects(_N, <<>>, St) ->
+    %% io:format(?__(1,"  ~w empty object(s)\n"), [N]),
     St;
 read_objects(N, Bin, St0) ->
     case read_object(Bin) of
 	bad ->
 	    <<First:16/binary,_/binary>> = Bin,
-	   io:format(?__(2,"  garbage: ~w\n"), [First]),
+            io:format(?__(2,"  garbage: ~w\n"), [First]),
 	    St0;
 	{Name,We,Rest} ->
 	    St = wings_obj:new(Name, We, St0),
