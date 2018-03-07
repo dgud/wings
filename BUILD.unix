@@ -17,7 +17,7 @@ run all plug-ins and to build an installation package.
 
 - The Wings source files. http://www.wings3d.com
 
-- Erlang/OTP 19.0 or later. http://www.erlang.org
+- Erlang/OTP 20.2 or later. http://www.erlang.org
 -- Preferably compiled against wxWidgets-3.0.2 or later.
 
 - CL. http://github.com/tonyrog/cl

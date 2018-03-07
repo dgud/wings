@@ -312,8 +312,11 @@ install_beam(Name) ->
 			  [filename:basename(Name)])
     end.
 
+erl_tar() -> %% Fool dialyzer the spec is wrong for erl_tar:table() in 20.0-20.2
+    list_to_atom("erl_tar"). 
+
 install_tar(Name) ->
-    {ok,Files} = erl_tar:table(Name, [compressed]),
+    {ok,Files} = (erl_tar()):table(Name, [compressed]),
     install_verify_files(Files, Name),
     case erl_tar:extract(Name, [compressed,{cwd,plugin_dir()}]) of
 	ok -> ok;

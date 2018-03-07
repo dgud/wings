@@ -16,7 +16,7 @@ The following software is needed:
 - MinGW, http://www.mingw.org, including MSYS, http://www.mingw.org/wiki/msys,
   to compile the source code.
 
-- Erlang/Otp 19.0 or later. http://www.erlang.org
+- Erlang/Otp 20.2 or later. http://www.erlang.org
   Include the vcredist packaged with Erlang, in your installation.
   (It is easiest to download the pre-built binaries for Windows.)
 
