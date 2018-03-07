@@ -27,7 +27,8 @@
 	  geoms = [],                   % Collada geometry nodes
 	  objnames = [],                % list of object names
 	  matl_defs = gb_trees:empty(), % defined materials
-	  visualscenenodes = []         % list of visualscenenodes
+          visualscenenodes = [],        % list of visualscenenodes
+          dir                           % File(s) Directory
 	 }
        ).
 
@@ -106,7 +107,7 @@ export_1(Filename, Contents0, Attr) ->
     Contents2 = export_transform(Contents1, Attr),
     %% Export is a record of data collected while iterating over geometry
     %% and materials.
-    ExportState0 = #c_exp{},
+    ExportState0 = #c_exp{dir = filename:dirname(Filename)},
     #e3d_file{objs=Objs,mat=Mat} = Contents2,
     ExportState1 = foldl(fun (O, S) ->
 				 make_geometry(O, S, Mat)
@@ -265,7 +266,7 @@ use_material(Name, MatDefs, #c_exp{matl_defs=ExpMatlDefs}=ExportState) ->
 
 define_material(_, undefined, ExportState) -> 
     ExportState;
-define_material(Name, ThisMat, #c_exp{matl_defs=ExpMatlDefs}=ExportState) ->
+define_material(Name, ThisMat, #c_exp{matl_defs=ExpMatlDefs, dir=Dir}=ExportState) ->
     OpenGLMat = lookup(opengl, ThisMat),
     {Ar,Ag,Ab,O} = lookup(ambient, OpenGLMat),
     {Dr,Dg,Db,_} = lookup(diffuse, OpenGLMat),
@@ -281,10 +282,14 @@ define_material(Name, ThisMat, #c_exp{matl_defs=ExpMatlDefs}=ExportState) ->
     ColladaMatl1 = case keyfind(maps, 1, ThisMat) of
 	{maps,Maps} ->
 	    case keyfind(diffuse, 1, Maps) of
-		{diffuse,#e3d_image{filename=DiffFilename,name=DiffName}} ->
-		    FileId = filename_to_id(DiffFilename),
+		{diffuse,#e3d_image{filename=DiffFile,name=DiffName}} ->
+		    FileId = filename_to_id(DiffFile),
 		    DiffSampler2D = make_mat_sampler2D(FileId),
 		    DiffSurface = make_mat_surface(FileId),
+                    DiffFilename = case string:prefix(DiffFile, Dir) of
+                                       nomatch -> DiffFile;
+                                       [_|DFile] -> DFile
+                                   end,
 		    DiffTx = {texture,[{texcoord,"CHANNEL1"},
 				       {texture,FileId ++ "-sampler"}],[]},
 		    ColladaMatl0#c_matl{txname=DiffName,

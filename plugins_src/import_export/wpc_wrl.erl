@@ -72,7 +72,7 @@ set_pref(KeyVals) ->
     wpa:pref_set(?MODULE, KeyVals).
 
 dialog(export) ->
-    wpa:pref_set_default(?MODULE, default_filetype, ".jpg"),
+    wpa:pref_set_default(?MODULE, default_filetype, ".png"),
     [wpa:dialog_template(?MODULE, tesselation),
      panel,
      wpa:dialog_template(?MODULE, export)].
@@ -82,9 +82,10 @@ dialog(export) ->
 %% faces and vertices for one material..
 export(File_name, Export0, Attr) ->
     %%io:format("~p~n~p~n",[Objs, Mat]),
-    Filetype = proplists:get_value(default_filetype, Attr, ".jpg"),
+    Filetype = proplists:get_value(default_filetype, Attr, ".png"),
     ExportN  = proplists:get_value(include_normals, Attr, true),
-    Export1 = wpa:save_images(Export0, filename:dirname(File_name), Filetype),
+    Dir = filename:dirname(File_name),
+    Export1 = wpa:save_images(Export0, Dir, Filetype),
     Export = export_transform(Export1, Attr),
     #e3d_file{objs=Objs,mat=Mat,creator=Creator} = Export,
     {ok,F} = file:open(File_name, [write]),
@@ -95,16 +96,16 @@ export(File_name, Export0, Attr) ->
 		      io:format(F, "  children [\n",[]),
 		      ObjMesh = e3d_mesh:vertex_normals(Obj),
 		      Meshes = e3d_mesh:split_by_material(ObjMesh),
-		      Used_mats = all(fun(Mesh,UsedMats) -> 
-					      export_object(F, Mesh, Mat, 
+		      Used_mats = all(fun(Mesh,UsedMats) ->
+					      export_object(F, Mesh, Mat,
 							    ExportN,
-							    UsedMats)
+							    UsedMats, Dir)
 				      end, F, Used_mats0, Meshes),
 		      io:put_chars(F, "\n  ]\n"),
 		      io:put_chars(F, "}\n\n"),
 		      Used_mats
 	      end, [], Objs)
-    catch _:Err -> 
+    catch _:Err ->
 	    io:format(?__(1,"VRML Error: ~P in")++" ~p~n", [Err,30, erlang:get_stacktrace()])
     end,
     ok = file:close(F).
@@ -114,11 +115,11 @@ export_transform(Contents, Attr) ->
     e3d_file:transform(Contents, Mat).
 
 export_object(F, #e3d_mesh{fs=Fs0,ns=NTab,vs=VTab,tx=UVTab,vc=ColTab}, 
-	      Mat_defs, ExportN, Used_mats0) ->
+	      Mat_defs, ExportN, Used_mats0, Dir) ->
     io:format(F, "    Shape {\n",[]),
     Fs = reorder(Fs0),
     [#e3d_face{mat=[Material|_]}|_] = Fs,
-    Used_mats = material(F, Material, Mat_defs, Used_mats0),
+    Used_mats = material(F, Material, Mat_defs, Used_mats0, Dir),
     io:format(F, "      geometry IndexedFaceSet {\n",[]),
 
     if ExportN == true ->
@@ -178,19 +179,19 @@ export_object(F, #e3d_mesh{fs=Fs0,ns=NTab,vs=VTab,tx=UVTab,vc=ColTab},
     io:put_chars(F, "      }\n    }"),
     Used_mats.
 
-material(F, Name, Mat_defs, Used) ->
+material(F, Name, Mat_defs, Used, Dir) ->
     case lists:member(Name, Used) of
-	true ->
-	    use_material(F, Name),
-	    Used;
-	false ->
-	    def_material(F, Name, lookup(Name, Mat_defs)),
-	    [Name|Used]
+        true ->
+            use_material(F, Name),
+            Used;
+        false ->
+            def_material(F, Name, lookup(Name, Mat_defs), Dir),
+            [Name|Used]
     end.
 
 % Note: vrml represents ambient colour as a proportion of 
 % diffuse colour, not in its own right.
-def_material(F, Name, Mat0) ->
+def_material(F, Name, Mat0, Dir) ->
     Mat = lookup(opengl, Mat0),
     io:format(F, "      appearance Appearance {\n",[]),
     io:format(F, "        material DEF ~s Material {\n",[clean_id(Name)]),
@@ -207,12 +208,16 @@ def_material(F, Name, Mat0) ->
     S = lookup(shininess, Mat),
     io:format(F, "          shininess ~p\n",[S]),
     io:put_chars(F, "        }\n"),
-    case lists:keysearch(maps, 1, Mat0) of 
-	{value, {maps,Maps}} -> 
-	    case lists:keysearch(diffuse, 1, Maps) of
-		{value, {diffuse,#e3d_image{filename=File}}} ->
-		    io:format(F, "        texture ImageTexture { url ~p }\n",
-			      [File]);
+    case lists:keysearch(maps, 1, Mat0) of
+        {value, {maps,Maps}} ->
+            case lists:keysearch(diffuse, 1, Maps) of
+                {value, {diffuse,#e3d_image{filename=FileName}}} ->
+                    File = case string:prefix(FileName, Dir) of
+                               nomatch -> FileName;
+                               [_Delim|File0] -> File0
+                           end,
+                    io:format(F, "        texture ImageTexture { url ~p }\n",
+                              [File]);
 		_ ->
 		    ignore
 	    end;

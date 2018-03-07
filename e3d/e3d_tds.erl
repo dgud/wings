@@ -681,7 +681,7 @@ make_texture_materials([], _, Acc) -> Acc.
 
 export_map(_, none, _) -> ok;
 export_map(ChunkId, #e3d_image{filename=none,name=Name}=Image, Root) ->
-    MapFile = filename:join(filename:dirname(Root), Name ++ ".bmp"),
+    MapFile = filename:join(filename:dirname(Root), Name ++ ".png"),
     ok = e3d_image:save(Image, MapFile),
     export_map(ChunkId, Image#e3d_image{filename=MapFile}, Root);
 export_map(ChunkId, #e3d_image{filename=MapFile}, _Root) ->

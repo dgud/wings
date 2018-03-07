@@ -72,25 +72,26 @@ set_pref(KeyVals) ->
     wpa:pref_set(?MODULE, KeyVals).
 
 dialog(export) ->
-    wpa:pref_set_default(?MODULE, default_filetype, ".jpg"),
+    wpa:pref_set_default(?MODULE, default_filetype, ".png"),
     [wpa:dialog_template(?MODULE, tesselation),
      panel,
      wpa:dialog_template(?MODULE, export)].
 
 export(File_name, Export0, Attr) ->
     %%io:format("~p~n~p~n",[Objs, Mat]),
-    Filetype = proplists:get_value(default_filetype, Attr, ".jpg"),
+    Dir = filename:dirname(File_name),
+    Filetype = proplists:get_value(default_filetype, Attr, ".png"),
     ExportN  = proplists:get_value(include_normals, Attr, true),
-    Export1 = wpa:save_images(Export0, filename:dirname(File_name), Filetype),
+    Export1 = wpa:save_images(Export0, Dir, Filetype),
     Export = export_transform(Export1, Attr),
     #e3d_file{objs=Objs,mat=Mat,creator=Creator} = Export,
     {ok,F} = file:open(File_name, [write]),
     io:format(F, "xof 0303txt 0064\r\n", []), % a standard directx header
     io:format(F, "#Exported from ~s\r\n",[Creator]),
     try
-    	% export materials (need to come before objects) 
-	foreach(fun({Name, M}) -> def_material(F, Name, M) end, Mat),
-	
+    	% export materials (need to come before objects)
+        foreach(fun({Name, M}) -> def_material(F, Name, M, Dir) end, Mat),
+
     	% export objects
     	foldl(fun(#e3d_object{name = Name, obj=Obj}, _) ->
 		      io:format(F, "Frame ~s {\r\n",[clean_id(Name)]),
@@ -99,7 +100,7 @@ export(File_name, Export0, Attr) ->
 		      io:put_chars(F, "}"),
 		      ok
 	      end, [], Objs)
-    catch _:Err -> 
+    catch _:Err ->
 	    io:format(?__(1,"DirectX Error: ~P in ~p~n"), [Err,30, erlang:get_stacktrace()])
     end,
     ok = file:close(F).
@@ -168,7 +169,7 @@ export_object(F, #e3d_mesh{fs=Fs0,ns=NTab,vs=VTab,tx=UVTab},
     io:put_chars(F, "\t}").
 
 % Note: directx does not seem to support "ambient" color
-def_material(F, Name, Mat0) ->
+def_material(F, Name, Mat0, Dir) ->
     Mat = lookup(opengl, Mat0),
     io:format(F, "\t\tMaterial ~s {\r\n",[clean_id(Name)]),
     {Dr, Dg, Db, Da} = lookup(diffuse, Mat),
@@ -183,7 +184,11 @@ def_material(F, Name, Mat0) ->
     case lists:keysearch(maps, 1, Mat0) of 
 	{value, {maps,Maps}} -> 
 	    case lists:keysearch(diffuse, 1, Maps) of
-		{value, {diffuse,#e3d_image{filename=File}}} ->
+		{value, {diffuse,#e3d_image{filename=File0}}} ->
+                    File = case string:prefix(File0, Dir) of
+                               nomatch -> File0;
+                               [_|Filename] -> Filename
+                           end,
 		    io:format(F, "\t\t\tTextureFilename { \"~s\"; }\r\n",
 			      [File]);
 		_ ->
