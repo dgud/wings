@@ -34,6 +34,7 @@ MODULES= \
 	wpc_bzw \
 	wpc_collada \
 	collada_import \
+	wpc_gltf \
 	wpc_hlines \
 	wpc_kerky \
 	wpc_lwo \
