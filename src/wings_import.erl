@@ -149,11 +149,12 @@ run([{_Name,F}|Fs], ObjType, Mesh0) ->
     %%io:format("~p\n", [_Name]),
     try F(ObjType, Mesh0) of
 	#we{}=We -> We;
-	#e3d_mesh{}=Mesh -> run(Fs, ObjType, Mesh)
+	#e3d_mesh{}=Mesh -> run(Fs, ObjType, Mesh);
+        error -> run(Fs, ObjType, Mesh0)
     catch
 	_:_R ->
-	    _Stack = erlang:get_stacktrace(),
-	    %%io:format("~p failed: ~P\n", [Name,_R,10]),
+	    %%_Stack = erlang:get_stacktrace(),
+	    %%io:format("~p failed: ~P\n", [_Name,_R,10]),
 	    %%io:format(" ~P\n", [_Stack,20]),
 	    run(Fs, ObjType, Mesh0)
     end.
