@@ -19,7 +19,7 @@
 	 bumpid/1, default/1,
 	 is_normalmap/1, normal_cubemapid/0,
 	 next_id/0,delete_older/1,delete_from/1,delete/1,
-	 update/2,update_filename/2,
+	 update/2,update_filename/2,find_image/2,
 	 window/1]).
 -export([image_formats/0,image_read/1,image_write/1,
 	 e3d_to_wxImage/1, wxImage_to_e3d/1]).
@@ -243,6 +243,9 @@ update(Id, Image) ->
 update_filename(Id, Filename) ->
     req({update_filename,Id,Filename}).
 
+find_image(Dir, Filename) ->
+    req({find_image,Dir,Filename}).
+
 req(Req) ->
     req(Req, true).
 
@@ -389,6 +392,15 @@ handle({update_filename,Id,NewName}, #ist{images=Images0}=S) ->
     Im = (image_rec(Im0))#e3d_image{filename=NewName},
     Images = gb_trees:update(Id, hide(Im, is_hidden(Im0)), Images0),
     S#ist{images=Images};
+handle({find_image, Dir, File}, #ist{images=Ims}=S) ->
+    AbsName = filename:join(Dir, File),
+    Find = fun(Fn) -> Fn == AbsName end,
+    Found = [Id || {Id, #e3d_image{filename=FN}} <-
+                       gb_trees:to_list(Ims), Find(FN)],
+    case Found of
+        [] -> {false, S};
+        [Id|_] -> {{true, Id}, S}
+    end;
 handle(Req, _S) ->
     io:format("~w: Bad request: ~w~n", [?MODULE, Req]),
     error.

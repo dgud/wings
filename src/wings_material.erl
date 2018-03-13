@@ -336,7 +336,7 @@ load_maps([{_,Id}=Map|T], Dir) when is_integer(Id) ->
 load_maps([], _) -> [].
     
 load_map(MapName, Dir) ->
-    try load_map_1(MapName, Dir) of
+    try load_map_0(MapName, Dir) of
 	none -> none;
 	Im when is_integer(Im) -> Im
     catch
@@ -344,6 +344,12 @@ load_map(MapName, Dir) ->
 	    io:format("~p\n", [R]),
 	    io:format("~P\n", [erlang:get_stacktrace(),20]),
 	    none
+    end.
+
+load_map_0(File, Dir) ->
+    case wings_image:find_image(Dir, File) of
+        false -> load_map_1(File, Dir);
+        {true, Id}  -> Id
     end.
 
 load_map_1(File0, Dir) ->
