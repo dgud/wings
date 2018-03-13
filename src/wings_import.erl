@@ -68,8 +68,9 @@ store_object(Name, We, St) ->
 
 import_object(#e3d_object{name=_Name,obj=Mesh0}) ->
     %%io:format("\n~s:\n", [_Name]),
-    Mesh1 = e3d_mesh:clean_faces(Mesh0),
-    Mesh = e3d_mesh:transform(Mesh1),
+    Mesh1 = e3d_mesh:merge_vertices(Mesh0),
+    Mesh2 = e3d_mesh:clean_faces(Mesh1),
+    Mesh  = e3d_mesh:transform(Mesh2),
     import_mesh(material, Mesh).
 
 -define(P(N), {N,fun N/2}).

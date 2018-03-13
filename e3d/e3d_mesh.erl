@@ -89,13 +89,22 @@ make_polygons(Mesh) -> Mesh.
 %% merge_vertices(Mesh0) -> Mesh
 %%  Combine vertices that have exactly the same position,
 %%  then renumber the mesh.
-merge_vertices(#e3d_mesh{fs=Fs0,vs=Vs0}=Mesh) ->
+merge_vertices(#e3d_mesh{fs=Fs0,vs=Vs0, he=He0}=Mesh) ->
     R = sofs:relation(append_index(Vs0), [{pos,old_vertex}]),
     S = sofs:range(sofs:relation_to_family(R)),
     CR = sofs:canonical_relation(S),
     Map = gb_trees:from_orddict(sofs:to_external(CR)),
     Fs = map_faces(Fs0, Map),
-    renumber(Mesh#e3d_mesh{fs=Fs}).
+    MV = fun({A,B}) ->
+                 [NewA|_] = gb_trees:get(A, Map),
+                 [NewB|_] = gb_trees:get(B, Map),
+                 case NewA < NewB of
+                     true -> {NewA,NewB};
+                     false -> {NewB,NewA}
+                 end
+         end,
+    He = [MV(Edge) || Edge <- He0],
+    renumber(Mesh#e3d_mesh{fs=Fs, he=He}).
 
 %%%
 %%% Mesh triangulation.
