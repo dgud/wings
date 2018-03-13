@@ -100,9 +100,10 @@ crash_log(WinName, Reason, StackTrace) ->
     io:format("Internal Error~n",[]),
     [io:format(Fd, "Version: ~s\n", [?WINGS_VERSION]) || Fd <- [F, group_leader()]],
     try
-	[io:format(Fd, "OS: ~ts\n", [wx_misc:getOsDescription()])  || Fd <- [F, group_leader()]],
-	[io:format(Fd, "GPU: ~ts | ~ts\n",
-		   [gl:getString(?GL_VENDOR), gl:getString(?GL_RENDERER)])  || Fd <- [F, group_leader()]]
+        OsDesc = wx_misc:getOsDescription(),
+        {GLVend, GLRend} = {gl:getString(?GL_VENDOR), gl:getString(?GL_RENDERER)},
+	[io:format(Fd, "OS: ~ts\n", [OsDesc])  || Fd <- [F, group_leader()]],
+	[io:format(Fd, "GPU: ~ts | ~ts\n",[GLVend, GLRend])  || Fd <- [F, group_leader()]]
     catch
 	_ -> ignore
     end,
@@ -117,20 +118,24 @@ report_stacktrace(F, [_|_]=StackTrace) ->
     ShortStackTrace = [{M,N,if
 				is_list(A) -> length(A);
 				true -> A
-			    end} || {M,N,A} <- StackTrace],
-    io:format("Stack trace:\n~P\n\n", [StackTrace, 20]),
+			    end, FL} || {M,N,A,FL} <- StackTrace],
+    format(group_leader(), "Stack trace:\n~P\n\n", [StackTrace, 20]),
     case ShortStackTrace =:= StackTrace of
 	false ->
-	    io:format(F, "Short stack trace:\n~p\n\n", [ShortStackTrace]),
-	    io:format(F, "Long stack trace:\n~p\n\n", [StackTrace]);
+	    format(F, "Short stack trace:\n~p\n\n", [ShortStackTrace]),
+	    format(F, "Long stack trace:\n~P\n\n", [StackTrace, 50]);
 	true ->
-	    io:format(F, "Stack trace:\n~p\n\n", [StackTrace])
+	    format(F, "Stack trace:\n~p\n\n", [StackTrace])
     end;
 report_stacktrace(_, []) ->
     %% Make sure we don't write anything if there is no stacktracke.
     %% (There will be no stacktrace if we were called from the
     %% process that runs wings:halt_loop/1.)
     ok.
+
+format(To,F,A) ->
+    %% Format in this process to avoid sending 'St' to another process
+    io:put_chars(To, unicode:characters_to_binary(io_lib:format(F,A))).
 
 caption(#st{file=undefined}=St) ->
     Caption = wings(),
