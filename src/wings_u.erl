@@ -105,7 +105,7 @@ crash_log(WinName, Reason, StackTrace) ->
 	[io:format(Fd, "OS: ~ts\n", [OsDesc])  || Fd <- [F, group_leader()]],
 	[io:format(Fd, "GPU: ~ts | ~ts\n",[GLVend, GLRend])  || Fd <- [F, group_leader()]]
     catch
-	_ -> ignore
+	_:_ -> ignore
     end,
     [io:format(Fd, "Window: ~p\n", [WinName])  || Fd <- [F, group_leader()]],
     [io:format(Fd, "Reason: ~p\n\n", [Reason]) || Fd <- [F, group_leader()]],
