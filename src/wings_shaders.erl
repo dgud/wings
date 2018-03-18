@@ -25,21 +25,25 @@ init() ->
     HL = [{"LightPosition", wings_pref:get_value(hl_lightpos)},
 	  {"SkyColor", wings_pref:get_value(hl_skycol)},
 	  {"GroundColor", wings_pref:get_value(hl_groundcol)}],
-    Programs =
-        [{1, make_prog(camera_light, "Two Camera Lights")},
-         {2, make_prog(hemilight, HL, "Hemispherical Lighting")},
-         {ambient_light, make_prog(ambient_light, "")},
-         {infinite_light, make_prog(infinite_light, "")},
-         {point_light, make_prog(point_light, "")},
-         {spot_light, make_prog(spot_light, "")},
-         {envmap, make_prog(envmap, "Environment Mapping")}
-        ],
-    ?CHECK_ERROR(),
-    gl:useProgram(0),
-    ?SET(light_shaders, maps:from_list(Programs)),
-    %io:format("Using GPU shaders.\n"),
-    %io:format("~p\n",[Programs]),
-    ok.
+    try
+        Programs = [{1, make_prog(camera_light, "Two Camera Lights")},
+                    {2, make_prog(hemilight, HL, "Hemispherical Lighting")},
+                    {ambient_light, make_prog(ambient_light, "")},
+                    {infinite_light, make_prog(infinite_light, "")},
+                    {point_light, make_prog(point_light, "")},
+                    {spot_light, make_prog(spot_light, "")},
+                    {envmap, make_prog(envmap, "Environment Mapping")}
+                   ],
+        ?CHECK_ERROR(),
+        %% io:format("Using GPU shaders.\n"),
+        %% io:format(" :~p\n",[Programs]),
+        gl:useProgram(0),
+        ?SET(light_shaders, maps:from_list(Programs)),
+        ok
+    catch throw:Reason ->
+            gl:useProgram(0),
+            {error, Reason}
+    end.
 
 use_prog(Name) ->
     #{Name:=Shader} = ?GET(light_shaders),
