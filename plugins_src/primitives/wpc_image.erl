@@ -141,15 +141,15 @@ make_image_0({ImageId,{MaxU,MaxV},{AspX,AspY}}, Arg, Owner, #st{mat=Mat0}=St0) -
         true -> FName end,
     MatId = list_to_atom(MatName),
     Mt = if Transparent==true -> [transparency_ip];
-        true -> [] end,
+            true -> [] end,
     Mi = [MatId],
     Fs = [#e3d_face{vs=[0,3,2,1],mat=Mt},
-      #e3d_face{vs=[2,3,7,6],tx=[6,2,3,7],mat=Mi},
-      #e3d_face{vs=[0,4,7,3],mat=Mt},
-      #e3d_face{vs=[1,2,6,5],mat=Mt},
-      #e3d_face{vs=[4,5,6,7],mat=Mt},
-      if Transparent==true -> #e3d_face{vs=[0,1,5,4],mat=Mt};
-      true -> #e3d_face{vs=[0,1,5,4],tx=[4,0,1,5],mat=Mi} end ],
+          #e3d_face{vs=[2,3,7,6],tx=[6,2,3,7],mat=Mi},
+          #e3d_face{vs=[0,4,7,3],mat=Mt},
+          #e3d_face{vs=[1,2,6,5],mat=Mt},
+          #e3d_face{vs=[4,5,6,7],mat=Mt},
+          if Transparent==true -> #e3d_face{vs=[0,1,5,4],mat=Mt};
+             true -> #e3d_face{vs=[0,1,5,4],tx=[4,0,1,5],mat=Mi} end ],
 
     UVs = [{0.0,MaxV},{MaxU,MaxV},{0.0,0.0},{MaxU,0.0},
            {0.0,0.0},{MaxU,0.0},{0.0,MaxV},{MaxU,MaxV}],
@@ -165,17 +165,17 @@ make_image_0({ImageId,{MaxU,MaxV},{AspX,AspY}}, Arg, Owner, #st{mat=Mat0}=St0) -
     Obj = #e3d_object{obj=Mesh},
     White = wings_color:white(),
     Black = {0.0,0.0,0.0,1.0},
-    WhiteT = if Transparent==true -> {1.0,1.0,1.0,0.999};
-        true -> White end,
+    BlackT = if Transparent==true -> {0.0,0.0,0.0,0.999};
+                true -> Black end,
     M = [{MatId,
-            [{opengl,[{emission,White},
-                  {diffuse,WhiteT},
-                  {specular,Black},
-                  {ambient,Black}]},
-             {maps,[{diffuse,ImageId}]}]}],
+          [{opengl,[{emission,White},
+                    {diffuse,BlackT},
+                    {metallic,0.0},
+                    {roughness,1.0}]},
+           {maps,[{emission,ImageId}]}]}],
 
     Mat = if Transparent==true -> lists:flatten(lists:append(M,get_transp_mat(Mat0)));
-        true -> M end,
+             true -> M end,
 
     ImgName = case UseName of
                   for_mat_obj ->

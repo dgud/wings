@@ -195,11 +195,8 @@ scan_color(face, Faces, We) ->
 scan_materials([Mat|Ms], Cols) ->
     Opengl = proplists:get_value(opengl, Mat),
     Diff   = proplists:get_value(diffuse, Opengl),
-    Amb    = proplists:get_value(ambient, Opengl),
-    Spec   = proplists:get_value(specular, Opengl),
     Emis   = proplists:get_value(emission, Opengl),
-    scan_materials(Ms, [color(Diff),color(Amb),color(Spec),
-			color(Emis)|Cols]);
+    scan_materials(Ms, [color(Diff),color(Emis)|Cols]);
 scan_materials([], Cols) -> Cols.
 
 add_cols([none|R], Acc) ->

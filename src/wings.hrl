@@ -71,6 +71,9 @@
 -define(DIFFUSE_MAP_UNIT, 0).
 -define(NORMAL_MAP_UNIT,  1).
 -define(ENV_MAP_UNIT,     2).
+-define(ROUGH_METAL_MAP_UNIT, 3).
+-define(EMISSION_MAP_UNIT, 4).
+-define(OCCUL_MAP_UNIT,   5).
 -define(TANGENT_ATTR,     5).
 
 %%

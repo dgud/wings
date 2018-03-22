@@ -18,7 +18,9 @@
 	 update_image/4,used_images/1,
 	 used_materials/1,has_texture/2,
 	 apply_material/4,is_transparent/2,
-	 needed_attributes/2]).
+	 needed_attributes/2,
+         specular_to_metal/1, specular_from_metal/1
+        ]).
 
 -define(NEED_OPENGL, 1).
 -define(NEED_ESDL, 1).
@@ -27,6 +29,9 @@
 
 -import(lists, [sort/1,foldl/3,reverse/1,
 		keyreplace/4,keydelete/3,keyfind/3,flatten/1]).
+
+-define(DEF_METALLIC, 0.1).
+-define(DEF_ROUGHNESS, 0.8).
 
 material_menu(St) ->
     [{?__(4,"Material"),{material,material_fun(St)}}].
@@ -244,8 +249,8 @@ make_default(Color, Opacity) ->
 make_default({R,G,B}, Opacity, More) ->
     Color = {R,G,B,Opacity},
     Dark = {0.0,0.0,0.0,1.0},
-    Mat = [{opengl,[{diffuse,Color},{ambient,Color},{specular,Dark},
-		    {emission,Dark},{shininess,0.0}|More]},
+    Mat = [{opengl,[{diffuse,Color}, {metallic, ?DEF_METALLIC},
+                    {roughness, ?DEF_ROUGHNESS}, {emission,Dark}|More]},
 	   {maps,[]}],
     sort([{K,sort(L)} || {K,L} <- Mat]).
 
@@ -288,17 +293,41 @@ add_defaults(Props0) ->
 add_defaults_1(P) ->
     Def = {1.0,1.0,1.0,1.0},
     VertexColor = valid_vertex_color(prop_get(vertex_colors, P, ignore)),
-    [{diffuse,norm(prop_get(diffuse, P, Def))},
-     {ambient,norm(prop_get(ambient, P, Def))},
-     {specular,norm(prop_get(specular, P, {0.0,0.0,0.0,1.0}))},
-     {emission,norm(prop_get(emission, P, {0.0,0.0,0.0,1.0}))},
-     {shininess,prop_get(shininess, P, 0.9)},
+    Diff = norm(prop_get(diffuse, P, Def)),
+    Emission = norm(prop_get(emission, P, {0.0,0.0,0.0,1.0})),
+    [{diffuse, Diff},
+     {emission,Emission},
+     {metallic, def_metallic(P, Diff)},
+     {roughness, def_roughness(P)},
      {vertex_colors,VertexColor}].
 
+def_metallic(P, Diff) ->
+    case prop_get(metallic, P) of
+        undefined ->
+            case prop_get(specular, P) of
+                undefined -> ?DEF_METALLIC;
+                Spec -> specular_to_metal(norm(Spec), Diff)
+            end;
+        Def when is_float(Def) -> Def
+    end.
+
+def_roughness(P) ->
+    case prop_get(roughness, P) of
+        undefined ->
+            case prop_get(shininess, P) of
+                undefined -> ?DEF_ROUGHNESS;
+                Shin -> 1.0 - min(1.0, Shin)
+            end;
+        Def when is_float(Def) -> Def
+    end.
+
 %% For future compatibility, ignore anything that we don't recognize.
-valid_vertex_color(multiply=A) -> A;
-valid_vertex_color(set=A) -> A;
+valid_vertex_color(multiply) -> set;
+valid_vertex_color(set) -> set;
 valid_vertex_color(_) -> ignore.
+
+norm({_,_,_,_}=Color) -> Color;
+norm({R,G,B}) -> {R,G,B,1.0}.
 
 update_materials([{Name,Mat0}|Ms], St) ->
     Mat1 = add_defaults(Mat0),
@@ -308,9 +337,6 @@ update_materials([{Name,Mat0}|Ms], St) ->
     update_materials(Ms, update(Name, Mat, St));
 update_materials([], St) -> St.
 
-norm({_,_,_,_}=Color) -> Color;
-norm({R,G,B}) -> {R,G,B,1.0}.
-    
 load_maps([{Key,Filename}|T], Dir) when is_list(Filename) ->
     case load_map(Filename, Dir) of
 	none -> load_maps(T, Dir);
@@ -398,11 +424,12 @@ has_texture(Name, Mtab) ->
 
 has_texture(Mat) ->
     Maps = prop_get(maps, Mat, []),
-    none =/= prop_get(diffuse, Maps, none).
+    Maps =/= [].
 
 apply_material(Name, Mtab, false, RS) ->
     case maps:get(material, RS, undefined) of
-        Name -> fun() -> RS end;
+        Name ->
+            fun() -> RS end;
         _Active ->
             apply_material_1(Name, Mtab, false, RS#{material=>Name})
     end;
@@ -418,48 +445,82 @@ apply_material_1(Name, Mtab, ActiveVertexColors, RS0) when is_atom(Name) ->
             apply_material_2(Props, ActiveVertexColors, RS0)
     end.
 
-apply_material_2(Props0, true, RS0) ->
-    case lists:keytake(vertex_colors, 1, Props0) of
-        {value, {_, ignore}, Props} ->
+apply_material_2(Props, true, RS0) ->
+    case lists:keysearch(vertex_colors, 1, Props) of
+        {value, {_, ignore}} ->
             gl:disableClientState(?GL_COLOR_ARRAY),
             RS = lists:foldl(fun apply_material_3/2, RS0, Props),
             fun() -> gl:enableClientState(?GL_COLOR_ARRAY), RS end;
         _ ->
-            RS = lists:foldl(fun apply_material_3/2, RS0, Props0),
+            RS = lists:foldl(fun apply_material_3/2, RS0, Props),
             fun() -> RS end
     end;
 apply_material_2(Props, _, RS0) ->
     RS = lists:foldl(fun apply_material_3/2, RS0, Props),
     fun() -> RS end.
 
-apply_material_3({shininess, Shine}, Rs0) ->
+apply_material_3({shininess, Shine}, Rs0) ->  %% Remove
     case maps:get(shininess, Rs0, undefined) of
         Shine -> Rs0;
         _ -> gl:materialf(?GL_FRONT_AND_BACK, ?GL_SHININESS, Shine*128),
              Rs0#{shininess=>Shine}
     end;
-apply_material_3({diff_tex, TexId}, #{shader:=Shader}=Rs0) ->
-    case maps:get({diff_tex, Shader}, Rs0, undefined) of
+apply_material_3({{tex, Type}=TexType, TexId}, #{shader:=Shader}=Rs0) ->
+    case maps:get({TexType, Shader}, Rs0, undefined) of
         TexId -> Rs0;
-        _ -> apply_texture(TexId, Shader),
-             Rs0#{{diff_tex,Shader}=>TexId}
-    end;
-apply_material_3({norm_tex, TexId}, #{shader:=Shader}=Rs0) ->
-    case maps:get({norm_tex,Shader}, Rs0, undefined) of
-        TexId -> Rs0;
-        _ -> apply_normal_map(TexId, Shader),
-             Rs0#{{norm_tex,Shader}=>TexId}
+        _ ->
+            apply_texture(Type, TexId, Shader),
+            Rs0#{{TexType,Shader}=>TexId}
     end;
 apply_material_3({Type, RGBA}, Rs0)
-  when Type =:= specular; Type =:= diffuse; Type =:= ambient; Type =:= emission ->
+  when Type =:= diffuse; Type =:= emission;
+       Type =:= specular; Type =:= ambient ->  %% Remove
     case maps:get(Type, Rs0, undefined) of
         RGBA -> Rs0;
         _ -> gl:materialfv(?GL_FRONT_AND_BACK, enum(Type), RGBA),
              Rs0#{Type=>RGBA}
     end;
+apply_material_3({metallic, Met}, Rs0) ->
+    wings_shaders:set_uloc(metallic, Met, Rs0);
+apply_material_3({roughness, R}, Rs0) ->
+    wings_shaders:set_uloc(roughness, R, Rs0);
 apply_material_3({_Type,_}, Rs0) ->
     %% io:format("~p:~p: unsupported type ~p~n",[?MODULE,?LINE,_Type]),
     Rs0.
+
+specular_to_metal(Props) ->
+    S = prop_get(specular,Props),
+    D = prop_get(diffuse, Props),
+    specular_to_metal(S, D).
+
+specular_to_metal({SR,SG,SB,_},{DR,DG,DB,_}) ->
+    S0 = {SR,SG,SB},
+    D0 = {DR,DG,DB},
+    Len = e3d_vec:len(S0),
+    S1 = e3d_vec:divide(S0, max(1.0, Len)),
+    ACos = min(1.0, e3d_vec:dot(e3d_vec:norm(D0), S1)),
+    Linear = 1.0 - math:acos(ACos) * 2 / math:pi(),
+    %% io:format("~p ~n", [Linear]),
+    Linear.
+
+specular_from_metal(GL) ->
+    specular_from_metal(prop_get(metallic, GL, ?DEF_METALLIC), prop_get(diffuse, GL)).
+
+specular_from_metal(Met, {R,G,B,_A}) ->
+    norm(wings_color:mix(Met, {R,G,B}, {0.1,0.1,0.1})).
+
+add_old_props(Mat) ->
+    GL = prop_get(opengl, Mat),
+    Added = case prop_get(specular, GL) of
+                undefined -> %% Assume old props is missing
+                    Spec = specular_from_metal(prop_get(metallic, GL, ?DEF_METALLIC),
+                                               prop_get(diffuse, GL)),
+                    Rough = prop_get(roughness, GL, ?DEF_ROUGHNESS),
+                    [{ambient, {0.0,0.0,0.0,0.0}}, {specular, Spec},
+                     {shininess, 1.0 - Rough} | GL];
+                _ -> GL
+            end,
+    [{opengl, Added}|lists:keydelete(opengl, 1, Mat)].
 
 enum(diffuse) -> ?GL_DIFFUSE;
 enum(ambient) -> ?GL_AMBIENT;
@@ -470,8 +531,11 @@ material_prop(Name, Mtab) ->
     Mat = gb_trees:get(Name, Mtab),
     OpenGL = prop_get(opengl, Mat),
     Maps = prop_get(maps, Mat, []),
-    [{diff_tex, get_texture_map(Maps)},
-     {norm_tex, get_normal_map(Maps)}
+    [{{tex,diffuse}, get_texture_map(diffuse, Maps)},
+     {{tex,normal}, get_normal_map(Maps)},
+     {{tex,metallic},  get_texture_map(metallic, Maps)},
+     {{tex,emission}, get_texture_map(emission, Maps)},
+     {{tex,occlusion}, get_texture_map(occlusion, Maps)}
      |OpenGL].
 
 get_normal_map(Maps) ->
@@ -483,34 +547,23 @@ get_normal_map(Maps) ->
         false -> none
     end.
 
-get_texture_map(Maps) ->
+get_texture_map(Type, Maps) ->
     case wings_pref:get_value(show_textures) of
-        true -> image_id(diffuse, prop_get(diffuse, Maps, none));
+        true -> image_id(Type, prop_get(Type, Maps, none));
         false -> none
     end.
 
 image_id(_, none) -> none;
-image_id(diffuse, Map) -> wings_image:txid(Map);
-image_id(normal, Map) -> wings_image:bumpid(Map).
+image_id(normal, Map) -> wings_image:bumpid(Map);
+image_id(_, Map) -> wings_image:txid(Map).
 
-no_texture(Shader) ->
-    shader_texture(diffuse, false, Shader),
-    false.
-
-apply_texture(none, Shader) ->
-    no_texture(Shader);
-apply_texture(TxId, Shader) ->
-    shader_texture(diffuse, true, Shader),
-    gl:bindTexture(?GL_TEXTURE_2D, TxId),
-    true.
-
-apply_normal_map(none, Shader) ->
-    shader_texture(normal, false, Shader),
+apply_texture(Type, none, Shader) ->
+    shader_texture(Type, false, Shader),
     false;
-apply_normal_map(TexId, Shader) ->
-    shader_texture(normal, true, Shader),
-    gl:activeTexture(?GL_TEXTURE0 + ?NORMAL_MAP_UNIT),
-    gl:bindTexture(?GL_TEXTURE_2D, TexId),
+apply_texture(Type, TxId, Shader) ->
+    shader_texture(Type, true, Shader),
+    gl:activeTexture(?GL_TEXTURE0 + tex_unit(Type)),
+    gl:bindTexture(?GL_TEXTURE_2D, TxId),
     gl:activeTexture(?GL_TEXTURE0),
     true.
 
@@ -518,7 +571,16 @@ enable(true)  -> 1;
 enable(false) -> 0.
 
 texture_var(diffuse) -> "UseDiffuseMap";
-texture_var(normal) ->  "UseNormalMap".
+texture_var(normal) ->  "UseNormalMap";
+texture_var(metallic) -> "UseMetallic"; %% blue = roughness green = metallic
+texture_var(emission) -> "UseEmission";
+texture_var(occlusion) -> "UseOcclusion". %% red = occlusion map
+
+tex_unit(diffuse) -> ?DIFFUSE_MAP_UNIT;
+tex_unit(normal) -> ?NORMAL_MAP_UNIT;
+tex_unit(metallic) -> ?ROUGH_METAL_MAP_UNIT; %% blue = roughness green = metallic
+tex_unit(emission) -> ?EMISSION_MAP_UNIT;
+tex_unit(occlusion) -> ?OCCUL_MAP_UNIT. %% red = occlusion map
 
 shader_texture(What, Enable, #{}=Shader) ->
     wings_gl:set_uloc(Shader, texture_var(What), enable(Enable)).
@@ -534,7 +596,7 @@ used_materials(#st{mat=Mat0}=St) ->
     Used1 = sofs:from_external(Used0, [name]),
     Mat = sofs:relation(gb_trees:to_list(Mat0), [{name,data}]),
     Used = sofs:restriction(Mat, Used1),
-    sofs:to_external(Used).
+    [{Name,add_old_props(M)} || {Name,M} <- sofs:to_external(Used)].
 
 %% Return all image ids used by materials.
 
@@ -590,15 +652,7 @@ needs_vertex_colors(Mat) ->
     prop_get(vertex_colors, OpenGL, ignore) =/= ignore.
 
 needs_uvs(Mat) ->
-    OpenGL = prop_get(opengl, Mat),
-    case prop_get(vertex_colors, OpenGL, ignore) of
-	set ->
-	    %% Vertex colors overrides the texture (if any).
-	    false;
-	_ ->
-	    %% We need UV coordinates if there is a diffuse texture.
-	    has_texture(Mat)
-    end.
+    has_texture(Mat).
 
 needs_tangents(Mat) ->
     Maps = prop_get(maps, Mat, []),
@@ -617,9 +671,8 @@ edit_dialog(Name, Assign, St=#st{mat=Mtab0}, Mat0) ->
     OpenGL0 = prop_get(opengl, Mat0),
     VertexColors0 = prop_get(vertex_colors, OpenGL0, ignore),
     {Diff0,Opacity0} = ask_prop_get(diffuse, OpenGL0),
-    {Amb0,_} = ask_prop_get(ambient, OpenGL0),
-    {Spec0,_} = ask_prop_get(specular, OpenGL0),
-    Shine0 = prop_get(shininess, OpenGL0),
+    Met0 = prop_get(metallic, OpenGL0),
+    Roug0 = prop_get(roughness, OpenGL0),
     {Emiss0,_} = ask_prop_get(emission, OpenGL0),
     Preview = fun(GLCanvas, Fields) ->
                       mat_preview(GLCanvas,Fields,prop_get(maps,Mat0))
@@ -629,24 +682,21 @@ edit_dialog(Name, Assign, St=#st{mat=Mtab0}, Mat0) ->
 		      wxWindow:refresh(GLCanvas)
 	      end,
     RHook = {hook, Refresh},
-    AnyTexture = has_texture(Mat0),
-    VtxColMenu = vertex_color_menu(AnyTexture, VertexColors0),
+    VtxColMenu = vertex_color_menu(VertexColors0),
+    R01 = {range,{0.0,1.0}},
     Qs1 = {vframe,
 	   [
 	    {hframe,
 	     [{custom_gl,?PREVIEW_SIZE,?PREVIEW_SIZE+5,Preview, [{key, preview}]},
 	      {label_column,
-	       [{?__(1,"Diffuse"), {slider,{color,Diff0, [{key,diffuse},RHook]}}},
-		{?__(2,"Ambient"), {slider,{color,Amb0,[{key,ambient}, RHook]}}},
-		{?__(3,"Specular"),{slider,{color,Spec0,[{key,specular}, RHook]}}},
-		{?__(4,"Emission"),{slider,{color,Emiss0,[{key,emission}, RHook]}}}
+	       [{?__(1,"Diffuse"),   {slider,{color,Diff0, [{key,diffuse},RHook]}}},
+		{?__(7,"Metallic"), {slider,{text, Met0,  [R01,{key,metallic},RHook]}}},
+		{?__(8,"Roughness"), {slider,{text, Roug0, [R01,{key,roughness},RHook]}}},
+		{?__(4,"Emission"),  {slider,{color,Emiss0,[{key,emission}, RHook]}}}
 	       ]}]},
 	    {label_column,
-	     [{"Vertex Colors", VtxColMenu},
-	      {?__(5,"Shininess"),
-	       {slider,{text,Shine0, [{range,{0.0,1.0}}, {key,shininess}, RHook]}}},
-	      {?__(6,"Opacity"),
-	       {slider,{text,Opacity0, [{range,{0.0,1.0}}, {key,opacity}, RHook]}}}
+	     [{?__(6,"Opacity"), {slider,{text,Opacity0, [R01, {key,opacity}, RHook]}}},
+              {"Vertex Colors", VtxColMenu}
 	     ]}
            ]
 	  },
@@ -655,16 +705,15 @@ edit_dialog(Name, Assign, St=#st{mat=Mtab0}, Mat0) ->
 	  [{oframe, Qs2, 1, [{style, buttons}]}],
 	  [{buttons, [ok, cancel]}, {key, result}]},
     Ask = fun([{diffuse,Diff},
-	       {ambient,Amb},
-	       {specular,Spec},
+               {metallic, Met},
+               {roughness, Roug},
 	       {emission,Emiss},
-	       {vertex_colors,VertexColors},
-	       {shininess,Shine},{opacity,Opacity}|More]) ->
+               {opacity,Opacity},
+	       {vertex_colors,VertexColors}|More]) ->
 		  OpenGL = [ask_prop_put(diffuse, Diff, Opacity),
-			    ask_prop_put(ambient, Amb, Opacity),
-			    ask_prop_put(specular, Spec, Opacity),
+                            {metallic, Met},
+                            {roughness, Roug},
 			    ask_prop_put(emission, Emiss, Opacity),
-			    {shininess,Shine},
 			    {vertex_colors,VertexColors}],
 		  Mat1 = keyreplace(opengl, 1, Mat0, {opengl,OpenGL}),
 		  {ok,Mat} =  plugin_results(Name, Mat1, More),
@@ -673,20 +722,11 @@ edit_dialog(Name, Assign, St=#st{mat=Mtab0}, Mat0) ->
 	  end,
     {dialog,Qs,Ask}.
 
-vertex_color_menu(MultiplyPossible, Def0) ->
-    Def = case MultiplyPossible of
-	      true -> Def0;
-	      false when Def0 =:= multiply -> set;
-	      false -> Def0
-	  end,
+vertex_color_menu(multiply) ->
+    vertex_color_menu(set);
+vertex_color_menu(Def) ->
     {menu,[{"Ignore",ignore,[{info,"Ignore vertex colors"}]},
-	   {"Set",set,[{info,"Show vertex colors"}]}|
-	   case MultiplyPossible of
-	       true ->
-		   [{"Multiply",multiply,
-		     [{info,"Multiply texture colors with vertex colors"}]}];
-	       false -> []
-	   end],Def,
+	   {"Set",set,[{info,"Show vertex colors"}]}],Def,
      [{info,"Choose how to use vertex colors"},
       {key,vertex_colors}]}.
 
@@ -706,8 +746,6 @@ ask_prop_get(Key, Props) ->
     {R,G,B,Alpha} = prop_get(Key, Props),
     {{R,G,B},Alpha}.
 
-ask_prop_put(specular=Key, {R,G,B}, _) ->
-    {Key,{R,G,B,1.0}};
 ask_prop_put(Key, {R,G,B}, Opacity) ->
     {Key,{R,G,B,Opacity}}.
 
@@ -729,13 +767,12 @@ mat_preview(Canvas, Common, Maps) ->
     gl:translatef(0.0, 0.0, -2.0),
     gl:shadeModel(?GL_SMOOTH),
     Alpha = wings_dialog:get_value(opacity, Common),
-    Amb   = preview_mat(ambient, Common, Alpha),
     Diff  = preview_mat(diffuse, Common, Alpha),
-    Spec  = preview_mat(specular, Common, Alpha),
     Emis  = preview_mat(emission, Common, Alpha),
-    Shine = {shininess, wings_dialog:get_value(shininess, Common)},
-    Material = [Amb, Diff, Spec, Emis, Shine,
-                {diff_tex, get_texture_map(Maps)}],
+    Metal = {metallic, wings_dialog:get_value(metallic, Common)},
+    Rough = {roughness, wings_dialog:get_value(roughness, Common)},
+    Material = [Diff, Emis, Metal, Rough,
+                {{tex,diffuse}, get_texture_map(diffuse, Maps)}],
 
     Obj = glu:newQuadric(),
     gl:enable(?GL_BLEND),
@@ -751,7 +788,7 @@ mat_preview(Canvas, Common, Maps) ->
     RS1 = lists:foldl(fun apply_material_3/2, RS0, Material),
     glu:sphere(Obj, 0.9, 50, 50),
     glu:deleteQuadric(Obj),
-    no_texture(maps:get(shader, RS1)),
+    shader_texture(diffuse, false, maps:get(shader, RS1)),
     wings_shaders:use_prog(0, RS1),
     gl:disable(?GL_BLEND),
     gl:shadeModel(?GL_FLAT),

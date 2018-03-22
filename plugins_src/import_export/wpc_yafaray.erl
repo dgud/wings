@@ -19,9 +19,9 @@
 %% -export([now_diff_1/1]).
 
 -include_lib("kernel/include/file.hrl").
--include("e3d.hrl").
--include("e3d_image.hrl").
--include("wings.hrl").
+-include_lib("wings/e3d/e3d.hrl").
+-include_lib("wings/e3d/e3d_image.hrl").
+-include_lib("wings/src/wings.hrl").
 
 -import(lists, [reverse/1,reverse/2,sort/1,keydelete/3,
                 foreach/2,foldl/3,foldr/3]).
@@ -522,7 +522,10 @@ command(_Spec, _St) ->
     next.
 
 dialog({material_editor_setup,Name,Mat}, Dialog) ->
-    maybe_append(edit, Dialog, material_dialog(Name, Mat));
+    case is_plugin_active(edit) of
+        false -> Dialog;
+        _ -> maybe_append(edit, Dialog, material_dialog(Name, Mat))
+    end;
 dialog({material_editor_result,Name,Mat}, Res) ->
     case is_plugin_active(edit) of
         false -> {Mat,Res};
@@ -678,7 +681,7 @@ props(export_selected, _Attr) ->
 material_dialog(_Name, Mat) ->
     Maps = proplists:get_value(maps, Mat, []),
     OpenGL = proplists:get_value(opengl, Mat),
-    DefReflected = alpha(proplists:get_value(specular, OpenGL)),
+    DefReflected = alpha(proplists:get_value(specular, OpenGL, wings_material:specular_from_metal(OpenGL))),
     DefTransmitted = def_transmitted(proplists:get_value(diffuse, OpenGL)),
     DefAbsorptionColor = def_absorption_color(proplists:get_value(diffuse, OpenGL)),
     DefLightmatColor = def_lightmat_color(proplists:get_value(diffuse, OpenGL)),

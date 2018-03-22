@@ -12,7 +12,7 @@
 %%
 
 -module(wings_shaders).
--export([init/0, use_prog/2, read_texture/1]).
+-export([init/0, compile_all/0, use_prog/2, set_uloc/3, read_texture/1]).
 
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
@@ -22,6 +22,11 @@ init() ->
     wings_pref:set_default(hl_lightpos, {3000.0, 10000.0, 1000.0}),
     wings_pref:set_default(hl_skycol, {0.95,0.95,0.90}),
     wings_pref:set_default(hl_groundcol, {0.026,0.024,0.021}),
+    wings_image:load_envmap("grandcanyon.png"),
+    %% wings_image:load_envmap("hdrvfx_zanla_1_n1_v01_Bg.jpg"),
+    compile_all().
+
+compile_all() ->
     HL = [{"LightPosition", wings_pref:get_value(hl_lightpos)},
 	  {"SkyColor", wings_pref:get_value(hl_skycol)},
 	  {"GroundColor", wings_pref:get_value(hl_groundcol)}],
@@ -63,6 +68,14 @@ read_texture(FileName) ->
     ImgRec = e3d_image:load(NewFileName, [{order,lower_left}]),
     ImgRec.
 
+set_uloc(Id, To, Rs0) ->
+    case maps:get(Id, Rs0, undefined) of
+        To -> Rs0;
+        _ ->
+            wings_gl:set_uloc(maps:get(shader, Rs0), atom_to_list(Id), To),
+            Rs0#{Id=>To}
+    end.
+
 read_shader(FileName, Ext) ->
     read_shader(FileName, undefined, Ext).
 
@@ -92,9 +105,12 @@ make_prog(Name, Vars, Desc) ->
     %% io:format("Prog: ~p ~s~n", [Prog, Name]),
     %% [io:format("~5w ~s ~n",[Loc, Str]) || {Str, Loc} <- Uniforms],
     Res = maps:from_list([{name,Name},{prog,Prog},{desc,Desc}|Uniforms]),
-    wings_gl:set_uloc(Res, "DiffuseMap", ?DIFFUSE_MAP_UNIT),
-    wings_gl:set_uloc(Res, "NormalMap",  ?NORMAL_MAP_UNIT),
-    wings_gl:set_uloc(Res, "EnvMap", ?ENV_MAP_UNIT),
+    wings_gl:set_uloc(Res, "DiffuseMap",  ?DIFFUSE_MAP_UNIT),
+    wings_gl:set_uloc(Res, "NormalMap",   ?NORMAL_MAP_UNIT),
+    wings_gl:set_uloc(Res, "EnvMap",      ?ENV_MAP_UNIT),
+    wings_gl:set_uloc(Res, "RMMap",       ?ROUGH_METAL_MAP_UNIT),
+    wings_gl:set_uloc(Res, "EmissionMap", ?EMISSION_MAP_UNIT),
+    wings_gl:set_uloc(Res, "OcculMap",    ?OCCUL_MAP_UNIT),
     [wings_gl:set_uloc(Res, Var, Val) || {Var,Val} <- Vars],
     Res.
 

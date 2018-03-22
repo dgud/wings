@@ -137,9 +137,7 @@ assign_materials([], #we{id=Id}=We, _, _, #st{shapes=Shs0}=St) ->
     St#st{shapes=Shs}.
 
 make_mat(Diff) ->
-    [{opengl,[{diffuse,Diff},
-	      {ambient,Diff},
-	      {specular,{0.0,0.0,0.0}}]}].
+    [{opengl,[{diffuse,Diff}, {metallic, 0.0}, {roughness, 1.0}]}].
 
 seg_materials() -> % Intensity 0.7 for all
     [{'AuvChart1',{0.7,0.7,0.0}},  % Yellow

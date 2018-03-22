@@ -303,16 +303,15 @@ exp_make_materials([Used|UMs], WMats, Type, GLTF0) ->
     WMat = proplists:get_value(Used,WMats),
     GL   = proplists:get_value(opengl, WMat),
     {DR,DG,DB,DA} = proplists:get_value(diffuse, GL),
-    {SR,SG,SB,_} = proplists:get_value(specular, GL),
-    Shin = proplists:get_value(shininess, GL),
+    Metallic = proplists:get_value(metallic, GL, 0.1),
+    Roughness = proplists:get_value(roughness, GL, 0.8),
     {ER,EG,EB,_} = proplists:get_value(emission, GL),
     Maps = proplists:get_value(maps, WMat, []),
     %% [io:format("Map: ~p ~p~n", [T, I#e3d_image{image= <<>>}]) || {T,I} <- Maps],
 
     Base0 = #{baseColorFactor=> [DR,DG,DB,DA],
-              metallicFactor => min(1.0, e3d_vec:dot(e3d_vec:norm({DR,DG,DB}),
-                                                     e3d_vec:norm({SR,SG,SB}))),
-              roughnessFactor=> max(0.0,min(1.0 - Shin, 1.0))},
+              metallicFactor => Metallic,
+              roughnessFactor=> Roughness},
     DiffMap = proplists:get_value(diffuse, Maps),
 
     {Base1,GLTF1} = exp_add_image(DiffMap, Base0, baseColorTexture, Type, GLTF0),
@@ -720,11 +719,9 @@ make_mat(#{name:=Name}=Mat, GLTF) ->
                Maps0 -> [{maps, Maps0}]
            end,
     DiffuseC = list_to_tuple(Diffuse),
-    Specular = wings_color:mix(MetalF, DiffuseC, {0.8,0.8,0.8,0.8}),
     DefList = [{diffuse, DiffuseC},
-               {ambient, {0.0,0.0,0.0,0.0}},
-               {specular, Specular},
-               {shininess, 1.0-RoughF},
+               {roughness, RoughF},
+               {metallic, MetalF},
                {emission, list_to_tuple(Emission)}],
     {binary_to_atom(Name, utf8), [{opengl, DefList}|Maps]}.
 

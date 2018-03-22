@@ -59,7 +59,7 @@ command(opengl_errors, _) ->
     toggle(develop_gl_errors),
     keep;
 command(opengl_shaders, _) ->
-    wings_shaders:init(),
+    wings_shaders:compile_all(),
     wings_wm:dirty(),
     keep;
 command(print_scene_size, St) ->
