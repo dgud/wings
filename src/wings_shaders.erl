@@ -31,8 +31,7 @@ init() ->
                     {ambient_light, make_prog(ambient_light, "")},
                     {infinite_light, make_prog(infinite_light, "")},
                     {point_light, make_prog(point_light, "")},
-                    {spot_light, make_prog(spot_light, "")},
-                    {envmap, make_prog(envmap, "Environment Mapping")}
+                    {spot_light, make_prog(spot_light, "")}
                    ],
         ?CHECK_ERROR(),
         %% io:format("Using GPU shaders.\n"),
@@ -86,7 +85,6 @@ make_prog(Name, Vars, Desc) ->
     Uniforms = fetch_uniforms(0, N, StrSize+1, Prog),
     %% io:format("Prog: ~p ~s~n", [Prog, Name]),
     %% [io:format("~5w ~s ~n",[Loc, Str]) || {Str, Loc} <- Uniforms],
-    envmap(Name),
     Res = maps:from_list([{name,Name},{prog,Prog},{desc,Desc}|Uniforms]),
     wings_gl:set_uloc(Res, "DiffuseMap", ?DIFFUSE_MAP_UNIT),
     wings_gl:set_uloc(Res, "NormalMap",  ?NORMAL_MAP_UNIT),
@@ -102,19 +100,3 @@ fetch_uniforms(N, Max, StrSize, Prog) when N < Max ->
         Loc -> [{Name, Loc} | fetch_uniforms(N+1, Max, StrSize, Prog)]
     end;
 fetch_uniforms(_N, _Max, _StrSize, _Prog) -> [].
-
-envmap(envmap) ->
-    FileName = "grandcanyon.png",
-    EnvImgRec = read_texture(FileName),
-    #e3d_image{width=ImgW,height=ImgH,image=ImgData} = EnvImgRec,
-    [TxId] = gl:genTextures(1),
-    gl:activeTexture(?GL_TEXTURE0 + ?ENV_MAP_UNIT),
-    gl:bindTexture(?GL_TEXTURE_2D, TxId),
-    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_S, ?GL_REPEAT),
-    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_T, ?GL_REPEAT),
-    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MAG_FILTER, ?GL_LINEAR),
-    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MIN_FILTER, ?GL_LINEAR),
-    gl:texImage2D(?GL_TEXTURE_2D, 0, ?GL_RGB, ImgW, ImgH, 0, ?GL_RGB,
-		  ?GL_UNSIGNED_BYTE, ImgData),
-    gl:activeTexture(?GL_TEXTURE0);
-envmap(_) -> ok.
