@@ -617,6 +617,7 @@ autosave(#st{file=Name}=St) ->
     %% Fix this later
     View = wings_wm:get_prop(geom, current_view),
     wings_view:set_current(View),
+    filelib:ensure_dir(Auto),
     case ?SLOW(wings_ff_wings:export(Auto, St)) of
 	ok ->
 	    wings_u:caption(St#st{saved=auto});
