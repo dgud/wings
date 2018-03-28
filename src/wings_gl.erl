@@ -136,6 +136,7 @@ setup_std_events(Canvas) ->
     %% wxWindow:connect(Canvas, char_hook, []),
     wxWindow:connect(Canvas, key_down, [{callback, fun key_callback_win32/2}]),
     wxWindow:connect(Canvas, key_up), %% Normally suppressed
+    wxWindow:connect(Canvas, kill_focus, [{skip, true}]),
     wxWindow:connect(Canvas, char).
 
 key_callback_win32(Ev = #wx{event=Key=#wxKey{rawFlags=Raw}},Obj) ->

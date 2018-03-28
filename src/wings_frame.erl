@@ -1123,8 +1123,13 @@ make_internal_win(Parent, #win{title=Label, win=Child, ps=#{close:=Close, move:=
     wxSizer:add(Top, Child,  [{proportion, 1}, {flag, ?wxEXPAND}, {border, 2}]),
     wxWindow:setSizer(Win, Top),
     wxWindow:connect(Bar, enter_window, [{userData, {win, Win}}]),
-    Move andalso [wxWindow:connect(W, Ev, [{userData, {move, Win}}])
-		  || Ev <- [left_down, left_up, motion], W <- [Bar,ST]],
+    case Move of
+        true ->
+            [wxWindow:connect(W, Ev, [{userData, {move, Win}}])
+             || Ev <- [left_down, left_up, motion], W <- [Bar,ST]];
+        false ->
+            wxWindow:connect(Bar, left_down)
+    end,
     WinC#win{frame=Win, bar=Wins}.
 
 make_bar(Parent, BG, Label, Close) ->

@@ -724,6 +724,22 @@ dispatch_event(#wx{obj=Obj, event=#wxSize{size={W,H}}}) ->
 	false ->
 	    true
     end;
+dispatch_event(#wx{obj=Obj, event=#wxFocus{}}) ->
+    case {get_focus_window(), wx2win(Obj)} of
+        {undefined, _} -> ok;
+        {Win, Win} ->
+            update_focus(none);
+        {{grabbed, Win}, Win} ->
+            io:format("Grabbed focus lost: ~p ~p~n", [Obj, Win]),
+            do_dispatch(Win, lost_focus),
+            update_focus(none);
+        {{grabbed, OtherWin}, Win} ->
+            io:format("Grabbed focus lost old?: ~p ~p~n", [OtherWin, Win]),
+            ok;
+        {_OldFocus, _CurrentFocus} ->
+            ok
+    end,
+    true;
 dispatch_event(quit) ->
     foreach(fun(Name) -> send(Name, quit) end, gb_trees:keys(get(wm_windows))),
     true;
