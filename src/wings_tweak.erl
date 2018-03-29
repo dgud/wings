@@ -26,11 +26,11 @@
 
 -define(L_ALT, 307).
 -define(R_ALT, 308).
+-define(MAG_INFO, mag_vertex_info).
+-define(MAX_WEIGHT_VALUE, 240.0).
 
 -include("wings.hrl").
 -include("e3d.hrl").
-
--import(lists,[member/2,foldl/3]).
 
 %%%
 %%% Main Tweak Records
@@ -41,6 +41,7 @@
 	 magnet,    % true|false
 	 mag_type,  % magnet type: Type
 	 mag_rad,   % magnet influence radius
+	 pnt_route=shortest,  % route strategy for paint (shortest, surface)
 	 id,        % {Id,Elem} mouse was over when tweak began
 	 sym,       % current magnet radius adjustment hotkey
 	 ox,oy,     % original X,Y
@@ -52,13 +53,13 @@
 	{vs,
 	 pos0,      % Original position.
 	 pos,       % Current position.
-	 pst=none,  % Any data that a specific tweak tool needs stored
-						% temporarily
+	 pst=none,  % Any data that a specific tweak tool needs stored temporarily
 	 mag,       % mag record
 	 mm}).      % original|mirror
 
 -record(mag,
 	{orig,      % Orig centre of the selection being moved
+	 paint=none,% paint record
 	 vs,        % [{V,Pos,Distance,Influence}]
 	 vtab=[]}). % [{V,Pos}] (latest)
 
@@ -70,8 +71,10 @@
 init() ->
     set_default_tweak_keys(),
     TweakMagnet = {true,dome,1.0},  %{magnet on, magnet type, magnet radius}
+    TweakPaint = shortest,  % distance route
     wings_pref:set_default(tweak_active,false),
     wings_pref:set_default(tweak_magnet, TweakMagnet),
+    wings_pref:set_default(tweak_paint, TweakPaint),
     wings_pref:set_default(tweak_xyz, [false,false,false]),
     wings_pref:set_default(tweak_axis, screen),
     wings_pref:set_default(tweak_point, none),
@@ -137,7 +140,7 @@ tweak_keys() ->
 check_tweak_prefs([{{N,{A,B,C}},Mode}=P|Prefs]) ->
     Check1 = is_integer(N),
     Check2 = is_atom(A) andalso is_atom(B) andalso is_atom(C),
-    Check3 = member(Mode, [move,move_normal,scale,scale_uniform,relax,slide]),
+    Check3 = lists:member(Mode, [move,move_normal,scale,scale_uniform,relax,slide,paint,erase]),
     case Check1 andalso Check2 andalso Check3 of
 	true -> [P|check_tweak_prefs(Prefs)];
 	false -> check_tweak_prefs(Prefs)
@@ -166,8 +169,9 @@ tweak_event_handler(#mousebutton{button=B,x=X,y=Y,mod=Mod,state=?SDL_PRESSED}, S
 	    case orddict:find({B,{Ctrl,Shift,Alt}}, TweakKeys) of
 		{ok, Mode} ->
 		    {Mag,MagType,MagR} = wings_pref:get_value(tweak_magnet),
+		    PaintRoute = wings_pref:get_value(tweak_paint),
 		    T = #tweak{mode=Mode,ox=X,oy=Y,magnet=Mag,mag_type=MagType,
-			       mag_rad=MagR,st=St},
+			       mag_rad=MagR,pnt_route=PaintRoute,st=St},
 		    handle_tweak_event_1(T);
 		error -> next
 	    end;
@@ -179,9 +183,10 @@ tweak_event_handler(#mousebutton{button=B,x=X,y=Y,mod=Mod,state=?SDL_PRESSED}, S
 %%% Keyboard hits
 tweak_event_handler(#keyboard{sym=Sym,mod=Mod,state=?SDL_PRESSED}=Ev,St) ->
     {Mag,MagType,MagR} = wings_pref:get_value(tweak_magnet),
+    PaintRoute = wings_pref:get_value(tweak_paint),
     case wings_hotkey:event(Ev,St#st{sel=[]}) of
 	{tweak,{tweak_magnet,mag_adjust}} when Mag ->
-	    T = #tweak{magnet=Mag,mag_type=MagType,mag_rad=MagR,sym=Sym,st=St},
+	    T = #tweak{magnet=Mag,mag_type=MagType,mag_rad=MagR,pnt_route=PaintRoute,sym=Sym,st=St},
 	    magnet_adjust(T);
 	{tweak,{axis_constraint,Axis}} ->
 	    Pressed = wings_pref:get_value(tweak_axis_toggle),
@@ -202,7 +207,7 @@ tweak_event_handler(#keyboard{sym=Sym,mod=Mod,state=?SDL_PRESSED}=Ev,St) ->
 		false ->
 		    case is_altkey_magnet_event(Sym,Mod) of
 			true ->
-			    T = #tweak{magnet=Mag,mag_type=MagType,mag_rad=MagR,sym=Sym,st=St},
+			    T = #tweak{magnet=Mag,mag_type=MagType,mag_rad=MagR,pnt_route=PaintRoute,sym=Sym,st=St},
 			    magnet_adjust(T);
 			false -> next
 		    end
@@ -242,6 +247,14 @@ tweak_event_handler(_,_) ->
 %%% Start Tweak
 %%%
 
+handle_tweak_event_1(#tweak{ox=X,oy=Y,mode=Mode,st=St0}=T) when Mode=:=paint; Mode=:=erase ->
+    case wings_pick:do_pick(X,Y,St0#st{sel=[]}) of
+	{_, What, St} ->
+	    Action = if Mode=:=paint -> add; true -> delete end,
+	    tweak_handler_setup(Action, What, St, T);
+	_ ->
+	    next
+    end;
 handle_tweak_event_1(#tweak{ox=X,oy=Y, st=#st{sel=Sel}=St0}=T) ->
     case wings_pick:do_pick(X,Y,St0) of
 	{add, What, St} when Sel =:= [] ->
@@ -324,14 +337,20 @@ handle_initial_event({new_state,St}, _, _, _) ->
     %% this is the exiting event from wings_pick after paint_pick/3
     wings_wm:later({new_state,St}),
     pop;
+handle_initial_event(#mousemotion{}, _, #st{selmode=body}, #tweak{mode=Mode})
+    			when Mode=:=paint; Mode=:=erase ->
+    keep;
 handle_initial_event(#mousemotion{x=X,y=Y}=Ev, What, St,
-		     #tweak{ox=OX,oy=OY,cx=CX,cy=CY,clk=Clk}=T) ->
+		     #tweak{mode=Mode,ox=OX,oy=OY,cx=CX,cy=CY,clk=Clk}=T) ->
     DX = X-OX, %since last move X
     DY = Y-OY, %since last move Y
     DxOrg = DX+CX, %total X
     DyOrg = DY+CY, %total Y
     Total = math:sqrt(DxOrg * DxOrg + DyOrg * DyOrg),
-    wings_io:warp(OX,OY),
+    case lists:member(Mode,[paint, erase]) of
+	false -> wings_io:warp(OX,OY);
+	true -> ignore
+    end,
     case Total > 3 of
 	true when Clk =:= none ->
 	    enter_tweak_handler(Ev, What, St, T);
@@ -361,7 +380,7 @@ handle_initial_event(#keyboard{sym=Sym,mod=Mod}=Ev, What, St, #tweak{ox=X,oy=Y}=
 handle_initial_event(Ev, What, St, T) ->
     enter_tweak_handler(Ev, What, St, T).
 
-enter_tweak_handler(Ev, What, St, #tweak{id={Action,_},st=#st{sel=Sel}=St0}=T) ->
+enter_tweak_handler(Ev, What, St, #tweak{id={Action,_},mode=Mode,st=#st{sel=Sel}=St0}=T) ->
     wings_io:change_event_handler(?SDL_KEYUP, true),
     wings_wm:grab_focus(),
     case wings_io:is_grabbed() of
@@ -380,8 +399,13 @@ enter_tweak_handler(Ev, What, St, #tweak{id={Action,_},st=#st{sel=Sel}=St0}=T) -
 		      _ -> St
 		  end
 	  end,
-    begin_drag(What, St1, T),
-    do_tweak_0(0, 0, 0, 0, {move,screen}),
+    case Mode of
+	paint -> ignore;
+	erase -> ignore;
+	_ ->
+	    begin_drag(What, St1, T),
+	    do_tweak_0(0, 0, 0, 0, {move,screen})
+    end,
     handle_tweak_drag_event_0(Ev,T).
 
 %%%
@@ -399,8 +423,11 @@ update_tweak_handler(T) ->
 tweak_drag_no_redraw(T) ->
     {replace,fun(Ev) -> handle_tweak_drag_event_0(Ev, T) end}.
 
-handle_tweak_drag_event_0(grab_lost, T) ->
-    end_drag(T);
+handle_tweak_drag_event_0(grab_lost, #tweak{mode=Mode}=T) ->
+    case lists:member(Mode, [paint, erase]) of
+	true -> end_paint(T);
+	false -> end_drag(T)
+    end;
 handle_tweak_drag_event_0(redraw, #tweak{mode=Mode,st=St}=T) ->
     redraw(St),
     tweak_keys_info(),
@@ -418,6 +445,17 @@ handle_tweak_drag_event_0(redraw, #tweak{mode=Mode,st=St}=T) ->
 handle_tweak_drag_event_0(#mousemotion{}=Ev, #tweak{mode={TwkMode,_}}=T0) ->
     %% Tweak Modes that can be modified by xyz constraints
     handle_tweak_drag_event_0(Ev, T0#tweak{mode=TwkMode});
+handle_tweak_drag_event_0(#mousemotion{x=X,y=Y,state=?SDL_PRESSED}, #tweak{mode=Mode}=T)
+			    when Mode=:=paint; Mode=:=erase ->
+    {W,H} = wings_wm:win_size(),
+    CX = max(0,min(X,W)),
+    CY = max(0,min(Y,H)),
+    case do_paint(X, Y, T#tweak{cx=CX,cy=CY}) of
+	#tweak{}=T0 ->
+	    wings_wm:dirty(),
+	    tweak_drag_no_redraw(T0);
+	_ -> keep
+    end;
 handle_tweak_drag_event_0(#mousemotion{x=X,y=Y},
 			  #tweak{mode=TweakMode,ox=OX,oy=OY,cx=CX,cy=CY}=T0) ->
     Mode =
@@ -503,14 +541,18 @@ handle_tweak_drag_event_2(#mousebutton{button=B}=Ev, #tweak{st=St}) when B > 3 -
 	Other -> Other
     end;
 %% Mouse Button released, so end drag sequence.
-handle_tweak_drag_event_2(#mousebutton{button=B,state=?SDL_RELEASED}, T) when B < 4 ->
+handle_tweak_drag_event_2(#mousebutton{button=B,state=?SDL_RELEASED}, #tweak{mode=Mode}=T)
+			    when B < 4 ->
     case  wings_io:get_mouse_state() of
 	{0,_,_} ->
 	    case wings_pref:get_value(tweak_axis_toggle) of
 		[] -> wings_io:change_event_handler(?SDL_KEYUP, false);
 		_ -> ok
 	    end,
-	    end_drag(T);
+	    case lists:member(Mode, [paint, erase]) of
+		true -> end_paint(T);
+		false -> end_drag(T)
+	    end;
 	_buttons_still_pressed -> keep
     end;
 handle_tweak_drag_event_2(_,_) ->
@@ -521,6 +563,7 @@ handle_tweak_drag_event_2(_,_) ->
 %%%
 
 magnet_adjust(#tweak{st=#st{selmode=body}}) -> next;
+magnet_adjust(#tweak{mode=Mode}) when Mode =:= paint; Mode =:= erase -> next;
 magnet_adjust(#tweak{st=St0}=T0) ->
     {_,X,Y} = wings_wm:local_mouse_state(),
     case wings_pick:do_pick(X,Y,St0) of
@@ -718,13 +761,39 @@ begin_drag_fun(#dlo{src_sel={body,_},src_we=#we{vp=Vtab}=We}=D, _, _, _) ->
     Center = wings_vertex:center(Vs, We),
     Id = e3d_mat:identity(),
     D#dlo{drag={matrix,Center,Id,e3d_mat:expand(Id)}};
-begin_drag_fun(#dlo{src_sel={Mode,Els},src_we=We}=D0, SelElem, #st{sel=Sel}=St, T) ->
+begin_drag_fun(#dlo{src_sel={Mode,Els},src_we=#we{id=Id}=We}=D0, SelElem, #st{pst=StPst,sel=Sel}=St, T) ->
     Vs0 = sel_to_vs(Mode, gb_sets:to_list(Els), We),
     case Vs0 of
 	[] -> D0;
 	_ ->
-	    Center = wings_vertex:center(Vs0, We),
-	    {Vs,Magnet,VsDyn} = begin_magnet(T, Vs0, Center, We),
+	    %% check #we{} for any painted soft selection and if present we rebuild
+	    %% needed magnet data and ignore any "hard" selection on it
+	    Painted =
+		case gb_trees:lookup(?MODULE, StPst) of
+		    {_, MpData} -> gb_sets:is_element(Id,MpData);
+		    _ -> false
+		end,
+	    {Vs,Magnet,VsDyn} =
+		case Painted of
+		    true ->
+			{Vs1,Magnet0,VsDyn0,Center0} = rebuild_magnet(We),
+			Match = ordsets:intersection(Vs0,Vs1),
+			%% in order to start the tweak action the selected item must
+			%% be part of a painted soft selection, otherwise it acts as
+			%% the regular tweak command.
+			%% Without that Wings3D crashes
+			case Match of
+			    [] ->
+				Center = wings_vertex:center(Vs0, We),
+				begin_magnet(T, Vs0, Center, We);
+			    _ ->
+				Center = Center0,
+				{Vs1,Magnet0,VsDyn0}
+			end;
+		    false ->
+			Center = wings_vertex:center(Vs0, We),
+			begin_magnet(T, Vs0, Center, We)
+		end,
 	    #dlo{src_we=We0}= D = wings_draw:split(D0, Vs, St),
 
 	    L = length(Sel) > 1,
@@ -734,10 +803,33 @@ begin_drag_fun(#dlo{src_sel={Mode,Els},src_we=We}=D0, SelElem, #st{sel=Sel}=St, 
 		     {#we{id=Id},{Id,_,MM0}} -> MM0;
 		     {_,_} -> original
 		 end,
-	    NewPst = set_edge_influence(Vs,VsDyn,We0),
-	    D#dlo{src_we=We0#we{pst=NewPst},drag=#drag{vs=Vs0,pos0=Center,pos=Center,mag=Magnet,mm=MM}}
+	    We1 = set_edge_influence(VsDyn,We0),
+	    D#dlo{src_we=We1,drag=#drag{vs=Vs0,pos0=Center,pos=Center,mag=Magnet,mm=MM}}
     end;
-begin_drag_fun(D, _, _, _) -> D.
+begin_drag_fun(#dlo{src_we=#we{id=Id}=We}=D0, SelElem, #st{pst=StPst,sel=Sel}=St, _T) ->
+    Painted =
+	case gb_trees:lookup(?MODULE, StPst) of
+	    {_, MpData} -> gb_sets:is_element(Id,MpData);
+	    _ -> false
+	end,
+    case Painted of
+	true ->
+	    %% This code will run always we have soft selections painted in
+	    %% multiple objects and for those without any "hard" selection
+	    {Vs,Magnet,VsDyn,Center} = rebuild_magnet(We),
+	    #dlo{src_we=We0}= D = wings_draw:split(D0, Vs, St),
+
+	    L = length(Sel) > 1,
+	    MM = case {We,SelElem} of
+		     {#we{id=Id},{Id,_,_}} when L -> original; %% so at least the shapes
+		     %% drag in the same direction.. if the mirrors are pointed the same too.
+		     {#we{id=Id},{Id,_,MM0}} -> MM0;
+		     {_,_} -> original
+		 end,
+	    We1 = set_edge_influence(VsDyn,We0),
+	    D#dlo{src_we=We1,drag=#drag{vs=Vs,pos0=Center,pos=Center,mag=Magnet,mm=MM}};
+	false -> D0
+    end.
 
 end_drag(#tweak{mode=Mode,id={_,{OrigId,El}},st=St0}) ->
     St = wings_dl:map(fun (#dlo{src_we=#we{id=Id}}=D, St1) ->
@@ -752,6 +844,36 @@ end_drag(#tweak{mode=Mode,id={_,{OrigId,El}},st=St0}) ->
 %%% End Drag (end tweak event)
 %%%
 
+%% paint
+end_drag(Mode, #dlo{src_sel=SrcSel,src_we=#we{id=Id,pst=Pst0}=We}=D0, #st{pst=StPst0,shapes=Shs0}=St0) when Mode =:= paint; Mode =:= erase ->
+    St =
+	case SrcSel of
+	    {Mode,Sel} ->
+		St0#st{selmode=Mode,sel=[{Id,Sel}]};
+	    _ -> St0
+	end,
+    MpData0 =
+	case gb_trees:lookup(?MODULE, StPst0) of
+	    {_, MpData1} -> MpData1;
+	    _ -> gb_sets:empty()
+	end,
+    %% this will remove the red dot - cursor position - from the update_dlist routine
+    %% and add the #we Id to the #st{pst} data for further use in begin_drag_fun/3
+    {MpData,Pst} =
+	case gb_trees:lookup(?MODULE, Pst0) of
+	    {_, Data} ->
+		VsDyn =
+		    case gb_trees:get(?MAG_INFO,Data) of
+			{_CurPos,VsDyn0} ->
+			    gb_trees:to_list(VsDyn0);	% for the latest painted #we{}
+			VsDyn0 -> VsDyn0	% for #we{} with magnet influence painted
+		    end,
+		{gb_sets:add(Id,MpData0),add_pst(VsDyn,Pst0)};
+	    _ -> {MpData0,Pst0}
+	end,
+    Shs = gb_trees:update(Id,We#we{pst=Pst},Shs0),
+    StPst = gb_trees:enter(?MODULE,MpData,StPst0),
+    {D0#dlo{vs=none,drag=none,sel=none,split=none},St#st{pst=StPst,shapes=Shs}};
 %% update
 end_drag(update, #dlo{src_sel={Mode,Sel}, src_we=#we{id=Id},drag={matrix,_,Matrix,_}}=D,
 	 #st{shapes=Shs0}=St0) ->
@@ -775,15 +897,26 @@ end_drag(_, #dlo{src_we=#we{id=Id},drag={matrix,_,Matrix,_}}=D,
     D1 = D#dlo{src_we=We},
     D2 = wings_draw:changed_we(D1, D),
     {D2#dlo{vs=none,sel=none,drag=none},St};
-end_drag(Mode, #dlo{src_sel={_,_},src_we=#we{id=Id}}=D0, #st{shapes=Shs0}=St0) ->
+end_drag(Mode, #dlo{src_sel={_,_},src_we=#we{id=Id}}=D0, #st{pst=StPst0,shapes=Shs0}=St0) ->
+    %% any information about painted solft selection must be removed from pst's field
+    StPst =
+	case gb_trees:lookup(?MODULE, StPst0) of
+	    {_, MpData0} ->
+		MpData = gb_sets:delete_any(Id,MpData0),
+		case gb_sets:size(MpData) of
+		    0 -> gb_trees:delete(?MODULE, StPst0);
+		    _ -> gb_trees:enter(?MODULE, MpData, StPst0)
+		end;
+	    _ -> StPst0
+	end,
     case Mode of
 	slide ->
 	    case wings_io:is_key_pressed(?SDLK_F1) of
 		false ->
 		    #dlo{src_we=We}=D = wings_draw:join(D0),
-		    Shs = gb_trees:update(Id, We, Shs0),
+		    Shs = gb_trees:update(Id, set_edge_influence([],We), Shs0),
 		    St = St0#st{shapes=Shs},
-		    {D#dlo{vs=none,sel=none,drag=none},St};
+		    {D#dlo{vs=none,sel=none,drag=none},St#st{pst=StPst}};
 		true ->
 		    #dlo{src_we=We} = D = wings_draw:join(D0),
 		    St = case collapse_short_edges(0.0001,We) of
@@ -791,22 +924,43 @@ end_drag(Mode, #dlo{src_sel={_,_},src_we=#we{id=Id}}=D0, #st{shapes=Shs0}=St0) -
 				 Shs = gb_trees:delete(Id,Shs0),
 				 St0#st{shapes=Shs,sel=[]};
 			     {true, We1} ->
-				 Shs = gb_trees:update(Id, We1, Shs0),
+				 Shs = gb_trees:update(Id, set_edge_influence([],We1), Shs0),
 				 St0#st{shapes=Shs};
 			     {false, We1} ->
-				 Shs = gb_trees:update(Id, We1, Shs0),
+				 Shs = gb_trees:update(Id, set_edge_influence([],We1), Shs0),
 				 St0#st{shapes=Shs, sel=[]}
 			 end,
-		    {D#dlo{vs=none,sel=none,drag=none},St}
+		    {D#dlo{vs=none,sel=none,drag=none},St#st{pst=StPst}}
 	    end;
 	_ ->
-	    #dlo{src_we=#we{pst=Pst}=We}=D = wings_draw:join(D0),
-	    We0=We#we{pst=remove_pst(Pst)},
+	    #dlo{src_we=We}=D = wings_draw:join(D0),
+	    We0=set_edge_influence([],We),
 	    Shs = gb_trees:update(Id, We0, Shs0),
-	    St = St0#st{shapes=Shs},
+	    St = St0#st{shapes=Shs,pst=StPst},
 	    {D#dlo{plugins=[],vs=none,sel=none,drag=none,src_we=We0},St}
     end;
-end_drag(_, D, St) -> {D, St}.
+end_drag(_, #dlo{src_we=#we{id=Id}}=D0, #st{shapes=Shs0,pst=StPst0}=St0) ->
+    case gb_trees:lookup(?MODULE, StPst0) of
+	{_, MpData0} ->
+	    %% check if #we{} have painted solft selection and clear pst fields
+	    case gb_sets:is_element(Id,MpData0) of
+		true ->
+		    MpData = gb_sets:delete_any(Id,MpData0),
+		    StPst =
+			case gb_sets:size(MpData) of
+			    0 -> gb_trees:delete(?MODULE, StPst0);
+			    _ -> gb_trees:enter(?MODULE, MpData, StPst0)
+			end,
+
+		    #dlo{src_we=We}=D = wings_draw:join(D0),
+		    We0=set_edge_influence([],We),
+		    Shs = gb_trees:update(Id, We0, Shs0),
+		    St = St0#st{shapes=Shs,pst=StPst},
+		    {D#dlo{plugins=[],vs=none,sel=none,drag=none,src_we=We0},St};
+		false -> {D0, St0}
+	    end;
+	_ -> {D0, St0}
+    end.
 
 %%%
 %%% Do Tweak
@@ -968,7 +1122,7 @@ do_tweak(#dlo{drag=#drag{pos=Pos0,pos0=Orig,pst={Type,Dir,PrimeVec},
 		 end,
     D = D0#dlo{sel=none,drag=Drag#drag{pos=TweakPos,mag=Mag}},
     wings_draw:update_dynamic(D, Vtab);
-do_tweak(#dlo{drag=#drag{vs=Vs,pos=Pos0,mag=Mag0,mm=MM}=Drag,
+do_tweak(#dlo{drag=#drag{vs=Vs,pos=Pos0,mag=#mag{paint=Paint}=Mag0,mm=MM}=Drag,
 	      src_we=#we{id=Id,mirror=Mir}}=D0, DX, DY, _DxOrg, _DyOrg,
 	 {Move,Type}) when Move =:= move; Move =:= move_normal ->
     Matrices = case Mir of
@@ -1000,9 +1154,13 @@ do_tweak(#dlo{drag=#drag{vs=Vs,pos=Pos0,mag=Mag0,mm=MM}=Drag,
 			 Pos = if Rad -> {Px,Ty,Pz}; true -> {Tx,Py,Tz} end,
 			 magnet_tweak(Mag0, Pos);
 		     normal ->
-			 Normal = sel_normal_0(Vs, D0),
+			 Normal =
+			     case Paint of
+				 Value when is_tuple(Value) -> Value;
+				 _ -> sel_normal_0(Vs, D0)
+			     end,
 			 Pos = tweak_along_axis(Rad, Normal, Pos0, TweakPos),
-			 magnet_tweak(Mag0, Pos);
+			 magnet_tweak(Mag0#mag{paint=Normal}, Pos);
 		     default_axis ->
 			 {_,Axis} = wings_pref:get_value(default_axis),
 			 Pos = tweak_along_axis(Rad, Axis, Pos0, TweakPos),
@@ -1017,9 +1175,13 @@ do_tweak(#dlo{drag=#drag{vs=Vs,pos=Pos0,mag=Mag0,mm=MM}=Drag,
 			 magnet_tweak(Mag0, Pos);
 		     screen ->
 			 if Rad; Move =:= move_normal ->
-				 Normal = sel_normal_0(Vs, D0),
+				 Normal =
+				     case Paint of
+					 Value when is_tuple(Value) -> Value;
+					 _ -> sel_normal_0(Vs, D0)
+				     end,
 				 Pos = tweak_along_axis(Rad, Normal, Pos0, TweakPos),
-				 magnet_tweak(Mag0, Pos);
+				 magnet_tweak(Mag0#mag{paint=Normal}, Pos);
 			    true ->
 				 Pos = TweakPos,
 				 magnet_tweak(Mag0, Pos)
@@ -1060,7 +1222,7 @@ do_tweak(D, _, _, _, _, _) -> D.
 
 %%% Scale
 tweak_scale(Dist, {PVec, Point}, #mag{vs=Vs}=Mag) ->
-    Vtab = foldl(fun({V, Pos0, Plane, _, Inf}, A) ->
+    Vtab = lists:foldl(fun({V, Pos0, Plane, _, Inf}, A) ->
 			 D = dist_along_vector(Point, Pos0, PVec),
 			 Pos1 = e3d_vec:add_prod(Pos0, PVec, Inf*D*Dist),
 			 Pos = mirror_constrain(Plane, Pos1),
@@ -1069,7 +1231,7 @@ tweak_scale(Dist, {PVec, Point}, #mag{vs=Vs}=Mag) ->
     {Vtab,Mag#mag{vtab=Vtab}}.
 
 tweak_scale_radial(Dist, {Norm,Point}, #mag{vs=Vs}=Mag) ->
-    Vtab = foldl(fun({V, Pos0, Plane, _, Inf}, A) ->
+    Vtab = lists:foldl(fun({V, Pos0, Plane, _, Inf}, A) ->
 			 V1 = e3d_vec:norm_sub(Point, Pos0),
 			 V2 = e3d_vec:cross(V1,Norm),
 			 Vec = e3d_vec:norm(e3d_vec:cross(V2,Norm)),
@@ -1081,7 +1243,7 @@ tweak_scale_radial(Dist, {Norm,Point}, #mag{vs=Vs}=Mag) ->
     {Vtab,Mag#mag{vtab=Vtab}}.
 
 tweak_scale_uniform(Dist, {_, Point}, #mag{vs=Vs}=Mag) ->
-    Vtab = foldl(fun({V, Pos0, Plane, _, Inf}, A) ->
+    Vtab = lists:foldl(fun({V, Pos0, Plane, _, Inf}, A) ->
 			 Vec = e3d_vec:sub(Point, Pos0),
 			 Pos1 = e3d_vec:add_prod(Pos0, Vec, Inf*Dist),
 			 Pos = mirror_constrain(Plane, Pos1),
@@ -1098,7 +1260,7 @@ dist_along_vector(PosA,PosB,Vector) ->
 
 %%% Relax
 relax_magnet_tweak_fn(#mag{vs=Vs}=Mag,We,Weight) ->
-    Vtab = foldl(fun({V,P0,Plane,_,1.0}, A) ->
+    Vtab = lists:foldl(fun({V,P0,Plane,_,1.0}, A) ->
 			 P1=relax_vec_fn(V,We,P0,Weight),
 			 P = mirror_constrain(Plane, P1),
 			 [{V,P}|A];
@@ -1131,11 +1293,11 @@ collect_neib_verts_coor(V,We)->
     VertList = wings_vertex:fold(fun(_,_,ERec,Acc) ->
 					 [wings_vertex:other(V,ERec)|Acc]
 				 end,[],V,We),
-    foldl(fun(Vert,A) -> [wings_vertex:pos(Vert,We)|A] end,[],VertList).
+    lists:foldl(fun(Vert,A) -> [wings_vertex:pos(Vert,We)|A] end,[],VertList).
 
 %%% Slide
 magnet_tweak_slide_fn(#mag{vs=Vs}=Mag, We,Orig,TweakPos) ->
-    Vtab = foldl(fun({V,P0,Plane,_,Inf}, A) ->
+    Vtab = lists:foldl(fun({V,P0,Plane,_,Inf}, A) ->
 			 P1=slide_vec_w(V,P0,Orig,TweakPos,We,Inf,Vs),
 			 P = mirror_constrain(Plane, P1),
 			 [{V,P}|A]
@@ -1153,7 +1315,7 @@ slide_vec_w(V, Vpos, VposS, TweakPosS, We, W,Vs) ->
 
 slide_one_vec(Vpos, TweakPos, PosList) ->
     Dpos=e3d_vec:sub(TweakPos,Vpos),
-    {Dp,_} = foldl(fun
+    {Dp,_} = lists:foldl(fun
 		       ({0.0,0.0,0.0},VPW) -> VPW;
 		       (Vec, {VP,W}) ->
 			  Vn = e3d_vec:norm(Vec),
@@ -1172,17 +1334,17 @@ slide_one_vec(Vpos, TweakPos, PosList) ->
     e3d_vec:add(Vpos,Dp).
 
 sub_pos_from_list(List,Pos) ->
-    foldl(fun
+    lists:foldl(fun
 	      (E,B) -> [e3d_vec:sub(E,Pos)|B] end,[],List).
 
 collect_neib_verts_coor_vs(V,We,Vs)->
     VertList = wings_vertex:fold(fun(_,_,ERec,Acc) ->
 					 [wings_vertex:other(V,ERec)|Acc]
 				 end,[],V,We),
-    foldl(fun(E,B) -> [get_orig_pos(E,We,Vs)|B] end,[],VertList).
+    lists:foldl(fun(E,B) -> [get_orig_pos(E,We,Vs)|B] end,[],VertList).
 
 get_orig_pos(V,We,Vs)->
-    Pos=foldl(
+    Pos=lists:foldl(
 	  fun({Vert,Coor,_,_,_},P) ->
 		  if V =:= Vert -> Coor; true-> P end
 	  end,none,Vs),
@@ -1298,7 +1460,7 @@ vertex_pos(V, Vtab, OrigVtab) ->
 
 magnet_tweak(#mag{orig=Orig,vs=Vs}=Mag, Pos) ->
     Vec = e3d_vec:sub(Pos, Orig),
-    Vtab = foldl(fun({V,P0,Plane,_,1.0}, A) ->
+    Vtab = lists:foldl(fun({V,P0,Plane,_,1.0}, A) ->
 			 P1 = e3d_vec:add(P0, Vec),
 			 P = mirror_constrain(Plane, P1),
 			 [{V,P}|A];
@@ -1364,14 +1526,14 @@ point_center(face, F, We) ->
 setup_magnet(#tweak{mode=TwkMode, cx=X, cy=Y}=T)
   when TwkMode =:= scale;  TwkMode =:= scale_uniform; TwkMode =:= move_normal; TwkMode =:= move ->
     wings_dl:map(fun(D, _) ->
-			 setup_magnet_fun(D, T)
+		     setup_magnet_fun(D, T)
 		 end, []),
     Mode = actual_mode(TwkMode),
     do_tweak_0(0, 0, X, Y, Mode),
     T;
 setup_magnet(#tweak{mode=Mode, cx=X, cy=Y}=T) ->
     wings_dl:map(fun(D, _) ->
-			 setup_magnet_fun(D, T)
+		     setup_magnet_fun(D, T)
 		 end, []),
     do_tweak_0(0, 0, X, Y, Mode),
     T.
@@ -1381,45 +1543,342 @@ setup_magnet_fun(#dlo{src_sel={_,_},drag=#drag{vs=Vs0,pos0=Center}=Drag}=Dl0,
     We = wings_draw:original_we(Dl0),
     {Vs,Mag,VsDyn} = begin_magnet(T, Vs0, Center, We),
     #dlo{src_we=We0} = Dl = wings_draw:split(Dl0, Vs, St),
-    NewPst = set_edge_influence(Vs,VsDyn,We0),
-    Dl#dlo{src_we=We0#we{pst=NewPst},drag=Drag#drag{mag=Mag}};
+    W1 = set_edge_influence(VsDyn,We0),
+    Dl#dlo{src_we=W1,drag=Drag#drag{mag=Mag}};
 setup_magnet_fun(Dl, _) -> Dl.
 
-begin_magnet(#tweak{magnet=false}=T, Vs, Center, We) ->
+begin_magnet(#tweak{magnet=false}=T, Vs0, Center, We) ->
     Mirror = mirror_info(We),
-    Near = near(Center, Vs, [], Mirror, T, We),
-    Mag = #mag{orig=Center,vs=Near},
-    {[Va || {Va,_,_,_,_} <- Near],Mag,[]};
-begin_magnet(#tweak{magnet=true}=T, Vs, Center, #we{vp=Vtab0}=We) ->
+    {Vs,Near} = near(Center, Vs0, [], Mirror, T, We),
+    Magnet = #mag{orig=Center,vs=Near},
+    {Vs,Magnet,[]};
+begin_magnet(#tweak{magnet=true}=T, Vs0, Center, #we{vp=Vtab0}=We) ->
     Mirror = mirror_info(We),
     Vtab1 = sofs:from_external(array:sparse_to_orddict(Vtab0), [{vertex,info}]),
-    Vtab2 = sofs:drestriction(Vtab1, sofs:set(Vs, [vertex])),
+    Vtab2 = sofs:drestriction(Vtab1, sofs:set(Vs0, [vertex])),
     Vtab = sofs:to_external(Vtab2),
-    Near = near(Center, Vs, Vtab, Mirror, T, We),
-    Mag = #mag{orig=Center,vs=Near},
-    {[Va || {Va,_,_,_,_} <- Near],Mag,[{Va,Inf} || {Va,_,_,_,Inf} <- Near]}.
+    {Vs, Near} = near(Center, Vs0, Vtab, Mirror, T, We),
+    Magnet = #mag{orig=Center,vs=Near},
+    VsDyn = [{Va,Inf} || {Va,_,_,_,Inf} <- Near],
+    {Vs,Magnet,VsDyn}.
 
-near(Center, Vs, MagVs0, Mirror, #tweak{mag_rad=R,mag_type=Type}, We) ->
+near(Center, Vs0, MagVs0, Mirror, #tweak{mag_rad=R,mag_type=Type}, We) ->
     RSqr = R*R,
     MagVs = minus_locked_vs(MagVs0, We),
-    M = foldl(fun({V,Pos}, A) ->
+    M = lists:foldl(fun({V,Pos}, {Vs,A}=Acc) ->
 		      case e3d_vec:dist_sqr(Pos, Center) of
 			  DSqr when DSqr =< RSqr ->
 			      D = math:sqrt(DSqr),
 			      Inf = magnet_type_calc(Type, D, R),
 			      Matrix = mirror_matrix(V, Mirror),
-			      [{V,Pos,Matrix,D,Inf}|A];
-			  _ -> A
+			      {[V|Vs],[{V,Pos,Matrix,D,Inf}|A]};
+			  _ -> Acc
 		      end;
 		 (_, A) -> A
-	      end, [], MagVs),
-    foldl(fun(V, A) ->
+	      end, {[],[]}, MagVs),
+    lists:foldl(fun(V, {Vs,A}) ->
 		  Matrix = mirror_matrix(V, Mirror),
 		  Pos = wpa:vertex_pos(V, We),
-		  [{V,Pos,Matrix,0.0,1.0}|A]
-          end, M, Vs).
+		  {[V|Vs],[{V,Pos,Matrix,0.0,1.0}|A]}
+          end, M, Vs0).
+
+%%%
+%%% Paint Routines
+%%%
+
+%%% obs: #we{pst} isn't persistent for regular Tweak commands. If it exists when
+%%%      a tweak command starts then there is a soft selection painted.
+
+end_paint(#tweak{mode=Mode,id={_,{OrigId,_}},cx=X,cy=Y,st=St0}=_T) ->
+    St = wings_dl:map(fun (#dlo{src_we=#we{id=Id}}=D, St1) ->
+			    if OrigId =:= Id ->
+				wings_wm:release_focus(),
+				wings_io:ungrab(X,Y);
+			    true -> ignore
+			    end,
+			    end_drag(Mode, D, St1)
+		      end, St0),
+    wings_wm:later({new_state,St}),
+    pop.
+
+do_paint(X, Y, #tweak{id={Action,{Id,_}},magnet=true,mag_type=MagType,
+		      mag_rad=MagR,pnt_route=PaintRoute,st=#st{shapes=Shs0}=St0}=T) ->
+    case wings_pick:raw_pick(X, Y, St0#st{selmode=face,sel=[],sh=false}) of
+	{_,MM,{Id,Face}} ->
+	    #we{pst=Pst} = We = gb_trees:get(Id,Shs0),
+	    {Normal,_,Center} = point_center(face,Face,We),
+	    CurPos = scr2d_to_pnt3d(X,Y,Id,MM,Center,Normal), % current vertex (cursor pos)
+	    VsDynOld = get_paint_info(Pst),
+	    VsDyn = do_paint(Action,{MagType,MagR},{PaintRoute,Face},Center,We,VsDynOld),
+	    NewPst = add_pst({CurPos,VsDyn},Pst),
+	    Shs = gb_trees:update(Id,We#we{pst=NewPst},Shs0),
+	    St = St0#st{sel=[],shapes=Shs},
+	    wings_draw:refresh_dlists(St),
+	    T#tweak{st=St,ox=X,oy=Y,cx=X,cy=Y};
+	_ -> keep
+    end;
+do_paint(_, _, _) -> keep.
+
+do_paint(Action, {Type,Rad}, {PaintRoute,F}, Center, We, VsDynOld) ->
+    Vtab = minus_locked_vs(We),
+    {_,VsDynNew0} = Sel = near(Action,{Type,Rad},Center,Vtab),
+    VsDynNew =
+	case PaintRoute of
+	    surface when F=/=none -> validate_surface(F,Sel,We);
+	    _ -> VsDynNew0
+	end,
+    case Action of
+	add -> paint(VsDynOld, VsDynNew);
+	delete -> erase(VsDynOld, VsDynNew)
+    end.
+
+near(Action, {Type,Rad}, Center, Vtab) ->
+    RSqr = Rad*Rad,
+    array:sparse_foldr(fun(V, Pos, {VAcc,Acc}) ->
+			    Dist = e3d_vec:dist_sqr(Pos,Center),
+			    if Dist =< RSqr ->
+				D0 = math:sqrt(Dist),
+				D =
+				    case Action of
+					add -> D0;
+					delete -> Rad-D0
+				    end,
+				Inf = magnet_type_calc(Type,D,Rad),
+				{[V|VAcc],[{V,Inf}|Acc]};
+			    true -> {VAcc,Acc}
+			    end
+		       end,{[],[]},Vtab).
+
+paint(OldVsDyn, NewVsDyn) ->
+    lists:foldl(fun({V,Inf}, Acc) ->
+		    case gb_trees:lookup(V,Acc) of
+			{value, OldInf} ->
+			    gb_trees:enter(V,max(Inf, OldInf),Acc);
+			_ -> gb_trees:insert(V,Inf,Acc)
+		    end
+		end, OldVsDyn, NewVsDyn).
+
+erase(OldVsDyn, NewVsDyn) ->
+    lists:foldl(fun({V,Inf0}, Acc) ->
+		    case gb_trees:lookup(V,Acc) of
+			{value, OldInf} ->
+			    Inf = Inf0*OldInf,
+			    if (Inf =< 0.00001) ->
+				gb_trees:delete(V,Acc);
+			    true ->
+				gb_trees:enter(V,Inf,Acc)
+			    end;
+			_ -> Acc
+		    end
+		end,OldVsDyn,NewVsDyn).
+
+validate_surface(F,{Vs,VsDynNew0}, We) ->
+    FVs = wings_face:to_vertices([F],We),
+    Fs = wings_face:from_vs(Vs,We),
+    Fr = wings_sel:face_regions(Fs,We),
+    case length(Fr) of
+	0 -> VsDynNew0;
+	_ ->
+	    R = take_valid(FVs,Fr,We,[]),
+	    lists:foldl(fun({V,_}=Vinf, Acc) ->
+			    case ordsets:is_element(V,R) of
+				true -> [Vinf|Acc];
+				false -> Acc
+			    end
+			end, [],VsDynNew0)
+    end.
+
+take_valid(_, [], _, Acc) -> Acc;
+take_valid(FVs, [R|Rg], We, Acc) ->
+    RVs = wings_face:to_vertices(R,We),
+    case take_valid_0(FVs,RVs) of
+	none -> take_valid(FVs,Rg,We,Acc);
+	Vs -> Vs
+    end.
+take_valid_0([], _) -> none;
+take_valid_0([V|FVs], RVs) ->
+    case ordsets:is_element(V,RVs) of
+	true -> RVs;
+	_ -> take_valid_0(FVs, RVs)
+    end.
+
+get_paint_info(Pst) ->
+    case gb_trees:lookup(?MODULE, Pst) of
+	{_, Data} ->
+	    case gb_trees:get(?MAG_INFO,Data) of
+		none -> [];
+		{_CurPos,VsDyn} -> VsDyn;
+		VsDyn -> gb_trees:from_orddict(VsDyn)
+	    end;
+	_ -> gb_trees:empty()
+    end.
+
+%% It computes the 3d position for a point by projecting 2d screen
+%% coordenate on the plane defined by the vertice (V) and its normal (Vn)
+%% using the current space transformation. (used by Sculpt Brush code)
+scr2d_to_pnt3d(X0, Y0, Id, MM, V, Vn) ->
+    {MV,PM,{_,_,W,H}} = wings_u:get_matrices(Id, MM),
+    PMi = e3d_mat:invert(e3d_mat:mul(PM, MV)),
+
+    Wc=trunc((W+1)/2),
+    Hc=trunc((H+1)/2),
+    X=(X0-Wc)/Wc,
+    Y=((H-Y0+1)-Hc)/Hc,
+
+    {Xa,Ya,Za,Sa}=e3d_mat:mul(PMi,{X,Y,-1.0,1.0}),
+    PosA=e3d_vec:mul({Xa,Ya,Za},1.0/Sa),
+    {Xb,Yb,Zb,Sb}=e3d_mat:mul(PMi,{X,Y,0.0,1.0}),
+    PosB=e3d_vec:mul({Xb,Yb,Zb},1.0/Sb),
+    Dir=e3d_vec:norm(e3d_vec:sub(PosB,PosA)),
+    case e3d_vec:dot(Dir,Vn) of
+	0.0 ->
+	    Intersection = e3d_vec:dot(e3d_vec:sub(V,PosB), Vn),
+	    e3d_vec:add(PosB, e3d_vec:mul(Vn, Intersection));
+	Dot ->
+	    Intersection = e3d_vec:dot(e3d_vec:sub(V,PosB), Vn) / Dot,
+	    e3d_vec:add(PosB, e3d_vec:mul(Dir, Intersection))
+    end.
+
+paint_from_selection(#st{selmode=body}=St) -> St;
+paint_from_selection(#st{sel=[]}=St) -> St;
+paint_from_selection(#st{selmode=Mode,pst=StPst0,shapes=Shs0}=St) ->
+    MpData0 =
+	case gb_trees:lookup(?MODULE, StPst0) of
+	    {_, MpData1} -> MpData1;
+	    _ -> gb_sets:empty()
+	end,
+    {_,MagType,MagR} = wings_pref:get_value(tweak_magnet),
+    PaintRoute = wings_pref:get_value(tweak_paint),
+    {MpData,Shs} =
+    	wings_sel:fold(
+	    fun(Elems, #we{id=Id,vp=Vtab,pst=Pst0}=We, {PAcc,SAcc}) ->
+		Path0 =
+		    case Mode of
+			face ->
+			    Borders = wings_face:outer_edges(Elems, We),
+			    wings_edge:to_vertices(Borders, We);
+			edge ->
+			    wings_edge:to_vertices(Elems, We);
+			_ ->
+			    gb_sets:to_list(Elems)
+		    end,
+		Path = [array:get(V, Vtab) || V <- Path0],
+		OldVsDyn = get_paint_info(Pst0),
+		VsDyn1 =
+		    lists:foldl(fun(V, Acc0)->
+				    do_paint(add,{MagType,MagR},{PaintRoute,none},V,We,Acc0)
+				end,OldVsDyn,Path),
+		Sel = wings_sel:to_vertices(Mode,Elems,We),
+		VsDyn0 =
+		    lists:foldl(fun(V, Acc1)->
+				    gb_trees:enter(V,1.0,Acc1)
+			       end,VsDyn1,Sel),
+		VsDyn = gb_trees:to_list(VsDyn0),
+		Pst = add_pst(VsDyn,Pst0),
+		{gb_sets:add(Id,PAcc),gb_trees:update(Id,We#we{pst=Pst},SAcc)}
+	    end, {MpData0,Shs0}, St),
+    StPst = gb_trees:enter(?MODULE,MpData,StPst0),
+    St0 = St#st{pst=StPst,sel=[],shapes=Shs},
+    wings_wm:later({new_state,St0}),
+    wings_wm:dirty(),
+    wings_draw:refresh_dlists(St0),
+    keep.
+
+paint_from_weightmap(#st{selmode=Mode,pst=StPst0,shapes=Shs0}=St) ->
+    MpData0 =
+	case gb_trees:lookup(?MODULE, StPst0) of
+	    {_, MpData1} -> MpData1;
+	    _ -> gb_sets:empty()
+	end,
+    {MpData,Shs} =
+	wings_sel:fold(
+	    fun(Elems, #we{id=Id,pst=Pst0}=We0, {PAcc,SAcc}) ->
+		WeightVs =
+		    case Mode of
+			face ->
+			    wings_face:to_vertices(Elems, We0);
+			edge ->
+			    wings_edge:to_vertices(Elems, We0);
+			_ ->
+			    Elems
+		    end,
+		HasUV = wings_va:any_uvs(We0),
+		if HasUV ->
+		    % applying temporary texture color to vertices
+		    We = wings_we:uv_to_color(We0, St),
+		    % preparing vertex influence data for painting
+		    NewVsDyn =
+			lists:foldl(fun(V,Acc) ->
+					Va = wings_va:vtx_attrs(V,We),
+			    		[{V,color_to_weight(Va)}|Acc]
+				    end,[],WeightVs),
+		    OldVsDyn = get_paint_info(Pst0),
+		    VsDyn0 = paint(OldVsDyn, NewVsDyn),
+		    VsDyn = gb_trees:to_list(VsDyn0),
+		    Pst = add_pst(VsDyn,Pst0),
+		    {gb_sets:add(Id,PAcc),gb_trees:update(Id,We0#we{pst=Pst},SAcc)};
+		true ->
+		    {PAcc,SAcc}
+		end
+	    end, {MpData0,Shs0}, St),
+    StPst = gb_trees:enter(?MODULE,MpData,StPst0),
+    St0 = St#st{pst=StPst,sel=[],shapes=Shs},
+    wings_wm:later({new_state,St0}),
+    wings_wm:dirty(),
+    wings_draw:refresh_dlists(St0),
+    keep.
+
+color_to_weight([_Col|none]) -> 0.0;
+color_to_weight([Col|_UV]) -> rgb_to_weight(Col).
+
+rgb_to_weight({R,G,B,A}) ->
+    rgb_to_weight({R,G,B})*A;
+rgb_to_weight({V,V,V}) -> V;
+rgb_to_weight({R,0.0,B}) when R > 0.0 ->  % force the range to 0..240 (?MAX_WEIGHT_VALUE)
+    rgb_to_weight({0.0,0.0,B});
+rgb_to_weight({R,G,B}) ->
+    {Hue,_,_}=wings_color:rgb_to_hsv(R,G,B),
+    max(0.0,?MAX_WEIGHT_VALUE-Hue)/?MAX_WEIGHT_VALUE.
+
+%%% Used by paint soft selection routine
+%%% It rebuilds the magnet data from the dynamic vertices stored in #we{pst}
+rebuild_magnet(We) ->
+    #we{pst=Pst}=We,
+    Mirror = mirror_info(We),
+    {_, MgInfo} = gb_trees:lookup(?MODULE, Pst),
+    VsDyn = gb_trees:get(?MAG_INFO,MgInfo),
+    {Vs, Near} =
+	lists:foldr(fun({V,Inf}, {VsAcc,NearAcc}) ->
+			Matrix = mirror_matrix(V, Mirror),
+			Pos = wpa:vertex_pos(V, We),
+			{[V|VsAcc],[{V,Pos,Matrix,1.0,Inf}|NearAcc]}
+		    end, {[],[]}, VsDyn),
+    Center = wings_vertex:center(Vs, We),
+    Magnet = #mag{orig=Center,vs=Near,paint=true},
+    {Vs,Magnet,VsDyn,Center}.
+
+set_paint_route(PaintRout) ->
+    wings_pref:set_value(tweak_paint,PaintRout).
+
+
+%%%
+%%%  End Paint routines
+%%%
 
 %%% Magnet Mask
+minus_locked_vs(#we{vp=Vtab,pst=Pst}) ->	% used by paint routine
+    Mask = wings_pref:get_value(magnet_mask_on),
+    case gb_trees:is_defined(wpc_magnet_mask,Pst) of
+	true when Mask ->
+	    LockedVs = wpc_magnet_mask:get_locked_vs(Pst),
+	    array:sparse_foldl(fun(V,P,Acc)->
+			    case gb_sets:is_element(V,LockedVs) of
+				true -> Acc;
+				false -> array:set(V,P,Acc)
+			    end
+			 end,array:new(),Vtab);
+	_otherwise -> Vtab
+    end.
 minus_locked_vs(MagVs, #we{pst=Pst}) ->
     Mask = wings_pref:get_value(magnet_mask_on),
     case gb_trees:is_defined(wpc_magnet_mask,Pst) of
@@ -1481,7 +1940,7 @@ mirror_info(#we{mirror=Face}=We) ->
     {FaceVs,Flatten}.
 
 mirror_matrix(V, {MirrorVs,Flatten}) ->
-    case member(V, MirrorVs) of
+    case lists:member(V, MirrorVs) of
 	false -> identity;
 	true -> Flatten
     end.
@@ -1519,7 +1978,7 @@ toggle_data(Axis) ->
 	    if Which -> Txyz; true -> Ta end
     end.
 
-is_tweak_hotkey({tweak,Cmd}, #tweak{magnet=Magnet,sym=Sym,st=St0}=T0) ->
+is_tweak_hotkey({tweak,Cmd}, #tweak{magnet=Magnet,sym=Sym,st=#st{pst=StPst,shapes=Shp}=St0}=T0) ->
     case Cmd of
 	{axis_constraint, Axis} ->
 	    ReturnAxis = toggle_data(Axis),
@@ -1540,7 +1999,8 @@ is_tweak_hotkey({tweak,Cmd}, #tweak{magnet=Magnet,sym=Sym,st=St0}=T0) ->
 	{tweak_magnet, toggle_magnet} ->
 	    toggle_magnet(),
 	    {Mag, MagType, _} = wings_pref:get_value(tweak_magnet),
-	    T = T0#tweak{magnet=Mag, mag_type=MagType},
+	    T = T0#tweak{magnet=Mag, mag_type=MagType,
+			 st=St0#st{pst=remove_pst(StPst),shapes=hide_mag_paint(Shp)}},
 	    wings_wm:send({tweak,tweak_magnet}, update_palette),
 	    tweak_magnet_help(),
 	    setup_magnet(T),
@@ -1559,6 +2019,11 @@ is_tweak_hotkey({tweak,Cmd}, #tweak{magnet=Magnet,sym=Sym,st=St0}=T0) ->
 	    tweak_magnet_help(),
 	    setup_magnet(T),
 	    update_tweak_handler(T);
+	{tweak_magnet, PaintRoute} when PaintRoute =:= shortest; PaintRoute =:= surface ->
+	    set_paint_route(PaintRoute),
+	    T = T0#tweak{magnet=true, pnt_route=PaintRoute},
+	    tweak_magnet_help(),
+	    update_tweak_handler(T);
 	{tweak_magnet, MagType} ->
 	    set_magnet_type(MagType),
 	    T = T0#tweak{magnet=true, mag_type=MagType},
@@ -1566,8 +2031,11 @@ is_tweak_hotkey({tweak,Cmd}, #tweak{magnet=Magnet,sym=Sym,st=St0}=T0) ->
 	    tweak_magnet_help(),
 	    setup_magnet(T),
 	    update_tweak_handler(T);
+	{clear_paint,_} ->
+	    update_tweak_handler(T0#tweak{st=St0#st{pst=remove_pst(StPst),shapes=hide_mag_paint(Shp)}});
 	{Mode,1} when Mode =:= move; Mode =:= move_normal; Mode =:= slide;
-		      Mode =:= scale; Mode =:= scale_uniform; Mode =:= relax ->
+		      Mode =:= scale; Mode =:= scale_uniform; Mode =:= relax;
+		      Mode =:= paint; Mode =:= erase ->
 	    set_tweak_pref(Mode, 1, {false, false, false}),
 	    wings_wm:send({tweak,tweak_palette}, update_palette),
 	    is_tweak_combo(T0);
@@ -1618,8 +2086,8 @@ update_drag(#dlo{src_sel={Mode,Els},src_we=#we{id=Id},drag=#drag{mm=MM}}=D0,
     Center = wings_vertex:center(Vs0, We),
     {Vs,Magnet,VsDyn} = begin_magnet(T#tweak{st=St}, Vs0, Center, We),
     #dlo{src_we=We0}= D = wings_draw:split(D1, Vs, St),
-    NewPst = set_edge_influence(Vs,VsDyn,We0),
-    {D#dlo{src_we=We0#we{pst=NewPst},drag=#drag{vs=Vs0,pos0=Center,pos=Center,mag=Magnet,mm=MM}},St};
+    W1 = set_edge_influence(VsDyn,We0),
+    {D#dlo{src_we=W1,drag=#drag{vs=Vs0,pos0=Center,pos=Center,mag=Magnet,mm=MM}},St};
 update_drag(D,#tweak{st=St}) -> {D,St}.
 
 %%%
@@ -1703,11 +2171,25 @@ menu() ->
 		 false -> ?__(2,"Enable Tweak");
 		 true -> ?__(3,"Disable Tweak")
 	     end,
+    PaintOpt =
+	[separator,
+	 tweak_menu_item(paint,
+			?__(15,"Paint soft selections using the current magnet settings.")),
+	 {?__(16,"Paint from selection"), paint_from_sel,
+			?__(17,"Paint soft selection from the current selection.")},
+	 {?__(18,"Paint from weight map"), paint_from_map,
+			?__(19,"Paint soft selection from a weight map from the current selection.")},
+
+	 tweak_menu_item(erase,
+			?__(20,"Erase the painted soft selection using the current magnet.")),
+	 {?__(21,"Clear painting"), clear_paint,
+			?__(22,"Remove the painted soft selection.")}],
     [{Toggle,toggle_tweak,ToggleHelp},
      separator,
      {?__(4,"Magnets"),{tweak_magnet, tweak_magnet_menu()}},
-     {?__(5,"Axis Constraints"),{axis_constraint, constraints_menu()}},
-     separator,
+     {?__(5,"Axis Constraints"),{axis_constraint, constraints_menu()}}] ++
+    PaintOpt ++
+    [separator,
      tweak_menu_item(move,
 		     ?__(6,"Move selection relative to screen, or constrained to an axis.")),
      tweak_menu_item(move_normal,
@@ -1753,6 +2235,10 @@ mode(relax) ->
     ?__(5,"Relax");
 mode(slide) ->
     ?__(6,"Slide");
+mode(paint) ->
+    ?__(7,"Paint");
+mode(erase) ->
+    ?__(8,"Erase");
 mode(_) ->
     init().
 
@@ -1821,6 +2307,7 @@ constraints_menu() ->
 
 tweak_magnet_menu() ->
     {Mag, MagType, _} = wings_pref:get_value(tweak_magnet),
+    PaintRoute = wings_pref:get_value(tweak_paint),
     Help = ?__(3,"Tweak magnets are similar to 'soft selection'."),
     Toggle = if
 		 Mag  -> ?__(1,"Disable Magnet");
@@ -1837,10 +2324,15 @@ tweak_magnet_menu() ->
                 crossmark({straight, MagType})},
     Spike = {magnet_type(spike), spike, mag_thelp(spike),
 	     crossmark({spike, MagType})},
+    Shortest = {mag_route(shortest), shortest, mag_thelp(shortest),
+		crossmark({shortest, PaintRoute})},
+    Surface = {mag_route(surface), surface, mag_thelp(surface),
+	       crossmark({surface, PaintRoute})},
     [{Toggle, toggle_magnet, Help}, separator,
      Dome, Straight, Spike, separator,
      Reset, separator,
-     Cycle, MagAdj].
+     Cycle, MagAdj, separator,
+     Shortest, Surface].
 
 magnet_type(dome) -> ?__(1,"Dome");
 magnet_type(straight) -> ?__(2,"Straight");
@@ -1848,7 +2340,13 @@ magnet_type(spike) -> ?__(3,"Spike").
 
 mag_thelp(dome) -> ?__(1,"This magnet pulls and pushes geometry with an even and rounded effect.");
 mag_thelp(straight) -> ?__(2,"This magnet pulls and pushes geometry with a straight effect.");
-mag_thelp(spike) -> ?__(3,"This magnet pulls and pushes geometry out to a sharp point.").
+mag_thelp(spike) -> ?__(3,"This magnet pulls and pushes geometry out to a sharp point.");
+mag_thelp(shortest) -> ?__(4,"The distance route will be computed by the shortest vertex distance (Paint mode only).");
+mag_thelp(surface) -> ?__(5,"The distance route will be computed along the surface (Paint mode only).").
+
+
+mag_route(shortest) -> ?__(1,"Distance route - Shortest");
+mag_route(surface) -> ?__(2,"Distance route - Surface").
 
 cycle_magnet() ->
     {MagBool,MagType,_} = wings_pref:get_value(tweak_magnet),
@@ -1870,7 +2368,7 @@ crossmark(_) -> [{crossmark, true}].
 %%% Tweak Commands
 %%%
 
-command(toggle_tweak, St) ->
+command(toggle_tweak, #st{shapes=Shp0}=St) ->
     Pref = wings_pref:get_value(tweak_active),
     wings_pref:set_value(tweak_active, not Pref),
     wings_wm:send({tweak,tweak_palette}, update_palette),
@@ -1878,15 +2376,16 @@ command(toggle_tweak, St) ->
 	true -> wings:info_line();
 	false -> ok
     end,
-    St;
-command({tweak_magnet,toggle_magnet}, St) ->
+    Shp = hide_mag_paint(Shp0),
+    St#st{shapes=Shp};
+command({tweak_magnet,toggle_magnet}, #st{pst=StPst,shapes=Shp}=St) ->
     toggle_magnet(),
     case wings_wm:is_geom() of
 	true -> wings:info_line();
 	false -> ok
     end,
     wings_wm:send({tweak,tweak_magnet}, update_palette),
-    St;
+    St#st{pst=remove_pst(StPst),shapes=hide_mag_paint(Shp)};
 command({tweak_magnet,reset_radius}, St) ->
     Pref = wings_pref:get_value(tweak_magnet),
     wings_pref:set_value(tweak_magnet,setelement(3,Pref,1.0)),
@@ -1901,6 +2400,14 @@ command({tweak_magnet,cycle_magnet}, St) ->
     end,
     St;
 command({tweak_magnet,mag_adjust}, St) ->
+    St;
+command({tweak_magnet,PaintRoute}, St) when PaintRoute =:= shortest; PaintRoute =:= surface ->
+    set_paint_route(PaintRoute),
+    wings_wm:send({tweak,tweak_magnet},update_palette),
+    case wings_wm:is_geom() of
+	true -> wings:info_line();
+	false -> ok
+    end,
     St;
 command({tweak_magnet,MagType}, St) ->
     set_magnet_type(MagType),
@@ -1929,13 +2436,26 @@ command({Mode,B}, St) when B =< 3->
     set_tweak_pref(Mode, B, {Ctrl, Shift, Alt}),
     wings_wm:send({tweak,tweak_palette},update_palette),
     St;
+command(clear_paint, #st{pst=StPst,shapes=Shp0}=St) ->
+    Shp = clear_mag_paint(Shp0),
+    St#st{pst=remove_pst(StPst),shapes=Shp};
+command(paint_from_sel, St) ->
+    {Mag,_,_} = wings_pref:get_value(tweak_magnet),
+    if Mag -> paint_from_selection(St);
+    true -> St
+    end;
+command(paint_from_map, St) ->
+    {Mag,_,_} = wings_pref:get_value(tweak_magnet),
+    if Mag -> paint_from_weightmap(St);
+	true -> St
+    end;
 command(Mode, St) when Mode =:= move; Mode =:= move_normal; Mode =:= scale;
-		       Mode =:= scale_uniform; Mode =:= slide; Mode =:= relax ->
+		       Mode =:= scale_uniform; Mode =:= slide; Mode =:= relax;
+		       Mode =:= paint; Mode =:= erase ->
     set_tweak_pref(Mode, 1, {false, false, false}),
     wings_wm:send({tweak,tweak_palette},update_palette),
     St;
 command(_What,_) ->
-    io:format("Skipping ~p~n",[_What]),
     next.
 
 %%%
@@ -2342,18 +2862,12 @@ tweak_magnet_radius_help(false) ->
 
 %% This function will clean the vertices influence information when the list is empty or
 %% it will add the vertices influence information to Pst field of the we#
-set_edge_influence([],_,#we{pst=Pst}) ->
-    remove_pst(Pst);
-set_edge_influence(Vs,VsDyn,#we{pst=Pst,es=Etab}=We) ->
+set_edge_influence([],#we{pst=Pst}=We) ->
+    We#we{pst=remove_pst(Pst)};
+set_edge_influence(VsDyn,#we{pst=Pst}=We) ->
     case wings_pref:get_value(tweak_magnet_influence) of
-	true ->
-	    ColFrom = col_to_vec(wings_pref:get_value(edge_color)),
-	    ColTo = col_to_vec(wings_pref:get_value(tweak_magnet_color)),
-	    Edges = wings_edge:from_vs(Vs,We),
-	    EdDyn = to_edges_raw({ColFrom,ColTo},Edges,VsDyn,Etab),
-	    add_pst(EdDyn,Pst);
-	_ ->
-	    Pst
+	true -> We#we{pst=add_pst(VsDyn,Pst)};
+	_ -> We
     end.
 
 %% It adds the plugin functionality
@@ -2361,10 +2875,10 @@ add_pst(InfData,Pst) ->
     case gb_trees:lookup(?MODULE, Pst) of
 	none ->
 	    Data = gb_trees:empty(),
-	    NewData = gb_trees:insert(edge_info,InfData,Data),
+	    NewData = gb_trees:insert(?MAG_INFO,InfData,Data),
 	    gb_trees:insert(?MODULE,NewData,Pst);
 	{_,Data} ->
-	    NewData = gb_trees:enter(edge_info,InfData,Data),
+	    NewData = gb_trees:enter(?MAG_INFO,InfData,Data),
 	    gb_trees:update(?MODULE,NewData,Pst)
     end.
 
@@ -2373,93 +2887,94 @@ remove_pst(none) -> none;
 remove_pst(Pst) ->
     gb_trees:delete_any(?MODULE,Pst).
 
-%%%
-%%% Functions of general purpose
-%%%
-to_edges_raw(_, [], _ , _) -> {[],<<>>};
-to_edges_raw(_, _, [] , _) -> {[],<<>>};
-to_edges_raw({ColFrom,ColTo}, Edges, VsDyn, Etab) ->
-    ColRange=e3d_vec:sub(ColTo,ColFrom),
-    to_edges_raw_1(Edges, ColFrom, ColRange, VsDyn, Etab, {[],<<>>}).
-
-to_edges_raw_1([], _, _, _, _, Acc) -> Acc;
-to_edges_raw_1([Edge|Edges], Col, Range, VsDyn, Etab, {VAcc,ClBin0}) ->
-    #edge{vs=Va0,ve=Vb0} = array:get(Edge, Etab),
-    Infa = get_vs_influence(Va0,VsDyn),
-    Infb = get_vs_influence(Vb0,VsDyn),
-    {R1,G1,B1} = color_gradient(Col,Range,Infa),
-    {R2,G2,B2} = color_gradient(Col,Range,Infb),
-    ClBin = <<R1:?F32,G1:?F32,B1:?F32,R2:?F32,G2:?F32,B2:?F32,ClBin0/binary>>,
-    VsPair={Va0,Vb0},
-    to_edges_raw_1(Edges, Col, Range, VsDyn, Etab, {[VsPair|VAcc],ClBin}).
-
-get_vs_influence(V, VsDyn) ->
-    case lists:keysearch(V, 1, VsDyn) of
-        false -> 0.0;
-        {_, {_,Value}} -> Value
+hide_mag_paint(Shapes) ->
+    TweakActive = wings_pref:get_value(tweak_active),
+    {MagActive, _, _} = wings_pref:get_value(tweak_magnet),
+    case MagActive and TweakActive of
+	false -> clear_mag_paint(Shapes);
+	true ->  Shapes
     end.
 
+clear_mag_paint(none) -> none;
+clear_mag_paint(Shapes) ->
+    gb_trees:map(fun(_, #we{pst=Pst}=We0)->
+		    case gb_trees:lookup(?MODULE, Pst) of
+			none -> We0;
+			_ -> We0#we{pst=remove_pst(Pst)}
+		    end
+		 end, Shapes).
 %%%
 %%% Functions to produce the visual effect (inspired by wpc_magnet_mask)
 %%%
-
-update_dlist({edge_info,{EdList,ClBin}},
-	     #dlo{plugins=Pdl,src_we=#we{vp=Vtab}}=D, _) ->
+%% tweak actions - dynamic vertices
+update_dlist({?MAG_INFO,PaintData},D, St) when is_list(PaintData) ->
+    update_dlist({?MAG_INFO,{none,PaintData}},D, St);
+%% Paint mode - cursor position and dynamic vertices
+update_dlist({?MAG_INFO,{_,VsDyn}=PaintData},
+	     #dlo{plugins=Pdl,src_we=#we{vp=Vtab}}=D, _) when is_list(VsDyn) ->
     Key = ?MODULE,
-    case EdList of
+    case VsDyn of
 	[] ->
 	    D#dlo{plugins=[{Key,none}|Pdl]};
 	_ ->
-	    Draw = edge_fun(EdList, ClBin, Vtab),
+	    Draw = paint_fun(PaintData, Vtab),
 	    D#dlo{plugins=[{Key,Draw}|Pdl]}
-    end.
+    end;
+update_dlist({?MAG_INFO,{CurPos,VsDyn}}, D, St) ->
+    update_dlist({?MAG_INFO,{CurPos,gb_trees:to_list(VsDyn)}},D, St).
 
-edge_fun(EdList, ClBin, Vtab) ->
-    EdBin = pump_edges(EdList,Vtab),
-    [VboEs,VboCl] = gl:genBuffers(2),
-    gl:bindBuffer(?GL_ARRAY_BUFFER, VboEs),
-    gl:bufferData(?GL_ARRAY_BUFFER, byte_size(EdBin), EdBin, ?GL_STATIC_DRAW),
-    gl:bindBuffer(?GL_ARRAY_BUFFER, VboCl),
-    gl:bufferData(?GL_ARRAY_BUFFER, byte_size(ClBin), ClBin, ?GL_STATIC_DRAW),
-    gl:bindBuffer(?GL_ARRAY_BUFFER, 0),
-    N = byte_size(EdBin) div 12,
-    D = fun() ->
-		gl:depthFunc(?GL_LEQUAL),
-		gl:bindBuffer(?GL_ARRAY_BUFFER, VboEs),
-		gl:vertexPointer(3, ?GL_FLOAT, 0, 0),
-		gl:bindBuffer(?GL_ARRAY_BUFFER, VboCl),
-		gl:colorPointer(3, ?GL_FLOAT, 0, 0),
-		gl:bindBuffer(?GL_ARRAY_BUFFER, 0),
-		gl:enableClientState(?GL_COLOR_ARRAY),
-		gl:enableClientState(?GL_VERTEX_ARRAY),
-		gl:drawArrays(?GL_LINES, 0, N),
-		gl:disableClientState(?GL_VERTEX_ARRAY),
-		gl:disableClientState(?GL_COLOR_ARRAY),
-		gl:depthFunc(?GL_LESS)
+paint_fun({CurPos,DynVs}, Vtab) ->
+    {Cx,Cy,Cz} = wings_pref:get_value(selected_color),
+    ColFrom = col_to_vec(wings_pref:get_value(edge_color)),
+    ColTo = col_to_vec(wings_pref:get_value(tweak_magnet_color)),
+    ColRange=e3d_vec:sub(ColTo,ColFrom),
+
+    CurBin =
+	case CurPos of
+	    {Px,Py,Pz} -> <<Px:?F32,Py:?F32,Pz:?F32,Cx:?F32,Cy:?F32,Cz:?F32>>;
+	    none -> <<>>
 	end,
-    {call,D,[{vbo,VboEs},{vbo,VboCl}]}.
+    EdBin0 = pump_vertex(DynVs,Vtab,ColFrom,ColRange),
+    EdBin = <<EdBin0/binary,CurBin/binary>>,
+    ArSize = byte_size(EdBin),
+    [Vbo] = gl:genBuffers(1),
+    N = ArSize div 24, % [vetex,color] - interlieved array
+    gl:bindBuffer(?GL_ARRAY_BUFFER, Vbo),
+    gl:bufferData(?GL_ARRAY_BUFFER, ArSize, EdBin, ?GL_STATIC_DRAW),
+    gl:bindBuffer(?GL_ARRAY_BUFFER, 0),
+    D = fun() ->
+	    gl:depthFunc(?GL_LEQUAL),
+	    gl:bindBuffer(?GL_ARRAY_BUFFER, Vbo),
+	    gl:vertexPointer(3, ?GL_FLOAT, 24, 0),
+	    gl:colorPointer(3, ?GL_FLOAT, 24, 12),
+	    gl:bindBuffer(?GL_ARRAY_BUFFER, 0),
+	    gl:enableClientState(?GL_VERTEX_ARRAY),
+	    gl:enableClientState(?GL_COLOR_ARRAY),
+	    gl:drawArrays(?GL_POINTS, 0, N),
+	    gl:disableClientState(?GL_COLOR_ARRAY),
+	    gl:disableClientState(?GL_VERTEX_ARRAY),
+	    gl:depthFunc(?GL_LESS)
+	end,
+    {call,D,[{vbo,Vbo}]}.
 
-%% pumping Lines
-pump_edges(EdList, Vtab) ->
-    pump_edges_1(EdList, Vtab, <<>>).
-pump_edges_1([], _,Bin) -> Bin;
-pump_edges_1([{Id1,Id2}|SegInf], Vtab, VsBin0) ->
-    VsBin =
-        case {array:get(Id1, Vtab),array:get(Id2, Vtab)} of
-            {undefined,_} -> VsBin0;
-            {_,undefined} -> VsBin0;
-            {{X1,Y1,Z1},{X2,Y2,Z2}} ->
-                <<VsBin0/binary,X1:?F32,Y1:?F32,Z1:?F32,X2:?F32,Y2:?F32,Z2:?F32>>
-        end,
-    pump_edges_1(SegInf,Vtab,VsBin).
+%% pumping vertex
+pump_vertex(DynVs, Vtab, ColFrom, ColRange) ->
+    lists:foldl(fun({V,Inf}, Acc) ->
+		    case array:get(V, Vtab) of
+			undefined -> Acc;
+			{X,Y,Z} ->
+			    {R,G,B} = color_gradient(ColFrom,ColRange,Inf),
+			    <<X:?F32,Y:?F32,Z:?F32,R:?F32,G:?F32,B:?F32,Acc/binary>>
+		    end
+		end, <<>>, DynVs).
 
 %% It'll will provide the vertices data for 'update_dlist' function
 get_data(update_dlist, Data, Acc) ->  % for draw lists
-    case gb_trees:lookup(edge_info, Data) of
+    case gb_trees:lookup(?MAG_INFO, Data) of
         none ->
             {ok, Acc};
         {_,EdgeInfo} ->
-            {ok, [{plugin, {?MODULE, {edge_info, EdgeInfo}}}|Acc]}
+            {ok, [{plugin, {?MODULE, {?MAG_INFO, EdgeInfo}}}|Acc]}
     end.
 
 %% It'll use the list prepared by 'update_dlist' function and then draw it (only for plain draw)
