@@ -266,10 +266,8 @@ check_error(_Mod, _Line) ->
 %%% Shader compilation
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%% Use ARB functions until Mac OsX have been upgraded to opengl 2.0
-
 support_shaders() ->
-    is_ext(['GL_ARB_fragment_shader', 'GL_ARB_vertex_shader']). 
+    true. %% Required in 2.0
 
 use_prog(Prog) when is_integer(Prog) ->
     gl:useProgram(Prog).
@@ -314,66 +312,42 @@ compile(fragment, Bin) when is_binary(Bin) ->
     compile2(?GL_FRAGMENT_SHADER, "Fragment", Bin).
 
 compile2(Type,Str,Src) ->
-    Handle = gl:createShaderObjectARB(Type),
-    ok = shaderSource(Handle, [Src]),
+    Handle = gl:createShader(Type),
+    ok = gl:shaderSource(Handle, [Src]),
     ok = gl:compileShader(Handle),
-    check_status(Handle,Str, ?GL_OBJECT_COMPILE_STATUS_ARB),
-    Handle.
+    case gl:getShaderiv(Handle, ?GL_COMPILE_STATUS) of
+        ?GL_TRUE  -> Handle;
+        ?GL_FALSE ->
+            BufSize = gl:getShaderiv(Handle, ?GL_INFO_LOG_LENGTH),
+            ErrorStr = gl:getShaderInfoLog(Handle, BufSize),
+            io:format("Error: in ~p shader~n: ~s~n",[Str, ErrorStr]),
+            gl:deleteShader(Handle),
+            throw("Compilation failed")
+    end.
 
 link_prog(Objs) ->
     link_prog(Objs, []).
 link_prog(Objs, Attribs) when is_list(Objs) ->
-    Prog = gl:createProgramObjectARB(),
-    [gl:attachObjectARB(Prog,ObjCode) || ObjCode <- Objs],
+    Prog = gl:createProgram(),
+    [gl:attachShader(Prog,ObjCode) || ObjCode <- Objs],
     [gl:deleteShader(ObjCode) || ObjCode <- Objs],
     %% Must be bound before link (if any)
     [gl:bindAttribLocation(Prog, Idx, AttribName) || {Idx, AttribName} <- Attribs],
     gl:linkProgram(Prog),
-    check_status(Prog,"Link result", ?GL_OBJECT_LINK_STATUS_ARB),
-    Prog.
-
-check_status(Handle,Str, What) ->
-    case gl:getObjectParameterivARB(Handle, What) of
-	1 ->
-	    %% printInfo(Handle,Str), %% Check status even if ok
-	    Handle;
-	_E ->
-	    printInfo(Handle,Str),
-	    throw("Compilation failed")
-    end.
-
-printInfo(ShaderObj,Str) ->
-    Len = gl:getObjectParameterivARB(ShaderObj, ?GL_OBJECT_INFO_LOG_LENGTH_ARB),
-    case Len > 0 of
-	true ->
-	    case catch gl:getInfoLogARB(ShaderObj, Len) of
-		{_, []} -> 
-		    ok;
-		{_, InfoStr} ->
-		    io:format("Info: ~s:~n ~s ~n", [Str,InfoStr]),
-		    case string:str(InfoStr, "oftware") of
-			0 -> ok;
-			_ -> throw("Shader disabled would run in Software mode")
-		    end;
-		[] -> ok;
-		InfoStr when is_list(InfoStr) ->
-		    io:format("Info: ~s:~n ~s ~n", [Str,InfoStr]),
-		    case string:str(InfoStr, "oftware") of
-			0 -> ok;
-			_ -> throw("Shader disabled would run in Software mode")
-		    end;
-		Error ->
-		    io:format("Internal error PrintInfo crashed with ~p ~n", 
-			      [Error])
-	    end;
-	false ->
-	    ok
+    case gl:getProgramiv(Prog, ?GL_LINK_STATUS) of
+        ?GL_TRUE  -> Prog;
+        ?GL_FALSE ->
+            BufSize = gl:getProgramiv(Prog, ?GL_INFO_LOG_LENGTH),
+            ErrorStr = gl:getProgramInfoLog(Prog, BufSize),
+            io:format("Error: in program linking~n: ~s~n",[ErrorStr]),
+            gl:deleteProgram(Prog),
+            throw("Compilation failed")
     end.
 
 %%%%%%%%%%%%%  Framebuffer object %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 have_fbo() ->
-    is_ext('GL_EXT_framebuffer_object').
+    is_ext('GL_ARB_framebuffer_object').
 
 %% Size = {W,H}
 %% What = {BufferType, Options}
@@ -386,7 +360,7 @@ setup_fbo(Size, What) ->
 
 setup_fbo_1(Size, Types) ->
     [FB] = gl:genFramebuffers(1),
-    gl:bindFramebuffer(?GL_FRAMEBUFFER_EXT, FB),
+    gl:bindFramebuffer(?GL_FRAMEBUFFER, FB),
     {Bfs,_} = lists:foldl(fun(What, {Acc, ColCount}) ->
 				  case setup_fbo_2(What, Size, ColCount) of
 				      {color, _} = Res ->
@@ -523,9 +497,6 @@ deleteRenderbuffers(List) ->
 
 deleteFramebuffers(List) ->
     gl:deleteFramebuffers(List).
-
-shaderSource(Handle, Src) ->
-    gl:shaderSource(Handle, Src).
 
 %% This is a bug in wx it should take a list as argument
 drawElements(O,L,T = ?GL_UNSIGNED_INT,What) when is_list(What) ->
