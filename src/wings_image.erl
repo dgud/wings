@@ -313,7 +313,6 @@ handle_call({find_image, Dir, File}, _From, #ist{images=Ims}=S) ->
         [] -> {reply, false, S};
         [Id|_] -> {reply, {true, Id}, S}
     end;
-
 handle_call(Req, _From, S) ->
     io:format("~w: Bad request: ~w~n", [?MODULE, Req]),
     {reply, error, S}.
@@ -327,6 +326,70 @@ handle_cast({update_filename,Id,NewName}, #ist{images=Images0}=S) ->
 
 %%%%%%%%%%%%%%%%% Internal Functions %%%%%%%%%%%%%%%
 
+make_texture(Id, Image) ->
+    case init_texture_0(Image) of
+	{error,_}=Error ->
+	    Error;
+	TxId ->
+	    put(Id, TxId),
+	    TxId
+    end.
+
+init_texture_0(Image) ->
+    case get(wings_not_running) of
+        true -> 0;
+        _ ->
+            [TxId] = gl:genTextures(1),
+            case init_texture_1(image_rec(Image), TxId) of
+                {error,_}=Error ->
+                    wings_gl:deleteTextures([TxId]),
+                    Error;
+                Other ->
+                    Other
+            end
+    end.
+
+init_texture_1(Image0, TxId) ->
+    case maybe_scale(Image0) of
+        {error,_}=Error ->
+            Error;
+        Image ->
+            init_texture_2(Image, TxId)
+    end.
+
+init_texture_2(#e3d_image{width=W,height=H,image=Bits,extra=Opts}=Image, TxId) ->
+    gl:bindTexture(?GL_TEXTURE_2D, TxId),
+    FT = {Format,Type} = texture_format(Image),
+    Ft = case wings_pref:get_value(filter_texture, false) of
+             true -> linear;
+             false -> nearest
+         end,
+    {MinFilter,MagFilter} = proplists:get_value(filter, Opts, {mipmap, Ft}),
+    {WrapS,WrapT} = proplists:get_value(wrap, Opts, {repeat, repeat}),
+    MMs = proplists:get_value(mipmaps, Opts, []),
+    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_S, wrap(WrapS)),
+    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_T, wrap(WrapT)),
+    case MinFilter of
+        mipmap ->
+            case lists:reverse(lists:keysort(4, MMs)) of
+                [{_,_,_,Max}|_] ->
+                    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MAX_LEVEL, Max-1);
+                [] ->
+                    gl:texParameteri(?GL_TEXTURE_2D, ?GL_GENERATE_MIPMAP, ?GL_TRUE)
+            end,
+            gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MIN_FILTER, ?GL_LINEAR_MIPMAP_LINEAR),
+            gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MAG_FILTER, filter(MagFilter));
+        _ ->
+            gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MAG_FILTER, filter(MagFilter)),
+            gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MIN_FILTER, filter(MinFilter))
+    end,
+    IntFormat = internal_format(FT),
+    gl:texImage2D(?GL_TEXTURE_2D, 0, IntFormat, W, H, 0, Format, Type, Bits),
+    [gl:texImage2D(?GL_TEXTURE_2D, Levl, IntFormat, MMW, MMH, 0, Format, Type, MM)
+     || {MM, MMW, MMH, Levl} <- MMs],
+    gl:bindTexture(?GL_TEXTURE_2D, 0),
+    ?CHECK_ERROR(),
+    TxId.
 
 create_bump(Id, BumpId, #ist{images=Images0}) ->
     delete_bump(Id),  %% update case..
@@ -378,71 +441,6 @@ update_mipmaps(TxId, MipMaps) ->
 	   end,
     [Load(MM) || MM <- MipMaps].
 
-
-maybe_convert(#e3d_image{type=Type0,order=Order}=Im) ->
-    case {img_type(Type0),Order} of
-	{Type0,lower_left} -> Im;
-	{Type,_} -> e3d_image:convert(Im, Type, 1, lower_left)
-    end.
-
-img_type(b8g8r8) -> r8g8b8;
-img_type(b8g8r8a8) -> r8g8b8a8;
-img_type(Type) -> Type.
-
-make_texture(Id, Image) ->
-    case init_texture(Image) of
-	{error,_}=Error ->
-	    Error;
-	TxId ->
-	    put(Id, TxId),
-	    TxId
-    end.
-
-init_texture(Image) ->
-    case get(wings_not_running) of
-        true -> 0;
-        _ ->
-            [TxId] = gl:genTextures(1),
-            case init_texture(image_rec(Image), TxId) of
-                {error,_}=Error ->
-                    wings_gl:deleteTextures([TxId]),
-                    Error;
-                Other ->
-                    Other
-            end
-    end.
-
-init_texture(Image0, TxId) ->
-    case maybe_scale(Image0) of
-        {error,_}=Error ->
-            Error;
-        Image ->
-            #e3d_image{width=W,height=H,image=Bits} = Image,
-            gl:pushAttrib(?GL_TEXTURE_BIT),
-            gl:enable(?GL_TEXTURE_2D),
-            gl:bindTexture(?GL_TEXTURE_2D, TxId),
-            Ft=case wings_pref:get_value(filter_texture, false) of
-				true -> ?GL_LINEAR;
-				false -> ?GL_NEAREST
-            end,
-            case wings_gl:is_ext({1,4},'GL_SGIS_generate_mipmap') of
-		true ->
-		    gl:texParameteri(?GL_TEXTURE_2D, ?GL_GENERATE_MIPMAP, ?GL_TRUE),
-		    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MIN_FILTER,
-				     ?GL_LINEAR_MIPMAP_LINEAR);
-		false ->
-		    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MIN_FILTER, Ft)
-            end,
-            gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MAG_FILTER, Ft),
-            gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_S, ?GL_REPEAT),
-            gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_T, ?GL_REPEAT),
-            Format = texture_format(Image),
-            gl:texImage2D(?GL_TEXTURE_2D, 0, internal_format(Format),
-			  W, H, 0, Format, ?GL_UNSIGNED_BYTE, Bits),
-            gl:popAttrib(),
-            TxId
-    end.
-
 maybe_scale(#e3d_image{width=W0,height=H0}=Image) ->
 %%  case wings_gl:is_ext({2,0}, 'GL_ARB_texture_non_power_of_two') of
 %%  Aarg ATI doesn't support ARB_NPOT textures, though it report GL_VER >= 2.0
@@ -451,20 +449,16 @@ maybe_scale(#e3d_image{width=W0,height=H0}=Image) ->
             Error;
         Image1 ->
             #e3d_image{width=W1,height=H1}=Image1,
-            case {W1,H1} of
-                {W0,H0} ->
-                    GL_ARB = wings_gl:is_ext('GL_ARB_texture_non_power_of_two');
-                {_,_} -> GL_ARB = false
-            end,
+            GL_ARB = case {W1,H1} of
+                         {W0,H0} -> wings_gl:is_ext('GL_ARB_texture_non_power_of_two');
+                         {_,_} -> false
+                     end,
             case GL_ARB of
-                true ->
-                    Image;
+                true -> Image;
                 false ->
                     case {nearest_power_two(W1),nearest_power_two(H1)} of
-                        {W1,H1} ->
-                            Image1;
-                        {W,H} ->
-                            resize_image(Image1, W, H)
+                        {W1,H1} -> Image1;
+                        {W,H} -> resize_image(Image1, W, H)
                     end
             end
     end.
@@ -489,7 +483,7 @@ maybe_exceds_opengl_caps(#e3d_image{width=W0,height=H0}=Image) ->
 resize_image(#e3d_image{width=W0,height=H0,bytes_pp=BytesPerPixel,
   image=Bits0}=Image, W, H) ->
     Out = wings_io:get_buffer(BytesPerPixel*W*H, ?GL_UNSIGNED_BYTE),
-    Format = texture_format(Image),
+    {Format, ?GL_UNSIGNED_BYTE} = texture_format(Image),
     GlErr =glu:scaleImage(Format, W0, H0, ?GL_UNSIGNED_BYTE,
         Bits0, W, H, ?GL_UNSIGNED_BYTE, Out),
     case GlErr of
@@ -505,31 +499,56 @@ need_resize_image(W, H, Max) when W > Max; H > Max ->
 need_resize_image(_, _, _) ->
     false.
 
+maybe_convert(#e3d_image{type=Type0,order=Order}=Im) ->
+    case {img_type(Type0),Order} of
+	{Type0,lower_left} -> Im;
+	{Type,_} -> e3d_image:convert(Im, Type, 1, lower_left)
+    end.
+
+img_type(b8g8r8) -> r8g8b8;
+img_type(b8g8r8a8) -> r8g8b8a8;
+img_type(Type) -> Type.
+
 nearest_power_two(N) when (N band -N) =:= N -> N;
 nearest_power_two(N) -> nearest_power_two(N, 1).
 
 nearest_power_two(N, B) when B > N -> B bsr 1;
 nearest_power_two(N, B) -> nearest_power_two(N, B bsl 1).
 
-texture_format(#e3d_image{type=r8g8b8}) -> ?GL_RGB;
-texture_format(#e3d_image{type=r8g8b8a8}) -> ?GL_RGBA;
-texture_format(#e3d_image{type=b8g8r8}) -> ?GL_BGR;
-texture_format(#e3d_image{type=b8g8r8a8}) -> ?GL_BGRA;
-texture_format(#e3d_image{type=g8}) -> ?GL_LUMINANCE;
-texture_format(#e3d_image{type=a8}) -> ?GL_ALPHA.
+texture_format(#e3d_image{type=r8g8b8}) -> {?GL_RGB, ?GL_UNSIGNED_BYTE};
+texture_format(#e3d_image{type=r8g8b8a8}) -> {?GL_RGBA, ?GL_UNSIGNED_BYTE};
+texture_format(#e3d_image{type=b8g8r8}) -> {?GL_BGR, ?GL_UNSIGNED_BYTE};
+texture_format(#e3d_image{type=b8g8r8a8}) -> {?GL_BGRA, ?GL_UNSIGNED_BYTE};
+texture_format(#e3d_image{type=g8}) -> {?GL_LUMINANCE, ?GL_UNSIGNED_BYTE};
+texture_format(#e3d_image{type=a8}) -> {?GL_ALPHA, ?GL_UNSIGNED_BYTE};
+texture_format(#e3d_image{type=r32g32b32a32f}) -> {?GL_RGBA, ?GL_FLOAT};
+texture_format(#e3d_image{type=r32g32b32f}) -> {?GL_RGB, ?GL_FLOAT}.
 
 %% Long ago we tried to use compression, but we no longer do since compression
 %% lowers the quality too much, especially for bump/normal maps.
-internal_format(?GL_BGR) -> ?GL_RGB;
-internal_format(?GL_BGRA) -> ?GL_RGBA;
-internal_format(Else) -> Else.
+internal_format({?GL_BGR,?GL_UNSIGNED_BYTE}) -> ?GL_RGB;
+internal_format({?GL_BGRA,?GL_UNSIGNED_BYTE}) -> ?GL_RGBA;
+internal_format({?GL_RGBA,?GL_FLOAT}) -> ?GL_RGBA32F;
+internal_format({?GL_RGB,?GL_FLOAT}) -> ?GL_RGB32F;
+internal_format({Format,?GL_UNSIGNED_BYTE}) -> Format.
 
+filter(mipmap) -> ?GL_LINEAR_MIPMAP_LINEAR;
+filter(linear) -> ?GL_LINEAR;
+filter(nearest) -> ?GL_NEAREST.
+
+wrap(repeat) -> ?GL_REPEAT;
+wrap(clamp) -> ?GL_CLAMP_TO_EDGE.
+
+delete_older_1([{_,{hidden,_}}=Im|T], Limit) ->
+    [Im|delete_older_1(T, Limit)];
 delete_older_1([{Id,_}|T], Limit) when Id < Limit ->
     delete_bump(Id),
     wings_gl:deleteTextures([erase(Id)]),
     delete_older_1(T, Limit);
 delete_older_1(Images, _) -> Images.
 
+delete_from_1([{_,{hidden,_}}=Im|T], Limit, Acc) ->
+    delete_from_1(T, Limit, [Im|Acc]);
 delete_from_1([{Id,_}=Im|T], Limit, Acc) when Id < Limit ->
     delete_from_1(T, Limit, [Im|Acc]);
 delete_from_1([{Id,_}|T], Limit, Acc) ->
@@ -559,12 +578,11 @@ do_update(Id, In = #e3d_image{width=W,height=H,type=Type,name=NewName},
     Size = {Im0#e3d_image.width, Im0#e3d_image.height, Im0#e3d_image.type},
     case Size of
 	{W,H,Type} ->
+            {Format, TexType} = texture_format(Im),
 	    gl:bindTexture(?GL_TEXTURE_2D, TxId),
-	    gl:texSubImage2D(?GL_TEXTURE_2D, 0, 0, 0,
-			     W, H, texture_format(Im), 
-			     ?GL_UNSIGNED_BYTE, Im#e3d_image.image);
+	    gl:texSubImage2D(?GL_TEXTURE_2D, 0, 0, 0, W, H, Format, TexType, Im#e3d_image.image);
 	_ ->
-	    init_texture(Im, TxId)
+	    init_texture_1(Im, TxId)
     end,
     case get({Id,bump}) of
 	undefined ->
@@ -746,7 +764,19 @@ e3d_to_wxImage_1(I = #e3d_image{bytes_pp=3, width=W, height=H}) ->
     wxImage:new(W,H,RGB);
 e3d_to_wxImage_1(I = #e3d_image{bytes_pp=1, width=W, height=H}) ->
     #e3d_image{image=RGB} = e3d_image:convert(I, r8g8b8, 1, upper_left),
-    wxImage:new(W,H,RGB).
+    wxImage:new(W,H,RGB);
+e3d_to_wxImage_1(I = #e3d_image{type=r32g32b32f, width=W, height=H}) ->
+    #e3d_image{image=RGBf} = e3d_image:convert(I, r32g32b32f, 1, upper_left),
+    RGB8 = << <<(max(1.0, abs(C))*255)>> || <<C:32/float>> <= RGBf >>,
+    wxImage:new(W,H,RGB8);
+e3d_to_wxImage_1(I = #e3d_image{type=r32g32b32a32f, width=W, height=H}) ->
+    #e3d_image{image=RGBf} = e3d_image:convert(I, r32g32b32a32f, 1, upper_left),
+    RGB8 = << <<(max(1.0, abs(R))*255),(max(1.0, abs(G))*255),(max(1.0, abs(B))*255)>>
+              || <<R:32/float,G:32/float,B:32/float,_:32/float>> <= RGBf >>,
+    Wx = wxImage:new(W,H,RGB8),
+    Alpha = << <<(max(1.0, abs(A))*255)>> || <<_:12/binary,A:32/float>> <= RGBf >>,
+    wxImage:setAlpha(Wx, Alpha),
+    Wx.
 
 wxImage_to_e3d(Wx) ->
     wxImage_to_e3d_1(Wx).

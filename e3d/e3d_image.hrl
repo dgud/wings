@@ -25,5 +25,6 @@
 	 name=[],	     %% Name of image
          extra=[]            %% {mipmaps,[{Img,W,H,Level}]}
                              %% {cubemaps, [#{dir=>neg_x, tx=>Img, mipmaps=>[]}]}
+                             %% filter: {Min:[mipmap|linear|nearest],Max} wrap:{S:repeat|clamp,T}
 	}).
 

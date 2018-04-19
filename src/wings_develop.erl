@@ -37,6 +37,9 @@ menu() ->
       wings_menu_util:crossmark(develop_gl_errors)},
      {"OpenGL Recompile Shaders", opengl_shaders,
       "Recompile the light shaders"},
+     {"Recalc envmaps", recalc_env,
+      "Recompile OpenCL and recalc envmap"},
+
      separator,
      {"Print Scene Size",print_scene_size,
       "Print the scene size to the console"},
@@ -62,6 +65,11 @@ command(opengl_shaders, _) ->
     wings_shaders:compile_all(),
     wings_wm:dirty(),
     keep;
+command(recalc_env, _) ->
+    wings_light:init(true),
+    wings_wm:dirty(),
+    keep;
+
 command(print_scene_size, St) ->
     Words = erts_debug:size(St),
     io:format("The current scene is using ~p words\n", [Words]),

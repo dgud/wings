@@ -1002,8 +1002,7 @@ build(Ask, {label_column, Rows, Flags}, Parent, Sizer, In) ->
 		   (separator) ->
 			separator
 		end,
-    build(Ask, {vframe, lists:map(Translate, Rows), Flags},
-	  Parent, Sizer, In);
+    build(Ask, {vframe, lists:map(Translate, Rows), Flags}, Parent, Sizer, In);
 
 build(Ask, panel, _Parent, Sizer, In)
   when Ask =/= false ->
@@ -1495,8 +1494,8 @@ create_slider(Ask, Def, Flags, {MaxSize,Validator}, Parent, TopSizer) when is_nu
     Text = wxTextCtrl:new(Parent, ?wxID_ANY, [{value, to_str(Def)}]),
     {CharWidth,_,_,_} = wxWindow:getTextExtent(Text, "W"),
     wxTextCtrl:setMaxSize(Text, {MaxSize*CharWidth, -1}),
-    wxSizer:add(Sizer, Slider, [{proportion,2}, {flag, ?wxEXPAND}]),
-    wxSizer:add(Sizer, Text,   [{proportion,1}]),
+    wxSizer:add(Sizer, Slider, [{proportion,1}, {flag, ?wxEXPAND}]),
+    wxSizer:add(Sizer, Text,   [{proportion,0}]),
     add_sizer(slider, TopSizer, Sizer, Flags),
     tooltip(Slider, Flags),
     tooltip(Text, Flags),
@@ -1562,34 +1561,33 @@ add_sizer(What, Sizer, Ctrl, Opts) ->
     Proportion = proplists:get_value(proportion, Opts, Proportion0),
     Border = proplists:get_value(border, Opts, Border0),
     Flags  = proplists:get_value(flag, Opts, Flags0),
-    wxSizer:add(Sizer, Ctrl,
-		[{proportion, Proportion},{border, Border},{flag, Flags}]).
+    wxSizer:add(Sizer, Ctrl, [{proportion, Proportion},{border, Border},{flag, Flags}]).
 
-sizer_flags(label, ?wxHORIZONTAL)     -> {0, 2, ?wxRIGHT bor ?wxALIGN_CENTER_VERTICAL};
-sizer_flags(label, ?wxVERTICAL)       -> {1, 2, ?wxRIGHT bor ?wxALIGN_CENTER_VERTICAL};
-sizer_flags(separator, ?wxHORIZONTAL) -> {1, 5, ?wxALL bor ?wxALIGN_CENTER_VERTICAL};
-sizer_flags(separator, ?wxVERTICAL)   -> {0, 5, ?wxALL bor ?wxEXPAND};
-sizer_flags(text, ?wxHORIZONTAL)      -> {1, 2, ?wxRIGHT bor ?wxALIGN_CENTER_VERTICAL};
-sizer_flags(slider, ?wxHORIZONTAL)    -> {2, 0, ?wxALIGN_CENTER_VERTICAL};
-sizer_flags(slider, ?wxVERTICAL)      -> {0, 0, ?wxEXPAND};
-sizer_flags(button, _)                -> {0, 0, ?wxALIGN_CENTER_VERTICAL};
-sizer_flags(image, _)                 -> {0, 5, ?wxALL bor ?wxALIGN_CENTER_VERTICAL};
-sizer_flags(choice, _)                -> {0, 0, ?wxALIGN_CENTER_VERTICAL};
-sizer_flags(checkbox, ?wxVERTICAL)    -> {0, 3, ?wxTOP bor ?wxBOTTOM bor ?wxALIGN_CENTER_VERTICAL};
-sizer_flags(checkbox, ?wxHORIZONTAL)  -> {0, 2, ?wxRIGHT bor ?wxALIGN_CENTER_VERTICAL};
-sizer_flags(table,  _)                -> {4, 0, ?wxEXPAND};
-sizer_flags({radiobox, Dir}, Dir)     -> {5, 0, ?wxEXPAND bor ?wxALIGN_CENTER_VERTICAL};
-sizer_flags({radiobox, _}, _)         -> {1, 0, ?wxEXPAND bor ?wxALIGN_CENTER_VERTICAL};
-sizer_flags({box, Dir}, Dir)          -> {0, 2, ?wxALL bor ?wxEXPAND bor ?wxALIGN_CENTER_VERTICAL};
-sizer_flags({box, _}, _)              -> {0, 2, ?wxALL bor ?wxEXPAND bor ?wxALIGN_CENTER_VERTICAL};
-sizer_flags(fontpicker, ?wxHORIZONTAL)    -> {2, 2, ?wxRIGHT};
-sizer_flags(fontpicker, ?wxVERTICAL)      -> {0, 2, ?wxRIGHT bor ?wxEXPAND};
-sizer_flags(filepicker, ?wxHORIZONTAL)    -> {2, 2, ?wxRIGHT};
-sizer_flags(filepicker, ?wxVERTICAL)      -> {0, 2, ?wxRIGHT bor ?wxEXPAND};
-sizer_flags(custom, _)                -> {0, 5, ?wxALL};
-sizer_flags(panel, _)                 -> {0, 0, ?wxALL bor ?wxEXPAND bor ?wxALIGN_CENTER_VERTICAL}; %?wxEXPAND};
-sizer_flags(_, ?wxHORIZONTAL)         -> {1, 0, ?wxALIGN_CENTER_VERTICAL};
-sizer_flags(_, ?wxVERTICAL)           -> {0, 0, ?wxEXPAND}.
+sizer_flags(label, ?wxHORIZONTAL)      -> {0, 2, ?wxRIGHT bor ?wxALIGN_CENTER_VERTICAL};
+sizer_flags(label, ?wxVERTICAL)        -> {1, 2, ?wxRIGHT bor ?wxALIGN_CENTER_VERTICAL};
+sizer_flags(separator, ?wxHORIZONTAL)  -> {1, 5, ?wxALL bor ?wxALIGN_CENTER_VERTICAL};
+sizer_flags(separator, ?wxVERTICAL)    -> {0, 5, ?wxALL bor ?wxEXPAND};
+sizer_flags(text, ?wxHORIZONTAL)       -> {1, 2, ?wxRIGHT bor ?wxALIGN_CENTER_VERTICAL};
+sizer_flags(slider, ?wxHORIZONTAL)     -> {2, 0, ?wxALIGN_CENTER_VERTICAL};
+sizer_flags(slider, ?wxVERTICAL)       -> {0, 0, ?wxEXPAND};
+sizer_flags(button, _)                 -> {0, 0, ?wxALIGN_CENTER_VERTICAL};
+sizer_flags(image, _)                  -> {0, 5, ?wxALL bor ?wxALIGN_CENTER_VERTICAL};
+sizer_flags(choice, _)                 -> {0, 0, ?wxALIGN_CENTER_VERTICAL};
+sizer_flags(checkbox, ?wxVERTICAL)     -> {0, 3, ?wxTOP bor ?wxBOTTOM bor ?wxALIGN_CENTER_VERTICAL};
+sizer_flags(checkbox, ?wxHORIZONTAL)   -> {0, 2, ?wxRIGHT bor ?wxALIGN_CENTER_VERTICAL};
+sizer_flags(table,  _)                 -> {4, 0, ?wxEXPAND};
+sizer_flags({radiobox, Dir}, Dir)      -> {5, 0, ?wxEXPAND bor ?wxALIGN_CENTER_VERTICAL};
+sizer_flags({radiobox, _}, _)          -> {1, 0, ?wxEXPAND bor ?wxALIGN_CENTER_VERTICAL};
+sizer_flags({box, Dir}, Dir)           -> {0, 2, ?wxALL bor ?wxEXPAND bor ?wxALIGN_CENTER_VERTICAL};
+sizer_flags({box, _}, _)               -> {0, 2, ?wxALL bor ?wxEXPAND bor ?wxALIGN_CENTER_VERTICAL};
+sizer_flags(fontpicker, ?wxHORIZONTAL) -> {2, 2, ?wxRIGHT};
+sizer_flags(fontpicker, ?wxVERTICAL)   -> {0, 2, ?wxRIGHT bor ?wxEXPAND};
+sizer_flags(filepicker, ?wxHORIZONTAL) -> {2, 2, ?wxRIGHT};
+sizer_flags(filepicker, ?wxVERTICAL)   -> {0, 2, ?wxRIGHT bor ?wxEXPAND};
+sizer_flags(custom, _)                 -> {0, 5, ?wxALL};
+sizer_flags(panel, _)                  -> {0, 0, ?wxALL bor ?wxEXPAND bor ?wxALIGN_CENTER_VERTICAL}; %?wxEXPAND};
+sizer_flags(_, ?wxHORIZONTAL)          -> {1, 0, ?wxALIGN_CENTER_VERTICAL};
+sizer_flags(_, ?wxVERTICAL)            -> {0, 0, ?wxEXPAND}.
 
 create(false, _) -> undefined;
 create(_, Fun) -> Fun().
@@ -1710,19 +1708,20 @@ integer_validator(Flags) ->
     end.
 
 float_validator(Flags) ->
+    MaxDigits = proplists:get_value(digits, Flags, 10),
     case proplists:get_value(range, Flags) of
-	undefined -> {10,accept_all_fun(float)};
-	{'-infinity',infinity} -> {10,accept_all_fun(float)};
+	undefined -> {MaxDigits,accept_all_fun(float)};
+	{'-infinity',infinity} -> {MaxDigits,accept_all_fun(float)};
 	{Min,infinity} when is_float(Min) ->
-	    {10,float_range(Min, infinity)};
+	    {MaxDigits,float_range(Min, infinity)};
 	{'-infinity',Max} when is_float(Max) ->
-	    {10,float_range('-infinity', Max)};
+	    {MaxDigits,float_range('-infinity', Max)};
 	{Min,Max,Default} when is_float(Min), is_float(Max), is_float(Default),
 			       Min =< Default, Default =< Max ->
-	    Digits = min(trunc(math:log(Max-Min+1)/math:log(10))+8, 10),
+	    Digits = min(trunc(math:log(Max-Min+1)/math:log(10))+8, MaxDigits),
 	    {Digits,float_range(Min, Max, Default)};
 	{Min,Max} when is_float(Min), is_float(Max), Min =< Max ->
-	    Digits = min(trunc(math:log(Max-Min+1)/math:log(10))+8, 10),
+	    Digits = min(trunc(math:log(Max-Min+1)/math:log(10))+8, MaxDigits),
 	    {Digits,float_range(Min, Max)}
     end.
 

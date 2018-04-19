@@ -207,7 +207,7 @@ init(Units, Flags, St, DragFun) ->
 
 fold_1([{Id,Items}|T], F, Shapes0) ->
     We0 = gb_trees:get(Id, Shapes0),
-    ?ASSERT(We#we.id =:= Id),
+    ?ASSERT(We0#we.id =:= Id),
     Tv = F(Items, We0),
     Shapes = case We0 of
                  #we{temp=[]} ->
@@ -226,7 +226,7 @@ fold_1([], _, _) -> [].
 
 get_funs([{Id,_}|T], F, Shapes0) ->
     We0 = gb_trees:get(Id, Shapes0),
-    ?ASSERT(We#we.id =:= Id),
+    ?ASSERT(We0#we.id =:= Id),
     General = F(We0),
     Shapes = case We0 of
                  #we{temp=[]} ->

@@ -2,8 +2,8 @@
 %%  wings_cc_ref.erl --
 %%
 %%     This module contains helper functions for OpenCL.
-%% 
-%%  Copyright (c) 2010-2011 Dan Gudmundsson
+%%
+%%  Copyright (c) 2010-2018 Dan Gudmundsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -14,6 +14,7 @@
 -module(wings_cl).
 -include_lib("cl/include/cl.hrl").
 -compile([{nowarn_deprecated_function, {erlang,get_stacktrace,0}}]).
+-include_lib("wings/e3d/e3d_image.hrl").
 
 -export([is_available/0,
 	 setup/0, stop/1, compile/2, compile/3,
@@ -21,7 +22,8 @@
 	 get_context/1, get_device/1, get_queue/1, get_vendor/1,
 	 have_image_support/1,
 
-	 buff/2, buff/3, image/4, image/5, write/3, read/4,
+	 buff/2, buff/3, image/2, image/3,
+         write/3, read/4, fill/4,
 	 cast/4, cast/5, tcast/4, tcast/5, set_args/3,
 	 get_wg_sz/2, set_wg_sz/3,
 	 get_lmem_sz/2
@@ -31,7 +33,7 @@
 -record(kernel, {name, id, wg}).
 
 is_available() ->
-    try 
+    try
 	true == erlang:system_info(smp_support) orelse throw({error, no_smp_support}),
 	ok == cl:start() orelse throw({error, no_opencl_loaded}),
 	{ok, Ps} = cl:get_platform_ids(),
@@ -63,7 +65,6 @@ setup() ->
 
 stop(#cli{cl=CL}) ->
     clu:teardown(CL).
-
 
 %% compile(File,cli()) -> cli().
 %%
@@ -113,8 +114,6 @@ build_source(E, Sources, Defines) ->
 	_Error ->
 	    display_error(?LINE, Program, Sources, Defines, E#cl.devices)
     end.
-
-
 
 display_error(Line, Program, Sources, _Defines, DeviceList) ->
     SFs = [S || {S,_} <- Sources],
@@ -233,16 +232,32 @@ buff(Bin, Type, #cli{context=Context})
     {ok, Buff} = cl:create_buffer(Context, Type, byte_size(Bin), Bin),
     Buff.
 
-image(Bin, Dim, Format, CL) ->
-    image(Bin, Dim, Format, [read_only, copy_host_ptr], CL).
-image(Bin, {W,H}, #cl_image_format{} = Format, Alloc, #cli{context=Context})
-  when is_binary(Bin) ->
-    {ok, Buff} = cl:create_image2d(Context, Alloc, Format, W, H, 0, Bin),
+image(#e3d_image{}=E3d, CL) ->
+    image(E3d, [read_only, copy_host_ptr], CL).
+image(#e3d_image{width=W,height=H, type=r8g8b8a8, bytes_pp=4, image=Bin},
+      Alloc, #cli{context=Context}) ->
+    %% Note: only rgba is allowed
+    Format = #cl_image_format{cl_channel_order = rgba, cl_channel_type= unorm_int8},
+    Desc = image2d_desc(W,H),
+    {ok, Buff} = cl:create_image(Context, Alloc, Format, Desc, Bin),
     Buff.
+
+image2d_desc(W,H) ->
+    #cl_image_desc{
+       image_type = image2d,
+       image_width = W,     image_height = H,
+       image_depth = 1,     image_array_size = 1,
+       image_row_pitch = 0, image_slice_pitch = 0,
+       buffer = get('this_fools_dialyzer_bad_spec_in_cl.hrl')
+      }.
 
 %% write(CLMem, Bin, cli()) -> Wait
 write(CLMem, Bin, #cli{q=Q}) ->
     {ok, W1} = cl:enqueue_write_buffer(Q, CLMem, 0, byte_size(Bin), Bin, []),
+    W1.
+
+fill(CLMem, Pattern, Sz, #cli{q=Q}) when is_binary(Pattern) ->
+    {ok, W1} = cl:enqueue_fill_buffer(Q, CLMem, Pattern, 0, Sz, []),
     W1.
 
 %% read(CLMem, Sz, [Wait], cli()) -> Wait
@@ -266,7 +281,7 @@ enqueue_kernel(No, Wait, Q, #kernel{id=K, wg=WG0}) ->
     case Wait of
 	nowait ->
 	    ok = cl:nowait_enqueue_nd_range_kernel(Q,K,GWG,WG,[]);
-	    _ ->
+        _ ->
 	    {ok, Event} = cl:enqueue_nd_range_kernel(Q,K,GWG,WG,Wait),
 	    Event
     end.
@@ -280,10 +295,10 @@ calc_wg(No, WG)
 calc_wg(No, WG)
   when is_integer(No), is_integer(WG) ->
     {[(1+(No div WG))*WG], [WG]};
-calc_wg([WH|WT], [H|T]) ->
-    {[CW], [CS]} = calc_wg(WH,H),
-    {CT, CST} = calc_wg(WT,T),
-    {[CW|CT], [CS|CST]};
+calc_wg([W1, W2], WG) ->
+    {[C1], [CS]} = calc_wg(W1,WG),
+    {[C2], _} = calc_wg(W2,WG),
+    {[C1, C2], [CS, 1]};  %% Needed for old gfx cards
 calc_wg([], [1]) ->
     {[],[]};
 calc_wg([], [H]) ->

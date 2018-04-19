@@ -258,6 +258,9 @@ update_needed_2(CommonNeed, St) ->
 update_needed_fun(#dlo{src_we=#we{perm=Perm}=We}=D, _, _, _)
   when ?IS_LIGHT(We), ?IS_VISIBLE(Perm) ->
     D#dlo{needed=[light]};
+update_needed_fun(#dlo{src_we=#we{perm=Perm}=We}=D, _, _, _)
+  when ?IS_AREA_LIGHT(We), ?IS_VISIBLE(Perm) ->
+    D#dlo{needed=[edges,work]};
 update_needed_fun(#dlo{src_we=#we{id=Id,he=Htab,pst=Pst},proxy=Proxy}=D,
 		  Need0, Wins, _) ->
     Need1 = case gb_sets:is_empty(Htab) orelse
@@ -318,8 +321,7 @@ update_fun(D, [], _) -> D.
 
 update_materials(D, St) ->
     We = original_we(D),
-    if ?IS_AREA_LIGHT(We) ->
-	    wings_light:shape_materials(We#we.light, St);
+    if ?IS_AREA_LIGHT(We) -> wings_light:shape_materials(We, St);
        true -> St
     end.
 
@@ -918,7 +920,12 @@ draw_mat_faces(Vab, Extra, MatGroups, Mtab) ->
 do_draw_mat_faces(MatGroups, Mtab, ActiveColor, RS0) ->
     %% Show materials.
     foldl(
-      fun({Mat,Type,Start,NumElements}, RS1) ->
+      fun({{'_area_light_',_}=Light,Type,Start,NumElements}, RS1) ->
+              [Color] = gb_trees:get(Light, Mtab),
+              RS2 = wings_shaders:set_uloc(light_color, Color, RS1),
+              gl:drawArrays(Type, Start, NumElements),
+              RS2;
+         ({Mat,Type,Start,NumElements}, RS1) ->
 	      DeApply = wings_material:apply_material(Mat, Mtab, ActiveColor, RS1),
 	      gl:drawArrays(Type, Start, NumElements),
               DeApply()

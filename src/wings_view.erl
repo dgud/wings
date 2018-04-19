@@ -883,9 +883,14 @@ modelview(IncludeLights) ->
     {UseSceneLights, TMM}.
 
 %% Calculate the location of the viewer in 3D space.
-%% (The (0,0,0) point multiplied by the inverse model transformation matrix.)
+%% (The (0,0,0) point multiplied by the inverse view transformation matrix.)
 eye_point() ->
-    e3d_mat:mul_point(view_matrix(current()), {0.0,0.0,0.0}).
+    InvTrans = view_matrix(current()),
+    EP = e3d_mat:mul_point(InvTrans, {0.0,0.0,0.0}),
+    %% LP = {0.0,0.5,0.0},
+    %% io:format("EP ~p + ~p = ~p~n", [EP, LP, e3d_vec:add(EP, LP)]),
+    %% io:format("EP ~p~n", [e3d_mat:mul_point(InvTrans, LP)]),
+    EP.
 
 view_matrix(#view{origin=Origin,distance=Dist,azimuth=Az,elevation=El,
 		 pan_x=PanX, pan_y=PanY}) ->

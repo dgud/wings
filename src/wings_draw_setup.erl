@@ -966,6 +966,9 @@ prepare_4(Attr, plain) -> Attr;
 prepare_4(uv, color) -> color_uv;
 prepare_4(uv_tangent, color) -> color_uv_tangent.
 
+
+mat_faces(Ftab, #we{id=Id}=We) when ?IS_AREA_LIGHT(We) ->
+    [{{'_area_light_',Id},Ftab}];
 mat_faces(Ftab, We) ->
     case wings_pref:get_value(show_materials) of
 	false ->

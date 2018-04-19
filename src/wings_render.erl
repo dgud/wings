@@ -25,7 +25,6 @@
 -import(lists, [foldl/3]).
 
 init() ->
-    wings_shaders:init(),
     wings_pref:set_default(multisample, true),
     init_polygon_stipple().
 
@@ -52,7 +51,7 @@ render(#st{selmode=Mode}=St) ->
     show_saved_bb(St),
     show_bb_center(St),
     user_clipping_planes(on),
-    render_objects(Mode, PM, SceneLights),
+    render_objects(Mode, PM, MM, SceneLights),
     user_clipping_planes(off),
     axis_letters(PM,MM,Yon),
     show_camera_image_plane(),
@@ -128,19 +127,22 @@ setup_scene_lights(true, Lights, RS0) ->
     {Amb0, SL} = wings_light:global_lights(Lights),
     case Amb0 of
         [] ->
-            gl:lightModelfv(?GL_LIGHT_MODEL_AMBIENT, {0.0,0.0,0.0,1.0}),
-            RS = wings_shaders:use_prog(ambient_light, RS0),
+            %% Must render all objects black first otherwise we blend with bg
+            RS1 = wings_shaders:use_prog(ambient_light, RS0),
+            RS  = wings_shaders:set_uloc(light_diffuse, {0.0,0.0,0.0,1.0}, RS1),
             {SL, RS};
         [Amb|RestAmb] ->
             RS = wings_light:setup_light(Amb, RS0),
             {RestAmb ++ SL, RS}
     end.
 
-render_objects(Mode, PM, UseSceneLights) ->
+render_objects(Mode, PM, MM, UseSceneLights) ->
     Dls = wings_dl:display_lists(),
     {Open,Closed,Lights} = split_objects(Dls, [], [], []),
-    RS0 = #{},
-    RS1 = render_lights(Lights, RS0),
+    NonLights = Open ++ Closed,
+    RS0 = #{ws_eyepoint => e3d_mat:mul_point(e3d_transform:inv_matrix(MM), {0.0,0.0,0.0}),
+            view_from_world => MM},
+    RS1 = render_lights(Lights, Mode, PM, RS0),
     {SL, RS2} = setup_scene_lights(UseSceneLights, Lights, RS1),
     case wings_wm:get_prop(workmode) of
 	false ->
@@ -149,24 +151,40 @@ render_objects(Mode, PM, UseSceneLights) ->
                        false -> RS2
                    end,
             RS21 = render_smooth_objects(Open, Closed, SL, RS10),
-            RS22 = render_wire(Dls, Mode, true, RS21),
-            render_sel_highlight(Dls, Mode, true, PM, RS22);
+            RS22 = render_wire(NonLights, Mode, true, RS21),
+            render_sel_highlight(NonLights, Mode, true, PM, RS22);
 	true ->
             RS10 = case UseSceneLights of
                        true -> render_work_objects(Open, Closed, ambient, RS2); %% amb pass
                        false -> RS2
                   end,
             RS21 = render_work_objects(Open, Closed, SL, RS10),
-            RS22 = render_wire(Dls, Mode, false, RS21),
-            render_sel_highlight(Dls, Mode, false, PM, RS22)
+            RS22 = render_wire(NonLights, Mode, false, RS21),
+            render_sel_highlight(NonLights, Mode, false, PM, RS22)
     end.
 
-render_lights(Lights, RS0) ->
-    RS1 = wings_shaders:use_prog(1, RS0),
+render_lights([], _Mode, _PM, RS0) ->
+    RS0;
+render_lights(Lights, Mode, PM, RS0) ->
+    RS1 = wings_shaders:use_prog(light_light, RS0),
     gl:color4ub(255, 255, 255, 255),
-    RS = render_work_objects_0(Lights, false, RS1),
+    gl:disable(?GL_CULL_FACE),
+    gl:enable(?GL_POLYGON_OFFSET_FILL),
+    polygonOffset(2.0),
+    RS2 = render_work_objects_0(Lights, false, RS1),
     gl:color4ub(255, 255, 255, 255),
-    RS.
+    RS21 = wings_shaders:use_prog(0, RS2),
+    polygonOffset(0.0),
+    gl:disable(?GL_POLYGON_OFFSET_FILL),
+    AreaLights = [D || #dlo{src_we=We}=D <- Lights, ?IS_AREA_LIGHT(We)],
+    case AreaLights of
+        [] -> RS21;
+        AreaLights ->
+            RS22 = render_wire(AreaLights, Mode, true, RS21),
+            RS23 = render_sel_highlight(AreaLights, Mode, false, PM, RS22),
+            gl:color4ub(255, 255, 255, 255), %% Reset vertex col from sel_col or edge_col
+            RS23
+    end.
 
 render_work_objects(Open, Closed, SceneLights, RS0) ->
     gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_FILL),
@@ -182,10 +200,20 @@ render_work_objects(Open, Closed, SceneLights, RS0) ->
     gl:shadeModel(?GL_FLAT),
     RS.
 
-render_work_objects_0([D|Dls], SceneLights, RS0) ->
+render_work_objects_0(Dls, [Light|SLs], RS0) ->
+    RS1 = wings_light:setup_light(Light, RS0),
+    RS = render_work_objects_1(Dls, true, RS1),
+    render_work_objects_0(Dls, SLs, RS);
+render_work_objects_0(_, [], RS0) ->
+    RS0;
+render_work_objects_0(Dls, _, RS0) ->
+    render_work_objects_1(Dls, false, RS0).
+
+
+render_work_objects_1([D|Dls], SceneLights, RS0) ->
     RS = render_object(D, true, false, SceneLights, RS0),
-    render_work_objects_0(Dls, SceneLights, RS);
-render_work_objects_0([], _, RS) -> RS.
+    render_work_objects_1(Dls, SceneLights, RS);
+render_work_objects_1([], _, RS) -> RS.
 
 render_smooth_objects(Open, Closed, SceneLights, RS0) ->
     gl:shadeModel(?GL_SMOOTH),
@@ -210,15 +238,27 @@ render_smooth_objects(Open, Closed, SceneLights, RS0) ->
     gl:depthMask(?GL_TRUE),
     RS.
 
-render_smooth_objects_0([D|Dls], RenderTrans, SceneLights, RS0) ->
-    RS = render_object(D, false, RenderTrans, SceneLights, RS0),
-    render_smooth_objects_0(Dls, RenderTrans, SceneLights, RS);
-render_smooth_objects_0([], _, _, RS) -> RS.
+render_smooth_objects_0(Dls, RenderTrans, [Light|SLs], RS0) ->
+    RS1 = wings_light:setup_light(Light, RS0),
+    RS = render_smooth_objects_1(Dls, RenderTrans, true, RS1),
+    render_smooth_objects_0(Dls, RenderTrans, SLs, RS);
+render_smooth_objects_0(_, _, [], RS0) ->
+    RS0;
+render_smooth_objects_0(Dls, RenderTrans, _, RS0) ->
+    render_smooth_objects_1(Dls, RenderTrans, false, RS0).
 
-render_object(#dlo{drag={matrix,_,_,Matrix}}=D, Work, RT, SceneLights, RS0) ->
+render_smooth_objects_1([D|Dls], RenderTrans, SceneLights, RS0) ->
+    RS = render_object(D, false, RenderTrans, SceneLights, RS0),
+    render_smooth_objects_1(Dls, RenderTrans, SceneLights, RS);
+render_smooth_objects_1([], _, _, RS) -> RS.
+
+render_object(#dlo{drag={matrix,_,_,DragMat}}=D, Work, RT, SceneLights, RS0) ->
     gl:pushMatrix(),
-    gl:multMatrixf(Matrix),
-    RS = render_object_1(D, Work, RT, SceneLights, RS0),
+    gl:multMatrixf(DragMat),
+    Prev = wings_shaders:get_state(ws_matrix, RS0),
+    RS1 = wings_shaders:set_uloc(ws_matrix, e3d_mat:mul(DragMat, Prev), RS0),
+    RS2 = render_object_1(D, Work, RT, SceneLights, RS1),
+    RS  = wings_shaders:set_uloc(ws_matrix, Prev, RS2),
     gl:popMatrix(),
     RS;
 render_object(D, Work, RT, SceneLights, RS) ->
@@ -226,12 +266,15 @@ render_object(D, Work, RT, SceneLights, RS) ->
 
 render_object_1(#dlo{mirror=none}=D, Work, RenderTrans, SceneLights, RS) ->
     render_object_2(D, Work, RenderTrans, SceneLights, RS);
-render_object_1(#dlo{mirror=Matrix}=D, Work, RenderTrans, SceneLights, RS0) ->
-    RS1 = render_object_2(D, Work, RenderTrans, SceneLights, RS0),
+render_object_1(#dlo{mirror=MirrorMat}=DL, Work, RenderTrans, SceneLights, RS0) ->
+    RS1 = render_object_2(DL, Work, RenderTrans, SceneLights, RS0),
     gl:frontFace(?GL_CW),
     gl:pushMatrix(),
-    gl:multMatrixf(Matrix),
-    RS = render_object_2(D, Work, RenderTrans, SceneLights, RS1),
+    gl:multMatrixf(MirrorMat),
+    Prev = wings_shaders:get_state(ws_matrix, RS0),
+    RS2 = wings_shaders:set_uloc(ws_matrix, e3d_mat:mul(MirrorMat, Prev), RS1),
+    RS3 = render_object_2(DL, Work, RenderTrans, SceneLights, RS2),
+    RS  = wings_shaders:set_uloc(ws_matrix, Prev, RS3),
     gl:popMatrix(),
     gl:frontFace(?GL_CCW),
     RS.
@@ -243,10 +286,10 @@ render_object_2(#dlo{transparent=true}=D, false, false, SceneLights, RS) ->
 render_object_2(D, false, RenderTrans, SceneLights, RS) ->
     render_smooth(D, RenderTrans, SceneLights, RS).
 
-render_plain(#dlo{work=Faces,src_we=We,proxy=false}, SceneLights, RS) ->
+render_plain(#dlo{work=Faces,src_we=We,proxy=false}, _SceneLights, RS) ->
     case wire(We) of
-        false -> render_lighted(Faces, SceneLights, RS);
-        _ when ?IS_LIGHT(We) -> render_lighted(Faces, SceneLights, RS);
+        _ when ?IS_LIGHT(We) -> wings_dl:call(Faces, RS);
+        false -> wings_dl:call(Faces, RS);
         true -> RS
     end;
 render_plain(#dlo{proxy_data=PD, drag=Drag}, SceneLights, RS0) ->
@@ -260,24 +303,24 @@ render_plain(#dlo{proxy_data=PD, drag=Drag}, SceneLights, RS0) ->
             Blend = wings_gl:is_ext('GL_ARB_imaging') andalso wings_pref:get_value(Key),
             case Blend of
                 false ->
-                    render_lighted(Faces, SceneLights, RS0);
+                    wings_dl:call(Faces, RS0);
                 1.0 ->
-                    render_lighted(Faces, SceneLights, RS0);
+                    wings_dl:call(Faces, RS0);
                 _ ->
                     gl:enable(?GL_BLEND),
 		    gl:blendFunc(?GL_CONSTANT_ALPHA, ?GL_ONE_MINUS_CONSTANT_ALPHA),
 		    gl:blendColor(0.0, 0.0, 0.0, Blend),
-                    RS = render_lighted(Faces, SceneLights, RS0),
+                    RS = wings_dl:call(Faces, RS0),
                     gl:disable(?GL_BLEND),
                     RS
             end;
        true ->
-            render_lighted(Faces, SceneLights, RS0)
+            wings_dl:call(Faces, RS0)
     end.
 
 render_smooth(#dlo{work=Work,smooth=Smooth0,transparent=Trans0,
 		   proxy=Proxy,proxy_data=PD},
-	      RenderTrans, SceneLights, RS) ->
+	      RenderTrans, _SceneLights, RS) ->
     {Smooth, _Trans} =
         case Proxy of
             true -> wings_proxy:smooth_dl(PD);
@@ -290,23 +333,12 @@ render_smooth(#dlo{work=Work,smooth=Smooth0,transparent=Trans0,
                {[_,Tr],true}  -> Tr;
                {_,_} -> none
            end,
-    render_lighted(Draw, SceneLights, RS).
+    wings_dl:call(Draw, RS).
 
-render_lighted(Faces, false, RS) ->
-    wings_dl:call(Faces, RS);
-render_lighted(Faces, ambient, RS) ->
-    wings_dl:call(Faces, RS);
-render_lighted(Faces, Lights, RS0) ->
-    Do = fun(Light, RS1) ->
-                 RS = wings_light:setup_light(Light, RS1),
-                 wings_dl:call(Faces, RS)
-         end,
-    foldl(Do, RS0, Lights).
-
-enable_lighting(false, #{}=RS) ->
+enable_lighting(false, #{}=RS0) ->
     Lighting = wings_pref:get_value(number_of_lights),
     gl:color4ub(255, 255, 255, 255), %% Needed when vertex colors are not set
-    wings_shaders:use_prog(Lighting, RS);
+    wings_shaders:use_prog(Lighting, RS0);
 enable_lighting(ambient, RS) ->
     RS;
 enable_lighting(_, RS) ->
@@ -365,7 +397,6 @@ render_wire(Dls, _, true, RS0) ->
     gl:enable(?GL_CULL_FACE),
     gl:disable(?GL_POLYGON_OFFSET_FILL),
     gl:depthMask(?GL_TRUE),
-    RS1 = disable_lighting(RS0),
     gl:shadeModel(?GL_FLAT),
     gl:depthFunc(?GL_LEQUAL),
     WOs = wings_wm:get_prop(wireframed_objects),
@@ -373,9 +404,9 @@ render_wire(Dls, _, true, RS0) ->
     gl:color3fv(wings_pref:get_value(edge_color)),
     gl:lineWidth(1.0),
     gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_LINE),
-    RS2 = foldl(fun(D,RS) -> render_wire_object(D, cage, RS) end, RS1, Ws),
+    RS1 = foldl(fun(D,RS) -> render_wire_object(D, cage, RS) end, RS0, Ws),
     Style = wings_pref:get_value(proxy_shaded_edge_style),
-    foldl(fun(D,RS) -> render_wire_object(D, Style, RS) end, RS2, PWs).
+    foldl(fun(D,RS) -> render_wire_object(D, Style, RS) end, RS1, PWs).
 
 render_wire_object(#dlo{drag={matrix,_,_,Matrix}}=D, PStyle, RS0) ->
     gl:pushMatrix(),

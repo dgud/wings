@@ -987,10 +987,10 @@ send_texture([],_) -> false.
 
 
 shader_uniforms([{uniform,color,Name,_,_}|As],[Val|Opts],Conf) ->
-    wings_gl:set_uloc(Conf#sh_conf.prog,Name,Val),
+    wings_gl:set_uloc(Conf#sh_conf.prog, Name,Val),
     shader_uniforms(As,Opts,Conf);
 shader_uniforms([{uniform,float,Name,_,_}|As],[Val|Opts],Conf) ->
-    wings_gl:set_uloc(Conf#sh_conf.prog,Name, Val),
+    wings_gl:set_uloc(Conf#sh_conf.prog, Name, Val),
     shader_uniforms(As,Opts,Conf);
 shader_uniforms([{uniform,menu,Name,_,_}|As],[Vals|Opts],Conf) 
   when is_list(Vals) ->

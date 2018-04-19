@@ -426,15 +426,16 @@ has_texture(Mat) ->
     Maps = prop_get(maps, Mat, []),
     Maps =/= [].
 
-apply_material(Name, Mtab, false, RS) ->
-    case maps:get(material, RS, undefined) of
-        Name ->
-            fun() -> RS end;
-        _Active ->
-            apply_material_1(Name, Mtab, false, RS#{material=>Name})
+apply_material(Name, Mtab, false, RS0) ->
+    case wings_shaders:set_state(material, Name, RS0) of
+        {false, RS0} ->
+            fun() -> RS0 end;
+        {true, RS1} ->
+            apply_material_1(Name, Mtab, false, RS1)
     end;
 apply_material(Name, Mtab, true, RS) ->
-    apply_material_1(Name, Mtab, true, RS#{material=>Name}).
+    %% io:format("apply ~p~n",[Name]),
+    apply_material_1(Name, Mtab, true, wings_shaders:clear_state(material,RS)).
 
 apply_material_1(Name, Mtab, ActiveVertexColors, RS0) when is_atom(Name) ->
     case maps:get({material, Name}, RS0, undefined) of
@@ -459,31 +460,21 @@ apply_material_2(Props, _, RS0) ->
     RS = lists:foldl(fun apply_material_3/2, RS0, Props),
     fun() -> RS end.
 
-apply_material_3({shininess, Shine}, Rs0) ->  %% Remove
-    case maps:get(shininess, Rs0, undefined) of
-        Shine -> Rs0;
-        _ -> gl:materialf(?GL_FRONT_AND_BACK, ?GL_SHININESS, Shine*128),
-             Rs0#{shininess=>Shine}
+apply_material_3({{tex, Type}=TexType, TexId}, Rs0) ->
+    case wings_shaders:set_state(TexType, TexId, Rs0) of
+        {false, Rs0} ->
+            Rs0;
+        {true, Rs1} when TexId =:= none ->
+            wings_shaders:set_uloc(texture_var(Type), enable(false), Rs1);
+        {true, Rs1} ->
+            gl:activeTexture(?GL_TEXTURE0 + tex_unit(Type)),
+            gl:bindTexture(?GL_TEXTURE_2D, TexId),
+            gl:activeTexture(?GL_TEXTURE0),
+            wings_shaders:set_uloc(texture_var(Type), enable(true), Rs1)
     end;
-apply_material_3({{tex, Type}=TexType, TexId}, #{shader:=Shader}=Rs0) ->
-    case maps:get({TexType, Shader}, Rs0, undefined) of
-        TexId -> Rs0;
-        _ ->
-            apply_texture(Type, TexId, Shader),
-            Rs0#{{TexType,Shader}=>TexId}
-    end;
-apply_material_3({Type, RGBA}, Rs0)
-  when Type =:= diffuse; Type =:= emission;
-       Type =:= specular; Type =:= ambient ->  %% Remove
-    case maps:get(Type, Rs0, undefined) of
-        RGBA -> Rs0;
-        _ -> gl:materialfv(?GL_FRONT_AND_BACK, enum(Type), RGBA),
-             Rs0#{Type=>RGBA}
-    end;
-apply_material_3({metallic, Met}, Rs0) ->
-    wings_shaders:set_uloc(metallic, Met, Rs0);
-apply_material_3({roughness, R}, Rs0) ->
-    wings_shaders:set_uloc(roughness, R, Rs0);
+apply_material_3({Type, Value}, Rs0)
+  when Type =:= diffuse; Type =:= emission; Type =:= metallic; Type =:= roughness ->
+    wings_shaders:set_uloc(Type, Value, Rs0);
 apply_material_3({_Type,_}, Rs0) ->
     %% io:format("~p:~p: unsupported type ~p~n",[?MODULE,?LINE,_Type]),
     Rs0.
@@ -522,11 +513,6 @@ add_old_props(Mat) ->
             end,
     [{opengl, Added}|lists:keydelete(opengl, 1, Mat)].
 
-enum(diffuse) -> ?GL_DIFFUSE;
-enum(ambient) -> ?GL_AMBIENT;
-enum(specular) -> ?GL_SPECULAR;
-enum(emission) -> ?GL_EMISSION.
-
 material_prop(Name, Mtab) ->
     Mat = gb_trees:get(Name, Mtab),
     OpenGL = prop_get(opengl, Mat),
@@ -557,33 +543,20 @@ image_id(_, none) -> none;
 image_id(normal, Map) -> wings_image:bumpid(Map);
 image_id(_, Map) -> wings_image:txid(Map).
 
-apply_texture(Type, none, Shader) ->
-    shader_texture(Type, false, Shader),
-    false;
-apply_texture(Type, TxId, Shader) ->
-    shader_texture(Type, true, Shader),
-    gl:activeTexture(?GL_TEXTURE0 + tex_unit(Type)),
-    gl:bindTexture(?GL_TEXTURE_2D, TxId),
-    gl:activeTexture(?GL_TEXTURE0),
-    true.
-
 enable(true)  -> 1;
 enable(false) -> 0.
 
-texture_var(diffuse) -> "UseDiffuseMap";
-texture_var(normal) ->  "UseNormalMap";
-texture_var(metallic) -> "UseMetallic"; %% blue = roughness green = metallic
-texture_var(emission) -> "UseEmission";
-texture_var(occlusion) -> "UseOcclusion". %% red = occlusion map
+texture_var(diffuse) -> 'UseDiffuseMap';
+texture_var(normal) ->  'UseNormalMap';
+texture_var(metallic) -> 'UseMetallic'; %% blue = roughness green = metallic
+texture_var(emission) -> 'UseEmission';
+texture_var(occlusion) -> 'UseOcclusion'. %% red = occlusion map
 
 tex_unit(diffuse) -> ?DIFFUSE_MAP_UNIT;
 tex_unit(normal) -> ?NORMAL_MAP_UNIT;
 tex_unit(metallic) -> ?ROUGH_METAL_MAP_UNIT; %% blue = roughness green = metallic
 tex_unit(emission) -> ?EMISSION_MAP_UNIT;
 tex_unit(occlusion) -> ?OCCUL_MAP_UNIT. %% red = occlusion map
-
-shader_texture(What, Enable, #{}=Shader) ->
-    wings_gl:set_uloc(Shader, texture_var(What), enable(Enable)).
 
 %% Return the materials used by the objects in the scene.
 
@@ -614,7 +587,7 @@ is_transparent(Name, Mtab) ->
     is_mat_transparent(Mat).
 
 is_mat_transparent(Mat) ->
-    OpenGL = prop_get(opengl, Mat),
+    OpenGL = proplists:get_value(opengl, Mat, []),
     Trans = lists:any(fun({diffuse,{_,_,_,Alpha}}) when Alpha < 1.0 -> true;
                          (_) -> false
                       end, OpenGL),
@@ -675,6 +648,7 @@ edit_dialog(Name, Assign, St=#st{mat=Mtab0}, Mat0) ->
     Roug0 = prop_get(roughness, OpenGL0),
     {Emiss0,_} = ask_prop_get(emission, OpenGL0),
     Preview = fun(GLCanvas, Fields) ->
+                      wings_light:init_opengl(),
                       mat_preview(GLCanvas,Fields,prop_get(maps,Mat0))
 	      end,
     Refresh = fun(_Key, _Value, Fields) ->
@@ -683,19 +657,21 @@ edit_dialog(Name, Assign, St=#st{mat=Mtab0}, Mat0) ->
 	      end,
     RHook = {hook, Refresh},
     VtxColMenu = vertex_color_menu(VertexColors0),
-    R01 = {range,{0.0,1.0}},
+    OptDef = [RHook, {proportion,1}],
+    TexOpt = [{range,{0.0,1.0}}, {digits, 6}|OptDef],
+
     Qs1 = {vframe,
 	   [
 	    {hframe,
 	     [{custom_gl,?PREVIEW_SIZE,?PREVIEW_SIZE+5,Preview, [{key, preview}]},
 	      {label_column,
-	       [{?__(1,"Diffuse"),   {slider,{color,Diff0, [{key,diffuse},RHook]}}},
-		{?__(7,"Metallic"), {slider,{text, Met0,  [R01,{key,metallic},RHook]}}},
-		{?__(8,"Roughness"), {slider,{text, Roug0, [R01,{key,roughness},RHook]}}},
-		{?__(4,"Emission"),  {slider,{color,Emiss0,[{key,emission}, RHook]}}}
-	       ]}]},
+	       [{?__(1,"Diffuse"),   {slider,{color,Diff0, [{key,diffuse}|OptDef]}}},
+		{?__(7,"Metallic"),  {slider,{text, Met0,  [{key,metallic}|TexOpt]}}},
+		{?__(8,"Roughness"), {slider,{text, Roug0, [{key,roughness}|TexOpt]}}},
+		{?__(4,"Emission"),  {slider,{color,Emiss0,[{key,emission}|OptDef]}}}
+	       ], [{proportion,1}]}]},
 	    {label_column,
-	     [{?__(6,"Opacity"), {slider,{text,Opacity0, [R01, {key,opacity}, RHook]}}},
+	     [{?__(6,"Opacity"), {slider,{text,Opacity0, [{key,opacity}|TexOpt]}}},
               {"Vertex Colors", VtxColMenu}
 	     ]}
            ]
@@ -758,11 +734,9 @@ mat_preview(Canvas, Common, Maps) ->
     gl:clearColor(BGC(BR),BGC(BG),BGC(BB),1.0),
     gl:clear(?GL_COLOR_BUFFER_BIT bor ?GL_DEPTH_BUFFER_BIT),
     gl:matrixMode(?GL_PROJECTION),
-    gl:pushMatrix(),
     gl:loadIdentity(),
     glu:perspective(60.0, 1.0, 0.01, 256.0),
     gl:matrixMode(?GL_MODELVIEW),
-    gl:pushMatrix(),
     gl:loadIdentity(),
     gl:translatef(0.0, 0.0, -2.0),
     gl:shadeModel(?GL_SMOOTH),
@@ -772,23 +746,27 @@ mat_preview(Canvas, Common, Maps) ->
     Metal = {metallic, wings_dialog:get_value(metallic, Common)},
     Rough = {roughness, wings_dialog:get_value(roughness, Common)},
     Material = [Diff, Emis, Metal, Rough,
-                {{tex,diffuse}, get_texture_map(diffuse, Maps)}],
+                {{tex,diffuse},   get_texture_map(diffuse, Maps)},
+                {{tex,normal},    none}, %% get_normal_map(Maps)},  %% Have no tangents
+                {{tex,metallic},  get_texture_map(metallic, Maps)},
+                {{tex,emission},  get_texture_map(emission, Maps)},
+                {{tex,occlusion}, get_texture_map(occlusion, Maps)}],
 
     Obj = glu:newQuadric(),
     gl:enable(?GL_BLEND),
     gl:enable(?GL_DEPTH_TEST),
     gl:enable(?GL_CULL_FACE),
-    gl:rotatef(-90.0,1.0,0.0,0.0),
+    gl:blendFunc(?GL_SRC_ALPHA, ?GL_ONE_MINUS_SRC_ALPHA),
     gl:color4ub(255, 255, 255, 255),
     glu:quadricDrawStyle(Obj, ?GLU_FILL),
     glu:quadricNormals(Obj, ?GLU_SMOOTH),
     glu:quadricTexture(Obj, ?GLU_TRUE),
 
-    RS0 = wings_shaders:use_prog(1, #{}),
+    RS = #{ws_eyepoint=>{0.0,0.0,2.0}, view_from_world=> e3d_transform:identity()},
+    RS0 = wings_shaders:use_prog(1, RS),
     RS1 = lists:foldl(fun apply_material_3/2, RS0, Material),
     glu:sphere(Obj, 0.9, 50, 50),
     glu:deleteQuadric(Obj),
-    shader_texture(diffuse, false, maps:get(shader, RS1)),
     wings_shaders:use_prog(0, RS1),
     gl:disable(?GL_BLEND),
     gl:shadeModel(?GL_FLAT),
