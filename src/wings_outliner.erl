@@ -640,9 +640,12 @@ image_maps_index(Type) ->
     case Type of
     	diffuse -> 4;
 	gloss -> 5;
+        metallic -> 5;
 	bump -> 6;
 	normal -> 7;
-	material -> 8;
+        occlusion -> 8;
+        emission -> 9;
+	material -> 10;
         _unknown -> 4
     end.
 
@@ -664,6 +667,7 @@ load_icons() ->
 		     small_image,small_image2,perspective, %small_object,
 		     small_light,
 		     small_diffuse,small_gloss,small_bump,small_normal,
+                     small_aocc, small_emission,
 		     material
 		    ]),
     {IL, #{image=>0, internal_image=>1, object=>2, light=>3, mat=>8}}.
@@ -786,9 +790,12 @@ handle_drop(#{type:=image, id:=Id}, #{type:=mat, name:=Name}) ->
     [{?__(1,"Texture Type"),ignore},
      separator,
      {?__(2,"Diffuse"),tx_cmd(diffuse, Id, Name)},
-     {?__(3,"Gloss"),tx_cmd(gloss, Id, Name)},
+     {?__(8,"Metal&Roughness"),tx_cmd(metallic, Id, Name)},
+     {?__(6,"Ambient Occlusion"),tx_cmd(occlusion, Id, Name)},
      {?__(4,"Bump (HeightMap)"),tx_cmd(bump, Id, Name)},
-     {?__(5,"Bump (NormalMap)"),tx_cmd(normal, Id, Name)}].
+     {?__(5,"Bump (NormalMap)"),tx_cmd(normal, Id, Name)},
+     {?__(7,"Emission"),tx_cmd(emission, Id, Name)}
+    ].
 
 tx_cmd(Type, Id, Mat) ->
     {'VALUE',{assign_texture,Type,Id,Mat}}.
