@@ -86,7 +86,7 @@ setup(#st{sel=OrigSel}=St) ->
 
 setup_1(#dlo{src_we=#we{id=Id}=We}=D, [{Id,_}|Sel]) when ?IS_ANY_LIGHT(We) ->
     %% Never use proxies on lights.
-    {D,Sel};
+    {D#dlo{proxy=false},Sel};
 setup_1(#dlo{src_we=#we{id=Id},proxy=false, proxy_data=Pd}=D, [{Id,_}|Sel]) ->
     case Pd of
 	none ->
@@ -112,7 +112,7 @@ setup_all(Activate) ->
 
 setup_all(#dlo{src_we=We}=D, _) when ?IS_ANY_LIGHT(We) ->
     %% Never use proxies on lights.
-    D;
+    D#dlo{proxy=false};
 setup_all(#dlo{src_we=#we{id=Id},proxy_data=none}=D, true) ->
     Wire0 = wings_wm:get_prop(wings_wm:this(), wireframed_objects),
     Wire = gb_sets:add(Id, Wire0),
@@ -132,6 +132,8 @@ setup_all(#dlo{src_we=#we{id=Id}}=D, false) ->
 setup_all(D, _) -> D.
 
 update(#dlo{proxy=false}=D, _) -> D;
+update(#dlo{src_we=We}=D, _) when ?IS_ANY_LIGHT(We) ->
+    D#dlo{proxy=false}; %% Never use proxies on lights.
 %% Proxy data is not up to date. Recalculate!
 update(#dlo{proxy_data=#sp{faces=[_]}=Pd0}=D, St) ->
     update(D#dlo{proxy_data=Pd0#sp{faces=none}},St);
