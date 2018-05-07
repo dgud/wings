@@ -182,6 +182,8 @@ save_unused_mats() ->
 
 command(new, St) ->
     new(St);
+command(new_ready, St) ->
+    St;
 command(confirmed_new, St) ->
     del_unsaved_file(),
     confirmed_new(St);
@@ -308,6 +310,7 @@ new(#st{saved=true}=St0) ->
     St2 = clean_images(wings_undo:init(St1)),
     St = wings_obj:create_folder_system(St2),
     wings_u:caption(St),
+    wings_wm:psend(wings_wm:this(),{action,{file,new_ready}}),
     {new,St#st{saved=true}};
 new(#st{}=St0) ->		      %File is not saved or autosaved.
     wings_u:caption(St0#st{saved=false}),
