@@ -74,6 +74,7 @@ cancel() ->
 	  scale,
 	  stats=[],
 	  frame,
+          overlay,
 	  pb
 	}).
 
@@ -82,27 +83,33 @@ start_link() ->
     {ok, wx_object:get_pid(PB)}.
 
 init([Frame]) ->
-    Dummy = wxPanel:new(Frame),
-    wxPanel:hide(Dummy),
-    {Dummy, #state{frame=Frame}}.
+    Flags = ?wxFRAME_TOOL_WINDOW bor
+	?wxFRAME_FLOAT_ON_PARENT bor
+	?wxFRAME_NO_TASKBAR bor
+	?wxNO_BORDER,
+    Overlay = wxFrame:new(Frame, -1, "", [{style, Flags}]),
+    wxFrame:setBackgroundColour(Overlay, {95,95,95,127}),
+    catch wxFrame:setTransparent(Overlay, 127),
+    wxFrame:hide(Overlay),
+    {Overlay, #state{frame=Frame, overlay=Overlay}}.
 
 handle_event(_Ev, State) ->
     io:format("PB ~p~n",[_Ev]),
     {noreply, State}.
 
-handle_cast({start, Msg, percent}, #state{frame=Frame, level=Level})
+handle_cast({start, Msg, percent}, #state{frame=Frame, overlay=OV, level=Level})
   when Level =:= 0 ->
     SB = wxFrame:getStatusBar(Frame),
-    {X,Y} = wxWindow:getPosition(SB),
-    {W,_H} = wxWindow:getSize(SB),
-    Pos  = {pos, {X,Y-?PH-1}},
-    Size = {size, {W,?PH}},
-    PB = wxGauge:new(Frame, ?wxID_ANY, 100, [Pos, Size]),
+    {X,Y,W0,_H0} = wxWindow:getScreenRect(SB),
+    wxFrame:setSize(OV, {X,Y-?PH,W0,?PH}),
+    Size = {size, {W0,?PH}},
+    PB = wxGauge:new(OV, ?wxID_ANY, 100, [Size]),
     S = #state{msg=["",Msg], t0=os:timestamp(),
 	       refresh=?REFRESH_T, level=1,
-	       pb=PB, frame=Frame},
+	       pb=PB, frame=Frame, overlay=OV},
+    wxFrame:show(OV),
     wxGauge:show(PB),
-    wxGauge:raise(PB),
+    wxFrame:raise(OV),
     draw_position(S),
     {noreply, S, ?REFRESH_T};
 handle_cast({start, Msg, percent}, #state{level=Level,next_pos=Next,
@@ -125,26 +132,28 @@ handle_cast({update, Curr, Percent}, S0 = #state{refresh=Refresh}) ->
     {noreply, S, Refresh};
 
 handle_cast(Cast, State) ->
-    io:format("Cast ~p~n",[Cast]),
+    ?dbg("Cast ~p~n",[Cast]),
     {noreply, State}.
 
-handle_call(done, _From,  #state{pb=PB, frame=Frame, level=Level} = S0)
+handle_call(done, _From,  #state{pb=PB, overlay=OV, frame=Frame, level=Level} = S0)
   when Level =:= 1 ->
     S = update(?__(1,"done"), 1.0, S0#state{next_pos=1.0,pos=1.0}),
     draw_position(S),
     wxGauge:destroy(PB),
-    {reply, fun() -> print_stats(S) end, #state{frame=Frame}};
+    wxFrame:hide(OV),
+    {reply, fun() -> print_stats(S) end, #state{overlay=OV, frame=Frame}};
 handle_call(done, _From,  #state{msg=[]} = S0) ->
     {reply, ok, S0};
 handle_call(done, _From,  #state{level=Level, msg=[_|Msg], refresh=Refresh} = S0) ->
     {reply, ok, S0#state{level=Level-1,msg=Msg}, Refresh};
 
-handle_call(cancel, _From, #state{frame=Frame, pb=PB}) ->
+handle_call(cancel, _From, #state{overlay=OV, frame=Frame, pb=PB}) ->
     case PB of
 	undefined -> ignore;
-	_ -> wxGauge:destroy(PB)
+	_ -> wxFrame:hide(OV),
+             wxGauge:destroy(PB)
     end,
-    {reply, ok, #state{frame=Frame}};
+    {reply, ok, #state{frame=Frame, overlay=OV}};
 
 handle_call(pause, _From, S0) ->
     S = draw_position(calc_position(S0)),
@@ -155,7 +164,7 @@ handle_info(timeout, S0=#state{refresh=Refresh}) ->
     {noreply, S, Refresh};
 
 handle_info(Cast, State) ->
-    io:format("Info ~p~n",[Cast]),
+    ?dbg("Info ~p~n",[Cast]),
     {noreply, State}.
 
 code_change(_, _, State) ->
@@ -166,7 +175,12 @@ terminate(_, _) ->
 
 draw_position(#state{pb=PB, msg=Msg, pos=Pos} = S) ->
     wings_status:message(?PB, build_msg(Msg)),
-    PB =:= undefined orelse wxGauge:setValue(PB, max(100, trunc(Pos * 100))),
+    case PB of
+        undefined -> ok;
+        _ ->
+            wxGauge:raise(PB),
+            wxGauge:setValue(PB, min(100, trunc(Pos * 100)))
+    end,
     S.
 
 update(Msg, Percent, #state{msg=[_|Msg0],stats=Stats0,t0=Time0}=S) ->
