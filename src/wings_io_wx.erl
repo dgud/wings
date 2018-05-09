@@ -18,7 +18,6 @@
 
 -include("wings.hrl").
 
--ifdef(USE_WX).
 -export([init/0, quit/0, version_info/0,
 	 set_cursor/1,hourglass/0,eyedropper/0,
 	 get_mouse_state/0, is_modkey_pressed/1, is_key_pressed/1,
@@ -584,4 +583,3 @@ sdl_key_map(?SDLK_RSUPER) -> ?WXK_WINDOWS_RIGHT;
 
 sdl_key_map(Key) -> Key.
 
--endif.

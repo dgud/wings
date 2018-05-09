@@ -57,6 +57,8 @@
               timezone/0, utc_offset_seconds/0, stack_item/0
              ]).
 
+-compile([{nowarn_deprecated_function, {erlang,get_stacktrace,0}}]).
+
 %%--------------------------------------------------------------------------------
 %% Types & Macros
 %%--------------------------------------------------------------------------------

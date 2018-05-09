@@ -33,6 +33,8 @@
          add_vert_info/3, rev_face/2, rev_face/1
         ]).
 
+-compile([{nowarn_deprecated_function, {erlang,get_stacktrace,0}}]).
+
 -record(mat,
         {refs=#{},
          defs=#{},

@@ -13,6 +13,7 @@
 
 -module(wings_cl).
 -include_lib("cl/include/cl.hrl").
+-compile([{nowarn_deprecated_function, {erlang,get_stacktrace,0}}]).
 
 -export([is_available/0,
 	 setup/0, stop/1, compile/2, compile/3,

@@ -18,6 +18,8 @@
 -export([init/1, handle_info/2, terminate/2, code_change/3, handle_call/3,
 	 handle_event/2, handle_cast/2]).
 
+-compile([{nowarn_deprecated_function, {erlang,get_stacktrace,0}}]).
+
 -include_lib("wx/include/wx.hrl").
 -record(state, {sb,
 		frame,

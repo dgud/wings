@@ -13,10 +13,6 @@
 
 -include("../intl_tools/wings_intl.hrl").
 
--ifndef(USE_WX).     %% We require wx in this branch
--define(USE_WX, 1).
--endif.
-
 -ifdef(NEED_ESDL).
 -include("sdl_events.hrl").
 -include("sdl_keyboard.hrl").
@@ -33,6 +29,7 @@
 -endif.
 
 -include_lib("wx/include/wx.hrl").
+-compile([{nowarn_deprecated_function, {erlang,get_stacktrace,0}}]).
 
 -define(WINGS_VERSION, ?wings_version).
 

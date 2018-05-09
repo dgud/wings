@@ -17,6 +17,7 @@
 
 %%-compile(export_all). %% testing
 -compile(inline).
+-compile([{nowarn_deprecated_function, {erlang,get_stacktrace,0}}]).
 
 -include("e3d_image.hrl").
 

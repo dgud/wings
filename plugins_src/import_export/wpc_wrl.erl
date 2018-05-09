@@ -15,11 +15,10 @@
 
 %% Thanks KayosIII (Danni Aaron Coy) who wrote the export of UV coordinates 
 %%
-%% And I rewrote it to support normals and split_by_materials.
-%% Subdivision levels and stuff
-%% /Dan
 
 -export([init/0, menu/2, command/2]).
+-compile([{nowarn_deprecated_function, {erlang,get_stacktrace,0}}]).
+
 -import(lists, [foreach/2, foldl/3]).
 
 -include("e3d.hrl").
