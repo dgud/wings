@@ -671,21 +671,29 @@ update_menu(Menu, Item, delete, _) ->
 	    end
     end;
 update_menu(Menu, Item, {append, Pos0, Cmd0}, Help) ->
+    update_menu(Menu, Item, {append, Pos0, Cmd0, []}, Help);
+update_menu(Menu, Item, {append, Pos0, Cmd0, Props}, Help) ->
     case menu_item_id(Menu, Item) of
 	false ->
 	    AddItem =
 		fun(SubMenu, Name) ->
 		    Pos =
 			if Pos0 >= 0 -> min(wxMenu:getMenuItemCount(SubMenu), Pos0);
-                           true -> wxMenu:getMenuItemCount(SubMenu)
+			    true -> wxMenu:getMenuItemCount(SubMenu)
 			end,
-		    MO = wxMenu:insert(SubMenu, Pos, -1, [{text, Cmd0}]),
+		    {Type,Check} = case proplists:get_value(crossmark, Props) of
+				       undefined -> {?wxITEM_NORMAL, false};
+				       false -> {?wxITEM_CHECK, false};
+				       _ -> {?wxITEM_CHECK, true} %% grey or true
+				   end,
+		    MO = wxMenu:insert(SubMenu, Pos, -1, [{text, Cmd0},{kind, Type}]),
 		    Id = wxMenuItem:getId(MO),
 		    ME=#menu{name=Name, object=MO,
-			     wxid=Id, type=?wxITEM_NORMAL},
+			     wxid=Id, type=Type},
 		    true = ets:insert(wings_menus, ME),
 		    Cmd = setup_hotkey(MO, Cmd0),
 		    wxMenuItem:setText(MO, Cmd),
+		    (Type==?wxITEM_CHECK) andalso wxMenuItem:check(MO,[{check, Check}]),
 		    is_list(Help) andalso wxMenuItem:setHelp(MO, Help)
 		end,
 
