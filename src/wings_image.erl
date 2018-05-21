@@ -20,7 +20,7 @@
 	 next_id/0,delete_older/1,delete_from/1,delete/1,
          filter_images/1,
 	 update/2,update_filename/2,find_image/2,
-	 window/1]).
+	 window/1, debug_display/2]).
 -export([image_formats/0,image_read/1,image_write/1,
 	 e3d_to_wxImage/1, wxImage_to_e3d/1]).
 -export([maybe_exceds_opengl_caps/1]).
@@ -89,6 +89,10 @@ new_temp(Name, E3DImage) ->
 
 new_hidden(Name, E3DImage) ->
     req({new,E3DImage#e3d_image{name=Name},true, true}).
+
+debug_display(Id, Img) ->
+    Display = fun(_) -> wings_image_viewer:new({image, Id}, Img), keep end,
+    wings ! {external, Display}.
 
 create(St) ->
     create_image(),
@@ -213,14 +217,19 @@ init([Env]) ->
     {ok, #ist{images=gb_trees:empty()}}.
 
 handle_call({new,#e3d_image{name=Name0}=Im0,false,Hide}, _From, #ist{next=Id,images=Images0}=S) ->
-    Name = make_unique(Name0, Images0),
-    Im = maybe_convert(Im0#e3d_image{name=Name}),
-    Images = gb_trees:insert(Id, hide(Im, Hide), Images0),
-    case make_texture(Id, Im) of
-	{error,_GlErr}=Err ->
-	    {reply, Err, S};
-	_ ->
-	    {reply, Id, S#ist{next=Id+1,images=Images}}
+    try texture_format(Im0) of
+        _ ->
+            Name = make_unique(Name0, Images0),
+            Im = maybe_convert(Im0#e3d_image{name=Name}),
+            Images = gb_trees:insert(Id, hide(Im, Hide), Images0),
+            case make_texture(Id, Im) of
+                {error,_GlErr}=Err ->
+                    {reply, Err, S};
+                _ ->
+                    {reply, Id, S#ist{next=Id+1,images=Images}}
+            end
+    catch _:_ -> %% texture_format is used to check validity
+            {reply, {error, unknown_image_format}, S}
     end;
 handle_call({new,#e3d_image{name=Name}=Im,true,Hide}, From, #ist{images=Images}=S0) ->
     Exist = fun({_, #e3d_image{name=N}}) when N =:= Name -> true;
@@ -305,11 +314,6 @@ handle_call({find_image, Dir, File}, _From, #ist{images=Ims}=S) ->
         [Id|_] -> {reply, {true, Id}, S}
     end;
 
-%% handle_call({load_envmap, Img}, _From, #ist{} = S) ->
-%%     case cl_setup() of
-%%         {error, _R} = Err -> {reply, Err, S};
-%%         CL  -> {reply, make_envmap(CL, Img), S}
-%%     end;
 handle_call(Req, _From, S) ->
     io:format("~w: Bad request: ~w~n", [?MODULE, Req]),
     {reply, error, S}.

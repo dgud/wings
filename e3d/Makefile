@@ -42,6 +42,7 @@ MODULES= \
 	e3d__tri_quad \
 	e3d__meshclean \
 	e3d__bmp \
+	e3d__dds \
 	e3d__tga \
 	e3d__png \
 	e3d__tif \

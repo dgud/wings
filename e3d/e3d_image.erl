@@ -47,6 +47,7 @@ load(FileName, Opts) when is_list(FileName), is_list(Opts) ->
 	      bmp -> e3d__bmp:load(FileName, Opts);
 	      tif -> e3d__tif:load(FileName, Opts);
 	      png -> e3d__png:load(FileName, Opts);
+              dds -> e3d__dds:load(FileName, Opts);
 	      _ -> return_error({not_supported,Extension})
 	  end,
     fix_outtype(FileName, Res, Opts).
@@ -67,6 +68,7 @@ save(Image = #e3d_image{}, Filename, Opts) ->
 	bmp -> e3d__bmp:save(Image, Filename, Opts);
 	tif -> e3d__tif:save(Image, Filename, Opts);
 	png -> e3d__png:save(Image, Filename, Opts);
+        dds -> e3d__dds:save(Image, Filename, Opts);
 	_ -> return_error({not_supported,Extension})
     end.
 
@@ -120,39 +122,73 @@ convert(In, ToType, NewAlignment) when is_atom(ToType) ->
 
 convert(#e3d_image{type=Type, alignment=Al,order=O}=In, Type, Al, O) ->
     In;
-convert(#e3d_image{type=FromType, order=FromOrder}=In, ToType, ToAlm, ToOrder) ->
+convert(#e3d_image{width=W, bytes_pp=Bpp, alignment=Al,
+                   type=FromType, order=FromOrder, image=Bin, extra=Extra0}=In,
+        ToType, ToAlm, ToOrder) ->
     try
 	Convert = col_conv(FromType, ToType),
+        ToBpp = if Convert =:= keep -> Bpp; true -> bytes_pp(ToType) end,
 	Reverse = order_conv(FromOrder, ToOrder),
-	New = map_rows(In, Convert, Reverse, ToType, ToAlm),
+	New = map_rows(Bin, W, Bpp, Al, Convert, Reverse, ToBpp, ToAlm),
+        DoConvert = fun(EBin, Width) ->
+                            map_rows(EBin, Width, Bpp, Al, Convert, Reverse, ToBpp, ToAlm)
+                    end,
+        Extra = convert_extra(DoConvert, W, Extra0),
 	In#e3d_image{image=New,type=ToType,
-		     bytes_pp=bytes_pp(ToType),
-		     alignment=ToAlm,order=ToOrder}
+		     bytes_pp=ToBpp,
+		     alignment=ToAlm,order=ToOrder, extra=Extra}
     catch Error ->
 	    Error
     end.
+
+convert_extra(Convert, W, Extra0) ->
+    MMs0 = proplists:get_value(mipmaps, Extra0, undefined),
+    CMs0 = proplists:get_value(cubemaps, Extra0, undefined),
+    Extra1 = case MMs0 of
+                 undefined -> Extra0;
+                 _ ->
+                     E1 = proplists:delete(mipmaps, Extra0),
+                     MMs = convert_mipmaps(Convert, MMs0),
+                     [{mipmaps, MMs}|E1]
+             end,
+    case CMs0 of
+        undefined -> Extra1;
+        _ ->
+            E2 = proplists:delete(cubemaps, Extra1),
+            CMs = convert_cubemaps(Convert, W, CMs0),
+            [{cubemaps, CMs}|E2]
+    end.
+
+convert_mipmaps(Convert, MMs) ->
+    [{Convert(Img, W), W, H, Level} || {Img,W,H,Level} <- MMs].
+
+convert_cubemaps(Convert, W, CMs) ->
+    [CM#{tx:=Convert(Img, W), mipmaps:=convert_mipmaps(Convert, MMs)}
+     || CM = #{tx:=Img, mipmaps:=MMs} <- CMs].
 
 ext_to_type(".tga") -> tga;
 ext_to_type(".bmp") -> bmp;
 ext_to_type(".png") -> png;
 ext_to_type(".tif") -> tif;
 ext_to_type(".tiff") -> tif;
+ext_to_type(".dds") -> dds;
 ext_to_type(_) -> unknown.
 
-%% Func: pad_len(RowLength (in bytes), Alignment) 
+%% Func: pad_len(RowLength (in bytes), Alignment)
 %% Rets: integer()
 %% Desc: Get the number of bytes each row is padded with
 pad_len(RL, Align) ->
     case RL rem Align of
 	0 -> 0;
 	Rem -> Align - Rem
-    end.	     	   
+    end.
 
-%% Func: bytes_pp(Type) 
+%% Func: bytes_pp(Type)
 %% Rets: integer()
 %% Desc: Get the number of bytes per pixel for type Type
 bytes_pp(a8) -> 1;
 bytes_pp(g8) -> 1;
+bytes_pp(r8g8) -> 2;
 bytes_pp(r8g8b8) -> 3;
 bytes_pp(b8g8r8) -> 3;
 bytes_pp(r8g8b8a8) -> 4;
@@ -161,7 +197,7 @@ bytes_pp(#e3d_image{bytes_pp = Bpp}) ->
     Bpp.
 
 
-%% Func: height2normal(Image, Scale, GenMipMap)  
+%% Func: height2normal(Image, Scale, GenMipMap)
 %% Args: Image = #e3d_image, Scale = number, GenMipMap == Bool
 %% Rets: {#e3d_image,[{MM_Lev,W,H,Bin}]}  | {error, Reason}
 %% Desc: Filter and build a normalmap from a heightmap.
@@ -322,18 +358,18 @@ lowercase([]) ->
     [].
 
 fix_outtype(File, Res = #e3d_image{}, Opts) ->
-    Type = 
+    Type =
 	case lists:keysearch(type, 1, Opts) of
 	    {value, {type, T}} -> T;
 	    false -> Res#e3d_image.type
-	end,    
-    Alignment = 
-	case lists:keysearch(alignment, 1, Opts) of 
+	end,
+    Alignment =
+	case lists:keysearch(alignment, 1, Opts) of
 	    {value, {alignment, A}} -> A;
 	    false -> Res#e3d_image.alignment
 	end,
-    Order = 
-	case lists:keysearch(order, 1, Opts) of 
+    Order =
+	case lists:keysearch(order, 1, Opts) of
 	    {value, {order, O}} -> O;
 	    false -> Res#e3d_image.order
 	end,
@@ -341,15 +377,14 @@ fix_outtype(File, Res = #e3d_image{}, Opts) ->
 fix_outtype(_, Res, _) ->  %% Propagate Error Case
     Res.
 
-map_rows(#e3d_image{image=Bin, alignment=1}, keep, {false,false}, _, 1) ->
+map_rows(Bin, _, _, 1, keep, {false,false}, _, 1) ->
     Bin;
-map_rows(#e3d_image{image=Bin, alignment=1}, Convert, {false,false}, _, 1) ->
+map_rows(Bin, _, _, 1, Convert, {false,false}, _, 1) ->
     Convert(Bin); %% No need to handle rows specifically
-map_rows(In=#e3d_image{image=Bin, alignment=Alm, width=W, bytes_pp=BPP}, Convert,
-	 {RRs, RCs}, ToType, ToAlm) ->
+map_rows(Bin, W, BPP, FromAlm, Convert, {RRs, RCs}, ToBpp, ToAlm) ->
     RowL = W*BPP,
-    FoldRow = row_conv(Convert, bytes_pp(ToType), RCs, make_pad(In, ToType, ToAlm)),
-    map_bin(Bin, RowL, pad_len(RowL, Alm), FoldRow, RRs).
+    FoldRow = row_conv(Convert, ToBpp, RCs, make_pad(W, ToBpp, ToAlm)),
+    map_bin(Bin, RowL, pad_len(RowL, FromAlm), FoldRow, RRs).
 
 col_conv(Type, Type) -> keep;
 col_conv(g8, Type) ->
@@ -426,8 +461,8 @@ bin_reverse(Bin, InSz, InSkip, Convert, Acc) ->
     <<Col:InSz/binary, _:InSkip/binary, Rest/binary>> = Bin,
     bin_reverse(Rest, InSz, InSkip, Convert, [Convert(Col)|Acc]).
 
-make_pad(#e3d_image{width=W}, ToType, ToAlm) ->
-    NewRowLength  = W * bytes_pp(ToType),
+make_pad(W, ToBpp, ToAlm) ->
+    NewRowLength  = W * ToBpp,
     NewPadLength = 8*pad_len(NewRowLength, ToAlm),
     <<0:NewPadLength>>.
 

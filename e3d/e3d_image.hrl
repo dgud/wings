@@ -12,8 +12,8 @@
 %%
 
 -record(e3d_image,           %% Currently supported formats:
-	{type = r8g8b8,      %% [g8 (gray8) or a8 (alpha8) 
-	                     %% r8g8b8 or r8g8b8a8 or b8g8r8 or b8g8r8a8]
+	{type = r8g8b8,      %% [g8 (gray8), a8 (alpha8) (Ch:Size)+[s|f]=signed|float]
+                             %%   ex: r32g32b32s (rgb with 32 (signed) bits per channel)
 	 bytes_pp = 3,       %% bytes per pixel
 	 alignment = 1,      %% A = 1|2|4 Next row starts direct|even 2|even 4
 	 order = lower_left, %% First pixel is in:
@@ -22,6 +22,8 @@
 	 height = 0,         %% in pixels
 	 image,              %% binary
 	 filename=none,	     %% Filename or none
-	 name=[]	     %% Name of image
+	 name=[],	     %% Name of image
+         extra=[]            %% {mipmaps,[{Img,W,H,Level}]}
+                             %% {cubemaps, [#{dir=>neg_x, tx=>Img, mipmaps=>[]}]}
 	}).
 

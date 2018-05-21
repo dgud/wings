@@ -360,8 +360,14 @@ load_map_1(File0, Dir) ->
 	    Name = filename:rootname(filename:basename(File)),
 	    wings_image:new(Name, Im);
 	{error,Error} ->
-	    io:format(?__(1,"Failed to load") ++ " \"~ts\": ~s\n",
-		      [File,file:format_error(Error)]),
+            case file:format_error(Error) of
+                "unknown" ++ _ ->
+                    io:format(?__(1,"Failed to load") ++ " \"~ts\": ~p\n",
+                              [File,Error]);
+                ErrStr ->
+                    io:format(?__(1,"Failed to load") ++ " \"~ts\": ~s\n",
+                              [File,ErrStr])
+            end,
 	    none
     end.
 
