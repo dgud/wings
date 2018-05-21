@@ -18,6 +18,7 @@
 	 bumpid/1,
 	 is_normalmap/1,
 	 next_id/0,delete_older/1,delete_from/1,delete/1,
+         filter_images/1,
 	 update/2,update_filename/2,find_image/2,
 	 window/1]).
 -export([image_formats/0,image_read/1,image_write/1,
@@ -110,6 +111,9 @@ info(Id) ->
 
 images() ->
     req(images, false).
+
+filter_images(Bool) ->
+    req({filter_images, Bool}, false).
 
 next_id() ->
     req(next_id, false).
@@ -259,6 +263,21 @@ handle_call({info,Id}, _From, #ist{images=Images}=S) ->
     end;
 handle_call(images, _From, #ist{images=Images}=S) ->
     {reply, [NotHidden || NotHidden = {_, #e3d_image{}} <- gb_trees:to_list(Images)],S};
+
+handle_call({filter_images, Bool}, _From, #ist{images=Images}=S) ->
+    Ft = case Bool of
+             true -> ?GL_LINEAR;
+             false -> ?GL_NEAREST
+         end,
+    Filter = fun(Id) ->
+                     TxId = get(Id),
+                     gl:bindTexture(?GL_TEXTURE_2D, TxId),
+                     gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MAG_FILTER, Ft),
+                     gl:bindTexture(?GL_TEXTURE_2D, 0)
+             end,
+    [Filter(NotHidden) || {NotHidden, #e3d_image{}} <- gb_trees:to_list(Images)],
+    {reply, ok, S};
+
 handle_call(next_id, _From, #ist{next=Id}=S) ->
     {reply,Id,S};
 handle_call({delete,Id}, _From, #ist{images=Images0}=S) ->

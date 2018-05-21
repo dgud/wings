@@ -170,6 +170,7 @@ command(Option={show,What}, St) ->
 	What =:= show_normals ->
 	    Prev andalso wings_dl:map(fun(D, _) -> D#dlo{normals=none} end, []);
 	What =:= filter_texture ->
+            wings_image:filter_images(not Prev),
 	    wings_dl:map(fun(#dlo{proxy_data=PD}=D, _) ->
 				 %% We only need to invalidate display lists.
 				 D#dlo{work=none,smooth=none,
