@@ -1,3 +1,22 @@
+--- 2.1.7 --------------------------------------------
+
+- Improved importer, now it can more often create "objects" instead
+  of separated faces when importing models. [dgud]
+
+- Implemented importer and exporter for
+  GL transfer format (*.gltf|*.glb). [dgud]
+
+- Fixed View/Show/Filter Textures
+  Option previously only worked after restarting wings, thanks OXO. [dgud]
+
+- Added support for (some) .dds image files. [dgud]
+
+- Fixed (some) keyboard focus bugs [dgud]
+
+- Added more texture types (currently not used) [micheus, dgud]
+
+- Fixed autosave, and other minor bugs. [micheus, dgud]
+
 --- 2.1.6 --------------------------------------------
 - Object count for each folder in Geometry Graph was missing. Thanks to tkbd [micheus]
 
