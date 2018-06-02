@@ -1360,7 +1360,9 @@ put_on_check_selection(Id, St) ->
         [{1,_}] ->
             {none,""};
         [_|_] ->
-            {none,?__(2,"Select only one element.")}
+            {none,?__(2,"Select only one element.")};
+        [] ->
+            {none,?__(3,"One destination element must be selected.")}
     end.
 
 put_on([{Axis,Target}], St0) ->
