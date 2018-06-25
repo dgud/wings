@@ -826,7 +826,7 @@ short_edges(Ask, St) when is_atom(Ask) ->
     Title = ?__(2,"Select Short Edges"),
     Cmd = {select,by,short_edges},
     wings_dialog:dialog_preview(Cmd, Ask, Title, Qs, St);
-short_edges([Tolerance], #st{sel=[]}=St0) ->
+short_edges([Tolerance], St0) ->
     St = intersect_sel_items(fun(Edge, We) ->
 				     is_short_edge(Tolerance, Edge, We)
 			     end, edge, St0),
