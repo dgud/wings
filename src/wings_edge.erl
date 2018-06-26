@@ -284,7 +284,7 @@ internal_dissolve_edge(Edge, #we{es=Etab}=We0) ->
 	#edge{ltpr=Same,ltsu=Same,rtpr=Same,rtsu=Same} ->
 	    EmptyGbTree = gb_trees:empty(),
 	    Empty = array:new(),
-	    We0#we{vc=Empty,vp=Empty,es=Empty,fs=EmptyGbTree,he=gb_sets:empty()};
+	    We0#we{vc=Empty,vp=Empty,es=Empty,fs=EmptyGbTree,he=gb_sets:empty(),holes=[]};
 	#edge{rtpr=Back,ltsu=Back}=Rec ->
 	    merge_edges(backward, Edge, Rec, We0);
 	#edge{rtsu=Forward,ltpr=Forward}=Rec ->
@@ -331,7 +331,7 @@ dissolve_edge_1(Edge, #edge{lf=Lf,rf=Rf}=Rec, We) ->
 
 dissolve_edge_2(Edge, FaceRemove, FaceKeep,
 		#edge{vs=Va,ve=Vb,ltpr=LP,ltsu=LS,rtpr=RP,rtsu=RS},
-		#we{fs=Ftab0,es=Etab0,vc=Vct0,he=Htab0}=We0) ->
+		#we{fs=Ftab0,es=Etab0,vc=Vct0,he=Htab0,holes=Holes0}=We0) ->
     %% First change the face for all edges surrounding the face we will remove.
     Etab1 = wings_face:fold(
 	      fun (_, E, _, IntEtab) when E =:= Edge -> IntEtab;
@@ -387,8 +387,12 @@ dissolve_edge_2(Edge, FaceRemove, FaceKeep,
     AnEdge = LP,
     Ftab = gb_trees:update(FaceKeep, AnEdge, Ftab1),
 
+    %% It is probably unusual that 2 edge face is a hole,
+    %% but it can happens.
+    Holes = ordsets:del_element(FaceRemove, Holes0),
+
     %% Store all updated tables.
-    We = We1#we{es=Etab,fs=Ftab,vc=Vct,he=Htab},
+    We = We1#we{es=Etab,fs=Ftab,vc=Vct,he=Htab,holes=Holes},
 
     %% If the kept face (FaceKeep) has become a two-edge face,
     %% we must get rid of that face by dissolving one of its edges.
