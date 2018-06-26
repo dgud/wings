@@ -347,7 +347,7 @@ link_prog(Objs, Attribs) when is_list(Objs) ->
 %%%%%%%%%%%%%  Framebuffer object %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 have_fbo() ->
-    is_ext('GL_ARB_framebuffer_object').
+    is_ext('GL_ARB_framebuffer_object') orelse is_ext('GL_EXT_framebuffer_object').
 
 %% Size = {W,H}
 %% What = {BufferType, Options}
