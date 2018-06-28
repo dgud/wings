@@ -834,12 +834,13 @@ set_position(mouse, Dialog) ->
     {Wd, Hd} = wxWindow:getSize(Dialog),
     Ws = wxSystemSettings:getMetric(?wxSYS_SCREEN_X),
     Hs = wxSystemSettings:getMetric(?wxSYS_SCREEN_Y),
+    {XWw, YWw} = wxWindow:getScreenPosition(?GET(top_frame)),
     if (Xm+Wd) < Ws, (Ym+Hd) < Hs ->
-            wxWindow:move(Dialog, max(Xm-100, 0), max(Ym-50, 0));
+            wxWindow:move(Dialog, max(Xm-100, min(0,XWw)), max(Ym-50, min(0,YWw)));
        (Xm+Wd) < Ws ->
-            wxWindow:move(Dialog, max(Xm-100, 0), max(Hs-Hd-50, 0));
+            wxWindow:move(Dialog, max(Xm-100, min(0,XWw)), max(Hs-Hd-50, min(0,YWw)));
        (Ym+Hd) < Hs ->
-            wxWindow:move(Dialog, max(Ws-Wd-100, 0), max(Ym-50, 0));
+            wxWindow:move(Dialog, max(Ws-Wd-100, min(0,XWw)), max(Ym-50, min(0,YWw)));
        true ->
             io:format("~p ~p~n",[{Xm,Wd,Ws},{Ym,Hd,Hs}]),
             ok
