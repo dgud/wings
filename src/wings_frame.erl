@@ -341,7 +341,8 @@ make_splash(Canvas, Imgs) ->
 %%%%%%%%%%%%%%%%%%%%%%%
 
 handle_event(#wx{obj=Win, event=#wxMove{}}, State) ->
-    #wxMouseState{x=X,y=Y} = MS = wx_misc:getMouseState(),
+    MS = wx_misc:getMouseState(),
+    {X,Y} = wx_misc:getMousePosition(),
     %% io:format("Move ~p ~p ~p ~n", [Win, X,Y]),
     {noreply, preview_attach(stopped_moving(MS), {X,Y}, Win, State)};
 
