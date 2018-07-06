@@ -10,6 +10,7 @@
 %%
 
 -module(e3d__dds).
+-compile([{nowarn_deprecated_function, {erlang,get_stacktrace,0}}]).
 
 -export([load/2, save/3]).
 -export([format_error/1]).
