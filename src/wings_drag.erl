@@ -1403,5 +1403,5 @@ clear_sel_dlists() ->
     wings_dl:map(fun clear_sel_dlists/2, []).
 
 clear_sel_dlists(#dlo{drag=none}=D, _) -> D;
-clear_sel_dlists(#dlo{drag={matrix,_,_}}=D, _) -> D;
+clear_sel_dlists(#dlo{drag={matrix,_,_,_}}=D, _) -> D;
 clear_sel_dlists(D, _) -> D#dlo{sel=none}.
