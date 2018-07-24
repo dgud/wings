@@ -381,7 +381,7 @@ merge(F, St) when is_function(F, 1) ->
 %%% Calculate the center for all selected objects.
 %%%
 
--spec center(#st{}) -> e3d_vector().
+-spec center(#st{}) -> e3d_vec:vector().
 
 center(#st{selmode=Mode}=St) ->
     MF = fun(Items, We) ->
@@ -397,7 +397,7 @@ center(#st{selmode=Mode}=St) ->
 %%% Calculate the center for all selected vertices.
 %%%
 
--spec center_vs(#st{}) -> e3d_vector().
+-spec center_vs(#st{}) -> e3d_vec:vector().
 
 center_vs(#st{selmode=Mode}=St) ->
     MF = fun(Items, We) ->
@@ -412,7 +412,7 @@ center_vs(#st{selmode=Mode}=St) ->
 
 %% Calculate center of bounding box.
 
--spec bbox_center(#st{}) -> e3d_vector().
+-spec bbox_center(#st{}) -> e3d_vec:vector().
 
 bbox_center(St) ->
     BBox = bounding_box(St),
@@ -422,7 +422,7 @@ bbox_center(St) ->
 %%% Calculate the bounding-box for the selection.
 %%%
 
--spec bounding_box(#st{}) -> [e3d_vector()] | 'none'.
+-spec bounding_box(#st{}) -> [e3d_vec:vector()] | 'none'.
 
 bounding_box(#st{selmode=Mode}=St) ->
     MF = fun(Items, We) ->

@@ -28,19 +28,20 @@
 -compile(inline).
 -compile({inline_size,24}).
 
--type vector() :: e3d_vector().
+%% 3D vector or location.
+-type vector() :: {float(),float(),float()}.
 
--spec zero() -> e3d_vector().
-    
+-spec zero() -> vector().
+
 zero() ->
     {0.0,0.0,0.0}.
 
--spec is_zero(e3d_vector()) -> boolean().
+-spec is_zero(vector()) -> boolean().
      
 is_zero({0.0,0.0,0.0}) -> true;
 is_zero(_) -> false.
 
--spec add(e3d_vector(), e3d_vector()) -> e3d_vector().
+-spec add(vector(), vector()) -> vector().
 
 add({V10,V11,V12}, {V20,V21,V22}) when is_float(V10), is_float(V11), is_float(V12) ->
     {V10+V20,V11+V21,V12+V22}.
@@ -48,17 +49,17 @@ add({V10,V11,V12}, {V20,V21,V22}) when is_float(V10), is_float(V11), is_float(V1
 add_prod({V10,V11,V12}, {V20,V21,V22}, S) when is_float(S) ->
     {S*V20+V10,S*V21+V11,S*V22+V12}.
 
--spec add([e3d_vector()]) -> e3d_vector().
+-spec add([vector()]) -> vector().
 
 add([{V10,V11,V12}|T]) ->
     add(T, V10, V11, V12).
 
--spec sub(e3d_vector(), e3d_vector()) -> e3d_vector().
+-spec sub(vector(), vector()) -> vector().
 
 sub({V10,V11,V12}, {V20,V21,V22}) ->
     {V10-V20,V11-V21,V12-V22}.
 
--spec norm_sub(e3d_vector(), e3d_vector()) -> e3d_vector().
+-spec norm_sub(vector(), vector()) -> vector().
 
 norm_sub({V10,V11,V12}, {V20,V21,V22})
   when is_float(V10), is_float(V11), is_float(V12) ->
@@ -68,51 +69,51 @@ norm_sub({V10,V11,V12}, {V20,V21,V22})
     SqrLen = Nx*Nx + Ny*Ny + Nz*Nz,
     norm(SqrLen, Nx, Ny, Nz).
 
--spec sub([e3d_vector()]) -> e3d_vector().
+-spec sub([vector()]) -> vector().
 
 sub([{V10,V11,V12}|T]) ->
     sub(V10, V11, V12, T).
 
--spec mul(e3d_vector(), S::float()) -> e3d_vector().
+-spec mul(vector(), S::float()) -> vector().
 
 mul({V10,V11,V12}, S) when is_float(S) ->
     {V10*S,V11*S,V12*S}.
 
--spec divide(e3d_vector(), S::float()) -> e3d_vector().
+-spec divide(vector(), S::float()) -> vector().
 
 divide({V10,V11,V12}, S) ->
     InvS = 1/S,
     {V10*InvS,V11*InvS,V12*InvS}.
 
--spec neg(e3d_vector()) -> e3d_vector().
+-spec neg(vector()) -> vector().
 
 neg({X,Y,Z}) -> {-X,-Y,-Z}.
 
--spec dot(e3d_vector(), e3d_vector()) -> float().
+-spec dot(vector(), vector()) -> float().
 
 dot({V10,V11,V12}, {V20,V21,V22}) when is_float(V10), is_float(V11), is_float(V12) ->
     V10*V20 + V11*V21 + V12*V22.
 
--spec cross(e3d_vector(), e3d_vector()) -> e3d_vector().
+-spec cross(vector(), vector()) -> vector().
 
 cross({V10,V11,V12}, {V20,V21,V22})
   when is_float(V10), is_float(V11), is_float(V12),
        is_float(V20), is_float(V21), is_float(V22) ->
     {V11*V22-V12*V21,V12*V20-V10*V22,V10*V21-V11*V20}.
 
--spec len(e3d_vector()) -> float().
+-spec len(vector()) -> float().
 
 len({X,Y,Z}) when is_float(X), is_float(Y), is_float(Z) ->
     math:sqrt(X*X+Y*Y+Z*Z).
 
--spec lerp(e3d_vector(), e3d_vector(), float()) -> e3d_vector().
+-spec lerp(vector(), vector(), float()) -> vector().
 
 lerp({V10,V11,V12}, {V20,V21,V22}, T)
   when is_float(V10), is_float(V11), is_float(V12),
        is_float(V20), is_float(V21), is_float(V22) ->
     {V10+(V20-V10)*T, V11+(V21-V11)*T, V12+(V22-V12)*T}.
 
--spec dist(e3d_vector(), e3d_vector()) -> float().
+-spec dist(vector(), vector()) -> float().
 
 dist({V10,V11,V12}, {V20,V21,V22}) when is_float(V10), is_float(V11), is_float(V12),
 					is_float(V20), is_float(V21), is_float(V22) ->
@@ -121,7 +122,7 @@ dist({V10,V11,V12}, {V20,V21,V22}) when is_float(V10), is_float(V11), is_float(V
     Z = V12-V22,
     math:sqrt(X*X+Y*Y+Z*Z).
 
--spec dist_sqr(e3d_vector(), e3d_vector()) -> float().
+-spec dist_sqr(vector(), vector()) -> float().
 
 dist_sqr({V10,V11,V12}, {V20,V21,V22})
   when is_float(V10), is_float(V11), is_float(V12) ->
@@ -130,17 +131,17 @@ dist_sqr({V10,V11,V12}, {V20,V21,V22})
     Z = V12-V22,
     X*X+Y*Y+Z*Z.
 
--spec norm(e3d_vector()) -> e3d_vector().
+-spec norm(vector()) -> vector().
 
 norm({V1,V2,V3}) ->
     norm(V1, V2, V3).
 
--spec norm(X::float(), Y::float(), Z::float()) -> e3d_vector().
+-spec norm(X::float(), Y::float(), Z::float()) -> vector().
 
 norm(V1, V2, V3) when is_float(V1), is_float(V2), is_float(V3) ->
     norm(V1*V1+V2*V2+V3*V3, V1, V2, V3).
 
--spec normal(e3d_vector(), e3d_vector(), e3d_vector()) -> e3d_vector().
+-spec normal(vector(), vector(), vector()) -> vector().
 
 normal({V10,V11,V12}, {V20,V21,V22}, {V30,V31,V32})
   when is_float(V10), is_float(V11), is_float(V12),
@@ -164,7 +165,7 @@ normal({V10,V11,V12}, {V20,V21,V22}, {V30,V31,V32})
 %% normal([{X,Y,Z}]) ->
 %%  Calculate the averaged normal for the polygon using Newell's method.
 
--spec normal([e3d_vector()]) -> e3d_vector().
+-spec normal([vector()]) -> vector().
 
 normal([{Ax,Ay,Az},{Bx,By,Bz},{Cx,Cy,Cz}])
   when is_float(Ax), is_float(Ay), is_float(Az),
@@ -215,7 +216,7 @@ normal_1([{Ax,Ay,Az}|[{Bx,By,Bz}|_]=T], First, Sx0, Sy0, Sz0)
 %% average([{X,Y,Z}]) -> {Ax,Ay,Az}
 %%  Average the given list of points.
 
--spec average([e3d_vector()]) -> e3d_vector().
+-spec average([vector()]) -> vector().
 
 average([{V10,V11,V12},B]) ->
     {V20,V21,V22} = B,
@@ -234,7 +235,7 @@ average([{V10,V11,V12},B]) ->
 average([{V10,V11,V12}|T]=All) ->
     average(T, V10, V11, V12, length(All)).
 
--spec average(e3d_vector(), e3d_vector()) -> e3d_vector().
+-spec average(vector(), vector()) -> vector().
 
 average({V10,V11,V12}, {V20,V21,V22}) ->
     V0 = if
@@ -250,7 +251,7 @@ average({V10,V11,V12}, {V20,V21,V22}) ->
 	is_float(V12) -> {V0,V1,0.5*(V12+V22)}
     end.
 
--spec average(e3d_vector(), e3d_vector(), e3d_vector(), e3d_vector()) -> e3d_vector().
+-spec average(vector(), vector(), vector(), vector()) -> vector().
 
 average({V10,V11,V12}, {V20,V21,V22}, {V30,V31,V32}, {V40,V41,V42})
     when is_float(V10), is_float(V11), is_float(V12) ->
@@ -258,7 +259,7 @@ average({V10,V11,V12}, {V20,V21,V22}, {V30,V31,V32}, {V40,V41,V42})
     {L*(V10+V20+V30+V40),L*(V11+V21+V31+V41),L*(V12+V22+V32+V42)}.
 
 
--spec area(e3d_vector(), e3d_vector(), e3d_vector()) -> float().
+-spec area(vector(), vector(), vector()) -> float().
 
 area({V10,V11,V12}, {V20,V21,V22}, {V30,V31,V32})
   when is_float(V10), is_float(V11), is_float(V12),
@@ -277,7 +278,7 @@ area({V10,V11,V12}, {V20,V21,V22}, {V30,V31,V32})
 
 %% Calculate plane coefficients from point {CX,CY,CZ} and normal {A,B,C}
 %% Use reference of  : http://mathworld.wolfram.com/Plane.html
--spec plane(Center::e3d_vector(), Normal::e3d_vector()) -> e3d_plane().
+-spec plane(Center::vector(), Normal::vector()) -> e3d_plane().
 plane({CX,CY,CZ}, {A,B,C})
   when is_float(CX), is_float(CY), is_float(CZ),
        is_float(A),  is_float(A),  is_float(A) ->
@@ -303,11 +304,11 @@ plane_dist({X,Y,Z},{{A,B,C},D}) ->
 
 
 %% Should be removed and calls should be changed to e3d_bv instead.
--spec bounding_box([e3d_vector()]) -> [e3d_vector()].
+-spec bounding_box([vector()]) -> [vector()].
 bounding_box(List) when is_list(List) ->
     tuple_to_list(e3d_bv:box(List)).
 
--spec degrees(e3d_vector(), e3d_vector()) -> float().
+-spec degrees(vector(), vector()) -> float().
     
 degrees(V0, V1) ->
     Dot = e3d_vec:dot(V0,V1),

@@ -324,7 +324,7 @@ mirror_flatten(OldWe, #we{mirror=Face,vp=Vtab0}=We) ->
 %%  projects points to the mirror plane. Otherwise return
 %%  'identity'.
 %%
--spec mirror_projection(#we{}) -> e3d_matrix().
+-spec mirror_projection(#we{}) -> e3d_mat:matrix().
 mirror_projection(#we{mirror=none}) ->
     identity;
 mirror_projection(#we{mirror=Face}=We) ->

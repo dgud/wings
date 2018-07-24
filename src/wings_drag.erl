@@ -63,6 +63,8 @@
 
 -type vertices() :: [vertex_num()].
 
+-type e3d_matrix() :: e3d_mat:matrix().
+
 -type mat_transform_fun() :: fun((e3d_matrix(), [float()]) -> e3d_matrix()).
 -type we_transform_fun() :: fun((#we{}, [float()]) -> #we{}).
 -type vec_transform_fun() ::
@@ -166,7 +168,7 @@ compose(Transforms) ->
     F = compose_fun(TransformFuns),
     {Vs,F}.
 
--spec translate_fun([{e3d_vector(),vertices()}], #we{}) ->
+-spec translate_fun([{e3d_vec:vector(),vertices()}], #we{}) ->
                            {vertices(),vec_transform_fun()}.
 
 translate_fun([_|_]=VecVs0, #we{vp=Vtab}) ->

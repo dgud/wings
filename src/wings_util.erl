@@ -189,12 +189,12 @@ array_is_empty(Array) ->
 array_entries(Array) ->
     array:sparse_foldl(fun(_, _, N) -> N + 1 end, 0, Array).
 
--spec nice_abs_vector(e3d_vector()) -> iolist().
+-spec nice_abs_vector(e3d_vec:vector()) -> iolist().
 
 nice_abs_vector({X,Y,Z}) ->
     nice_vector({abs(X),abs(Y),abs(Z)}).
 
--spec nice_vector(e3d_vector()) -> iolist().
+-spec nice_vector(e3d_vec:vector()) -> iolist().
 
 nice_vector({X,Y,Z}) ->
     ["<",

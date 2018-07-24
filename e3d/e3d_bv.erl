@@ -31,6 +31,8 @@
 
 -compile(inline).
 
+-type e3d_vector() :: e3d_vec:vector().
+
 -define(BB_MIN, {{?E3D_INFINITY,?E3D_INFINITY,?E3D_INFINITY},
 		 {-?E3D_INFINITY,-?E3D_INFINITY,-?E3D_INFINITY}}).
 
