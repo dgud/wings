@@ -15,7 +15,8 @@
 -module(wings_render).
 -export([init/0,
 	 render/1,polygonOffset/1,
-	 enable_lighting/1,disable_lighting/0]).
+         enable_lighting/1,disable_lighting/0,
+         draw_orig_sel_dl/1]).
 
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
@@ -55,6 +56,18 @@ render(#st{selmode=Mode}=St) ->
     gl:popAttrib(),
     call_post_hook(St),
     wings_develop:gl_error_check("Rendering scene").
+
+%% draw_orig_sel_dl(Mode) -> ok.
+%%  Set up a display list to draw the original selection. To
+%%  be called from wings_vec when there is a secondary selection.
+
+-spec draw_orig_sel_dl(wings_sel:mode()) -> 'ok'.
+draw_orig_sel_dl(Mode) ->
+    wings_dl:map(fun(#dlo{orig_sel=none,sel=Dlist0}=D, _) ->
+                         Draw = draw_orig_sel_fun(Mode, Dlist0),
+                         Dlist = {call,Draw,Dlist0},
+			 D#dlo{orig_sel=Dlist}
+		 end, []).
 
 call_post_hook(St) ->
     case wings_wm:lookup_prop(postdraw_hook) of
@@ -510,36 +523,45 @@ draw_hilite(#dlo{hilite=none}) -> ok;
 draw_hilite(#dlo{hilite={_Mode,DL}}) ->
     wings_dl:call(DL).
 
-draw_orig_sel(#dlo{orig_sel=none}) -> ok;
-draw_orig_sel(#dlo{orig_sel=Dlist,orig_mode=Mode}) ->
-    draw_orig_sel_1(Mode, Dlist).
+draw_orig_sel(#dlo{orig_sel=Dlist}) ->
+    wings_dl:call(Dlist).
 
-draw_orig_sel_1(vertex, DlistSel) ->
-    gl:pointSize(wings_pref:get_value(selected_vertex_size)*2),
-    gl:enable(?GL_BLEND),
-    gl:blendFunc(?GL_SRC_ALPHA, ?GL_ONE_MINUS_SRC_ALPHA),
-    {R0,G0,B0} = wings_pref:get_value(selected_color),
-    gl:color4f(R0, G0, B0, 0.5),
-    wings_dl:call(DlistSel),
-    gl:disable(?GL_BLEND);
-draw_orig_sel_1(edge, DlistSel) ->
-    gl:lineWidth(wings_pref:get_value(selected_edge_width)*2),
-    gl:enable(?GL_BLEND),
-    gl:blendFunc(?GL_SRC_ALPHA, ?GL_ONE_MINUS_SRC_ALPHA),
-    {R0,G0,B0} = wings_pref:get_value(selected_color),
-    gl:color4f(R0, G0, B0, 0.5),
-    wings_dl:call(DlistSel),
-    gl:disable(?GL_BLEND);
-draw_orig_sel_1(_, DlistSel) ->
-    gl:enable(?GL_BLEND),
-    gl:blendFunc(?GL_SRC_ALPHA, ?GL_ONE_MINUS_SRC_ALPHA),
-    {R0,G0,B0} = wings_pref:get_value(selected_color),
-    gl:color4f(R0, G0, B0, 0.5),
-    gl:enable(?GL_POLYGON_OFFSET_FILL),
-    gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_FILL),
-    polygonOffset(1.0),
-    wings_dl:call(DlistSel),
-    gl:disable(?GL_POLYGON_OFFSET_FILL).
+draw_orig_sel_fun(Mode, DlistSel) ->
+    {R,G,B} = wings_pref:get_value(selected_color),
+    SelColor = {R,G,B,0.5},
+    case Mode of
+        vertex ->
+            PointSize = wings_pref:get_value(selected_vertex_size)*2,
+            fun() ->
+                    gl:pointSize(PointSize),
+                    gl:enable(?GL_BLEND),
+                    gl:blendFunc(?GL_SRC_ALPHA, ?GL_ONE_MINUS_SRC_ALPHA),
+                    gl:color4fv(SelColor),
+                    wings_dl:call(DlistSel),
+                    gl:disable(?GL_BLEND)
+            end;
+        edge ->
+            LineWidth = wings_pref:get_value(selected_edge_width)*2,
+            fun() ->
+                    gl:lineWidth(LineWidth),
+                    gl:enable(?GL_BLEND),
+                    gl:blendFunc(?GL_SRC_ALPHA, ?GL_ONE_MINUS_SRC_ALPHA),
+                    gl:color4fv(SelColor),
+                    wings_dl:call(DlistSel),
+                    gl:disable(?GL_BLEND)
+            end;
+        _ ->
+            fun() ->
+                    gl:enable(?GL_BLEND),
+                    gl:blendFunc(?GL_SRC_ALPHA, ?GL_ONE_MINUS_SRC_ALPHA),
+                    gl:color4fv(SelColor),
+                    gl:enable(?GL_POLYGON_OFFSET_FILL),
+                    gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_FILL),
+                    polygonOffset(1.0),
+                    wings_dl:call(DlistSel),
+                    gl:disable(?GL_POLYGON_OFFSET_FILL)
+            end
+    end.
 
 draw_hard_edges(#dlo{hard=none}, _) -> ok;
 draw_hard_edges(#dlo{hard=Hard}, SelMode) ->

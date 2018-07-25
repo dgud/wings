@@ -120,7 +120,7 @@ pick_finish() ->
     wings_wm:dirty(),
     wings_dl:map(fun clear_orig_sel/2, []).
 
-clear_orig_sel(D, _) -> D#dlo{sel=none,orig_sel=none,orig_mode=none}.
+clear_orig_sel(D, _) -> D#dlo{sel=none,orig_sel=none}.
 
 clear_sel() ->
     wings_wm:dirty(),
@@ -139,9 +139,7 @@ get_event(Ss, St) ->
 
 handle_event({ask_init,Do,Done}, #ss{selmodes=Modes}=Ss,
 	     #st{selmode=Mode}=St0) ->
-    wings_dl:map(fun(#dlo{orig_sel=none,sel=Dlist}=D, _) ->
-			 D#dlo{orig_sel=Dlist,orig_mode=Mode}
-		 end, []),
+    wings_render:draw_orig_sel_dl(Mode),
     St = wings_sel:reset(mode_restriction(Modes, St0)),
     pick_next(Do, Done, Ss, St);
 handle_event(Event, Ss, St) ->
