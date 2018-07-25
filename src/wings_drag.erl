@@ -16,7 +16,7 @@
          matrix/3,matrix/4,general/4,drag_only/4,
          compose/1,translate_fun/2]).
 
--export_type([vec_transform_fun/0,vertices/0,vertex_transform/0]).
+-export_type([drag/0,vec_transform_fun/0,vertices/0,vertex_transform/0]).
 
 -define(NEED_ESDL, 1).
 -define(NEED_OPENGL, 1).
@@ -51,6 +51,7 @@
 	 last_move,		% Last move.
          drag                   % Drag fun.
 	}).
+
 
 %% Drag per object.
 
@@ -105,6 +106,9 @@
               | {'mode',{mode_fun(),mode_data()}}
               | {'rescale_normals',boolean()}
               | 'screen_relative'.
+
+-type drag() :: #drag{} | {'general',general_fun()} | #do{}.
+
 
 -spec fold(Fun, [unit()], #st{}) -> {'drag',#drag{}} when
       Fun :: fun((wings_sel:item_set(), #we{}) -> fold_tv()).

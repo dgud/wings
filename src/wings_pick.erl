@@ -16,6 +16,8 @@
 -export([do_pick/3,raw_pick/3]).
 -export([paint_pick/3]).
 
+-export_type([tri_map/0]).
+
 -define(NEED_OPENGL, 1).
 -define(NEED_ESDL, 1).
 -include("wings.hrl").
@@ -45,6 +47,8 @@
 	 filter,                                %Filter fun, allow hl? true/false
 	 prev=none				%Previous hit ({Id,Item}).
 	}).
+
+-type tri_map() :: [{wings_face:face_num(),wings_draw_setup:face_tris()}].
 
 event(Ev, St) ->
     event(Ev, St, St).

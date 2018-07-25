@@ -21,6 +21,8 @@
 
 -export([tweak_keys/0, menu/0, tweak_magnet_menu/0, constraints_menu/0]).  %% For wings_tweak_win only
 
+-export_type([drag/0]).
+
 -define(NEED_OPENGL, 1).
 -define(NEED_ESDL, 1).
 
@@ -62,6 +64,7 @@
 	 vs,        % [{V,Pos,Distance,Influence}]
 	 vtab=[]}). % [{V,Pos}] (latest)
 
+-type drag() :: #drag{}.
 
 %%%
 %%% Set Default Tweak prefs
