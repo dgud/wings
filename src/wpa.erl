@@ -45,8 +45,6 @@
 	]).
 
 %% Commands from other processes
--export([get_state/0]).
--export([handle_external/2]).
 -export([format_error/1]).
 
 -include("wings.hrl").
@@ -156,14 +154,13 @@ export(Ps, Exporter, St) ->
 	   end,
     export_filename(Ps, St, Cont).
 
-export_selected(Props, Exporter, #st{selmode=Mode}=St)
-  when Mode == body; Mode == face ->
-    Shs0 = wings_sel:fold(
-	     fun(Elems, #we{id=Id}=We, A) ->
-		     [{Id,export_sel_set_holes(Mode, Elems, We)}|A]
-	     end, [], St),
-    Shs = gb_trees:from_orddict(reverse(Shs0)),
-    export(Props, Exporter, St#st{shapes=Shs});
+export_selected(Props, Exporter, #st{selmode=Mode}=St0)
+  when Mode =:= body; Mode =:= face ->
+    F = fun(Items, We) -> export_sel_set_holes(Mode, Items, We) end,
+    St1 = wings_sel:map(F, St0),
+    Unselected = wings_sel:unselected_ids(St1),
+    St = foldl(fun wings_obj:delete/2, St1, Unselected),
+    export(Props, Exporter, St);
 export_selected(_, _, _) -> error_msg(?__(1,"Select objects or faces.")).
 
 export_sel_set_holes(body, _, We) -> We;
@@ -581,24 +578,6 @@ quadrangulate(Faces, We) ->
 
 popup_console() ->
     wings_console:popup_window().
-
-%%% 
-%%% External commands
-%%%
-
-get_state() ->
-    wings ! {external, {get_state, self()}},
-    receive {state,St} -> St end.
-
-handle_external({get_state,Pid},#st{shapes=Sh,file=File,
-				    selmode=SelMode,sel=Sel,
-				    mat=Mat,pal=Pal}) ->
-    %% Copy only relevant information
-    Pid ! {state,#st{shapes=Sh,file=File,
-		     selmode=SelMode,sel=Sel,
-		     mat=Mat,pal=Pal}};
-handle_external(_, _St) ->
-    ignore.
 
 %% Return version string.
 version() ->

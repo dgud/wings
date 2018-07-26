@@ -15,6 +15,7 @@
 -export([setup/1,quick_preview/1,update/2,draw_smooth_edges/2,
 	 smooth/2, smooth_dl/1, flat_dl/1, invalidate/2,
 	 split_proxy/3, update_dynamic/3, reset_dynamic/1]).
+-export_type([sp/0]).
 
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
@@ -41,6 +42,8 @@
 	 %% Note: face_map is a list ordered in face appearance order in bins above
 	 
 	}).
+
+-type sp() :: #sp{}.
 
 quick_preview(_St) ->
     case any_proxy() of

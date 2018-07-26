@@ -15,8 +15,9 @@
 -export([error_msg/1,error_msg/2,message/1,debug/1,
 	 get_matrices/2, geom_windows/0,
 	 yes_no/2,yes_no/3,yes_no_cancel/3,
-	 export_we/2,win_crash/1,win_crash/2,crash_log/2,crash_log/3,
-	 pretty_filename/1,relative_path_name/2,caption/1,win32_special_folder/2]).
+	 win_crash/1,win_crash/2,crash_log/2,crash_log/3,
+	 pretty_filename/1,relative_path_name/2,caption/1,
+         win32_special_folder/2]).
 
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
@@ -69,17 +70,6 @@ yes_no_cancel(Question, Yes, No) ->
 	  [{buttons, [yes, no, cancel]}, {key, result}, {position, mouse}]
 	 },
     wings_dialog:dialog("", Qs, fun([{result,Res}]) -> yes_no_cancel(Res, Yes, No, ignore) end).
-
-%% export_we(Filename, State)
-%%  Dump the winged-edge structure in a textual format.
-export_we(Name, #st{shapes=Shs}) ->
-    case file:open(Name, [write,delayed_write]) of
-	{ok,F} ->
-	    foreach(fun(We) -> dump_we(F, We) end, gb_trees:values(Shs)),
-	    file:close(F);
-	{error,_}=Error ->
-	    Error
-    end.
 
 win_crash(Reason) ->
     win_crash(wings_wm:this(), Reason).
@@ -283,7 +273,7 @@ open_log_file(Name) ->
     io:format(F, "Dump written ~p-~p-~p_~p-~p\n", [Y,Mo,D,H,Mi]),
     F.
 
-analyse(F, [{_Mod,_Fun,Args}|_]) when is_list(Args) ->
+analyse(F, [{_Mod,_Fun,Args,_Loc}|_]) when is_list(Args) ->
     try_args(F, Args, 1);
 analyse(_, _) -> ok.
 
@@ -292,12 +282,10 @@ try_args(F, [A|As], Num) ->
     try_args(F, As, Num+1);
 try_args(_, _, _) -> ok.
 
-try_arg(F, #st{shapes=Shapes}, N) ->
+try_arg(F, #st{}=St, N) ->
     arg(F, N),
-    foreach(fun({Id,Sh}) ->
-		    io:format(F, "Shape ~p\n", [Id]),
-		    dump_shape(F, Sh)
-	    end, gb_trees:to_list(Shapes));
+    Dump = fun(Obj, _) -> dump_object(F, Obj, St) end,
+    _ = wings_obj:fold(Dump, [], St);
 try_arg(F, #we{}=We, N) ->
     arg(F, N),
     dump_we(F, We);
@@ -315,14 +303,13 @@ try_arg(F, Tab, N) ->
 arg(F, N) ->
     io:format(F, "Argument #~p:\n", [N]).
 
-dump_shape(F, #we{}=We) ->
-    dump_we(F, We).
-
-dump_we(F, #we{name=Name,id=Id,es=Etab,fs=Ftab,
-	       next_id=Next}) ->
+dump_object(F, #{id:=Id,name:=Name}, St) ->
     io:put_chars(F, "\n"),
     io:format(F, "OBJECT ~p: ~p\n", [Id,Name]),
     io:format(F, "=======================\n", []),
+    wings_obj:with_we(fun(We) -> dump_we(F, We) end, Id, St).
+
+dump_we(F, #we{es=Etab,fs=Ftab,next_id=Next}) ->
     io:format(F, "   next_id=~p\n", [Next]),
     dump_faces(F, gb_trees:to_list(Ftab)),
     dump_edges(F, array:sparse_to_orddict(Etab)).

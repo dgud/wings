@@ -415,7 +415,7 @@ select_all(#st{selmode=Mode}=St) ->
 %%%
 
 inverse(#st{selmode=body}=St) ->
-    Inverse = unselected_ids(St),
+    Inverse = wings_sel:unselected_ids(St),
     wings_sel:make(fun(_, #we{id=Id}) ->
                            member(Id, Inverse)
                    end, body, St);
@@ -450,11 +450,11 @@ hide_selected(St) ->
     wings_obj:hide(Selected, St).
 
 hide_unselected(St) ->
-    Unselected = unselected_ids(St),
+    Unselected = wings_sel:unselected_ids(St),
     wings_obj:hide(Unselected, St).
 
 lock_unselected(St) ->
-    Unselected = unselected_ids(St),
+    Unselected = wings_sel:unselected_ids(St),
     wings_obj:lock(Unselected, St).
 
 %%%
@@ -1585,9 +1585,3 @@ intersect_sel_items(F, Mode, St0) when is_function(F, 2) ->
 	#st{} ->
 	    wings_sel:update_sel(FF, Mode, St)
     end.
-
-unselected_ids(St) ->
-    FF = fun(#{id:=Id}, A) -> [Id|A] end,
-    AllIds = ordsets:from_list(wings_obj:fold(FF, [], St)),
-    SelIds = ordsets:from_list(wings_sel:selected_ids(St)),
-    ordsets:subtract(AllIds, SelIds).

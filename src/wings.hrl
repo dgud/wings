@@ -245,45 +245,53 @@
 	 yon					%Far clipping plane.
 	}).
 
-
 %% Display lists per object.
 %%  Important: Plain integers and integers in lists will be assumed to
 %%  be display lists. Arbitrary integers must be stored inside a tuple
 %%  or record to not be interpreted as a display list.
 -record(dlo,
-	{work=none,				%Workmode faces.
-	 smooth=none,				%Smooth-shaded faces.
-	 edges=none,				%Edges and wire-frame.
-	 vs=none,				%Unselected vertices.
-	 hard=none,				%Hard edges.
-	 sel=none,				%Selected items.
-	 orig_sel=none,				%Original selection.
-	 normals=none,				%Normals.
+        {work=none :: wings_dl:dl(),            %Workmode faces.
+         smooth=none :: wings_dl:dl(),          %Smooth-shaded faces.
+         edges=none :: wings_dl:dl(),           %Edges and wire-frame.
+         vs=none :: wings_dl:dl(),              %Unselected vertices.
+         hard=none :: wings_dl:dl(),            %Hard edges.
+         sel=none :: wings_dl:sel_dl(),         %Selected items.
+         orig_sel=none :: wings_dl:sel_dl(),    %Original selection.
+         normals=none :: wings_dl:dl(),         %Normals.
 
-	 vab     = none,                        %% Vertex array (see below)
-	 tri_map = none,			%Tri -> Face map (for picking)
+         vab=none :: 'none' | vab(),            %Vertex array (see below)
+         tri_map=none :: 'none' | wings_pick:tri_map(), %Tri -> Face map (for picking)
 
 	 %% Miscellanous.
-	 hilite=none,				%Hilite display list.
-	 mirror=none,				%Virtual mirror data.
-	 ns=none,				%Normals/positions per face.
+         hilite=none ::
+           'none' | {wings_sel:mode(),wings_dl:dl()},  %Hilite display list.
+         mirror=none ::
+           'none' | e3d_mat:matrix(),           %Virtual mirror data.
+         ns=none :: wings_draw:normals(),       %Normals/positions per face.
 	 plugins=[],                            %Draw lists for plugins.
-	 proxy=false,                           %Proxy Data is used.
+
+         %% Proxy stuff.
+         proxy=false :: boolean(),              %Proxy Data is used.
+         proxy_data=none ::
+           'none' | wings_proxy:sp(),           %Data for smooth proxy.
 
 	 %% Source for display lists.
-	 src_we=none,				%Source object.
-	 src_sel=none,				%Source selection.
-	 orig_mode=none,			%Original selection mode.
-	 split=none,				%Split data.
-	 drag=none,				%For dragging.
-	 transparent=false,			%Object includes transparancy.
-	 proxy_data=none,			%Data for smooth proxy.
-	 open=false,				%Open (has hole).
+         src_we=none :: 'none' | #we{},         %Source object.
+         src_sel=none :: wings_dl:dl()
+                       | {wings_sel:mode(),wings_sel:item_set()}, %Source selection.
+         split=none ::
+           'none' | wings_draw:split(),         %Split data.
+         drag=none :: 'none'
+                    | wings_drag:drag()
+                    | wings_tweak:drag()
+                    | {matrix,_,_,e3d_mat:matrix()}, %For dragging.
+         transparent=false :: boolean() | #we{}, %Object includes transparancy.
+         open=false :: boolean(),               %Open (has hole).
 
 	 %% List of display lists known to be needed only based
 	 %% on display modes, not whether the lists themselves exist.
 	 %% Example: [work,edges]
-	 needed=[]
+         needed=[] :: [atom()]
 	}).
 
 %% Vertex Buffer Objects. The name is #vab{} for historical reasons.
@@ -304,7 +312,10 @@
 	  face_vc  = none :: wings_vtx_buffer(), %Vertex Colors coords
 	  face_es  = none ::
             {0, binary()} | wings_vtx_buffer(),  %Edges 2*Vertex coords
-	  face_map = none,                       %FaceId -> {BinPos,TriCount}
+	  face_map = none ::
+            'none' | wings_draw_setup:face_map(), %FaceId -> {BinPos,TriCount}
 	  mat_map  = none                        %Face per Material draw info
 	 }).
+
+-type vab() :: #vab{}.
 

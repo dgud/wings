@@ -14,8 +14,7 @@
 %%
 
 -module(wings_we).
--export([map/2, 
-	 build/2,rebuild/1,fast_rebuild/1,
+-export([build/2,rebuild/1,fast_rebuild/1,
 	 new_wrap_range/3,id/2,bump_id/1,
 	 new_id/1,new_ids/2,
 	 invert_normals/1,
@@ -55,12 +54,6 @@
 %%%
 %%% API.
 %%%
-
-%% Apply fun on all we's.
-map(Fun, St = #st{shapes=Shs0}) ->
-    Objs0 = lists:map(Fun, gb_trees:values(Shs0)),
-    Shs = gb_trees:from_orddict([{We#we.id, We} || We <- Objs0]),
-    St#st{shapes=Shs}.
 
 %% build() -> We'
 %% Create a we from faces and vertices or a mesh.
@@ -324,7 +317,7 @@ mirror_flatten(OldWe, #we{mirror=Face,vp=Vtab0}=We) ->
 %%  projects points to the mirror plane. Otherwise return
 %%  'identity'.
 %%
--spec mirror_projection(#we{}) -> e3d_matrix().
+-spec mirror_projection(#we{}) -> e3d_mat:matrix().
 mirror_projection(#we{mirror=none}) ->
     identity;
 mirror_projection(#we{mirror=Face}=We) ->

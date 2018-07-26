@@ -19,6 +19,7 @@
 	 update/2,map/2,fold/2,changed_materials/1,
 	 display_lists/0,
 	 call/1,mirror_matrix/1,draw/3]).
+-export_type([dl/0,real_dl/0,sel_dl/0]).
 
 %%% This module manages Vertex Buffer Objects (VBOs, represented by
 %%% #vab{} records) for all objects in a Geometry or AutoUV window.
@@ -46,6 +47,16 @@
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
 -import(lists, [reverse/1,foreach/2,foldl/3]).
+
+-type vbo() :: {'vbo',non_neg_integer()}.
+-type draw_fun() :: fun(() -> 'ok').
+-type real_dl() :: draw_fun()
+                 | {'call',draw_fun()|'none',vab()|vbo()}
+                 | {'call_in_this_win',_,draw_fun()}
+                 | [real_dl()].
+-type dl() :: 'none' | real_dl().
+-type sel_dl() :: 'none' | vab() | vbo() | draw_fun()
+                | {'call',draw_fun()|'none',vab()|vbo()}.
 
 -record(du,
 	{dl=[],					%Display list records.
@@ -144,6 +155,8 @@ fold(Fun, Acc) ->
 %% call(Term)
 %%  Call OpenGL to render the geometry using the VBOs embedded in
 %%  the term.
+
+-spec call(dl()) -> 'ok'.
 
 call(none) -> none;
 call({call,Dl,_Vbo}) ->

@@ -22,7 +22,7 @@
 -include("e3d_image.hrl").
 -include_lib("kernel/include/file.hrl").
 
--import(lists, [reverse/1,keymember/3,foreach/2]).
+-import(lists, [foldl/3,foreach/2,keymember/3,reverse/1]).
 -import(filename, [dirname/1]).
 
 -define(WINGS, ".wings").
@@ -245,12 +245,9 @@ command({export_selected,ndo}, St) ->
     export_ndo(export_selected, String, St);
 command({export,{ndo,Filename}}, St) ->
     do_export_ndo(Filename, St);
-command({export_selected,{ndo,Filename}}, St) ->
-    Shs0 = wings_sel:fold(fun(_, #we{id=Id}=We, A) ->
-				  [{Id,We}|A]
-			  end, [], St),
-    Shs = gb_trees:from_orddict(reverse(Shs0)),
-    do_export_ndo(Filename, St#st{shapes=Shs});
+command({export_selected,{ndo,Filename}}, St0) ->
+    St = delete_unselected(St0),
+    do_export_ndo(Filename, St);
 command(install_plugin, _St) ->
     install_plugin();
 command({install_plugin,Filename}, _St) ->
@@ -473,10 +470,8 @@ save_selected(St) ->
     Cont = fun(Name) -> {file,{save_selected,Name}} end,
     export_filename(Ps, St, Cont).
 
-save_selected(Name, #st{shapes=Shs0,sel=Sel}=St0) ->
-    Shs = [Sh || {Id,_}=Sh <- gb_trees:to_list(Shs0),
-		 keymember(Id, 1, Sel)],
-    St = St0#st{shapes=gb_trees:from_orddict(Shs)},
+save_selected(Name, St0) ->
+    St = delete_unselected(St0),
     case ?SLOW(wings_ff_wings:export(Name, St)) of
 	ok -> keep;
 	{error,Reason} -> wings_u:error_msg(Reason)
@@ -836,3 +831,7 @@ clean_images(#st{saved=Limit}=St) when is_integer(Limit) ->
 
 clean_new_images(#st{saved=Limit}) when is_integer(Limit) ->
     wings_image:delete_from(Limit).
+
+delete_unselected(St) ->
+    Unselected = wings_sel:unselected_ids(St),
+    foldl(fun wings_obj:delete/2, St, Unselected).

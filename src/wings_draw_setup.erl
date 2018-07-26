@@ -23,10 +23,16 @@
 -export([create_vab/4,create_tangent_vab/5,
 	 add_ts/5,add_tangents/3]).
 
+-export_type([face_map/0,face_tris/0]).
+
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
 
 -import(lists, [reverse/1,sort/1,foldl/3]).
+
+
+-type face_tris() :: {non_neg_integer(),non_neg_integer()}.
+-type face_map() :: array:array(face_tris()) | [face_tris()].
 
 %%%
 %%% we(We, [Option], St) -> #vab{} See wings.hrl

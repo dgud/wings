@@ -471,12 +471,8 @@ handle_event_3({external,not_possible_to_save_prefs}, _St) ->
     wings_help:not_possible_to_save_prefs();
 handle_event_3({external, win32_start_maximized}, _St) ->
     keep;
-handle_event_3({external, Fun}, St)
-  when is_function(Fun) ->
+handle_event_3({external, Fun}, St) when is_function(Fun) ->
     Fun(St);
-handle_event_3({external,Op}, St) ->
-    wpa:handle_external(Op,St),
-    keep;
 handle_event_3(#wx{event=#wxDropFiles{files=Fs0}}, St0) ->
     Send = fun(Op) -> wings ! {action, {file, Op}} end,
     ImgFms = wings_image:image_formats(),
@@ -1243,7 +1239,6 @@ get_mode_restriction() ->
 
 %%%% Get Objects Info and display in a table, one row per object.
 object_info(St) ->
-    #st{shapes=Shapes} = St,
     HRow = {
       ?__(1,"#"),
       ?__(2,"Name"),
@@ -1253,10 +1248,15 @@ object_info(St) ->
       ?__(6,"Edges"),
       ?__(7,"Faces"),
       ?__(8,"Verts") },
-    case gb_trees:is_empty(Shapes) of
-        true -> wings_u:error_msg(?__(9,"No objects in scene"));
-        false ->
-            Rows = [get_object_info(Id, Shapes) || Id <- gb_trees:keys(Shapes)],
+    MF = fun(#{id:=Id,name:=Name},#we{}=We) ->
+                 get_object_info(Id, Name, We)
+         end,
+    RF = fun(Obj, Acc) -> [Obj|Acc] end,
+    case wings_obj:dfold(MF, RF, [], St) of
+        [] ->
+            wings_u:error_msg(?__(9,"No objects in scene"));
+        [_|_]=Rows0 ->
+            Rows = lists:sort(Rows0),
 	    Header = list_to_tuple([{H,H}|| H <- tuple_to_list(HRow)]),
             ColumnWidthList = column_widths([Header|Rows]),
             Qs = [{table,[HRow|Rows],
@@ -1266,42 +1266,38 @@ object_info(St) ->
             wings_dialog:dialog(?__(10,"Scene Info: "), Qs, Ask)
     end.
 
+get_object_info(Id, Name, #we{es=Etab,fs=Ftab,vp=VPos}=We) ->
+    Area      =  wings_we:surface_area(We),
+    Volume    =  wings_we:volume(We),
+    Perimeter =  wings_we:perimeter(We),
+    NEdge   = wings_util:array_entries(Etab),
+    NFace   = gb_trees:size(Ftab),
+    NVertex =  wings_util:array_entries(VPos),
+    Info = [Id,Name,Area,Perimeter,Volume,NEdge,NFace,NVertex],
+    list_to_tuple([{X,to_string(X)} || X <- Info]).
 
-get_object_info(Id, Shapes) ->
-    #we{id=Id,name=Name,es=Etab0,fs=Ftab0,vp=VPos0} = We0 = gb_trees:get(Id, Shapes),
-    Area      =  wings_we:surface_area(We0),
-    Volume    =  wings_we:volume(We0),
-    Perimeter =  wings_we:perimeter(We0),
-    ToString = fun(Item) ->
-		       case Item of
-			   Item when is_float(Item) ->
-			       lists:flatten(io_lib:format("~.4f", [Item]));
-			   Item when is_integer(Item) ->
-			       integer_to_list(Item);
-			   Item when is_list(Item) ->
-			       Item
-		       end
-	       end,
-    NEdge   = wings_util:array_entries(Etab0),
-    NFace   = gb_trees:size(Ftab0),
-    NVertex =  wings_util:array_entries(VPos0),
-    list_to_tuple([{X,ToString(X)}||X<-[Id,Name,Area,Perimeter,Volume,NEdge,NFace,NVertex]]).
+to_string(Item) ->
+    case Item of
+        Item when is_float(Item) ->
+            lists:flatten(io_lib:format("~.4f", [Item]));
+        Item when is_integer(Item) ->
+            integer_to_list(Item);
+        Item when is_list(Item) ->
+            Item
+    end.
 
-
-
-%% get maximal column widths needed to display each column in characters.
+%% Get maximal column widths needed to display each column in characters.
 column_widths(Rows) ->
     [Row|_] = Rows,
-    NCols = size(Row),
-    MyAcc = fun(Col,Acc) ->
-		    Temp = [ begin
-				 {_,A} = element(Col,RowTuple),
-				 length(A)
-			     end || RowTuple <- Rows],
-		    Mx = lists:max(Temp), % add a bit of padding
-		    [Mx|Acc]
-	    end,
-    lists:foldr(MyAcc,[], lists:seq(1,NCols)).
+    NCols = tuple_size(Row),
+    F = fun(Col) ->
+                L = [begin
+                         {_,A} = element(Col, RowTuple),
+                         length(A)
+                     end || RowTuple <- Rows],
+                lists:max(L)
+        end,
+    [F(Col) || Col <- lists:seq(1, NCols)].
 %%%%
 
 highlight_aim_setup(St0) ->

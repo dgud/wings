@@ -21,6 +21,8 @@
 %% Export for plugins (and wings_proxy) that need to draw stuff
 -export([draw_flat_faces/2,draw_smooth_faces/2]).
 
+-export_type([normals/0,split/0]).
+
 -define(NEED_OPENGL, 1).
 -define(NEED_ESDL, 1).
 -include("wings.hrl").
@@ -37,6 +39,12 @@
 	 orig_we,
 	 orig_st		      %For materials
 	}).
+
+-type normals() :: 'none'
+                 | array:array(e3d_vec:vector())
+                 | {normals()}.
+
+-opaque split() :: #split{}.
 
 %%%
 %%% Refresh the display lists from the contents of St.

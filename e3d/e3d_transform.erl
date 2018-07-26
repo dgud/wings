@@ -31,6 +31,8 @@
 	 inverse/1, translate/2, rotate/2, rotate/3, scale/2, mul/1, mul/2
 	]).
 
+-type e3d_matrix() :: e3d_mat:matrix().
+-type e3d_vector() :: e3d_vec:vector().
 
 -include("e3d.hrl").
 

@@ -304,24 +304,29 @@ adjust_fun_1(AdjFun, Ds, #dlo{src_we=#we{light=L0}=We0}=D) ->
 %%
 %% The Edit Properties command.
 %%
-edit(#st{sel=[{Id,_}]}=St) ->
-    edit(Id, St);
-edit(_) -> wings_u:error_msg(?__(1,"Select only one light.")).
+edit(St) ->
+    case wings_sel:selected_ids(St) of
+        [Id] ->
+            edit(Id, St);
+        [_|_] ->
+            wings_u:error_msg(?__(1,"Select only one light."))
+    end.
 
-edit(Id, #st{shapes=Shs}=St) ->
-    We = #we{light=#light{type=Type}} = gb_trees:get(Id, Shs),
-    {Name,Prop} = get_light(We, false),
-    case Type of
-	ambient ->
-	    {dialog,Qs,Fun} = edit_ambient_dialog(Name, Prop, We, Shs, St),
+edit(Id, St) ->
+    Obj = wings_obj:get(Id, St),
+    Prop = get_light(Obj, false, St),
+    case Obj of
+	#{light:=#light{type=ambient}} ->
+	    {dialog,Qs,Fun} = edit_ambient_dialog(Obj, Prop, St),
 	    wings_dialog:dialog(?__(2,"Ambient Light Properties"), Qs, Fun);
-	_ ->
-	    {dialog,Qs,Fun} = edit_dialog(Name, Prop, We, Shs, St),
+	#{light:=#light{}} ->
+	    {dialog,Qs,Fun} = edit_dialog(Obj, Prop, St),
 	    wings_dialog:dialog(?__(3,"Light Properties"), Qs, Fun)
     end.
 
-edit_ambient_dialog(Name, Prop0, 
-		    We0=#we{id=Id,light=#light{ambient=Amb0}=L0}, Shs, St) ->
+edit_ambient_dialog(Obj, Prop0, St) ->
+    #{name:=Name,light:=L0} = Obj,
+    #light{ambient=Amb0} = L0,
     Qs0 = {vframe,
 	   [{hframe,
 	     [{label_column,
@@ -334,12 +339,12 @@ edit_ambient_dialog(Name, Prop0,
     Fun = fun([Amb|Res]) ->
 		  {ok,Prop} = plugin_results(Name, Prop0, Res),
 		  L = L0#light{ambient=Amb,prop=Prop},
-		  We = We0#we{light=L},
-		  St#st{shapes=gb_trees:update(Id, We, Shs)}
+                  wings_obj:put(Obj#{light:=L}, St)
 	  end,
     {dialog,Qs,Fun}.
 
-edit_dialog(Name, Prop0, #we{id=Id,light=L0}=We0, Shs, St) ->
+edit_dialog(Obj, Prop0, St) ->
+    #{name:=Name,light:=L0} = Obj,
     #light{diffuse=Diff0,ambient=Amb0,specular=Spec0} = L0,
     Qs0 = {vframe,
 	   [{hframe,
@@ -354,12 +359,11 @@ edit_dialog(Name, Prop0, #we{id=Id,light=L0}=We0, Shs, St) ->
 	  [{buttons, [ok, cancel]}, {key, result}]},
     Fun = fun([Diff,Amb,Spec|More0]) ->
 		  L1 = L0#light{diffuse=Diff,ambient=Amb,specular=Spec},
-		  {L,More} = edit_specific(More0, L1),
+		  {L2,More} = edit_specific(More0, L1),
 		  case plugin_results(Name, Prop0, More) of
 		      {ok,Prop} ->
-			  We = We0#we{light=L#light{prop=Prop}},
-			  St#st{shapes=gb_trees:update(Id, We, Shs)}
-			  %%{again,Prop} -> edit_dialog(Name, Prop, We0, Shs, St)
+                          L = L2#light{prop=Prop},
+                          wings_obj:put(Obj#{light:=L}, St)
 		  end
 	  end,
     {dialog,Qs,Fun}.
@@ -566,11 +570,13 @@ export(St) ->
 export_bc(St) ->
     export(St, true).
 
-export(#st{shapes=Shs}, BackwardsCompatible) ->
-    L = foldl(fun(We, A) when ?IS_ANY_LIGHT(We) ->
-		      [get_light(We, BackwardsCompatible)|A];
-		 (_, A) -> A
-	      end, [], gb_trees:values(Shs)),
+export(St, BackwardsCompatible) ->
+    F = fun(#{light:=_}=Obj, A) ->
+                [get_light(Obj, BackwardsCompatible, St)|A];
+           (_, A) ->
+                A
+        end,
+    L = wings_obj:fold(F, [], St),
     reverse(L).
 
 export_camera_lights() ->
@@ -593,16 +599,21 @@ export_camera_lights() ->
 	 end,
     [GL(Light) || Light <- [Amb|Ls]].
 
-get_light(#we{name=Name,perm=P}=We, BC) ->
-    Ps0 = get_light_1(We, BC),
+get_light(#{id:=Id,perm:=P,light:=Light}, BC, St) ->
+    F = fun(We) -> get_light_1(Light, We, BC) end,
+    Ps0 = wings_obj:with_we(F, Id, St),
+    export_perm(P, Ps0).
+
+get_light(#we{name=Name,perm=P,light=Light}=We, BC) ->
+    Ps0 = get_light_1(Light, We, BC),
     Ps = export_perm(P, Ps0),
     {Name,Ps}.
 
-get_light_1(#we{light=#light{type=ambient,ambient=Amb,prop=Prop},pst=Pst}=We, _) ->
+get_light_1(#light{type=ambient,ambient=Amb,prop=Prop}, #we{pst=Pst}=We, _) ->
     P = light_pos(We),
     OpenGL = [{type,ambient},{ambient,Amb},{position,P},{pst,Pst}],
     [{opengl,OpenGL}|Prop];
-get_light_1(#we{light=L,pst=Pst}=We, BC) ->
+get_light_1(L, #we{pst=Pst}=We, BC) ->
     #light{type=Type,diffuse=Diff,ambient=Amb,specular=Spec,
 	   aim=Aim,spot_angle=Angle,spot_exp=SpotExp,
 	   lin_att=LinAtt,quad_att=QuadAtt,prop=Prop} = L,

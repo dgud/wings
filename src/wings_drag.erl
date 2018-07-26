@@ -16,7 +16,7 @@
          matrix/3,matrix/4,general/4,drag_only/4,
          compose/1,translate_fun/2]).
 
--export_type([vec_transform_fun/0,vertices/0,vertex_transform/0]).
+-export_type([drag/0,vec_transform_fun/0,vertices/0,vertex_transform/0]).
 
 -define(NEED_ESDL, 1).
 -define(NEED_OPENGL, 1).
@@ -52,6 +52,7 @@
          drag                   % Drag fun.
 	}).
 
+
 %% Drag per object.
 
 -record(do,
@@ -62,6 +63,8 @@
 -type vertex_num() :: wings_vertex:vertex_num().
 
 -type vertices() :: [vertex_num()].
+
+-type e3d_matrix() :: e3d_mat:matrix().
 
 -type mat_transform_fun() :: fun((e3d_matrix(), [float()]) -> e3d_matrix()).
 -type we_transform_fun() :: fun((#we{}, [float()]) -> #we{}).
@@ -103,6 +106,9 @@
               | {'mode',{mode_fun(),mode_data()}}
               | {'rescale_normals',boolean()}
               | 'screen_relative'.
+
+-type drag() :: #drag{} | {'general',general_fun()} | #do{}.
+
 
 -spec fold(Fun, [unit()], #st{}) -> {'drag',#drag{}} when
       Fun :: fun((wings_sel:item_set(), #we{}) -> fold_tv()).
@@ -166,7 +172,7 @@ compose(Transforms) ->
     F = compose_fun(TransformFuns),
     {Vs,F}.
 
--spec translate_fun([{e3d_vector(),vertices()}], #we{}) ->
+-spec translate_fun([{e3d_vec:vector(),vertices()}], #we{}) ->
                            {vertices(),vec_transform_fun()}.
 
 translate_fun([_|_]=VecVs0, #we{vp=Vtab}) ->

@@ -15,7 +15,7 @@
 
 -export([clear/1,reset/1,set/2,set/3,
 	 conditional_reset/1,
-         selected_ids/1,
+         selected_ids/1,unselected_ids/1,
 	 map/2,map_obj/2,
          map_update_sel/2,map_update_sel/3,
 	 update_sel/2,update_sel/3,update_sel_all/2,
@@ -99,6 +99,17 @@ set(Mode, Sel, St) ->
 
 selected_ids(#st{sel=Sel}) ->
     [Id || {Id,_} <- Sel].
+
+%%
+%% Return the Ids for all selected objects.
+%%
+
+-spec unselected_ids(#st{}) -> [non_neg_integer()].
+
+unselected_ids(#st{sel=Sel,shapes=Shs}) ->
+    SelIds = [Id || {Id,_} <- Sel],
+    AllIds = gb_trees:keys(Shs),
+    ordsets:subtract(AllIds, SelIds).
 
 %%%
 %%% Map over the selection, modifying the selected #we{}
@@ -381,7 +392,7 @@ merge(F, St) when is_function(F, 1) ->
 %%% Calculate the center for all selected objects.
 %%%
 
--spec center(#st{}) -> e3d_vector().
+-spec center(#st{}) -> e3d_vec:vector().
 
 center(#st{selmode=Mode}=St) ->
     MF = fun(Items, We) ->
@@ -397,7 +408,7 @@ center(#st{selmode=Mode}=St) ->
 %%% Calculate the center for all selected vertices.
 %%%
 
--spec center_vs(#st{}) -> e3d_vector().
+-spec center_vs(#st{}) -> e3d_vec:vector().
 
 center_vs(#st{selmode=Mode}=St) ->
     MF = fun(Items, We) ->
@@ -412,7 +423,7 @@ center_vs(#st{selmode=Mode}=St) ->
 
 %% Calculate center of bounding box.
 
--spec bbox_center(#st{}) -> e3d_vector().
+-spec bbox_center(#st{}) -> e3d_vec:vector().
 
 bbox_center(St) ->
     BBox = bounding_box(St),
@@ -422,7 +433,7 @@ bbox_center(St) ->
 %%% Calculate the bounding-box for the selection.
 %%%
 
--spec bounding_box(#st{}) -> [e3d_vector()] | 'none'.
+-spec bounding_box(#st{}) -> [e3d_vec:vector()] | 'none'.
 
 bounding_box(#st{selmode=Mode}=St) ->
     MF = fun(Items, We) ->
