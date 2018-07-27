@@ -791,9 +791,7 @@ end_drag(_, #dlo{src_we=#we{id=Id},drag={matrix,_,Matrix,_}}=D,
     We = wings_we:transform_vs(Matrix, We0),
     Shs = gb_trees:update(Id, We, Shs0),
     St = St0#st{shapes=Shs},
-    D1 = D#dlo{src_we=We},
-    D2 = wings_draw:changed_we(D1, D),
-    {D2#dlo{vs=none,sel=none,drag=none},St};
+    {D#dlo{vs=none,sel=none,drag=none,src_we=none},St};
 end_drag(Mode, #dlo{src_sel={_,_},src_we=#we{id=Id}}=D0, #st{shapes=Shs0}=St0) ->
     case Mode of
 	slide ->

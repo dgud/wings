@@ -58,7 +58,7 @@ we(We, Options, St) ->
 we_1(Dlo=#dlo{src_we=Orig=#we{id=Id}}, Curr=#we{id=Id}, Opt, St) ->
     case Orig =:= Curr of
 	true  -> we_2(Dlo, Opt, St);
-	false -> we_2(wings_draw:changed_we(Dlo,#dlo{src_we=Curr}), Opt, St)
+	false -> we_2(Dlo#dlo{src_we=Curr}, Opt, St)
     end;
 we_1(_, _, _, _) ->
     undefined.
@@ -80,12 +80,13 @@ setup_vmirror(undefined, Dlo) -> Dlo;
 setup_vmirror(_, Dlo=#dlo{src_we=#we{mirror=none}}) -> Dlo;
 setup_vmirror(_, #dlo{src_we=We}) ->
     Mirrored = wings_we:freeze_mirror(We),
-    wings_draw:changed_we(#dlo{}, #dlo{src_we=Mirrored}).
+    #dlo{src_we=Mirrored}.
 
 setup_subdiv(0, Dlo) -> Dlo;
 setup_subdiv(N, #dlo{src_we=We}) ->
     SubDived = sub_divide(N, We),
-    wings_draw:changed_we(#dlo{}, #dlo{src_we=SubDived}).
+    #dlo{src_we=SubDived}.
+
 sub_divide(0, We) -> We;
 sub_divide(N, We) ->
     sub_divide(N-1, wings_subdiv:smooth(We)).

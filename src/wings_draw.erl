@@ -13,8 +13,7 @@
 
 -module(wings_draw).
 -export([refresh_dlists/1,
-	 update_sel_dlist/0,
-	 changed_we/2, update_normals/1,
+	 update_sel_dlist/0,update_normals/1,
 	 split/3,original_we/1,update_dynamic/2,join/1,abort_split/1]).
 
 %% Export for plugins (and wings_proxy) that need to draw stuff
@@ -161,6 +160,9 @@ changed_we(#dlo{ns=Ns}, D) ->
 
 update_normals(#dlo{ns={Ns0},src_we=#we{fs=Ftab}=We}=D) ->
     Ns = update_normals_1(Ns0, gb_trees:to_list(Ftab), We),
+    D#dlo{ns=Ns};
+update_normals(#dlo{ns=none,src_we=#we{fs=Ftab}=We}=D) ->
+    Ns = update_normals_2(gb_trees:to_list(Ftab), [], We),
     D#dlo{ns=Ns};
 update_normals(D) -> D.
 
