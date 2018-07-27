@@ -13,7 +13,6 @@
 
 -module(wings_draw).
 -export([refresh_dlists/1,
-	 invalidate_dlists/1,
 	 update_sel_dlist/0,
 	 changed_we/2, update_normals/1,
 	 split/3,original_we/1,update_dynamic/2,join/1,abort_split/1]).
