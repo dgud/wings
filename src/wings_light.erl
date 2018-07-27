@@ -599,10 +599,11 @@ export_camera_lights() ->
 	 end,
     [GL(Light) || Light <- [Amb|Ls]].
 
-get_light(#{id:=Id,perm:=P,light:=Light}, BC, St) ->
+get_light(#{id:=Id,name:=Name,perm:=P,light:=Light}, BC, St) ->
     F = fun(We) -> get_light_1(Light, We, BC) end,
     Ps0 = wings_obj:with_we(F, Id, St),
-    export_perm(P, Ps0).
+    Ps = export_perm(P, Ps0),
+    {Name,Ps}.
 
 get_light(#we{name=Name,perm=P,light=Light}=We, BC) ->
     Ps0 = get_light_1(Light, We, BC),
