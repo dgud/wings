@@ -454,7 +454,7 @@ update_dynamic(#dlo{src_we=We0}=D, Vtab0) ->
 update_matrix(#dlo{src_we=We0}=D, Matrix) ->
     We = wings_we:transform_vs(Matrix, We0),
     List = update_1(We, D),
-    D#dlo{work=List,transparent=We}.
+    D#dlo{work=List,sel=none,transparent=We}.
 
 update(#dlo{work=none,src_we=#we{light=#light{}}=We}=D) ->
     List = update_1(We, D),
