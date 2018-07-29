@@ -381,10 +381,7 @@ seg_map_charts_1([We0|Cs], Type, Id, N, Acc,Failed,Ss) ->
 seg_map_charts_1([],_, _, _,Charts0,Failed,
 		 Ss = #seg{orig_st=GeomSt0,fs=Fs,st=St0,we=#we{id=Id}}) ->
     wings_pb:done(),
-    %% Empty display list structure.
-    wings_dl:update(fun(eol, _) -> eol;
-		       (_, _) -> deleted
-		    end, []),
+    wings_dl:delete_dlists(),
     if Charts0 == [] -> 
 	    wings_u:message(Ss#seg.err),
 	    get_seg_event(seg_init_message(Ss));
