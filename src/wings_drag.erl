@@ -205,17 +205,10 @@ init(Units, Flags, St, DragFun) ->
 		 mode_fun=ModeFun,mode_data=ModeData,
 		 st=St,drag=DragFun}.
 
-fold_1([{Id,Items}|T], F, Shapes0) ->
-    We0 = gb_trees:get(Id, Shapes0),
+fold_1([{Id,Items}|T], F, Shapes) ->
+    We0 = gb_trees:get(Id, Shapes),
     ?ASSERT(We0#we.id =:= Id),
     Tv = F(Items, We0),
-    Shapes = case We0 of
-                 #we{temp=[]} ->
-                     Shapes0;
-                 #we{} ->
-                     We = We0#we{temp=[]},
-                     gb_trees:update(Id, We, Shapes0)
-             end,
     case Tv of
         {we,WeFuns,OtherTv} when is_list(WeFuns) ->
             [{Id,WeFuns,OtherTv}|fold_1(T, F, Shapes)];
@@ -224,17 +217,10 @@ fold_1([{Id,Items}|T], F, Shapes0) ->
     end;
 fold_1([], _, _) -> [].
 
-get_funs([{Id,_}|T], F, Shapes0) ->
-    We0 = gb_trees:get(Id, Shapes0),
+get_funs([{Id,_}|T], F, Shapes) ->
+    We0 = gb_trees:get(Id, Shapes),
     ?ASSERT(We0#we.id =:= Id),
     General = F(We0),
-    Shapes = case We0 of
-                 #we{temp=[]} ->
-                     Shapes0;
-                 #we{} ->
-                     We = We0#we{temp=[]},
-                     gb_trees:update(Id, We, Shapes0)
-             end,
     [{Id,General}|get_funs(T, F, Shapes)];
 get_funs([], _, _) -> [].
 
@@ -1385,17 +1371,20 @@ normalize_fun(#dlo{drag={matrix,_,_,_},transparent=#we{id=Id}=We,
 normalize_fun(#dlo{drag={matrix,_,_,Matrix},src_we=#we{id=Id}=We0,
 		   proxy_data=PD}=D0,
 	      _Move, Shs0) ->
-    We = wings_we:transform_vs(Matrix, We0),
+    We1 = We0#we{temp=[]},
+    We = wings_we:transform_vs(Matrix, We1),
     Shs = gb_trees:update(Id, We, Shs0),
     D = D0#dlo{work=none,smooth=none,edges=none,sel=none,drag=none,src_we=We,
 	       mirror=none,proxy_data=wings_proxy:invalidate(PD, dl)},
     {wings_draw:changed_we(D, D),Shs};
-normalize_fun(#dlo{drag={general,Fun},src_we=#we{id=Id}=We}=D0, Move, Shs) ->
+normalize_fun(#dlo{drag={general,Fun},src_we=#we{id=Id}=We0}=D0, Move, Shs) ->
     D1 = Fun({finish,Move}, D0),
-    D = D1#dlo{drag=none,sel=none},
+    We = We0#we{temp=[]},
+    D = D1#dlo{drag=none,sel=none,src_we=We},
     {wings_draw:changed_we(D, D),gb_trees:update(Id, We, Shs)};
 normalize_fun(#dlo{src_we=#we{id=Id}}=D0, _Move, Shs) ->
-    #dlo{src_we=We} = D = wings_draw:join(D0),
+    #dlo{src_we=We0} = D = wings_draw:join(D0),
+    We = We0#we{temp=[]},
     {D,gb_trees:update(Id, We, Shs)}.
 
 %%%
