@@ -277,8 +277,8 @@
 
 	 %% Source for display lists.
          src_we=none :: 'none' | #we{},         %Source object.
-         src_sel=none :: wings_dl:dl()
-                       | {wings_sel:mode(),wings_sel:item_set()}, %Source selection.
+         src_sel=none :: 'none' |
+                         {wings_sel:mode(),wings_sel:item_set()}, %Source selection.
          split=none ::
            'none' | wings_draw:split(),         %Split data.
          drag=none :: 'none'
