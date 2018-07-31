@@ -180,10 +180,13 @@ get_ao_factor([], _Unused, Vc) ->
 %%
 
 make_disp_list(St) ->
-    #st{shapes=Shapes} = St,
-    Wes = gb_trees:values(Shapes),
-    Vabs = [wings_draw_setup:we(We, [], St) ||
-	       We <- Wes, is_plain_geometry(We)],
+    wings_draw:refresh_dlists(St),
+    Vabs = wings_dl:fold(fun(#dlo{vab=Vab,src_we=We}, Acc) ->
+                                 case is_plain_geometry(We) of
+                                     true -> [Vab|Acc];
+                                     false -> Acc
+                                 end
+                         end, []),
     Draw = fun() ->
 		   _ = [draw_vab(Vab) || Vab <- Vabs],
 		   ok

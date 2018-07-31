@@ -13,8 +13,6 @@
 
 -module(wings_draw_setup).
 
--export([we/3]).  %% For plugins
-
 -export([work/2,smooth/2,prepare/3,prepare/4,flat_faces/2]).
 -export([enable_pointers/3,disable_pointers/2]).
 -export([face_vertex_count/1,has_active_color/1]).
@@ -39,65 +37,6 @@
                    | 'plain' | 'uv' | 'uv_tangent'.
 -type plan() :: {plan_type(),[{material_name(),
                                [{wings_face:face_num(),wings_edge:edge_num()}]}]}.
-
-%%%
-%%% we(We, [Option], St) -> #vab{} See wings.hrl
-%%%    Generates rendering buffers from a we,
-%%%    reuses data if available.
-%%% Options are:
-%%%    {smooth, true|false}                            default false
-%%%    {subdiv, Level :: integer()}                    default 0 
-%%%    {attribs, undefined|plain|uv|color|color_uv}    default undefined 
-%%%              undefined -> you get what is available and enabled in wings_prefs
-%%%              plain ->  only vertex positions and normal
-we(We, Options, St) ->
-    wings_dl:fold(fun(Dl, undefined) -> we_1(Dl, We, Options, St);
-		     (_Dl, Res)      -> Res
-		  end, undefined).
-
-we_1(Dlo=#dlo{src_we=Orig=#we{id=Id}}, Curr=#we{id=Id}, Opt, St) ->
-    case Orig =:= Curr of
-	true  -> we_2(Dlo, Opt, St);
-	false -> we_2(Dlo#dlo{src_we=Curr}, Opt, St)
-    end;
-we_1(_, _, _, _) ->
-    undefined.
-
-we_2(Dlo0, Opt, St) ->
-    Smooth = proplists:get_value(smooth, Opt, false),
-    Attrib = proplists:get_value(attribs, Opt, undefined),
-    Dlo1 = setup_vmirror(proplists:get_value(vmirror, Opt, undefined), Dlo0),
-    Dlo2 = setup_subdiv(proplists:get_value(subdiv, Opt, 0), Dlo1),
-    Dlo = check_attrib(Attrib, Dlo2),
-    #dlo{vab=Vab} =
-	case Smooth of
-	    true  -> smooth(Dlo, St, Attrib);
-	    false -> work(Dlo, St, Attrib)
-	end,
-    Vab.
-
-setup_vmirror(undefined, Dlo) -> Dlo;
-setup_vmirror(_, Dlo=#dlo{src_we=#we{mirror=none}}) -> Dlo;
-setup_vmirror(_, #dlo{src_we=We}) ->
-    Mirrored = wings_we:freeze_mirror(We),
-    #dlo{src_we=Mirrored}.
-
-setup_subdiv(0, Dlo) -> Dlo;
-setup_subdiv(N, #dlo{src_we=We}) ->
-    SubDived = sub_divide(N, We),
-    #dlo{src_we=SubDived}.
-
-sub_divide(0, We) -> We;
-sub_divide(N, We) ->
-    sub_divide(N-1, wings_subdiv:smooth(We)).
-
-check_attrib(undefined, Dlo) -> Dlo;     
-check_attrib(_, Dlo = #dlo{vab=none}) -> Dlo;
-check_attrib(uv, Dlo = #dlo{vab = #vab{face_uv={_,_}, face_vc=none}}) -> Dlo;
-check_attrib(color, Dlo = #dlo{vab = #vab{face_vc={_,_}, face_uv=none}}) -> Dlo;
-check_attrib(color_uv, Dlo = #dlo{vab = #vab{face_vc={_,_}, face_uv={_,_}}}) -> Dlo;
-check_attrib(_, D) -> 
-    D#dlo{vab=none}. %% Force rebuild
 
 %%%
 %%% Help functions to activate and disable buffer pointers.
