@@ -303,7 +303,7 @@ handle_call({delete_from,Id}, _From, #ist{images=Images0}=S) ->
     Images = gb_trees:from_orddict(Images1),
     {reply, ok, S#ist{images=Images}};
 handle_call({update,Id,Image}, _From, S) ->
-    do_update(Id, Image, S);
+    {reply, ok, do_update(Id, Image, S)};
 handle_call({find_image, Dir, File}, _From, #ist{images=Ims}=S) ->
     AbsName = filename:join(Dir, File),
     Find = fun(Fn) -> Fn == AbsName end,
