@@ -161,8 +161,8 @@ ortho(Near, Far) ->
 
 ortho(Left, Right, Bottom, Top, Near, Far) ->
     O = 0.0,
-    IDx = 1/(Right-Left),
-    IDy = 1/(Top-Bottom),
+    IDx = 1/max(Right-Left, 0.00000001),
+    IDy = 1/max(Top-Bottom, 0.00000001),
     IDz = 1/(Far-Near),
 
     Mat0 = {2.0, O, O,

@@ -1003,9 +1003,9 @@ frame(St0) ->
 frame_1(none) -> ok;
 frame_1([A,B]) ->
     C = e3d_vec:average(A, B),
+    #view{fov=Fov, hither=Hither} = View = current(),
     R = e3d_vec:len(e3d_vec:sub(A, B)) / 2,
-    #view{fov=Fov} = View = current(),
-    Dist = R/math:tan(Fov*math:pi()/2/180),
+    Dist = max(R/math:tan(Fov*math:pi()/2/180),Hither),
     set_current(View#view{origin=e3d_vec:neg(C),
 			  distance=Dist,pan_x=0.0,pan_y=0.0}).
 
