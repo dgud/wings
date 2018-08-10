@@ -36,6 +36,11 @@ start_halt(Args) ->
     common_start(fun() -> application:start(wings) end).
 
 common_start(Start) ->
+    %% Limit error logger output in crash (OTP-20)
+    application:set_env(kernel, error_logger_format_depth, 50),
+    %% Re-read error_logger_format_depth set above
+    error_logger:tty(false),
+    error_logger:tty(true),
     case get_patches() of
 	none -> ok;
 	{disabled,_} -> ok;
