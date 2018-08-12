@@ -12,6 +12,8 @@
 #
 OS := $(shell uname -s)
 
+ERL=erl
+
 ifeq ($(findstring CYGWIN,$(OS)),CYGWIN)
   USEMINGWGCC := true
   DEF_CC = mingw32-gcc
@@ -21,6 +23,11 @@ ifdef MSYSTEM
  ifeq ($(MSYSTEM),$(filter $(MSYSTEM),MINGW32 MINGW64))
   USEMINGWGCC := true
   DEF_CC = gcc
+ endif
+else
+ ifeq ($(WSLcross), true)
+  UseMCL = true
+  ERL = erl.exe
  endif
 endif
 
@@ -35,7 +42,7 @@ endif
 LIBDIR = ../../plugins/accel
 
 FRD = 'io:fwrite("~n=:~s~n",[code:root_dir()]),init:stop().'
-ERL_DIR := $(shell echo $(FRD) | erl | sed -n '/^=:/s/^=://p')
+ERL_DIR := $(shell echo $(FRD) | $(ERL) | sed -n '/^=:/s/^=://p')
 ERL_INC = "$(ERL_DIR)/usr/include"
 BEAM = $(LIBDIR)/wpc_pick.beam
 
