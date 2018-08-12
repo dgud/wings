@@ -256,7 +256,7 @@ render_object(#dlo{drag={matrix,_,_,DragMat}}=D, Work, RT, SceneLights, RS0) ->
     gl:pushMatrix(),
     gl:multMatrixf(DragMat),
     Prev = wings_shaders:get_state(ws_matrix, RS0),
-    RS1 = wings_shaders:set_uloc(ws_matrix, e3d_mat:mul(DragMat, Prev), RS0),
+    RS1 = wings_shaders:set_uloc(ws_matrix, e3d_mat:compress(e3d_mat:mul(DragMat, Prev)), RS0),
     RS2 = render_object_1(D, Work, RT, SceneLights, RS1),
     RS  = wings_shaders:set_uloc(ws_matrix, Prev, RS2),
     gl:popMatrix(),
