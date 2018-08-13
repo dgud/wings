@@ -538,7 +538,10 @@ magnet_handler_setup({Id,Elem,_}=What, X, Y, St, T0) ->
     wings_io:change_event_handler(?SDL_KEYUP, true),
     IdElem = {Id,[Elem]},
     wings_wm:grab_focus(),
-    wings_io:grab(),
+    case wings_io:is_grabbed() of
+	true -> ok;
+	false -> wings_io:grab()
+    end,
     begin_magnet_adjustment(What, St),
     tweak_magnet_radius_help(true),
     T = T0#tweak{id=IdElem,ox=X,oy=Y,cx=0,cy=0},
@@ -644,6 +647,7 @@ end_magnet_event(#tweak{st=St}=T) ->
 end_magnet_event(Ev,#tweak{id=Id}=T) ->
     wings_io:change_event_handler(?SDL_KEYUP, false),
     save_magnet_prefs(T),
+    %% release_focus() and ungrab() will be called from end_magnet_adjust()->show_cursor()
     end_magnet_adjust(Id),
     wings_wm:later(Ev),
     pop.
@@ -1690,7 +1694,10 @@ show_cursor_1(X0,Y0) ->
 	   true -> Y1
 	end,
     wings_wm:release_focus(),
-    wings_io:ungrab(X,Y).
+    case wings_io:is_grabbed() of
+	false -> ok;
+	true -> wings_io:ungrab(X,Y)
+    end.
 
 %%%
 %%% Main Tweak Menu
