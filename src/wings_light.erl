@@ -926,25 +926,27 @@ load_area_light_tab(LTCmat) ->
     {areamatrix_tex, ImId}.
 
 fake_envmap(Path, EnvImgRec) ->
-    ErrorStr = ?__(1, "Could not initialize OpenCL: env lighting limited"),
+    ErrorStr = ?__(1, "Could not initialize OpenCL: env lighting limited ~n"),
     io:format(ErrorStr,[]),
     wings_status:message(geom, ErrorStr),
     %% Poor mans version with blured images
     SpecBG = wings_image:e3d_to_wxImage(EnvImgRec),
     wxImage:rescale(SpecBG, 512, 256, [{quality, ?wxIMAGE_QUALITY_HIGH}]),
+    tone_map(SpecBG),
     SBG0 = wings_image:wxImage_to_e3d(SpecBG),
-    MMs = make_mipmaps(wxImage:mirror(SpecBG, [{horizontally, false}]), 1, 256, 128),
+    SpecBG1 = wxImage:copy(SpecBG),
+    MMs = make_mipmaps(SpecBG1, 1, 256, 128),
     Opts = [{wrap, {repeat,clamp}}, {filter, {mipmap, linear}}, {mipmaps, MMs}],
-    SBG = SBG0#e3d_image{extra=Opts},
+    SBG = SBG0#e3d_image{name="Fake Spec", extra=Opts},
     SpecId = wings_image:new_hidden(env_spec_tex, SBG),
 
-    DiffBG0 = wxImage:blur(SpecBG, 5),
-    wxImage:rescale(DiffBG0, 64, 32, [{quality, ?wxIMAGE_QUALITY_HIGH}]),
-    DiffBG = wxImage:blur(DiffBG0, 5),
+    wxImage:rescale(SpecBG, 64, 32, [{quality, ?wxIMAGE_QUALITY_HIGH}]),
+    DiffBG = wxImage:blur(SpecBG, 10),
+    blur_edges(DiffBG),
     DBG0 = wings_image:wxImage_to_e3d(DiffBG),
-    DBG = DBG0#e3d_image{extra=Opts},
+    DBG = DBG0#e3d_image{name="Fake diffuse", extra=[{wrap, {repeat,clamp}},
+                                                     {filter, {linear,linear}}]},
     wxImage:destroy(SpecBG),
-    wxImage:destroy(DiffBG0),
     wxImage:destroy(DiffBG),
     {ok, BrdfBin0} = file:read_file(filename:join(Path,"brdf_tab.bin")),
     128*128*2 = byte_size(BrdfBin0),
@@ -958,14 +960,77 @@ fake_envmap(Path, EnvImgRec) ->
      {env_diffuse_tex, wings_image:new_hidden(env_diffuse_tex, DBG)},
      {brdf_tex,        wings_image:new_hidden(brdf_tex, Brdf)}].
 
-make_mipmaps(Img0, Level, W, H) when Level < 7 ->
+
+tone_map(Image) ->
+    RGB0 = wxImage:getData(Image),
+    RGB = << << (pixel_tonemap(R/256,G/256,B/256)):24 >> || <<R:8,G:8,B:8>> <= RGB0 >>,
+    wxImage:setData(Image, RGB).
+
+pixel_tonemap(R0,G0,B0) ->
+    Lum = (1.0+(R0 * 0.2126 + G0 * 0.72152 + B0 * 0.0722)),
+    R = min(255, trunc(Lum * R0 * 255.0)),
+    G = min(255, trunc(Lum * G0 * 255.0)),
+    B = min(255, trunc(Lum * B0 * 255.0)),
+    (R bsl 16) bor (G bsl 8) bor B.
+
+blur_edges(Image) ->
+    RGB0 = wxImage:getData(Image),
+    RowSz = wxImage:getWidth(Image)*3,
+    BlobSz = (wxImage:getHeight(Image)-2)*RowSz,
+    <<First0:RowSz/binary, Center:BlobSz/binary, Last0:RowSz/binary>> = RGB0,
+    First = blur_row(First0),
+    Last = blur_row(Last0),
+    RGB1 = <<First:RowSz/binary, Center:BlobSz/binary, Last:RowSz/binary>>,
+    RGB = << << (blur_edge(Row, RowSz))/binary >> || <<Row:RowSz/binary>> <= RGB1 >>,
+    wxImage:setData(Image, RGB).
+
+-define(A(C0,C1,C2), (round((C0+C1+C2)/3))).
+
+blur_row(Bin) ->
+    List = binary_to_list(Bin),
+    {R0,G0,B0} = average(List, 0,0,0,0),
+    blur_pixel(List, R0,G0,B0, <<>>).
+
+average([R,G,B|Rest], R0,G0,B0,N) ->
+    average(Rest, R0+R,G0+G,B0+B,N+1);
+average([], R0,G0,B0,N) ->
+    {R0 div N, G0 div N, B0 div N}.
+
+blur_pixel([R,G,B|Rest], R0,G0,B0, Bin) ->
+    Acc = <<Bin/binary, ((R+R0) div 2):8, ((G+G0) div 2):8, ((B+B0) div 2):8>>,
+    blur_pixel(Rest, R0,G0,B0, Acc);
+blur_pixel([], _R0,_G0,_B0, Bin) ->
+    Bin.
+
+blur_edge(Row0, Bytes) ->
+    Skip = Bytes-18,
+    <<R0:8,G0:8,B0:8, R1:8,G1:8,B1:8, R2:8,G2:8,B2:8,
+      Bin:Skip/bytes,
+      R7:8,G7:8,B7:8, R8:8,G8:8,B8:8, R9:8,G9:8,B9:8>> = Row0,
+    R00 = ?A(R0,R1,R9),  G00=?A(G0,G1,G9),  B00=?A(B0,B1,B9),
+    R90 = ?A(R0,R8,R9),  G90=?A(G0,G8,G9),  B90=?A(B0,B8,B9),
+    R10 = ?A(R00,R1,R2), G10=?A(G00,G1,G2), B10=?A(B00,B1,B2),
+    R80 = ?A(R90,R8,R7), G80=?A(G90,G8,G7), B80=?A(B90,B8,B7),
+    R01 = ?A(R00,R10,R90),  G01=?A(G00,G10,G90),  B01=?A(B00,B10,B90),
+    R91 = ?A(R00,R80,R90),  G91=?A(G00,G80,G90),  B91=?A(B00,B80,B90),
+    <<R01:8,G01:8,B01:8,
+      R10:8,G10:8,B10:8,
+      R2:8,G2:8,B2:8,
+      Bin:Skip/bytes,
+      R7:8,G7:8,B7:8,
+      R80:8,G80:8,B80:8,
+      R91:8,G91:8,B91:8
+    >>.
+
+
+make_mipmaps(Img0, Level, W, H) when Level < 6 ->
     wxImage:rescale(Img0, W, H),
     Img = wxImage:blur(Img0, 4),
     wxImage:destroy(Img0),
     Bin = wxImage:getData(Img),
     %% wings_image:debug_display(1000-Level,
-    %%                           #e3d_image{width=W, height=H, image=Bin,
-    %%                                      name="Spec: " ++ integer_to_list(Level)}),
+    %%                           #e3d_image{width=W, height=H, image=Bin, order=upper_left,
+    %%                                      name="Fake Spec: " ++ integer_to_list(Level)}),
     [{Bin, W, H, Level} | make_mipmaps(Img, Level+1, W div 2, H div 2)];
 make_mipmaps(Img, _, _, _) ->
     wxImage:destroy(Img),
@@ -1012,7 +1077,7 @@ make_diffuse(OrigImg, Buff0, Buff1, W, H, CL) ->
     {ok, DiffData} = cl:wait(Read),
     Img = << << (round(R*255)), (round(G*255)), (round(B*255)) >> ||
               <<R:32/float-native, G:32/float-native, B:32/float-native, _:32>> <= DiffData >>,
-    %% wings_image:debug_display(1000+TxId,#e3d_image{width=W, height=H, image=Img, name="Diffuse"}),
+    %% wings_image:debug_display(1000+W,#e3d_image{width=W, height=H, image=Img, name="Diffuse"}),
     Opts = [{wrap, {repeat,clamp}}, {filter, {linear, linear}}],
     ImId = wings_image:new_hidden(env_diffuse_tex, #e3d_image{width=W,height=H,image=Img,extra=Opts}),
     {env_diffuse_tex, ImId}.
@@ -1037,8 +1102,8 @@ make_spec(Level, Max, OrigImg, Buff0, Buff1, W, H, CL) when Level =< Max ->
               <<R:32/float-native, G:32/float-native, B:32/float-native, _:32>> <= SpecData >>,
     %% io:format("~p: ~p ~p  ~.3f~n", [Level, W, H, Step]),
     %% Level < 3 andalso
-    %%     wings_image:debug_display(1000-Level, #e3d_image{width=W, height=H, image=Img,
-    %%                                          name="Spec: " ++ integer_to_list(Level)}),
+    %%     wings_image:debug_display(900-Level, #e3d_image{width=W, height=H, image=Img,
+    %%                                         name="Spec: " ++ integer_to_list(Level)}),
     [{Img,W,H,Level} | make_spec(Level+1, Max, OrigImg, Buff0, Buff1, W div 2, H div 2, CL)];
 make_spec(_Level, _Max, _OrigImg, _B0, _B1, _W, _H, _CL) ->
     [].

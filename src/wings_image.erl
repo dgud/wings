@@ -536,6 +536,7 @@ filter(mipmap) -> ?GL_LINEAR_MIPMAP_LINEAR;
 filter(linear) -> ?GL_LINEAR;
 filter(nearest) -> ?GL_NEAREST.
 
+wrap(mirror) -> ?GL_MIRRORED_REPEAT;
 wrap(repeat) -> ?GL_REPEAT;
 wrap(clamp) -> ?GL_CLAMP_TO_EDGE.
 
