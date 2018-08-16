@@ -1307,9 +1307,9 @@ build(Ask, {custom_gl, CW, CH, Fun}, Parent, Sizer, In) ->
 build(Ask, {custom_gl, CW, CH, Fun, Flags}, Parent, Sizer, In) ->
     Context = wxGLCanvas:getContext(?GET(gl_canvas)),
     Create = fun() ->
-		     Ps = [{size, {CW,CH}},wings_gl:attributes(),
-                           {style, ?wxFULL_REPAINT_ON_RESIZE}],
+		     Ps = [wings_gl:attributes(),{style, ?wxFULL_REPAINT_ON_RESIZE}],
 		     Canvas = wxGLCanvas:new(Parent, Context, Ps),
+                     wxGLCanvas:setMinSize(Canvas, {CW,CH}),
 		     add_sizer(custom, Sizer, Canvas, Flags),
 		     Canvas
 	     end,

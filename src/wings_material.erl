@@ -631,7 +631,7 @@ needs_tangents(Mat) ->
     Maps = prop_get(maps, Mat, []),
     none =/= get_normal_map(Maps).
 
--define(PREVIEW_SIZE, 100).
+-define(PREVIEW_SIZE, 150).
 
 edit(Name, Assign, #st{mat=Mtab}=St) ->
     Mat = gb_trees:get(Name, Mtab),
@@ -660,22 +660,18 @@ edit_dialog(Name, Assign, St=#st{mat=Mtab0}, Mat0) ->
     OptDef = [RHook, {proportion,1}],
     TexOpt = [{range,{0.0,1.0}}, {digits, 6}|OptDef],
 
-    Qs1 = {vframe,
-	   [
-	    {hframe,
-	     [{custom_gl,?PREVIEW_SIZE,?PREVIEW_SIZE+5,Preview, [{key, preview}]},
-	      {label_column,
-	       [{?__(1,"Base Color"),{slider,{color,Diff0, [{key,diffuse}|OptDef]}}},
-		{?__(7,"Metallic"),  {slider,{text, Met0,  [{key,metallic}|TexOpt]}}},
-		{?__(8,"Roughness"), {slider,{text, Roug0, [{key,roughness}|TexOpt]}}},
-		{?__(4,"Emission"),  {slider,{color,Emiss0,[{key,emission}|OptDef]}}}
-	       ], [{proportion,1}]}]},
-	    {label_column,
-	     [{?__(6,"Opacity"), {slider,{text,Opacity0, [{key,opacity}|TexOpt]}}},
+    Qs1 = {hframe,
+           [{custom_gl,?PREVIEW_SIZE,?PREVIEW_SIZE,Preview,
+             [{key, preview}, {proportion, 1}, {flag, ?wxEXPAND bor ?wxALL}]},
+            {label_column,
+             [{?__(1,"Base Color"),{slider,{color,Diff0, [{key,diffuse}|OptDef]}}},
+              {?__(7,"Metallic"),  {slider,{text, Met0,  [{key,metallic}|TexOpt]}}},
+              {?__(8,"Roughness"), {slider,{text, Roug0, [{key,roughness}|TexOpt]}}},
+              {?__(4,"Emission"),  {slider,{color,Emiss0,[{key,emission}|OptDef]}}},
+              separator,
+              {?__(6,"Opacity"), {slider,{text,Opacity0, [{key,opacity}|TexOpt]}}},
               {"Vertex Colors", VtxColMenu}
-	     ]}
-           ]
-	  },
+             ], [{proportion,2}]}], [{proportion, 1}]},
     Qs2 = wings_plugin:dialog({material_editor_setup,Name,Mat0}, [{"Wings 3D", Qs1}]),
     Qs = {vframe_dialog,
 	  [{oframe, Qs2, 1, [{style, buttons}]}],
@@ -726,8 +722,9 @@ ask_prop_put(Key, {R,G,B}, Opacity) ->
     {Key,{R,G,B,Opacity}}.
 
 mat_preview(Canvas, Common, Maps) ->
+    {W,H} = wxWindow:getSize(Canvas),
     gl:pushAttrib(?GL_ALL_ATTRIB_BITS),
-    gl:viewport(0, 0, ?PREVIEW_SIZE, ?PREVIEW_SIZE),
+    gl:viewport(0, 0, W, H),
     {BR,BG,BB, _} = wxWindow:getBackgroundColour(wxWindow:getParent(Canvas)),
     %% wxSystemSettings:getColour(?wxSYS_COLOUR_BACKGROUND),
     BGC = fun(Col) -> (Col-15) / 255 end,
@@ -735,12 +732,11 @@ mat_preview(Canvas, Common, Maps) ->
     gl:clear(?GL_COLOR_BUFFER_BIT bor ?GL_DEPTH_BUFFER_BIT),
     gl:matrixMode(?GL_PROJECTION),
     gl:loadIdentity(),
-    %glu:perspective(60.0, 1.0, 0.01, 256.0),
-    MatP = e3d_transform:perspective(60.0, 0.01, 256.0),
+    MatP = e3d_transform:perspective(45.0, W/H, 0.01, 256.0),
     gl:multMatrixd(e3d_transform:matrix(MatP)),
     gl:matrixMode(?GL_MODELVIEW),
     gl:loadIdentity(),
-    Eye = {0.0,0.0,2.0}, Up = {0.0,1.0,0.0},
+    Eye = {0.0,0.0,3.0}, Up = {0.0,1.0,0.0},
     MatMV = e3d_transform:lookat(Eye, {0.0,0.0,0.0}, Up),
     gl:multMatrixd(e3d_transform:matrix(MatMV)),
     gl:shadeModel(?GL_SMOOTH),
