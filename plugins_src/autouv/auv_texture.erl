@@ -903,8 +903,8 @@ pass({auv_faces,[_]},_) ->
 	    R = fun(#fs{vs=Vs}) ->
 			wings_gl:drawElements(?GL_TRIANGLES,length(Vs),?GL_UNSIGNED_INT,Vs)
 		end,
-	    All = fun() -> foreach(fun(#chart{fs=Fs}) -> foreach(R, Fs) end, Charts) end,
-            EnableVbo(All)
+	    All = fun(_) -> foreach(fun(#chart{fs=Fs}) -> foreach(R, Fs) end, Charts) end,
+            EnableVbo(All, #{})
     end;
 pass({auv_faces, _},Sh) ->
     pass({auv_faces,?OPT_FACES},Sh);
