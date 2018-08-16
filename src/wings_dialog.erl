@@ -342,14 +342,17 @@ set_value_impl(#in{wx=Ctrl, type=text}, Val, _) ->
     wxTextCtrl:changeValue(Ctrl, to_str(Val));
 set_value_impl(#in{wx=Ctrl, type=slider, data={_, ToSlider}}, Val, _) ->
     wxSlider:setValue(Ctrl, ToSlider(Val));
-set_value_impl(#in{wx=Ctrl, type=col_slider}, Val, _) ->
-    ww_color_slider:setColor(Ctrl, Val);
-set_value_impl(#in{wx=Ctrl, type=color, wx_ext=Ext}, Val, _) ->
+set_value_impl(#in{wx=Ctrl, type=col_slider}=In, Val, Store) ->
+    ww_color_slider:setColor(Ctrl, Val),
+    true = ets:insert(Store, In#in{data=Val});
+set_value_impl(#in{wx=Ctrl, type=color, wx_ext=Ext}=In, Val, Store) ->
     case Ext of
-	[Slider] -> ww_color_slider:setColor(Slider, Val);
+	[Slider] ->
+            ww_color_slider:setColor(Slider, Val);
 	_ -> ignore
     end,
-    ww_color_ctrl:setColor(Ctrl, Val);
+    ww_color_ctrl:setColor(Ctrl, Val),
+    true = ets:insert(Store, In#in{data=Val});
 set_value_impl(In=#in{type=button}, Val, Store) ->
     true = ets:insert(Store, In#in{data=Val});
 set_value_impl(In=#in{type=value}, Val, Store) ->
@@ -557,12 +560,12 @@ get_curr_value(#in{type=dirpicker, wx=Ctrl}) ->
     wxDirPickerCtrl:getPath(Ctrl);
 get_curr_value(#in{type=fontpicker, wx=Ctrl}) ->
     wxFontPickerCtrl:getSelectedFont(Ctrl);
-get_curr_value(#in{type=color, wx=Ctrl}) ->
-    ww_color_ctrl:getColor(Ctrl);
+get_curr_value(#in{type=color, data=Data}) ->
+    Data;
 get_curr_value(#in{type=slider, wx=Ctrl, data={Convert,_}}) ->
     Convert(wxSlider:getValue(Ctrl));
-get_curr_value(#in{type=col_slider, wx=Ctrl}) ->
-    ww_color_slider:getColor(Ctrl);
+get_curr_value(#in{type=col_slider, data=Val}) ->
+    Val;
 get_curr_value(#in{type=choice, wx=Ctrl}) ->
     wxChoice:getClientData(Ctrl,wxChoice:getSelection(Ctrl));
 get_curr_value(#in{type=text, def=Def, wx=Ctrl, validator=Validate}) ->
@@ -659,6 +662,7 @@ setup_hook(#in{key=Key, wx=Ctrl, type=button, hook=UserHook}, Fields) ->
 
 setup_hook(#in{key=Key, wx=Ctrl, type=color, wx_ext=Ext, hook=UserHook}, Fields) ->
     CB = fun({col_changed, Col}) ->
+                 set_value(Key, Col, Fields),
 		 UserHook(Key, Col, Fields)
 	 end,
     ww_color_ctrl:connect(Ctrl, col_changed, [{callback, CB}]),
@@ -670,6 +674,7 @@ setup_hook(#in{key=Key, wx=Ctrl, type=color, wx_ext=Ext, hook=UserHook}, Fields)
 setup_hook(#in{key=Key, wx=Ctrl, type=col_slider, hook=UserHook}, Fields) ->
     ww_color_slider:connect(Ctrl, col_changed,
 			    [{callback, fun({col_changed, Col}) ->
+                                                set_value(Key, Col, Fields),
 						UserHook(Key, Col, Fields)
 					end}]),
     ok;
@@ -727,15 +732,12 @@ setup_hook(#in{wx=Canvas, type=custom_gl, hook=CustomRedraw}, Fields) ->
 	     end,
     Redraw = fun(#wx{}, _) ->
 		     case os:type() of
-			 {win32, _} ->
-			     DC = wxPaintDC:new(Canvas),
-			     wxPaintDC:destroy(DC);
-			 _ -> ok
-		     end,
-		     spawn(fun() ->
-				   wx:set_env(Env),
-				   wx:batch(Custom)
-			   end),
+                         {win32, _} -> DC=wxPaintDC:new(Canvas),
+                                       wxPaintDC:destroy(DC);
+                         _ -> false
+                     end,
+                     wx:set_env(Env),
+                     wx:batch(Custom),
 		     ok
 	     end,
     wxWindow:connect(Canvas, paint, [{callback, Redraw}]),
@@ -1065,7 +1067,7 @@ build(Ask, {slider, {color, Def, Flags}}, Parent, Sizer, In) ->
 		     end,
     [#in{key=proplists:get_value(key,Flags), def=Def,
 	 hook=proplists:get_value(hook, Flags),
-	 type=color, wx=Ctrl, wx_ext=CtrlExt}|In];
+	 type=color, wx=Ctrl, wx_ext=CtrlExt, data=Def}|In];
 
 
 build(Ask, {slider, Flags}, Parent, Sizer, In) ->
@@ -1087,7 +1089,7 @@ build(Ask, {slider, Flags}, Parent, Sizer, In) ->
 	Color ->
 	    true = lists:member(Color, [rgb, red, green, blue, hue, sat, val]), %% Assert
 	    Type = col_slider,
-	    Data = undefined,
+            Data = Def,
 	    Create = fun() ->
 			     Ctrl = ww_color_slider:new(Parent, ?wxID_ANY, Def, [{color, Color}]),
 			     tooltip(Ctrl, Flags),
@@ -1096,8 +1098,8 @@ build(Ask, {slider, Flags}, Parent, Sizer, In) ->
 		     end
     end,
     [#in{key=proplists:get_value(key,Flags), def=Def, data=Data,
-	 hook=proplists:get_value(hook, Flags),
-	 type=Type, wx=create(Ask,Create)}|In];
+         hook=proplists:get_value(hook, Flags),
+         type=Type, wx=create(Ask,Create)}|In];
 
 build(Ask, {color, Def, Flags}, Parent, Sizer, In) ->
     Create = fun() ->
@@ -1112,7 +1114,7 @@ build(Ask, {color, Def, Flags}, Parent, Sizer, In) ->
 		     add_sizer(button, Sizer, Ctrl, Flags),
 		     Ctrl
 	     end,
-    [#in{key=proplists:get_value(key,Flags), def=Def,
+    [#in{key=proplists:get_value(key,Flags), def=Def, data=Def,
 	 hook=proplists:get_value(hook, Flags),
 	 type=color, wx=create(Ask,Create)}|In];
 
@@ -1305,7 +1307,8 @@ build(Ask, {custom_gl, CW, CH, Fun}, Parent, Sizer, In) ->
 build(Ask, {custom_gl, CW, CH, Fun, Flags}, Parent, Sizer, In) ->
     Context = wxGLCanvas:getContext(?GET(gl_canvas)),
     Create = fun() ->
-		     Ps = [{size, {CW,CH}},wings_gl:attributes()],
+		     Ps = [{size, {CW,CH}},wings_gl:attributes(),
+                           {style, ?wxFULL_REPAINT_ON_RESIZE}],
 		     Canvas = wxGLCanvas:new(Parent, Context, Ps),
 		     add_sizer(custom, Sizer, Canvas, Flags),
 		     Canvas
