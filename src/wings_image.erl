@@ -144,7 +144,7 @@ req(Req) ->
     req(Req, true).
 
 req(Req, Notify) ->
-    Reply = gen_server:call(?MODULE, Req),
+    Reply = gen_server:call(?MODULE, Req, infinity),
     Running = get(wings_not_running) == undefined,
     case Notify andalso Running of
         false -> ok;
