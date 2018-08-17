@@ -199,16 +199,15 @@ bytes_pp(#e3d_image{bytes_pp = Bpp}) ->
 
 %% Func: height2normal(Image, Scale, GenMipMap)
 %% Args: Image = #e3d_image, Scale = number, GenMipMap == Bool
-%% Rets: {#e3d_image,[{MM_Lev,W,H,Bin}]}  | {error, Reason}
+%% Rets: #e3d_image{}  | {error, Reason}
 %% Desc: Filter and build a normalmap from a heightmap.
 %%       assumes the heightmap is greyscale.
 height2normal(Image, Options, GenMipMap) ->
     NM  = height2normal(Image, Options),
-    MMs = case GenMipMap of
-	      true -> buildNormalMipmaps(NM);
-	      false -> []
-	  end,
-    {NM, MMs}.
+    case GenMipMap of
+        true  -> NM#e3d_image{extra=[{mipmaps,buildNormalMipmaps(NM)}]};
+        false -> NM
+    end.
 
 %% Func: height2normal(Image, Params)
 %% Args: Image = #e3d_image, Params = #{scale::float(), inv_x::boolean(), inv_y::boolean()}
@@ -256,7 +255,7 @@ bumpmapRGB(Cl, Cr, Ru, Rd, {MulX,MulY}) ->
 inv_multiply(true) -> -1.0;
 inv_multiply(_) -> 1.0.
 
-%  buildNormalMipmaps(Image) -> [{Level,W,H,Bin}]
+%  buildNormalMipmaps(Image) -> [{Bin,W,H,Image}]
 %  Generates all mipmap levels from an Normalmap
 %% Perfect for
 %% gl:texImage2D(?GL_TEXTURE_2D, Level, ?GL_RGB8, HW, HH, 0,
@@ -267,15 +266,15 @@ buildNormalMipmaps(#e3d_image{width=W,height=H,image=Bin,
     buildNormalMipmaps(1, W, H, Bin);
 buildNormalMipmaps(Image) ->
     buildNormalMipmaps(convert(Image,r8g8b8,1)).
-buildNormalMipmaps(Level, W, H, Bin) -> 
-    %% Half width and height but not beyond one.     
+buildNormalMipmaps(Level, W, H, Bin) ->
+    %% Half width and height but not beyond one.
     HW = case W div 2 of Tw when Tw == 0 -> 1; Tw -> Tw end,
-    HH = case H div 2 of Th when Th == 0 -> 1; Th -> Th end,    
+    HH = case H div 2 of Th when Th == 0 -> 1; Th -> Th end,
     Down = downSampleNormalMap(W,H,Bin),
     if (HW>1) or (HH>1) ->
-	    [{Level,HW,HH,Down} | buildNormalMipmaps(Level+1, HW,HH,Down)];
+	    [{Down,HW,HH,Level} | buildNormalMipmaps(Level+1, HW,HH,Down)];
        true ->
-	    [{Level,HW,HH,Down}]
+	    [{Down,HW,HH,Level}]
     end.
 
 -define(N2RGB(XX), round(128.0+127.0*(XX))).
