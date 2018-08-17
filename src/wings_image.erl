@@ -46,7 +46,7 @@ image_formats() ->
 image_read(Ps) ->
     CurrDir  = wings_pref:get_value(current_directory),
     OptDir   = proplists:get_value(opt_dir,  Ps, undefined),
-    AbsFile  = proplists:get_value(filename, Ps),
+    AbsFile  = fix_filename(proplists:get_value(filename, Ps)),
     FileName = filename:basename(AbsFile),
     Dirs     = filename:split(filename:dirname(AbsFile)),
     case wings_plugin:call_ui({image,read,Ps}) of
@@ -801,6 +801,17 @@ wxImage_to_e3d_1(Wx) ->
                     E3d0
             end
     end.
+
+fix_filename([_,Char|Path]=Dir)
+  when Char =:= $:; Char =:= $\\ ->
+    case os:type() of
+        {win32, _} ->
+            Dir;
+        _ -> %% Win32 Path on non window system
+            lists:map(fun($\\) -> $/; (C) -> C end, Path)
+    end;
+fix_filename(Dir) ->
+    Dir.
 
 try_relative_paths(Dirs,FileName,undefined,CurrDir,Ps) ->
     try_relative_paths(CurrDir,Dirs,FileName,Ps);

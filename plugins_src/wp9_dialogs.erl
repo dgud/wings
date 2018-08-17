@@ -85,7 +85,10 @@ read_image(Prop) ->
                     e3d_image:fix_outtype(Name, E3d, Prop);
                 false ->
                     wxLogNull:destroy(BlockWxMsgs),
-                    {error, ignore}
+                    case filelib:is_regular(Name) of
+                        true -> {error, unsupported_format};
+                        false -> {error, enoent}
+                    end
             end
     end.
 
@@ -100,7 +103,7 @@ write_image(Prop) ->
         _Ext ->
             case wxImage:saveFile(Wx = wings_image:e3d_to_wxImage(Image), Name) of
                 true -> wxImage:destroy(Wx), ok;
-                false -> wxImage:destroy(Wx), {error, ignore}
+                false -> wxImage:destroy(Wx), {error, unknown}
             end
     end.
 
