@@ -29,7 +29,7 @@
 	 get_lmem_sz/2
 	]).
 
--record(cli, {context, kernels=[], q, cl, device}).
+-record(cli, {context, kernels=#{}, q, cl, device}).
 -record(kernel, {name, id, wg}).
 
 is_available() ->
@@ -93,7 +93,7 @@ compile_1(Files, Defs, CLI = #cli{cl=CL, device=Device, kernels=Kernels0}) ->
     {ok, KernelsIds} = cl:create_kernels_in_program(Program),
     Kernels = [kernel_info(K,Device, MaxWGS) || K <- KernelsIds],
     cl:release_program(Program),
-    CLI#cli{kernels=Kernels++Kernels0}.
+    CLI#cli{kernels=maps:from_list(Kernels++maps:to_list(Kernels0))}.
 
 build_source(E, Sources, Defines) ->
     Source = [Bin || {_, Bin} <- Sources],
@@ -147,15 +147,16 @@ display_error(Line, Program, Sources, _Defines, DeviceList) ->
 kernel_info(K,Device,MaxWGS) ->
     {ok, WG} = cl:get_kernel_workgroup_info(K, Device, work_group_size),
     {ok, CWG} = cl:get_kernel_workgroup_info(K, Device, compile_work_group_size),
-    {ok, Name} = cl:get_kernel_info(K, function_name),
+    {ok, Name0} = cl:get_kernel_info(K, function_name),
+    Name = list_to_atom(Name0),
     %% io:format("~s WG sizes ~p ~p~n", [Name, WG, WG1]),
     case CWG of
 	[0,0,0] ->
-	    #kernel{name=list_to_atom(Name), wg=min(WG,MaxWGS), id=K};
+	    {Name, #kernel{name=Name, wg=min(WG,MaxWGS), id=K}};
 	[Max,1,1] ->
-	    #kernel{name=list_to_atom(Name), wg=min(Max,MaxWGS), id=K};
+	    {Name, #kernel{name=Name, wg=min(Max,MaxWGS), id=K}};
 	MaxD ->
-	    #kernel{name=list_to_atom(Name), wg=MaxD, id=K}
+	    {Name, #kernel{name=Name, wg=MaxD, id=K}}
     end.
 
 get_context(#cli{context=Context}) ->
@@ -175,41 +176,41 @@ get_vendor(#cli{device=ClDev}) ->
     Vendor.
 
 set_args(Name, Args, #cli{kernels=Ks}) ->
-    #kernel{id=K} = lists:keyfind(Name, 2, Ks),
+    #kernel{id=K} = maps:get(Name, Ks),
     set_args_1(Name, K, Args).
 
 get_lmem_sz(Name, #cli{kernels=Ks, device=Device}) ->
-    #kernel{id=Kernel} = lists:keyfind(Name, 2, Ks),
+    #kernel{id=Kernel} = maps:get(Name, Ks),
     {ok,Mem} = cl:get_kernel_workgroup_info(Kernel, Device, local_mem_size),
     Mem.
 
 get_wg_sz(Name, #cli{kernels=Ks}) ->
-    #kernel{wg=Wg} = lists:keyfind(Name, 2, Ks),
+    #kernel{wg=Wg} = maps:get(Name, Ks),
     Wg.
 
 set_wg_sz(Name, Wg, CL=#cli{kernels=Ks0}) ->
-    K  = lists:keyfind(Name, 2, Ks0),
-    Ks = lists:keyreplace(Name, 2, Ks0, K#kernel{wg=Wg}),
+    K  = maps:get(Name, Ks0),
+    Ks = Ks0#{Name:=K#kernel{wg=Wg}},
     CL#cli{kernels=Ks}.
 
 %% cast(Kernel, Args, NoInvocations, [Wait], cli()) -> Wait
 tcast(Name, No, Wait, #cli{q=Q, kernels=Ks}) ->
-    Kernel = lists:keyfind(Name, 2, Ks),
+    Kernel = maps:get(Name, Ks),
     Event = enqueue_kernel(No, twait(Wait), Q, Kernel),
     time_wait(Name, Q, Event),
     Event.
 cast(Name, No, Wait, #cli{q=Q, kernels=Ks}) ->
-    Kernel = lists:keyfind(Name, 2, Ks),
+    Kernel = maps:get(Name, Ks),
     enqueue_kernel(No, Wait, Q, Kernel).
 
 tcast(Name, Args, No, Wait, #cli{q=Q, kernels=Ks}) ->
-    Kernel = #kernel{id=K} = lists:keyfind(Name, 2, Ks),
+    Kernel = #kernel{id=K} = maps:get(Name, Ks),
     set_args_1(Name, K, Args),
     Event = enqueue_kernel(No, twait(Wait), Q, Kernel),
     time_wait(Name, Q, Event),
     Event.
 cast(Name, Args, No, Wait, #cli{q=Q, kernels=Ks}) ->
-    Kernel = #kernel{id=K} = lists:keyfind(Name, 2, Ks),
+    Kernel = #kernel{id=K} = maps:get(Name, Ks),
     set_args_1(Name, K, Args),
     enqueue_kernel(No, Wait, Q, Kernel).
 

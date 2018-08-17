@@ -286,7 +286,7 @@ profile_start(fprof) ->
     ok;
 profile_start(eprof) ->
     eprof:start(),
-    profiling = eprof:start_profiling([self()]),
+    profiling = eprof:start_profiling([whereis(wings), self(), whereis(wings_image)]),
     ok.
 
 profile_stop(fprof) ->

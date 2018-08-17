@@ -1115,7 +1115,7 @@ cl_multipass(_Kernel, _Args, Buff0, Buff1, _N, _Tot, _No, Wait, _CL) ->
     {Buff0, Buff1, Wait}.
 
 cl_setup(Recompile) ->
-    case get({?MODULE, cl}) of
+    case ?GET(opencl) of
 	undefined ->
             case wings_cl:is_available() of
                 true ->
@@ -1144,9 +1144,10 @@ cl_setup_1() ->
     case wings_cl:have_image_support(CL0) of
         true  ->
             CL = wings_cl:compile("img_lib.cl", CL0),
-            put({?MODULE, cl}, CL),
+            ?SET(opencl, CL),
             CL;
         false ->
+            ?SET(opencl, CL0),
             {error, no_openCL_image}
     end.
 
