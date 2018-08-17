@@ -446,7 +446,7 @@ update_fun(infinite, SelColor, #we{light=#light{aim=Aim}}=We) ->
     LightCol = get_light_col(We),
     Vec = e3d_vec:norm_sub(Aim, LightPos),
     Data = [e3d_vec:mul(Vec, 0.2),e3d_vec:mul(Vec, 0.6)],
-    {Len, Tris,_} = wings_shapes:tri_sphere(#{subd=>3, scale=>0.08}),
+    {Len, Tris,_,_,_} = wings_shapes:tri_sphere(#{subd=>3, scale=>0.08}),
     D = fun(RS) ->
 		gl:lineWidth(1.5),
 		gl:pushMatrix(),
@@ -471,7 +471,7 @@ update_fun(point, SelColor, We) ->
 	     {0.0,0.71,0.71}],
     N = length(Data0) * 4,
     Data = lines(Data0),
-    {Len, Tris,_} = wings_shapes:tri_sphere(#{subd=>3, scale=>0.08}),
+    {Len, Tris,_,_,_} = wings_shapes:tri_sphere(#{subd=>3, scale=>0.08}),
     D = fun(RS) ->
 		gl:lineWidth(1.0),
 		wings_shaders:set_uloc(light_color, LightCol, RS),
@@ -498,7 +498,7 @@ update_fun(spot, SelColor, #we{light=#light{aim=Aim,spot_angle=Angle}}=We) ->
     H = math:cos(Rad),
     Translate = e3d_vec:mul(SpotDir, H),
     Rot = e3d_mat:rotate_s_to_t({0.0,0.0,1.0}, e3d_vec:neg(SpotDir)),
-    {Len, Tris,_} = wings_shapes:tri_sphere(#{subd=>3, scale=>0.08}),
+    {Len, Tris,_,_,_} = wings_shapes:tri_sphere(#{subd=>3, scale=>0.08}),
     D = fun(RS) ->
                 gl:lineWidth(1.0),
 		wings_shaders:set_uloc(light_color, LightCol, RS),

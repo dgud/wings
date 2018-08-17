@@ -639,21 +639,30 @@ needs_tangents(Mat) ->
 
 edit(Name, Assign, #st{mat=Mtab}=St) ->
     Mat = gb_trees:get(Name, Mtab),
-    {dialog,Qs,Fun} = edit_dialog(Name, Assign, St, Mat),
-    wings_dialog:dialog(?__(1,"Material Properties: ")++atom_to_list(Name),
-			Qs, Fun).
+    DrawSphere = setup_sphere(),
+    {dialog,Qs,Fun} = edit_dialog(Name, Assign, St, Mat, DrawSphere),
+    Res = wings_dialog:dialog(?__(1,"Material Properties: ")++atom_to_list(Name),
+                              Qs, Fun),
+    wings_vbo:delete(DrawSphere),
+    Res.
 
-
-edit_dialog(Name, Assign, St=#st{mat=Mtab0}, Mat0) ->
+edit_dialog(Name, Assign, St=#st{mat=Mtab0}, Mat0, DrawSphere) ->
     OpenGL0 = prop_get(opengl, Mat0),
     VertexColors0 = prop_get(vertex_colors, OpenGL0, ignore),
     {Diff0,Opacity0} = ask_prop_get(diffuse, OpenGL0),
     Met0 = prop_get(metallic, OpenGL0),
     Roug0 = prop_get(roughness, OpenGL0),
     {Emiss0,_} = ask_prop_get(emission, OpenGL0),
+
+    Maps = prop_get(maps,Mat0),
+    MapList = [{{tex,diffuse},   get_texture_map(diffuse, Maps)},
+               {{tex,normal},    get_normal_map(Maps)},  %% Have no tangents
+               {{tex,pbr_orm},   get_pbr_map(Maps)},
+               {{tex,emission},  get_texture_map(emission, Maps)}],
+
     Preview = fun(GLCanvas, Fields) ->
                       wings_light:init_opengl(),
-                      mat_preview(GLCanvas,Fields,prop_get(maps,Mat0))
+                      mat_preview(GLCanvas,Fields,DrawSphere,MapList)
 	      end,
     Refresh = fun(_Key, _Value, Fields) ->
 		      GLCanvas = wings_dialog:get_widget(preview, Fields),
@@ -725,7 +734,21 @@ ask_prop_get(Key, Props) ->
 ask_prop_put(Key, {R,G,B}, Opacity) ->
     {Key,{R,G,B,Opacity}}.
 
-mat_preview(Canvas, Common, Maps) ->
+setup_sphere() ->
+    {Len, Tris, Normals, UVs, Tgs} =
+        wings_shapes:tri_sphere(#{subd=>4, ccw=>false, normals=>true, tgs=>true,
+                                  uvs=>true, scale=>0.45}),
+    Data = zip(Tris, Normals, UVs, Tgs),
+    Layout = [vertex, normal, uv, tangent],
+    D = fun(#{preview := PreviewMat} = RS0) ->
+                RS1 = wings_shaders:use_prog(1, RS0),
+                RS2 = lists:foldl(fun apply_material_3/2, RS1, PreviewMat),
+                gl:drawArrays(?GL_TRIANGLES, 0, Len*3),
+                wings_shaders:use_prog(0, RS2)
+        end,
+    wings_vbo:new(D, Data, Layout).
+
+mat_preview(Canvas, Common, Vbo, Maps) ->
     {W,H} = wxWindow:getSize(Canvas),
     gl:pushAttrib(?GL_ALL_ATTRIB_BITS),
     gl:viewport(0, 0, W, H),
@@ -751,35 +774,25 @@ mat_preview(Canvas, Common, Maps) ->
     Emis  = preview_mat(emission, Common, Alpha),
     Metal = {metallic, wings_dialog:get_value(metallic, Common)},
     Rough = {roughness, wings_dialog:get_value(roughness, Common)},
-    Material = [Diff, Emis, Metal, Rough,
-                {{tex,diffuse},   get_texture_map(diffuse, Maps)},
-                {{tex,normal},    none}, %% get_normal_map(Maps)},  %% Have no tangents
-                {{tex,pbr_orm},   get_pbr_map(Maps)},
-                {{tex,emission},  get_texture_map(emission, Maps)}],
-
-    Obj = glu:newQuadric(),
+    Material = [Diff, Emis, Metal, Rough | Maps],
     gl:enable(?GL_BLEND),
     gl:enable(?GL_DEPTH_TEST),
     gl:enable(?GL_CULL_FACE),
     gl:blendFunc(?GL_SRC_ALPHA, ?GL_ONE_MINUS_SRC_ALPHA),
     gl:color4ub(255, 255, 255, 255),
-    glu:quadricDrawStyle(Obj, ?GLU_FILL),
-    glu:quadricNormals(Obj, ?GLU_SMOOTH),
-    glu:quadricTexture(Obj, ?GLU_TRUE),
-
-    RS = #{ws_eyepoint=>Eye, view_from_world=> MatMV},
-    RS0 = wings_shaders:use_prog(1, RS),
-    RS1 = lists:foldl(fun apply_material_3/2, RS0, Material),
-    glu:sphere(Obj, 0.45, 50, 50),
-    glu:deleteQuadric(Obj),
-    wings_shaders:use_prog(0, RS1),
+    RS = #{ws_eyepoint=>Eye, view_from_world=> MatMV, preview=>Material},
+    wings_dl:call(Vbo, RS),
     gl:disable(?GL_BLEND),
     gl:shadeModel(?GL_FLAT),
-    gl:matrixMode(?GL_PROJECTION),
-    gl:popMatrix(),
-    gl:matrixMode(?GL_MODELVIEW),
-    gl:popMatrix(),
-    gl:popAttrib().
+    gl:popAttrib(),
+    wings_develop:gl_error_check("Rendering mat viewer").
+
+zip(Vs, Ns, UVs, Tgs) ->
+    zip_0(Vs, Ns, UVs, Tgs, []).
+
+zip_0([V|Vs], [N|Ns], [UV|UVs], [T|Ts], Acc) ->
+    zip_0(Vs, Ns, UVs,Ts, [V,N,UV,T|Acc]);
+zip_0([], [], [], [],Acc) -> Acc.
 
 preview_mat(Key, Colors, Alpha) ->
     {R,G,B} = wings_dialog:get_value(Key, Colors),
