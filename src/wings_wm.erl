@@ -442,12 +442,13 @@ grab_focus() ->
 grab_focus(Name) ->
     case is_window(Name) of
 	true  ->
-	    %%{_, [_,Where|_]} = erlang:process_info(self(), current_stacktrace),
-	    %%io:format("Grab focus: ~p~n   ~p~n",[Name, Where]),
-	    case get(wm_focus_grab) of
-		undefined -> put(wm_focus_grab, [Name]);
-		Stack -> put(wm_focus_grab, [Name|Stack])
-	    end;
+	    _Old = case get(wm_focus_grab) of
+                       undefined -> put(wm_focus_grab, [Name]), [];
+                       Stack -> put(wm_focus_grab, [Name|Stack])
+                   end,
+	    {_, [_,Where|_]} = erlang:process_info(self(), current_stacktrace),
+	    io:format("~p Grab focus: ~p~n   ~p~n",[_Old, Name, Where]),
+            ok;
 	false -> ok
     end.
 
@@ -455,10 +456,10 @@ release_focus() ->
     case get(wm_focus_grab) of
 	undefined -> ok;
 	[_Name] ->
-            %%io:format("Release focus ~p~n",[_Name]),
+            io:format("[] Release focus ~p~n",[_Name]),
             erase(wm_focus_grab);
 	[_Name|Stack] ->
-            %%io:format("Release focus ~p~n",[_Name]),
+            io:format("~p Release focus ~p~n",[Stack, _Name]),
             put(wm_focus_grab, Stack)
     end.
 
@@ -734,12 +735,14 @@ dispatch_event(#wx{obj=Obj, event=#wxFocus{type=kill_focus, win=New}}) ->
                 true -> %% For some reason wxWidgets sends focus lost
                     ok; %% to the already focused window, just ignore
                 false ->
-                    io:format("Grabbed focus lost: ~p ~p~n", [Obj, Win]),
+                    io:format("Grabbed focus lost: ~p(~p) => ~p(~p)~n",
+                              [Obj, Win, New, wx2win(New)]),
                     do_dispatch(Win, lost_focus),
                     update_focus(none)
             end;
         {{grabbed, OtherWin}, Win} ->
-            io:format("Grabbed focus lost old?: ~p ~p~n", [OtherWin, Win]),
+            io:format("Grabbed focus lost old?: ~p(~p) ~p(~p) => ~p(~p)~n",
+                      [OtherWin, wx2win(OtherWin), wxwindow(Win), Win, New, wx2win(New)]),
             ok;
         {_OldFocus, _CurrentFocus} ->
             ok

@@ -701,6 +701,7 @@ in_drag_adjust_magnet_radius(MouseMovement, #tweak{mag_rad=Falloff0}=T) ->
     end.
 
 end_magnet_adjust({OrigId,El}) ->
+    io:format("~p:~p Should release grab~n",[?MODULE, ?LINE]),
     wings_dl:map(fun(#dlo{src_we=#we{id=Id}}=D, _) ->
 			 if OrigId =:= Id -> show_cursor(El,D); true -> ok end,
 			 D#dlo{vs=none,sel=none,drag=none}
@@ -743,6 +744,7 @@ begin_drag_fun(#dlo{src_sel={Mode,Els},src_we=We}=D0, SelElem, #st{sel=Sel}=St, 
 begin_drag_fun(D, _, _, _) -> D.
 
 end_drag(#tweak{mode=Mode,id={_,{OrigId,El}},st=St0}) ->
+    io:format("~p:~p Should release grab~n",[?MODULE, ?LINE]),
     St = wings_dl:map(fun (#dlo{src_we=#we{id=Id}}=D, St1) ->
 			      if OrigId =:= Id -> show_cursor(El,D); true -> ok end,
 			      end_drag(Mode, D, St1)
