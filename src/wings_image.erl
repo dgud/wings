@@ -255,14 +255,14 @@ handle_call({txid,Id}, _From, S) ->
         TxId -> {reply, TxId, S}
     end;
 handle_call({bumpid,Id}, _From, S) ->
-    case get({Id,bump}) of
-        undefined -> {reply, create_bump(Id,undefined,S), S};
+    case get({Id,normal}) of
+        undefined -> {reply, create_normal(Id,undefined,S), S};
         TxId -> {reply, TxId, S}
     end;
 handle_call({is_normalmap,Id}, _From, S) ->
-    case {get({Id,bump}),get(Id)} of
+    case {get({Id,normal}),get(Id)} of
         {undefined,undefined} -> {reply, none, S};
-        {undefined, ImId} -> {reply, create_bump(Id,ImId,S), S};
+        {undefined, ImId} -> {reply, create_normal(Id,ImId,S), S};
         {TxId,_} -> {reply, TxId, S}
     end;
 handle_call({info,Id}, _From, #ist{images=Images}=S) ->
@@ -290,7 +290,7 @@ handle_call({filter_images, Bool}, _From, #ist{images=Images}=S) ->
 handle_call(next_id, _From, #ist{next=Id}=S) ->
     {reply,Id,S};
 handle_call({delete,Id}, _From, #ist{images=Images0}=S) ->
-    delete_bump(Id),
+    delete_normal(Id),
     wings_gl:deleteTextures([erase(Id)]),
     Images = gb_trees:delete(Id, Images0),
     {reply, ok, S#ist{images=Images}};
@@ -391,56 +391,31 @@ init_texture_2(#e3d_image{width=W,height=H,image=Bits,extra=Opts}=Image, TxId) -
     ?CHECK_ERROR(),
     TxId.
 
-create_bump(Id, BumpId, #ist{images=Images0}) ->
-    delete_bump(Id),  %% update case..
+create_normal(Id, NormalId, #ist{images=Images0}) ->
+    delete_normal(Id),  %% update case..
     case gb_trees:lookup(Id, Images0) of
 	{value, E3D0} ->
-	    E3D = image_rec(E3D0),
-	    gl:pushAttrib(?GL_TEXTURE_BIT),
-	    case get(Id) of
-		BumpId ->
-		    gl:bindTexture(?GL_TEXTURE_2D, BumpId),
-		    Image = case e3d_image:convert(maybe_scale(E3D),r8g8b8,1,lower_left) of
-				E3D -> E3D;
-				New = #e3d_image{width=W,height=H,image=Bits} ->
-				    gl:texImage2D(?GL_TEXTURE_2D,0,?GL_RGB,W,H,0,?GL_RGB,
-						  ?GL_UNSIGNED_BYTE,Bits),
-				    New
-			    end,
-		    MipMapFun = fun() -> e3d_image:buildNormalMipmaps(Image) end,
-		    MipMaps = worker_process(MipMapFun),
-		    TxId = BumpId;
-		_ ->
-		    %% Scale ?? 4 is used in the only example I've seen.
-		    Img = e3d_image:convert(maybe_scale(E3D), r8g8b8, 1, lower_left),
-		    #e3d_image{width=W,height=H,image=Bits,extra=Extra}
-			= e3d_image:height2normal(Img, #{scale=>4.0}, true),
-                    MipMaps = proplists:get_value(mipmaps, Extra),
-		    [TxId] = gl:genTextures(1),
-		    gl:bindTexture(?GL_TEXTURE_2D, TxId),
-		    gl:texImage2D(?GL_TEXTURE_2D,0,?GL_RGB,W,H,0,?GL_RGB,
-				  ?GL_UNSIGNED_BYTE,Bits)
-	    end,
-	    put({Id,bump}, TxId),
-	    update_mipmaps(TxId,MipMaps),
-	    gl:popAttrib(),
+            Image0 = e3d_image:convert(maybe_scale(image_rec(E3D0)),r8g8b8,1,lower_left),
+	    TxId = case get(Id) of
+                       NormalId ->
+                           MipMapFun = fun() -> e3d_image:buildNormalMipmaps(Image0) end,
+                           MipMaps = worker_process(MipMapFun),
+                           Image = Image0#e3d_image{extra=[{mipmaps,MipMaps}]},
+                           init_texture_2(Image, NormalId);
+                       _ ->
+                           %% Scale ?? 4 is used in the only example I've seen.
+                           Image = height2normal(Image0, #{scale=>4.0}, true),
+                           [NId] = gl:genTextures(1),
+                           init_texture_2(Image, NId)
+                   end,
+	    put({Id,normal}, TxId),
 	    TxId;
 	_ ->
 	    none
     end.
 
-update_mipmaps(TxId, MipMaps) ->
-    gl:enable(?GL_TEXTURE_2D),
-    gl:bindTexture(?GL_TEXTURE_2D, TxId),
-    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MAG_FILTER, ?GL_LINEAR),
-    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MIN_FILTER, ?GL_LINEAR_MIPMAP_LINEAR),
-    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_S, ?GL_REPEAT),
-    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_T, ?GL_REPEAT),
-    Load = fun({Bin,MW,MH, Level}) ->
-		   gl:texImage2D(?GL_TEXTURE_2D,Level,?GL_RGB,MW,MH,0,
-				 ?GL_RGB, ?GL_UNSIGNED_BYTE, Bin)
-	   end,
-    [Load(MM) || MM <- MipMaps].
+height2normal(Img, Opts, Mipmaps) ->
+    e3d_image:height2normal(Img, Opts, Mipmaps).
 
 maybe_scale(#e3d_image{width=W0,height=H0}=Image) ->
 %%  case wings_gl:is_ext({2,0}, 'GL_ARB_texture_non_power_of_two') of
@@ -544,7 +519,7 @@ wrap(clamp) -> ?GL_CLAMP_TO_EDGE.
 delete_older_1([{_,{hidden,_}}=Im|T], Limit) ->
     [Im|delete_older_1(T, Limit)];
 delete_older_1([{Id,_}|T], Limit) when Id < Limit ->
-    delete_bump(Id),
+    delete_normal(Id),
     wings_gl:deleteTextures([erase(Id)]),
     delete_older_1(T, Limit);
 delete_older_1(Images, _) -> Images.
@@ -554,14 +529,14 @@ delete_from_1([{_,{hidden,_}}=Im|T], Limit, Acc) ->
 delete_from_1([{Id,_}=Im|T], Limit, Acc) when Id < Limit ->
     delete_from_1(T, Limit, [Im|Acc]);
 delete_from_1([{Id,_}|T], Limit, Acc) ->
-    delete_bump(Id),
+    delete_normal(Id),
     wings_gl:deleteTextures([erase(Id)]),
     delete_from_1(T, Limit, Acc);
 delete_from_1([], _, Acc) -> reverse(Acc).
 
-delete_bump(Id) ->
-    TxId = get(Id), 
-    case erase({Id,bump}) of
+delete_normal(Id) ->
+    TxId = get(Id),
+    case erase({Id,normal}) of
 	undefined -> ok;
 	TxId -> ok;
 	Bid ->  wings_gl:deleteTextures([Bid])
@@ -586,11 +561,11 @@ do_update(Id, In = #e3d_image{width=W,height=H,type=Type,name=NewName},
 	_ ->
 	    init_texture_1(Im, TxId)
     end,
-    case get({Id,bump}) of
+    case get({Id,normal}) of
 	undefined ->
 	    S#ist{images=Images};
 	Bid ->
-	    create_bump(Id, Bid, S#ist{images=Images}),
+	    create_normal(Id, Bid, S#ist{images=Images}),
 	    S#ist{images=Images}
     end.
 
