@@ -157,6 +157,71 @@ __kernel void color_convert(__global float4 *inImg, __global float4 *outImg, con
   }
 }
 
+__kernel void height2normal(__read_only image2d_t inImg,
+                            const int w, const int h,
+                            const float s_x, const float s_y,
+                            __global float4 *outImg
+                            )
+{
+  const sampler_t sampler=CLK_NORMALIZED_COORDS_FALSE|CLK_ADDRESS_REPEAT;
+  int x = (int) get_global_id(0);
+  int y = (int) get_global_id(1);
+  if(x < w && y < h) {
+    float4 cx0 = read_imagef(inImg, sampler, (float2)((x+w-1)%w, y));
+    float4 cx1 = read_imagef(inImg, sampler, (float2)((x+1)%w, y));
+    float4 cy0 = read_imagef(inImg, sampler, (float2)(x, ((y+h-1)%h)));
+    float4 cy1 = read_imagef(inImg, sampler, (float2)(x, ((y+1)%h)));
+
+    float nx = (cx1.x - cx0.x)*-s_x;
+    float ny = (cy1.x - cy0.x)*-s_y;
+    float3 dir = normalize((float3) (nx, ny, 1.0));
+    outImg[x+y*w] = (float4) (dir, 1.0);
+  }
+}
+
+
+__kernel void mm_normalmap(__global float4 *inImg, const int w, const int h, __global float4 *outImg)
+{ // Make mipmap to normalmaps
+  int x = (int) get_global_id(0);
+  int y = (int) get_global_id(1);
+  int w2 = w*2;
+  if(x < w && y < h)
+  {
+    int x1 = x*2;
+    int x2 = x*2+1;
+    int y1 = y*2*w2;
+    int y2 = (y*2+1)*w2;
+    float3 v0 = inImg[y1+x1].xyz;
+    float3 v1 = inImg[y1+x2].xyz;
+    float3 v2 = inImg[y2+x1].xyz;
+    float3 v3 = inImg[y2+x2].xyz;
+    outImg[y*w+x] = (float4) (normalize(v0+v1+v2+v3), 0.0);
+  }
+}
+
+__kernel void rgba_to_normal(__read_only image2d_t inImg, const int w, const int h, __global float4 *outImg)
+{
+  const sampler_t sampler=CLK_NORMALIZED_COORDS_FALSE|CLK_ADDRESS_REPEAT;
+  int x = (int) get_global_id(0);
+  int y = (int) get_global_id(1);
+  if(x < w && y < h) {
+    float4 cx0 = read_imagef(inImg, sampler, (float2)(x, y));
+    outImg[y*w+x] = cx0*2.0f-1.0f;
+  }
+}
+
+__kernel void normal_to_rgba(__global float4 *inImg, const int w, const int h, __write_only image2d_t outImg)
+{
+  int x = (int) get_global_id(0);
+  int y = (int) get_global_id(1);
+  if(x < w && y < h) {
+    float4 n = inImg[y*w+x];
+    n = (n+1)/2;
+    n.w = 1.0;
+    write_imagef(outImg, (int2)(x, y), n);
+  }
+}
+
 // Converters ***********************
 
 float3 uv2vec(float2 uv)

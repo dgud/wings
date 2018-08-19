@@ -20,10 +20,10 @@
 	 setup/0, stop/1, compile/2, compile/3,
 	 %% Queries
 	 get_context/1, get_device/1, get_queue/1, get_vendor/1,
-	 have_image_support/1,
+	 have_image_support/1, is_kernel/2,
 
-	 buff/2, buff/3, image/2, image/3,
-         write/3, read/4, fill/4,
+	 buff/2, buff/3, write/3, read/4, fill/4,
+         image/2, image/3, read_img/6,
 	 cast/4, cast/5, tcast/4, tcast/5, set_args/3,
 	 get_wg_sz/2, set_wg_sz/3,
 	 get_lmem_sz/2
@@ -78,6 +78,11 @@ compile(File = [A|_], Defs, CLI) when is_integer(A) ->
 compile(Files, Defs, CLI) ->
     compile_1(Files, Defs, CLI).
 
+is_kernel(Kernel, #cli{kernels=Ks}) ->
+    maps:is_key(Kernel, Ks);
+is_kernel(_, _) ->
+    false.
+
 compile_1(Files, Defs, CLI = #cli{cl=CL, device=Device, kernels=Kernels0}) ->
     Dir = filename:join(code:lib_dir(wings),"shaders"),
     Bins = lists:map(fun(File) ->
@@ -93,7 +98,7 @@ compile_1(Files, Defs, CLI = #cli{cl=CL, device=Device, kernels=Kernels0}) ->
     {ok, KernelsIds} = cl:create_kernels_in_program(Program),
     Kernels = [kernel_info(K,Device, MaxWGS) || K <- KernelsIds],
     cl:release_program(Program),
-    CLI#cli{kernels=maps:from_list(Kernels++maps:to_list(Kernels0))}.
+    CLI#cli{kernels=maps:merge(Kernels0, maps:from_list(Kernels))}.
 
 build_source(E, Sources, Defines) ->
     Source = [Bin || {_, Bin} <- Sources],
@@ -142,7 +147,6 @@ display_error(Line, Program, Sources, _Defines, DeviceList) ->
     %% file:close(Fd1),
     %% io:format("Debug written to: ~s ~n", [filename:join(DbgOutDir, "cl_compilation_fail.cl")]),
     exit({error, build_program_failure}).
-
 
 kernel_info(K,Device,MaxWGS) ->
     {ok, WG} = cl:get_kernel_workgroup_info(K, Device, work_group_size),
@@ -233,12 +237,14 @@ buff(Bin, Type, #cli{context=Context})
     {ok, Buff} = cl:create_buffer(Context, Type, byte_size(Bin), Bin),
     Buff.
 
+image(#e3d_image{image=Img}=E3d, CL)
+  when Img =:= <<>>; Img =:= undefined ->
+    image(E3d, [], CL);
 image(#e3d_image{}=E3d, CL) ->
     image(E3d, [read_only, copy_host_ptr], CL).
-image(#e3d_image{width=W,height=H, type=r8g8b8a8, bytes_pp=4, image=Bin},
+image(#e3d_image{width=W,height=H, type=Type, bytes_pp=Bpp, image=Bin},
       Alloc, #cli{context=Context}) ->
-    %% Note: only rgba is allowed
-    Format = #cl_image_format{cl_channel_order = rgba, cl_channel_type= unorm_int8},
+    Format = image2d_format(Type, Bpp),
     Desc = image2d_desc(W,H),
     {ok, Buff} = cl:create_image(Context, Alloc, Format, Desc, Bin),
     Buff.
@@ -251,6 +257,13 @@ image2d_desc(W,H) ->
        image_row_pitch = 0, image_slice_pitch = 0,
        buffer = get('this_fools_dialyzer_bad_spec_in_cl.hrl')
       }.
+
+image2d_format(_, 1) ->
+    #cl_image_format{cl_channel_order = r, cl_channel_type= unorm_int8};
+%% image2d_format(r8g8b8, 3) ->  %% Not allowed in OpenCL 1.2
+%%     #cl_image_format{cl_channel_order = rgb, cl_channel_type= unorm_int8};
+image2d_format(r8g8b8a8, 4) ->
+    #cl_image_format{cl_channel_order = rgba, cl_channel_type= unorm_int8}.
 
 %% write(CLMem, Bin, cli()) -> Wait
 write(CLMem, Bin, #cli{q=Q}) ->
@@ -265,6 +278,10 @@ fill(CLMem, Pattern, Sz, #cli{q=Q}) when is_binary(Pattern) ->
 read(CLMem, Sz, Wait, #cli{q=Q}) ->
     {ok, W} = cl:enqueue_read_buffer(Q,CLMem,0,Sz, Wait),
     W.
+
+read_img(CLImg, W, H, 4=Bpp, Wait, #cli{q=Q}) ->
+    {ok, Res} = cl:enqueue_read_image(Q, CLImg, [0,0], [W,H], W*Bpp, 0, Wait),
+    Res.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

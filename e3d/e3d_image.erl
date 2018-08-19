@@ -30,6 +30,8 @@
 	 height2normal/3,
 	 buildNormalMipmaps/1]).
 
+-compile({inline, [gray/3]}).
+
 %% Func: load(FileName[, Options])  
 %% Args: FileName = [Chars], Options = [Tagged Tuple]
 %% Rets: #e3d_image | {error, Reason}
@@ -255,7 +257,7 @@ bumpmapRGB(Cl, Cr, Ru, Rd, {MulX,MulY}) ->
 inv_multiply(true) -> -1.0;
 inv_multiply(_) -> 1.0.
 
-%  buildNormalMipmaps(Image) -> [{Bin,W,H,Image}]
+%  buildNormalMipmaps(Image) -> [{Bin,W,H,Level}]
 %  Generates all mipmap levels from an Normalmap
 %% Perfect for
 %% gl:texImage2D(?GL_TEXTURE_2D, Level, ?GL_RGB8, HW, HH, 0,
@@ -426,6 +428,7 @@ col_conv(In, Out) ->
 	    {error, {not_supported,conversion,In,Out}}
     end.
 
+gray(G,G,G) -> G;
 gray(R,G,B) when B>G,B>R ->
     (R+G+B) div 3; %% The formula below becomes very dark for "blueish" images
 gray(R,G,B) ->

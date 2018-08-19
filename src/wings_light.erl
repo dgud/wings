@@ -1129,7 +1129,9 @@ cl_setup(Recompile) ->
             end;
 	CL0 when Recompile ->
             try
-                wings_cl:compile("img_lib.cl", CL0)
+                CL = wings_cl:compile("img_lib.cl", CL0),
+                ?SET(opencl, CL),
+                CL
             catch _:Reason ->
                     io:format("CL compile error: ~p ~p~n",
                               [Reason, erlang:get_stacktrace()]),

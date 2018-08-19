@@ -398,9 +398,7 @@ create_normal(Id, NormalId, #ist{images=Images0}) ->
             Image0 = e3d_image:convert(maybe_scale(image_rec(E3D0)),r8g8b8,1,lower_left),
 	    TxId = case get(Id) of
                        NormalId ->
-                           MipMapFun = fun() -> e3d_image:buildNormalMipmaps(Image0) end,
-                           MipMaps = worker_process(MipMapFun),
-                           Image = Image0#e3d_image{extra=[{mipmaps,MipMaps}]},
+                           Image = make_normal_mipmaps(Image0),
                            init_texture_2(Image, NormalId);
                        _ ->
                            %% Scale ?? 4 is used in the only example I've seen.
@@ -414,8 +412,73 @@ create_normal(Id, NormalId, #ist{images=Images0}) ->
 	    none
     end.
 
-height2normal(Img, Opts, Mipmaps) ->
-    e3d_image:height2normal(Img, Opts, Mipmaps).
+height2normal(#e3d_image{width=W,height=H}=Img, Opts, Mipmaps) ->
+    CL = ?GET(opencl),
+    case wings_cl:is_kernel(height2normal, CL) of
+        true  ->
+            Scale = maps:get(scale, Opts, 4.0),
+            InvX  = case maps:get(inv_x, Opts, false) of true -> -Scale; false -> Scale end,
+            InvY  = case maps:get(inv_y, Opts, false) of true -> -Scale; false -> Scale end,
+            CLImg = wings_cl:image(e3d_image:convert(Img, g8, 1), CL),
+            ResImg = Img#e3d_image{type=r8g8b8a8, bytes_pp=4, image= <<>>},
+            Normal = wings_cl:buff(W*H*4*4, CL),
+            NRGB  = wings_cl:image(ResImg, CL),
+            W0    = wings_cl:cast(height2normal, [CLImg,W,H,InvX,InvY,Normal], [W,H], [], CL),
+            W1 = wings_cl:cast(normal_to_rgba, [Normal, W, H, NRGB], [W,H], [W0], CL),
+            W2 = wings_cl:read_img(NRGB, W, H, 4, [W1], CL),
+            {ok, NormalRGB} = cl:wait(W2),
+            cl:release_mem_object(CLImg),
+            MMs = make_normal_mm(Normal, W div 2, H div 2, NRGB, CL),
+            cl:release_mem_object(NRGB),
+            cl:release_mem_object(Normal),
+            ResImg#e3d_image{image=NormalRGB, extra=[{mipmaps,MMs}]};
+        false ->
+            e3d_image:height2normal(Img, Opts, Mipmaps)
+    end.
+
+make_normal_mipmaps(#e3d_image{width=W, height=H} = NormalMap0) ->
+    CL = ?GET(opencl),
+    case wings_cl:is_kernel(mm_normalmap, CL) of
+        true ->
+            try
+                %% OpenCL 1.2 wants r8g8b8a8
+                NormalMap = e3d_image:convert(NormalMap0, r8g8b8a8, 1),
+                CLImg = wings_cl:image(NormalMap, CL),
+                Buff0 = wings_cl:buff(W*H*4*4, CL),
+                Temp = #e3d_image{width=W div 2, height=H div 2, type=r8g8b8a8, bytes_pp=4, image= <<>>},
+                NRGB  = wings_cl:image(Temp, CL),
+                Init = wings_cl:cast(rgba_to_normal, [CLImg,W,H,Buff0], [W,H], [], CL),
+                cl:wait(Init),
+                cl:release_mem_object(CLImg),
+                MMs = make_normal_mm(Buff0, W div 2, H div 2, NRGB, CL),
+                cl:release_mem_object(NRGB),
+                cl:release_mem_object(Buff0),
+                NormalMap#e3d_image{extra=[{mipmaps,MMs}]}
+            catch _:Reason ->
+                    ?dbg("CL calc crashed ~P ~P~n",[Reason, 30, erlang:get_stacktrace(),20]),
+                    NormalMap0
+            end;
+        false ->
+            NormalMap = e3d_image:convert(NormalMap0, r8g8b8, 1),
+            MipMapFun = fun() -> e3d_image:buildNormalMipmaps(NormalMap) end,
+            MipMaps = worker_process(MipMapFun),
+            NormalMap#e3d_image{extra=[{mipmaps,MipMaps}]}
+    end.
+
+make_normal_mm(In, W, H, Img, CL) ->
+    Out = wings_cl:buff(W*H*4*4, CL),
+    Res = make_normal_mm(In, 1, W, H, CL, Out, Img),
+    cl:release_mem_object(Out),
+    Res.
+
+make_normal_mm(In, Level, W, H, CL, Out, Img) when W > 1, H > 1 ->
+    W0 = wings_cl:cast(mm_normalmap, [In, W, H, Out], [W,H], [], CL),
+    W1 = wings_cl:cast(normal_to_rgba, [Out, W, H, Img], [W,H], [W0], CL),
+    Read = wings_cl:read_img(Img, W, H, 4, [W1], CL),
+    {ok, Bin} = cl:wait(Read),
+    [{Bin, W, H, Level} | make_normal_mm(Out, Level+1, W div 2, H div 2, CL, In, Img)];
+make_normal_mm(_In, _Level, _W, _H, _CL, _Out, _Img) ->
+    [].
 
 maybe_scale(#e3d_image{width=W0,height=H0}=Image) ->
 %%  case wings_gl:is_ext({2,0}, 'GL_ARB_texture_non_power_of_two') of
