@@ -30,6 +30,7 @@ struct PBRInfo
     float alphaRoughness;         // roughness mapped to a more linear change in the roughness (proposed by [2])
     vec3 diffuseColor;            // color contribution from diffuse lighting
     vec3 specularColor;           // color contribution from specular lighting
+    float occlusion;
     float opaque;
 };
 

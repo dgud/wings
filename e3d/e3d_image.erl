@@ -20,7 +20,7 @@
 -export([load/1, load/2, 
 	 convert/2, convert/3, convert/4, 
 	 save/2, save/3, save_bin/2, save_bin/3,
-	 add_alpha/2,
+	 add_alpha/2, channel/2, expand_channel/2, replace_channel/3,
 	 bytes_pp/1, pad_len/2, format_error/1,
 	 fix_outtype/3
 	]).
@@ -31,6 +31,7 @@
 	 buildNormalMipmaps/1]).
 
 -compile({inline, [gray/3]}).
+-define(SINGLE_CHANNEL(T), (T =:= g8 orelse T =:= a8 orelse T =:= g32)).
 
 %% Func: load(FileName[, Options])  
 %% Args: FileName = [Chars], Options = [Tagged Tuple]
@@ -76,10 +77,10 @@ save(Image = #e3d_image{}, Filename, Opts) ->
 
 %% Func: save_bin(#e3d_image, Extension [, Opts])
 %% Rets: {ok,Binary} | {error, Reason}
-%% Desc: Saves image to file. The Extension gives the
+%% Desc: Saves image to binary. The Extension gives the
 %%       the file format to use.
-%%       Opts is a list of options. 
-%%       Available options: compress 
+%%       Opts is a list of options.
+%%       Available options: compress
 %%        compress - compresses the file if it is possible/implemented (currently tif).
 save_bin(Image, Extension) ->
     save_bin(Image, Extension, []).
@@ -105,13 +106,107 @@ add_alpha(I = #e3d_image{type=Type,bytes_pp=3,alignment=1,image=Data0}, Alpha) -
     I#e3d_image{bytes_pp=4, type=with_alpha(Type), image=Data}.
 %%    I#e3d_image{bytes_pp=1, type=g8, image=Alpha}.
 
-
 add_alpha(<<Col:24, Data/binary>>, <<A:8, Alpha/binary>>, Acc) ->
     add_alpha(Data,Alpha, <<Acc/binary, Col:24, A:8>>);
 add_alpha(<<>>, <<>>, Acc) -> Acc.
 
 with_alpha(r8g8b8) -> r8g8b8a8;
 with_alpha(b8g8r8) -> b8g8r8a8.
+
+
+%% Func: channel(r|g|b|a, #e3d_image{})
+%% Rets: #e3d_image
+%% Desc: Make a gray image from a channel from Indata image
+
+-spec channel(r|g|b|a, #e3d_image{}) -> #e3d_image{}.
+channel(_Ch, #e3d_image{type=Single}=Img) when ?SINGLE_CHANNEL(Single) ->
+    Img;
+channel(r, #e3d_image{type=r8g8b8a8, bytes_pp=4, alignment=1, image=In}=Img) ->
+    Ch = << <<C:8>> || <<C:8,_:24>> <= In>>,
+    channel_img(Ch, "_r", Img);
+channel(r, #e3d_image{type=r8g8b8, bytes_pp=3, alignment=1, image=In}=Img) ->
+    Ch = << <<C:8>> || <<C:8,_:16>> <= In>>,
+    channel_img(Ch, "_r", Img);
+channel(g, #e3d_image{type=_, bytes_pp=4, alignment=1, image=In}=Img) ->
+    Ch = << <<C:8>> || <<_:8,C:8,_:16>> <= In>>,
+    channel_img(Ch, "_g", Img);
+channel(g, #e3d_image{type=_, bytes_pp=3, alignment=1, image=In}=Img) ->
+    Ch = << <<C:8>> || <<_:8,C:8,_:8>> <= In>>,
+    channel_img(Ch, "_g", Img);
+channel(b, #e3d_image{type=r8g8b8a8, bytes_pp=4, alignment=1, image=In}=Img) ->
+    Ch = << <<C:8>> || <<_:16,C:8,_:8>> <= In>>,
+    channel_img(Ch, "_b", Img);
+channel(b, #e3d_image{type=r8g8b8, bytes_pp=3, alignment=1, image=In}=Img) ->
+    Ch = << <<C:8>> || <<_:16,C:8>> <= In>>,
+    channel_img(Ch, "_b", Img);
+channel(a, #e3d_image{type=_, bytes_pp=4, alignment=1, image=In}=Img) ->
+    Ch = << <<C:8>> || <<_:24,C:8>> <= In>>,
+    channel_img(Ch, "_a", Img);
+%% b8g8r8a8..
+channel(b, #e3d_image{type=b8g8r8a8, bytes_pp=4, alignment=1, image=In}=Img) ->
+    Ch = << <<C:8>> || <<C:8,_:24>> <= In>>,
+    channel_img(Ch, "_b", Img);
+channel(b, #e3d_image{type=b8g8r8, bytes_pp=3, alignment=1, image=In}=Img) ->
+    Ch = << <<C:8>> || <<C:8,_:16>> <= In>>,
+    channel_img(Ch, "_b", Img);
+channel(r, #e3d_image{type=b8g8r8a8, bytes_pp=4, alignment=1, image=In}=Img) ->
+    Ch = << <<C:8>> || <<_:16,C:8,_:8>> <= In>>,
+    channel_img(Ch, "_r", Img);
+channel(r, #e3d_image{type=b8g8r8, bytes_pp=3, alignment=1, image=In}=Img) ->
+    Ch = << <<C:8>> || <<_:16,C:8>> <= In>>,
+    channel_img(Ch, "_r", Img).
+
+channel_img(Data, CN, #e3d_image{name=N, extra=X}=Img) ->
+    Name = filename:rootname(N) ++ CN,
+    Img#e3d_image{type=g8, bytes_pp=1,
+                  name=Name, filename=none,
+                  extra=lists:keydelete(mipmaps, 1, X),
+                  image=Data
+                 }.
+
+-spec expand_channel(Ch::r|g|b|a, #e3d_image{}) -> #e3d_image{}.
+%% Desc: Create a RGBA image from gray image Indata inserted to channel Ch
+%%       the other channels will be white
+expand_channel(r, #e3d_image{type=g8, image=In}=Img) ->
+    RGBA = << <<C:8, -1:24>> || <<C:8>> <= In>>,
+    Img#e3d_image{type=r8g8b8a8, bytes_pp=4, name=[], filename=[], extra=[], image=RGBA};
+expand_channel(g, #e3d_image{type=g8, image=In}=Img) ->
+    RGBA = << <<-1:8, C:8, -1:16>> || <<C:8>> <= In>>,
+    Img#e3d_image{type=r8g8b8a8, bytes_pp=4, name=[], filename=[], extra=[], image=RGBA};
+expand_channel(b, #e3d_image{type=g8, image=In}=Img) ->
+    RGBA = << <<-1:16, C:8, -1:8>> || <<C:8>> <= In>>,
+    Img#e3d_image{type=r8g8b8a8, bytes_pp=4, name=[], filename=[], extra=[], image=RGBA};
+expand_channel(a, #e3d_image{type=g8, image=In}=Img) ->
+    RGBA = << <<-1:24, C:8>> || <<C:8>> <= In>>,
+    Img#e3d_image{type=r8g8b8a8, bytes_pp=4, name=[], filename=[], extra=[], image=RGBA}.
+
+
+-spec replace_channel(Which::r|g|b|a, ChG8::#e3d_image{}, Orig::#e3d_image{})  -> #e3d_image{}.
+%% Desc replace 'Which' channel in 'Orig' with data from 'ChG8' image
+replace_channel(r, #e3d_image{type=g8,image=Ch}, #e3d_image{type=r8g8b8a8,image=Orig,extra=X}=Img) ->
+    Img#e3d_image{image=replace_r(Ch, Orig, <<>>), extra=lists:keydelete(mipmaps, 1, X)};
+replace_channel(g, #e3d_image{type=g8,image=Ch}, #e3d_image{type=r8g8b8a8,image=Orig,extra=X}=Img) ->
+    Img#e3d_image{image=replace_g(Ch, Orig, <<>>), extra=lists:keydelete(mipmaps, 1, X)};
+replace_channel(b, #e3d_image{type=g8,image=Ch}, #e3d_image{type=r8g8b8a8,image=Orig,extra=X}=Img) ->
+    Img#e3d_image{image=replace_b(Ch, Orig, <<>>), extra=lists:keydelete(mipmaps, 1, X)};
+replace_channel(a, #e3d_image{type=g8,image=Ch}, #e3d_image{type=r8g8b8a8,image=Orig,extra=X}=Img) ->
+    Img#e3d_image{image=replace_a(Ch, Orig, <<>>), extra=lists:keydelete(mipmaps, 1, X)}.
+
+replace_r(<<C:8, Ch/binary>>, <<_:8, GBA:24, Orig/binary>>, Acc) ->
+    replace_r(Ch, Orig, <<Acc/binary, C:8, GBA:24>>);
+replace_r(<<>>, <<>>, Acc) -> Acc.
+
+replace_g(<<C:8, Ch/binary>>, <<R:8, _:8, BA:16, Orig/binary>>, Acc) ->
+    replace_g(Ch, Orig, <<Acc/binary, R:8, C:8, BA:16>>);
+replace_g(<<>>, <<>>, Acc) -> Acc.
+
+replace_b(<<C:8, Ch/binary>>, <<RG:16, _:8, A:8, Orig/binary>>, Acc) ->
+    replace_b(Ch, Orig, <<Acc/binary, RG:16, C:8, A:8>>);
+replace_b(<<>>, <<>>, Acc) -> Acc.
+
+replace_a(<<C:8, Ch/binary>>, <<RGB:24, _:8, Orig/binary>>, Acc) ->
+    replace_a(Ch, Orig, <<Acc/binary, RGB:24, C:8>>);
+replace_a(<<>>, <<>>, Acc) -> Acc.
 
 %% Func: convert(#e3d_image, NewType [,NewAlignment [,NewOrder ]])
 %% Rets: #e3d_image | {error, Reason}

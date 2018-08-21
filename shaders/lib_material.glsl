@@ -6,12 +6,11 @@
 
 
 uniform int UseDiffuseMap;
-uniform int UseMetallic;
-uniform int UseEmission;
-uniform int UseOcclusion;
+uniform int UsePBRMap;
+uniform int UseEmissionMap;
 
 uniform sampler2D DiffuseMap;
-uniform sampler2D RMMap;
+uniform sampler2D PBRMap;
 uniform sampler2D EmissionMap;
 uniform sampler2D OcculMap;
 
@@ -29,21 +28,21 @@ vec4 get_basecolor() {
 
 vec3 get_emission() {
   vec3 emi = vec3(emission);
-  if(UseEmission > 0) return SRGBtoLINEAR(texture2D(EmissionMap, gl_TexCoord[0].xy)).rgb * emi;
+  if(UseEmissionMap > 0) return SRGBtoLINEAR(texture2D(EmissionMap, gl_TexCoord[0].xy)).rgb * emi;
   return emi;
 }
 
-vec4 get_metalroughness() {
+vec4 get_pbr_omr() {  // red = occlusion blue = roughness green = metallic
   vec4 mrSample = vec4(1.0,roughness,metallic,1.0);
-  if(UseMetallic > 0) {
-    mrSample *= texture2D(RMMap, gl_TexCoord[0].xy);
+  if(UsePBRMap > 0) {
+    mrSample *= texture2D(PBRMap, gl_TexCoord[0].xy);
   }
   return clamp(mrSample, 0.04, 0.96);
 }
 
 float get_occlusion() {
-  if(UseOcclusion > 0) {
-    return texture2D(OcculMap, gl_TexCoord[0].xy).x;
+  if(UsePBRMap > 0) {
+    return texture2D(PBRMap, gl_TexCoord[0].xy).x;
   }
   return 1.0;
 }
@@ -52,9 +51,9 @@ float get_occlusion() {
 PBRInfo calc_material(PBRInfo pbr) {
   vec4 baseColor = get_basecolor();
   vec3 f0 = vec3(0.04);
-  vec4 mr = get_metalroughness();
-  float met = mr.b;
-  float rgh = mr.g;
+  vec4 omr = get_pbr_omr();
+  float rgh = omr.g;
+  float met = omr.b;
   vec3 diffuse  = mix(baseColor.rgb, vec3(0.0), met);
   vec3 specular = mix(f0, baseColor.rgb, met);
 
@@ -72,5 +71,6 @@ PBRInfo calc_material(PBRInfo pbr) {
   pbr.diffuseColor = diffuse;
   pbr.specularColor = specular;
   pbr.opaque = baseColor.a;
+  pbr.occlusion = omr.r;
   return pbr;
 }

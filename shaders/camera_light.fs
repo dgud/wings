@@ -36,7 +36,7 @@ void main(void)
     // Obtain final intensity as reflectance (BRDF) scaled by the energy of the light (cosine law)
     vec3 frag_color = pbr.NdotL * (diffuseContrib + specContrib);
     frag_color += 0.6*background_ligthting(pbr, n, normalize(reflect(v, n)));
-    frag_color = mix(frag_color, frag_color * get_occlusion(), 0.7);
+    frag_color = mix(frag_color, frag_color * pbr.occlusion, 0.7);
     frag_color += get_emission();
     gl_FragColor = vec4(pow(frag_color, vec3(1.0/2.2)), baseColor.a); // Should be 2.2
 }

@@ -641,12 +641,13 @@ image_maps_index(Type) ->
     	diffuse -> 4;
 	gloss -> 5;
         metallic -> 5;
+        roughness -> 10;
 	bump -> 6;
 	normal -> 7;
         occlusion -> 8;
         emission -> 9;
-	material -> 10;
-        _unknown -> 4
+	material -> 11;
+        _unknown -> 11
     end.
 
 load_icons() ->
@@ -667,7 +668,7 @@ load_icons() ->
 		     small_image,small_image2,perspective, %small_object,
 		     small_light,
 		     small_diffuse,small_gloss,small_bump,small_normal,
-                     small_aocc, small_emission,
+                     small_aocc, small_emission, small_roughness,
 		     material
 		    ]),
     {IL, #{image=>0, internal_image=>1, object=>2, light=>3, mat=>8}}.
@@ -790,7 +791,8 @@ handle_drop(#{type:=image, id:=Id}, #{type:=mat, name:=Name}) ->
     [{?__(1,"Texture Type"),ignore},
      separator,
      {?__(2,"Base Color"),tx_cmd(diffuse, Id, Name)},
-     {?__(8,"Metal&Roughness"),tx_cmd(metallic, Id, Name)},
+     {?__(8,"Metallic"),tx_cmd(metallic, Id, Name)},
+     {?__(9,"Roughness"),tx_cmd(roughness, Id, Name)},
      {?__(6,"Ambient Occlusion"),tx_cmd(occlusion, Id, Name)},
      {?__(4,"Bump (HeightMap)"),tx_cmd(bump, Id, Name)},
      {?__(5,"Bump (NormalMap)"),tx_cmd(normal, Id, Name)},
