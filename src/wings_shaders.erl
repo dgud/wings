@@ -176,9 +176,8 @@ setup_uniforms(Prog, Vars, Name, Desc) ->
     Res = maps:from_list([{name,Name},{prog,Prog},{desc,Desc}|Uniforms]),
     wings_gl:set_uloc(Res, 'DiffuseMap',  ?DIFFUSE_MAP_UNIT),
     wings_gl:set_uloc(Res, 'NormalMap',   ?NORMAL_MAP_UNIT),
-    wings_gl:set_uloc(Res, 'RMMap',       ?ROUGH_METAL_MAP_UNIT),
+    wings_gl:set_uloc(Res, 'PBRMap',      ?PBR_MAP_UNIT),
     wings_gl:set_uloc(Res, 'EmissionMap', ?EMISSION_MAP_UNIT),
-    wings_gl:set_uloc(Res, 'OcculMap',    ?OCCUL_MAP_UNIT),
     %% Lights
     wings_gl:set_uloc(Res, 'EnvBrdfMap',  ?ENV_BRDF_MAP_UNIT),
     wings_gl:set_uloc(Res, 'EnvSpecMap',  ?ENV_SPEC_MAP_UNIT),

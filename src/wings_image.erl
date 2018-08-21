@@ -13,9 +13,9 @@
 
 -module(wings_image).
 -export([from_file/1,new/2,new_temp/2,new_hidden/2, create/1,
-	 rename/2,txid/1,info/1,images/0,
+	 rename/2,info/1,images/0,
 	 screenshot/2,screenshot/1,viewport_screenshot/1,
-	 bumpid/1,
+	 txid/1,bumpid/1, combid/1,
 	 is_normalmap/1,
 	 next_id/0,delete_older/1,delete_from/1,delete/1,
          filter_images/1,
@@ -104,11 +104,14 @@ rename(Id, NewName) ->
 txid(Id) ->
     req({txid,Id}, false).
 
-is_normalmap(Id) ->
-    req({is_normalmap,Id},false).
-
 bumpid(Id) ->
     req({bumpid,Id}, false).
+
+combid(Id) ->
+    req({combid,Id}, false).
+
+is_normalmap(Id) ->
+    req({is_normalmap,Id},false).
 
 info(Id) ->
     req({info,Id}, false).
@@ -211,8 +214,9 @@ viewport_screenshot(Name) ->
 	 images				        % All #img{}'s (gb_trees).
 	}).
 
--record(img, {e3d :: #e3d_image{},              % The image
-              hidden :: boolean()               % is_hidden?
+-record(img, {e3d :: #e3d_image{},               % The image
+              hidden :: boolean(),               % is_hidden?
+              partof=[] :: list()                % Used in a combined textures
              }).
 
 init([Env]) ->
@@ -262,6 +266,14 @@ handle_call({bumpid,Id}, _From, S) ->
         undefined -> {reply, create_normal(Id,undefined,S), S};
         TxId -> {reply, TxId, S}
     end;
+handle_call({combid,{Id, _Mat}}, _From, S0) ->
+    case get(Id) of
+        undefined ->
+            {Reply, S} = create_combined(Id,S0),
+            {reply, Reply, S};
+        TxId ->
+            {reply, TxId, S0}
+    end;
 handle_call({is_normalmap,Id}, _From, S) ->
     case {get({Id,normal}),get(Id)} of
         {undefined,undefined} -> {reply, none, S};
@@ -294,9 +306,11 @@ handle_call(next_id, _From, #ist{next=Id}=S) ->
     {reply,Id,S};
 handle_call({delete,Id}, _From, #ist{images=Images0}=S) ->
     delete_normal(Id),
-    wings_gl:deleteTextures([erase(Id)]),
+    #img{partof=Combs} = gb_trees:get(Id, Images0),
+    Ids = [erase(Comb)|| Comb <- [Id|Combs]],
+    wings_gl:deleteTextures([Tex || Tex <- Ids, is_integer(Tex)]),
     Images = gb_trees:delete(Id, Images0),
-    {reply, ok, S#ist{images=Images}};
+    {reply, ok, S#ist{images=remove_all_combs(Combs, Images)}};
 handle_call({delete_older,Id}, _From, #ist{images=Images0}=S) ->
     Images1 = delete_older_1(gb_trees:to_list(Images0), Id),
     Images = gb_trees:from_orddict(Images1),
@@ -395,14 +409,19 @@ init_texture_2(#e3d_image{width=W,height=H,image=Bits,extra=Opts}=Image, TxId) -
 
 do_update(Id, In = #e3d_image{width=W,height=H,type=Type,name=NewName},
 	  #ist{images=Images0}=S) ->
-    #img{e3d=Im0} = Image = gb_trees:get(Id, Images0),
+    #img{e3d=Im0, partof=Combs} = Image = gb_trees:get(Id, Images0),
+    %% Cleanup combined textures and recreate (later) on the fly (can be optimized)
+    Ids = [erase(Comb)|| Comb <- [Id|Combs]],
+    wings_gl:deleteTextures([Tex || Tex <- Ids, is_integer(Tex)]),
+    Images1 = remove_all_combs(Combs, Images0),
+
     #e3d_image{filename=File,name=OldName} = Im0,
     Name = if is_list(NewName), length(NewName) > 2 -> NewName;
 	      true -> OldName
 	   end,
     Im   = maybe_convert(In#e3d_image{filename=File, name=Name}),
     TxId = get(Id),
-    Images = gb_trees:update(Id, Image#img{e3d=Im}, Images0),
+    Images = gb_trees:update(Id, Image#img{e3d=Im, partof=[]}, Images1),
     Size = {Im0#e3d_image.width, Im0#e3d_image.height, Im0#e3d_image.type},
     case Size of
 	{W,H,Type} ->
@@ -419,6 +438,49 @@ do_update(Id, In = #e3d_image{width=W,height=H,type=Type,name=NewName},
 	    create_normal(Id, Bid, S#ist{images=Images}),
 	    S#ist{images=Images}
     end.
+
+create_combined(CIds, #ist{images=Images0}=S) ->
+    [O,R,M] = [gb_trees:lookup(Id, Images0) || Id <- CIds],
+    Img0 = setup_combined(M, b, undefined),
+    Img1 = setup_combined(R, g, Img0),
+    Img2 = setup_combined(O, r, Img1),
+    case Img2 of
+        undefined ->
+            {none, S};
+        #e3d_image{} ->
+            [TxId] = gl:genTextures(1),
+            init_texture_2(Img2, TxId),
+            put(CIds, TxId),
+            {TxId, S#ist{images=add_combined(CIds, Images0)}}
+    end.
+
+setup_combined(none, _, Acc) -> Acc;
+setup_combined({value, #img{e3d=Ch0}}, Where, undefined) ->
+    Ch1 = e3d_image:convert(maybe_scale(Ch0),g8,1,lower_left),
+    e3d_image:expand_channel(Where, Ch1);
+setup_combined({value, #img{e3d=Ch0}}, Where, #e3d_image{width=W,height=H}=Img) ->
+    Ch1 = e3d_image:convert(resize_image(Ch0, W, H),g8,1,lower_left),
+    e3d_image:replace_channel(Where, Ch1, Img).
+
+add_combined(CIds, Images) ->
+    %% Store texture Key belong to each image
+    Update = fun(none, Tree) -> Tree;
+                (Id, Tree) ->
+                     #img{partof=Old} = Im = gb_trees:get(Id, Tree),
+                     gb_trees:update(Id, Im#img{partof=[CIds|Old]}, Tree)
+             end,
+    lists:foldl(Update, Images, CIds).
+
+remove_all_combs(CIdsList, Images) ->
+    lists:foldl(fun(CIds, Tree) -> remove_combined(CIds, Tree) end, Images, CIdsList).
+
+remove_combined(CIds, Images) ->
+    Update = fun(none, Tree) -> Tree;
+                (Id, Tree) ->
+                     #img{partof=Old} = Im = gb_trees:get(Id, Tree),
+                     gb_trees:update(Id, Im#img{partof=lists:delete(CIds,Old)}, Tree)
+             end,
+    lists:foldl(Update, Images, CIds).
 
 create_normal(Id, NormalId, #ist{images=Images0}) ->
     delete_normal(Id),  %% update case..
@@ -563,8 +625,10 @@ maybe_exceds_opengl_caps(#e3d_image{width=W0,height=H0}=Image) ->
             Image
     end.
 
+resize_image(#e3d_image{width=W0,height=H0}=Image, W0, H0) ->
+    Image;
 resize_image(#e3d_image{width=W0,height=H0,bytes_pp=BytesPerPixel,
-  image=Bits0}=Image, W, H) ->
+                        image=Bits0}=Image, W, H) ->
     Out = wings_io:get_buffer(BytesPerPixel*W*H, ?GL_UNSIGNED_BYTE),
     {Format, ?GL_UNSIGNED_BYTE} = texture_format(Image),
     GlErr =glu:scaleImage(Format, W0, H0, ?GL_UNSIGNED_BYTE,
@@ -625,9 +689,10 @@ wrap(clamp) -> ?GL_CLAMP_TO_EDGE.
 
 delete_older_1([{_,#img{hidden=true}}=Im|T], Limit) ->
     [Im|delete_older_1(T, Limit)];
-delete_older_1([{Id,#img{}}|T], Limit) when Id < Limit ->
+delete_older_1([{Id,#img{partof=Combs}}|T], Limit) when Id < Limit ->
     delete_normal(Id),
-    wings_gl:deleteTextures([erase(Id)]),
+    Ids = [erase(Comb)|| Comb <- [Id|Combs]],
+    wings_gl:deleteTextures([Tex || Tex <- Ids, is_integer(Tex)]),
     delete_older_1(T, Limit);
 delete_older_1(Images, _) -> Images.
 
@@ -635,9 +700,10 @@ delete_from_1([{_,#img{hidden=true}}=Im|T], Limit, Acc) ->
     delete_from_1(T, Limit, [Im|Acc]);
 delete_from_1([{Id,_}=Im|T], Limit, Acc) when Id < Limit ->
     delete_from_1(T, Limit, [Im|Acc]);
-delete_from_1([{Id,#img{}}|T], Limit, Acc) ->
+delete_from_1([{Id,#img{partof=Combs}}|T], Limit, Acc) ->
     delete_normal(Id),
-    wings_gl:deleteTextures([erase(Id)]),
+    Ids = [erase(Comb)|| Comb <- [Id|Combs]],
+    wings_gl:deleteTextures([Tex || Tex <- Ids, is_integer(Tex)]),
     delete_from_1(T, Limit, Acc);
 delete_from_1([], _, Acc) -> reverse(Acc).
 

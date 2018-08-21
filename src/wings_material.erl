@@ -517,30 +517,36 @@ material_prop(Name, Mtab) ->
     Mat = gb_trees:get(Name, Mtab),
     OpenGL = prop_get(opengl, Mat),
     Maps = prop_get(maps, Mat, []),
-    [{{tex,diffuse}, get_texture_map(diffuse, Maps)},
-     {{tex,normal}, get_normal_map(Maps)},
-     {{tex,metallic},  get_texture_map(metallic, Maps)},
-     {{tex,emission}, get_texture_map(emission, Maps)},
-     {{tex,occlusion}, get_texture_map(occlusion, Maps)}
-     |OpenGL].
-
-get_normal_map(Maps) ->
     case wings_pref:get_value(show_textures) of
-        true -> case prop_get(normal, Maps, none) of
-                    none -> image_id(normal, prop_get(bump, Maps, none));
-                    Map -> image_id(normal, Map)
-                end;
-        false -> none
+        true ->
+            [{{tex,diffuse}, get_texture_map(diffuse, Maps)},
+             {{tex,normal}, get_normal_map(Maps)},
+             {{tex,pbr_orm},  get_pbr_map(Maps, Name)},
+             {{tex,emission}, get_texture_map(emission, Maps)}
+             |OpenGL];
+        false ->
+            OpenGL
     end.
 
 get_texture_map(Type, Maps) ->
-    case wings_pref:get_value(show_textures) of
-        true -> image_id(Type, prop_get(Type, Maps, none));
-        false -> none
+    image_id(Type, prop_get(Type, Maps, none)).
+
+get_pbr_map(Maps, Name) ->
+    PBRId = [prop_get(occlusion, Maps, none),
+             prop_get(roughness, Maps, none),
+             prop_get(metallic, Maps, none)],
+    image_id(combined, {PBRId, Name}).
+
+get_normal_map(Maps) ->
+    case prop_get(normal, Maps, none) of
+        none -> image_id(normal, prop_get(bump, Maps, none));
+        Map -> image_id(normal, Map)
     end.
 
 image_id(_, none) -> none;
+image_id(_, {[none,none,none],_}) -> none;
 image_id(normal, Map) -> wings_image:bumpid(Map);
+image_id(combined, Map) -> wings_image:combid(Map);
 image_id(_, Map) -> wings_image:txid(Map).
 
 enable(true)  -> 1;
@@ -548,15 +554,13 @@ enable(false) -> 0.
 
 texture_var(diffuse) -> 'UseDiffuseMap';
 texture_var(normal) ->  'UseNormalMap';
-texture_var(metallic) -> 'UseMetallic'; %% blue = roughness green = metallic
-texture_var(emission) -> 'UseEmission';
-texture_var(occlusion) -> 'UseOcclusion'. %% red = occlusion map
+texture_var(pbr_orm) -> 'UsePBRMap'; %% red = occlusion green = roughness blue = metallic
+texture_var(emission) -> 'UseEmissionMap'.
 
 tex_unit(diffuse) -> ?DIFFUSE_MAP_UNIT;
 tex_unit(normal) -> ?NORMAL_MAP_UNIT;
-tex_unit(metallic) -> ?ROUGH_METAL_MAP_UNIT; %% blue = roughness green = metallic
-tex_unit(emission) -> ?EMISSION_MAP_UNIT;
-tex_unit(occlusion) -> ?OCCUL_MAP_UNIT. %% red = occlusion map
+tex_unit(pbr_orm) -> ?PBR_MAP_UNIT; %% red = occlusion green = roughness blue = metallic
+tex_unit(emission) -> ?EMISSION_MAP_UNIT.
 
 %% Return the materials used by the objects in the scene.
 

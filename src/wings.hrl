@@ -71,15 +71,14 @@
 %% We order of importance (material)
 -define(DIFFUSE_MAP_UNIT, 0).
 -define(NORMAL_MAP_UNIT,  1).
--define(ROUGH_METAL_MAP_UNIT, 2).
+-define(PBR_MAP_UNIT, 2).  %% r=occlusion b=roughness g=metalness a=unused
 %% Lighting
 -define(ENV_DIFF_MAP_UNIT, 3).
 -define(ENV_SPEC_MAP_UNIT, 4).
 -define(ENV_BRDF_MAP_UNIT, 5).
 -define(AREA_LTC_MAT_UNIT, 8). %%
 %% Extra materials
--define(OCCUL_MAP_UNIT,   6).
--define(EMISSION_MAP_UNIT, 7).
+-define(EMISSION_MAP_UNIT, 6).
 
 -define(TANGENT_ATTR, 5).
 
