@@ -113,6 +113,10 @@ command({create_normal_map,Params}, _) ->
     keep;
 command({export_image,Id}, _) ->
     export_image(Id);
+command({invert_image, Id}, _) ->
+    invert_image(Id);
+command({from_channel, {Ch, Id}}, _) ->
+    from_channel(Ch, Id);
 command(Cmd, _) ->
     io:format(?__(1,"NYI: ~p\n"), [Cmd]),
     keep.
@@ -127,6 +131,37 @@ duplicate_image(Id) ->
     wings_image:new(Name, Im),
     wings_wm:send(geom, need_save),
     keep.
+
+invert_image(Id) ->
+    #e3d_image{type=Type, bytes_pp=Bpp, image=Image, name=Name} = Im = wings_image:info(Id),
+    case can_invert(Type, Bpp) of
+        true ->
+            Bin = << << (255-C):8 >> || <<C:8>> <= Image >>,
+            wings_image:new(filename:rootname(Name) ++ " Inv", Im#e3d_image{image=Bin}),
+            wings_wm:send(geom, need_save),
+            keep;
+        false ->
+            wings_u:message(?__(1, "Cannot invert image type ~s (~w) bytes per pixel"), [Type, Bpp]),
+            keep
+    end.
+
+can_invert(_, 1) -> true;
+can_invert(_, 3) -> true;
+can_invert(r8g8b8a8, 4) -> true;
+can_invert(b8g8r8a8, 4) -> true;
+can_invert(_,_) -> false.
+
+from_channel(Ch, Id) ->
+    Im = wings_image:info(Id),
+    try e3d_image:channel(Ch, Im) of
+        #e3d_image{name=Name} = Gray ->
+            wings_image:new(Name, Gray),
+            wings_wm:send(geom, need_save),
+            keep
+    catch _:_ ->
+            wings_u:message(?__(1, "Cannot read channel from the image type")),
+            keep
+    end.
 
 delete_image(Id, St) ->
     Used = wings_material:used_images(St),
@@ -777,6 +812,15 @@ command_image_menu(Id) ->
     [separator,
      {?__(9,"Create Normal Map"),create_normal_map_fun(Id),
       {?__(10,"Creates a normal map for the image"),[],?__(11,"Creates a normal map for the image with parameters")},[opt]},
+     {?__(12,"Create Inverted Image"),menu_cmd(invert_image, Id),
+      ?__(13,"Invert each channel of the image")},
+     {?__(14,"Create Gray Image from channel"),
+      {from_channel,
+       [{?__(141, "Red"),   menu_cmd(r, Id)},
+        {?__(142, "Green"), menu_cmd(g, Id)},
+        {?__(143, "Blue"),  menu_cmd(b, Id)},
+        {?__(144, "Alpha"), menu_cmd(a, Id)}]},
+      ?__(15,"Make a new image from specified channel")},
      separator,
      {?__(1,"Export..."),menu_cmd(export_image, Id),
       ?__(2,"Export the image")},
@@ -822,7 +866,7 @@ create_normal_map_0(Id, Params) ->
 
 create_normal_map_fun(Id) ->
     fun (1, _) -> button_menu_cmd(create_normal_map, Id);
-	(3, _) ->button_menu_cmd(create_normal_map, {ask,Id});
+	(3, _) -> button_menu_cmd(create_normal_map, {ask,Id});
 	(_,_) -> ignore
     end.
 
