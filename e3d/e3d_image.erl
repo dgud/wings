@@ -157,7 +157,7 @@ channel(r, #e3d_image{type=b8g8r8, bytes_pp=3, alignment=1, image=In}=Img) ->
     channel_img(Ch, "_r", Img).
 
 channel_img(Data, CN, #e3d_image{name=N, extra=X}=Img) ->
-    Name = filename:basename(N) ++ CN,
+    Name = filename:rootname(N) ++ CN,
     Img#e3d_image{type=g8, bytes_pp=1,
                   name=Name, filename=none,
                   extra=lists:keydelete(mipmaps, 1, X),
