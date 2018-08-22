@@ -412,29 +412,41 @@ create_normal(Id, NormalId, #ist{images=Images0}) ->
 	    none
     end.
 
-height2normal(#e3d_image{width=W,height=H}=Img, Opts, Mipmaps) ->
+height2normal(Img, Opts, Mipmaps) ->
     CL = ?GET(opencl),
     case wings_cl:is_kernel(height2normal, CL) of
         true  ->
-            Scale = maps:get(scale, Opts, 4.0),
-            InvX  = case maps:get(inv_x, Opts, false) of true -> -Scale; false -> Scale end,
-            InvY  = case maps:get(inv_y, Opts, false) of true -> -Scale; false -> Scale end,
-            CLImg = wings_cl:image(e3d_image:convert(Img, g8, 1), CL),
-            ResImg = Img#e3d_image{type=r8g8b8a8, bytes_pp=4, image= <<>>},
-            Normal = wings_cl:buff(W*H*4*4, CL),
-            NRGB  = wings_cl:image(ResImg, CL),
-            W0    = wings_cl:cast(height2normal, [CLImg,W,H,InvX,InvY,Normal], [W,H], [], CL),
-            W1 = wings_cl:cast(normal_to_rgba, [Normal, W, H, NRGB], [W,H], [W0], CL),
-            W2 = wings_cl:read_img(NRGB, W, H, 4, [W1], CL),
-            {ok, NormalRGB} = cl:wait(W2),
-            cl:release_mem_object(CLImg),
-            MMs = make_normal_mm(Normal, W div 2, H div 2, NRGB, CL),
-            cl:release_mem_object(NRGB),
-            cl:release_mem_object(Normal),
-            ResImg#e3d_image{image=NormalRGB, extra=[{mipmaps,MMs}]};
+            try height2normal_cl(CL, Img, Opts, Mipmaps)
+            catch _:{badmatch,{error,_}} ->
+                    %% Fallback (probably alloc memory)
+                    ?dbg("Failed to allocate gfx memory ~n",[]),
+                    e3d_image:height2normal(Img, Opts, Mipmaps)
+            end;
         false ->
             e3d_image:height2normal(Img, Opts, Mipmaps)
     end.
+
+height2normal_cl(CL, #e3d_image{width=W,height=H}=Img, Opts, Mipmaps) ->
+    Scale = maps:get(scale, Opts, 4.0),
+    InvX  = case maps:get(inv_x, Opts, false) of true -> -Scale; false -> Scale end,
+    InvY  = case maps:get(inv_y, Opts, false) of true -> -Scale; false -> Scale end,
+    CLImg = wings_cl:image(e3d_image:convert(Img, g8, 1), CL),
+    ResImg = Img#e3d_image{type=r8g8b8a8, bytes_pp=4, image= <<>>},
+    Normal = wings_cl:buff(W*H*4*4, CL),
+    NRGB  = wings_cl:image(ResImg, CL),
+    W0    = wings_cl:cast(height2normal, [CLImg,W,H,InvX,InvY,Normal], [W,H], [], CL),
+    W1 = wings_cl:cast(normal_to_rgba, [Normal, W, H, NRGB], [W,H], [W0], CL),
+    W2 = wings_cl:read_img(NRGB, W, H, 4, [W1], CL),
+    {ok, NormalRGB} = cl:wait(W2),
+    cl:release_mem_object(CLImg),
+    MMs = case Mipmaps of
+              true -> make_normal_mm(Normal, W div 2, H div 2, NRGB, CL);
+              false -> []
+          end,
+    cl:release_mem_object(NRGB),
+    cl:release_mem_object(Normal),
+    ResImg#e3d_image{image=NormalRGB, extra=[{mipmaps,MMs}]}.
+
 
 make_normal_mipmaps(#e3d_image{width=W, height=H} = NormalMap0) ->
     CL = ?GET(opencl),
@@ -454,7 +466,10 @@ make_normal_mipmaps(#e3d_image{width=W, height=H} = NormalMap0) ->
                 cl:release_mem_object(NRGB),
                 cl:release_mem_object(Buff0),
                 NormalMap#e3d_image{extra=[{mipmaps,MMs}]}
-            catch _:Reason ->
+            catch _:{badmatch, {error,_}} ->
+                    ?dbg("Failed to allocate gfx memory ~n",[]),
+                    NormalMap0;
+                  _:Reason ->
                     ?dbg("CL calc crashed ~P ~P~n",[Reason, 30, erlang:get_stacktrace(),20]),
                     NormalMap0
             end;
