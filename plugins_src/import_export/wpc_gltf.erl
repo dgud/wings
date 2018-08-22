@@ -315,7 +315,7 @@ exp_make_materials([Used|UMs], WMats, Type, GLTF0) ->
     DiffMap = proplists:get_value(diffuse, Maps),
 
     {Base1,GLTF1} = exp_add_image(DiffMap, Base0, baseColorTexture, Type, GLTF0),
-    {Base, GLTF2} = exp_add_image(proplists:get_value(metallic, Maps),
+    {Base, GLTF2} = exp_add_image(merge_met_roughness(Maps),
                                   Base1, metallicRoughnessTexture, Type, GLTF1),
 
     Mat0 = #{pbrMetallicRoughness => Base,
@@ -342,6 +342,31 @@ exp_make_materials([Used|UMs], WMats, Type, GLTF0) ->
     exp_make_materials(UMs, WMats, Type, GLTF);
 exp_make_materials([], _, _, GLTF) ->
     GLTF.
+
+merge_met_roughness(Maps) ->
+    {FN, E3d} =
+        case {proplists:get_value(metallic, Maps),
+              proplists:get_value(roughness, Maps)} of
+            {undefined, undefined} -> undefined;
+            {#e3d_image{filename=File}=Map, undefined} ->
+                {File, e3d_image:expand_channel(b, e3d_image:convert(Map, g8, 1))};
+            {undefined, #e3d_image{filename=File}=Map} ->
+                {File, e3d_image:expand_channel(g, e3d_image:convert(Map, g8, 1))};
+            {#e3d_image{width=W, height=H}=Met, #e3d_image{width=W, height=H}=Rough} ->
+                RGBA0 = e3d_image:expand_channel(b, e3d_image:convert(Met, g8, 1)),
+                RGBA1 = e3d_image:replace_channel(g, e3d_image:convert(Rough, g8, 1), RGBA0),
+                {Met#e3d_image.filename, RGBA1};
+            %% Different sizes, should rescale on off them here
+            {#e3d_image{filename=File}=Map, _} ->
+                {File, e3d_image:expand_channel(b, e3d_image:convert(Map, g8, 1))}
+        end,
+    Dir = filename:dirname(FN),
+    Ext = filename:extension(FN),
+    FileName = filename:basename(FN, Ext),
+    SaveFile = filename:join(Dir, FileName ++ "_met_rough" ++ Ext),
+    RGB = e3d_image:convert(E3d, r8g8b8),
+    wings_image:image_write([{image, RGB}, {filename, SaveFile}]),
+    RGB#e3d_image{filename=SaveFile}.
 
 exp_add_image(undefined, Data, _, _, GLTF) ->
     {Data, GLTF};
@@ -684,27 +709,30 @@ imp_save_filename(File0, ImageType, Ext) ->
     File = lists:flatten(io_lib:format("~ts_~ts.~s",[OrigName, ImageType, Ext])),
     {Dir, File}.
 
-
 make_mats(#{materials:=Ms0}=GLTF, File) ->
+    Dir = filename:dirname(File),
     DefName = filename:rootname(filename:basename(File)),
     Ms = mat_add_names(Ms0, 0, DefName),
-    GLMs = [make_mat(Mat, GLTF) || Mat <- Ms],
+    GLMs = [make_mat(Mat, GLTF, Dir) || Mat <- Ms],
     {GLMs, GLTF#{materials:=Ms}};
 make_mats(GLTF, _) ->
     {[], GLTF}.
 
-make_mat(#{name:=Name}=Mat, GLTF) ->
+make_mat(#{name:=Name}=Mat, GLTF, Dir) ->
     case maps:get(pbrMetallicRoughness, Mat, none) of
         none ->
             Diffuse = [1.0,1.0,1.0,1.0],
             DiffuseTx = {diffuse, none},
             MetalTx = {metallic, none},
+            RoughTx = {roughness, none},
             MetalF = 1.0,
             RoughF = 0.9;
         Pbr ->
             Diffuse = maps:get(baseColorFactor, Pbr, [1.0,1.0,1.0,1.0]),
             DiffuseTx = {diffuse, get_texture(baseColorTexture, Pbr, GLTF)},
-            MetalTx = {metallic, get_texture(metallicRoughnessTexture, Pbr, GLTF)},
+            {Mtx,Rtx} = split_tx(get_texture(metallicRoughnessTexture, Pbr, GLTF), Dir),
+            MetalTx = {metallic, Mtx},
+            RoughTx = {roughness, Rtx},
             MetalF = maps:get(metallicFactor, Pbr, 1.0),
             RoughF = maps:get(roughnessFactor, Pbr, 0.9)
     end,
@@ -713,7 +741,7 @@ make_mat(#{name:=Name}=Mat, GLTF) ->
     Emission = maps:get(emmissiveFactor, Mat, [0.0,0.0,0.0]),
     EmissionTx = {emission, get_texture(emissiveTexture, Mat, GLTF)},
     OccTx = {occlusion, get_texture(occlusionTexture, Mat, GLTF)},
-    Txs = [NormalTx, DiffuseTx, MetalTx, EmissionTx, OccTx],
+    Txs = [NormalTx, DiffuseTx, MetalTx, RoughTx, EmissionTx, OccTx],
     Maps = case [Map || {_, F} = Map <- Txs, F =/= none] of
                [] -> [];
                Maps0 -> [{maps, Maps0}]
@@ -738,6 +766,29 @@ get_texture(Name, Mat, #{read_image:=Get} = GLTF) ->
                 #{uri:=File} when byte_size(File) < 512 ->
                     unicode:characters_to_list(File)
             end
+    end.
+
+%% Need to split combined image file to two files
+split_tx(none, _) -> {none, none};
+split_tx(OrigFileName, Dir0) ->
+    Dir = case filename:dirname(OrigFileName) of
+              "." -> Dir0;
+              Dir1 -> Dir1
+          end,
+    Ext = filename:extension(OrigFileName),
+    File = filename:basename(OrigFileName, Ext),
+    E3d = wings_image:image_read([{filename, OrigFileName}, {opt_dir, Dir0}]),
+    try
+        Metallic = e3d_image:channel(b,E3d),
+        MetFile = filename:join(Dir, File++"_met" ++ Ext),
+        wings_image:image_write([{filename, MetFile}, {image, Metallic}]),
+        Roughness = e3d_image:channel(g,E3d),
+        RoughFile = filename:join(Dir, File++"_rough" ++ Ext),
+        wings_image:image_write([{filename, RoughFile}, {image, Roughness}]),
+        {MetFile, RoughFile}
+    catch _:Reason ->
+            ?dbg("Internal error: ~p ~p~n", [Reason, erlang:get_stacktrace()]),
+            {none, none}
     end.
 
 mat_add_names([#{name:=_}=M|Ms], N, DefName) ->
