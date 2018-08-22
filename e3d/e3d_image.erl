@@ -20,7 +20,8 @@
 -export([load/1, load/2, 
 	 convert/2, convert/3, convert/4, 
 	 save/2, save/3, save_bin/2, save_bin/3,
-	 add_alpha/2, channel/2, expand_channel/2, replace_channel/3,
+         add_alpha/2,
+         channel/2, expand_channel/2, replace_channel/3, invert_channel/2,
 	 bytes_pp/1, pad_len/2, format_error/1,
 	 fix_outtype/3
 	]).
@@ -208,6 +209,50 @@ replace_a(<<C:8, Ch/binary>>, <<RGB:24, _:8, Orig/binary>>, Acc) ->
     replace_a(Ch, Orig, <<Acc/binary, RGB:24, C:8>>);
 replace_a(<<>>, <<>>, Acc) -> Acc.
 
+
+-spec invert_channel(Ch::r|g|b|a, #e3d_image{}) -> #e3d_image{}.
+%% Desc: Create a copy of image with Ch channel inverted
+invert_channel(_, #e3d_image{type=G8orA8, image=Image}=Img)
+  when G8orA8 =:= g8; G8orA8 =:= a8 ->
+    Bin = << << (255-C):8 >> || <<C:8>> <= Image >>,
+    Img#e3d_image{image=Bin, filename=[]};
+invert_channel(r, #e3d_image{type=r8g8b8, image=Image}=Img) ->
+    Bin = << << (255-C):8, P:16 >> || <<C:8, P:16>> <= Image >>,
+    Img#e3d_image{image=Bin, filename=[]};
+invert_channel(g, #e3d_image{type=Type, image=Image}=Img)
+  when Type =:= r8g8b8; Type =:= b8g8r8 ->
+    Bin = << << Pre:8, (255-C):8, P:8 >> || <<Pre:8, C:8, P:8>> <= Image >>,
+    Img#e3d_image{image=Bin, filename=[]};
+invert_channel(b, #e3d_image{type=r8g8b8, image=Image}=Img) ->
+    Bin = << << P:16, (255-C):8 >> || <<P:16, C:8>> <= Image >>,
+    Img#e3d_image{image=Bin, filename=[]};
+invert_channel(r, #e3d_image{type=r8g8b8a8, image=Image}=Img) ->
+    Bin = << << (255-C):8, P:24 >> || <<C:8, P:24>> <= Image >>,
+    Img#e3d_image{image=Bin, filename=[]};
+invert_channel(g, #e3d_image{type=Type, image=Image}=Img)
+  when Type =:= r8g8b8a8; Type =:= b8g8r8a8 ->
+    Bin = << << Pre:8, (255-C):8, P:16 >> || <<Pre:8, C:8, P:16>> <= Image >>,
+    Img#e3d_image{image=Bin, filename=[]};
+invert_channel(b, #e3d_image{type=r8g8b8a8, image=Image}=Img) ->
+    Bin = << << Pre:16, (255-C):8, P:8 >> || <<Pre:16, C:8, P:8>> <= Image >>,
+    Img#e3d_image{image=Bin, filename=[]};
+invert_channel(a, #e3d_image{type=WA, image=Image}=Img)
+  when WA =:= r8g8b8a8; WA =:= b8g8r8a8 ->
+    Bin = << << Pre:16, (255-C):8, P:8 >> || <<Pre:16, C:8, P:8>> <= Image >>,
+    Img#e3d_image{image=Bin, filename=[]};
+invert_channel(b, #e3d_image{type=b8g8r8, image=Image}=Img) ->
+    Bin = << << (255-C):8, P:16 >> || <<C:8, P:16>> <= Image >>,
+    Img#e3d_image{image=Bin, filename=[]};
+invert_channel(r, #e3d_image{type=b8g8r8, image=Image}=Img) ->
+    Bin = << << P:16, (255-C):8 >> || <<P:16, C:8>> <= Image >>,
+    Img#e3d_image{image=Bin, filename=[]};
+invert_channel(b, #e3d_image{type=b8g8r8a8, image=Image}=Img) ->
+    Bin = << << (255-C):8, P:24 >> || <<C:8, P:24>> <= Image >>,
+    Img#e3d_image{image=Bin, filename=[]};
+invert_channel(r, #e3d_image{type=b8g8r8a8, image=Image}=Img) ->
+    Bin = << << Pre:16, (255-C):8, P:8 >> || <<Pre:16, C:8, P:8>> <= Image >>,
+    Img#e3d_image{image=Bin, filename=[]}.
+
 %% Func: convert(#e3d_image, NewType [,NewAlignment [,NewOrder ]])
 %% Rets: #e3d_image | {error, Reason}
 %% Desc: Converts an image to new type optionally NewAlignment and NewOrder
@@ -319,7 +364,7 @@ height2normal(Old, Opts) ->
     #e3d_image{width=W,height=H,image=I,name=Name} = e3d_image:convert(Old, g8, 1),
     New = bumps(H, W, I, ScaleXY),
     Old#e3d_image{bytes_pp=3,type=r8g8b8, image=New, alignment=1,
-		  filename=none, name=Name++"_normal"}.
+		  filename=none, name=filename:rootname(Name)++"_normal"}.
 
 bumps(Rows, Cols, Bin, Scale) ->
     Offset = (Rows-2)*Cols,
