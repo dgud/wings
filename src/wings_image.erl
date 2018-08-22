@@ -266,7 +266,7 @@ handle_call({bumpid,Id}, _From, S) ->
         undefined -> {reply, create_normal(Id,undefined,S), S};
         TxId -> {reply, TxId, S}
     end;
-handle_call({combid,{Id, _Mat}}, _From, S0) ->
+handle_call({combid,Id}, _From, S0) ->
     case get(Id) of
         undefined ->
             {Reply, S} = create_combined(Id,S0),
@@ -511,7 +511,7 @@ height2normal(Img, Opts, Mipmaps) ->
             catch _:{badmatch,{error,_}} ->
                     %% Fallback (probably alloc memory)
                     ?dbg("Failed to allocate gfx memory ~n",[]),
-                    e3d_image:height2normal(Img, Opts, Mipmaps)
+                    e3d_image:height2normal(Img, Opts, false)
             end;
         false ->
             e3d_image:height2normal(Img, Opts, Mipmaps)
@@ -531,8 +531,8 @@ height2normal_cl(CL, #e3d_image{width=W,height=H}=Img, Opts, Mipmaps) ->
     {ok, NormalRGB} = cl:wait(W2),
     cl:release_mem_object(CLImg),
     MMs = case Mipmaps of
-              true -> make_normal_mm(Normal, W div 2, H div 2, NRGB, CL);
-              false -> []
+              %% false -> [];
+              true -> make_normal_mm(Normal, W div 2, H div 2, NRGB, CL)
           end,
     cl:release_mem_object(NRGB),
     cl:release_mem_object(Normal),

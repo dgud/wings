@@ -521,7 +521,7 @@ material_prop(Name, Mtab) ->
         true ->
             [{{tex,diffuse}, get_texture_map(diffuse, Maps)},
              {{tex,normal}, get_normal_map(Maps)},
-             {{tex,pbr_orm},  get_pbr_map(Maps, Name)},
+             {{tex,pbr_orm},  get_pbr_map(Maps)},
              {{tex,emission}, get_texture_map(emission, Maps)}
              |OpenGL];
         false ->
@@ -531,11 +531,11 @@ material_prop(Name, Mtab) ->
 get_texture_map(Type, Maps) ->
     image_id(Type, prop_get(Type, Maps, none)).
 
-get_pbr_map(Maps, Name) ->
+get_pbr_map(Maps) ->
     PBRId = [prop_get(occlusion, Maps, none),
              prop_get(roughness, Maps, none),
              prop_get(metallic, Maps, none)],
-    image_id(combined, {PBRId, Name}).
+    image_id(combined, PBRId).
 
 get_normal_map(Maps) ->
     case prop_get(normal, Maps, none) of
@@ -754,9 +754,8 @@ mat_preview(Canvas, Common, Maps) ->
     Material = [Diff, Emis, Metal, Rough,
                 {{tex,diffuse},   get_texture_map(diffuse, Maps)},
                 {{tex,normal},    none}, %% get_normal_map(Maps)},  %% Have no tangents
-                {{tex,metallic},  get_texture_map(metallic, Maps)},
-                {{tex,emission},  get_texture_map(emission, Maps)},
-                {{tex,occlusion}, get_texture_map(occlusion, Maps)}],
+                {{tex,pbr_orm},   get_pbr_map(Maps)},
+                {{tex,emission},  get_texture_map(emission, Maps)}],
 
     Obj = glu:newQuadric(),
     gl:enable(?GL_BLEND),
