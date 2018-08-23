@@ -673,13 +673,13 @@ image_maps_index(Type) ->
     	diffuse -> 4;
 	gloss -> 5;
         metallic -> 5;
-        roughness -> 6;
+        roughness -> 10;
 	bump -> 6;
 	normal -> 7;
         occlusion -> 8;
         emission -> 9;
-	material -> 10;
-        _unknown -> 10
+	material -> 11;
+        _unknown -> 11
     end.
 
 load_icons() ->
@@ -700,7 +700,7 @@ load_icons() ->
 		     small_image,small_image2,perspective, %small_object,
 		     small_light,
 		     small_diffuse,small_gloss,small_bump,small_normal,
-                     small_aocc, small_emission,
+                     small_aocc, small_emission, small_roughness,
 		     material
 		    ]),
     {IL, #{image=>0, internal_image=>1, object=>2, light=>3, mat=>8}}.
