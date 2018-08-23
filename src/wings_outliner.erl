@@ -66,14 +66,18 @@ command({delete_material,Name}, _Ost) ->
     wings_wm:send(geom, {action,{material,{delete,[Name]}}});
 command({rename_material,Name}, _Ost) ->
     wings_wm:send(geom, {action,{material,{rename,[Name]}}});
-command({assign_texture,Type,Id,Name0}, #st{mat=Mtab}) ->
+command({assign_texture,Type,Id,Name0, Format}, #st{mat=Mtab}) ->
     Name = list_to_atom(Name0),
     Mat0 = gb_trees:get(Name, Mtab),
     {Maps0,Mat1} = prop_get_delete(maps, Mat0),
     Maps = [{Type,Id}|keydelete(Type, 1, Maps0)],
     Mat  = [{maps,Maps}|Mat1],
+    ConvertWarning = ?__(10, "Expected a gray scale image, converting"),
     case Type of
 	normal -> wings_image:is_normalmap(Id);
+        metallic  when Format =/= g8 -> wings_u:message(ConvertWarning);
+        roughness when Format =/= g8 -> wings_u:message(ConvertWarning);
+        occlusion when Format =/= g8 -> wings_u:message(ConvertWarning);
 	_ -> ignore
     end,
     wings_wm:send(geom, {action,{material,{update,Name,Mat}}});
@@ -113,8 +117,8 @@ command({create_normal_map,Params}, _) ->
     keep;
 command({export_image,Id}, _) ->
     export_image(Id);
-command({invert_image, Id}, _) ->
-    invert_image(Id);
+command({invert_channel, {Ch, Id}}, _) ->
+    invert_image(Ch, Id);
 command({from_channel, {Ch, Id}}, _) ->
     from_channel(Ch, Id);
 command(Cmd, _) ->
@@ -132,24 +136,17 @@ duplicate_image(Id) ->
     wings_wm:send(geom, need_save),
     keep.
 
-invert_image(Id) ->
-    #e3d_image{type=Type, bytes_pp=Bpp, image=Image, name=Name} = Im = wings_image:info(Id),
-    case can_invert(Type, Bpp) of
-        true ->
-            Bin = << << (255-C):8 >> || <<C:8>> <= Image >>,
-            wings_image:new(filename:rootname(Name) ++ " Inv", Im#e3d_image{image=Bin}),
+invert_image(Ch, Id) ->
+    #e3d_image{type=Type, bytes_pp=Bpp, name=Name} = Im = wings_image:info(Id),
+    try e3d_image:invert_channel(Ch, Im) of
+        Inv ->
+            wings_image:new(filename:rootname(Name) ++ " Inv", Inv),
             wings_wm:send(geom, need_save),
-            keep;
-        false ->
-            wings_u:message(?__(1, "Cannot invert image type ~s (~w) bytes per pixel"), [Type, Bpp]),
+            keep
+    catch _:_ ->
+            wings_u:error_msg(?__(1, "Cannot invert image type ~s (~w) bytes per pixel"), [Type, Bpp]),
             keep
     end.
-
-can_invert(_, 1) -> true;
-can_invert(_, 3) -> true;
-can_invert(r8g8b8a8, 4) -> true;
-can_invert(b8g8r8a8, 4) -> true;
-can_invert(_,_) -> false.
 
 from_channel(Ch, Id) ->
     Im = wings_image:info(Id),
@@ -800,27 +797,29 @@ image_menu_1(Id, _, Mat) ->
 image_menu_2(Id, unused) ->
     [separator,
      {?__(1,"Delete"),menu_cmd(delete_image, Id),
-      ?__(2,"Delete selected image"),[{hotkey,wings_hotkey:format_hotkey({?SDLK_DELETE,[]},pretty)}]}
+      ?__(2,"Delete selected image"),
+      [{hotkey,wings_hotkey:format_hotkey({?SDLK_DELETE,[]},pretty)}]}
      |command_image_menu(Id)];
 image_menu_2(Id, {Mat, Type}) ->
     [separator,
      {?__(3,"Remove Texture"),menu_cmd(remove_texture, {Type, Mat}),
-      ?__(4,"Remove texture from material")}
+      ?__(4,"Remove texture from material"),
+      [{hotkey,wings_hotkey:format_hotkey({?SDLK_DELETE,[]},pretty)}]}
      |command_image_menu(Id)].
 
 command_image_menu(Id) ->
+    Chs = [{?__(121, "Red"),   menu_cmd(r, Id)},
+           {?__(122, "Green"), menu_cmd(g, Id)},
+           {?__(123, "Blue"),  menu_cmd(b, Id)},
+           {?__(124, "Alpha"), menu_cmd(a, Id)}],
     [separator,
      {?__(9,"Create Normal Map"),create_normal_map_fun(Id),
-      {?__(10,"Creates a normal map for the image"),[],?__(11,"Creates a normal map for the image with parameters")},[opt]},
-     {?__(12,"Create Inverted Image"),menu_cmd(invert_image, Id),
-      ?__(13,"Invert each channel of the image")},
+      {?__(10,"Creates a normal map for the image"),[],
+       ?__(11,"Creates a normal map for the image with parameters")},[opt]},
+     {?__(12,"Create Inverted Image"),
+      {invert_channel, Chs}, ?__(13,"Invert a channel of the image")},
      {?__(14,"Create Gray Image from channel"),
-      {from_channel,
-       [{?__(141, "Red"),   menu_cmd(r, Id)},
-        {?__(142, "Green"), menu_cmd(g, Id)},
-        {?__(143, "Blue"),  menu_cmd(b, Id)},
-        {?__(144, "Alpha"), menu_cmd(a, Id)}]},
-      ?__(15,"Make a new image from specified channel")},
+      {from_channel, Chs}, ?__(15,"Make a new image from specified channel")},
      separator,
      {?__(1,"Export..."),menu_cmd(export_image, Id),
       ?__(2,"Export the image")},
@@ -831,20 +830,20 @@ command_image_menu(Id) ->
       ?__(8,"Rename selected image"),[{hotkey,wings_hotkey:format_hotkey({?SDLK_F2,[]},pretty)}]}
     ].
 
-handle_drop(#{type:=image, id:=Id}, #{type:=mat, name:=Name}) ->
+handle_drop(#{type:=image, id:=Id, image:=#e3d_image{type=Format}}, #{type:=mat, name:=Name}) ->
     [{?__(1,"Texture Type"),ignore},
      separator,
-     {?__(2,"Base Color"),tx_cmd(diffuse, Id, Name)},
-     {?__(8,"Metallic"),tx_cmd(metallic, Id, Name)},
-     {?__(9,"Roughness"),tx_cmd(roughness, Id, Name)},
-     {?__(6,"Ambient Occlusion"),tx_cmd(occlusion, Id, Name)},
-     {?__(4,"Bump (HeightMap)"),tx_cmd(bump, Id, Name)},
-     {?__(5,"Bump (NormalMap)"),tx_cmd(normal, Id, Name)},
-     {?__(7,"Emission"),tx_cmd(emission, Id, Name)}
+     {?__(2,"Base Color"),tx_cmd(diffuse, Id, Name, Format)},
+     {?__(8,"Metallic"),tx_cmd(metallic, Id, Name, Format)},
+     {?__(9,"Roughness"),tx_cmd(roughness, Id, Name, Format)},
+     {?__(6,"Ambient Occlusion"),tx_cmd(occlusion, Id, Name, Format)},
+     {?__(4,"Bump (HeightMap)"),tx_cmd(bump, Id, Name, Format)},
+     {?__(5,"Bump (NormalMap)"),tx_cmd(normal, Id, Name, Format)},
+     {?__(7,"Emission"),tx_cmd(emission, Id, Name, Format)}
     ].
 
-tx_cmd(Type, Id, Mat) ->
-    {'VALUE',{assign_texture,Type,Id,Mat}}.
+tx_cmd(Type, Id, Mat, Format) ->
+    {'VALUE',{assign_texture,Type,Id,Mat,Format}}.
 
 create_normal_map({ask,Id}) ->
     wings_dialog:dialog(?__(1,"Normalmap"),
