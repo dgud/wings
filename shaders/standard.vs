@@ -20,7 +20,7 @@ void main(void)
     // ws_position = gl_Vertex.xyz;
     v_basecolor	= diffuse * gl_Color;
     ws_normal	= normalize(mat3x3(ws_matrix)*gl_Normal);
-    vec3 T      = normalize(mat3x3(ws_matrix)*wings_tangent.xyz);
+    vec3 T      = mat3x3(ws_matrix)*wings_tangent.xyz;
     ws_tangent  = vec4(T.xyz, wings_tangent.w);
     gl_TexCoord[0]	= gl_MultiTexCoord0;
 #ifdef __GLSL_CG_DATA_TYPES // Fix clipping for Nvidia and ATI
