@@ -10,8 +10,6 @@
 
 -mode(compile).
 
-%% If moved outside of wings directory modify
--define(WINGS_DIR, "c:/src/wings/ebin").
 
 -record(opts,
 	{dir = ".",       %% Ouput to directory
@@ -59,7 +57,8 @@ main(Args) ->
 setup_paths() ->
     Escript   = filename:dirname(filename:absname(escript:script_name())),
     EnvDir    = os:getenv("WINGS_DIR"),
-    DefDir    = ?WINGS_DIR,
+    %% If moved outside of wings directory modify DefDir below
+    DefDir    = "../.",
     case test_paths([Escript, EnvDir,DefDir]) of
 	{ok, Path} ->
 	    code:add_patha(filename:join([Path, "ebin"])),
