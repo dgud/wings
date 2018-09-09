@@ -33,7 +33,7 @@ TARGET_FILES= $(MODULES:%=$(EBIN)/%.beam)
 # ----------------------------------------------------
 # FLAGS
 # ----------------------------------------------------
-ERL_COMPILE_FLAGS += -Werror $(TYPE_FLAGS) +debug_info -pa $(WINGS_INTL) -I $(WINGS_INTL)
+ERL_COMPILE_FLAGS += -Werror $(TYPE_FLAGS) +debug_info -pa $(WINGS_INTL) -I $(WINGS_INTL) -I../src
 
 # ----------------------------------------------------
 # Targets

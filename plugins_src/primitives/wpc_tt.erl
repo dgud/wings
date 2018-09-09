@@ -19,8 +19,8 @@
 		mapfoldl/3,foldl/3,sublist/3,map/2,last/1,seq/2,seq/3,
 		flatten/1,sum/1,append/1]).
 
--include_lib("wings/src/wings.hrl").
--include_lib("wings/e3d/e3d.hrl").
+-include_lib("wings.hrl").
+-include_lib("e3d.hrl").
 
 -record(ttfont,
 	{nglyph,			% number of glyphs

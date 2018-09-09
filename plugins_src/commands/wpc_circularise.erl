@@ -13,7 +13,7 @@
 
 -module(wpc_circularise).
 -export([init/0,menu/2,command/2]).
--include_lib("wings/src/wings.hrl").
+-include_lib("wings.hrl").
 
 -import(lists, [member/2]).
 

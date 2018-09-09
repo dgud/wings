@@ -17,8 +17,8 @@
 
 -export([import/1]). %% ,export/2,export/3]).
 
--include_lib("wings/e3d/e3d.hrl").
--include_lib("wings/e3d/e3d_image.hrl").
+-include_lib("e3d.hrl").
+-include_lib("e3d_image.hrl").
 
 -import(lists, [reverse/1,reverse/2,sort/1,keysearch/3,foreach/2,
 		map/2,foldl/3]).

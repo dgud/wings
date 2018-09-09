@@ -17,9 +17,9 @@
 -define(NEED_OPENGL, 1).
 -define(NEED_ESDL, 1).
 -define(ERROR, error_msg(?LINE)).
--include_lib("wings/src/wings.hrl").
--include_lib("wings/e3d/e3d_image.hrl").
--include_lib("wings/e3d/e3d.hrl").
+-include_lib("wings.hrl").
+-include_lib("e3d_image.hrl").
+-include_lib("e3d.hrl").
 -include("auv.hrl").
 
 -import(lists, [foreach/2,reverse/1,sort/1,foldl/3,member/2]).

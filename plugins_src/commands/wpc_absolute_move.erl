@@ -12,7 +12,7 @@
 %%
 -module(wpc_absolute_move).
 
--include_lib("wings/src/wings.hrl").
+-include_lib("wings.hrl").
 
 -export([init/0,menu/2,command/2]).
 

@@ -22,7 +22,7 @@
 -behaviour(wx_object).
 
 -include("wings.hrl").
--include_lib("wings/e3d/e3d_image.hrl").
+-include_lib("e3d_image.hrl").
 
 %%%%%%%% API %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

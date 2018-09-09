@@ -15,7 +15,7 @@
 -export([init/0,menu/2,command/2]).
 
 -define(NEED_OPENGL,1).
--include_lib("wings/src/wings.hrl").
+-include_lib("wings.hrl").
 
 -include("e3d.hrl").
 -include("e3d_image.hrl").

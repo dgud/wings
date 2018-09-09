@@ -15,9 +15,9 @@
 
 -define(DEF_IMAGE_TYPE, ".png").
 
--include_lib("wings/src/wings.hrl").
--include_lib("wings/e3d/e3d.hrl").
--include_lib("wings/e3d/e3d_image.hrl").
+-include_lib("wings.hrl").
+-include_lib("e3d.hrl").
+-include_lib("e3d_image.hrl").
 -include_lib("wx/include/gl.hrl").
 
 -define(F32L, 32/float-little).

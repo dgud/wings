@@ -16,8 +16,8 @@
 -define(NEED_OPENGL, 1).
 -define(NEED_ESDL, 1).
 
--include_lib("wings/src/wings.hrl").
--include_lib("wings/e3d/e3d_image.hrl").
+-include_lib("wings.hrl").
+-include_lib("e3d_image.hrl").
 -include("auv.hrl").
  
 -export([init/0,menu/2,command/2,redraw/1]).

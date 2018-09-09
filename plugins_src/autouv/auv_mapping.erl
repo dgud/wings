@@ -48,9 +48,9 @@
 	 find_pinned_from_edges/2,
 	 split_edges_1/2]).
 
--include_lib("wings/src/wings.hrl").
+-include_lib("wings.hrl").
 -include("auv.hrl").
--include_lib("wings/e3d/e3d.hrl").
+-include_lib("e3d.hrl").
 
 -import(lists, [foldl/3,reverse/1]).
 

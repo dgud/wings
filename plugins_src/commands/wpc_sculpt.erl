@@ -17,7 +17,7 @@
 
 -define(NEED_OPENGL, 1).
 -define(NEED_ESDL, 1).
--include_lib("wings/src/wings.hrl").
+-include_lib("wings.hrl").
 
 -import(lists, [foldl/3,sort/1,reverse/1,member/2]).
 

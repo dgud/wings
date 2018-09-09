@@ -23,7 +23,7 @@
 
 -define(NEED_ESDL, true).
 -define(WIN_NAME, {plugin,saved_views}).
--include_lib("wings/src/wings.hrl").
+-include_lib("wings.hrl").
 
 %%%
 %%% Saved Views window.

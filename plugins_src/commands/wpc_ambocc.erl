@@ -20,7 +20,7 @@
 
 -define(NEED_OPENGL, 1).
 -include_lib("wings.hrl").
--include_lib("wings/e3d/e3d_image.hrl").
+-include_lib("e3d_image.hrl").
 
 init() ->
     true.

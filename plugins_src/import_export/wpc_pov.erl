@@ -16,9 +16,9 @@
 
 -export([init/0, menu/2, command/2, dialog/2]).
 
--include_lib("wings/src/wings.hrl").
--include_lib("wings/e3d/e3d.hrl").
--include_lib("wings/e3d/e3d_image.hrl").
+-include_lib("wings.hrl").
+-include_lib("e3d.hrl").
+-include_lib("e3d_image.hrl").
 
 -define(TAG, povray36).
 -define(KEY(K), {?TAG, (K)}).

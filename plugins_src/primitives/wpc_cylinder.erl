@@ -14,7 +14,7 @@
 
 -module(wpc_cylinder).
 -export([init/0,menu/2,command/2]).
--include_lib("wings/src/wings.hrl").
+-include_lib("wings.hrl").
 -import(math, [cos/1,sin/1,pi/0]).
 
 init() -> true.

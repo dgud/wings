@@ -15,7 +15,7 @@
 -export([init/0,menu/2,command/2]).
 
 -import(math, [cos/1,sin/1,pi/0]).
--include_lib("wings/intl_tools/wings_intl.hrl").
+-include_lib("wings_intl.hrl").
 
 init() ->
     true.

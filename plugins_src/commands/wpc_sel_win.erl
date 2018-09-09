@@ -23,7 +23,7 @@
 
 -define(WIN_NAME, {plugin, sel_groups}).
 -define(NEED_ESDL, true).
--include_lib("wings/src/wings.hrl").
+-include_lib("wings.hrl").
 
 %%%
 %%% Selection groups window.

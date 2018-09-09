@@ -14,7 +14,7 @@
 -module(wings_cl).
 -include_lib("cl/include/cl.hrl").
 -compile([{nowarn_deprecated_function, {erlang,get_stacktrace,0}}]).
--include_lib("wings/e3d/e3d_image.hrl").
+-include_lib("e3d_image.hrl").
 
 -export([is_available/0,
 	 setup/0, stop/1, compile/2, compile/3,

@@ -18,7 +18,7 @@
 -define(NEED_ESDL, 1).
 -define(NEED_OPENGL, 1).
 
--include_lib("wings/src/wings.hrl").
+-include_lib("wings.hrl").
 
 %% State info
 -record(cs, {v=[],  %% Connected vertices

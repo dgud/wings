@@ -16,8 +16,8 @@
 
 -define(NEED_OPENGL, 1).
 
--include_lib("wings/src/wings.hrl").
--include_lib("wings/e3d/e3d_image.hrl").
+-include_lib("wings.hrl").
+-include_lib("e3d_image.hrl").
 
 -define(HUGE, 1.0E307).
 -define(WIN_NAME, {plugin,snap}).

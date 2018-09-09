@@ -12,7 +12,7 @@
 -module(wings_dialog).
 -define(NEED_ESDL, 1). %% Needs to send mouseevents to camera
 -include("wings.hrl").
--include_lib("wings/e3d/e3d_image.hrl").
+-include_lib("e3d_image.hrl").
 
 -export([init/0,
 	 info/3,

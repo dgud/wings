@@ -19,9 +19,9 @@
 %% -export([now_diff_1/1]).
 
 -include_lib("kernel/include/file.hrl").
--include_lib("wings/e3d/e3d.hrl").
--include_lib("wings/e3d/e3d_image.hrl").
--include_lib("wings/src/wings.hrl").
+-include_lib("e3d.hrl").
+-include_lib("e3d_image.hrl").
+-include_lib("wings.hrl").
 
 -import(lists, [reverse/1,reverse/2,sort/1,keydelete/3,
                 foreach/2,foldl/3,foldr/3]).

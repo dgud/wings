@@ -38,8 +38,8 @@
 		keysort/2,
 		keyreplace/4
 	       ]).
--include_lib("wings/src/wings.hrl").
--include_lib("wings/e3d/e3d.hrl").
+-include_lib("wings.hrl").
+-include_lib("e3d.hrl").
 
 -define(EPS, 1.0e-6).
 -define(EPS1, 1.0e-5).

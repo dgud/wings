@@ -14,7 +14,7 @@
 -module(wp9_dialogs).
 -export([init/1]).
 
--include_lib("wings/src/wings.hrl").
+-include_lib("wings.hrl").
 
 init(Next) ->
     wpa:pref_set_default(?MODULE, utf8, true),

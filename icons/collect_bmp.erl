@@ -14,7 +14,7 @@
 -module(collect_bmp).
 -export([start/0,start/1]).
 
--include_lib("wings/e3d/e3d_image.hrl").
+-include_lib("e3d_image.hrl").
 
 start() ->
     start(["icons","wings_icon.bundle"]).

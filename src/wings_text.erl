@@ -19,7 +19,8 @@
 
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
--include_lib("wings/intl_tools/wings_chars.hrl").
+%%-include_lib("wings/intl_tools/wings_chars.hrl").
+-include_lib("wings_chars.hrl").
 -compile({parse_transform,ms_transform}).
 
 -import(lists, [reverse/1]).

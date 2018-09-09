@@ -21,7 +21,7 @@
 -export([degrees/0, find_features/3, build_seeds/2]). %% Debugging
 -endif.
 
--include_lib("wings/src/wings.hrl").
+-include_lib("wings.hrl").
 -include("auv.hrl").
 
 -import(lists, [reverse/1,mapfoldl/3,sort/1,foldl/3]).

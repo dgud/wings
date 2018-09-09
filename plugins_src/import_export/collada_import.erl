@@ -12,7 +12,7 @@
 %%
 -module(collada_import).
 -export([import/1]).
--include_lib("wings/e3d/e3d.hrl").
+-include_lib("e3d.hrl").
 %% Local exports callbacks
 -export([ignored/4, asset/3, lib_geom/4, mesh/4, source/4,
          param/4, vertices/4, make_polys/1, polys/4,

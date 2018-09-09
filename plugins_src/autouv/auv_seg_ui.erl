@@ -15,7 +15,7 @@
 -export([start/4]).
 
 -define(NEED_ESDL, 1).
--include_lib("wings/src/wings.hrl").
+-include_lib("wings.hrl").
 -include("auv.hrl").
 
 -import(lists, [sort/1,map/2,member/2,foldl/3,reverse/1]).

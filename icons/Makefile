@@ -54,4 +54,4 @@ clean:
 	@echo
 
 %.beam: $(ESRC)/%.erl
-	$(ERLC) $(ERL_COMPILE_FLAGS) -o. $<
+	$(ERLC) -I../e3d $(ERL_COMPILE_FLAGS) -o. $<
