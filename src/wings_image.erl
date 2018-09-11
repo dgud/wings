@@ -410,8 +410,9 @@ init_texture_2(#e3d_image{width=W,height=H,image=Bits,extra=Opts}=Image, TxId) -
 do_update(Id, In = #e3d_image{width=W,height=H,type=Type,name=NewName},
 	  #ist{images=Images0}=S) ->
     #img{e3d=Im0, partof=Combs} = Image = gb_trees:get(Id, Images0),
+
     %% Cleanup combined textures and recreate (later) on the fly (can be optimized)
-    Ids = [erase(Comb)|| Comb <- [Id|Combs]],
+    Ids = [erase(Comb)|| Comb <- Combs],
     wings_gl:deleteTextures([Tex || Tex <- Ids, is_integer(Tex)]),
     Images1 = remove_all_combs(Combs, Images0),
 
