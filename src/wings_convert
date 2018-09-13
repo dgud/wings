@@ -33,12 +33,13 @@
 
 main(Args) ->
     Wings_dir = setup_paths(),
-    ok = wings:start(),
-    Init = fun() ->
-                   wxTopLevelWindow:iconize(wings_wm:get_value(top_frame)),
-                   keep
-           end,
-    wings ! {action, Init},
+    wings_start:start_halt(),
+    %% this window minimize hack should be moved to an option for wings_start:start_halt(...)
+    %%Init = fun() ->
+    %%               wxTopLevelWindow:iconize(wings_wm:get_value(top_frame)),
+    %%               keep
+    %%       end,
+    %%wings ! {action, Init},
     IEDir = filename:join(Wings_dir, "plugins/import_export"),
     code:add_patha(IEDir),
     Opts0 = scan_format([IEDir]),
