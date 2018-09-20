@@ -385,7 +385,7 @@ enter_tweak_handler(Ev, What, St, #tweak{id={Action,_},st=#st{sel=Sel}=St0}=T) -
 	  end,
     begin_drag(What, St1, T),
     do_tweak_0(0, 0, 0, 0, {move,screen}),
-    handle_tweak_drag_event_0(Ev,T).
+    {replace,fun(Event) -> handle_tweak_drag_event_0(Event, T) end, Ev}.
 
 %%%
 %%% Tweak Event Handlers

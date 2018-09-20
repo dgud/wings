@@ -832,7 +832,6 @@ update_focus(Active) ->
 		    Active
 	    end;
 	Win ->
-	    do_dispatch(Active, got_focus),
 	    Win
     end.
 
@@ -1021,6 +1020,9 @@ handle_response(Res, Event, Stk0) ->
 	{replace,Top,Continue} when is_function(Top), is_function(Continue) ->
 	    Stk = replace_handler(Top, Stk0),
 	    handle_event(Continue, dummy_event, Stk);
+        {replace,Top,Ev} when is_function(Top) ->
+	    Stk = replace_handler(Top, Stk0),
+	    handle_event(hd(Stk), Ev, Stk);
 	{pop_handler,_}=PopH -> replace_handler(PopH, Stk0);
 	Top when is_function(Top) -> replace_handler(Top, Stk0)
     end.
