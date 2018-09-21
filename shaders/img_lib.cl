@@ -163,14 +163,14 @@ __kernel void height2normal(__read_only image2d_t inImg,
                             __global float4 *outImg
                             )
 {
-  const sampler_t sampler=CLK_NORMALIZED_COORDS_FALSE|CLK_ADDRESS_REPEAT;
+  const sampler_t sampler=CLK_NORMALIZED_COORDS_FALSE|CLK_ADDRESS_CLAMP|CLK_FILTER_LINEAR;
   int x = (int) get_global_id(0);
   int y = (int) get_global_id(1);
   if(x < w && y < h) {
     float4 cx0 = read_imagef(inImg, sampler, (float2)((x+w-1)%w, y));
     float4 cx1 = read_imagef(inImg, sampler, (float2)((x+1)%w, y));
-    float4 cy0 = read_imagef(inImg, sampler, (float2)(x, ((y+h-1)%h)));
-    float4 cy1 = read_imagef(inImg, sampler, (float2)(x, ((y+1)%h)));
+    float4 cy0 = read_imagef(inImg, sampler, (float2)(x, (y+h-1)%h));
+    float4 cy1 = read_imagef(inImg, sampler, (float2)(x, (y+1)%h));
 
     float nx = (cx1.x - cx0.x)*-s_x;
     float ny = (cy1.x - cy0.x)*-s_y;
@@ -201,11 +201,11 @@ __kernel void mm_normalmap(__global float4 *inImg, const int w, const int h, __g
 
 __kernel void rgba_to_normal(__read_only image2d_t inImg, const int w, const int h, __global float4 *outImg)
 {
-  const sampler_t sampler=CLK_NORMALIZED_COORDS_FALSE|CLK_ADDRESS_REPEAT;
+  const sampler_t sampler=CLK_NORMALIZED_COORDS_FALSE|CLK_ADDRESS_CLAMP|CLK_FILTER_LINEAR;
   int x = (int) get_global_id(0);
   int y = (int) get_global_id(1);
   if(x < w && y < h) {
-    float4 cx0 = read_imagef(inImg, sampler, (float2)(x, y));
+    float4 cx0 = read_imagef(inImg, sampler, (float2)(x+0.5f, y+0.5f));
     outImg[y*w+x] = cx0*2.0f-1.0f;
   }
 }
