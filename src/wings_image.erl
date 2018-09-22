@@ -138,7 +138,8 @@ update(Id, Image) ->
     req({update,Id,Image}).
 
 update_filename(Id, Filename) ->
-    gen_server:cast(?MODULE, {update_filename,Id,Filename}).
+    gen_server:cast(?MODULE, {update_filename,Id,Filename}),
+    wings_wm:notify(image_change).
 
 find_image(Dir, Filename) ->
     req({find_image,Dir,Filename}, false).

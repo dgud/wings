@@ -703,7 +703,7 @@ load_icons() ->
                      small_aocc, small_emission, small_roughness,
 		     material
 		    ]),
-    {IL, #{image=>0, internal_image=>1, object=>2, light=>3, mat=>8}}.
+    {IL, #{image=>0, internal_image=>1, object=>2, light=>3, mat=>11}}.
 
 mat_bitmap(Col) ->
     {_, _, Orig} = lists:keyfind(material, 1, wings_frame:get_icon_images()),

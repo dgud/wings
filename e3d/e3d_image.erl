@@ -170,16 +170,16 @@ channel_img(Data, CN, #e3d_image{name=N, extra=X}=Img) ->
 %%       the other channels will be white
 expand_channel(r, #e3d_image{type=g8, image=In}=Img) ->
     RGBA = << <<C:8, -1:24>> || <<C:8>> <= In>>,
-    Img#e3d_image{type=r8g8b8a8, bytes_pp=4, name=[], filename=[], extra=[], image=RGBA};
+    Img#e3d_image{type=r8g8b8a8, bytes_pp=4, name=[], filename=none, extra=[], image=RGBA};
 expand_channel(g, #e3d_image{type=g8, image=In}=Img) ->
     RGBA = << <<-1:8, C:8, -1:16>> || <<C:8>> <= In>>,
-    Img#e3d_image{type=r8g8b8a8, bytes_pp=4, name=[], filename=[], extra=[], image=RGBA};
+    Img#e3d_image{type=r8g8b8a8, bytes_pp=4, name=[], filename=none, extra=[], image=RGBA};
 expand_channel(b, #e3d_image{type=g8, image=In}=Img) ->
     RGBA = << <<-1:16, C:8, -1:8>> || <<C:8>> <= In>>,
-    Img#e3d_image{type=r8g8b8a8, bytes_pp=4, name=[], filename=[], extra=[], image=RGBA};
+    Img#e3d_image{type=r8g8b8a8, bytes_pp=4, name=[], filename=none, extra=[], image=RGBA};
 expand_channel(a, #e3d_image{type=g8, image=In}=Img) ->
     RGBA = << <<-1:24, C:8>> || <<C:8>> <= In>>,
-    Img#e3d_image{type=r8g8b8a8, bytes_pp=4, name=[], filename=[], extra=[], image=RGBA}.
+    Img#e3d_image{type=r8g8b8a8, bytes_pp=4, name=[], filename=none, extra=[], image=RGBA}.
 
 
 -spec replace_channel(Which::r|g|b|a, ChG8::#e3d_image{}, Orig::#e3d_image{})  -> #e3d_image{}.
@@ -215,43 +215,43 @@ replace_a(<<>>, <<>>, Acc) -> Acc.
 invert_channel(_, #e3d_image{type=G8orA8, image=Image}=Img)
   when G8orA8 =:= g8; G8orA8 =:= a8 ->
     Bin = << << (255-C):8 >> || <<C:8>> <= Image >>,
-    Img#e3d_image{image=Bin, filename=[]};
+    Img#e3d_image{image=Bin, filename=none};
 invert_channel(r, #e3d_image{type=r8g8b8, image=Image}=Img) ->
     Bin = << << (255-C):8, P:16 >> || <<C:8, P:16>> <= Image >>,
-    Img#e3d_image{image=Bin, filename=[]};
+    Img#e3d_image{image=Bin, filename=none};
 invert_channel(g, #e3d_image{type=Type, image=Image}=Img)
   when Type =:= r8g8b8; Type =:= b8g8r8 ->
     Bin = << << Pre:8, (255-C):8, P:8 >> || <<Pre:8, C:8, P:8>> <= Image >>,
-    Img#e3d_image{image=Bin, filename=[]};
+    Img#e3d_image{image=Bin, filename=none};
 invert_channel(b, #e3d_image{type=r8g8b8, image=Image}=Img) ->
     Bin = << << P:16, (255-C):8 >> || <<P:16, C:8>> <= Image >>,
-    Img#e3d_image{image=Bin, filename=[]};
+    Img#e3d_image{image=Bin, filename=none};
 invert_channel(r, #e3d_image{type=r8g8b8a8, image=Image}=Img) ->
     Bin = << << (255-C):8, P:24 >> || <<C:8, P:24>> <= Image >>,
-    Img#e3d_image{image=Bin, filename=[]};
+    Img#e3d_image{image=Bin, filename=none};
 invert_channel(g, #e3d_image{type=Type, image=Image}=Img)
   when Type =:= r8g8b8a8; Type =:= b8g8r8a8 ->
     Bin = << << Pre:8, (255-C):8, P:16 >> || <<Pre:8, C:8, P:16>> <= Image >>,
-    Img#e3d_image{image=Bin, filename=[]};
+    Img#e3d_image{image=Bin, filename=none};
 invert_channel(b, #e3d_image{type=r8g8b8a8, image=Image}=Img) ->
     Bin = << << Pre:16, (255-C):8, P:8 >> || <<Pre:16, C:8, P:8>> <= Image >>,
-    Img#e3d_image{image=Bin, filename=[]};
+    Img#e3d_image{image=Bin, filename=none};
 invert_channel(a, #e3d_image{type=WA, image=Image}=Img)
   when WA =:= r8g8b8a8; WA =:= b8g8r8a8 ->
     Bin = << << Pre:16, (255-C):8, P:8 >> || <<Pre:16, C:8, P:8>> <= Image >>,
-    Img#e3d_image{image=Bin, filename=[]};
+    Img#e3d_image{image=Bin, filename=none};
 invert_channel(b, #e3d_image{type=b8g8r8, image=Image}=Img) ->
     Bin = << << (255-C):8, P:16 >> || <<C:8, P:16>> <= Image >>,
-    Img#e3d_image{image=Bin, filename=[]};
+    Img#e3d_image{image=Bin, filename=none};
 invert_channel(r, #e3d_image{type=b8g8r8, image=Image}=Img) ->
     Bin = << << P:16, (255-C):8 >> || <<P:16, C:8>> <= Image >>,
-    Img#e3d_image{image=Bin, filename=[]};
+    Img#e3d_image{image=Bin, filename=none};
 invert_channel(b, #e3d_image{type=b8g8r8a8, image=Image}=Img) ->
     Bin = << << (255-C):8, P:24 >> || <<C:8, P:24>> <= Image >>,
-    Img#e3d_image{image=Bin, filename=[]};
+    Img#e3d_image{image=Bin, filename=none};
 invert_channel(r, #e3d_image{type=b8g8r8a8, image=Image}=Img) ->
     Bin = << << Pre:16, (255-C):8, P:8 >> || <<Pre:16, C:8, P:8>> <= Image >>,
-    Img#e3d_image{image=Bin, filename=[]}.
+    Img#e3d_image{image=Bin, filename=none}.
 
 %% Func: convert(#e3d_image, NewType [,NewAlignment [,NewOrder ]])
 %% Rets: #e3d_image | {error, Reason}
