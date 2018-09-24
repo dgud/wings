@@ -198,13 +198,14 @@ unhide(Ids0, #st{selmode=Mode,shapes=Shs0,sel=Sel0}=St) ->
 -spec lock(Ids, #st{}) -> #st{} when
       Ids :: [id()].
 
-lock(Ids0, #st{shapes=Shs0}=St) ->
+lock(Ids0, #st{shapes=Shs0,sel=Sel0}=St) ->
     Ids = gb_sets:from_list(Ids0),
     Wes0 = gb_trees:values(Shs0),
     Wes1 = [We || #we{id=Id}=We <- Wes0, gb_sets:is_member(Id, Ids)],
     Wes = [lock_we(We) || We <- Wes1],
     Shs = update_wes(Wes, Shs0),
-    St#st{shapes=Shs}.
+    Sel = [Item || {Id,_}=Item <- Sel0, not gb_sets:is_member(Id, Ids)],
+    St#st{shapes=Shs,sel=Sel}.
 
 -spec unlock(Ids, #st{}) -> #st{} when
       Ids :: [id()].
