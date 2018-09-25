@@ -208,11 +208,11 @@ exp_add_index(Ps0, GLTF0) ->
                            {P#{indices:=AId}, GLTF}
                    end, GLTF1, Ps1).
 
-exp_add_mesh_data({Min, Max}, UseTx, S, GLTF0) ->
+exp_add_mesh_data({Min, Max}, NoTx, S, GLTF0) ->
     VsData = lists:sort(maps:values(S)),
     N = maps:size(S),
     Bin = << <<Bin/binary>> || {_, Bin} <- VsData>>,
-    Stride = case UseTx of
+    Stride = case NoTx of
                  true -> 6*4;
                  false -> 6*4+2*4
              end,
@@ -223,11 +223,11 @@ exp_add_mesh_data({Min, Max}, UseTx, S, GLTF0) ->
                            accessors, GLTF1),
     {NsA, GLTF3} = exp_add(exp_make_acc(BVId, N, ?GL_FLOAT, <<"VEC3">>, 3*4),
                            accessors, GLTF2),
-    case UseTx of
+    case NoTx of
         true ->
             {#{'POSITION'=>VsA, 'NORMAL'=> NsA}, GLTF3};
         false ->
-            {TxA, GLTF4} = exp_add(exp_make_acc(BVId, N, ?GL_FLOAT, <<"VEC2">>, 6*4),
+            {TxA, GLTF4} = exp_add(exp_make_acc(BVId, N, ?GL_FLOAT, <<"VEC2_FLIP_Y">>, 6*4),
                                    accessors, GLTF3),
             {#{'POSITION'=>VsA, 'NORMAL'=> NsA, 'TEXCOORD_0' => TxA}, GLTF4}
     end.
@@ -276,8 +276,8 @@ exp_data(V,N,Uv,Vs,Ns,Tx,S0) ->
             {NX,NY,NZ} = array:get(N, Ns),
             {XU,XV} = array:get(Uv, Tx),
             Bin = << X:?F32L, Y:?F32L, Z:?F32L,
-                    NX:?F32L,NY:?F32L,NZ:?F32L,
-                    XU:?F32L,(1.0-XV):?F32L>>,
+                     NX:?F32L,NY:?F32L,NZ:?F32L,
+                     XU:?F32L,XV:?F32L>>,
             {Id, S0#{Key=>{Id, Bin}}}
     end.
 
@@ -347,7 +347,7 @@ merge_met_roughness(Maps) ->
     {FN, E3d} =
         case {proplists:get_value(metallic, Maps),
               proplists:get_value(roughness, Maps)} of
-            {undefined, undefined} -> undefined;
+            {undefined, undefined}=Undef -> Undef;
             {#e3d_image{filename=File}=Map, undefined} ->
                 {File, e3d_image:expand_channel(b, e3d_image:convert(Map, g8, 1))};
             {undefined, #e3d_image{filename=File}=Map} ->
@@ -360,13 +360,17 @@ merge_met_roughness(Maps) ->
             {#e3d_image{filename=File}=Map, _} ->
                 {File, e3d_image:expand_channel(b, e3d_image:convert(Map, g8, 1))}
         end,
-    Dir = filename:dirname(FN),
-    Ext = filename:extension(FN),
-    FileName = filename:basename(FN, Ext),
-    SaveFile = filename:join(Dir, FileName ++ "_met_rough" ++ Ext),
-    RGB = e3d_image:convert(E3d, r8g8b8),
-    wings_image:image_write([{image, RGB}, {filename, SaveFile}]),
-    RGB#e3d_image{filename=SaveFile}.
+    case E3d of
+        undefined -> undefined;
+        _ ->
+            Dir = filename:dirname(FN),
+            Ext = filename:extension(FN),
+            FileName = filename:basename(FN, Ext),
+            SaveFile = filename:join(Dir, FileName ++ "_met_rough" ++ Ext),
+            RGB = e3d_image:convert(E3d, r8g8b8),
+            wings_image:image_write([{image, RGB}, {filename, SaveFile}]),
+            RGB#e3d_image{filename=SaveFile}
+    end.
 
 exp_add_image(undefined, Data, _, _, GLTF) ->
     {Data, GLTF};
@@ -567,8 +571,8 @@ imp_mesh_data(What, AId, GLTF, Buffers) ->
     %% <<_:Offset0/binary,Buff:BlockSz/binary, _/binary>> = BuffBlock,
     <<_:Offset/binary, Buff:BlockSz/binary, _/binary>> = Buffer,
     ModType = case {What, Type} of
-                  {tx, <<"VEC2">>} ->
-                      <<"VEC2_FLIP_Y">>;
+                  {tx, <<"VEC2">>}        -> <<"VEC2_FLIP_Y">>;
+                  {tx, <<"VEC2_FLIP_Y">>} -> <<"VEC2">>;
                   _ -> Type
               end,
     Data = imp_buff(Buff, CType, ModType, Stride-CSz),
@@ -578,28 +582,119 @@ imp_mesh_data(What, AId, GLTF, Buffers) ->
 %%%%%%%%%
 
 imp_buff(Bin, ?GL_FLOAT, <<"SCALAR">>, Skip) ->
-    [A || <<A:32/float-little,_:Skip/binary>> <= Bin];
+    lists:reverse(imp_buff_1f(Bin, Skip, []));
 imp_buff(Bin, ?GL_FLOAT, <<"VEC2">>, Skip) ->
-    [{A,B} || <<A:32/float-little,B:32/float-little,_:Skip/binary>> <= Bin];
+    lists:reverse(imp_buff_2f(Bin, Skip, []));
 imp_buff(Bin, ?GL_FLOAT, <<"VEC2_FLIP_Y">>, Skip) ->
-    [{A,1.0-B} || <<A:32/float-little,B:32/float-little,_:Skip/binary>> <= Bin];
+    lists:reverse(imp_buff_2f_i(Bin, Skip, []));
 imp_buff(Bin, ?GL_FLOAT, <<"VEC3">>, Skip) ->
-    [{A,B,C} || <<A:32/float-little,B:32/float-little,
-                  C:32/float-little,_:Skip/binary>> <= Bin];
+    lists:reverse(imp_buff_3f(Bin, Skip, []));
 imp_buff(Bin, ?GL_FLOAT, <<"VEC4">>, Skip) ->
-    [{A,B,C,D} ||
-        <<A:32/float-little,B:32/float-little,
-          C:32/float-little,D:32/float-little,_:Skip/binary>> <= Bin];
+    lists:reverse(imp_buff_4f(Bin, Skip, []));
 imp_buff(Bin, ?GL_BYTE, <<"SCALAR">>, Skip) ->
-    [A || <<A:8/little, _:Skip/binary>> <= Bin];
+    lists:reverse(imp_buff_1b(Bin, Skip, []));
 imp_buff(Bin, ?GL_UNSIGNED_BYTE, <<"SCALAR">>, Skip) ->
-    [A || <<A:8/little-unsigned, _:Skip/binary>> <= Bin];
+    lists:reverse(imp_buff_1ub(Bin, Skip, []));
 imp_buff(Bin, ?GL_SHORT, <<"SCALAR">>, Skip) ->
-    [A || <<A:16/little, _:Skip/binary>> <= Bin];
+    lists:reverse(imp_buff_1s(Bin, Skip, []));
 imp_buff(Bin, ?GL_UNSIGNED_SHORT, <<"SCALAR">>, Skip) ->
-    [A || <<A:16/little-unsigned, _:Skip/binary>> <= Bin];
+    lists:reverse(imp_buff_1us(Bin, Skip, []));
 imp_buff(Bin, ?GL_UNSIGNED_INT, <<"SCALAR">>, Skip) ->
-    [A || <<A:32/little-unsigned, _:Skip/binary>> <= Bin].
+    lists:reverse(imp_buff_1ui(Bin, Skip, [])).
+
+imp_buff_1f(Bin, Skip, Acc) ->
+    case Bin of
+        <<A:32/float-little,_:Skip/binary, Rest/binary>> ->
+            imp_buff_1f(Rest, Skip, [A|Acc]);
+        <<A:32/float-little, _/binary>> when Skip > 0 ->
+            [A|Acc];
+        <<>> -> Acc
+    end.
+
+imp_buff_2f(Bin, Skip, Acc) ->
+    case Bin of
+        <<A:32/float-little,B:32/float-little,_:Skip/binary, Rest/binary>> ->
+            imp_buff_2f(Rest, Skip, [{A,B}|Acc]);
+        <<A:32/float-little,B:32/float-little, _/binary>> when Skip > 0 ->
+            [{A,B}|Acc];
+        <<>> -> Acc
+    end.
+
+imp_buff_2f_i(Bin, Skip, Acc) ->
+    case Bin of
+        <<A:32/float-little,B:32/float-little,_:Skip/binary, Rest/binary>> ->
+            imp_buff_2f_i(Rest, Skip, [{A,1.0-B}|Acc]);
+        <<A:32/float-little,B:32/float-little, _/binary>> when Skip > 0 ->
+            [{A,1.0-B}|Acc];
+        <<>> -> Acc
+    end.
+
+imp_buff_3f(Bin, Skip, Acc) ->
+    case Bin of
+        <<A:32/float-little,B:32/float-little,C:32/float-little,
+          _:Skip/binary, Rest/binary>> ->
+            imp_buff_3f(Rest, Skip, [{A,B,C}|Acc]);
+        <<A:32/float-little,B:32/float-little,C:32/float-little,
+          _/binary>> when Skip > 0 ->
+            [{A,B,C}|Acc];
+        <<>> -> Acc
+    end.
+
+imp_buff_4f(Bin, Skip, Acc) ->
+    case Bin of
+        <<A:32/float-little,B:32/float-little,C:32/float-little,D:32/float-little,
+          _:Skip/binary, Rest/binary>> ->
+            imp_buff_4f(Rest, Skip, [{A,B,C,D}|Acc]);
+        <<A:32/float-little,B:32/float-little,C:32/float-little,D:32/float-little,
+          _/binary>> when Skip > 0 ->
+            [{A,B,C,D}|Acc];
+        <<>> -> Acc
+    end.
+
+imp_buff_1b(Bin, Skip, Acc) ->
+    case Bin of
+        <<A:8,_:Skip/binary, Rest/binary>> ->
+            imp_buff_1b(Rest, Skip, [A|Acc]);
+        <<A:8, _/binary>> when Skip > 0 ->
+            [A|Acc];
+        <<>> -> Acc
+    end.
+
+imp_buff_1ub(Bin, Skip, Acc) ->
+    case Bin of
+        <<A:8/little-unsigned,_:Skip/binary, Rest/binary>> ->
+            imp_buff_1ub(Rest, Skip, [A|Acc]);
+        <<A:8/little-unsigned, _/binary>> when Skip > 0 ->
+            [A|Acc];
+        <<>> -> Acc
+    end.
+
+imp_buff_1s(Bin, Skip, Acc) ->
+    case Bin of
+        <<A:16/little,_:Skip/binary, Rest/binary>> ->
+            imp_buff_1s(Rest, Skip, [A|Acc]);
+        <<A:16/little, _/binary>> when Skip > 0 ->
+            [A|Acc];
+        <<>> -> Acc
+    end.
+
+imp_buff_1us(Bin, Skip, Acc) ->
+    case Bin of
+        <<A:16/little-unsigned,_:Skip/binary, Rest/binary>> ->
+            imp_buff_1us(Rest, Skip, [A|Acc]);
+        <<A:16/little-unsigned, _/binary>> when Skip > 0 ->
+            [A|Acc];
+        <<>> -> Acc
+    end.
+
+imp_buff_1ui(Bin, Skip, Acc) ->
+    case Bin of
+        <<A:32/little-unsigned,_:Skip/binary, Rest/binary>> ->
+            imp_buff_1ui(Rest, Skip, [A|Acc]);
+        <<A:32/little-unsigned, _/binary>> when Skip > 0 ->
+            [A|Acc];
+        <<>> -> Acc
+    end.
 
 size(?GL_FLOAT, <<"SCALAR">>) -> 4;
 size(?GL_FLOAT, <<"VEC2">>) -> 8;
