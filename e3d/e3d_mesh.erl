@@ -666,7 +666,7 @@ renumber_hard_edges([], _, Acc) -> reverse(Acc).
 
 map_vtx(V0, {map,Low,N}) ->
     case V0-Low of
-	V when V < N -> V;
+	V when V < N, V >= 0 -> V;
 	_ -> none
     end;
 map_vtx(V0, Map) ->
