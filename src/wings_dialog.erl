@@ -259,7 +259,12 @@ dialog_1(Ask, Title, PreviewCmd, Qs, Fun) when not is_list(Qs) ->
 	drag_preview_cmd -> error(Qs);
 	_Assert -> ok
     end,
-    {Dialog, Fields} = build_dialog(Ask andalso PreviewCmd, Title, Qs),
+    BuildDialog = case Ask of
+                      true -> PreviewCmd;
+                      false -> false;
+                      return -> false
+                  end,
+    {Dialog, Fields} = build_dialog(BuildDialog, Title, Qs),
     %% io:format("Enter Dialog ~p ~p ~p~n",[Ask,PreviewCmd, Fields]),
     enter_dialog(Ask, PreviewCmd, Dialog, Fields, Fun).
 dialog_1(Ask, Title, PreviewCmd, Qs0, Fun, HelpFun) when is_list(Qs0) ->
@@ -435,6 +440,10 @@ enter_dialog(false, _, _, Fields, Fun) -> % No dialog return def values
     Values = get_output(default, Fields),
     true = ets:delete(element(1, Fields)),
     return_result(Fun, Values, wings_wm:this());
+enter_dialog(return, _, _, Fields, Fun) -> % No dialog return def values
+    Values = get_output(default, Fields),
+    true = ets:delete(element(1, Fields)),
+    return_result(fun(R) -> {return, Fun(R)} end, Values, wings_wm:this());
 enter_dialog(true, no_preview, Dialog, Fields, Fun) -> %% No preview cmd / modal dialog
     set_dialog_parent(Dialog),
     case wxDialog:showModal(Dialog) of

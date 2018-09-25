@@ -489,11 +489,8 @@ handle_event_3(#wx{event=#wxDropFiles{files=Fs0}}, St0) ->
               (File, false) -> Send({merge, File}), false
            end,
     lists:foldl(Open, DoOpen, Objects),
-    case Fs2 of
-        [] -> keep;
-        [File] -> wings_u:error_msg(?__(1,"Unknown file format: ~s"), [filename:basename(File)]);
-        [_|_]  -> wings_u:error_msg(?__(2,"Unknown file formats"))
-    end;
+    Send({import_files, Fs2}),
+    keep;
 handle_event_3(ignore, _St) ->
     keep;
 handle_event_3({system,_,_}, _St) ->

@@ -108,8 +108,23 @@ bind_virtual(Key, Mods, Command) ->
 
 %% returns: St
 import(#e3d_file{}=E3dFile, St) ->
-    wings_import:import(E3dFile, St).
+    wings_import:import(E3dFile, St);
+import(Files, St0) when is_list(Files) ->
+    Imps = importers(),
+    Import = fun(File, St) ->
+                     case maps:get(filename:extension(File), Imps, undefined) of
+                         undefined ->
+                             wings_u:message(?__(2, "Unknown file format: ")++File),
+                             St;
+                         Fun when is_function(Fun) ->
+                             do_import(Fun, File, St)
+                     end
+             end,
+    lists:foldl(Import, St0, Files).
 
+%% Dummy to return props (file extensions) and fun()
+import(Props, Importer, fetch_props) ->
+    {Props, Importer};
 %% Does not return.
 import(Props, Importer, St0) ->
     Cont = fun(Name) ->
@@ -135,6 +150,30 @@ do_import(Importer, Name, St0) ->
 %%   The Continuation fun will be called like this: Continuation(Filename).
 import_filename(Ps, Cont) ->
     wings_file:import_filename(Ps, Cont).
+
+importers() ->
+    Ms = ?GET(wings_plugins),
+    Imps = [{M, M:menu({file,import}, [])} || M <- Ms],
+    Add = fun({Props, Fun}, Acc) ->
+                  case proplists:get_value(ext, Props) of
+                      [_|_] = Ext ->
+                          [{Ext, Fun}|Acc];
+                      undefined ->
+                          case proplists:get_value(extensions, Props) of
+                              undefined -> Acc;
+                              Exts0 ->
+                                  [{Ext, Fun} || {Ext, _} <- Exts0] ++ Acc
+                          end
+                  end
+          end,
+    Props = fun({_, []}, Acc) -> Acc;
+               ({M, [{_, Shortname}]}, Acc) ->
+                    Add(M:command({file, {import, Shortname}}, fetch_props),Acc);
+               ({M, [{_, Shortname, [option]}]}, Acc) ->
+                    Cmd = M:command({file, {import, {Shortname, return}}},fetch_props),
+                    Add(M:command(Cmd, fetch_props),Acc)
+            end,
+    maps:from_list(lists:foldl(Props, [], Imps)).
 
 %% export([Property], ExporterFun, St)
 %%  

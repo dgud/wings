@@ -231,6 +231,8 @@ command(import_image, _St) ->
     import_image();
 command({import_image,Name}, _) ->
     import_image(Name);
+command({import_files, Fs}, St) ->
+    {save_state, wpa:import(Fs, St)};
 command({export,ndo}, St) ->
     String = case os:type() of
         {win32,_} -> "Export";
