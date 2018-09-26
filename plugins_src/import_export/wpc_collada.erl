@@ -85,10 +85,7 @@ do_export(Attr, _Op, Exporter, _St) when is_list(Attr) ->
     SubDivs = proplists:get_value(subdivisions, Attr, 0),
     Uvs = proplists:get_bool(include_uvs, Attr),
     Units = proplists:get_value(units, Attr),
-    %% If smoothing groups are not wanted, we'll turn off
-    %% export of hard edges. That will create only one smoothing group.
-    HardEdges = proplists:get_bool(include_normals, Attr),
-    Ps = [{include_uvs,Uvs},{units,Units},{include_hard_edges,HardEdges},
+    Ps = [{include_uvs,Uvs},{units,Units},{include_hard_edges,true},
 	  {subdivisions,SubDivs}|props()],
     Exporter(Ps, export_fun(Attr)),
     keep.
