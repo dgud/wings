@@ -82,6 +82,7 @@ init_part2(Frame, GeomGL) ->
     %% and before the others that use gl functions
     wings_text:init(),
     wings_wm:init(Frame),
+    wings_develop:init(),
     check_requirements(),
 
     wings_color:init(),
@@ -97,7 +98,6 @@ init_part2(Frame, GeomGL) ->
     wings_file:init_autosave(),
     wings_dialog:init(),
     wings_job:init(),
-    wings_develop:init(),
     wings_tweak:init(),
 
     open_file(),
