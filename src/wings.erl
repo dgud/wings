@@ -713,7 +713,7 @@ repeatable(Mode, Cmd) ->
     
     %% No more commands are safe in body mode.
     {_,_} when Mode == body -> no;
-    {_,{flatten,_}=C} when Mode == vertex; Mode == face -> {Mode,C};
+    {_,{flatten,_}=C} when Mode == vertex; Mode == face; Mode == edge -> {Mode,C};
     {_,dissolve} when Mode == vertex -> no;
     {_,dissolve=C} -> {Mode,C};
     {_,bevel=C} -> {Mode,C};
