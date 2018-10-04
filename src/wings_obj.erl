@@ -268,7 +268,7 @@ we_from_obj(Obj, #we{name=Name0,perm=Perm0,pst=Pst0,light=Light0}=We) ->
                       Folder0 ->
                           Pst0;
                       _ ->
-                          gb_trees:update(?FOLDERS, Folder, Pst0)
+                          gb_trees:enter(?FOLDERS, Folder, Pst0)
                   end,
             We#we{name=Name,perm=Perm,pst=Pst,light=Light}
     end.
