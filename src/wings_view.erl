@@ -32,7 +32,7 @@ menu() ->
      [{?__(1,"Ground Plane"),show_groundplane,?__(2,"Show the ground plane"),
        crossmark(show_groundplane)},
       {?__(3,"Axes"),show_axes,?__(4,"Show the coordinate axes"),crossmark(show_axes)},
-      {?__(78,"Image Plane"),show_cam_imageplane,?__(79,"Show the camera image plane"),crossmark(show_cam_imageplane)},
+      {?__(78,"Camera Image Plane"),show_cam_imageplane,?__(79,"Show the camera image plane"),crossmark(show_cam_imageplane)},
       {?__(48,"Show Info Text"),show_info_text,
        ?__(49,"Show an informational text at the top of this Geometry window"),
        crossmark(show_info_text)},
