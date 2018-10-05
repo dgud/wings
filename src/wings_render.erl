@@ -748,18 +748,19 @@ show_camera_image_plane() ->
 draw_camera_image_plane({Poly,{X1,Y1,X2,Y2}}) ->
     NoVs = byte_size(Poly) div 12,
     Draw =
-    fun() ->
-	wings_io:ortho_setup(),
-	gl:enable(?GL_BLEND),
-	gl:blendFunc(?GL_SRC_ALPHA, ?GL_ONE_MINUS_SRC_ALPHA),
-	gl:color4f(0.0, 0.4, 0.8, 0.5),
-	gl:drawArrays(?GL_QUADS, 0, NoVs),
-	gl:color3f(0.0, 0.4, 0.8),
-	gl:lineWidth(2.0),
-	gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_LINE),
-	gl:rectf(X2, Y1, X1, Y2),
-	gl:flush()
-    end,
+        fun(RS) ->
+            wings_io:ortho_setup(),
+            gl:enable(?GL_BLEND),
+            gl:blendFunc(?GL_SRC_ALPHA, ?GL_ONE_MINUS_SRC_ALPHA),
+            gl:color4f(0.0, 0.4, 0.8, 0.5),
+            gl:drawArrays(?GL_QUADS, 0, NoVs),
+            gl:color3f(0.0, 0.4, 0.8),
+            gl:lineWidth(2.0),
+            gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_LINE),
+            gl:rectf(X2, Y1, X1, Y2),
+            gl:flush(),
+            RS
+        end,
     wings_vbo:new(Draw, Poly).
 
 clip(Ox, Oy, Ow, Px, Py, Pw, Char, Viewport) ->
