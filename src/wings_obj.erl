@@ -16,7 +16,7 @@
          delete/2,dfold/4,get/2,fold/3,map/2,num_objects/1,
          put/2,update/3,we_map/2,with_we/3,
          hide/2,unhide/2,lock/2,unlock/2,
-         create_folder_system/1,recreate_folder_system/1]).
+         create_folder_system/1,recreate_folder_system/1, get_folder/1, set_folder/2]).
 
 -export_type([obj/0]).
 
@@ -293,11 +293,21 @@ obj_from_we(#we{id=Id,name=Name,perm=Perm,pst=Pst,light=Light}) ->
         _ -> M#{light => Light}
     end.
 
+get_folder(#we{pst=Pst}) ->
+    get_folder(Pst);
 get_folder(Pst) ->
     case gb_trees:lookup(?FOLDERS, Pst) of
         {value,[_|_]=Folder} -> Folder;
         _ -> ?NO_FLD
     end.
+
+set_folder(Folder, #we{pst=Pst}=We) ->
+    We#we{pst=set_folder(Folder, Pst)};
+set_folder(?NO_FLD, Pst0) ->
+    gb_trees:delete(?FOLDERS, Pst0);
+set_folder(Folder, Pst0) ->
+    gb_trees:enter(?FOLDERS, Folder, Pst0).
+
 
 get_current_folder(#st{pst=Pst}) ->
     {Current,_} = gb_trees:get(?FOLDERS, Pst),

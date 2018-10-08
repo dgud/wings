@@ -704,7 +704,11 @@ comb_merge(MF, #st{shapes=Shs0,selmode=Mode,sel=[{Id,_}|_]=Sel0}=St) ->
     Sel2 = sofs:domain(Sel1),
     {Wes0,Shs2} = sofs:partition(1, Shs1, Sel2),
     Wes = sofs:to_external(sofs:range(Wes0)),
-    {We,Items} = MF(Wes, Sel0, Mode),
+    {We0,Items} = MF(Wes, Sel0, Mode),
+    We = case lists:usort([wings_obj:get_folder(We) || We <- Wes]) of
+             [Folder] -> wings_obj:set_folder(Folder, We0);
+             _ -> We0 %% From different folders add to root folder
+         end,
     Shs = gb_trees:from_orddict(sort([{Id,We}|sofs:to_external(Shs2)])),
     Sel = case gb_sets:is_empty(Items) of
               true -> [];
