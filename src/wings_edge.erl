@@ -15,8 +15,8 @@
 
 %% Utilities.
 -export([from_vs/2,to_vertices/2,from_faces/2,
-	 select_region/1,
          reachable_faces/3,
+	 select_region/1,select_region/2,
 	 select_edge_ring/1,select_edge_ring_incr/1,select_edge_ring_decr/1,
 	 cut/3,fast_cut/3,screaming_cut/3,
 	 dissolve_edges/2,dissolve_edge/2,
@@ -208,20 +208,30 @@ select_region(#st{selmode=edge}=St) ->
     wings_sel:update_sel(fun select_region/2, face, St);
 select_region(St) -> St.
 
+%% -spec select_region(Edges, We) -> setOf(Faces).
+select_region(Edges, We) when is_list(Edges) ->
+    select_region(gb_sets:from_list(Edges), We);
+select_region(Edges0, We) ->
+    Part = wings_edge_loop:partition_edges(Edges0, We),
+    Edges = select_region_borders(Edges0, We),
+    FaceSel = select_region_1(Part, Edges, We, []),
+    gb_sets:from_ordset(wings_we:visible(FaceSel, We)).
 
 %%
 %% Collect all faces reachable from Face, without crossing
 %% any of the edges in Edges.
 %%
 
--spec reachable_faces(Face, Edges, We) -> Faces when
-      Face :: wings_face:face_num(),
+-spec reachable_faces(InFaces, Edges, We) -> Faces when
+      InFaces :: [wings_face:face_num()] | gb_sets:set(wings_face:face_num()),
       Edges :: wings_sel:edge_set(),
       We :: #we{},
       Faces :: wings_sel:face_set().
 
-reachable_faces(Face, Edges, We) ->
-    collect_faces(gb_sets:singleton(Face), We, Edges, gb_sets:empty()).
+reachable_faces(Faces, Edges, We) when is_list(Faces) ->
+    collect_faces(gb_sets:from_list(Faces), We, Edges, gb_sets:empty());
+reachable_faces(Fs, Edges, We) ->
+    collect_faces(Fs, We, Edges, gb_sets:empty()).
 
 %%%
 %%% Edge Ring. (Based on Anders Conradi's plug-in.)
@@ -570,18 +580,11 @@ stabile_neighbor(#edge{ltpr=Ea,ltsu=Eb,rtpr=Ec,rtsu=Ed}, Del) ->
 		   end, [], [Ea,Eb,Ec,Ed]),
     Edge.
 
-%%% Select region helpers.
-
-select_region(Edges0, We) ->
-    Part = wings_edge_loop:partition_edges(Edges0, We),
-    Edges = select_region_borders(Edges0, We),
-    FaceSel = select_region_1(Part, Edges, We, []),
-    gb_sets:from_ordset(wings_we:visible(FaceSel, We)).
 
 select_region_1([[AnEdge|_]|Ps], Edges, #we{es=Etab}=We, Acc) ->
     #edge{lf=Lf,rf=Rf} = array:get(AnEdge, Etab),
-    Left = reachable_faces(Lf, Edges, We),
-    Right = reachable_faces(Rf, Edges, We),
+    Left = reachable_faces([Lf], Edges, We),
+    Right = reachable_faces([Rf], Edges, We),
 
     %% We'll let AnEdge identify the edge loop that each
     %% face collection borders to.

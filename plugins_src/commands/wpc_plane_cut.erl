@@ -751,7 +751,7 @@ loop_cut_partition(Faces0, Edges, We, Acc) ->
       true -> Acc;
       false ->
         {AFace,Faces1} = gb_sets:take_smallest(Faces0),
-        Reachable = wings_edge:reachable_faces(AFace, Edges, We),
+        Reachable = wings_edge:reachable_faces([AFace], Edges, We),
         Faces = gb_sets:difference(Faces1, Reachable),
         loop_cut_partition(Faces, Edges, We, [Reachable|Acc])
     end.
