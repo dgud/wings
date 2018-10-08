@@ -37,6 +37,9 @@
 
 -import(lists, [foldl/3,reverse/1,reverse/2,sort/1,keydelete/3,keymember/3]).
 
+-define(FOLDERS, wings_shape).
+-define(NO_FLD, no_folder).
+
 -type mode() :: 'vertex' | 'edge' | 'face' | 'body'.
 
 -type vertex_num() :: wings_vertex:vertex_num().
@@ -693,8 +696,10 @@ comb_merge(MF, #st{shapes=Shs0,selmode=Mode,sel=[{Id,_}|_]=Sel0}=St) ->
     Sel2 = sofs:domain(Sel1),
     {Wes0,Shs2} = sofs:partition(1, Shs1, Sel2),
     Wes = sofs:to_external(sofs:range(Wes0)),
-    {We,Items} = MF(Wes, Sel0, Mode),
-    Shs = gb_trees:from_orddict(sort([{Id,We}|sofs:to_external(Shs2)])),
+    {#we{pst=Pst0}=We,Items} = MF(Wes, Sel0, Mode),
+    Folder = pick_a_folder(Wes),
+    Pst = gb_trees:enter(?FOLDERS, Folder, Pst0),
+    Shs = gb_trees:from_orddict(sort([{Id,We#we{pst=Pst}}|sofs:to_external(Shs2)])),
     Sel = case gb_sets:is_empty(Items) of
               true -> [];
               false -> [{Id,Items}]
@@ -719,6 +724,13 @@ combine_items(_, RootSet) ->
 merge_zip([#we{id=Id}=We|Wes], [{Id,Items}|Sel]) ->
     [{We,Items}|merge_zip(Wes, Sel)];
 merge_zip([], []) -> [].
+
+pick_a_folder([]) -> ?NO_FLD;
+pick_a_folder([#we{pst=Pst}|Wes]) ->
+    case gb_trees:lookup(?FOLDERS, Pst) of
+	{value,[_|_]=Folder} -> Folder;
+	_ -> pick_a_folder(Wes)
+    end.
 
 
 face_regions_1(Faces, We) ->
