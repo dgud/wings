@@ -120,7 +120,7 @@ measure_vs([PosA,PosB]) ->
     Dist = e3d_vec:len(PosDiff),
     io_lib:format(?__(2,". Distance ~s  ~s"),
                   [wings_util:nice_float(Dist),
-                   wings_util:nice_abs_vector(PosDiff)]);
+                   wings_util:nice_vector(PosDiff)]);
 measure_vs(_) -> [].
 
 measure_es([{_,PosA,PosB}]) ->
@@ -131,7 +131,7 @@ measure_es([{_,PosA,PosB}]) ->
                       "  ~s",
                   [wings_util:nice_vector(Mid),
                    wings_util:nice_float(Length),
-                   wings_util:nice_abs_vector(PosDiff)]);
+                   wings_util:nice_vector(PosDiff)]);
 measure_es([{_E0,Pos0A,Pos0B},{_E1,Pos1A,Pos1B}]) ->
     V0 = e3d_vec:sub(Pos0B, Pos0A),
     V1 = e3d_vec:sub(Pos1B, Pos1A),
