@@ -19,7 +19,7 @@
 	 select_region/1,select_region/2,
 	 select_edge_ring/1,select_edge_ring_incr/1,select_edge_ring_decr/1,
 	 cut/3,fast_cut/3,screaming_cut/3,
-	 dissolve_edges/2,dissolve_edge/2,
+	 dissolve_edge/2,dissolve_edges/2,dissolve_edges/3,
          dissolve_isolated_vs/2,
 	 hardness/3,
 	 patch_edge/4,patch_edge/5,
@@ -169,9 +169,12 @@ screaming_cut(Edge, NewVPos, We0) ->
 dissolve_edge(Edge, We) ->
     dissolve_edges([Edge], We).
 
-dissolve_edges(Edges, We) when is_list(Edges) ->
-    Faces = gb_sets:to_list(wings_face:from_edges(Edges, We)),
-    dissolve_edges(Edges, Faces, We);
+dissolve_edges(Edges, We0) when is_list(Edges) ->
+    Faces = gb_sets:to_list(wings_face:from_edges(Edges, We0)),
+    case dissolve_edges(Edges, Faces, We0) of
+        {We,[]} -> We;
+        {_We, _Bad} -> wings_u:error_msg(?__(1,"Dissolving would cause a badly formed face."))
+    end;
 dissolve_edges(Edges, We) ->
     dissolve_edges(gb_sets:to_list(Edges), We).
 
@@ -270,20 +273,12 @@ dissolve_edges(Edges0, Faces, We0) when is_list(Edges0) ->
             %% No edge was deleted in the last pass. We are done.
             We2 = wings_we:rebuild(We0),
             #we{fs=Ftab}=We = wings_we:validate_mirror(We2),
-            lists:foreach(fun(Face) ->
-                case gb_trees:is_defined(Face, Ftab) of
-                    true ->
-                        case wings_we:is_face_consistent(Face, We) of
-                            true ->
-                                ok;
-                            false ->
-                                wings_u:error_msg(?__(1,"Dissolving would cause a badly formed face."))
-                        end;
-                    false ->
-                        ok
-                end
-            end, Faces),
-            We;
+            Bad = lists:filter(
+                    fun(Face) ->
+                            gb_trees:is_defined(Face, Ftab) andalso
+                                not wings_we:is_face_consistent(Face, We)
+                    end, Faces),
+            {We, Bad};
         Edges ->
             dissolve_edges(Edges, Faces, We1)
     end.
