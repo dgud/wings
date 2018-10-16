@@ -109,8 +109,13 @@ export_layout() ->
     AddProps = fun({_, _, _}=Split) -> Split;
 		  ({Win, Pos, Size, []}) -> {Win, Pos, Size, window_prop(Win)}
 	       end,
+    AddFreeProps = fun({Win, Pos, _, []}) ->
+		       WxWin = wings_wm:wxwindow(Win),
+		       Size = wxWindow:getClientSize(WxWin),
+		       {Win, Pos, Size, window_prop(Win)}
+		   end,
     Contained = filter_contained(Contained0, AddProps, []),
-    Free = [AddProps(Win) || Win <- Free0, save_window(element(1,Win))],
+    Free = [AddFreeProps(Win) || Win <- Free0, save_window(element(1,Win))],
     {Contained, Free}.
 
 reinit_layout() ->
@@ -996,7 +1001,9 @@ setup_detach(#win{frame=Container}=Win, #{szr:=Szr, ch:=Child, frame:=Parent}) -
 
 do_detach_window(#win{frame=Container, win=Child, title=Label}=Win,
 		 Split, Other, GrandP, Top, Szr) ->
-    PosSz = wxWindow:getScreenRect(Container),
+    {X,Y,_,_} = wxWindow:getScreenRect(Container),
+    {W,H} = wxWindow:getClientSize(Container),
+    PosSz = {X,Y,W,H},
     wxWindow:setSize(Container, {-1,-1,1,1}),
     wxWindow:reparent(Container, Top),
     FrameW = make_external_win(Top, Child, PosSz, Label),
