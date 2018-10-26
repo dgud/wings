@@ -996,7 +996,9 @@ setup_detach(#win{frame=Container}=Win, #{szr:=Szr, ch:=Child, frame:=Parent}) -
 
 do_detach_window(#win{frame=Container, win=Child, title=Label}=Win,
 		 Split, Other, GrandP, Top, Szr) ->
-    PosSz = wxWindow:getScreenRect(Container),
+    {X,Y,_,_} = wxWindow:getScreenRect(Container),
+    {W,H} = wxWindow:getClientSize(Container),
+    PosSz = {X,Y,W,H},
     wxWindow:setSize(Container, {-1,-1,1,1}),
     wxWindow:reparent(Container, Top),
     FrameW = make_external_win(Top, Child, PosSz, Label),
@@ -1178,10 +1180,11 @@ make_close_button(Parent, Bar, WBSz, H) ->
     wxWindow:connect(SBM, left_up, [{callback, CB}]).
 
 export_loose(Windows) ->
-    Exp = fun(#win{name=Name, frame=Frame}) ->
-		  {X0,Y0,W,H} = wxWindow:getRect(Frame),
+    Exp = fun(#win{name=Name, win=Win, frame=Frame}) ->
+		  {X0,Y0,_,_} = wxWindow:getRect(Frame),
 		  Pos = wxWindow:screenToClient(?GET(top_frame),{X0,Y0}),
-		  {Name, Pos, {W,H}, []}
+		  Size = wxWindow:getClientSize(Win),
+		  {Name, Pos, Size, []}
 	  end,
     [Exp(Win) || Win <- Windows].
 
