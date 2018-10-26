@@ -32,6 +32,16 @@
 -record(cli, {context, kernels=#{}, q, cl, device}).
 -record(kernel, {name, id, wg}).
 
+-on_load(init_develop/0).
+
+%%
+%% Add path to be used during development if cl is downloaded as a dependency
+%%
+init_develop() ->
+    Top = filename:dirname(filename:dirname(code:which(?MODULE))),
+    _ = code:add_patha(filename:join(Top, "_deps/cl/ebin")),
+    ok.
+
 is_available() ->
     try
 	true == erlang:system_info(smp_support) orelse throw({error, no_smp_support}),
