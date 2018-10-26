@@ -109,13 +109,8 @@ export_layout() ->
     AddProps = fun({_, _, _}=Split) -> Split;
 		  ({Win, Pos, Size, []}) -> {Win, Pos, Size, window_prop(Win)}
 	       end,
-    AddFreeProps = fun({Win, Pos, _, []}) ->
-		       WxWin = wings_wm:wxwindow(Win),
-		       Size = wxWindow:getClientSize(WxWin),
-		       {Win, Pos, Size, window_prop(Win)}
-		   end,
     Contained = filter_contained(Contained0, AddProps, []),
-    Free = [AddFreeProps(Win) || Win <- Free0, save_window(element(1,Win))],
+    Free = [AddProps(Win) || Win <- Free0, save_window(element(1,Win))],
     {Contained, Free}.
 
 reinit_layout() ->
@@ -1185,10 +1180,11 @@ make_close_button(Parent, Bar, WBSz, H) ->
     wxWindow:connect(SBM, left_up, [{callback, CB}]).
 
 export_loose(Windows) ->
-    Exp = fun(#win{name=Name, frame=Frame}) ->
-		  {X0,Y0,W,H} = wxWindow:getRect(Frame),
+    Exp = fun(#win{name=Name, win=Win, frame=Frame}) ->
+		  {X0,Y0,_,_} = wxWindow:getRect(Frame),
 		  Pos = wxWindow:screenToClient(?GET(top_frame),{X0,Y0}),
-		  {Name, Pos, {W,H}, []}
+		  Size = wxWindow:getClientSize(Win),
+		  {Name, Pos, Size, []}
 	  end,
     [Exp(Win) || Win <- Windows].
 
