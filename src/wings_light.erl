@@ -23,8 +23,8 @@
 
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
--include("e3d.hrl").
--include("e3d_image.hrl").
+-include_lib("wings/e3d/e3d.hrl").
+-include_lib("wings/e3d/e3d_image.hrl").
 
 -import(lists, [reverse/1,foldl/3,foldr/3,member/2,keydelete/3,sort/1]).
 

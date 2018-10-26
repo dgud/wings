@@ -39,7 +39,7 @@
 -export_type([perm/0]).
 
 -include("wings.hrl").
--include("e3d.hrl").
+-include_lib("wings/e3d/e3d.hrl").
 -import(lists, [foreach/2,foldl/3,sort/1,keysort/2,reverse/1,zip/2,partition/2]).
 
 %% Permissions:

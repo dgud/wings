@@ -15,7 +15,7 @@
 
 -export([init/0,menu/2,command/2]).
 
--include("wings_intl.hrl").
+-include_lib("wings/intl_tools/wings_intl.hrl").
 
 init() ->
     true.

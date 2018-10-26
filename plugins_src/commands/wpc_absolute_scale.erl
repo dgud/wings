@@ -12,7 +12,7 @@
 %%
 -module(wpc_absolute_scale).
 
--include("wings.hrl").
+-include_lib("wings/src/wings.hrl").
 
 -export([init/0,menu/2,command/2]).
 

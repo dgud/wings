@@ -25,7 +25,7 @@
 -define(NEED_OPENGL, 1).
 -define(NEED_ESDL, 1).
 -include("wings.hrl").
--include("e3d_image.hrl").
+-include_lib("wings/e3d/e3d_image.hrl").
 
 -import(lists, [sort/1,foldl/3,reverse/1,
 		keyreplace/4,keydelete/3,keyfind/3,flatten/1]).

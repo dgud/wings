@@ -18,7 +18,7 @@
 
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
--include("e3d_image.hrl").
+-include_lib("wings/e3d/e3d_image.hrl").
 
 -define(cl_lightpos, {2.5, 2.5, 0.0}).
 -define(hl_lightpos, {3000.0, 10000.0, 1000.0}).

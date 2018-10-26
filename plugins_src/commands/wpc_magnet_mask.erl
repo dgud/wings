@@ -22,7 +22,7 @@
 -define(NEED_OPENGL, 1).
 -define(NEED_ESDL, 1).
 
--include("wings.hrl").
+-include_lib("wings/src/wings.hrl").
 
 init() ->
     wings_pref:set_default(show_magnet_mask,true),

@@ -31,8 +31,8 @@ PS_ICONS=$(patsubst %,bluecube/%,$(notdir $(GEN_PS_ICONS)))
 # ----------------------------------------------------
 # FLAGS
 # ----------------------------------------------------
-ERL_FLAGS += -pa ../ebin
-ERL_COMPILE_FLAGS += -Werror +debug_info
+ERL_FLAGS += -pa ../../wings/ebin
+ERL_COMPILE_FLAGS += -I ../.. -Werror +debug_info
 
 # ----------------------------------------------------
 # Targets

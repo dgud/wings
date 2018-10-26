@@ -20,9 +20,9 @@
 
 -import(lists, [foreach/2, foldl/3, map/2]).
 
--include("e3d.hrl").
--include("e3d_image.hrl").
--include("wings_intl.hrl").
+-include_lib("wings/e3d/e3d.hrl").
+-include_lib("wings/e3d/e3d_image.hrl").
+-include_lib("wings/intl_tools/wings_intl.hrl").
 
 init() ->
     true.

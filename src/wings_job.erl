@@ -19,8 +19,8 @@
 	 timestr/1,timestr/2,uniqstr/0]).
 
 -include_lib("kernel/include/file.hrl").
--include("e3d.hrl").
--include("e3d_image.hrl").
+-include_lib("wings/e3d/e3d.hrl").
+-include_lib("wings/e3d/e3d_image.hrl").
 -include("wings.hrl").
 
 

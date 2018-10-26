@@ -15,7 +15,7 @@
 
 -export([init/0,menu/2,command/2]).
 -import(lists, [foldl/3,seq/2]).
--include("wings.hrl").
+-include_lib("wings/src/wings.hrl").
 
 %% Uncomment the following line turn on debug printouts.
 %%-define(DEBUG_UNTRI, 1).

@@ -13,7 +13,7 @@
 
 -module(auv_placement).
 
--include("wings.hrl").
+-include_lib("wings/src/wings.hrl").
 -include("auv.hrl").
 
 -export([place_areas/1,rotate_area/2,group_edge_loops/2]).

@@ -18,8 +18,8 @@
 -export([file_filters/1]).
 
 -include("wings.hrl").
--include("e3d.hrl").
--include("e3d_image.hrl").
+-include_lib("wings/e3d/e3d.hrl").
+-include_lib("wings/e3d/e3d_image.hrl").
 -include_lib("kernel/include/file.hrl").
 
 -import(lists, [foldl/3,foreach/2,keymember/3,reverse/1]).

@@ -30,7 +30,7 @@
 -define(R_ALT, 308).
 
 -include("wings.hrl").
--include("e3d.hrl").
+-include_lib("wings/e3d/e3d.hrl").
 
 -import(lists,[member/2,foldl/3]).
 

@@ -48,7 +48,7 @@
 -export([format_error/1]).
 
 -include("wings.hrl").
--include("e3d.hrl").
+-include_lib("wings/e3d/e3d.hrl").
 
 -import(lists, [reverse/1,foldl/3,foreach/2]).
 

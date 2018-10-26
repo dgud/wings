@@ -16,8 +16,8 @@
 -module(wpc_ps).
 -export([init/0,menu/2,command/2]).
 
--include("e3d.hrl").
--include("wings_intl.hrl").
+-include_lib("wings/e3d/e3d.hrl").
+-include_lib("wings/intl_tools/wings_intl.hrl").
 
 -define(SCALEFAC, 0.01).		% amount to scale PS coords by
 

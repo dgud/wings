@@ -19,7 +19,7 @@
 -export([number/1,number/2]).
 -export([mark_segments/4,make_mat/1,seg_materials/0]).
 
--include("wings.hrl").
+-include_lib("wings/src/wings.hrl").
 -include("auv.hrl").
 
 -import(lists, [foldl/3,reverse/1,sort/1]).
