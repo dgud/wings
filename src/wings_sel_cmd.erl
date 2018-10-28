@@ -952,8 +952,11 @@ ask(Qs, Fun, St) ->
     wings_dialog:ask(?__(1,"Select By Id"), {preview,Qs},
     fun
         ({dialog_preview,Res}) ->
-            Sel = Fun(Res),
-            {preview,St,sel_by_id(Sel, St)};
+            try
+                Sel = Fun(Res),
+                {preview,St,sel_by_id(Sel, St)}
+            catch throw:_ -> {preview,St,St}
+            end;
         (cancel) -> St;
         (Res) ->
             Sel = Fun(Res),
