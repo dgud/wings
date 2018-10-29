@@ -18,8 +18,8 @@
 
 -import(lists, [foldl/3,reverse/1,splitwith/2,map/2]).
 
--include("e3d.hrl").
--include("wings_intl.hrl").
+-include_lib("wings/e3d/e3d.hrl").
+-include_lib("wings/intl_tools/wings_intl.hrl").
 
 -define(SCALEFAC, 0.01). % amount to scale coords by
 

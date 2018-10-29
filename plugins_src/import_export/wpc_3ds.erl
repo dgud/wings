@@ -17,9 +17,9 @@
 
 -import(lists, [map/2,foldl/3,keydelete/3,keyreplace/4,sort/1]).
 
--include("e3d.hrl").
--include("e3d_image.hrl").
--include("wings_intl.hrl").
+-include_lib("wings/e3d/e3d.hrl").
+-include_lib("wings/e3d/e3d_image.hrl").
+-include_lib("wings/intl_tools/wings_intl.hrl").
 
 -define(DEF_IMAGE_TYPE, ".bmp").
 

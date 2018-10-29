@@ -14,7 +14,7 @@
 -module(wings_import).
 -export([import/2,import_mesh/2]).
 
--include("e3d.hrl").
+-include_lib("wings/e3d/e3d.hrl").
 -include("wings.hrl").
 -import(lists, [reverse/1,foldl/3,sort/1]).
 

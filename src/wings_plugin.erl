@@ -16,7 +16,7 @@
 -export([install/1]).
 -export([draw/4,check_plugins/2,get_win_data/1,restore_window/6]).
 -include("wings.hrl").
--include("e3d.hrl").
+-include_lib("wings/e3d/e3d.hrl").
 -import(lists, [sort/1,reverse/1,member/2]).
 
 %%%

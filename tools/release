@@ -19,6 +19,8 @@
 
 main(_) ->
     try
+        {ok, Top} = file:get_cwd(),
+        put(top_dir, Top),
 	release(),
 	init:stop(0)
     catch
@@ -32,7 +34,7 @@ main(_) ->
     end.
 
 release() ->
-    ok = file:set_cwd(code:lib_dir(wings)),
+    ok = file:set_cwd(lib_dir(wings)),
     WingsVsn = get_vsn("vsn.mk", "WINGS_VSN"),
     Build = filename:absname("build"),
     run("rm", ["-rf",Build]),
@@ -53,7 +55,7 @@ release() ->
     end.
 
 mac_release(BuildRoot, WingsVsn) ->
-    MacDir = filename:join(code:lib_dir(wings), "macosx"),
+    MacDir = filename:join(lib_dir(wings), "macosx"),
     AppName = "Wings3D",
     Root = filename:join(BuildRoot, AppName++".app"),
     Contents = filename:join(Root, "Contents"),
@@ -69,13 +71,13 @@ mac_release(BuildRoot, WingsVsn) ->
     copy("InfoPlist.strings", filename:join(Resources, "English.lproj")),
     release_otp(Resources, undefined),
     run("codesign", ["-s","Developer ID",Root]),
-    ok = file:set_cwd(code:lib_dir(wings)),
-    MakeDmg = filename:join([code:lib_dir(wings),"macosx","make_dmg"]),
+    ok = file:set_cwd(lib_dir(wings)),
+    MakeDmg = filename:join([lib_dir(wings),"macosx","make_dmg"]),
     run(MakeDmg, ["wings-"++WingsVsn++"-macosx.dmg",Root,"Wings3D "++WingsVsn++".app"]),
     ok.
 
 unix_release(BuildRoot, WingsVsn) ->
-    UnixDir = filename:join(code:lib_dir(wings), "unix"),
+    UnixDir = filename:join(lib_dir(wings), "unix"),
     {unix,Flavor} = os:type(),
     Name = "wings-" ++ WingsVsn ++ "-" ++ atom_to_list(Flavor),
     Root = filename:join(BuildRoot, Name),
@@ -89,7 +91,7 @@ unix_release(BuildRoot, WingsVsn) ->
     ok = file:write_file(Installer, Install),
     ok = file:write_file_info(Installer, #file_info{mode=8#555}),
     MakeSelf = filename:join(UnixDir, "makeself.sh"),
-    ok = file:set_cwd(code:lib_dir(wings)),
+    ok = file:set_cwd(lib_dir(wings)),
     run(MakeSelf, ["--bzip2",Root,Name++".bzip2.run","Wings3D",
 		   "./install_wings",WingsVsn]),
     ok.
@@ -98,7 +100,7 @@ win_release(Root, WingsVsn) ->
     BitSize = erlang:system_info(wordsize)*8,
     release_otp(Root, BitSize),
     VcVersion = setup_vcredist(BitSize, Root),
-    WinDir = filename:join(code:lib_dir(wings), "win32"),
+    WinDir = filename:join(lib_dir(wings), "win32"),
     ok = file:set_cwd(WinDir),
     WinFiles = [nsi_file(BitSize), "Wings3D.exe", "wings.ico",
 		"install.ico", "uninstall.ico"],
@@ -179,7 +181,7 @@ copy_erts(TargetDir, {BinExecFiles, ErtsExecFiles}) ->
     ok.
 
 copy_app(App0, Lib, BitSize) ->
-    AppDir = code:lib_dir(App0),
+    AppDir = lib_dir(App0),
     ok = file:set_cwd(AppDir),
     ok = file:set_cwd(".."),
     App = list_to_atom(filename:basename(AppDir)),
@@ -241,7 +243,7 @@ copy(Source, Target0, BitSize) ->
     ok.
 
 fix_app_version(App0, Lib) ->
-    AppDir = code:lib_dir(App0),
+    AppDir = lib_dir(App0),
     App = atom_to_list(App0),
     case filename:basename(AppDir) of
 	App ->
@@ -324,3 +326,14 @@ check_build_target(File, Bits) ->
 
 fatal(Format, Args) ->
     throw({fatal,["release: "|io_lib:format(Format, Args)]}).
+
+
+lib_dir(App) ->
+    case code:lib_dir(App) of
+        {error,_} ->  %% ERL_LIBS is not set
+            case App of
+                wings -> get(top_dir);
+                cl -> filename:join([get(top_dir), "_deps", "cl"])
+            end;
+        Dir -> Dir
+    end.

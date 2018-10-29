@@ -15,7 +15,7 @@
 -export([import/2,merge/2,export/2]).
 
 -include("wings.hrl").
--include("e3d_image.hrl").
+-include_lib("wings/e3d/e3d_image.hrl").
 -import(lists, [sort/1,reverse/1,foldl/3,any/2,keymember/3,keyfind/3]).
 
 -define(WINGS_HEADER, "#!WINGS-1.0\r\n\032\04").

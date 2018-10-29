@@ -11,7 +11,7 @@
 %%     $Id: wpc_intersection.erl,??
 %%
 
--include_lib("wings.hrl").
+-include_lib("wings/src/wings.hrl").
 
 % Intersect data
 -record(intersect_data,

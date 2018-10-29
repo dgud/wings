@@ -11,7 +11,7 @@
 
 -module(wpc_stl).
 -export([init/0, menu/2, command/2]).
--include("e3d.hrl").
+-include_lib("wings/e3d/e3d.hrl").
 
 init() ->
     true.

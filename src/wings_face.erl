@@ -37,7 +37,7 @@
 -export_type([face_num/0,visible_face_num/0]).
 
 -include("wings.hrl").
--include("e3d.hrl").
+-include_lib("wings/e3d/e3d.hrl").
 -import(lists, [reverse/1,sort/1]).
 
 -type face_num() :: integer().

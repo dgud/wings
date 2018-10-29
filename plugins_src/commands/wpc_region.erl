@@ -15,7 +15,7 @@
 
 -export([init/0,menu/2,command/2]).
 
--include_lib("wings.hrl").
+-include_lib("wings/src/wings.hrl").
 
 -import(lists, [append/1,foldl/3,unzip/1]).
 -define(HUGE, 1.0E307).

@@ -15,7 +15,7 @@
 -export([init/0,menu/2,command/2]).
 -define(NEED_ESDL, 1).
 -include_lib("wings/src/wings.hrl").
--include("e3d.hrl").
+-include_lib("wings/e3d/e3d.hrl").
 -define(NONZERO, 1.0e-6).
 
 init() ->

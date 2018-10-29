@@ -33,7 +33,7 @@
               edge_set/0,face_set/0,item_id/0,item_set/0,vertex_set/0]).
 
 -include("wings.hrl").
--include("e3d.hrl").
+-include_lib("wings/e3d/e3d.hrl").
 
 -import(lists, [foldl/3,reverse/1,reverse/2,sort/1,keydelete/3,keymember/3]).
 

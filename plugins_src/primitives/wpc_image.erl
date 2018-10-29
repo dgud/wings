@@ -17,9 +17,8 @@
 -define(NEED_OPENGL,1).
 -include_lib("wings/src/wings.hrl").
 
--include("e3d.hrl").
--include("e3d_image.hrl").
-
+-include_lib("wings/e3d/e3d.hrl").
+-include_lib("wings/e3d/e3d_image.hrl").
 
 -import(lists, [reverse/1]).
 

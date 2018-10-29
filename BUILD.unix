@@ -20,9 +20,9 @@ run all plug-ins and to build an installation package.
 - Erlang/OTP 20.2 or later. http://www.erlang.org
 -- Preferably compiled against wxWidgets-3.0.2 or later.
 
-- CL. http://github.com/tonyrog/cl
+- git or CL library at http://github.com/tonyrog/cl
 
-- rebar (needed for building CL).
+- rebar3 (needed for building CL).
 
 - A GNU compatible "make" program. Included with most unix-like
   systems; otherwise get it from http://www.gnu.org.
@@ -33,21 +33,23 @@ run all plug-ins and to build an installation package.
 
 - OpenGL header files and libraries.
 
+- OpenCL header files (optional)
+
 Summary of build process
 ========================
 
 The following is a quick summary of the build process.
 
 * Download and install Erlang/OTP.
-* Install OpenGL header files (if needed).
-* Install rebar.
-* Setup $ERL_LIBS.
-* Download and build cl.
+* Install OpenGL (and OpenCL) header files (if needed).
+* Optionally install rebar.
 * Download and unpack the Wings source file.
 * Run "make".
 
 Installing Erlang/OTP
 =====================
+
+Fetch a prebuilt package of Erlang or build it.
 
 Build Erlang/OTP according to the instructions in the README file.
 
@@ -66,58 +68,50 @@ Floating point exceptions have caused Wings to crash occasionally.
 When you have built Erlang/OTP, modify the PATH environment variable
 so that the "erl" and "erlc" programs can be started from a shell prompt.
 
-Installing rebar
-================
+Installing rebar (optional, needed by CL)
+=========================================
 
 Download and build rebar like this:
 
-   git clone https://github.com/rebar/rebar.git
+   git clone https://github.com/erlang/rebar3
    cd rebar
    make
 
 Read and follow the instructions that are printed.
 
-Setup $ERL_LIBS
-===============
+Installing CL  (optional)
+=========================
 
-Create a directory to hold Erlang applications and set the
-environment variable ERL_LIBS to its path.
+CL is fetched (via git) and built automagically if it is not available in
+$ERL_LIBS (example export ERL_LIBS=/Users/bjorng/src)
 
-Example:
+A built CL is not required to use wings, but recommended,
+some functionality will not be available without CL,
+but the build will not fail if building cl fails.
 
-   export ERL_LIBS=/Users/bjorng/src
+Read cl/README for information of requirements, mainly
+OpenCL headers in the rigth place.
 
-Installing CL
-===============
+You can build it separatly outside of wings by:
 
 Download and build like this:
 
    cd $ERL_LIBS
    git clone https://github.com/tonyrog/cl.git
    cd cl
-   rebar compile
+   rebar3 compile
 
 
-Unpacking the Wings source code
+Fetching/Unpacking the Wings source code
 ===============================
 
-If you have the GNU tar program, use the "tar" program with
-the "j" flag to tell it to decompress using the "bunzip2" program.
+$ git clone https://github.com/dgud/wings.git
+$ cd wings
 
-Example:
+Or unpack it with
 
 $ tar jxf wings-1.0.tar.bz2
-
-Otherwise, feed the output of "bzcat" to tar:
-
-$ bzcat wings-0.1.0.tar.bz2 | tar xf -
-
-The build steps that follow assume that you are in the wings source
-directory.
-
-Example:
-
-$ cd wings-1.0.tar.bz2
+$ cd wings-1.0
 
 Building Wings
 ==============
@@ -130,32 +124,29 @@ $ pwd
 /home/bjorng/wings-1.0
 $ make
 .
-.
-.
+
 <A lot of output follows>
 .
-.
-.
-$ 
+$
 
 To run the Wings you have just build, you'll need to write a command line
 similar to this:
 
-	erl -smp -pa <MY_WINGS_PATH>/ebin -run wings_start start_halt
+	erl -pa <MY_WINGS_PATH>/ebin -run wings_start start_halt
 
 where you should substitute <MY_WINGS_PATH> with the path to the Wings
 source directory.
 
 Example:
 
-$ erl -smp -pa /home/bjorng/wings-1.0/ebin -run wings_start start_halt
+$ erl -pa /home/bjorng/wings-1.0/ebin -run wings_start start_halt
 $
 
 Instead of writing the command line every time you want to start Wings,
 you can package it in a script like this:
 
 #!/bin/sh
-exec erl -smp -pa /home/bjorng/wings-1.0/ebin -run wings_start start_halt ${1+"$@"}
+exec erl -pa /home/bjorng/wings-1.0/ebin -run wings_start start_halt ${1+"$@"}
 
 Notes:
 
@@ -186,11 +177,7 @@ To build all (including the installer), run the following command:
 
 $ make macosx
 .
-.
-.
 <A lot of output follows>
-.
-.
 .
 $
 
@@ -238,11 +225,7 @@ run the following command:
 
 $ make unix
 .
-.
-.
 <A lot of output follows>
-.
-.
 .
 $
 
@@ -251,6 +234,3 @@ When everything is done, there should be a file named like
 	wings-1.0-linux.bzip2.run
 
 in the current directory.
-
-
-

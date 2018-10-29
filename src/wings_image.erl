@@ -30,7 +30,7 @@
 
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
--include("e3d_image.hrl").
+-include_lib("wings/e3d/e3d_image.hrl").
 -import(lists, [reverse/1]).
 
 start_link() ->
