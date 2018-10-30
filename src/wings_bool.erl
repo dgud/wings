@@ -25,7 +25,7 @@
 -define(DBG_TRY(Do,WE1,WE2),
         try Do
         catch error:__R ->
-                ?dbg("ERROR: ~p:~n ~P~n", [__R, erlang:get_stacktrace(), 20]),
+                ?dbg("ERROR: ~w:~n ~P~n", [__R, erlang:get_stacktrace(), 20]),
                 #{we=>WE1,delete=>none, el=>[], sel_es=>[], error=>WE2};
               exit:_ ->
                 #{we=>WE1,delete=>none, el=>[], sel_es=>[], error=>WE2};
@@ -164,7 +164,7 @@ find_intersect(Bvh, Op, {Bvhs0, Merged}) ->
 find_intersect_1(#{bvh:=B1}=Head, [#{bvh:=B2}=H1|Rest], Tested) ->
     case e3d_bvh:intersect(B1, B2) of
 	[] ->  find_intersect_1(Head,Rest,[H1|Tested]);
-	EdgeInfo -> {merge_0(EdgeInfo, Head, H1), Rest ++ Tested}
+	EdgeInfo -> {merge_0(Head, H1, EdgeInfo), Rest ++ Tested}
     end;
 find_intersect_1(_Head, [], _) ->
     none.
@@ -172,18 +172,20 @@ find_intersect_1(_Head, [], _) ->
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-merge_0(EdgeInfo0, I1, I2) ->
+merge_0(I1, I2, EdgeInfo0) ->
     ?D("~p STARTING~n~n",[?FUNCTION_NAME]),
     EdgeInfo = [remap(Edge, I1, I2) || Edge <- EdgeInfo0],
-    ?PUT(we1,maps:get(we,I1)), ?PUT(we2,maps:get(we,I2)),
+    ?PUT(we1,maps:get(we,I1)), ?PUT(we2,maps:get(we,I2)), %% Debug
     case [{MF1,MF2} || {coplanar, MF1, MF2} <- EdgeInfo] of
-        [] -> ?DBG_TRY(merge_1(EdgeInfo, I1, I2), get(we1),get(we2));
+        [] -> ?DBG_TRY(merge_1(I1, I2, EdgeInfo,maps:get(we,I1),maps:get(we,I2)), get(we1),get(we2));
         Coplanar ->
             %% ?D("~p coplanar tesselate and restart ~w ~n",[?FUNCTION_NAME, Coplanar]),
             tesselate_and_restart(Coplanar, I1, I2)
     end.
 
-merge_1(EdgeInfo0, #{we:=We10,el:=EL10,temp_es:=TEs1}=I10, #{we:=We20,el:=EL20, temp_es:=TEs2}=I20) ->
+merge_1(#{we:=We10,el:=EL10,temp_es:=TEs1}=I10,
+        #{we:=We20,el:=EL20, temp_es:=TEs2}=I20,
+        EdgeInfo0, We1, We2) ->
     ?D("~p~n",[?FUNCTION_NAME]),
     {Vmap, EdgeInfo} = make_vmap(EdgeInfo0, We10, We20),  %% Make vertex id => pos and update edges
     %?D("Vmap: ~p~n",[array:to_orddict(Vmap)]),
@@ -198,23 +200,22 @@ merge_1(EdgeInfo0, #{we:=We10,el:=EL10,temp_es:=TEs1}=I10, #{we:=We20,el:=EL20, 
     merge_2(Res,
             maps:merge(I10, maps:update_with(el,fun(EL) -> [EL|EL10] end, I11)),
             maps:merge(I20, maps:update_with(el,fun(EL) -> [EL|EL20] end, I21)),
-            We10,We20).
+            We1,We2).
 
 %% Continuing: multiple edge loops have hit the same face. It was
 %% really hard to handle that in one pass, since faces are split and
 %% moved.  Solved it by doing the intersection test again for the new
 %% faces and start over
-merge_2(cont, #{we:=We11, fs:=Fs1}=I10, #{we:=We21, fs:=Fs2}=I20,
-        We10,We20) ->
+merge_2(cont, #{we:=We11, fs:=Fs1}=I10, #{we:=We21, fs:=Fs2}=I20, We1,We2) ->
     ?D("~p cont~n",[?FUNCTION_NAME]),
-    {We1, Vmap1, Es1, B1} = remake_bvh(Fs1, We10, We11),
-    {We2, Vmap2, Es2, B2} = remake_bvh(Fs2, We20, We21),
+    {We12, Vmap1, Es1, B1} = remake_bvh(Fs1, We1, We11),
+    {We22, Vmap2, Es2, B2} = remake_bvh(Fs2, We2, We21),
     EI0 = e3d_bvh:intersect(B1, B2),
-    I11 = maps:update_with(temp_es,fun(EL) -> gb_sets:union(Es1,EL) end, I10#{we=>We1,map=>Vmap1}),
-    I21 = maps:update_with(temp_es,fun(EL) -> gb_sets:union(Es2,EL) end, I20#{we=>We2,map=>Vmap2}),
+    I11 = maps:update_with(temp_es,fun(EL) -> gb_sets:union(Es1,EL) end, I10#{we=>We12,map=>Vmap1}),
+    I21 = maps:update_with(temp_es,fun(EL) -> gb_sets:union(Es2,EL) end, I20#{we=>We22,map=>Vmap2}),
     EI = [remap(Edge, I11, I21) || Edge <- EI0],
     %% We should crash if we have coplanar faces in this step
-    ?DBG_TRY(merge_1(EI,I11,I21), We1,We2);
+    ?DBG_TRY(merge_1(I11,I21,EI,We1,We2), We12,We22);
     %%#{we=>We1,delete=>none, el=>[], sel_es=>[], error=>We2};
 
 %% All edge loops are in place, dissolve faces inside edge loops and
@@ -233,6 +234,7 @@ merge_2(done,
                    #{sel_es=>Es, we=>We, delete=>Del}
            end,
     ?DBG_TRY(Weld(), element(2, DRes1), element(2, DRes2)).
+    %% ?DBG_TRY(Weld(), get(we1), get(we2)).
     %% #{we=>We1, delete=>none, sel_es=>gb_sets:to_list(TEs1),
     %%   error=>We2, dummy=>{DRes1, DRes2, catch Weld()}}.
 
@@ -264,7 +266,7 @@ tesselate_and_restart(Coplanar, #{we:=#we{id=Id1}=We1, op:=Op1},
     I11 = #{we=>We10,map=>Vmap1,el=>[],op=>Op1, temp_es=>gb_sets:empty()},
     I21 = #{we=>We20,map=>Vmap2,el=>[],op=>Op2, temp_es=>gb_sets:empty()},
     EI = [remap(Edge, I11, I21) || Edge <- EI0],
-    merge_1(EI,I11,I21). %% We should crash if we have coplanar faces in this step
+    merge_1(I11,I21,EI,We1,We2). %% We should crash if we have coplanar faces in this step
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 dissolve_faces_in_edgeloops(ELs, Op, #we{fs=Ftab} = We0) ->
@@ -323,10 +325,16 @@ weld({Fs01,#we{temp=Es01}=We01}, TEs01, {Fs02,#we{temp=Es02}=We02}, TEs02) ->
     %% ?D("Temp ~p:~w~n",[We02#we.id, TEs2]),
     %% ?D(" =>  ~w~n",[TempEs]),
     %?D("After ~p: ~w~n",[We0#we.id,gb_trees:keys(We0#we.fs)]),
+    ok = wings_we_util:validate(We01),
+    ok = wings_we_util:validate(We02),
+    ok = wings_we_util:validate(We0),
+    ?PUT(we1,We01),
+    ?PUT(we2,undefined),
     Weld = fun({F1,F2}, WeAcc) -> do_weld(F1,F2,WeAcc) end,
     {We1, BorderEs0} = lists:foldl(Weld, {We0,[]}, FacePairs),
     BorderEs1 = ordsets:from_list(BorderEs0),
 
+    ok = wings_we_util:validate(We1),
     %% Cleanup temp edges (and it's faces)
     {CFs0, We2} = cleanup_temp_edges(TempEs, We1),
     %% dissolve rebuilds we need to update
@@ -338,6 +346,7 @@ weld({Fs01,#we{temp=Es01}=We01}, TEs01, {Fs02,#we{temp=Es02}=We02}, TEs02) ->
     CFS2 = [Face || Face <- CFS1, wings_face:vertices(Face, We2) > 5],
     We3 = wings_tesselation:quadrangulate(CFS2, We2),
     {_, We4} = cleanup_temp_edges(TempEs, We3),
+    ok = wings_we_util:validate(We3),
 
     %% Calculate border edges and quadrangulate border faces
     Es = wings_util:array_keys(We4#we.es),
@@ -358,9 +367,14 @@ do_weld(Fa, Fb, {We0, Acc}) ->
            end,
     [Vb] = wings_face:fold(Find, [], Fb, We0),
     %% Bridge and collapse new edges
+    ?D("Bridge: ~w (~w) ~w (~w)~n", [Fa, Va, Fb, Vb]),
     We1 = wings_face_cmd:force_bridge(Fa, Va, Fb, Vb, We0),
+    ?PUT(we1,We0),
+    ok = wings_we_util:validate(We1),
     Es = wings_we:new_items_as_ordset(edge, We0, We1),
     We = lists:foldl(fun(E, W) -> wings_collapse:collapse_edge(E, W) end, We1, Es),
+    ?PUT(we1,We),
+    ok = wings_we_util:validate(We),
     %% Find selection
     BorderEdges = wings_face:to_edges([Fa,Fb], We0),
     {We, BorderEdges ++ Acc}.
@@ -402,6 +416,8 @@ make_verts([{L1,L2}=L12|Ls], Vm10, Fs10, We10, Vm20, Fs20, We20, TEs10, TEs20, A
     end;
 make_verts([], _, Fs10, We1, _, Fs20, We2, TEs1, TEs2, Acc, Cont) ->
     {Es1, Es2} = lists:unzip(Acc),
+    %% ?D("Temp ~p:~w~n",[We1#we.id, gb_sets:to_list(TEs1)]),
+    %% ?D("Temp ~p:~w~n",[We2#we.id, gb_sets:to_list(TEs2)]),
     I1 = #{we=>We1, el=>Es1, temp_es=>TEs1},
     I2 = #{we=>We2, el=>Es2, temp_es=>TEs2},
     case Cont of
@@ -698,13 +714,6 @@ inset_face(Loop0, TEs0, Vmap0,  #we{fs=Ftab0, es=Etab0, vc=Vct0, vp=Vpt0}=We0) -
                       Vpt0, lists:zip(Ids, Pos)),
     WeR = wings_facemat:assign(Mat, [F1, F1+1], We1#we{fs=Ftab,es=Etab,vc=Vct,vp=Vpt}),
     TEs = gb_sets:union(TEs0, gb_sets:from_ordset([E1,E1+1])),
-    %% Update Vmap???
-    %% io:format("Ftab: ~p~n", [gb_trees:to_list(Ftab)]),
-    %% io:format("Etab: ~p~n", [array:to_orddict(Etab)]),
-    %% io:format("Vct: ~p~n",  [array:to_orddict(Vct)]),
-
-    put(where, {?MODULE, ?LINE}),
-    ok = wings_we_util:validate(WeR),
     EL = wings_face:to_edges([Face], WeR),
     case keep_inside(Loop, Pos) of
         true -> {EL, [Face], TEs, Vmap0, WeR};
@@ -922,7 +931,7 @@ edge_to_face(#{op:=split_edge}=Orig) ->
 build_vtx_loops(Edges, _Acc) ->
     G = make_lookup_table(Edges),
     Comps = digraph_utils:components(G),
-    %% ?D("Cs: ~w~n",[Comps]),
+    ?D("Cs: ~w~n",[Comps]),
     Res = [build_vtx_loop(C, G) || C <- Comps],
     [] = digraph:edges(G), %% Assert that we have completed all edges
     digraph:delete(G),
@@ -947,6 +956,11 @@ build_vtx_loop([V|_Vs], G) ->
     case build_vtx_loop(V, G, []) of
         {V, Acc} -> Acc;
         {_V, _Acc} ->
+            Eds0 = digraph:edges(G),
+            Eds1 = [digraph:edge(G,E) || E <- Eds0],
+            Eds = lists:keysort(2, lists:keysort(3, Eds1)),
+            %% Crash here often means to few faces in bvh!!
+            [io:format("~w~n",[E]) || E <- Eds],
             ?dbg("V ~p => ~p~n",[V,_Acc]),
             ?dbg("Last ~p~n",[_V]),
             error(incomplete_edge_loop)
@@ -955,9 +969,12 @@ build_vtx_loop([V|_Vs], G) ->
 build_vtx_loop(V0, G, Acc) ->
     case [digraph:edge(G, E) || E <- digraph:edges(G, V0)] of
         [] -> {V0, Acc};
+        [_,_,_|_] = _Es ->
+            ?D("~p in ~w ~n",[V0, _Es]),
+            error(crossing);
         Es ->
             {Edge, Next, Ei} = pick_edge(Es, V0, undefined),
-            %?D("~p in ~P~n => ~p ~n",[V0, Es, 10, Next]),
+            ?D("~p in ~W => ~p ~n",[V0, Es, 10, Next]),
             digraph:del_edge(G, Edge),
             build_vtx_loop(Next, G, [Ei,V0|Acc])
     end.
@@ -969,6 +986,7 @@ edge_exists(G,V1,V2) ->
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 pick_edge([{E,V,V,Ei}|_], V, _Best) ->
+    error(self),
     {E, V, Ei}; %% Self cyclic pick first
 pick_edge([{E,V,N,Ei}|R], V, _Best) ->
     pick_edge(R, V, {E,N,Ei});
