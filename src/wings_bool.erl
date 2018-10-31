@@ -189,7 +189,7 @@ merge_1(#{we:=We10,el:=EL10,temp_es:=TEs1}=I10,
     ?D("~p~n",[?FUNCTION_NAME]),
     {Vmap, EdgeInfo} = make_vmap(EdgeInfo0, We10, We20),  %% Make vertex id => pos and update edges
     %?D("Vmap: ~p~n",[array:to_orddict(Vmap)]),
-    Loops0 = build_vtx_loops(EdgeInfo, []), %% Figure out edge loops
+    Loops0 = build_vtx_loops(EdgeInfo), %% Figure out edge loops
     L10 = [split_loop(Loop, Vmap, {We10,We20}) || Loop <- Loops0], % Split loops per We and precalc
     L20 = [split_loop(Loop, Vmap, {We20,We10}) || Loop <- Loops0], % some data
     %% Remove vertexes on triangulated edges
@@ -928,56 +928,79 @@ edge_to_face(#{op:=split_edge}=Orig) ->
 %% in the correct direction. Also the V is new Vs on edges and there maybe
 %% several new V on the same wings edge.
 
-build_vtx_loops(Edges, _Acc) ->
-    G = make_lookup_table(Edges),
-    Comps = digraph_utils:components(G),
-    ?D("Cs: ~w~n",[Comps]),
-    Res = [build_vtx_loop(C, G) || C <- Comps],
-    [] = digraph:edges(G), %% Assert that we have completed all edges
-    digraph:delete(G),
-    Res.
-
-make_lookup_table(Edges) ->
+build_vtx_loops(Edges0) ->
     G = digraph:new(),
-    Add = fun(#{p1:={_,V},p2:={_,V}}) ->
-                  ignore; %% Loops
-             (#{p1:={_,P1},p2:={_,P2}}=EI) ->
-                  digraph:add_vertex(G, P1),
-                  digraph:add_vertex(G, P2),
-                  case edge_exists(G,P1,P2) of
-                      false -> digraph:add_edge(G, P1, P2, EI);
-                      true -> ok
-                  end
-          end,
-    _ = [Add(EI) || EI <- Edges],
-    G.
+    %% Vertices with "low" numbers are available in We1 and We2
+    %% and new vertices are created afterwards
+    %% Sort edges so that we get exiting vertices first and thus those edges
+    %% will be picked first when there are several options below.
+    %% This so we get a consistent ordering when we do multipass.
+    Edges = lists:sort(fun(#{p1:={_,P1},p2:={_,P2}}, #{p1:={_,P3},p2:={_,P4}}) ->
+                               max(P1,P2) =< max(P3,P4)
+                       end, Edges0),
+    Es = lists:foldl(fun(EI, Acc) -> add_edge2(EI,G, Acc) end, [], Edges),
+    Cs = make_directed(gb_trees:from_orddict(lists:sort(Es)), G, []),
+    [] = digraph:edges(G),
+    digraph:delete(G),
+    Cs.
 
-build_vtx_loop([V|_Vs], G) ->
-    case build_vtx_loop(V, G, []) of
-        {V, Acc} -> Acc;
-        {_V, _Acc} ->
-            Eds0 = digraph:edges(G),
-            Eds1 = [digraph:edge(G,E) || E <- Eds0],
-            Eds = lists:keysort(2, lists:keysort(3, Eds1)),
-            %% Crash here often means to few faces in bvh!!
-            [io:format("~w~n",[E]) || E <- Eds],
-            ?dbg("V ~p => ~p~n",[V,_Acc]),
-            ?dbg("Last ~p~n",[_V]),
-            error(incomplete_edge_loop)
+add_edge2(#{p1:={_,V},p2:={_,V}}=_EI, _G, Acc) ->
+    Acc;  %% Loop ignore
+add_edge2(#{p1:={_,P1},p2:={_,P2}}=EI, G, Acc) ->
+    digraph:add_vertex(G, P1),
+    digraph:add_vertex(G, P2),
+    case edge_exists(G, P1, P2) of
+        true ->
+            Acc;
+        false ->
+            E1 = digraph:add_edge(G, P1, P2, EI),
+            E2 = digraph:add_edge(G, P2, P1, swap(EI)),
+            [{E1,E2},{E2,E1}|Acc]
     end.
 
-build_vtx_loop(V0, G, Acc) ->
-    case [digraph:edge(G, E) || E <- digraph:edges(G, V0)] of
-        [] -> {V0, Acc};
-        [_,_,_|_] = _Es ->
-            ?D("~p in ~w ~n",[V0, _Es]),
-            error(crossing);
-        Es ->
-            {Edge, Next, Ei} = pick_edge(Es, V0, undefined),
-            ?D("~p in ~W => ~p ~n",[V0, Es, 10, Next]),
-            digraph:del_edge(G, Edge),
-            build_vtx_loop(Next, G, [Ei,V0|Acc])
+make_directed(All0, G, Cs) ->
+    case gb_trees:is_empty(All0) of
+        true -> Cs;
+        false ->
+            {E1,E2,All1} = gb_trees:take_smallest(All0),
+            All2 = gb_trees:delete(E2,All1),
+            {_, _In, Out, Edge} = digraph:edge(G,E1),
+            digraph:del_edge(G, E1),
+            digraph:del_edge(G, E2),
+            %% io:format("Start: ~p ~p => ~p (~p)~n",[E1,_In,Out,E2]),
+            Es = digraph:out_edges(G,Out),
+            {All, Comp} = make_directed(Es, Out, All2, G, [Edge]),
+            make_directed(All, G, [Comp|Cs])
     end.
+
+make_directed([E1|Es], Prev, All0, G, Acc) ->
+    case gb_trees:lookup(E1, All0) of
+        none ->
+            make_directed(Es, Prev, All0, G, Acc);
+        {value, E2} ->
+            All = gb_trees:delete(E1,gb_trees:delete(E2,All0)),
+            case digraph:edge(G,E1) of
+                {_, Prev, Next, Edge} ->
+                    digraph:del_edge(G, E1),
+                    digraph:del_edge(G, E2),
+                    make_directed(digraph:out_edges(G,Next), Next, All, G, [Edge|Acc]);
+                {_, Next, Prev, Edge} ->
+                    digraph:del_edge(G, E1),
+                    digraph:del_edge(G, E2),
+                    make_directed(digraph:out_edges(G,Next), Next, All, G, [Edge|Acc])
+            end
+    end;
+make_directed([], _, All, _G, Es) ->
+    [#{p2:={_, Last}}|_] = Es,
+    [#{p1:={_, First}}|_] = EL = lists:reverse(Es),
+    if First =:= Last -> ok;
+       true -> ?D("~n ~w~n ~w~n",[hd(Es),hd(EL)]), error(no_loop)
+    end,
+    First = Last, %% Assert loop
+    {All, lists:reverse(EL)}.
+
+swap(#{mf1:=MF1,mf2:=MF2,p1:=P1,p2:=P2,other:=O}) ->
+    #{mf1=>MF2,mf2=>MF1,p1=>P2,p2=>P1,other=>O}.
 
 edge_exists(G,V1,V2) ->
     lists:member(V2, digraph:out_neighbours(G, V1)) orelse
@@ -985,75 +1008,28 @@ edge_exists(G,V1,V2) ->
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-pick_edge([{E,V,V,Ei}|_], V, _Best) ->
-    error(self),
-    {E, V, Ei}; %% Self cyclic pick first
-pick_edge([{E,V,N,Ei}|R], V, _Best) ->
-    pick_edge(R, V, {E,N,Ei});
-pick_edge([{E,N,V,Ei}|R], V, _Best) ->
-    pick_edge(R, V, {E,N,Ei});
-pick_edge([], _, Best) -> Best.
+split_loop(Loop, Vmap, We) ->
+    split_loop(Loop, Vmap, We, []).
 
-split_loop([Last|Loop], Vmap, We) ->
-    split_loop(Loop, Last, Vmap, We, []).
+split_loop([E|Loop], Vmap, We, Acc) ->
+    Vertex = vertex_info(E, Vmap, We),
+    split_loop(Loop, Vmap, We, [Vertex|Acc]);
+split_loop([], _Vmap, _We, Acc) ->
+    lists:reverse(Acc).
 
-split_loop([V1,E|Loop], Last, Vmap, We, Acc) when is_integer(V1) ->
-%    ?D("~p: ~p in ~p~n",[(element(1,We))#we.id,V1,E]),
-    Vertex = vertex_info(E, V1, Vmap, We),
-    split_loop(Loop, Last, Vmap, We, [Vertex|Acc]);
-split_loop([V1], E, Vmap, We, Acc) ->
-%    ?D("~p: ~p in ~p~n",[(element(1,We))#we.id,V1,E]),
-    Vertex = vertex_info(E, V1, Vmap, We),
-    lists:reverse([Vertex|Acc]).
-
-vertex_info(#{mf1:={O1,F1}, mf2:={O2,F2}, other:={O3,F3},
-              p1:={{_, {A1,B1}=Edge1},V0},
-              p2:={{_, {A2,B2}=Edge2},V0}},
-            V0, Vmap, {#we{id=Id}=We,OWe}) ->
-    if O1 =:= Id ->
-            ON = other_normal(O2,Id,F3,F2,OWe),
-            Edge = wings_vertex:edge_through(A1,B1,F1,We),
-            Fs = edge_faces(Edge,F1,We),
-            SF=#{op=>split_edge, o=>Id, f=>F1, e=>Edge, v=>V0, vs=>Edge1, fs=>Fs, o_n=>ON},
-	    on_vertex(SF, Vmap);
-       O2 =:= Id ->
+vertex_info(#{mf1:={O1,F1}, mf2:={O2,F2}, other:={O3,F3}, p2:={{_, {A,B}=Edge0},V0}},
+            Vmap, {#we{id=Id}=We,OWe}) ->
+    if O2 =:= Id ->
             ON = other_normal(O1,Id,F3,F1,OWe),
-            Edge = wings_vertex:edge_through(A2,B2,F2,We),
-            Fs = edge_faces(Edge,F1,We),
-            SF=#{op=>split_edge, o=>Id, f=>F2, e=>Edge, v=>V0, vs=>Edge2, fs=>Fs, o_n=>ON},
-	    on_vertex(SF, Vmap);
+            Edge = wings_vertex:edge_through(A,B,F2,We),
+            Fs = edge_faces(Edge,F2,We),
+            SF = #{op=>split_edge, o=>Id, f=>F2, e=>Edge, v=>V0, vs=>Edge0, fs=>Fs, o_n=>ON},
+            on_vertex(SF, Vmap);
+       O1 =:= Id ->
+            ON = wings_face:normal(F2, OWe),
+            check_if_edge(#{op=>split_face, o=>Id, f=>F1, v=>V0, o_n=>ON}, Vmap, We);
        O3 =:= Id ->
-            ON = wings_face:normal(F1, OWe),
-            check_if_edge(#{op=>split_face, o=>Id, f=>F3, v=>V0, o_n=>ON}, Vmap, We)
-    end;
-vertex_info(#{mf1:={O1,F1}, mf2:={O2,F2}, other:={O3,F3}, p1:={{_, {A,B}=Edge0},V0}}, V0,
-            Vmap, {#we{id=Id}=We,OWe}) ->
-    if O1 =:= Id ->
-            ON = other_normal(O2,Id,F3,F2,OWe),
-            Edge = wings_vertex:edge_through(A,B,F1,We),
-            Fs = edge_faces(Edge,F1,We),
-            SF=#{op=>split_edge, o=>Id, f=>F1, e=>Edge, v=>V0, vs=>Edge0, fs=>Fs, o_n=>ON},
-	    on_vertex(SF, Vmap);
-       O2 =:= Id ->
-            ON = wings_face:normal(F1, OWe),
-            check_if_edge(#{op=>split_face, o=>Id, f=>F2, v=>V0, o_n=>ON}, Vmap, We);
-       O3 =:= Id ->
-            ON = wings_face:normal(F1, OWe),
-            check_if_edge(#{op=>split_face, o=>Id, f=>F3, v=>V0, o_n=>ON}, Vmap, We)
-    end;
-vertex_info(#{mf2:={O1,F1}, mf1:={O2,F2}, other:={O3,F3}, p2:={{_, {A,B}=Edge0},V0}}, V0,
-            Vmap, {#we{id=Id}=We,OWe}) ->
-    if O1 =:= Id ->
-            ON = other_normal(O2,Id,F3,F2,OWe),
-            Edge = wings_vertex:edge_through(A,B,F1,We),
-            Fs = edge_faces(Edge,F1,We),
-            SF = #{op=>split_edge, o=>Id, f=>F1, e=>Edge, v=>V0, vs=>Edge0, fs=>Fs, o_n=>ON},
-	    on_vertex(SF, Vmap);
-       O2 =:= Id ->
-            ON = wings_face:normal(F1, OWe),
-            check_if_edge(#{op=>split_face, o=>Id, f=>F2, v=>V0, o_n=>ON}, Vmap, We);
-       O3 =:= Id ->
-            ON = wings_face:normal(F1, OWe),
+            ON = wings_face:normal(F2, OWe),
             check_if_edge(#{op=>split_face, o=>Id, f=>F3, v=>V0, o_n=>ON}, Vmap, We)
     end.
 
