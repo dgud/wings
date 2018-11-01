@@ -16,6 +16,7 @@
 %% Commands.
 -export([menu/3,command/2]).
 -export([hardness/2,set_color/2]).
+-export([loop_cut_partition/2]).
 
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
@@ -644,8 +645,7 @@ loop_cut(St) ->
     wings_sel:clone(fun loop_cut/2, body, St).
 
 loop_cut(Edges, #we{id=Id,fs=Ftab}=We0) ->
-    AdjFaces = wings_face:from_edges(Edges, We0),
-    case loop_cut_partition(AdjFaces, Edges, We0, []) of
+    case loop_cut_partition(Edges, We0) of
 	[_] ->
 	    wings_u:error_msg(?__(1,"Edge loop doesn't divide object #~p "
                                   "into two (or more) parts."),
@@ -676,6 +676,12 @@ loop_cut_make_copies([P|Parts], We0) ->
     We = wings_dissolve:complement(P, We0),
     [{We,Sel,cut}|loop_cut_make_copies(Parts, We0)];
 loop_cut_make_copies([], _) -> [].
+
+-spec loop_cut_partition(Edges, #we{}) -> [wings_sel:face_set()] when
+      Edges ::  wings_sel:edge_set() | [wings_sel:edge_num()].
+loop_cut_partition(Edges, We) ->
+    AdjFaces = wings_face:from_edges(Edges, We),
+    loop_cut_partition(AdjFaces, Edges, We, []).
 
 loop_cut_partition(Faces0, Edges, We, Acc) ->
     case gb_sets:is_empty(Faces0) of
