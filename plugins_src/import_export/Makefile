@@ -38,6 +38,7 @@ MODULES= \
 	wpc_kerky \
 	wpc_lwo \
 	wpc_obj \
+	wpc_ply \
 	wpc_pov \
 	wpc_ps \
 	wpc_rwx \
