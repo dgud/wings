@@ -12,7 +12,7 @@
 %%
 -module(wings_va).
 -export([set_vertex_color/3,set_edge_color/3,set_face_color/3,set_body_color/2,
-	 any_attributes/1,any_colors/1,any_uvs/1,
+	 set_color/3,any_attributes/1,any_colors/1,any_uvs/1,
 	 face_attr/3,face_attr/4,face_pos_attr/4,fold/5,set_face_attrs/3,
 	 face_mixed_attrs/2,
 	 all/2,edge_attrs/3,edge_attrs/4,set_edge_attrs/4,

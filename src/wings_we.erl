@@ -57,11 +57,25 @@
 
 %% build() -> We'
 %% Create a we from faces and vertices or a mesh.
-build(Mode, #e3d_mesh{fs=Fs0,vs=Vs,tx=Tx,he=He}) when is_atom(Mode) ->
+build(Mode, #e3d_mesh{fs=Fs0,vs=Vs,vc=Vc,tx=Tx,he=He}) when is_atom(Mode) ->
     Fs = translate_faces(Fs0, list_to_tuple(Tx), []),
-    wings_we_build:we(Fs, Vs, He);
+    We = wings_we_build:we(Fs, Vs, He),
+    if (length(Vc) >= length(Vs)) ->	%% there is a correspondent entry in vc for each vertex
+	apply_vertex_color(list_to_tuple(Vc),We);
+    true -> We
+    end;
 build(Fs, Vs) ->
     wings_we_build:we(Fs, Vs, []).
+
+apply_vertex_color(Vc, #we{es=Etab, lv=Lva0,rv=Rva0}=We) ->
+    {Lva,Rva} = array:sparse_foldl(
+	     fun(Edge, #edge{vs=Vs,ve=Ve}, {Lv,Rv}) ->
+		    VsC = element(Vs+1, Vc),
+		    VeC = element(Ve+1, Vc),
+		    {wings_va:set_color(Edge, VsC, Lv),
+		     wings_va:set_color(Edge, VeC, Rv)}
+	     end, {Lva0,Rva0}, Etab),
+    We#we{lv=Lva,rv=Rva}.
 
 %% rebuild(We) -> We'
 %%  Rebuild any missing 'vc' and 'fs' tables. Also remove any
