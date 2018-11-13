@@ -15,8 +15,8 @@
 	 any_attributes/1,any_colors/1,any_uvs/1,
 	 face_attr/3,face_attr/4,face_pos_attr/4,fold/5,set_face_attrs/3,
 	 face_mixed_attrs/2,
-	 all/2,edge_attrs/3,edge_attrs/4,set_edge_attrs/4,
-	 set_both_edge_attrs/4,set_edge_uvs/2,set_edge_colors/2,del_edge_attrs/2,
+	 all/2,edge_attrs/3,edge_attrs/4,set_edge_attrs/4,set_both_edge_attrs/4,
+	 set_edge_attrs/2,set_edge_uvs/2,set_edge_colors/2,del_edge_attrs/2,
 	 set_edge_color/4,
 	 vtx_attrs/2,vtx_attrs/3,attr/2,new_attr/2,average_attrs/1,average_attrs/2,
 	 set_vtx_face_uvs/4,
@@ -270,6 +270,15 @@ set_edge_attrs(Edge, Face, Attr, #we{es=Etab,lv=Lva,rv=Rva}=We) ->
 set_both_edge_attrs(Edge, LeftAttr, RightAttr, #we{lv=Lva,rv=Rva}=We) ->
     We#we{lv=aset(Edge, LeftAttr, Lva),
 	  rv=aset(Edge, RightAttr, Rva)}.
+
+%% set_both_edge_attrs([{Edge,LeftUV,RightUV,LeftVC,RightVC}, We0) -> We
+%%  Assign UV coordinates and vertex's color to the edges in the list.
+%%
+-spec set_edge_attrs([{edge_num(),all_attributes(),all_attributes(),
+			    all_attributes(),all_attributes()}], #we{}) -> #we{}.
+set_edge_attrs(List, #we{lv=Lva0,rv=Rva0}=We) ->
+    {Lva,Rva} = set_edge_attrs_1(List, Lva0, Rva0),
+    We#we{lv=Lva,rv=Rva}.
 
 %% set_edge_uvs([{Edge,LeftUV,RightUV}, We0) -> We
 %%  Assign UV coordinates to the edges in the list.
@@ -771,6 +780,14 @@ set_edge_colors_1([{Edge,LeftUV,RightUV}|T], Lva0, Rva0) ->
     Rva = set_color(Edge, RightUV, Rva0),
     set_edge_colors_1(T, Lva, Rva);
 set_edge_colors_1([], Lva, Rva) -> {Lva,Rva}.
+
+set_edge_attrs_1([{Edge,LeftUV,RightUV,LeftVC,RightVC}|T], Lva1, Rva1) ->
+    Lva0 = set_uv(Edge, LeftUV, Lva1),
+    Lva = set_color(Edge, LeftVC, Lva0),
+    Rva0 = set_uv(Edge, RightUV, Rva1),
+    Rva = set_color(Edge, RightVC, Rva0),
+    set_edge_attrs_1(T, Lva, Rva);
+set_edge_attrs_1([], Lva, Rva) -> {Lva,Rva}.
 
 set_color(Edge, Color, Tab) ->
     case aget(Edge, Tab) of

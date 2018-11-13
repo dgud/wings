@@ -57,11 +57,17 @@
 
 %% build() -> We'
 %% Create a we from faces and vertices or a mesh.
-build(Mode, #e3d_mesh{fs=Fs0,vs=Vs,tx=Tx,he=He}) when is_atom(Mode) ->
-    Fs = translate_faces(Fs0, list_to_tuple(Tx), []),
+build(Mode, #e3d_mesh{fs=Fs0,vs=Vs,vc=Vc0,tx=Tx,he=He}) when is_atom(Mode) ->
+    Vc = supress_alpha(Vc0),
+    Fs = translate_faces(Fs0, list_to_tuple(Vc), list_to_tuple(Tx), []),
     wings_we_build:we(Fs, Vs, He);
 build(Fs, Vs) ->
     wings_we_build:we(Fs, Vs, []).
+
+%% This should be temporary until we get Wings3D handle the alpha channel for vertex's color.
+%% files like .ply and .glTF are sharing this information
+supress_alpha([]) -> [];
+supress_alpha(VCs) -> [wings_color:rgba_to_rgb(Color) || Color <- VCs].
 
 %% rebuild(We) -> We'
 %%  Rebuild any missing 'vc' and 'fs' tables. Also remove any
@@ -536,16 +542,23 @@ show_faces_1(Faces, #we{es=Etab0}=We0) ->
 %%% Build Winged-Edges.
 %%%
 
-translate_faces([#e3d_face{vs=Vs,tx=Tx0,mat=Mat0}|Fs], Txs, Acc) ->
+translate_faces([#e3d_face{vs=Vs,vc=Vc0,tx=Tx0,mat=Mat0}|Fs], Vcs, Txs, Acc) ->
     Mat = translate_mat(Mat0),
-    FaceData = case Tx0 of
-		   [] -> {Mat,Vs};
-		   Tx1 ->
-		       Tx = [element(Tx+1, Txs) || Tx <- Tx1],
-		       {Mat,Vs,Tx}
+    FaceData = case {Tx0,Vc0} of
+		   {[],[]} -> {Mat,Vs};
+		   {Tx1,Vc1} ->
+		       Tx = if Tx1 =/= [] ->
+				[element(Tx+1, Txs) || Tx <- Tx1];
+			    true -> none
+			    end,
+		       Vc = if Vc1 =/= [] ->
+				[element(Vc+1, Vcs) || Vc <- Vc1];
+			    true -> none
+			    end,
+			   {Mat,Vs,Tx,Vc}
 	       end,
-    translate_faces(Fs, Txs, [FaceData|Acc]);
-translate_faces([], _, Acc) -> reverse(Acc).
+    translate_faces(Fs, Vcs, Txs, [FaceData|Acc]);
+translate_faces([], _, _, Acc) -> reverse(Acc).
 
 translate_mat([]) -> default;
 translate_mat([Mat]) -> Mat;
