@@ -142,8 +142,8 @@ import_2(Fd0, _Dir) ->
     Data = read(Spec, Fd1, []),
     Vs0 = convert_vs(Data),
     MyAcc = fun
-        ({X,Y,Z,R,G,B}, {Vs1,Vc1}) -> 
-            {[{X,Y,Z}|Vs1],[convert_rgb(R,G,B)|Vc1]};
+        ({X,Y,Z,Color}, {Vs1,Vc1}) ->
+            {[{X,Y,Z}|Vs1],[convert_rgb(Color)|Vc1]};
         ({X,Y,Z},{Vs1,Vc1}) ->{[{X,Y,Z}|Vs1],Vc1}
     end, 
     {Vs,VC} = lists:foldr(MyAcc,{[],[]},Vs0),
@@ -153,13 +153,9 @@ import_2(Fd0, _Dir) ->
     Mesh = #e3d_mesh{type = Type, vs = Vs, fs = Fs, vc=VC},
     #e3d_file{objs = [#e3d_object{obj=Mesh}]}.
 
-convert_rgb(R, G, B) ->
-    {convert_rgb_comp(R),
-     convert_rgb_comp(G),
-     convert_rgb_comp(B)}.
-
-convert_rgb_comp(C) when is_float(C) -> C;
-convert_rgb_comp(C) -> C/255.0.
+convert_rgb({R,_,_}=Color) when is_integer(R) -> wings_color:rgb4fv(Color);
+convert_rgb({R,_,_,_}=Color) when is_integer(R) -> wings_color:rgb4fv(Color);
+convert_rgb(Color) -> Color.
 
 convert_vs([{vertex, _No, Vars, _Ts, Data}|_]) -> 
     convert_vs(Vars, Vars, Data, []);
@@ -171,13 +167,20 @@ convert_vs([_|T]) ->
 %% but not wanting to make any assumptions about what fields come next.
 convert_vs([x,y,z|_]=Keys,Vars,[[X,Y,Z|_]=Values|T],Acc)  ->
     IsRGB =  lists:member(red,Keys) andalso lists:member(green,Keys) andalso lists:member(blue,Keys),
-    if 
-        IsRGB =:= true ->  
+    if
+        IsRGB =:= true ->
+            HasAlpha = lists:member(alpha,Keys),
             Zipped    = lists:zip(Keys, Values),
             {red,R}   = lists:keyfind(red,1,Zipped),
             {green,G} = lists:keyfind(green,1,Zipped),
             {blue,B}  = lists:keyfind(blue,1,Zipped),
-            convert_vs(Vars,Vars,T,[{float(X),float(Y),float(Z),R,G,B}|Acc]);
+            Color =
+		if HasAlpha =:= true ->
+		    {alpha,A}  = lists:keyfind(alpha,1,Zipped),
+		    {R,G,B,A};
+		true -> {R,G,B}
+		end,
+            convert_vs(Vars,Vars,T,[{float(X),float(Y),float(Z),Color}|Acc]);
         true -> 
             convert_vs(Vars,Vars,T,[{float(X),float(Y),float(Z)}|Acc])
     end;
