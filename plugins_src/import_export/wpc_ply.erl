@@ -110,11 +110,11 @@ set_pref(KeyVals) ->
     wpa:pref_set(?MODULE, KeyVals).
 
 %export_transform(Contents, Attr) ->
-%    Mat = e3d_mat:scale(proplists:get_value(export_scale, Attr, 1.0)),
+%    Mat = wpa:export_matrix(Attr),
 %    e3d_file:transform(Contents, Mat).
 
 import_transform(Contents, Attr) ->
-    Mat = e3d_mat:scale(proplists:get_value(import_scale, Attr, 1.0)),
+    Mat = wpa:import_matrix(Attr),
     e3d_file:transform(Contents, Mat).
 
 import(Name) ->
@@ -132,6 +132,7 @@ import_1(Fd, Dir) ->
     case catch import_2(Fd, Dir) of
 	{'EXIT',Reason} -> exit(Reason);
 	{error,_}=Error -> Error;
+	{format_not_supported,Reason} -> {error, Reason};
 	#e3d_file{}=E3dFile -> {ok,E3dFile}
     end.
 
@@ -141,15 +142,20 @@ import_2(Fd0, _Dir) ->
     Data = read(Spec, Fd1, []),
     Vs0 = convert_vs(Data),
     MyAcc = fun
-        ({X,Y,Z,R,G,B}, {Vs1,Vc1}) -> 
-            {[{X,Y,Z}|Vs1],[{R/255.0,G/255.0,B/255.0}|Vc1]};
+        ({X,Y,Z,Color}, {Vs1,Vc1}) ->
+            {[{X,Y,Z}|Vs1],[convert_rgb(Color)|Vc1]};
         ({X,Y,Z},{Vs1,Vc1}) ->{[{X,Y,Z}|Vs1],Vc1}
     end, 
     {Vs,VC} = lists:foldr(MyAcc,{[],[]},Vs0),
-    {Fs,OnlyTris} = convert_fs(Data),
+    {Fs0,OnlyTris} = convert_fs(Data),
+    Fs = if VC==[] -> Fs0; true -> process_vc(Fs0) end,
     Type = if OnlyTris -> triangle; true -> polygon end,
     Mesh = #e3d_mesh{type = Type, vs = Vs, fs = Fs, vc=VC},
     #e3d_file{objs = [#e3d_object{obj=Mesh}]}.
+
+convert_rgb({R,_,_}=Color) when is_integer(R) -> wings_color:rgb4fv(Color);
+convert_rgb({R,_,_,_}=Color) when is_integer(R) -> wings_color:rgb4fv(Color);
+convert_rgb(Color) -> Color.
 
 convert_vs([{vertex, _No, Vars, _Ts, Data}|_]) -> 
     convert_vs(Vars, Vars, Data, []);
@@ -161,15 +167,22 @@ convert_vs([_|T]) ->
 %% but not wanting to make any assumptions about what fields come next.
 convert_vs([x,y,z|_]=Keys,Vars,[[X,Y,Z|_]=Values|T],Acc)  ->
     IsRGB =  lists:member(red,Keys) andalso lists:member(green,Keys) andalso lists:member(blue,Keys),
-    if 
-        IsRGB =:= true ->  
+    if
+        IsRGB =:= true ->
+            HasAlpha = lists:member(alpha,Keys),
             Zipped    = lists:zip(Keys, Values),
             {red,R}   = lists:keyfind(red,1,Zipped),
             {green,G} = lists:keyfind(green,1,Zipped),
             {blue,B}  = lists:keyfind(blue,1,Zipped),
-            convert_vs(Vars,Vars,T,[{X,Y,Z,R,G,B}|Acc]);
+            Color =
+		if HasAlpha =:= true ->
+		    {alpha,A}  = lists:keyfind(alpha,1,Zipped),
+		    {R,G,B,A};
+		true -> {R,G,B}
+		end,
+            convert_vs(Vars,Vars,T,[{float(X),float(Y),float(Z),Color}|Acc]);
         true -> 
-            convert_vs(Vars,Vars,T,[{X,Y,Z}|Acc])
+            convert_vs(Vars,Vars,T,[{float(X),float(Y),float(Z)}|Acc])
     end;
 convert_vs([_|V1], Vs, [[_|T0]|T1], Acc) ->
     convert_vs(V1,Vs, [T0|T1],Acc);
@@ -180,6 +193,8 @@ convert_fs([{face, _No, Vars, _Ts, Data}|_]) ->
     convert_fs(Vars, Vars, Data, true, []);
 convert_fs([_|T]) ->
     convert_fs(T).
+convert_fs([vertex_index|V1],Vars,T,OT,Acc) ->
+    convert_fs([vertex_indices|V1],Vars,T,OT,Acc);
 convert_fs([vertex_indices|_],Vars,[[Fs|_]|T],OT,Acc) ->
     TrisOnly = OT andalso (length(Fs) == 3),
     convert_fs(Vars,Vars,T, TrisOnly,  [#e3d_face{vs = Fs}|Acc]);
@@ -189,8 +204,13 @@ convert_fs([_What|V1], Vs, [[_|T0]|T1], OT, Acc) ->
 convert_fs(_,_,[],OT,Acc) -> 
     {reverse(Acc), OT}.
 
+process_vc(Fs) ->
+    lists:foldr(fun(#e3d_face{vs=Vs}=F, Acc) ->
+		    [F#e3d_face{vc=Vs}|Acc]
+		end, [], Fs).
+
 read([{What, No, Vars, Types}|Rest], Fd0, A) ->
-    {Elements, Fd1} = 
+    {Elements, Fd1} =
 	read_elements(Types, Types, get_line(Fd0), No, [], []),
     read(Rest, Fd1, [{What, No, Vars, Types, Elements} | A]);
 read([], _, A) ->
@@ -198,7 +218,7 @@ read([], _, A) ->
 
 read_elements([float|TR], T, {[V|VR],Fd}, No, Row, Tot) ->
     read_elements(TR,T, {VR,Fd},No,[str2float(V)|Row],Tot);
-read_elements([{LT, Type}|TR], T, {[V|VR0],Fd}, No, Row, Tot) 
+read_elements([{LT, Type}|TR], T, {[V|VR0],Fd}, No, Row, Tot)
   when LT /= float->
     {List, VR1}= read_list(list_to_integer(V), Type, VR0, []),
     read_elements(TR,T, {VR1,Fd},No, [List|Row],Tot);
@@ -220,10 +240,19 @@ read_list(No, int, [H|T], Acc)->
 
 read_header(Fd0) ->
     {["ply"], Fd1} = get_line(Fd0),
-    {["format","ascii","1.0"], Fd2} = get_line(Fd1),
-    {Head, Fd3} = read_header(get_line(Fd2), []),
-    Spec = parseHead(Head, []),
-    {Spec, Fd3}.
+    case get_line(Fd1) of
+	{["format","ascii","1.0"], Fd2} ->
+	    {Head, Fd3} = read_header(get_line(Fd2), []),
+	    Spec = parseHead(Head, []),
+	    {Spec, Fd3};
+	{["format",Format,Ver], _} -> format_not_supported(Format,Ver);
+	Res -> Res
+    end.
+
+format_not_supported(Format,Ver) ->
+    ErrorMsg = io_lib:format("Error reading PLY file:\n\n" ++
+			     "~p ~p format is not supported.",[Format,Ver]),
+    throw({format_not_supported,ErrorMsg}).
 
 parseHead([{Type, Num}|Rest], Acc) ->
     {Vars, Types, R2} = parseProps(Rest, [], []),
@@ -245,7 +274,13 @@ read_header({["element","vertex",C], Fd}, Acc) ->
     read_header(get_line(Fd), [{vertex, list_to_integer(C)}|Acc]);
 read_header({["element","face",C], Fd}, Acc) ->
     read_header(get_line(Fd), [{face, list_to_integer(C)}|Acc]);
+read_header({["element","edge",C], Fd}, Acc) ->
+    read_header(get_line(Fd), [{edge, list_to_integer(C)}|Acc]);
+read_header({["element","material",C], Fd}, Acc) ->
+    read_header(get_line(Fd), [{material, list_to_integer(C)}|Acc]);
 read_header({["property", Type, Var], Fd}, Acc) ->
+    read_header(get_line(Fd), [{list_to_atom(Var), type(Type)}|Acc]);
+read_header({["property","material_index"=Var, Type], Fd}, Acc) ->
     read_header(get_line(Fd), [{list_to_atom(Var), type(Type)}|Acc]);
 read_header({["property", "list", ListLenType, Type, Var], Fd}, Acc) ->
     read_header(get_line(Fd), [{list_to_atom(ListLenType),
@@ -255,6 +290,7 @@ read_header({["end_header"|_] ,Fd}, Acc) ->
     {reverse(Acc), Fd}.
 
 type("float") -> float;
+type("float32") -> float;
 type("double") -> float;
 type(_) -> int.
 
@@ -275,10 +311,12 @@ get_line([], Fd, Line) ->
 	eof ->
 	    case Line of
 		[] -> {eof,{Fd,[]}};
-		_ -> {reverse(Line),{Fd,[]}}
+		_ -> {string:tokens(reverse(Line)," \t\n"),{Fd,[]}}
 	    end;
 	{ok,Cs} -> get_line(Cs, Fd, Line)
     end;
+get_line([$\r|Cs], Fd, Line) ->	%%  in this case, it's expected the pair \r\n
+    get_line(Cs, Fd, Line);
 get_line([$\n|Cs], Fd, Line) ->
     {string:tokens(reverse(Line, []), " \t\n"),{Fd,Cs}};
 get_line([C|Cs], Fd, Line) ->
