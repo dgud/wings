@@ -227,7 +227,7 @@ exp_add_mesh_data({Min, Max}, NoTx, S, GLTF0) ->
         true ->
             {#{'POSITION'=>VsA, 'NORMAL'=> NsA}, GLTF3};
         false ->
-            {TxA, GLTF4} = exp_add(exp_make_acc(BVId, N, ?GL_FLOAT, <<"VEC2_FLIP_Y">>, 6*4),
+            {TxA, GLTF4} = exp_add(exp_make_acc(BVId, N, ?GL_FLOAT, <<"VEC2">>, 6*4),
                                    accessors, GLTF3),
             {#{'POSITION'=>VsA, 'NORMAL'=> NsA, 'TEXCOORD_0' => TxA}, GLTF4}
     end.
@@ -277,7 +277,7 @@ exp_data(V,N,Uv,Vs,Ns,Tx,S0) ->
             {XU,XV} = array:get(Uv, Tx),
             Bin = << X:?F32L, Y:?F32L, Z:?F32L,
                      NX:?F32L,NY:?F32L,NZ:?F32L,
-                     XU:?F32L,XV:?F32L>>,
+                     XU:?F32L,(1.0-XV):?F32L>>,
             {Id, S0#{Key=>{Id, Bin}}}
     end.
 
@@ -383,7 +383,7 @@ exp_add_image(#e3d_image{filename=File}, Data, Key, glb, GLTF0) ->
     {ok, ImageBin} = file:read_file(File),
     MType = case filename:extension(File) of
                 ".png" -> <<"image/png">>;
-                ".jpeg" -> <<"image/jpeg">>
+                ".jpg" -> <<"image/jpeg">>
             end,
     {BvId, GLTF1} = exp_add(ImageBin, bufferViews, GLTF0),
     {ImId, GLTF2} = exp_add(#{bufferView => BvId, mimeType=>MType}, images, GLTF1),
