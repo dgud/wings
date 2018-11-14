@@ -175,26 +175,30 @@ exp_object(#e3d_object{name=Name, obj=WMesh}, {Ns,GLTF0}) ->
 
 exp_mesh(WMesh0, Name, GLTF0) ->
     WMesh1 = e3d_mesh:vertex_normals(WMesh0),
-    #e3d_mesh{vs=Vs,ns=Ns,tx=Tx} = WMesh1,
+    #e3d_mesh{vs=Vs,ns=Ns,tx=Tx,vc=Vc} = WMesh1,
     WMesh = WMesh1#e3d_mesh{vs=array:from_list(Vs),
                             ns=array:from_list(Ns),
-                            tx=array:from_list(Tx, {0.0,0.0})},
+                            tx=array:from_list(Tx, {0.0,0.0}),
+                            vc=array:from_list(Vc)},
     FacesByMaterial = segment_by_material(WMesh),
     {Prims,GLTF} = exp_mesh_1(FacesByMaterial, WMesh, GLTF0, [], #{}),
     {#{name=>Name, primitives=>Prims},GLTF}.
 
 exp_mesh_1([{[Mat|_], Fs}|MatFs], WMesh, GLTF0, Ps, S0) ->
     {MId, GLTF} = material_id(Mat, GLTF0),
-    {Inds, S} = case array:size(WMesh#e3d_mesh.tx) of
-                    0 -> exp_faces(Fs, WMesh, fun exp_face_n/3, [], S0);
-                    _ -> exp_faces(Fs, WMesh, fun exp_face_tx/3, [], S0)
+    {Inds, S} = case {array:size(WMesh#e3d_mesh.tx),
+		      array:size(WMesh#e3d_mesh.vc)} of
+		    {0,0} -> exp_faces(Fs, WMesh, fun exp_face_n/3, [], S0);
+		    {_,0} -> exp_faces(Fs, WMesh, fun exp_face_tx/3, [], S0);
+		    {0,_} -> exp_faces(Fs, WMesh, fun exp_face_vc/3, [], S0);
+		    {_,_} -> exp_faces(Fs, WMesh, fun exp_face_tx_vc/3, [], S0)
                 end,
     P = #{material=> MId, indices=>length(Fs)*3},
     exp_mesh_1(MatFs, WMesh, GLTF, [{P, Inds}|Ps], S);
-exp_mesh_1([], #e3d_mesh{tx=Tx, vs=Vs}, GLTF0, Ps0, S) ->
+exp_mesh_1([], #e3d_mesh{tx=Tx, vc=Vc, vs=Vs}, GLTF0, Ps0, S) ->
     {Ps, GLTF1} = exp_add_index(lists:reverse(Ps0), GLTF0),
     MinMax = e3d_bv:box(array:to_list(Vs)),
-    {Attr, GLTF} = exp_add_mesh_data(MinMax, array:size(Tx) =:= 0, S, GLTF1),
+    {Attr, GLTF} = exp_add_mesh_data(MinMax, array:size(Tx) =:= 0, array:size(Vc) =:= 0, S, GLTF1),
     {[P#{attributes=>Attr} || P <- Ps], GLTF}.
 
 exp_add_index(Ps0, GLTF0) ->
@@ -208,13 +212,15 @@ exp_add_index(Ps0, GLTF0) ->
                            {P#{indices:=AId}, GLTF}
                    end, GLTF1, Ps1).
 
-exp_add_mesh_data({Min, Max}, NoTx, S, GLTF0) ->
+exp_add_mesh_data({Min, Max}, NoTx, NoVc, S, GLTF0) ->
     VsData = lists:sort(maps:values(S)),
     N = maps:size(S),
     Bin = << <<Bin/binary>> || {_, Bin} <- VsData>>,
-    Stride = case NoTx of
-                 true -> 6*4;
-                 false -> 6*4+2*4
+    Stride = case {NoTx,NoVc} of
+		 {true,true} -> 6*4;
+		 {false,true} -> 6*4+2*4;
+		 {true,false} -> 6*4+4*4;
+		 {false,false} -> 6*4+2*4+4*4
              end,
 
     {BVId, GLTF1} = exp_add(#{buffer=>Bin, byteStride=> Stride}, bufferViews, GLTF0),
@@ -223,13 +229,23 @@ exp_add_mesh_data({Min, Max}, NoTx, S, GLTF0) ->
                            accessors, GLTF1),
     {NsA, GLTF3} = exp_add(exp_make_acc(BVId, N, ?GL_FLOAT, <<"VEC3">>, 3*4),
                            accessors, GLTF2),
-    case NoTx of
-        true ->
+    case {NoTx,NoVc} of
+	{true,true} ->
             {#{'POSITION'=>VsA, 'NORMAL'=> NsA}, GLTF3};
-        false ->
+	{false,true} ->
             {TxA, GLTF4} = exp_add(exp_make_acc(BVId, N, ?GL_FLOAT, <<"VEC2">>, 6*4),
                                    accessors, GLTF3),
-            {#{'POSITION'=>VsA, 'NORMAL'=> NsA, 'TEXCOORD_0' => TxA}, GLTF4}
+            {#{'POSITION'=>VsA, 'NORMAL'=> NsA, 'TEXCOORD_0' => TxA}, GLTF4};
+	{true,false} ->
+	    {VcA, GLTF4} = exp_add(exp_make_acc(BVId, N, ?GL_FLOAT, <<"VEC4">>, 6*4),
+				   accessors, GLTF3),
+	    {#{'POSITION'=>VsA, 'NORMAL'=> NsA, 'COLOR_0' => VcA}, GLTF4};
+	{false,false} ->
+	    {TxA, GLTF4} = exp_add(exp_make_acc(BVId, N, ?GL_FLOAT, <<"VEC2">>, 6*4),
+				   accessors, GLTF3),
+	    {VcA, GLTF5} = exp_add(exp_make_acc(BVId, N, ?GL_FLOAT, <<"VEC4">>, 6*4+2*4),
+				   accessors, GLTF4),
+	    {#{'POSITION'=>VsA, 'NORMAL'=> NsA, 'TEXCOORD_0' => TxA, 'COLOR_0' => VcA}, GLTF5}
     end.
 
 exp_faces([Face|Fs], WMesh, Fun, Inds, S0) ->
@@ -248,10 +264,28 @@ exp_face_n(#e3d_face{vs=[V1,V2,V3], ns=[N1,N2,N3]}, #e3d_mesh{vs=Vs,ns=Ns}, S0) 
 exp_face_tx(#e3d_face{vs=[V1,V2,V3], ns=[N1,N2,N3], tx=FTx},
             #e3d_mesh{vs=Vs,ns=Ns,tx=Tx}, S0) ->
     [T1,T2,T3] = fix_tx(FTx),
-    {F1,S1} = exp_data(V1,N1,T1,Vs,Ns,Tx,S0),
-    {F2,S2} = exp_data(V2,N2,T2,Vs,Ns,Tx,S1),
-    {F3,S3} = exp_data(V3,N3,T3,Vs,Ns,Tx,S2),
+    {F1,S1} = exp_data(V1,N1,T1,Vs,Ns,Tx,none,S0),
+    {F2,S2} = exp_data(V2,N2,T2,Vs,Ns,Tx,none,S1),
+    {F3,S3} = exp_data(V3,N3,T3,Vs,Ns,Tx,none,S2),
     {[F3,F2,F1], S3}.
+
+exp_face_vc(#e3d_face{vs=[V1,V2,V3], ns=[N1,N2,N3], vc=FVc},
+	    #e3d_mesh{vs=Vs,ns=Ns,vc=Vc}, S0) ->
+    [VC1,VC2,VC3] = fix_tx(FVc),
+    {F1,S1} = exp_data(V1,N1,VC1,Vs,Ns,none,Vc,S0),
+    {F2,S2} = exp_data(V2,N2,VC2,Vs,Ns,none,Vc,S1),
+    {F3,S3} = exp_data(V3,N3,VC3,Vs,Ns,none,Vc,S2),
+    {[F3,F2,F1], S3}.
+
+exp_face_tx_vc(#e3d_face{vs=[V1,V2,V3], ns=[N1,N2,N3], tx=FTx, vc=FVc},
+	    #e3d_mesh{vs=Vs,ns=Ns,tx=Tx,vc=Vc}, S0) ->
+    [T1,T2,T3] = fix_tx(FTx),
+    [VC1,VC2,VC3] = fix_tx(FVc),
+    {F1,S1} = exp_data(V1,N1,{T1,VC1},Vs,Ns,Tx,Vc,S0),
+    {F2,S2} = exp_data(V2,N2,{T2,VC2},Vs,Ns,Tx,Vc,S1),
+    {F3,S3} = exp_data(V3,N3,{T3,VC3},Vs,Ns,Tx,Vc,S2),
+    {[F3,F2,F1], S3}.
+
 
 exp_data(V,N,Vs,Ns,S0) ->
     Key = {V,N},
@@ -266,7 +300,7 @@ exp_data(V,N,Vs,Ns,S0) ->
             {Id, S0#{Key=>{Id, Bin}}}
     end.
 
-exp_data(V,N,Uv,Vs,Ns,Tx,S0) ->
+exp_data(V,N,Uv,Vs,Ns,Tx,none,S0) ->
     Key = {V,N,Uv},
     case maps:get(Key, S0, undefined) of
         {Id, _} -> {Id, S0};
@@ -279,7 +313,46 @@ exp_data(V,N,Uv,Vs,Ns,Tx,S0) ->
                      NX:?F32L,NY:?F32L,NZ:?F32L,
                      XU:?F32L,(1.0-XV):?F32L>>,
             {Id, S0#{Key=>{Id, Bin}}}
+    end;
+exp_data(V,N,Cl,Vs,Ns,none,Vc,S0) ->
+    Key = {V,N,Cl},
+    case maps:get(Key, S0, undefined) of
+	{Id, _} -> {Id, S0};
+	undefined ->
+	    Id = maps:size(S0),
+	    {X,Y,Z} = array:get(V, Vs),
+	    {NX,NY,NZ} = array:get(N, Ns),
+	    {R,G,B,A} =
+	    	case array:get(Cl, Vc) of
+		    {R0,G0,B0} -> {R0,G0,B0,1.0};
+		    RGBA -> RGBA
+		end,
+	    Bin = << X:?F32L, Y:?F32L, Z:?F32L,
+		     NX:?F32L,NY:?F32L,NZ:?F32L,
+		     R:?F32L,G:?F32L,B:?F32L,A:?F32L>>,
+	    {Id, S0#{Key=>{Id, Bin}}}
+    end;
+exp_data(V,N,{Uv,Cl},Vs,Ns,Tx,Vc,S0) ->
+    Key = {V,N,Uv},
+    case maps:get(Key, S0, undefined) of
+	{Id, _} -> {Id, S0};
+	undefined ->
+	    Id = maps:size(S0),
+	    {X,Y,Z} = array:get(V, Vs),
+	    {NX,NY,NZ} = array:get(N, Ns),
+	    {XU,XV} = array:get(Uv, Tx),
+	    {R,G,B,A} =
+	    case array:get(Cl, Vc) of
+		{R0,G0,B0} -> {R0,G0,B0,1.0};
+		RGBA -> RGBA
+	    end,
+	    Bin = << X:?F32L, Y:?F32L, Z:?F32L,
+		     NX:?F32L,NY:?F32L,NZ:?F32L,
+		     XU:?F32L,(1.0-XV):?F32L,
+		     R:?F32L,G:?F32L,B:?F32L,A:?F32L>>,
+	    {Id, S0#{Key=>{Id, Bin}}}
     end.
+
 
 exp_setup_buffers(#{bufferViews:=BVs0} = GLTF0) ->
     {Bin, BVs} = exp_setup_buffer(lists:reverse(BVs0), <<>>, []),
