@@ -694,8 +694,9 @@ axis_letters(TPM, TMM, Yon0) ->
 	    glu:ortho2D(0.0, W, H, 0.0),
 	    gl:matrixMode(?GL_MODELVIEW),
 	    gl:loadIdentity(),
-	    Yon = Yon0 + ?GROUND_GRID_SIZE,
+	    Yon = Yon0 + ground_grid_size(),
 	    gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_FILL),
+	    show_scale(W,H),
 	    axis_letter_1(1, Yon, axisx, x_color, Info),
 	    axis_letter_1(2, Yon, axisy, y_color, Info),
 	    axis_letter_1(3, Yon, axisz, z_color, Info)
@@ -793,11 +794,17 @@ clip_1(_, [], _W) -> none.
 
 show_letter(X0, Y0, W, Char, {_,_,Vw,Vh}) ->
     X = trunc((0.5*X0/W+0.5)*(Vw-20) + 10),
-    Y = Vh - trunc((0.5*Y0/W+0.5)*(Vh-16) + 7),
+    Y = Vh - trunc((0.5*Y0/W+0.5)*(Vh-16) - 1),
     axis_text(X, Y, Char).
 
 axis_text(X, Y, C) ->
     wings_io:unclipped_text(X, Y, [C]).
+
+show_scale(W, H) ->
+    Scale = ground_grid_scale(),
+    StrScale = ?__(1,"Grid Scale: x")++integer_to_list(Scale),
+    X = W-wings_text:width(StrScale)-10,
+    wings_io:info(X, H-18, StrScale).
 
 proj({X0,Y0,Z0}, MM, PM) ->
     e3d_mat:mul(PM, e3d_mat:mul(MM, {X0,Y0,Z0,1.0})).
@@ -815,21 +822,28 @@ add_prod({X1,Y1}, {X2,Y2}, S) when is_float(S) ->
 
 calc_grid_size(PM,MM) ->
     Viewport = {_,_,W,H} =  wings_wm:viewport(),
-    W1=max(W,H)/2.0,
+    W1 = max(W,H)/2.0,
+    Max = ground_grid_size(),
     {S,T,U} = wings_gl:unProject(W1, 0.0, 0.0,
 				 e3d_transform:matrix(MM),
 				 e3d_transform:matrix(PM),
 				 Viewport),
-    ?GROUND_GRID_SIZE*max(round(max(max(abs(S),abs(T)),abs(U))),10.0).
+    trunc(max((max(max(S,T),U)/Max),10.0)).
 
 groundplane(Axes, PM, MM) ->
-    GridSize = calc_grid_size(PM, MM),
+    CurView = #view{distance=Dist}=wings_view:current(),
+    Factor = trunc(Dist/10.0),
+    Exp = length(integer_to_list(Factor))-1,
+    Scale = trunc(math:pow(10.0,Exp)),
+    ?SET({wings_wm:this(),ground_grid_scale},Scale),
+    NumGrid = calc_grid_size(PM,MM),
+    GridSize = ground_grid_size()*NumGrid,
     Show = wings_wm:get_prop(show_groundplane) orelse
 	  (wings_pref:get_value(force_show_along_grid) andalso
-	   (wings_view:current())#view.along_axis =/= none),
+	   CurView#view.along_axis =/= none),
     Key = case Show of
 	      true ->
-		  #view{along_axis=Along} = wings_view:current(),
+		  #view{along_axis=Along} = CurView,
 		  Color = wings_pref:get_value(grid_color),
 		  {Along,GridSize,Axes,Color};
 	      false ->
@@ -862,11 +876,22 @@ groundplane_2(X, Last, _Sz, _Axes) when X > Last ->
     [];
 groundplane_2(X, Last, Sz, true) when X == 0->
     %% Skip ground plane where the axes go.
-    groundplane_2(?GROUND_GRID_SIZE, Last, Sz, true);
+    groundplane_2(ground_grid_size(), Last, Sz, true);
 groundplane_2(X, Last, Sz, Axes) ->
     NegSz = -Sz,
     [{X,NegSz,0},{X,Sz,0},{NegSz,X,0},{Sz,X,0}|
-     groundplane_2(X+?GROUND_GRID_SIZE, Last, Sz, Axes)].
+     groundplane_2(X+ground_grid_size(), Last, Sz, Axes)].
+
+ground_grid_size() ->
+    Scale = ground_grid_scale(),
+    ?GROUND_GRID_SIZE*Scale.
+
+ground_grid_scale() ->
+    Key = {wings_wm:this(),ground_grid_scale},
+    case ?GET(Key) of
+        undefined -> 1;
+        Scale -> Scale
+    end.
 
 show_saved_bb(St) ->
     Key = get_saved_bb_key(St),
