@@ -789,7 +789,9 @@ init() ->
     wings_pref:set_default(show_normal_maps, true),
     wings_pref:set_default(filter_texture, true),
     wings_pref:set_default(frame_disregards_mirror, false),
-    wings_pref:set_default(scene_lights, false).
+    wings_pref:set_default(scene_lights, false),
+    Lights0 = wings_pref:get_value(number_of_lights),
+    update_menu(toggle_light(Lights0)).
 
 initial_properties() ->
     [{workmode,true},
@@ -1137,17 +1139,21 @@ toggle_lights() ->
         false -> ok;
         true -> toggle_option(scene_lights)
     end,
-
     Lights0 = wings_pref:get_value(number_of_lights),
+    update_menu(Lights0),
+    wings_pref:set_value(number_of_lights, toggle_light(Lights0)).
+
+toggle_light(Lights0) ->
+    1 + (2 + Lights0) rem 2.
+
+update_menu(Lights0) ->
     wings_menu:update_menu(view, toggle_lights,
 			   one_of(Lights0 == 1,
 				  ?__(2,"Use Camera Light"),
 				  ?__(1,"Use Hemisphere Light")),
 			   one_of(Lights0 == 1,
 				  ?__(4,"Use a camera work light"),
-				  ?__(3,"Use a simple sky light simulation"))),
-    Lights = 1 + (2 + Lights0) rem 2,
-    wings_pref:set_value(number_of_lights, Lights).
+				  ?__(3,"Use a simple sky light simulation"))).
 
 along(x) -> along(x, -90.0, 0.0);
 along(y) -> along(y, 0.0, 90.0);
