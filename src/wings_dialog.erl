@@ -614,6 +614,25 @@ setup_hooks({Table, Keys}) ->
     _ = [setup_hook(hd(ets:lookup(Table, Key)), Table) || Key <- Keys],
     ok.
 
+setup_hook(#in{key=Key, wx=Ctrl, type=color, wx_ext=Ext, hook=UserHook}, Fields) ->
+    CB = fun({col_changed, Col}) ->
+                 set_value(Key, Col, Fields),
+		 UserHook =/= undefined andalso UserHook(Key, Col, Fields)
+	 end,
+    ww_color_ctrl:connect(Ctrl, col_changed, [{callback, CB}]),
+    case Ext of
+	[Slider] -> ww_color_slider:connect(Slider, col_changed, [{callback, CB}]);
+	_ -> ignore
+    end,
+    ok;
+setup_hook(#in{key=Key, wx=Ctrl, type=col_slider, hook=UserHook}, Fields) ->
+    CB = fun({col_changed, Col}) ->
+                 set_value(Key, Col, Fields),
+                 UserHook =/= undefined andalso UserHook(Key, Col, Fields)
+         end,
+    ww_color_slider:connect(Ctrl, col_changed, [{callback, CB}]),
+    ok;
+%% The following only need callbacks if they contain user hooks
 setup_hook(#in{hook=undefined}, _) -> ok;
 setup_hook(#in{key=Key, wx=Ctrl, type=checkbox, hook=UserHook}, Fields) ->
     %% Setup callback
@@ -675,25 +694,6 @@ setup_hook(#in{key=Key, wx=Ctrl, type=button, hook=UserHook}, Fields) ->
 		     [{callback, fun(_, _) ->
 					 UserHook(Key, button_pressed, Fields)
 				 end}]),
-    ok;
-
-setup_hook(#in{key=Key, wx=Ctrl, type=color, wx_ext=Ext, hook=UserHook}, Fields) ->
-    CB = fun({col_changed, Col}) ->
-                 set_value(Key, Col, Fields),
-		 UserHook(Key, Col, Fields)
-	 end,
-    ww_color_ctrl:connect(Ctrl, col_changed, [{callback, CB}]),
-    case Ext of
-	[Slider] -> ww_color_slider:connect(Slider, col_changed, [{callback, CB}]);
-	_ -> ignore
-    end,
-    ok;
-setup_hook(#in{key=Key, wx=Ctrl, type=col_slider, hook=UserHook}, Fields) ->
-    ww_color_slider:connect(Ctrl, col_changed,
-			    [{callback, fun({col_changed, Col}) ->
-                                                set_value(Key, Col, Fields),
-						UserHook(Key, Col, Fields)
-					end}]),
     ok;
 setup_hook(#in{key=Key, wx=Ctrl, type=slider, hook=UserHook, data={FromSlider,_}}, Fields) ->
     wxSlider:connect(Ctrl, scroll_thumbtrack,
