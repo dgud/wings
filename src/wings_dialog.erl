@@ -569,8 +569,8 @@ get_curr_value(#in{type=dirpicker, wx=Ctrl}) ->
     wxDirPickerCtrl:getPath(Ctrl);
 get_curr_value(#in{type=fontpicker, wx=Ctrl}) ->
     wxFontPickerCtrl:getSelectedFont(Ctrl);
-get_curr_value(#in{type=color, data=Data}) ->
-    Data;
+get_curr_value(#in{type=color, wx=Ctrl}) ->
+    ww_color_ctrl:getColor(Ctrl);
 get_curr_value(#in{type=slider, wx=Ctrl, data={Convert,_}}) ->
     Convert(wxSlider:getValue(Ctrl));
 get_curr_value(#in{type=col_slider, data=Val}) ->
