@@ -358,6 +358,11 @@ set_value_impl(#in{wx=Ctrl, type=color, wx_ext=Ext}=In, Val, Store) ->
     end,
     ww_color_ctrl:setColor(Ctrl, Val),
     true = ets:insert(Store, In#in{data=Val});
+set_value_impl(In=#in{type=image, wx=SBMap}, Val, Store) ->
+    Bitmap = image_to_bitmap(Val),
+    wxStaticBitmap:setBitmap(SBMap,Bitmap),
+    wxBitmap:destroy(Bitmap),
+    true = ets:insert(Store, In#in{data=Val});
 set_value_impl(In=#in{type=button}, Val, Store) ->
     true = ets:insert(Store, In#in{data=Val});
 set_value_impl(In=#in{type=value}, Val, Store) ->
@@ -1306,6 +1311,17 @@ build(Ask, {image, ImageOrFile}, Parent, Sizer, In) ->
     create(Ask, Create),
     In;
 
+build(Ask, {image, ImageOrFile, Flags}, Parent, Sizer, In) ->
+    Create = fun() ->
+		Bitmap = image_to_bitmap(ImageOrFile),
+		SBMap = wxStaticBitmap:new(Parent, ?wxID_ANY, Bitmap),
+		add_sizer(image, Sizer, SBMap, []),
+		wxBitmap:destroy(Bitmap),
+		SBMap
+	     end,
+    [#in{key=proplists:get_value(key,Flags), def=ImageOrFile, hook=proplists:get_value(hook, Flags),
+	 type=image, wx=create(Ask,Create)}|In];
+
 build(Ask, {help, Title, Fun}, Parent, Sizer, In) ->
     Display = fun(_,_) ->
 		      info(Title, Fun(), [{parent, Parent}])
@@ -1591,7 +1607,7 @@ sizer_flags(text, ?wxHORIZONTAL)       -> {1, 2, ?wxRIGHT bor ?wxALIGN_CENTER_VE
 sizer_flags(slider, ?wxHORIZONTAL)     -> {2, 0, ?wxALIGN_CENTER_VERTICAL};
 sizer_flags(slider, ?wxVERTICAL)       -> {0, 0, ?wxEXPAND};
 sizer_flags(button, _)                 -> {0, 0, ?wxALIGN_CENTER_VERTICAL};
-sizer_flags(image, _)                  -> {0, 5, ?wxALL bor ?wxALIGN_CENTER_VERTICAL};
+sizer_flags(image, _)                  -> {0, 5, ?wxALL bor ?wxEXPAND bor ?wxALIGN_CENTER_VERTICAL};
 sizer_flags(choice, _)                 -> {0, 0, ?wxALIGN_CENTER_VERTICAL};
 sizer_flags(checkbox, ?wxVERTICAL)     -> {0, 3, ?wxTOP bor ?wxBOTTOM bor ?wxALIGN_CENTER_VERTICAL};
 sizer_flags(checkbox, ?wxHORIZONTAL)   -> {0, 2, ?wxRIGHT bor ?wxALIGN_CENTER_VERTICAL};
