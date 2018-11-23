@@ -17,6 +17,7 @@
 
 -define(NEED_OPENGL, 1).
 -define(NEED_ESDL, 1).
+
 -include_lib("wings/src/wings.hrl").
 
 -import(lists, [foldl/3,sort/1,reverse/1,member/2]).
@@ -32,8 +33,7 @@
      mir,              % mirror info
      locked,           % masked vertices
      st,               % state
-     wst,              % working state
-     ost}).            % original state
+     wst}).            % original state
 
 init() ->
     wings_pref:set_default(sculpt_strength, 0.005),
@@ -79,7 +79,7 @@ sculpt_mode_setup(#st{shapes=Shs}=St0) ->
     Lv = shape_attr(gb_trees:to_list(Shs)),
     wings_pref:set_default(sculpt_current_id, none),
     Sc = #sculpt{mode=Mode,mir=Mir,str=Str,mag=Mag,rad=Rad,mag_type=MagType,
-          locked=Lv,st=St,wst=St,ost=St0},
+                 locked=Lv,st=St,wst=St},
     wings:mode_restriction([face]),
     wings_wm:dirty(),
     {seq,push,update_sculpt_handler(Sc)}.
@@ -114,30 +114,43 @@ handle_sculpt_event_0(redraw, #sculpt{st=St}=Sc) ->
     wings:redraw("",St),
     help(Sc),
     update_sculpt_handler(Sc);
+handle_sculpt_event_0(close, Sc) ->
+    exit_sculpt(Sc);
 handle_sculpt_event_0(Ev, #sculpt{active=true}=Sc) ->
     handle_sculpt_event_1(Ev, Sc);
+handle_sculpt_event_0({reset_sculpt_state,#st{shapes=Shs}=St0}, Sc) ->
+    St = wings_undo:init(St0#st{selmode=face,sh=false}),
+    Mir = mirror_info(Shs, []),
+    Lv = shape_attr(gb_trees:to_list(Shs)),
+    update_sculpt_handler(Sc#sculpt{mir=Mir,locked=Lv,st=St,wst=St});
 handle_sculpt_event_0({update_state,St}, Sc) ->
-    wings_draw:refresh_dlists(St),
+    wings_draw:refresh_dlists(St#st{sel=[]}),
     wings_wm:current_state(St),
     update_sculpt_handler(Sc#sculpt{st=St,wst=St});
 handle_sculpt_event_0({current_state,St}, #sculpt{st=St}) ->
     keep;
-handle_sculpt_event_0({current_state,#st{shapes=Shs}=St1},
-  #sculpt{st=St0}=Sc) ->
+handle_sculpt_event_0({current_state,#st{saved=Saved,file=File,shapes=Shs}=St1},
+                      #sculpt{st=St0}=Sc) ->
+    St =
+        case {Saved,File==undefined} of
+            {true,true} ->  %% That means a new project was just started
+                St1;
+            _ ->
+                wings_undo:save(St0, St1)
+        end,
     Mir = mirror_info(Shs, []),
     Lv = shape_attr(gb_trees:to_list(Shs)),
-    St = wings_undo:save(St0, St1),
     update_sculpt_handler(Sc#sculpt{locked=Lv,mir=Mir,st=St,wst=St});
 handle_sculpt_event_0({new_state,#st{shapes=Shs}=St1},
   #sculpt{st=St0}=Sc) ->
     Mir = mirror_info(Shs, []),
     Lv = shape_attr(gb_trees:to_list(Shs)),
-    St = wings_undo:save(St0, St1#st{sel=[],selmode=face,sh=false}),
-    wings_draw:refresh_dlists(St),
+    St = wings_undo:save(St0, St1#st{selmode=face,sh=false}),
+    wings_draw:refresh_dlists(St#st{sel=[]}),
     wings_wm:current_state(St),
     update_sculpt_handler(Sc#sculpt{locked=Lv,mir=Mir,st=St,wst=St});
 handle_sculpt_event_0(Ev, #sculpt{st=St}=Sc) ->
-    case wings_camera:event(Ev, St) of
+    case wings_camera:event(Ev, St#st{sel=[]}) of
       next -> handle_sculpt_event_1(Ev, Sc);
       Other -> Other
     end.
@@ -155,7 +168,7 @@ handle_sculpt_event_1(#mousebutton{state=?SDL_RELEASED},
 		      #sculpt{active=true}=Sc) ->
     #sculpt{st=#st{shapes=Shs},wst=St0} =Sc0=clear_influence(Sc),
     St = wings_undo:save(St0, St0#st{shapes=Shs}),
-    wings_draw:refresh_dlists(St),
+    wings_draw:refresh_dlists(St#st{sel=[]}),
     wings_wm:current_state(St),
     wings_wm:dirty(), % it was necessary when I tested in a Intel video card
     update_sculpt_handler(Sc0#sculpt{id=none,st=St,wst=St,active=false});
@@ -181,9 +194,12 @@ handle_sculpt_event_1(#keyboard{sym=Sym,mod=Mod,state=?SDL_PRESSED}=Ev, #sculpt{
 handle_sculpt_event_1({action,Action}, Sc) ->
     command_handling(Action, Sc);
 handle_sculpt_event_1(got_focus, #sculpt{st=St}=Sc) ->
+    wings_tweak:toggle_draw(false),
     Str = wings_pref:get_value(sculpt_strength),
+    wings_draw:refresh_dlists(St#st{sel=[]}),
     wings_wm:dirty(),
-    update_sculpt_handler(Sc#sculpt{id=none,st=St#st{selmode=face,sel=[],sh=false},active=false,str=Str});
+    update_sculpt_handler(Sc#sculpt{id=none,st=St#st{selmode=face,sh=false},
+                                    active=false,str=Str});
 handle_sculpt_event_1(lost_focus, #sculpt{st=#st{shapes=Shs},wst=St0,active=true}=Sc) ->
     St = wings_undo:save(St0, St0#st{shapes=Shs}),
     wings_wm:current_state(St),
@@ -210,7 +226,7 @@ update_magnet_handler(X, Y, Sc) ->
         handle_magnet_event(Ev, X, Y, Sc) end}.
 
 handle_magnet_event(redraw, X, Y, #sculpt{st=St}=Sc) ->
-    wings_draw:refresh_dlists(St),
+    wings_draw:refresh_dlists(St#st{sel=[]}),
     wings:redraw("", St),
     help(Sc),
     draw_magnet(X, Y, Sc),
@@ -331,7 +347,7 @@ do_sculpt(X, Y, Sc) ->
     case sculpt(X, Y, Sc) of
       keep -> keep;
       {St,Id0} ->
-        wings_draw:refresh_dlists(St),
+        wings_draw:refresh_dlists(St#st{sel=[]}),
         wings_wm:dirty(),
         Id = case wings_pref:get_value(sculpt_initial) of
             true -> Id0;
@@ -732,24 +748,24 @@ command_handling(Action, #sculpt{st=St0,mag=Mag}=Sc) ->
               keep ->
 		  keep;
               #st{}=St ->
-                  wings_draw:refresh_dlists(St),
+                  wings_draw:refresh_dlists(St#st{sel=[]}),
 		  wings_wm:dirty(),
                   update_sculpt_handler(Sc#sculpt{st=St})
           end;
       {edit,undo_toggle} ->
           St = wings_u:caption(wings_undo:undo_toggle(St0)),
           wings_wm:current_state(St),
-          wings_draw:refresh_dlists(St),
+          wings_draw:refresh_dlists(St#st{sel=[]}),
           update_sculpt_handler(Sc#sculpt{st=St});
       {edit,undo} ->
           St = wings_u:caption(wings_undo:undo(St0)),
           wings_wm:current_state(St),
-          wings_draw:refresh_dlists(St),
+          wings_draw:refresh_dlists(St#st{sel=[]}),
           update_sculpt_handler(Sc#sculpt{st=St});
       {edit,redo} ->
           St = wings_u:caption(wings_undo:redo(St0)),
           wings_wm:current_state(St),
-          wings_draw:refresh_dlists(St),
+          wings_draw:refresh_dlists(St#st{sel=[]}),
           update_sculpt_handler(Sc#sculpt{st=St});
       {sculpt,Mode} when Mode =:= pull; Mode =:= pinch; Mode =:= smooth ->
           wings_wm:dirty(),
@@ -791,17 +807,22 @@ command_handling(Action, #sculpt{st=St0,mag=Mag}=Sc) ->
 	{hotkey, Cmd} ->
 	    wings_hotkey:command({Cmd,Sc}, St0);
 	{window, _} ->
-	    defer;
+	    restart(Action, Sc);
 	{file, _} ->
-	    defer;
+            restart(Action, Sc);
       _ -> keep
     end.
+
+restart(Cmd, Sc) ->
+    wings_wm:later({action, Cmd}),
+    wings_wm:later({action, {tools, sculpt}}),
+    exit_sculpt(Sc).
 
 %%%
 %%% Exit Sculpt
 %%%
 
-exit_sculpt(#sculpt{mag=Mag,mag_type=MagType,str=Str,rad=Rad,mode=Mode,ost=St0}=Sc) ->
+exit_sculpt(#sculpt{mag=Mag,mag_type=MagType,str=Str,rad=Rad,mode=Mode,st=St0}=Sc) ->
     wings_pref:set_value(sculpt_mode, Mode),
     wings_pref:set_value(sculpt_magnet, {Mag,Rad}),
     wings_pref:set_value(sculpt_strength, Str),
