@@ -304,10 +304,9 @@ get_folder(Pst) ->
 set_folder(Folder, #we{pst=Pst}=We) ->
     We#we{pst=set_folder(Folder, Pst)};
 set_folder(?NO_FLD, Pst0) ->
-    gb_trees:delete(?FOLDERS, Pst0);
+    gb_trees:delete_any(?FOLDERS, Pst0);
 set_folder(Folder, Pst0) ->
     gb_trees:enter(?FOLDERS, Folder, Pst0).
-
 
 get_current_folder(#st{pst=Pst}) ->
     {Current,_} = gb_trees:get(?FOLDERS, Pst),
