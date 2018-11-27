@@ -1224,7 +1224,10 @@ make_vmap([#{p1:=P10, p2:=P20}=E|R], T0, N0, Acc) ->
     make_vmap(R, T2, N2, [E#{p1:=P1,p2:=P2}|Acc]);
 make_vmap([], T, _, Acc) ->
     OrdD = [{N,{Where,Pos}} || {{N, Where}, Pos} <- lists:sort(e3d_kd3:to_list(T))],
-    {array:from_orddict(OrdD), Acc}.
+    {array:from_orddict(OrdD), Acc};
+make_vmap([{coplanar, _,_}=_CP|_R], _T0, _N0, _Acc) ->
+    wings_u:error_msg(?__(1, "Coplanar faces can not be handled currently")).
+
 
 vmap({Where, Pos}, N, Tree) ->
     {{I, _V1}, P1} = e3d_kd3:nearest(Pos, Tree),
