@@ -16,11 +16,11 @@
 
 %% Bounding Box/Sphere
 -export([box/0,box/1,box/2,box/3,
-	 union/2,
+	 union/2, dist/2, intersect/2,
 	 center/1,max_extent/1,
 	 surface_area/1,volume/1,
 	 sphere/1,
-	 inside/2]).
+	 inside/2, hit/2, hit/3, inv_sign/1]).
 
 %% Other Stuff
 -export([eigen_vecs/1,quickhull/1,covariance_matrix/1]).
@@ -89,13 +89,50 @@ box({V10,V11,V12}, {V20,V21,V22}, Expand) ->
     {add({MinX,MinY,MinZ}, {-Expand,-Expand,-Expand}),
      add({MaxX,MaxY,MaxZ}, {Expand,Expand,Expand})}.
 
+
+%%--------------------------------------------------------------------
+%% @doc Distance between two BB's or false if they intersect
+%% @end
+%%--------------------------------------------------------------------
+-spec dist(e3d_bbox(), e3d_bbox()) -> false | float().
+dist({{Nx1,Ny1,Nz1}, {Fx1,Fy1,Fz1}},
+     {{Nx2,Ny2,Nz2}, {Fx2,Fy2,Fz2}}) ->
+    DS0 = 0.0,
+    DS1 = if Fx2 < Nx1 -> Xt=(Nx1-Fx2), DS0 + Xt*Xt;
+	     Fx1 < Nx2 -> Xt=(Nx2-Fx1), DS0 + Xt*Xt;
+	     true -> DS0
+	  end,
+    DS2 = if Fy2 < Ny1 -> Yt=(Ny1-Fy2), DS1 + Yt*Yt;
+	     Fy1 < Ny2 -> Yt=(Ny2-Fy1), DS1 + Yt*Yt;
+	     true -> DS1
+	  end,
+    DS3 = if Fz2 < Nz1 -> Zt=(Nz1-Fz2), DS2 + Zt*Zt;
+	     Fz1 < Nz2 -> Zt=(Nz2-Fz1), DS2 + Zt*Zt;
+	     true -> DS2
+	  end,
+    DS3 > 0.0 andalso DS3.
+
+
+%%--------------------------------------------------------------------
+%% @doc  Checks if two BB's intersect
+%% @end
+%%--------------------------------------------------------------------
+-spec intersect(e3d_bbox(), e3d_bbox()) -> boolean().
+intersect({{Nx1,Ny1,Nz1}, {Fx1,Fy1,Fz1}},
+	  {{Nx2,Ny2,Nz2}, {Fx2,Fy2,Fz2}}) ->
+    if Nx1 > Fx2 orelse Nx2 > Fx1 -> false;
+       Ny1 > Fy2 orelse Ny2 > Fy1 -> false;
+       Nz1 > Fz2 orelse Nz2 > Fz1 -> false;
+       true -> true
+    end.
+
+
 %%--------------------------------------------------------------------
 %% @doc Creates the union of a bounding box and point| bounding box
 %% @end
 %%--------------------------------------------------------------------
-
 -spec union(e3d_bbox(), vector() | e3d_bbox()) -> e3d_bbox().
-union(BBox1 = {Min1={V10,V11,V12}, Max1={V20,V21,V22}}, 
+union(BBox1 = {Min1={V10,V11,V12}, Max1={V20,V21,V22}},
       BBox2 = {Min2={V30,V31,V32}, Max2={V40,V41,V42}}) ->
     %%  Avoid tuple construction if unnecessary
     %%    {{erlang:min(V10,V30), erlang:min(V11,V31), erlang:min(V12,V32)},
@@ -103,40 +140,40 @@ union(BBox1 = {Min1={V10,V11,V12}, Max1={V20,V21,V22}},
     %% Bjorn fix the compiler :-)
     %% The compiler can not optimize away the tuple construction
     %% that's why the code looks like this.
-    if V10 =< V30  -> 
-	    if V11 =< V31 -> 
-		    if V12 =< V32 -> 
-			    if V20 >= V40  -> 
-				    if V21 >= V41 -> 
+    if V10 =< V30  ->
+	    if V11 =< V31 ->
+		    if V12 =< V32 ->
+			    if V20 >= V40  ->
+				    if V21 >= V41 ->
 					    if V22 >= V42 -> BBox1;
 					       true -> {Min1, {V20,V21,V42}}
 					    end;
 				       true -> {Min1, {V20, V41, erlang:max(V22,V42)}}
 				    end;
-			       true -> 
+			       true ->
 				    {Min1, {V40, erlang:max(V21,V41), erlang:max(V22,V42)}}
 			    end;
-		       true -> 
+		       true ->
 			    {{V10,V11,V32}, max_point(Max1, Max2)}
 		    end;
-	       true -> 
+	       true ->
 		    {{V10, V31, erlang:min(V12,V32)}, max_point(Max1, Max2)}
 	    end;
-       true -> 
+       true ->
 	    if V31 =< V11 ->
 		    if V32 =< V12 ->
-			    if V40 >= V20  -> 
-				    if V41 >= V21 -> 
+			    if V40 >= V20  ->
+				    if V41 >= V21 ->
 					    if V42 >= V22 -> BBox2;
 					       true -> {Min2, {V40,V41,V22}}
 					    end;
-				       true ->					    
+				       true ->
 					    {Min2, {V40, V21, erlang:max(V42,V22)}}
 				    end;
-			       true -> 
+			       true ->
 				    {Min2, {V20, erlang:max(V41,V21), erlang:max(V42,V22)}}
 			    end;
-		       true -> 			    
+		       true ->
 			    {{V30, V31, V12}, max_point(Max1, Max2)}
 		    end;
 	       true ->
@@ -144,29 +181,29 @@ union(BBox1 = {Min1={V10,V11,V12}, Max1={V20,V21,V22}},
 	    end
     end;
 
-union(BBox = {Min0={V10,V11,V12}, Max0 = {V20,V21,V22}}, 
+union(BBox = {Min0={V10,V11,V12}, Max0 = {V20,V21,V22}},
       Point = {V30,V31,V32}) ->
-    if V10 =< V30  -> 
-	    if V11 =< V31 -> 
-		    if V12 =< V32 -> 
-			    if V20 >= V30  -> 
-				    if V21 >= V31 -> 
+    if V10 =< V30  ->
+	    if V11 =< V31 ->
+		    if V12 =< V32 ->
+			    if V20 >= V30  ->
+				    if V21 >= V31 ->
 					    if V22 >= V32 -> BBox;
 					       true -> {Min0, {V20,V21,V32}}
 					    end;
 				       true -> {Min0, {V20, V31, erlang:max(V22,V32)}}
 				    end;
-			       true -> 
+			       true ->
 				    {Min0, {V30, erlang:max(V21,V31), erlang:max(V22,V32)}}
 			    end;
-		       true -> 
+		       true ->
 			    {{V10,V11,V32}, max_point(Max0, Point)}
 		    end;
-	       true -> 
+	       true ->
 		    {{V10, V31, erlang:min(V12,V32)}, max_point(Max0, Point)}
 	    end;
-       true -> 
-	    if V31 =< V11 -> 
+       true ->
+	    if V31 =< V11 ->
 		    if V32 =< V12 -> {Point, max_point(Max0, Point)};
 		       true -> {{V30,V31,V12}, max_point(Max0, Point)}
 		    end;
@@ -181,9 +218,9 @@ union(BBox = {Min0={V10,V11,V12}, Max0 = {V20,V21,V22}},
 
 -spec sphere(e3d_bbox()) -> e3d_bsphere().
 sphere(BB = {{_,_,_}, Max = {_,_,_}}) ->
-    Center = center(BB), 
-    {Center, 
-     case inside(BB, Center) of
+    Center = center(BB),
+    {Center,
+     case inside(Center, BB) of
 	 true  -> dist_sqr(Center, Max);
 	 false -> 0.0
      end}.
@@ -195,7 +232,7 @@ sphere(BB = {{_,_,_}, Max = {_,_,_}}) ->
 -spec center(e3d_bv()) -> point().
 center({Min = {_,_,_}, Max = {_,_,_}}) ->
     average(Min,Max);
-center({Center, DistSqr}) when is_list(DistSqr) ->
+center({Center, DistSqr}) when is_number(DistSqr) ->
     Center.
 
 %%--------------------------------------------------------------------
@@ -205,11 +242,10 @@ center({Center, DistSqr}) when is_list(DistSqr) ->
 -spec surface_area(e3d_bv()) -> float().
 surface_area({Min = {Minx,_,_}, Max = {MaxX,_,_}}) ->
     if Minx > MaxX -> 0;
-       true -> 
+       true ->
 	    {X,Y,Z} = e3d_vec:sub(Max, Min),
 	    X*Y+Y*Z+Z*X*2
     end.
-
 
 %%--------------------------------------------------------------------
 %% @doc Returns the volume of the bounding volume
@@ -218,22 +254,21 @@ surface_area({Min = {Minx,_,_}, Max = {MaxX,_,_}}) ->
 -spec volume(e3d_bv()) -> float().
 volume({Min = {Minx,_,_}, Max = {MaxX,_,_}}) ->
     if Minx > MaxX -> 0;
-       true -> 
+       true ->
 	    {X,Y,Z} = e3d_vec:sub(Max, Min),
 	    X*Y*Z
     end.
 
-	
 %%--------------------------------------------------------------------
-%% @doc Returns true if point is inside baounding volume
+%% @doc Returns true if point is inside bounding volume
 %% @end
 %%--------------------------------------------------------------------
--spec inside(e3d_bv(), vector()) -> boolean().
-inside({{V10,V11,V12}, {V20,V21,V22}}, {V30,V31,V32}) ->
-    V10 >= V30 andalso V30 >= V20 andalso 
-	V11 >= V31 andalso V31 >= V21 andalso 
+-spec inside(point(), e3d_bv()) -> boolean().
+inside({V30,V31,V32}, {{V10,V11,V12}, {V20,V21,V22}}) ->
+    V10 >= V30 andalso V30 >= V20 andalso
+	V11 >= V31 andalso V31 >= V21 andalso
 	V12 >= V32 andalso V32 >= V22;
-inside({Center, DistSqr}, Point) when is_number(DistSqr) ->
+inside(Point, {Center, DistSqr}) when is_number(DistSqr) ->
     dist_sqr(Center, Point) =< DistSqr.
 
 %%--------------------------------------------------------------------
@@ -243,6 +278,7 @@ inside({Center, DistSqr}, Point) when is_number(DistSqr) ->
 %%--------------------------------------------------------------------
 
 -spec max_extent(e3d_bbox()) -> undefined | 1 | 2 | 3.
+
 max_extent({Min, Max}) ->
     {X,Y,Z} = e3d_vec:sub(Max, Min),
     if X > Y, X > Z -> 1;
@@ -251,18 +287,63 @@ max_extent({Min, Max}) ->
        true -> 3
     end.
 
+%%--------------------------------------------------------------------
+%% @doc Tests if #ray{} hits BB  
+%% @end
+%%--------------------------------------------------------------------
+
+-spec hit(e3d_ray(), e3d_bbox()) -> boolean().
+hit(#ray{d=Dir}=Ray, BB) ->
+    Swap = inv_sign(Dir),
+    hit(Ray, Swap, BB).
+
+-spec hit(e3d_ray(), {vector(), {boolean(), boolean(), boolean()}}, e3d_bbox()) -> boolean().
+hit(#ray{o={Ox,Oy,Oz},n=Near,f=Far}, {{Ix,Iy,Iz},{Sx,Sy,Sz}}, {{MIx,MIy,MIz},{MAx,MAy,MAz}}) ->
+    T0x = (MIx-Ox)*Ix, T1x = (MAx-Ox)*Ix,
+    {Nx,Fx} = case Sx of
+		  false -> {max(T0x,Near), min(T1x,Far)};
+		  true  -> {max(T1x,Near), min(T0x,Far)}
+	      end,
+    if Nx < Fx ->
+	    T0y = (MIy-Oy)*Iy, T1y = (MAy-Oy)*Iy,
+	    {Ny,Fy} = case Sy of
+			  false -> {max(T0y,Nx), min(T1y,Fx)};
+			  true  -> {max(T1y,Nx), min(T0y,Fx)}
+		      end,
+	    if Ny < Fy ->
+		    T0z = (MIz-Oz)*Iz, T1z = (MAz-Oz)*Iz,
+		    {Nz,Fz} = case Sz of
+				  false -> {max(T0z,Ny), min(T1z,Fy)};
+				  true  -> {max(T1z,Ny), min(T0z,Fy)}
+			      end,
+		    Nz < Fz;
+	       true ->
+		    false
+	    end;
+       true ->
+	    false
+    end.
+
+inv_sign({X,Y,Z}) ->
+    {{inv(X),inv(Y),inv(Z)},  {X < 0.0, Y < 0.0, Z < 0.0}}.
+inv(N) ->
+    try 1.0/N
+    catch _:_ ->
+	    ?E3D_INFINITY
+    end.
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Internals
 max_point(Max0 = {V20,V21,V22}, Max1 = {V30,V31,V32}) ->
-    if V20 >= V30  -> 
-	    if V21 >= V31 -> 
+    if V20 >= V30  ->
+	    if V21 >= V31 ->
 		    if V22 >= V32 -> Max0;
 		       true -> {V20,V21,V32}
 		    end;
 	       true -> {V20, V31, erlang:max(V22,V32)}
 	    end;
-       true -> 
-	    if V31 >= V21 -> 
+       true ->
+	    if V31 >= V21 ->
 		    if V32 >= V22 -> Max1;
 		       true -> {V30,V31,V22}
 		    end;
@@ -299,7 +380,7 @@ eigen_vecs(Vs) ->
 %%%%%%%%%%%%%%%%%%%%%%%%%%% QHULL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 -record(hull, {f,p,os}).
 %% Splits a point soup in a convex-triangle-hull.
-quickhull([V1,V2|Vs0]) when is_list(Vs0) -> 
+quickhull([V1,V2|Vs0]) when is_list(Vs0) ->
     %% Init find an initial triangle..
     [M1,M2] = if V1 < V2 -> [V1,V2]; true -> [V2,V1] end,
     {T1,T2,[T30|Vs1]} = minmax_x(Vs0,M1,M2,[]),
@@ -323,11 +404,11 @@ quickhull2([This=#hull{os=[]}|Rest], Completed) ->
     quickhull2(Rest,[This|Completed]);
 quickhull2([#hull{f=Face,os=[New|Os0]}|Rest], Completed) ->
     Eds0 = mk_eds(Face,gb_sets:empty()),
-    {Eds,Os,Unchanged} = 
+    {Eds,Os,Unchanged} =
 	remove_seen_hull(Completed++Rest,Eds0,New,Os0,[]),
     NewHulls = create_new_hulls(Eds,Os,New,[]),
     quickhull2(NewHulls++Unchanged, []);
-quickhull2([],Completed) ->    
+quickhull2([],Completed) ->
     [Vs|| #hull{f=Vs} <- Completed].
 
 remove_seen_hull([This=#hull{p=Plane,f=F,os=Os}|R],
@@ -386,7 +467,7 @@ minmax_x([This|R],Min,Old,Acc) when This > Old ->
     minmax_x(R,Min,This,[Old|Acc]);
 minmax_x([This|R],Min,Max,Acc) ->
     minmax_x(R,Min,Max,[This|Acc]);
-minmax_x([],Min,Max,Acc) -> 
+minmax_x([],Min,Max,Acc) ->
     {Min,Max,Acc}.
 
 max_zy([This|R],Test,Val,BestSoFar,Acc) ->
@@ -399,18 +480,18 @@ max_zy([This|R],Test,Val,BestSoFar,Acc) ->
 max_zy([],_,_,Best,Acc) -> {Best,Acc}.
 
 initial_split([V|Vs],Plane,WP0,Pos0,WN0,Neg0) ->
-    case check_plane(V,Plane) of	
-	{true,D} -> 
+    case check_plane(V,Plane) of
+	{true,D} ->
 	    {WP,Pos} = worst(V,D,WP0,Pos0),
 	    initial_split(Vs,Plane,WP,Pos,WN0,Neg0);
-	{false,D} -> 
+	{false,D} ->
 	    {WN,Neg} =worst(V,D,WN0,Neg0),
 	    initial_split(Vs,Plane,WP0,Pos0,WN,Neg)
     end;
-initial_split([],_,_,Pos,_,Neg) -> 
+initial_split([],_,_,Pos,_,Neg) ->
     {Pos,Neg}.
 
-worst(V,This,D,[W|List]) when This < D -> 
+worst(V,This,D,[W|List]) when This < D ->
     {D,[W,V|List]};
 worst(V,D,_Worst,List) ->
     {D,[V|List]}.
@@ -419,12 +500,12 @@ hull(Vs) ->
     #hull{f=Vs,p={average(Vs),normal(Vs)}}.
 
 vec_dist({V10,V11,V12}, {V20,V21,V22})
-  when is_float(V10), is_float(V11), is_float(V12), 
+  when is_float(V10), is_float(V11), is_float(V12),
        is_float(V20), is_float(V21), is_float(V22)->
     X = V10-V20,
     Y = V11-V21,
     Z = V12-V22,
-    try 
+    try
 	D = math:sqrt(X*X+Y*Y+Z*Z),
 	{{X/D,Y/D,Z/D},D}
     catch error:badarith ->
@@ -439,7 +520,7 @@ vec_dist({V10,V11,V12}, {V20,V21,V22})
 %% Creates a Symmetric covariance matrix from a list of triangles.
 covariance_matrix(Faces) ->
     N = length(Faces),
-    C0 = foldl(fun(Vs,Acc) -> add(average(Vs),Acc) end, 
+    C0 = foldl(fun(Vs,Acc) -> add(average(Vs),Acc) end,
 	       {0.0,0.0,0.0}, Faces),
     {Cx,Cy,Cz} = e3d_vec:mul(C0,1/N),
     M0 = foldl(fun([{X00,Y00,Z00},{X10,Y10,Z10},{X20,Y20,Z20}],

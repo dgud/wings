@@ -20,10 +20,12 @@
 	 bounding_box/1,area/3,degrees/2,
          plane/1,plane/2,plane/3,
          plane_side/2,plane_dist/2,
-         line_dist/3, line_dist_sqr/3
+         line_dist/3, line_dist_sqr/3, line_line_intersect/5,
+         project_2d/2, largest_dir/1
         ]).
 
--export_type([vector/0]).
+-export_type([vector/0, point/0]).
+-export([format/1]).
 
 -include("e3d.hrl").
 
@@ -333,6 +335,69 @@ line_dist_sqr(P,A,B) ->
             end
     end.
 
+%% Returns point of intersection or line part of parallel intersection
+%% or false
+-spec line_line_intersect(point(),point(),point(),point(),vector()) ->
+                                 boolean().
+line_line_intersect(P10,Q10,P20,Q20,N) ->
+    Dir = largest_dir(N),
+    P1 = project_2d(P10, Dir),
+    Q1 = project_2d(Q10, Dir),
+    P2 = project_2d(P20, Dir),
+    Q2 = project_2d(Q20, Dir),
+    U = sub(Q1,P1),
+    V = sub(Q2,P2),
+    W = sub(P1,P2),
+    D = perp2d(U,V),
+    case abs(D) < 0.00000001 of
+        true -> point_on_line2d(P2, P1, Q1) orelse
+                    point_on_line2d(Q2, P1, Q1);
+        false ->
+            SI = perp2d(V,W)/D,
+            TI = perp2d(U,W)/D,
+            if SI < 0.0 orelse SI > 1.0 -> false;
+               TI < 0.0 orelse TI > 1.0 -> false;
+               true -> true
+            end
+    end.
+
+-spec project_2d(point(), x|y|z) -> point().
+project_2d({_X,Y,Z}, x) -> %% Project onto plane YZ
+    {Y,Z, 0.0};
+project_2d({X,_Y,Z}, y) -> %% Project onto plane XZ
+    {X,Z, 0.0};
+project_2d({X,Y,_Z}, z) -> %% Project onto plane XY
+    {X,Y, 0.0}.
+
+-spec largest_dir(point()) -> x|y|z.
+largest_dir({X,Y,Z}) ->
+    AX=abs(X), AY=abs(Y), AZ=abs(Z),
+    if AY < AZ, AX < AZ -> z;
+       AX < AY -> y;
+       true -> x
+    end.
+
+perp2d({UX,UY,_},{VX,VY,_}) ->
+    UX*VY-UY*VX.
+
+%% Checks whether a point on a line is between endpoints.
+point_on_line2d({_,Py,_}, {Sx,Sy,_}, {Sx,Ey,_}) ->
+    %% line is horizontal, check Y axis
+    if Sy =< Py andalso Py =< Ey ->
+            true;
+       Sy >= Py andalso Py >= Ey ->
+            true;
+       true -> false
+    end;
+point_on_line2d({Px,_,_}, {Sx,_,_}, {Ex,_,_}) ->
+    if Sx =< Px andalso Px =< Ex ->
+            true;
+       Sx >= Px andalso Px >= Ex ->
+            true;
+       true -> false
+    end.
+
+
 %% Should be removed and calls should be changed to e3d_bv instead.
 -spec bounding_box([vector()]) -> [vector()].
 bounding_box(List) when is_list(List) ->
@@ -354,6 +419,11 @@ degrees(V0, V1) ->
             true -> RawCos
           end,
     math:acos(Cos) * (180.0 / math:pi()).
+
+
+-spec format(point()) -> io_lib:chars().
+format({A,B,C}) ->
+    io_lib:format("{~.3f,~.3f,~.3f}",[A,B,C]).
 
 %%%
 %%% Internal functions.

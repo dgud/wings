@@ -89,7 +89,7 @@ validate_vertex_tab(#we{es=Etab,vc=Vct,vp=Vtab}=We) ->
 				   #edge{ve=V}=Rec ->
 				       validate_edge_rec(Rec, We);
 				   _Other ->
-				       crash({vertex,V}, We)
+				       crash({vertex,V,Edge}, We)
 			       end
 		       end, [], Vct).
 

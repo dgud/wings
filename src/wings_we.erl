@@ -715,14 +715,11 @@ do_renumber(#we{vp=Vtab0,es=Etab0,fs=Ftab0,
 
     Pst_Elements = wings_plugin:check_plugins(save,Pst0),
     Pst = foldl(fun
-        ({_,{Plugin,{vs,VsSet}}}, Pst1) ->
-            Vs = gb_sets:to_list(VsSet),
+        ({_,{Plugin,{vs,Vs}}}, Pst1) ->
             renum_elements_in_pst(vs,Plugin,Vs,Vmap,Pst1);
-        ({_,{Plugin,{es,EsSet}}}, Pst1) ->
-            Es = gb_sets:to_list(EsSet),
+        ({_,{Plugin,{es,Es}}}, Pst1) ->
             renum_elements_in_pst(es,Plugin,Es,Emap,Pst1);
-        ({_,{Plugin,{fs,FsSet}}}, Pst1) ->
-            Fs = gb_sets:to_list(FsSet),
+        ({_,{Plugin,{fs,Fs}}}, Pst1) ->
             renum_elements_in_pst(fs,Plugin,Fs,Fmap,Pst1);
         ({remove,Plugin}, Pst1) ->
             gb_trees:delete(Plugin,Pst1)
@@ -798,15 +795,25 @@ renum_hard_edge(Edge0, Emap, New) ->
 
 % Checks plugins which store elements in the Pst that need to be renumbered
 % before saving and returns the new Pst.
-renum_elements_in_pst(Key,Plugin,Elements,Map,Pst0) ->
-    Renumbered = foldl(fun(Elem, New) ->
-      case gb_trees:lookup(Elem,Map) of
-          none -> New;
-          {_,NewNum} -> [NewNum|New]
-      end
-    end, [], Elements),
+renum_elements_in_pst(Key,Plugin,Elements0,Map,Pst0) ->
+    NewElems = case is_list(Elements0) of
+                   false ->
+                       Elements = gb_sets:to_list(Elements0),
+                       Renumbered = foldl(fun(Elem, New) ->
+                                                  case gb_trees:lookup(Elem,Map) of
+                                                      none -> New;
+                                                      {_,NewNum} -> [NewNum|New]
+                                                  end
+                                          end, [], Elements),
+                       gb_sets:from_list(Renumbered);
+                   true ->
+                       foldl(fun(PstElem, Acc) ->
+                                     Elem = Plugin:renumber(get_elem, PstElem),
+                                     Res = gb_trees:lookup(Elem,Map),
+                                     [Plugin:renumber(set_elem, PstElem, Res) | Acc]
+                             end, [], Elements0)
+               end,
     Data = gb_trees:get(Plugin,Pst0),
-    NewElems = gb_sets:from_list(Renumbered),
     NewData = gb_trees:update(Key,NewElems,Data),
     Pst = gb_trees:update(Plugin,NewData,Pst0),
     Pst.
