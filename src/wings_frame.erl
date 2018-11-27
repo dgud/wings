@@ -1194,7 +1194,7 @@ export_contained(Root) ->
     Path = find_path(geom, Root),
     lists:reverse(tree_to_list(Root, Path, [])).
 
-update_layout([{_Wh,Mode,Permille}|Contained], #split{obj=Obj, mode=Mode, w1=W10, w2=W20}) ->
+update_layout([{SpltMode,Mode,Permille}|Contained], #split{obj=Obj, mode=Mode, w1=W10, w2=W20}) ->
     {W,H} = wxWindow:getClientSize(Obj),
     Pos =
 	case Mode of
@@ -1202,9 +1202,14 @@ update_layout([{_Wh,Mode,Permille}|Contained], #split{obj=Obj, mode=Mode, w1=W10
 	    splitHorizontally -> round(H * Permille / 1000)
 	end,
     wxSplitterWindow:setSashPosition(Obj, Pos),
-    Cont = update_layout(Contained, W10),
-    update_layout(Cont, W20);
-update_layout(_, Cont) -> Cont.
+    {W1,W2} =
+	case SpltMode of
+	    split -> {W10,W20};
+	    split_rev -> {W20,W10}
+	end,
+    Cont = update_layout(Contained, W1),
+    update_layout(Cont, W2);
+update_layout(Contained, #win{}) -> Contained.
 
 tree_to_list(#split{obj=Obj, mode=Mode,w1=W1,w2=W2}, Path0, Acc0) ->
     SashPos = wxSplitterWindow:getSashPosition(Obj),
