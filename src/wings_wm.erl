@@ -257,6 +257,12 @@ delete_windows(Name, W0) ->
 	none ->
 	    W0;
 	{value,#win{obj=Obj, links=Links}} ->
+            case get(current_gl) of
+                Obj ->
+                    erase(current_gl),
+                    wxGLCanvas:setCurrent(wxwindow(geom));
+                _ -> ignore
+            end,
 	    erase(Obj),
 	    delete_props(Name),
 	    This = this(),
@@ -838,7 +844,6 @@ update_focus(Active) ->
 do_dispatch(Active, Ev) ->
     case lookup_window_data(Active) of
 	none ->
-	    io:format("~p:~p: Dropped Event ~p: ~p~n",[?MODULE,?LINE, Active, Ev]),
 	    false;
 	Win0 ->
 	    case send_event(Win0, Ev) of
