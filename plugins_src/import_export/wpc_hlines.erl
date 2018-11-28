@@ -78,7 +78,7 @@
 -define(DEF_SVG_ART_LINE_TYPE, 1 ).
 
 -define(DEF_FILL_SHADE_TYPE, 0 ).
--define(DEF_LIGHT_POS, {-480,-512,500,0.00095} ).
+-define(DEF_LIGHT_POS, {-480,-512,500,0.00096} ).
 
 -define(DEF_OUTL_COLOR, {0.0, 0.0, 0.0, 1.0}).
 -define(DEF_HARD_COLOR, {0.0, 0.0, 0.0, 1.0}).
@@ -100,6 +100,11 @@
 
 
 init() ->
+    %% that force the wrong preferences stored before the fix to be updated
+    case get_pref( light_pos, ?DEF_LIGHT_POS) of
+	[] -> wpa:pref_delete(?MODULE, light_pos);
+	_ -> ignore
+    end,
     true.
 
 menu({file, export}, Menu) ->
@@ -2118,7 +2123,7 @@ define_fill_type() ->
 
 %% Light_positon            Name {Lx, Ly, Lz, Illuminence Factor}
 define_light_pos() ->
-    [ 
+    [
       { ?__(1,"Up to Down") , {-480,-512, 500,0.00096} },
       { ?__(2,"Down to Up") , {-480, 512, 500,0.00096} },
       { ?__(3,"Down to Up2"), {   1, 512, 256,0.00108} },
