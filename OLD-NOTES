@@ -1,3 +1,396 @@
+--- 2.1.7 --------------------------------------------
+
+- Improved importer, now it can more often create "objects" instead
+  of separated faces when importing models. [dgud]
+
+- Implemented importer and exporter for
+  GL transfer format (*.gltf|*.glb). [dgud]
+
+- Fixed View/Show/Filter Textures
+  Option previously only worked after restarting wings, thanks OXO. [dgud]
+
+- Added support for (some) .dds image files. [dgud]
+
+- Fixed (some) keyboard focus bugs [dgud]
+
+- Added more texture types (currently not used) [micheus, dgud]
+
+- Fixed autosave, and other minor bugs. [micheus, dgud]
+
+--- 2.1.6 --------------------------------------------
+
+- Object count for each folder in Geometry Graph was missing. Thanks to tkbd [micheus]
+
+- Added snap window and removed the old tools/snap command [micheus]
+
+- Implement dnd support for wings files and images from OS
+  Doesn't work on mac for unknown reason, wx only supports old simple
+  dnd and the might not work with wxWidgets on mac. [dgud]
+
+- Fixed PS/EPS importer which was not importing files properly.
+  It should import Adobe Illustrator, LibreOffice and Inkscape files correctly.
+  Scribus file may not to have some objects loaded. Thanks to tkbd for all support. [micheus]
+
+- Improved PS/EPS importer [dgud]
+
+- Added Spanish Translation [dgud]
+
+- Added the hotkeys "F2" and "Delete" for rename and delete operations respectively. [micheus]
+
+- Dialogs will now be shown near to the mouse pointer. [micheus]
+
+- The AutoUV Editor option to show/hide the background image is back. [micheus]
+
+- Added a dialog to allow user to decide if an unsaved file must be
+  recovered. Thanks to ggaliens. [micheus]
+
+- The option in Preferences to disabling the toolbar to be shown was not
+  working - it continued to be shown every time Wings3D started. Thanks to nemyax [micheus]
+
+- Fixed a crash in Lightwave exporter when there is wrong UV info. Thanks
+  to ScifiX. [micheus]
+
+- When all faces of one object that was combined with other is hidden,
+  when user separate them that object cannot be seen anyway. Thaks to Hank. [micheus]
+
+- When collapsing faces, edges, or vertices around holes, the
+  hole faces could be deleted, but still be marked as holes. That
+  would lead to a crash when attempting to save the file or when
+  using the Combine command. The Collapse command now makes sure
+  that holes for any deleted faces are removed. [Björn Gustavsson]
+
+- Optimized the rendering code, large models works better now.
+  All rendering is now shader based, bump maps and normal maps
+  are now visible in "two lights" mode and lighting is improved. [dgud]
+
+- Fixed some mouse focus issues. [dgud]
+
+- Largs code rewrite for further optimizations,
+  which might have caused new issues, please report. [Björn Gustavsson]
+
+- Spanish Translation [asticles]
+
+- Fixed some exporter unicode problems. [dgud]
+
+--- 2.1.5 --------------------------------------------
+- Added Make Normal-Map command, in outliner.
+  And improved bump-map to normal-map calculations. [Micheus]
+
+- Keyboard shortcuts could sometimes be invoked twice [dgud]
+
+- Outliner could get keyboard focus after some commands though
+  the window was not marked as focused. Fixes focus issues. [dgud]
+
+- Choosing 'Loaded Font Glyphs' from Development menu was causing
+  Wings3D crash. Thanks to Fonte Boa [Micheus]
+
+- Fixed the visualization of Tweak "Show Magnet Influence" was not
+  working. Thanks to Fonte Boa. [Micheus]
+
+- Invalid ps/eps file (absent or invalid token) was causing Wings3D crash.
+  Thanks to tkbd. [Micheus]
+
+- Fixed broken TGA image loader, wx's targa loader, fails with RLE
+  encoding, bug is fixed but not released workaround by using wings
+  own tga loader. Reported by tkbd. [dgud]
+
+- Fixed loading files from root dir on Windows [Micheus].
+
+- Code cleanup and Optimizations [bjorng] [dgud]
+
+--- 2.1.4 --------------------------------------------
+- Fix crash in autouv when doing geometry changes from the autouv
+  window via keyboard shortcuts. Now the commands only work if selection
+  mode is the same in both windows. Reported by Fonte Boa. [dgud]
+
+- Bridge-RMB was crashing for two faces selected in the same object.
+  Thanks to Fonte Boa. [Micheus]
+
+- After select multiple views and activate the RMB Wings3d crashes.
+  Thanks Fonte Boa [micheus]
+
+- It was impossible to define hotkeys in Sculpt mode.
+  Thanks to Fonte Boa. [Micheus]
+
+- Performance improvements. [dgud]
+
+- Selection display in ortho mode (and autouv).
+  Reported by Loefet and kugelfang. [dgud]
+
+- Fix olive green theme, report by tkbd. [dgud]
+
+- Fix crash at start if username contained unicode chars,
+  reported by infinder. [dgud]
+
+- In GeometryGraph if user accidentally put the folder name in edit mode and
+  then cancel it Wings3D was displaying a wrong message. Thanks tkbd. [Micheus]
+
+- The Geometry Graph window closes unexpectedly in some folder/item
+  operations. Avoid the crash and its cause should now
+  be appended to Log window. Thanks to tkbd [Micheus]
+
+--- 2.1.3 --------------------------------------------
+- Fix dragging images in outliner on mac and linux [dgud]
+
+- Add torus to correct place in menu when in Snap Image mode
+  We can't add it to the second place when auv_snap image is activated,
+  the torus comes in mixed with the snap commands. [dgud]
+
+- Fix octotoad scaling during creation, report by tkbd. [dgud]
+
+- Fix hotkey handling of keys F1-F15, reported by Fonteboa [dgud]
+
+- Fix displaying selections in secondary selection mode, reported by tkbd [dgud]
+
+--- 2.1.1 --------------------------------------------
+
+- Fixed starting wings with file argument, either double clicking
+  on wings file on windows or dragging file to wings app on mac.
+  Reported by sandman. [dgud]
+
+- Auto scroll outliner when dragging images.
+  Suggested by oxo. [dgud]
+
+- Add show/hide toolbar option in preferences.
+  Reported by Fonte Boa. [dgud]
+
+- Tweak magnet adjust did not stop when key was released.
+  Reported by Fonte Boa. [dgud]
+
+- Press shift to disable docking window when moving.
+  Suggested by many. [dgud]
+
+- Rework drawing edges and selection to fix problems on some
+  graphic cards and drivers, i.e. Macs with old Intel gfx cards.
+  Debugged by tkdb [dgud]
+
+- Indicate used magnet type, and fix status bar issues on Mac.
+  Reported by tkbd. [dgud]
+
+- Improved dialog handling on Mac. [dgud]
+
+- Improve camera and mouse drag performance. [dgud]
+
+- Various redraw & refresh improvements. [dgud]
+
+--- 2.1 ---------------------------------------------
+
+- Large gui rewrite
+  Convert all windows to be real windows instead of OpenGL drawn.
+  Windows can be attached and detached from main window.
+  [dgud] with much help teseting, debugging and bug-fixes from [micheus]
+
+- Added a new Subdivide(RMB) command to be side-by-side with Smooth (Catmull Clark) command.
+  Suggested by Arg Arg. [micheus]
+
+- Added a new bridge(RMB) with reference points. [micheus]
+
+- Collada (.dae) improvments
+  - Importer implemented
+  - Exports vertex normals
+  [dgud]
+
+- Added new connect and slide command for Connect RMB in Edge mode.
+  Suggested by tkbd. [micheus]
+
+- Camera dialog improvments [micheus]
+  - New formats
+  - Fixed bugs
+  - Image plane preview
+
+- Added edge loop nth selection command [micheus] & [dgud]
+
+- Povray improvements [micheus]
+
+- Fixed a crash caused by bad formated text for "How To Define Hotkeys"
+  instructions in language files and updated their description to the new
+  process sequence. Thanks to tkbd. [micheus]
+
+- Fixed a crash caused by renumber routine. That was noticed when a
+  material map references a face that no longer existed after a dissolve
+  command has been ran. Thanks to ptoing. [micheus]
+
+- After execute a merge action the title was not showing the file was
+  changed and a save action is required. Thanks to oort. [micheus]
+
+--- 2.0.5 ----------------------------------------------------------------------
+
+- Updates to the Japanese translation [tkbd]
+
+- Fixed a hotkey issue that was not enabling replace a previous binded key as
+  well as it was ignoring the hotkey deletion. Thanks ggaliens. [micheus]
+
+- Added logic that allow the Yafaray - after the engine path be provided -
+  get its render option available under File->Render option whithout need to
+  restart Wings3D. Thanks oort for ask about it. [micheus]
+
+- Fixed the problem with crash in the Ambient Occlusion plug-in. [Björn Gustavsson]
+
+- Fixed the bad text formatting in the module wpc_constraints that was
+  causing Wing3d crash. Thanks to tkbd. [micheus]
+
+  Also, as suggested by the user tkbd, it was added a message dialog that
+  shows to the user the message about the constraint that just has been set. [micheus]
+
+- In OSX, when merge dialog is shown the mouse cursor becomes a clock.
+  Thanks to tkbd. [micheus]
+
+- Handle filename with unicode characters, reported by beng27 [dgud]
+
+- Moving the mouse over 'Various Plans' dialog icon was causing Wings3d
+  crach. Thanks to tkbd. [micheus]
+
+- Fixed other hotkey issues. [dgud]
+
+--- 2.0.4 ----------------------------------------------------------------------
+
+- Further updates of the German translation by Roy. [Björn Gustavsson]
+
+- Improved connect cut command to work in more cases [dgud]
+
+- Fix memory duplication when opening face/edge menu. [dgud]
+
+- Fixed a crash caused by the format_hotkey routine when an error was
+  handled in wings_hotkey module. Thanks ggaliens. [micheus]
+
+- Update French translation. [Enzo]
+
+--- 2.0.3 ----------------------------------------------------------------------
+
+- Added possibilty to cut and connect 2 or 3 vertices with MMB
+  [Mark Whittemore] [dgud]
+
+- Fixed the crash/hang caused by the slide color control. [micheus]
+
+- There was a strange black line being drawn in the background starting from
+  mini axis. Thanks to Asticles for report it. [Micheus]
+
+- Fixed fragment shader code for Marble and Noise that was causing
+  render crash in texture creation. Thanks tkbd. [micheus]
+
+- Fixed tweak information line and hotkey handling back to as it in
+  previous releases.  Thanks Fonte Boa. [micheus]
+
+- It was not possible set a hotkey for commands assigned to
+  RMB. Thanks Fonte Boa [micheus]
+
+- The German translation has been updated by Roy. [bjorng]
+
+- Fixed typo in absolute move, thanks Loefet [dgud]
+
+- Fixed crash in plugin-manager, thanks tkbd [dgud]
+
+- Fixed installation of vcredist package from Microsoft. [dgud]
+
+- Some keyboard fixes on Mac
+
+- Improved EPS/SVG Exporter [tkbd]
+
+--- 2.0.2 ----------------------------------------------------------------------
+
+- Fixed the background color exported when a Ambient light is used. Thanks oort;
+
+- Fixed a crash caused by editing an old projects that a material can contain
+  modulators with values out-of-range; Thanks oort.
+
+- Fixed a bad path formation caused by a missing condition in the routine to
+  get relative paths used by POV-Ray plugin. [micheus]
+
+- Fixed the sub- menu location for the "Drop picked object" option.
+  In the current implementation it seems there is no need for translate the
+  cursor cordinate. Thanks oort; [micheus]
+
+- Fixed the cause of Wings3d crash when 'Enable Develop Menu' was
+  enable/disable. Thanks oort; [micheus]
+
+- Fixed the missed control over the transparency color of magnet
+  in the Tweak tool. [micheus]
+
+- Fixed the missed dialog prompt action before overriden a file. Thanks oort.
+  - Fixed wrong beharviour when trying to save an untitled file. Thanks tkbd. [micheus]
+
+- Added help content to Yafaray Export dialog. by oort;
+  - Fixed Transparency Refraction option in the Yafaray plugin. by oort; [micheus]
+
+- Fix autouv texture generation, reported by tkbd.
+  Many bugfixes and new shaders [micheus, dgud]
+
+- For two mouse buttons settings the menu was ignoring the combo CTRL+RMB
+  and was acting just like a RMB. Thanks to ggaliens. [micheus]
+
+- Various other bugs reported on the forum. [dgud, micheus]
+
+- Rewrote the internal rendering to use vbo instead of display lists. [bjorn]
+
+- Fixed keyboard handling on mac. [bjorn]
+
+--- 2.0.1 ----------------------------------------------------------------------
+
+- Added OpenGL version check, for future version requirements [bjorng]
+
+- Unselected vertex size was not changed after changing it in the
+  Preferences. [micheus]
+
+- Fixed color selection for lights by using wings color selector
+  when alpha value is required. [dgud]
+
+- Added support for loading multiple images in Import Image command. [micheus]
+
+- Fixed labels and textbox aligment for Absolute Command->Move/Scale [micheus]
+
+- 1) Yafaray plugin update:
+  - Reworked in the layout of the Yafaray "Render Options" dialog;
+  - made some changes asked by oort;
+  - fixed some bugs found by oort
+  - updated the help information for material and lights;
+
+  2) POV-Ray plugin update:
+  - fixed some controls alignments
+
+  3) Kerkythea plugin update:
+  - fixed some controls alignments
+
+  4) wpc_absolute_move.erl
+  - fixed control alignments
+
+  5) wings_light.erl
+  - fixed alignment [micheus]
+
+- Fixed double click drag selection [dgud]
+
+- Fixed other minor problems reported in the forum including
+ - Log/Console window related issues
+ - Linux installer problems
+ - Set keyboard focus in dialogs
+ - Multisampling preference
+ [dgud]
+
+--- 2.0 ----------------------------------------------------------------------
+
+- Rewrote to use wx as backend for graphics
+  It allows us to use more (native) widgets in the future and
+  copy-paste in text widgets, native fonts and so on.
+  Much have been rewritten so much can be broken,
+  please report bugs in the forum.
+  [dgud] and [Micheus]
+
+- Removed/Changed some features that was hard to port to wx
+   Setting/removing keyboard shortcuts have change, see help.
+   Preview rendering is always on.
+   Right Click menu icons have been removed.
+
+- Changed the installer for all OS'es, to behave more like native apps.
+-- Linux: includes desktop shortcuts with icons.
+-- Windows: allows the wings to moved after install
+-- Mac: More native apperance, menu in the top bar
+
+- Added edge/hardness/invert command [Mark Whittemore]
+
+- Removed YafRay plugin and added a new YafaRay plugin [oort]
+  Ported all render plugins to use the new gui. [Micheus]
+
+- Added a file merge dialog so the user can choose what to import. [micheus]
+
 --- 1.5.4 ----------------------------------------------------------------------
 
 - The grid size is now adjusted automatically [Micheus]

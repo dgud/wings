@@ -1,19 +1,15 @@
 Currently active developers
 ===========================
 
-Richard Jones (Optigon):
-	Major updates to the Tweak plug-in.
-	The original author of many plug-ins, for instance
-	Circularise, Constraints, Contour, and Sweep Extrude.	
-	Added many features and corrected many bugs.
+Dan Gudmundsson:
+        Current release manager, and coder.
+
+Micheus Viera:
+        The bug hunter and coder.
 
 Björn Gustavsson (bjorng):
-        Releases the Wings releases.
+        Releases the Wings Mac releases.
 	Occasionally corrects bugs and does minor improvements.
-
-Andrzej Giniewicz
-
-Dan Gudmundsson
 
 Special contributors
 ====================
@@ -28,6 +24,15 @@ Paul Budd (puzzledpaul):
 	Created "aardvarks" - a resource pages with tutorials,
 	notes and information about Wings. Now at:
 	http://www.wings3d.com.br/paulthepuzzles/aardvarks.html
+
+Richard Jones (Optigon):
+	Major updates to the Tweak plug-in.
+	The original author of many plug-ins, for instance
+	Circularise, Constraints, Contour, and Sweep Extrude.
+	Added many features and corrected many bugs.
+
+Andrzej Giniewicz
+
 
 History of Wings Developement
 =============================
@@ -55,6 +60,7 @@ Dan Gudmundsson:
 	Wrote the e3d_image modules.
 	Wrote the original material editor.
 	Principal author of Auto-UV.
+        Rewrote the gui to use wxWidgets.
 
 Vlad Dumitrescu: Bugfix for middle-mouse button emulation.
 
