@@ -17,10 +17,9 @@ uniform sampler2D EnvSpecMap;
 
 vec2 vec2uv(vec3 vec)
 {
-  float u = atan(vec.x, -vec.z);
-  float v = -asin(vec.y);
-  if(u < 0.0f) return vec2(0.5*u/M_PI, 0.5+v/M_PI);
-  else return vec2(1.0f+0.5*u/M_PI, 0.5+v/M_PI);
+  float u = atan(vec.x, vec.z);
+  float v = acos(vec.y);
+  return vec2(0.5f+0.5*u/M_PI, v/M_PI);
 }
 
 vec3 background_ligthting(PBRInfo pbrInputs, vec3 N, vec3 reflection)
@@ -31,12 +30,12 @@ vec3 background_ligthting(PBRInfo pbrInputs, vec3 N, vec3 reflection)
     vec2 brdf = texture2D(EnvBrdfMap, vec2(pbrInputs.NdotV, pbrInputs.perceptualRoughness)).rg;
     vec3 difflight = SRGBtoLINEAR(texture2D(EnvDiffMap, index)).rgb;
     vec3 diffuse  = difflight * pbrInputs.diffuseColor;
-#ifdef GL_ARB_shader_texture_lod
     float mipCount = 8.0; // resolution of 512x256
     float lod = (pbrInputs.perceptualRoughness * mipCount);
+#ifdef GL_ARB_shader_texture_lod
     vec3 specligth = SRGBtoLINEAR(texture2DLod(EnvSpecMap, index, lod)).rgb;
 #else  // NO GL_ARB_shader_texture_lod
-    vec3 specligth = SRGBtoLINEAR(texture2D(EnvSpecMap, index)).rgb;
+    vec3 specligth = SRGBtoLINEAR(texture2D(EnvSpecMap, index, lod)).rgb;
 #endif // GL_ARB_shader_texture_lod
 
     vec3 specular = specligth * (pbrInputs.specularColor * brdf.x + brdf.y);
