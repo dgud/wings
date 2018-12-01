@@ -1209,7 +1209,7 @@ update_layout([{SpltMode,Mode,Permille}|Contained], #split{obj=Obj, mode=Mode, w
 	end,
     Cont = update_layout(Contained, W1),
     update_layout(Cont, W2);
-update_layout(Contained, #win{}) -> Contained.
+update_layout(Contained, _) -> Contained.
 
 tree_to_list(#split{obj=Obj, mode=Mode,w1=W1,w2=W2}, Path0, Acc0) ->
     SashPos = wxSplitterWindow:getSashPosition(Obj),
