@@ -1,4 +1,4 @@
---- 2.2 --------------------------------------------
+--- 2.2.1 --------------------------------------------
 
 - Materials have been changed to have roughness and
   metallic parameters instead ambient, specular and shininess.

@@ -53,14 +53,14 @@ ifeq ($(UseMCL),true)
  OUT = -Fe:
  SO_EXT = dll
  LIBS = -LD
- CFLAGS = -nologo -Zi -Ox
+ CFLAGS += -nologo -Zi -Ox
 else
  OUT = -o
  ifdef USEMINGWGCC
   SO_EXT = dll
   LIBS = -mdll
-  GL_LIBS = -lopengl32 -lglu32
-  CFLAGS = $(COMMON_CFLAGS) -Werror -O3
+  GL_LIBS += -lopengl32 -lglu32
+  CFLAGS += $(COMMON_CFLAGS) -Werror -O3
  else
   SO_EXT = so
   DEF_CC = $(CC)
@@ -70,8 +70,8 @@ else
     GL_LIBS =
   else
     LIBS = -shared -fpic
-    GL_LIBS = -L/usr/local/lib -lGLU -lGL
-    CFLAGS = $(COMMON_CFLAGS) -Werror -O3
+    GL_LIBS += -L/usr/local/lib -lGLU -lGL
+    CFLAGS += $(COMMON_CFLAGS) -Werror -O3
   endif
  endif
 endif
