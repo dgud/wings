@@ -227,7 +227,7 @@ copy(Source, Target0, BitSize) ->
 		{ok,_} = file:copy(Source, Target),
 		{ok,#file_info{mode=Mode}=Info0} = file:read_file_info(Source),
 		Info = Info0#file_info{mode=Mode band 8#555},
-		ok = file:write_file_info(Target, Info),
+		_ = file:write_file_info(Target, Info),
 		case Mode band 8#111 of
 		    0 when Ext =/= ".dll" ->
 			ok;
