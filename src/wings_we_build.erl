@@ -152,7 +152,7 @@ build_half_edges_1(Vs, UVs, VCs, Fs, Face, Acc0) ->
     Acc = build_face_edges(Pairs, Face, Acc0),
     build_half_edges(Fs, Face+1, Acc).
 
-build_face_edges([{Pred,_}|[{E0,{{_UVa,UVb},{_VCa,VCb}}},{Succ,_}|_]=Es], Face, Acc0) ->
+build_face_edges([{Pred,_}|[{E0,{{_UVa,_VCa},{UVb,VCb}}},{Succ,_}|_]=Es], Face, Acc0) ->
     Acc = case E0 of
 	      {Vs,Ve}=Name when Vs < Ve ->
 		  enter_half_edge(right, Name, Face, Pred, Succ, {UVb,VCb}, Acc0);

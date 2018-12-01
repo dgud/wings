@@ -781,11 +781,11 @@ set_edge_colors_1([{Edge,LeftUV,RightUV}|T], Lva0, Rva0) ->
     set_edge_colors_1(T, Lva, Rva);
 set_edge_colors_1([], Lva, Rva) -> {Lva,Rva}.
 
-set_edge_attrs_1([{Edge,LeftUV,RightUV,LeftVC,RightVC}|T], Lva1, Rva1) ->
-    Lva0 = set_uv(Edge, LeftUV, Lva1),
-    Lva = set_color(Edge, LeftVC, Lva0),
-    Rva0 = set_uv(Edge, RightUV, Rva1),
-    Rva = set_color(Edge, RightVC, Rva0),
+set_edge_attrs_1([{Edge,LeftUV,RightUV,LeftVC,RightVC}|T], Lva0, Rva0) ->
+    Lva1 = set_uv(Edge, LeftUV, Lva0),
+    Lva = set_color(Edge, LeftVC, Lva1),
+    Rva1 = set_uv(Edge, RightUV, Rva0),
+    Rva = set_color(Edge, RightVC, Rva1),
     set_edge_attrs_1(T, Lva, Rva);
 set_edge_attrs_1([], Lva, Rva) -> {Lva,Rva}.
 
