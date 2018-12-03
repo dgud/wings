@@ -846,7 +846,7 @@ groundplane(Axes, #view{origin=Origin, distance=Dist, along_axis=Along}, PM, MM)
             wings_dl:draw(groundplane, none, fun update_groundplane/1, #{}),
             {Show, 1.0};
         true ->
-            Exp = trunc(math:log(Dist)/math:log(10))-1,
+            Exp = trunc(math:log(max(1.0, Dist))/math:log(10))-1,
             Scale = max(trunc(math:pow(10.0,Exp)), 1),
             ?SET({wings_wm:this(),ground_grid_scale},Scale),
             NumGrid = calc_grid_size(Origin,PM,MM),
