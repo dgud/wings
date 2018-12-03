@@ -101,13 +101,13 @@ load_language_2(_, [], _) -> ok.
 load_language_file(File) ->
     case file:consult(File) of
 	{ok,Terms} ->
-	    io:format("Loading ~s\n", [File]),
+	    io:format("Loading ~ts\n", [File]),
 	    load_file(Terms);
 	{error,{Line,Mod,Info}} ->
-	    io:format("~s, line ~p: ~s\n",
+	    io:format("~ts, line ~p: ~s\n",
 		      [File,Line,Mod:format_error(Info)]);
 	Other ->
-	    io:format("Problem reading language file ~p:\n~p\n",
+	    io:format("Problem reading language file ~tp:\n~tp\n",
 		      [File,Other])
     end.
 
