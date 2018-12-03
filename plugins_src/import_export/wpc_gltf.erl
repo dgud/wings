@@ -100,7 +100,7 @@ export_1(Filename, Contents0, Attr) ->
     Dir = filename:dirname(Filename),
     FileType = proplists:get_value(file_type, Attr, glb),
     ImageDir = case FileType of
-                   glb -> filename:basedir(user_cache, "wings3d");
+                   glb -> wings_u:basedir(user_cache);
                    gltf -> Dir
                end,
     ok = filelib:ensure_dir(filename:join(ImageDir, "dummy")),
@@ -865,7 +865,7 @@ imp_save_image({Dir, File}, Bin) ->
     case file:write_file(filename:join(Dir, File), Bin) of
         ok -> File;
         {error, _} ->
-            TmpDir = filename:basedir(user_cache, "wings3D"),
+            TmpDir = wings_u:basedir(user_cache),
             TempFile = filename:join(TmpDir, File),
             _ = file:write_file(TempFile, Bin),
             TempFile

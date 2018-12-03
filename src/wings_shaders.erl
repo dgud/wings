@@ -207,7 +207,7 @@ read_shader(FileName, Ext) ->
         catch _:{file,enoent} ->
                 read_shader_1("standard"++Ext, true)
         end,
-    CacheDir = filename:basedir(user_cache, "wings3d"),
+    CacheDir = wings_u:basedir(user_cache),
     CacheFile = filename:join(CacheDir, filename:basename(File)),
     ok = filelib:ensure_dir(CacheFile),
     ok = file:write_file(CacheFile, Bin),

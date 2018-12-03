@@ -201,7 +201,7 @@ old_pref_file([]) ->
 
 
 pref_dirs() ->
-    Dir = filename:basedir(user_config, "Wings3D"),
+    Dir = wings_u:basedir(user_config),
     Old = case os:type() of
               {win32,_} -> win32_pref();
               {unix,darwin} -> mac_pref();

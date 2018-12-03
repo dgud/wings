@@ -75,7 +75,7 @@ disable_patches() ->
     file:delete(Name).
 
 patch_dir() ->
-    Dir = filename:basedir(user_data, "Wings3D"),
+    Dir = wings_u:basedir(user_data),
     filename:join([Dir, "patches", ?WINGS_VERSION]).
 
 
