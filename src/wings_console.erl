@@ -17,8 +17,9 @@
 -export([start_link/1,init/2,get_pid/0,stop/0,stop/1,
 	 setopts/1,getopts/1]).
 
-%% Also duplicates as event_handler for process crashes
+%% Also duplicates as event_handler/logger_handler for process crashes
 -export([init/1, handle_event/2, handle_info/2]).
+-export([log/2]).
 
 %% Wings window
 -export([window/0,window/4,popup_window/0]).
@@ -110,6 +111,20 @@ who([_|_]=PL) ->
            end,
     {Pid, Info}.
 
+log(#{msg:={report, #{label:={supervisor,Ignore}}}}, _)
+  when Ignore =:= shutdown; Ignore =:= shutdown_error; Ignore =:= child_terminated ->
+    ok;
+log(#{msg:={report, #{report:=[Data|_]}}}, Config) ->
+    Error = proplists:get_value(error_info, Data),
+    case log_error(Data,Error,Config) of
+        {ok, Config} -> ok;
+        {ok, Config1} ->
+            logger:set_handler_config(wings_logger, Config1),
+            ok
+    end;
+log(LogEvent, #{formatter := {FModule, FConfig}}) ->
+    io:put_chars(FModule:format(LogEvent, FConfig)).
+
 %%% I/O server state record ---------------------------------------------------
 
 -record(state, {gmon,			% Monitor ref of original group leader
@@ -132,7 +147,21 @@ start_link(Env) ->
 
 init(Env, GroupLeader) ->
     process_flag(trap_exit, true),
-    error_logger:add_report_handler(?MODULE),
+    {_,_,VsnStr} = lists:keyfind(kernel, 1, application:loaded_applications()),
+    case string:to_float(VsnStr) of
+        {Vsn, _} when Vsn > 6.0 ->  %% Be backwards compatible
+            logger:set_primary_config(level, warning),
+            logger:remove_handler(default),
+            logger:add_handler(wings_logger, ?MODULE, #{}),
+            logger:update_formatter_config(wings_logger, single_line, false),
+            case logger:get_handler_config(wings_logger) of
+                {error, _} -> ok;
+                {ok,Config} ->
+                    logger:set_handler_config(wings_logger, maps:remove(error, Config))
+            end;
+        _ ->
+            error_logger:add_report_handler(?MODULE)
+    end,
     case catch register(?SERVER_NAME, self()) of
         true ->
             wx:set_env(Env),

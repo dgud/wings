@@ -98,7 +98,7 @@ crash_log(WinName, Reason, StackTrace) ->
 	_:_ -> ignore
     end,
     [io:format(Fd, "Window: ~p\n", [WinName])  || Fd <- [F, group_leader()]],
-    [io:format(Fd, "Reason: ~p\n\n", [Reason]) || Fd <- [F, group_leader()]],
+    [io:format(Fd, "Reason: ~P\n\n", [Reason,20]) || Fd <- [F, group_leader()]],
     report_stacktrace(F, StackTrace),
     analyse(F, StackTrace),
     file:close(F),
