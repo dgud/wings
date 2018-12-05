@@ -309,15 +309,9 @@ init(_Opts) ->
 
 	wxWindow:connect(Frame, close_window, [{callback, fun terminate_frame/2}]),
 	wxWindow:connect(Frame, command_menu_selected, []),
-	wxWindow:connect(Frame, activate, []),
-	case os:type() of
-	    {_, darwin} ->
-		Me = self(),
-		CB = fun(_,_) -> Me ! {init_menus, Frame} end,
-		wxWindow:connect(Frame, show, [{callback, CB}]);
-	    _ ->
-		init_menubar(Frame)
-	end,
+	wxWindow:connect(Frame, activate, [{skip, true}]),
+        init_menubar(Frame),
+        wxFrame:show(Frame),
 	Wins = #{frame=>Frame, ch=>Top#split{w1=Canvas}, szr=>Sizer,
 		 loose=>#{}, action=>undefined, op=>undefined},
 	Overlay = make_overlay(Frame),
@@ -500,16 +494,6 @@ handle_cast({got_focus, Window, Props}, #state{toolbar=TB0}=State) ->
     TB = wings_toolbar:update({active, Window, ModeRest}, TB0),
     wings_status:active(Window),
     {noreply, update_active(Window, State#state{toolbar=TB})};
-handle_cast({init_menus, Frame}, State) ->
-    case os:type() of
-	{_, darwin} ->
-	    _MB = init_menubar(Frame),
-	    %io:format("HO ~p~n", [wxMenuBar:findItem(MB, ?wxID_OSX_HIDEOTHERS)]),
-	    %io:format("SA ~p~n", [wxMenuBar:findItem(MB, ?wxID_OSX_SHOWALL)]),
-	    ok;
-	_ -> ignore
-    end,
-    {noreply, State};
 
 handle_cast({set_title, Win, Title}, #state{windows=#{ch:=Root, loose:=Loose}=Wins} = State) ->
     case find_win(Win, Root) of
@@ -692,7 +676,7 @@ attach_floating(true, Overlay, #{op:=#{mwin:=Frame, mpath:=Path}, loose:=Loose}=
 	    St = State#{loose:=maps:remove(Frame,Loose), action:=undefined, op:=undefined},
 	    DoWhileLocked = fun() -> attach_window(Path, Frame, Window, St) end,
 	    After = fun() ->
-			    timer:sleep(200),
+			    timer:sleep(200), %% give wx time to update windows on X11
 			    wings_io:reset_video_mode_for_gl(0,0),
                             inform_parent_changed(Win)
 		    end,
@@ -895,12 +879,16 @@ close_win(Win, #state{windows=#{frame:=TopFrame,ch:=Tree,loose:=Loose,szr:=Szr}=
 		    State
 	    end;
 	#win{frame=Obj} ->
-	    Close = fun(Where, Other, GrandP) -> close_window(Obj, Where, Other, GrandP, Szr) end,
-	    {ok, Root} = update_win(Obj, Tree, Tree, Close),
-	    check_tree(Root, Tree),
-	    %% wxSizer:layout(Szr),
-            wxFrame:layout(TopFrame),
-            wxWindow:refresh(TopFrame),
+            Close = fun(Where, Other, GrandP) -> close_window(Obj, Where, Other, GrandP, Szr) end,
+            Root = wx:batch(fun() ->
+                                    {ok, Root} = update_win(Obj, Tree, Tree, Close),
+                                    check_tree(Root, Tree),
+                                    wxFrame:layout(TopFrame),
+                                    wxWindow:refresh(TopFrame),
+                                    Root
+                            end),
+            timer:sleep(200), %% give wx time to update windows on X11
+            wings_io:reset_video_mode_for_gl(0,0),
 	    State#state{windows=Wins#{ch:=Root}}
     end.
 
@@ -1275,12 +1263,7 @@ init_menubar(Frame) ->
     ets:new(wings_menus, [named_table, public, {keypos,2}]),
     put(wm_active, {menubar, geom}),
     MB = wxMenuBar:new(),
-    try
-	wings_menu:setup_menus(MB, top_menus()),
-	wxFrame:setMenuBar(Frame, MB),
-	erase(wm_active),
-	MB
-    catch _ : Reason ->
-	    io:format("CRASH ~p ~p~n",[Reason, erlang:get_stacktrace()]),
-	    error(Reason)
-    end.
+    wings_menu:setup_menus(MB, top_menus()),
+    wxFrame:setMenuBar(Frame, MB),
+    erase(wm_active),
+    MB.

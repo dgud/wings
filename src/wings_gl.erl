@@ -45,8 +45,7 @@
 -endif.
 
 init(Parent) ->
-    GL = window(Parent, undefined, true, true),
-    wx_object:cast(Parent, {init_menus, Parent}),
+    GL = window(Parent, undefined, true, false),
     init_extensions(),
     init_restrictions(),
     GL.
@@ -89,10 +88,11 @@ window(Parent, Context, Connect, Show) ->
 	    wxFrame:show(Parent),
 	    receive #wx{event=#wxShow{}} -> ok end;
 	false ->
+            timer:sleep(200), %% Let wx realize the window on gtk
 	    ok
     end,
-    wxGLCanvas:setCurrent(GL),
     wxWindow:disconnect(Parent, show),
+    wxGLCanvas:setCurrent(GL),
     GL.
 
 %% Event handling for OpenGL windows
