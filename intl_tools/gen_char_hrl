@@ -2,6 +2,7 @@
 %% -*- erlang -*-
 
 -mode(compile).
+-compile([{nowarn_deprecated_function, {erlang,get_stacktrace,0}}]).
 
 main([]) ->
     try
