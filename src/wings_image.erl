@@ -448,6 +448,7 @@ create_combined(CIds, #ist{images=Images0}=S) ->
     Img2 = setup_combined(O, r, Img1),
     case Img2 of
         undefined ->
+            put(CIds, none),
             {none, S};
         #e3d_image{} ->
             [TxId] = gl:genTextures(1),

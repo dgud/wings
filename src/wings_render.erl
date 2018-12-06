@@ -510,6 +510,8 @@ render_sel_2(#dlo{}=D, SelMode, false, RS0) ->
     RS1 = draw_hard_edges(D, SelMode, RS0),
     RS2 = draw_vertices(D, SelMode, RS1),
     draw_normals(D, RS2);
+render_sel_2(#dlo{sel=none, orig_sel=none, hilite=none}, _SelMode, _, RS0) ->
+    RS0;
 render_sel_2(#dlo{src_we=We}=D, _SelMode, true, RS0) ->
     RS = case wire(We) of
              true ->
