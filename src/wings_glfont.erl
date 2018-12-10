@@ -75,11 +75,9 @@ load_font(WxFont, Options) ->
 
 %% @spec(font_info()) -> {integer(), integer()}.
 %% @desc Returns the size of a string (in scale 1.0).
-text_size(#font{wx=Font}, String) ->
-    MDC  = memory_dc(Font),
-    Size = wxDC:getTextExtent(MDC, String),
-    wxMemoryDC:destroy(MDC),
-    Size.
+text_size(#font{glyphs=Gs, height=H}, String) ->
+    {W, Rows} = calc_size(String, Gs, 0, 1),
+    {W, Rows*H}.
 
 %% @spec(font_info()) -> integer().
 %% @desc Returns the height of characters and rows.
@@ -311,7 +309,7 @@ render_text3([$\n|String], Gs, IH, IW, H, Data0) ->
     render_text3(String, Gs, IH, IW, H, {0, H0+H, Bin});
 render_text3([$\t|String], Gs, IH, IW, H, Data0) ->
     %% Tab
-    Space = array:get(32, Gs),
+    [{_,Space}] = ets:lookup(Gs, 32),
     Data  = lists:foldl(fun(_, Data) ->
 				render_glyph(Space,IW,IH,Data)
 			end, Data0, "        "),
@@ -345,6 +343,26 @@ render_glyph(#glyph{u=U,v=V,w=W,h=H},IW,IH, {X0,Y0,Bin}) ->
        X0:?F32,YH:?F32, U:?F32,  V:?F32  % Vertex upper left, UV-coord down-left
      >>
     }.
+
+calc_size([$\n|String], Gs, W, R) -> %% New line
+    calc_size(String, Gs, W, R+1);
+calc_size([$\t|String], Gs, W, R) -> %% Tab
+    [{_,#glyph{w=CW}}] = ets:lookup(Gs, 32),
+    calc_size(String, Gs, W+8*CW, R);
+calc_size([Char|String], Gs, W, R) when is_integer(Char) ->
+    case ets:lookup(Gs, Char) of
+	[{_, #glyph{w=CW}}] ->
+            calc_size(String, Gs, W+CW, R);
+	[] -> %% Should we render something strange here
+	    calc_size(String, Gs, W, R)
+    end;
+calc_size([Other|String], Gs, W0, R0) ->
+    {W,R} = calc_size(Other, Gs, W0, R0),
+    calc_size(String, Gs, W, R);
+calc_size(Bin, Gs, W, R) when is_binary(Bin) ->
+    calc_size(unicode:characters_to_list(Bin), Gs, W,R);
+calc_size([], _Gs, W, R) ->
+    {W, R}.
 
 %% Calculate texture size
 
