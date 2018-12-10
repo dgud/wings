@@ -673,7 +673,9 @@ auto_rotate_event(Event, #tim{st=St, timer=Timer}=Tim) ->
     end.
 
 auto_rotate_event_1(redraw, Tim) ->
-    wings_io:batch(fun() -> auto_rotate_redraw(Tim) end),
+    wings_io:batch(fun() -> auto_rotate_redraw(Tim),
+                            wxWindow:getSize(?GET(top_frame))
+                   end),
     keep;
 auto_rotate_event_1(#mousemotion{}, _) -> keep;
 auto_rotate_event_1(got_focus, _) -> keep;
