@@ -1056,8 +1056,7 @@ make_envmap(CL, EnvImgRec0) ->
     [DiffId,SpecId,BrdfId].
 
 make_brdf(Buff, W, H, CL) ->
-    Fill = wings_cl:fill(Buff, <<0:(32*2)>>, W*H*4*2, CL),
-    CC   = wings_cl:cast(schlick_brdf, [Buff, W, H], [W,H], [Fill], CL),
+    CC   = wings_cl:cast(schlick_brdf, [Buff, W, H], [W,H], [], CL),
     Read = wings_cl:read(Buff, W*H*4*2, [CC], CL),
     {ok, BrdfData} = cl:wait(Read),
     Img = << << (round(X*255)), (round(Y*255)), 0 >>

@@ -287,8 +287,11 @@ write(CLMem, Bin, #cli{q=Q}) ->
     {ok, W1} = cl:enqueue_write_buffer(Q, CLMem, 0, byte_size(Bin), Bin, []),
     W1.
 
-fill(CLMem, Pattern, Sz, #cli{q=Q}) when is_binary(Pattern) ->
-    {ok, W1} = cl:enqueue_fill_buffer(Q, CLMem, Pattern, 0, Sz, []),
+%fill(CLMem, Pattern, Sz, #cli{q=Q}) when is_binary(Pattern) ->
+fill(CLMem, <<0:(32*4)>>, Sz, #cli{q=Q}) ->
+    Bin = <<0:(8*Sz)>>,
+    {ok, W1} = cl:enqueue_write_buffer(Q, CLMem, 0, Sz, Bin, []),
+    %% {ok, W1} = cl:enqueue_fill_buffer(Q, CLMem, Pattern, 0, Sz, []),
     W1.
 
 %% read(CLMem, Sz, [Wait], cli()) -> Wait
