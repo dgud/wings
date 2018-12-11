@@ -144,7 +144,8 @@ create_window(Action, Name, Id, #st{shapes=Shs}=St) ->
     Canvas = wings_gl:window(Frame, Context, true, true),
     Props = [{display_data,Name}|wings_view:initial_properties()++Ps],
     wings_wm:toplevel(Name, Canvas, Props, Op),
-    wings_wm:send(Name, {init,{Action,We}}).
+    wings_wm:send(Name, {init,{Action,We}}),
+    Frame.
 
 auv_event({init,Op}, St) ->
     wings:init_opengl(St),
@@ -201,7 +202,14 @@ init_show_maps(Charts0, Fs, #we{name=WeName,id=Id}, GeomSt0) ->
 	    wings_wm:send(EditWin, {add_faces,Fs,GeomSt}),
 	    wings_wm:send(geom, {new_state,GeomSt});
 	false ->
-	    create_window({edit,Fs}, EditWin, Id, GeomSt),
+	    %% we are going to ensure to open the AutoUV window in the same
+	    %% display as the segment window was, since it can be in another
+	    %% than the one in which the main window is.
+	    SegWin = wings_wm:this_win(),
+	    {X0,Y0} = wxWindow:getPosition(SegWin),
+	    Pos = wxWindow:clientToScreen(SegWin,X0,Y0),
+	    Win = create_window({edit,Fs}, EditWin, Id, GeomSt),
+	    wxWindow:move(Win,Pos),
 	    wings_wm:send(geom, {new_state,GeomSt})
     end,
     GeomSt.
