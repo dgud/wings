@@ -16,7 +16,7 @@
 -include("wings.hrl").
 -include_lib("wings/e3d/e3d.hrl").
 
--define(EPSILON, 1.0e-8).  %% used without SQRT() => 1.0e-4
+-define(EPSILON, 1.0e-16).  %% used without SQRT() => 1.0e-8
 
 %-define(DEBUG,true).
 -ifdef(DEBUG).
