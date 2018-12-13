@@ -901,8 +901,8 @@ make_mat(#{name:=Name}=Mat, GLTF, Dir) ->
             {Mtx,Rtx} = split_tx(get_texture(metallicRoughnessTexture, Pbr, GLTF), Dir),
             MetalTx = {metallic, Mtx},
             RoughTx = {roughness, Rtx},
-            MetalF = maps:get(metallicFactor, Pbr, 1.0),
-            RoughF = maps:get(roughnessFactor, Pbr, 0.9)
+            MetalF = float(maps:get(metallicFactor, Pbr, 1.0)),
+            RoughF = float(maps:get(roughnessFactor, Pbr, 0.9))
     end,
 
     NormalTx = {normal, get_texture(normalTexture, Mat, GLTF)},
