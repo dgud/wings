@@ -799,7 +799,9 @@ dup3(6, Bin, {NX,NY,NZ}) ->
      NX:?F32,NY:?F32,NZ:?F32,
      NX:?F32,NY:?F32,NZ:?F32,
      NX:?F32,NY:?F32,NZ:?F32 >>;
-dup3(I, Bin0, N={NX,NY,NZ}) ->
+dup3(0, Bin0, _N) ->   %% Zero area triangulate face can become 0 vertex face
+    Bin0;
+dup3(I, Bin0, N={NX,NY,NZ}) when I > 0 ->
     Bin = <<Bin0/binary,
 	   NX:?F32,NY:?F32,NZ:?F32,
 	   NX:?F32,NY:?F32,NZ:?F32,
