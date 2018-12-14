@@ -111,19 +111,19 @@ who([_|_]=PL) ->
            end,
     {Pid, Info}.
 
+%% logger callback
 log(#{msg:={report, #{label:={supervisor,Ignore}}}}, _)
   when Ignore =:= shutdown; Ignore =:= shutdown_error; Ignore =:= child_terminated ->
     ok;
-log(#{msg:={report, #{report:=[Data|_]}}}, Config) ->
+log(#{msg:={report, #{label:={proc_lib,_},report:=[Data|_]}}}=_Log, Config) ->
     Error = proplists:get_value(error_info, Data),
     case log_error(Data,Error,Config) of
         {ok, Config} -> ok;
-        {ok, Config1} ->
-            logger:set_handler_config(wings_logger, Config1),
-            ok
+        {ok, NewConfig} -> logger:set_handler_config(wings_logger, NewConfig)
     end;
 log(LogEvent, #{formatter := {FModule, FConfig}}) ->
     io:put_chars(FModule:format(LogEvent, FConfig)).
+
 
 %%% I/O server state record ---------------------------------------------------
 
@@ -154,6 +154,8 @@ init(Env, GroupLeader) ->
             logger:remove_handler(default),
             logger:add_handler(wings_logger, ?MODULE, #{}),
             logger:update_formatter_config(wings_logger, single_line, false),
+            logger:update_formatter_config(wings_logger, depth, 20),
+            logger:update_formatter_config(wings_logger, max_size, 500),
             case logger:get_handler_config(wings_logger) of
                 {error, _} -> ok;
                 {ok,Config} ->
