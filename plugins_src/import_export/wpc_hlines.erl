@@ -1100,6 +1100,7 @@ materials([{Name, Props} | T], Mats_dict) ->
     OpenGL = proplists:get_value(opengl, Props),
     Is_transparent = foldl(fun(_, true) -> true;
 			      ({emission,_}, _) -> false;
+			      ({ambient,_}, _) -> false;
 			      ({_,{_,_,_,1.0}}, _) -> false;
 			      ({_,{_,_,_,_}}, _) -> true;
 			      (_, _) -> false
@@ -2741,7 +2742,7 @@ tree__get(Key, {_Next_key, GBtree} = _Tree) -> gb_trees:get(Key, GBtree).
 
 tree__next_key({Next_key, _GBtree} = _Tree) -> Next_key.
 
-						%tree__from_list(Values) when is_list(Values) ->
+%% tree__from_list(Values) when is_list(Values) ->
 %%    tree__insert(Values, tree__empty()).
 
 %% tree__to_list({_Next_key, GBtree} = _Tree) -> gb_trees:values(GBtree).
@@ -2751,7 +2752,7 @@ tree__next_key({Next_key, _GBtree} = _Tree) -> Next_key.
 %%    GBtree_acc = gb_trees:insert(Key, Fun(Value), GBtree_acc0),
 %%    tree__do_map(Fun, gb_trees:next(GBtree_iter0), GBtree_acc).
 
-						%tree__map(Fun, {Next_key, GBtree} = _Tree) ->
+%% tree__map(Fun, {Next_key, GBtree} = _Tree) ->
 %%    Iter = gb_trees:iterator(GBtree),
 %%    {Next_key, tree__do_map(Fun, gb_trees:next(Iter), gb_trees:empty())}.
 
