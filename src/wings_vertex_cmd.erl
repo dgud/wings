@@ -205,13 +205,10 @@ bevel_1(VsSet, We0) ->
     Vs = gb_sets:to_list(VsSet),
     {We1,VecVs0,WeTrans,Fs0} = bevel_vertices(Vs, VsSet, We0, We0, [], [], []),
     {VecVs,Limit} = bevel_normalize(VecVs0),
-    case VecVs of
-	[] ->
-	    {We0, gb_sets:empty()};
-	_ ->
-	    Tv = {we,WeTrans,wings_drag:translate_fun(VecVs, We1)},
-	    {We1#we{temp={Limit,Tv}}, gb_sets:from_list(Fs0)}
-    end.
+    Tv = {we,WeTrans,wings_drag:translate_fun(VecVs, We1)},
+    We = We1#we{temp={Limit,Tv}},
+    Fs = gb_sets:from_list(Fs0),
+    {We,Fs}.
 
 bevel_vertices([V|Vs], VsSet, WeOrig, We0, Acc0, Facc, WeTrans0) ->
     Adj = adjacent(V, VsSet, WeOrig),

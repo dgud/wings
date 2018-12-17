@@ -175,7 +175,7 @@ compose(Transforms) ->
 -spec translate_fun([{e3d_vec:vector(),vertices()}], #we{}) ->
                            {vertices(),vec_transform_fun()}.
 
-translate_fun([_|_]=VecVs0, #we{vp=Vtab}) ->
+translate_fun(VecVs0, #we{vp=Vtab}) ->
     SS = sofs:from_term(VecVs0, [{vec,[vertex]}]),
     FF = sofs:relation_to_family(SS),
     FU = sofs:family_union(FF),
