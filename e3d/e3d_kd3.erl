@@ -277,7 +277,7 @@ add_1({_,P0}=Obj, [{_,P1}|_]=T0) ->
     BB = e3d_bv:box(P0, P1),
     case e3d_bv:max_extent(BB) of
 	undefined -> %% All positions are exactly the same
-	    [P0|T0];
+	    [Obj|T0];
 	Axis ->
 	    Split = element(Axis, e3d_bv:center(BB)),
 	    {Left,LBB,Right,RBB} = split([Obj|T0], Axis, Split),

@@ -54,7 +54,7 @@
 -define(I32, 32/signed-native).
 -define(U32, 32/unsigned-native).
 
--define(EPSILON, 0.00000001).
+-define(EPSILON, 1.0e-7).
 -define(IsLeaf(NodeData), ((NodeData) band 16#80000000) > 1).
 -define(GetSkipIndex(NodeData), ((NodeData) band 16#7fffffff)).
 -define(ENTRY_SZ, 8*4).
@@ -433,7 +433,7 @@ intersect_2(#{mesh:=Mesh1, index:=I1, vs:=F1},
 tri_intersect({V0,V1,V2}, {U0,U1,U2}, {IdV0,IdV1,IdV2}, {IdU0,IdU1,IdU2}, F1, F2) ->
     E1 = e3d_vec:sub(V1, V0),
     E2 = e3d_vec:sub(V2, V0),
-    N1 = e3d_vec:cross(E1,E2),
+    {N1x,N1y,N1z} = N1 = e3d_vec:cross(E1,E2),
     D1 = -e3d_vec:dot(N1,V0),
     %% Plane equation 1: N1x+D1=0
 
@@ -448,7 +448,7 @@ tri_intersect({V0,V1,V2}, {U0,U1,U2}, {IdV0,IdV1,IdV2}, {IdU0,IdU1,IdU2}, F1, F2
     if Du0Du1 > 0.0 andalso Du0Du2 > 0.0 ->
             %% No intersection occur? Check if triangle above or under plane 1
             throw(false);
-       N1 =:= {0.0,0.0,0.0} -> %% Thin triangle (line)
+       (abs(N1x)+abs(N1y)+abs(N1z)) < (?EPSILON*100) -> %% Thin triangle (line)
             %% io:format("Line: ~p ~p~n",[F1, {IdV0,IdV1,IdV2}]),
             throw({line, F1});
        true ->
@@ -457,7 +457,7 @@ tri_intersect({V0,V1,V2}, {U0,U1,U2}, {IdV0,IdV1,IdV2}, {IdU0,IdU1,IdU2}, F1, F2
 
     E3 = e3d_vec:sub(U1, U0),
     E4 = e3d_vec:sub(U2, U0),
-    N2 = e3d_vec:cross(E3,E4),
+    {N2x,N2y,N2z} = N2 = e3d_vec:cross(E3,E4),
     D2 = -e3d_vec:dot(N2,U0),
     %% Plane equation 2: N2x+D2=0
     Dv0 = eps(e3d_vec:dot(N2,V0)+D2),
@@ -470,7 +470,7 @@ tri_intersect({V0,V1,V2}, {U0,U1,U2}, {IdV0,IdV1,IdV2}, {IdU0,IdU1,IdU2}, F1, F2
     if Dv0Dv1 > 0.0 andalso Dv0Dv2 > 0.0 ->
             %% No intersection occur? Check if triangle above or under plane 2 ??
             throw(false);
-       N2 =:= {0.0,0.0,0.0} -> %% Thin triangle (line)
+       (abs(N2x)+abs(N2y)+abs(N2z)) < (?EPSILON*100) -> %% Thin triangle (line)
             %% io:format("Line: ~p: ~p~n",[F2,{IdU0,IdU1,IdU2}]),
             throw({line, F2});
        true ->
@@ -480,10 +480,32 @@ tri_intersect({V0,V1,V2}, {U0,U1,U2}, {IdV0,IdV1,IdV2}, {IdU0,IdU1,IdU2}, F1, F2
     D = e3d_vec:cross(N1,N2),
     {Index,_,_} = largest_dir(D),
     %% Compute interval for triangle 1
-    {ISect1,A1,A2} = tri_intvals({V0,IdV0},{V1,IdV1},{V2,IdV2},
-                                 Index, Dv0, Dv1, Dv2, Dv0Dv1, Dv0Dv2),
-    {ISect2,B1,B2} = tri_intvals({U0, IdU0}, {U1,IdU1}, {U2,IdU2},
-                                 Index, Du0, Du1, Du2, Du0Du1, Du0Du2),
+    {ISect1,A1,A2} = try
+                         tri_intvals({V0,IdV0},{V1,IdV1},{V2,IdV2},
+                                     Index, Dv0, Dv1, Dv2, Dv0Dv1, Dv0Dv2)
+                     catch throw:{coplanar, _, _}=T1 ->
+                             %% io:format("1:~w ~w ~w ~w~n",[F1,{IdV0,IdV1,IdV2},F2,{IdU0,IdU1,IdU2}]),
+                             %% io:format("T1: ~w ~w ~w ~w ~w~n",[Dv0, Dv1, Dv2, Dv0Dv1, Dv0Dv2]),
+                             %% io:format("T2: ~w ~w ~w ~w ~w~n",[Du0, Du1, Du2, Du0Du1, Du0Du2]),
+                             %% io:format("V: ~s ~s ~s~n",[e3d_vec:format(P) || P <- [V0,V1,V2]]),
+                             %% io:format("N: ~w~n",[N1]),
+                             %% io:format("U: ~s ~s ~s~n",[e3d_vec:format(P) || P <- [U0,U1,U2]]),
+                             %% io:format("N: ~w~n",[N2]),
+                             throw(T1)
+                     end,
+    {ISect2,B1,B2} = try
+                         tri_intvals({U0, IdU0}, {U1,IdU1}, {U2,IdU2},
+                                     Index, Du0, Du1, Du2, Du0Du1, Du0Du2)
+                     catch throw:{coplanar, _, _}=T2 ->
+                             %% io:format("2:~w ~w ~w ~w~n",[F1,{IdV0,IdV1,IdV2},F2,{IdU0,IdU1,IdU2}]),
+                             %% io:format("T1: ~w ~w ~w ~w ~w~n",[Dv0, Dv1, Dv2, Dv0Dv1, Dv0Dv2]),
+                             %% io:format("T2: ~w ~w ~w ~w ~w~n",[Du0, Du1, Du2, Du0Du1, Du0Du2]),
+                             %% io:format("V: ~s ~s ~s~n",[e3d_vec:format(P) || P <- [V0,V1,V2]]),
+                             %% io:format("N: ~w~n",[N1]),
+                             %% io:format("U: ~s ~s ~s~n",[e3d_vec:format(P) || P <- [U0,U1,U2]]),
+                             %% io:format("N: ~w~n",[N2]),
+                             throw(T2)
+                     end,
     pick_points(sort2(ISect1), sort2(ISect2), A1, A2, B1, B2, F1, F2).
 
 tri_intvals(V0, V1, V2, Index, D0, D1, D2, DOD1, _DOD2)
