@@ -37,7 +37,7 @@
 	 face_dissolve/2,face_dissolve_complement/2,
 	 edge_loop_vertices/2,
 	 obj_name/1,obj_id/1,
-	 camera_info/1,lights/1,import_lights/2,
+	 camera_info/1,lights/1,lights_bc/1,import_lights/2,
 	 image_formats/0,image_read/1,image_write/1,
 	 vm_freeze/1,
 	 triangulate/1,triangulate/2,quadrangulate/1,quadrangulate/2,
@@ -568,7 +568,18 @@ camera_info(As) ->
 %%%
 
 lights(St) ->
-    case wings_light:export(St) of
+    lights_0(St,false).
+
+lights_bc(St) ->
+    lights_0(St,true).
+
+lights_0(St,BC) when is_boolean(BC) ->
+    Lights =
+	case BC of
+	    false -> wings_light:export(St);
+	    true -> wings_light:export_bc(St)
+	end,
+    case Lights of
 	[] -> wings_light:export_camera_lights();
 	L -> L
     end.

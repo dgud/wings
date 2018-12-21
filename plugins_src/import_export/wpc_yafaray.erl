@@ -628,7 +628,7 @@ do_export(Op, Props0, Attr0, St0) ->
     Props = [{subdivisions,SubDiv}|Props0],
     [{Pos,Dir,Up},Fov] = wpa:camera_info([pos_dir_up,fov]),
     CameraInfo = #camera_info{pos=Pos,dir=Dir,up=Up,fov=Fov},
-    Attr = [CameraInfo,{lights,wpa:lights(St0)}|Attr0],
+    Attr = [CameraInfo,{lights,wpa:lights_bc(St0)}|Attr0],
     ExportFun =
         fun (Filename, Contents) ->
             case catch export(Attr, Filename, Contents) of

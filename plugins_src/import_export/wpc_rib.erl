@@ -139,7 +139,7 @@ do_render(Attr0, Engine, St) ->
 		    [{render_file,RendFile}|Attr0];
 		preview -> Attr0
 	    end,
-    Ls = wpa:lights(St),
+    Ls = wpa:lights_bc(St),
     Attr2 = [{lights,Ls},{tmp_render,Engine}|Attr1],
     Attr = add_attr(Engine, Attr2),
     wpa:export(none, render_fun(Attr), St).
@@ -231,7 +231,7 @@ do_export(Ask, Op, _Exporter, _St) when is_atom(Ask) ->
 	       end);
 do_export(Attr0, _Op, Exporter, St) when is_list(Attr0) ->
     set_pref(Attr0),
-    Ls = wpa:lights(St),
+    Ls = wpa:lights_bc(St),
     Attr = [{lights,Ls},{tmp_render,none}|Attr0],
     Exporter(props(), export_fun(Attr)).
 

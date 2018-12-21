@@ -308,7 +308,7 @@ do_export(Attr, Op, Exporter, St) when is_list(Attr) ->
     Dir1 = export_transform_vec(Dir),
     Up1 = export_transform_vec(Up),
     CameraInfo = #camera_info{pos = Pos1, dir = Dir1, up = Up1, fov = Fov},
-    CL_Attr = [CameraInfo, {lights, wpa:lights(St)}, {operation, Op} | Attr],
+    CL_Attr = [CameraInfo, {lights, wpa:lights_bc(St)}, {operation, Op} | Attr],
 
     case Op of
         render -> R_Attr = [{?TAG_RENDER, true} | CL_Attr];
