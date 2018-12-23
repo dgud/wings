@@ -18,6 +18,7 @@
 	 info/3,
 	 ask/3, ask/4, ask/5,
 	 dialog/3, dialog/4, dialog/5,
+	 form_window/5,
 	 ask_preview/5, dialog_preview/5
 	]).
 
@@ -27,7 +28,7 @@
 	 get_widget/2]).
 
 %% Internal dialogs
--export([return_result/3,
+-export([return_result/3, form_result/1,
 	 get_dialog_parent/0, set_dialog_parent/1, reset_dialog_parent/1]).
 
 %%-compile(export_all).
@@ -271,6 +272,33 @@ dialog_1(Ask, Title, PreviewCmd, Qs0, Fun, HelpFun) when is_list(Qs0) ->
     Qs = {vframe_dialog, Qs0, [{buttons, [ok, cancel]},{help, HelpFun}, {position, mouse}]},
     dialog_1(Ask, Title, PreviewCmd, Qs, Fun).
 
+%% it intends to make a non modal "dialog"
+form_window(WinName, Qs, WinHook, Parent, Sizer) when is_function(WinHook,3) ->
+    Fields = build({input_win,WinName}, {vframe, Qs, [{proportion,1}]}, Parent, Sizer, []),
+    Ctrls = [color, color_slide, checkbox, choice, radiobox, text, button,
+	     slide, fontpicker, filepicker, dirpicker, table, custom_gl],
+    SetHook =
+	fun(Type,Hook) ->
+	    case lists:member(Type,Ctrls) of
+		true -> Hook;
+		false -> undefined
+	    end
+	end,
+    {Fs, _} = lists:mapfoldl(fun(In=#in{key=undefined,type=Type},N) ->
+				    {In#in{key=N,hook=SetHook(Type,WinHook)}, N+1};
+				(In=#in{type=Type}, N) ->
+				    {In#in{hook=SetHook(Type,WinHook)}, N+1}
+			     end, 1, lists:reverse(Fields)),
+    TableName =
+	case WinName of
+	    {plugin, Name} -> Name;
+	    Name -> Name
+	end,
+    Table = ets:new(TableName, [{keypos, #in.key}, public]),
+    true = ets:insert(Table, Fs),
+    DialogData = {Table, [Key || #in{key=Key} <- Fs]},
+    setup_hooks(DialogData),
+    DialogData.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Hook functions
@@ -501,10 +529,12 @@ enter_dialog(true, PreviewType, Dialog, Fields, Fun) ->
 
 notify_event_handler(false, _Msg) -> fun() -> ignore end;
 notify_event_handler(no_preview, _) -> fun() -> ignore end;
+notify_event_handler({input_win,Name}, Msg) -> fun() -> wings_wm:psend(send_once, Name, Msg) end;
 notify_event_handler(_, Msg) -> fun() -> wings_wm:psend(send_once, dialog_blanket, Msg) end.
 
 notify_event_handler_cb(false, _) -> fun(_,_) -> ignore end;
 notify_event_handler_cb(no_preview, _) -> fun(_,_) -> ignore end;
+notify_event_handler_cb({input_win,Name}, Msg) -> fun(_,_) -> wings_wm:psend(send_once, Name, Msg) end;
 notify_event_handler_cb(_, Msg) -> fun(_,_) -> wings_wm:psend(send_once, dialog_blanket, Msg) end.
 
 close(Pid) ->
@@ -797,6 +827,9 @@ return_result(Fun, Values, Owner) ->
 	Action when is_tuple(Action); is_atom(Action) ->
 	    wings_wm:send(Owner, {action,Action})
     end.
+
+form_result(Fields) ->
+    get_output(result, Fields).
 
 to_label_column(Qs) ->
     lists:map(fun label_col/1, Qs).
