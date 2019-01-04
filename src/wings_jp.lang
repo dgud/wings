@@ -2003,15 +2003,15 @@
    [
     % "Light ~ts"
     {1,"Light ~ts"},
-    % ": Pos ~ts ~ts ~ts"
-    {2,": Pos ~ts ~ts ~ts"}
+    % ": Pos ~s"
+    {2,": Pos ~s"}
    ]},
   {info_1,
    [
-    % ". Aim ~ts ~ts ~ts. Dir ~ts ~ts ~ts"
-    {1,".Aim ~ts ~ts ~ts. Dir ~ts ~ts ~ts"},
-    % ". Angle ~ts~c"
-    {2,".Angle ~ts~c"}
+    % ". Aim ~s. Dir ~s"
+    {1,". Aim ~s. Dir ~s"},
+    % ". Angle ~s~c"
+    {2,". Angle ~s~c"}
    ]},
   {light_types,
    [

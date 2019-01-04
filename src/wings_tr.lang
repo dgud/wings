@@ -1232,12 +1232,12 @@
    ]},
   {info,
    [
-    {1,"Işık ~s"},
-    {2,": Konum ~s ~s ~s"}
+    {1,"Işık ~ts"},
+    {2,": Konum ~s"}
    ]},
   {info_1,
    [
-    {1,". Hedef ~s ~s ~s. Yön ~s ~s ~s"},
+    {1,". Hedef ~s. Yön ~s"},
     {2,". Açı ~s~c"}
    ]},
   {light_types,

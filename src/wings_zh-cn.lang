@@ -1977,15 +1977,15 @@
    [
     % "Light ~ts"
     {1,"光 ~ts"},
-    % ": Pos ~ts ~ts ~ts"
-    {2,"：名次 ~ts ~ts ~ts"}
+    % ": Pos ~s"
+    {2,"：名次 ~s"}
    ]},
   {info_1,
    [
-    % ". Aim ~ts ~ts ~ts. Dir ~ts ~ts ~ts"
-    {1,"。目的 ~ts ~ts ~ts。目录 ~ts ~ts ~ts"},
-    % ". Angle ~ts~c"
-    {2,"。角 ~ts~c"}
+    % ". Aim ~s. Dir ~s"
+    {1,"。目的 ~s。目录 ~s"},
+    % ". Angle ~s~c"
+    {2,"。角 ~s~c"}
    ]},
   {light_types,
    [
