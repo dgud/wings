@@ -54,7 +54,7 @@ opt debug:
 
 common: $(TARGET_FILES) subdirs
 
-subdirs: 
+subdirs:
 	(cd shaders; $(MAKE))
 
 template: opt
@@ -65,6 +65,7 @@ lang: template
 	erl -pa $(WINGS_INTL) -noinput -run tools diff_lang_files $(EBIN)
 
 clean:
+	(cd shaders; $(MAKE) clean)
 	rm -f $(TARGET_FILES)
 	rm -f core
 
