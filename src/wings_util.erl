@@ -26,6 +26,7 @@
 	 mapsfind/3,
 	 wxequal/2, wxset_pid/2, min_wx/1,
 	 nice_float/1,nice_vector/1,nice_abs_vector/1,
+         string_to_float/1,
 	 unique_name/2,
 	 is_name_masked/2,
 	 lib_dir/1,
@@ -212,6 +213,30 @@ simplify_float(F) ->
 simplify_float_1("0."++_=F) -> F;
 simplify_float_1("0"++F) -> simplify_float_1(F);
 simplify_float_1(F) -> F.
+
+
+string_to_float(Str) ->
+    try list_to_float(Str)
+    catch _:_ -> make_float2(Str)
+    end.
+
+make_float2(Str) ->
+    try float(list_to_integer(Str))
+    catch _:_ -> make_float3(Str)
+    end.
+
+make_float3(Str0) ->
+    Str = lists:flatten(string:tokens(Str0, "\t\s\n")),
+    try list_to_float(Str)
+    catch _:_ -> make_float4(Str) end.
+
+make_float4(Str) ->
+    WithDot = case string:tokens(Str, "eE") of
+		  [Pre,Post] -> Pre ++ ".0e" ++ Post;
+		  [Other] -> Other ++ ".0";
+		  Other -> Other
+	      end,
+    list_to_float(WithDot).
 
 %%
 %% Finds the first map containing Key:=Value

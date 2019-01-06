@@ -145,14 +145,17 @@ read_stl_ascii(Data) ->
 			       [global,{capture,all_but_first,list}]) of
 			{match, Triangles} ->
 			    lists:map(fun([X1,Y1,Z1,X2,Y2,Z2,X3,Y3,Z3]) ->
-					    [{list_to_float(X1), list_to_float(Y1), list_to_float(Z1)},
-					     {list_to_float(X2), list_to_float(Y2), list_to_float(Z2)},
-					     {list_to_float(X3), list_to_float(Y3), list_to_float(Z3)}]
+					    [{str2float(X1), str2float(Y1), str2float(Z1)},
+					     {str2float(X2), str2float(Y2), str2float(Z2)},
+					     {str2float(X3), str2float(Y3), str2float(Z3)}]
 				      end, Triangles);
 			_ ->
 			    []
 		   end,
     e3d_util:raw_to_indexed(RawTriangles).
+
+str2float(Str) ->
+    wings_util:string_to_float(Str).
 
 read_stl(Data) ->
     <<Header:80/binary, NumFs:32/little, Rest/binary>> = Data,

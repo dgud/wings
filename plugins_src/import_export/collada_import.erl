@@ -22,7 +22,6 @@
          common_mat/4, common_newparam/4, surface/4,
          sampler2D/4, sloppy_color/3, chars/3,
          pop/1, replace/2, to_floats/1, make_float/1,
-         make_float2/1, make_float3/1, make_float4/2,
          to_ints/1, to_tuple/2, to_tuple2/1, to_tuple3/1,
          to_tuple4/1, to_tuple5/1,
          pack_source/1, make_mesh/1, pick_source/2, pick_src_1/2,
@@ -500,29 +499,9 @@ replace(Data,#es{state=[{State,_Data}|Stack]}=Es) -> Es#es{state=[{State,Data}|S
 to_floats(List) ->
     [make_float(Str) || Str <- string:tokens(List, " \n\t")].
 
-make_float(Str) ->
-    try list_to_float(Str)
-    catch _:_ -> make_float2(Str)
-    end.
-make_float2(Str) ->
-    try float(list_to_integer(Str))
-    catch _:_ -> make_float3(Str)
-    end.
-
-make_float3(Str0) ->
-    Str = lists:flatten(string:tokens(Str0, "\t\s\n")),
-    try list_to_float(Str)
-    catch _:_ -> make_float4(Str, Str0) end.
-
-make_float4(Str, Orig) ->
-    WithDot = case string:tokens(Str, "e") of
-		  [Pre,Post] -> Pre ++ ".0e" ++ Post;
-		  [Other] -> Other ++ ".0";
-		  Other -> Other
-	      end,
-    try list_to_float(WithDot)
+make_float(Orig) ->
+    try wings_util:string_to_float(Orig)
     catch _:badarg ->
-	    io:format("Bad float: ~p ~p ~p~n",[Orig, Str, WithDot]),
 	    throw({fatal_error, {bad_float, Orig}})
     end.
 

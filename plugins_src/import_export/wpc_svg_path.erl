@@ -205,17 +205,7 @@ parse_path(_, _, _) ->
     wings_u:error_msg(?__(3,"Couldn't process this file.")).
 
 string_to_float(String) ->
-    case catch list_to_float(String) of
-      {'EXIT',_} ->
-        case catch float(list_to_integer(String)) of
-          {'EXIT',_} ->
-            % convert "5e-5" to 5.0e-5 (for example)
-            {A,B} = splitwith(fun(E) -> E =/= $e end, String),
-            list_to_float(A++".0"++B);
-          Float -> Float
-        end;
-      Float -> Float
-    end.
+    wings_util:string_to_float(String).
 
 getcontours(Ps) ->
     map(fun getcedges/1, Ps).

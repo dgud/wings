@@ -323,19 +323,4 @@ get_line([C|Cs], Fd, Line) ->
     get_line(Cs, Fd, [C|Line]).
     
 str2float(S) ->
-    case catch list_to_float(S) of
-	{'EXIT',_} -> str2float_1(S, []);
-	F -> F
-    end.
-
-str2float_1([H|T], Acc) when H == $e; H == $E ->
-    foreach(fun($-) -> ok;
-	       ($+) -> ok;
-	       (D) when $0 =< D, D =< $9 -> ok
-	    end, Acc),
-    NumStr = reverse(Acc, ".0e") ++ T,
-    list_to_float(NumStr);
-str2float_1([H|T], Acc) ->
-    str2float_1(T, [H|Acc]);
-str2float_1([], Acc) ->
-    float(list_to_integer(reverse(Acc))).
+    wings_util:string_to_float(S).
