@@ -1326,13 +1326,13 @@
    ]},
   {info,
    [
-    {1,"Lichtquelle ~s:"},
-    {2,"\nPos. ~s ~s ~s"}
+    {1,"Lichtquelle ~ts"},
+    {2,": Pos. ~s"}
    ]},
   {info_1,
    [
-    {1,"\nAusrichten ~s ~s ~s\nRichtung ~s ~s ~s"},
-    {2,"\nWinkel ~s~c"}
+    {1,". Ausrichten ~s. Richtung ~s"},
+    {2,". Winkel ~s~c"}
    ]},
   {light_types,
    [

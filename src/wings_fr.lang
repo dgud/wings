@@ -1300,12 +1300,12 @@
    ]},
   {info,
    [
-    {1,"Lumière ~s"},
-    {2,": Position ~s ~s ~s"}
+    {1,"Lumière ~ts"},
+    {2,": Position ~"}
    ]},
   {info_1,
    [
-    {1,". Vise ~s ~s ~s. Direction ~s ~s ~s"},
+    {1,". Vise ~s. Direction ~s"},
     {2,". Angle ~s~c"}
    ]},
   {light_types,

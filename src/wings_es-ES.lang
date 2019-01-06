@@ -1415,12 +1415,12 @@
    ]},
   {info,
    [
-    {1,"Luz ~s"},
-    {2,": Pos ~s ~s ~s"}
+    {1,"Luz ~ts"},
+    {2,": Pos ~s"}
    ]},
   {info_1,
    [
-    {1,". Objetivo ~s ~s ~s. Dirección ~s ~s ~s"},
+    {1,". Objetivo ~s. Dirección ~s"},
     {2,". Angulo ~s~c"}
    ]},
   {light_types,
