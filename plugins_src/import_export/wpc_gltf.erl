@@ -896,7 +896,7 @@ make_mat(#{name:=Name}=Mat, GLTF, Dir) ->
             MetalF = 1.0,
             RoughF = 0.9;
         Pbr ->
-            Diffuse = maps:get(baseColorFactor, Pbr, [1.0,1.0,1.0,1.0]),
+            Diffuse = [float(V) || V <- maps:get(baseColorFactor, Pbr, [1.0,1.0,1.0,1.0])],
             DiffuseTx = {diffuse, get_texture(baseColorTexture, Pbr, GLTF)},
             {Mtx,Rtx} = split_tx(get_texture(metallicRoughnessTexture, Pbr, GLTF), Dir),
             MetalTx = {metallic, Mtx},
@@ -906,7 +906,7 @@ make_mat(#{name:=Name}=Mat, GLTF, Dir) ->
     end,
 
     NormalTx = {normal, get_texture(normalTexture, Mat, GLTF)},
-    Emission = maps:get(emmissiveFactor, Mat, [0.0,0.0,0.0]),
+    Emission = [float(V) || V <- maps:get(emmissiveFactor, Mat, [0.0,0.0,0.0])],
     EmissionTx = {emission, get_texture(emissiveTexture, Mat, GLTF)},
     OccTx = {occlusion, get_texture(occlusionTexture, Mat, GLTF)},
     Txs = [NormalTx, DiffuseTx, MetalTx, RoughTx, EmissionTx, OccTx],
