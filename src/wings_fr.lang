@@ -1301,7 +1301,7 @@
   {info,
    [
     {1,"Lumière ~ts"},
-    {2,": Position ~"}
+    {2,": Position ~s"}
    ]},
   {info_1,
    [
