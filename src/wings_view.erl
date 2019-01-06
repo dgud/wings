@@ -1104,7 +1104,8 @@ views_jump(J, St, CurrentView, Views) ->
 	{J,J} ->
 	    {View,_} = element(J, Views),
 	    set_current(View),
-	    wings_wm:dirty();
+	    wings_wm:dirty(),
+	    St;
 	{J,_} ->
 	    {View,_} = element(J, Views),
 	    set_current(View),
