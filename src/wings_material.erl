@@ -53,7 +53,7 @@ mat_list(#st{mat=Mtab}) ->
 mat_list_1([{Name,Ps}|Ms], Acc) ->
     OpenGL = prop_get(opengl, Ps, []),
     Diff = prop_get(diffuse, OpenGL),
-    Menu = {atom_to_list(Name),{'VALUE',{assign,Name}},[],[{color,Diff}]},
+    Menu = {atom_to_list(Name),{assign,Name},[],[{color,Diff}]},
     mat_list_1(Ms, [Menu|Acc]);
 mat_list_1([], Acc) -> reverse(Acc).
 
@@ -77,6 +77,8 @@ command({new,Name}, St) ->
     new_material(Name, false, St);
 command({edit,Mat}, St) ->
     edit(list_to_atom(Mat), false, St);
+command({{assign,Mat},true}, St) -> % it handles the opt color icon
+    command({assign,Mat}, St);
 command({assign,Mat}, St) when is_atom(Mat) ->
     set_material(Mat, St);
 command({assign,Mat}, St) ->
