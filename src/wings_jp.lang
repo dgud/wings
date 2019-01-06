@@ -2003,8 +2003,8 @@
    [
     % "Light ~ts"
     {1,"Light ~ts"},
-    % ": Pos ~t"
-    {2,": Pos ~"}
+    % ": Pos ~s"
+    {2,": Pos ~s"}
    ]},
   {info_1,
    [

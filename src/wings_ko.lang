@@ -2002,7 +2002,7 @@
     % ". Aim ~s. Dir ~s"
     {1,". Aim ~s. Dir ~s"},
     % ". Angle ~s~c"
-    {2,". 각도 ~t~c"}
+    {2,". 각도 ~s~c"}
    ]},
   {light_types,
    [

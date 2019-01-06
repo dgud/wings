@@ -1555,12 +1555,12 @@
    ]},
   {info,
    [
-    {1,"Luz ~s"},
-    {2,": Pos ~s ~s ~s"}
+    {1,"Luz ~ts"},
+    {2,": Pos ~s"}
    ]},
   {info_1,
    [
-    {1,". Aim ~s ~s ~s. Dir ~s ~s ~s"},
+    {1,". Aim ~s. Dir ~s"},
     {2,". Ângulo ~s~c"}
    ]},
   {light_types,
