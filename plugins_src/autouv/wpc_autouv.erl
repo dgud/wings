@@ -673,10 +673,38 @@ handle_event_3({action,{auv,Cmd}}, St) ->
 handle_event_3({action,{select,show_all}}, #st{bb=#uvstate{st=GeomSt,id=Id}}) ->
     wings_wm:send({autouv,Id}, {add_faces,object,GeomSt}),
     keep;
+handle_event_3({action,{select,oriented_faces}}, St0) ->
+    Connected = wings_pref:get_value(similar_normals_connected,false),
+    {Save,Angle} = case wings_pref:get_value(similar_normals_angle,{false,1.0E-3}) of
+		       {true,A} -> {true,A};
+		       {false,_} -> {false,1.0E-3}
+		   end,
+    handle_event_3({action,{select,{oriented_faces,[Angle,Connected,Save]}}}, St0);
+handle_event_3({action,{select,similar_area}}, St0) ->
+    handle_event_3({action,{select,{similar_area,[0.001]}}}, St0);
+handle_event_3({action,{select,similar_material}}, St0) ->
+    Connected = wings_pref:get_value(similar_materials_connected, false),
+    Mode = wings_pref:get_value(similar_materials, material),
+    handle_event_3({action,{select,{similar_material,[Connected,Mode]}}}, St0);
+handle_event_3({action,{select,{ssels,sel_groups_win}}}, _) ->
+    keep;
+handle_event_3({action,{select,deselect_previous}=Command}, St0) ->
+    case wpc_deselect_previous:command(Command, St0) of
+	{save_state,St} -> ok;
+	_ -> St = St0
+    end,
+    new_state(St);
 handle_event_3({action,{select,Command}}, St0) ->
     case wings_sel_cmd:command(Command, St0) of
 	{save_state,St} -> ok;
-	#st{}=St -> ok
+	#st{}=St -> ok;
+	_ ->
+	    %% That's avoid crash if any select option has a input dialog when
+	    %% usually the returned value returned at the first time is 'keep'.
+	    %% Also, for commands with preview dialog, the new state will not
+	    %% be properly updated since somehow the local St seems to be messed
+	    %% in {current_state,geom_display_lists,GeomSt} event handle
+	    St = St0
     end,
     new_state(St);
 handle_event_3({action,{edit,repeat}}, St) ->
