@@ -597,8 +597,20 @@ is_mat_transparent(Mat) ->
     Trans = lists:any(fun({diffuse,{_,_,_,Alpha}}) when Alpha < 1.0 -> true;
                          (_) -> false
                       end, OpenGL),
+    TransTx =
+        case proplists:get_value(maps, Mat, undefined) of
+            undefined ->
+                false;
+            Maps ->
+                case proplists:get_value(diffuse,Maps,undefined) of
+                    undefined -> false ;
+                    DiffMap ->
+                        #e3d_image{bytes_pp=Bpp} = wings_image:info(DiffMap),
+                        Bpp == 4
+                end
+        end,
     %% Trans orelse proplists:is_defined(diffuse, prop_get(maps, Mat)).
-    Trans.
+    Trans or TransTx.
 
 %% needed_attributes(We, St) -> [Attr]
 %%     Attr = color|uv|tangent

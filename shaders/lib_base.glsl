@@ -38,7 +38,7 @@ vec4 SRGBtoLINEAR(vec4 srgbIn)
 {
     vec3 bLess = step(vec3(0.04045),srgbIn.xyz);
     vec3 linOut = mix( srgbIn.xyz/vec3(12.92), pow((srgbIn.xyz+vec3(0.055))/vec3(1.055),vec3(2.4)), bLess );
-    return vec4(linOut,srgbIn.w);;
+    return vec4(linOut,srgbIn.w);
 }
 
 PBRInfo calc_views(vec3 Norm, vec3 View, vec3 Ligth)
