@@ -525,7 +525,7 @@ handle_popup_event(Ev, Xglobal, Yglobal, St0) ->
 
 filter_format(File, Formats) ->
     Ext = filename:extension(File),
-    lists:keymember(Ext, 1, Formats).
+    lists:keymember(string:lowercase(Ext), 1, Formats).
 
 info_line() ->
     case wings_pref:get_value(tweak_active) of
