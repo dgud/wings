@@ -16,9 +16,10 @@
 -include("wings.hrl").
 -include_lib("wings/e3d/e3d.hrl").
 
--define(EPSILON, 1.0e-8).  %% used without SQRT() => 1.0e-4
+-define(EPS, 1.0e-4).  %% 1.0e-4
+-define(EPS2, (?EPS*?EPS)).  %% used without SQRT() => 1.0e-4
 
--define(DEBUG,true).
+%-define(DEBUG,true).
 -ifdef(DEBUG).
 %% Lots of debug stuff in here, maybe it can tell a thing or two of
 %% the problems I have had with making this, sigh.
@@ -191,12 +192,12 @@ merge_1(#{we:=We10,el:=_EL10,temp_es:=TEs1}=I10,
         EdgeInfo0, We1, We2) ->
     ?D("~p~n",[?FUNCTION_NAME]),
     {Vmap, EdgeInfo} = make_vmap(EdgeInfo0, We10, We20),  %% Make vertex id => pos and update edges
-    %?D("Vmap: ~p~n",[array:to_orddict(Vmap)]),
+    %% ?D("Vmap: ~p~n",[array:to_orddict(Vmap)]),
     Loops0 = build_vtx_loops(EdgeInfo), %% Figure out edge loops
     L10 = [split_loop(Loop, Vmap, {We10,We20}) || Loop <- Loops0], % Split loops per We and precalc
     L20 = [split_loop(Loop, Vmap, {We20,We10}) || Loop <- Loops0], % some data
     %% Remove vertexes on triangulated edges
-    Loops1 = [filter_tri_edges(Loop,We10,We20) || Loop <- lists:zip(L10,L20)],
+    Loops1 = [filter_tess_edges(Loop,We10,We20) || Loop <- lists:zip(L10,L20)],
     Loops = sort_largest(Loops1, Vmap),
     %% Create vertices on the edge-loops
     {Res, I11, I21} = make_verts(Loops, Vmap, TEs1, TEs2, We10, We20),
@@ -208,11 +209,13 @@ merge_1(#{we:=We10,el:=_EL10,temp_es:=TEs1}=I10,
 %% faces and start over
 merge_2(cont, #{we:=We11, el:=EL01, fs:=Fs1}=I10, #{we:=We21, el:=EL02, fs:=Fs2}=I20, We1,We2) ->
     ?D("~p cont~n",[?FUNCTION_NAME]),
-    case get(?MODULE) =:= 3 of
-        true ->
+    ?PUT(we1,We11), ?PUT(we2,We21),
+    case get(?MODULE) of
+        5 ->
             ?D("DEBUG interrupt ~w~n",[erase(?MODULE)]),
-            #{we=>We11,delete=>none, el=>[], sel_es=>[], error=>We21};
-        _ ->
+            exit(interrupt);
+        _N ->
+            ?PUT(?MODULE, _N+1),
             ?D("DEBUG not interrupted ~w~n",[get(?MODULE)]),
             {We12, Vmap1, Es1, B1} = remake_bvh(Fs1, EL01, We1, We11),
             {We22, Vmap2, Es2, B2} = remake_bvh(Fs2, EL02, We2, We21),
@@ -530,7 +533,7 @@ do_weld(Fa, Fb, {We0, Acc}) ->
     [Va|_] = wings_face:vertices_ccw(Fa, We0),
     Pos = wings_vertex:pos(Va, We0),
     Find = fun(Vb, _, _, Vs) ->
-                   case e3d_vec:dist_sqr(wings_vertex:pos(Vb, We0), Pos) < ?EPSILON of
+                   case e3d_vec:dist_sqr(wings_vertex:pos(Vb, We0), Pos) < ?EPS2 of
                        true -> [Vb|Vs];
                        false -> Vs
                    end
@@ -742,7 +745,7 @@ pick_edge_face(#{v:=V1,o_n:=N1}, #{v:=V2,o_n:=N2}, Vmap, We) ->
         [Face|_] ->
             {WeV1,WeV2,Face,e3d_vec:norm(e3d_vec:average(N1,N2))};
         [] ->
-            ?D("Restart: ~w: v1:~w v2:~w~n", [We#we.id, V1, V2]),
+            ?D("Restart: ~w: v1:~w v2:~w~n~p~n", [We#we.id, V1, V2, process_info(self(),current_stacktrace)]),
             throw({restart, Vmap, We})
     end.
 
@@ -849,6 +852,7 @@ make_face_vs_1([], _, Vmap, EL, We) ->
     {EL, Vmap, We}.
 
 inset_face(Loop0, TEs0, Vmap0,  #we{fs=Ftab0, es=Etab0, vc=Vct0, vp=Vpt0}=We0) ->
+    ?D("~p:~p~n",[?FUNCTION_NAME, ?LINE]),
     Face = pick_ref_face(Loop0, undefined),
     NumberOfNew = length(Loop0),
     true = NumberOfNew > 2, %% Otherwise something is wrong
@@ -872,7 +876,7 @@ inset_face(Loop0, TEs0, Vmap0,  #we{fs=Ftab0, es=Etab0, vc=Vct0, vp=Vpt0}=We0) -
                  || V1 <- lists:seq(1, NumberOfNew),
                     V2 <- wings_face:vertices_ccw(Face, We0)],
     %% ?D("~p: ~p ~p~n",[We0#we.id, Face, TestEdges]),
-    {{VI1, VO1},{VI2,VO2}} = pick_vs_pairs(TestEdges, FaceN),
+    {{VI1, VO1},{VI2,VO2}} = pick_vs_pairs(TestEdges),
     %% ?D("Connect ~w ~w~n", [{VO1, VI1},{VO2,VI2}]),
     E1R = #edge{vs=VO1, ve=VI1, lf=F1+1, rf=F1},
     E2R = #edge{vs=VO2, ve=VI2, lf=F1, rf=F1+1},
@@ -1009,63 +1013,73 @@ update_inset_es1([{Id, Rec0}|Recs], [V2|_]=VC, Face, E1, F1, Etab0) ->
             array:set(Id, Rec0, Etab0)
     end.
 
-pick_vs_pairs(Edges, N) ->
+pick_vs_pairs(Edges) ->
     WithDist = [{e3d_vec:dist_sqr(P1,P2),Edge} ||
                    {{P1,P2},_}=Edge <- Edges],
     [{_,First}|Rest] = lists:sort(WithDist),
-    pick_vs_pairs(Rest, First, N).
+    pick_vs_pairs(Rest, First).
 
-pick_vs_pairs([{_, {{P3,P4}, {A,B}=E1}}|Rest], {{P1,P2},{C,D}=E0}=Edge, N)
+pick_vs_pairs([{_, {{P3,P4}, {A,B}=E1}}|Rest], {{P1,P2},{C,D}=E0}=Edge)
   when A =/= C, B =/= D ->
-    case e3d_vec:line_line_intersect(P3,P4,P1,P2,N) of
-        true -> pick_vs_pairs(Rest, Edge, N);
-        false -> {E0,E1}
+    case e3d_vec:line_line_intersect(P3,P4,P1,P2) of
+        {Pa,Pb,A,B} when abs(A) < 1.0, abs(B) < 1.0 ->
+            case e3d_vec:dist_sqr(Pa,Pb) < (?EPS2*10) of
+                true -> pick_vs_pairs(Rest, Edge);
+                false -> {E0,E1}
+            end;
+        _ -> {E0,E1}
     end;
-pick_vs_pairs([_|Rest], E0, Dir) ->
-    pick_vs_pairs(Rest, E0, Dir).
+pick_vs_pairs([_|Rest], E0) ->
+    pick_vs_pairs(Rest, E0).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-filter_tri_edges({L1,L2}, We1,We2) ->
+filter_tess_edges({L1,L2}, We1,We2) ->
     Loop = lists:zip(L1,L2),
-    Res = filter_tri_edges_1(Loop,We1,We2),
+    Res = filter_tess_edges_1(Loop,We1,We2),
     lists:unzip(Res).
 
-filter_tri_edges_1([{#{v:=V}=V1,U1}, {#{v:=V}=V2, U2}|Vs],We1,We2) ->
+filter_tess_edges_1([{#{v:=V}=V1,U1}, {#{v:=V}=V2, U2}|Vs],We1,We2) ->
     %% Remove edges to it self (loops)
-    filter_tri_edges_1([{filter_edge(V1,V2),filter_edge(U1,U2)}|Vs],We1,We2);
+    filter_tess_edges_1([{filter_edge(V1,V2),filter_edge(U1,U2)}|Vs],We1,We2);
 
-filter_tri_edges_1([{#{op:=split_edge,e:=none},#{op:=split_edge, e:=none}}|Vs],We1,We2) ->
-    filter_tri_edges_1(Vs,We1,We2);
-filter_tri_edges_1([{#{op:=split_edge,e:=none,f:=F}=V1,#{op:=Op}=V2}|Vs],We1,We2) ->
+filter_tess_edges_1([{#{op:=split_edge,e:=none},#{op:=split_edge, e:=none}}|Vs],We1,We2) ->
+    filter_tess_edges_1(Vs,We1,We2);
+filter_tess_edges_1([{#{op:=split_edge,e:=none}=V1,#{op:=Op}=V2}|Vs],We1,We2) ->
     case Op of
-        split_face -> filter_tri_edges_1(Vs,We1,We2);
+        split_face -> filter_tess_edges_1(Vs,We1,We2);
         split_edge ->
-            case skip_tess_edge(wings_face:normal(F,We1), V2, We2) of
-                true -> filter_tri_edges_1(Vs,We1,We2);
-                false -> [{edge_to_face(V1), V2}|filter_tri_edges_1(Vs,We1,We2)]
+            case keep_tess_edge(V2, We2, V1, We1) of
+                true -> [{edge_to_face(V1), V2}|filter_tess_edges_1(Vs,We1,We2)];
+                false -> filter_tess_edges_1(Vs,We1,We2)
             end
     end;
-filter_tri_edges_1([{#{op:=Op}=V1,#{op:=split_edge,e:=none,f:=F}=V2}|Vs],We1,We2) ->
+filter_tess_edges_1([{#{op:=Op}=V1,#{op:=split_edge,e:=none}=V2}|Vs],We1,We2) ->
     case Op of
-        split_face -> filter_tri_edges_1(Vs,We1,We2);
+        split_face -> filter_tess_edges_1(Vs,We1,We2);
         split_edge ->
-            case skip_tess_edge(wings_face:normal(F,We2), V1, We1) of
-                true -> filter_tri_edges_1(Vs,We1,We2);
-                false -> [{V1,edge_to_face(V2)}|filter_tri_edges_1(Vs,We1,We2)]
+            case keep_tess_edge(V1, We1, V2, We2) of
+                true -> [{V1,edge_to_face(V2)}|filter_tess_edges_1(Vs,We1,We2)];
+                false -> filter_tess_edges_1(Vs,We1,We2)
             end
     end;
-filter_tri_edges_1([V|Vs],We1,We2) ->
-    [V|filter_tri_edges_1(Vs,We1,We2)];
-filter_tri_edges_1([],_We1,_We2) -> [].
+filter_tess_edges_1([V|Vs],We1,We2) ->
+    [V|filter_tess_edges_1(Vs,We1,We2)];
+filter_tess_edges_1([],_We1,_We2) -> [].
 
 filter_edge(_, #{op:=split_edge, e:=Edge}=V2) when Edge =/= none -> V2;
 filter_edge(V1,_) -> V1.
 
-skip_tess_edge(_, #{e:=on_vertex}, _We) -> false;
-skip_tess_edge(N, #{e:=Edge}=_EC, #we{es=Etab}=We) ->
-    #edge{vs=VS,ve=VE} = array:get(Edge,Etab),
-    Dir = e3d_vec:sub(wings_vertex:pos(VS, We),wings_vertex:pos(VE,We)),
-    abs(e3d_vec:dot(N, Dir)) < 0.1.
+keep_tess_edge(#{e:=on_vertex}, _We, _, _) -> true;
+keep_tess_edge(#{e:=Edge}, #we{es=Etab}=We1, #{e:=none, f:=Face, vs:={VS2,VE2}}, We2) ->
+    #edge{vs=VS1,ve=VE1} = array:get(Edge,Etab),
+    P1 = wings_vertex:pos(VS1, We1),
+    Q1 = wings_vertex:pos(VE1, We1),
+    P2 = wings_vertex:pos(VS2, We2),
+    Q2 = wings_vertex:pos(VE2, We2),
+    N = wings_face:normal(Face, We2),
+    Cross = e3d_vec:cross(N, e3d_vec:sub(Q2,P2)),
+    Dot = e3d_vec:dot(Cross, e3d_vec:sub(Q1,P1)),
+    abs(Dot) < ?EPS.
 
 edge_to_face(#{op:=split_edge}=Orig) ->
     Orig#{op=>split_face}.
@@ -1197,7 +1211,7 @@ check_if_edge(#{f:=F, v:=V}=SF, Vmap, #we{id=Id, vp=Vtab, es=Etab}=We) ->
                    V1P = array:get(V1, Vtab),
                    V2P = array:get(V2, Vtab),
                    Dist = e3d_vec:line_dist_sqr(Pos, V1P, V2P),
-                   case Dist < (?EPSILON * 10.0) of
+                   case Dist < (?EPS2 * 10.0) of
                        true -> [{Dist,{V1,V2}, Edge}|Acc];
                        false -> Acc
                    end
@@ -1252,7 +1266,7 @@ add_vtab(Vtab, I0, Id, Tree) ->
     Add = fun(N, Pos, {I,Acc}) ->
                   {{IF,V1},P1} = Obj = e3d_kd3:nearest(Pos, Acc),
                   New = {Id,N},
-                  case e3d_vec:dist_sqr(Pos, P1) < ?EPSILON of
+                  case e3d_vec:dist_sqr(Pos, P1) < ?EPS2 of
                       true  -> {I, e3d_kd3:update(Obj, {IF,[New|V1]}, Acc)};
                       false -> {I+1, e3d_kd3:enter(Pos, {I, [New]}, Acc)}
                   end
@@ -1273,7 +1287,7 @@ make_vmap([{coplanar, {O1,F1},{O2,F2}}=_CP|_R], _T0, _N0, _Acc) ->
 
 vmap({{_WeId,{_V0,_V1}}=Where, Pos}, N, Tree) ->
     {{I, _WeVs}, P1} = e3d_kd3:nearest(Pos, Tree),
-    case (_Dist = e3d_vec:dist_sqr(Pos, P1)) < ?EPSILON of
+    case (_Dist = e3d_vec:dist_sqr(Pos, P1)) < ?EPS2 of
         true  ->
             {{Where, I}, N, Tree};
         false ->

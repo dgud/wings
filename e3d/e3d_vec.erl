@@ -20,7 +20,7 @@
 	 bounding_box/1,area/3,degrees/2,
          plane/1,plane/2,plane/3,
          plane_side/2,plane_dist/2,
-         line_dist/3, line_dist_sqr/3, line_line_intersect/5,
+         line_dist/3, line_dist_sqr/3, line_line_intersect/4,
          project_2d/2, largest_dir/1
         ]).
 
@@ -335,29 +335,37 @@ line_dist_sqr(P,A,B) ->
             end
     end.
 
-%% Returns point of intersection or line part of parallel intersection
-%% or false
--spec line_line_intersect(point(),point(),point(),point(),vector()) ->
-                                 boolean().
-line_line_intersect(P10,Q10,P20,Q20,N) ->
-    Dir = largest_dir(N),
-    P1 = project_2d(P10, Dir),
-    Q1 = project_2d(Q10, Dir),
-    P2 = project_2d(P20, Dir),
-    Q2 = project_2d(Q20, Dir),
-    U = sub(Q1,P1),
-    V = sub(Q2,P2),
-    W = sub(P1,P2),
-    D = perp2d(U,V),
-    case abs(D) < 0.00000001 of
-        true -> point_on_line2d(P2, P1, Q1) orelse
-                    point_on_line2d(Q2, P1, Q1);
-        false ->
-            SI = perp2d(V,W)/D,
-            TI = perp2d(U,W)/D,
-            if SI < 0.0 orelse SI > 1.0 -> false;
-               TI < 0.0 orelse TI > 1.0 -> false;
-               true -> true
+%%   Calculate the line segment PaPb that is the shortest route between
+%%   two lines P1P2 and P3P4. Calculate also the values of mua and mub where
+%%      Pa = P1 + mua (P2 - P1)
+%%      Pb = P3 + mub (P4 - P3)
+%%   Return FALSE if no solution exists.
+%% (from http://paulbourke.net/geometry/pointlineplane/)
+-define(EPS, 0.000001).
+-spec line_line_intersect(point(),point(),point(),point()) ->
+                                 false | {point(), point(), float(), float()}.
+line_line_intersect(P1,P2,P3,P4) ->
+    P13 = sub(P1,P3),
+    {X1,Y1,Z1} = P43 = sub(P4,P3),
+    {X0,Y0,Z0} = P21 = sub(P2,P1),
+
+    if X1 < ?EPS, Y1 < ?EPS, Z1 < ?EPS -> false;  %% Point intersect?
+       X0 < ?EPS, Y0 < ?EPS, Z0 < ?EPS -> false;
+       true ->
+            D1343 = dot(P13, P43),
+            D4321 = dot(P43, P21),
+            D1321 = dot(P13, P21),
+            D4343 = dot(P43, P43),
+            D2121 = dot(P21, P21),
+            Denom = D2121 * D4343 - D4321 * D4321,
+            if Denom < ?EPS -> false;
+               true ->
+                    Numer = D1343 * D4321 - D1321 * D4343,
+                    Mua = Numer / Denom,
+                    Mub = (D1343 + D4321 * Mua) / D4343,
+                    {add_prod(P1,P21,Mua),
+                     add_prod(P3,P43,Mub),
+                     Mua, Mub}
             end
     end.
 
@@ -376,27 +384,6 @@ largest_dir({X,Y,Z}) ->
        AX < AY -> y;
        true -> x
     end.
-
-perp2d({UX,UY,_},{VX,VY,_}) ->
-    UX*VY-UY*VX.
-
-%% Checks whether a point on a line is between endpoints.
-point_on_line2d({_,Py,_}, {Sx,Sy,_}, {Sx,Ey,_}) ->
-    %% line is horizontal, check Y axis
-    if Sy =< Py andalso Py =< Ey ->
-            true;
-       Sy >= Py andalso Py >= Ey ->
-            true;
-       true -> false
-    end;
-point_on_line2d({Px,_,_}, {Sx,_,_}, {Ex,_,_}) ->
-    if Sx =< Px andalso Px =< Ex ->
-            true;
-       Sx >= Px andalso Px >= Ex ->
-            true;
-       true -> false
-    end.
-
 
 %% Should be removed and calls should be changed to e3d_bv instead.
 -spec bounding_box([vector()]) -> [vector()].
