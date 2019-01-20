@@ -20,7 +20,7 @@
          map_update_sel/2,map_update_sel/3,
 	 update_sel/2,update_sel/3,update_sel_all/2,
          fold_obj/3,fold/3,dfold/4,mapfold/3,
-	 new_sel/3,make/3,valid_sel/1,valid_sel/3,
+	 new_sel/3,make/3,valid_sel/1,valid_sel/3,valid_sel_groups/3,
          clone/2,clone/3,combine/2,combine/3,merge/2,
 	 center/1,center_vs/1,
 	 bbox_center/1,bounding_box/1,
@@ -514,6 +514,26 @@ valid_sel(Sel0, Mode, #st{shapes=Shapes}) ->
 			    end
 		    end
 	    end, [], Sel0),
+    reverse(Sel).
+
+-spec valid_sel_groups(SelIn, Mode, #st{}) -> SelOut when
+    Mode :: mode(),
+    SelIn :: [{item_id(),item_set()}],
+    SelOut :: [{item_id(),item_set()}].
+
+valid_sel_groups(Sel0, Mode, #st{shapes=Shapes}) ->	% allow wings to save any selection groups
+    Sel = foldl(
+	fun({Id,Items0}, A) ->
+	    case gb_trees:lookup(Id, Shapes) of
+		none -> A;
+		{value,We} ->
+		    Items = validate_items(Items0, Mode, We),
+		    case gb_sets:is_empty(Items) of
+			false -> [{Id,Items}|A];
+			true -> A
+		    end
+	    end
+	end, [], Sel0),
     reverse(Sel).
 
 -spec select_object(obj_id(), #st{}) -> #st{}.

@@ -1294,7 +1294,7 @@ collect_sel(#st{selmode=Mode,sel=Sel0,ssels=Ssels}=St) ->
 
 collect_sel_groups([{{Mode,Name},Sel}|Gs], St, Acc0) ->
     Acc = [{Id,{Mode,gb_sets:to_list(Elems),{selection_group,Name}}} ||
-	      {Id,Elems} <- wings_sel:valid_sel(Sel, Mode, St)] ++ Acc0,
+	      {Id,Elems} <- wings_sel:valid_sel_groups(Sel, Mode, St)] ++ Acc0,
     collect_sel_groups(Gs, St, Acc);
 collect_sel_groups([], _, Acc) -> Acc.
 
