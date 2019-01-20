@@ -968,9 +968,10 @@ do_dlo_pick(D=#dlo{vab=#vab{face_vs=none}}, St, OneHit, Ms, Acc) ->
     do_dlo_pick(wings_draw_setup:work(D, St), St, OneHit, Ms, Acc);
 do_dlo_pick(#dlo{mirror=none,src_we=#we{id=Id}=We}=D, _, OneHit, _Ms, Acc)
   when ?IS_AREA_LIGHT(We) ->
+    Cull = wpc_pick:culling(),
     wpc_pick:cull(false),
     Res = do_dlo_pick_0(Id, D, OneHit, Acc),
-    wpc_pick:cull(true),
+    wpc_pick:cull(Cull),
     Res;
 do_dlo_pick(#dlo{mirror=none,open=Open,src_we=#we{id=Id}}=D, _, OneHit, _Ms, Acc) ->
     case wings_pref:get_value(show_backfaces) of

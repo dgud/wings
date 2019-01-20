@@ -36,7 +36,7 @@
 %%                Graphics Gems.
 %%
 -module(wpc_pick).
--export([init/0,pick_matrix/5,matrix/2,cull/1,front_face/1,
+-export([init/0,pick_matrix/5,matrix/2,cull/1,culling/0,front_face/1,
 	 faces/2,vertices/1,edges/1]).
 
 %% Comment out the following line to use the pure Erlang
@@ -108,6 +108,9 @@ cull(true) ->
 	true -> ok;
 	_ -> drv_cull(1)
     end.
+
+culling() ->
+    get({?MODULE,cull}) =:= true.
 
 %% front_face(ccw|cw)
 %%  Define the vertex order for front facing triangles.
