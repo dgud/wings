@@ -401,7 +401,12 @@ handle_event(#wx{obj=Obj, event=#wxClose{}}, #state{windows=Wins}=State) ->
 	    catch _:_ ->
 		    wings_wm:psend(Name, close),
 		    {noreply, State}
-	    end
+	    end;
+	_ ->
+	    ?dbg("\nUnexpected window closing\n\tObj: ~p\n\tWins: ~p\n",[Obj,Wins]),
+	    wings_u:message("Unexpected window closing.\n" ++
+			    "Please check the log window and report the information there."),
+	    {noreply, State}
     end;
 handle_event(_Ev, State) ->
     %% io:format("~p:~p Got unexpected event ~p~n", [?MODULE,?LINE, _Ev]),
