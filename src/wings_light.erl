@@ -576,10 +576,7 @@ get_light(#{id:=Id,name:=Name,perm:=P,light:=Light}, BC, St) ->
     F = fun(We) -> get_light_1(Light, We, BC) end,
     Ps0 = wings_obj:with_we(F, Id, St),
     Ps = export_perm(P, Ps0),
-    case BC of
-        true -> {Name,Ps};
-        false -> Ps
-    end.
+    {Name,Ps}.
 
 get_light(#we{name=Name,perm=P,light=Light}=We, BC) ->
     Ps0 = get_light_1(Light, We, BC),
