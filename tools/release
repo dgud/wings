@@ -11,6 +11,8 @@
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
 -mode(compile).
+-compile([{nowarn_deprecated_function, {erlang,get_stacktrace,0}}]).
+
 -include_lib("kernel/include/file.hrl").
 
 %% Change these when compiler version is changed on windows
@@ -221,13 +223,17 @@ copy(Source, Target0, BitSize) ->
             ".png" ->
                 {ok,_} = file:copy(Source, Target),
                 ok = file:write_file_info(Target, #file_info{mode=8#444});
+            ".app" ->
+                {ok,_} = file:copy(Source, Target),
+                ok = file:write_file_info(Target, #file_info{mode=8#444});
 	    Ext ->
 		%% Could be an executable file. Make sure that we preserve
 		%% the execution bit. Always turn off the write bit.
 		{ok,_} = file:copy(Source, Target),
-		{ok,#file_info{mode=Mode}=Info0} = file:read_file_info(Source),
+		{ok,#file_info{mode=Mode}} = file:read_file_info(Source),
+                {ok,Info0} = file:read_file_info(Target),
 		Info = Info0#file_info{mode=Mode band 8#555},
-		_ = file:write_file_info(Target, Info),
+		ok = file:write_file_info(Target, Info),
 		case Mode band 8#111 of
 		    0 when Ext =/= ".dll" ->
 			ok;
