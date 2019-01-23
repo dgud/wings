@@ -284,7 +284,7 @@ edit(St) ->
 
 edit(Id, St) ->
     Obj = wings_obj:get(Id, St),
-    Prop = get_light(Obj, false, St),
+    {_, Prop} = get_light(Obj, false, St),
     case Obj of
 	#{light:=#light{type=ambient}} ->
 	    {dialog,Qs,Fun} = edit_ambient_dialog(Obj, Prop, St),
