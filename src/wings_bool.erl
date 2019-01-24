@@ -353,13 +353,13 @@ setup_part(PGBS, OBvh, Vmap, #we{id=WeId}=We, {LT, Parts, LArr0}) ->
     {Loops1, LArr} = lists:mapfoldl(SetupLoop, LArr0, Loops0),
     {Loops,Partial} = lists:unzip(Loops1),
     Pos = case ordsets:subtract(wings_face:to_edges([Face], We), Outer) of
-              [] -> wings_face:center(Face,We);
+              [] -> point_inside(Face, We);
               [Edge|_] ->
                   [A,B] = wings_edge:to_vertices([Edge], We),
                   e3d_vec:average(wings_vertex:pos(A,We),wings_vertex:pos(B,We))
           end,
     ISect = e3d_bvh:is_inside(Pos, OBvh),
-    %% ?D("Test ~w:~w => ~w ~n",[WeId, Face, ISect]),
+    %% ?D("Test ~w:~w ~w => ~w ~n",[WeId, Face, Pos, ISect]),
     Part = #{we=>WeId, fs=>P, ls=>Loops, nb=>lists:append(Partial), intsect=>ISect},
     {LT#{{vmap,WeId}=>Vmap}, array:set(PId,Part,Parts), LArr}.
 
@@ -1381,3 +1381,28 @@ tesselate_faces(Fs, We0) ->
 
 tree_to_set(GbTree) ->
     gb_sets:from_ordset(gb_trees:keys(GbTree)).
+
+point_inside(Face, #we{vp=VPos}=We) ->
+    Center = wings_face:center(Face, We),
+    Vs = wings_vertex:from_faces([Face], We),
+    %% Pick the vertex furthest from center
+    %% Polygon should be convex there
+    Kd3 = e3d_kd3:from_list([{V,array:get(V,VPos)}|| V <- Vs]),
+    [{V, Pos}|_] = sort_tree(Center, Kd3, []),
+    %% Find the edges connecting to the convex vertex
+    [E1,E2] = wings_vertex:fold(fun(_, _, #edge{lf=LF,rf=RF}=Edge, Acc) ->
+                                        case LF =:= Face orelse RF =:= Face of
+                                            true -> [Edge|Acc];
+                                            false -> Acc
+                                        end
+                                end, [], V, We),
+    D1 = e3d_vec:norm_sub(wings_vertex:other_pos(V, E1, VPos), Pos),
+    D2 = e3d_vec:norm_sub(wings_vertex:other_pos(V, E2, VPos), Pos),
+    %% Calc average direction and offset slightly into face
+    e3d_vec:add_prod(Pos, e3d_vec:average(D1,D2), 0.001).
+
+sort_tree(Center, Kd3, Acc) ->
+    case e3d_kd3:take_nearest(Center, Kd3) of
+        undefined -> Acc;
+        {Nearest,Tree} -> sort_tree(Center,Tree,[Nearest,Acc])
+    end.
