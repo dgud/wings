@@ -181,7 +181,7 @@ handle_sync_event(#wx{event=#wxKey{keyCode=Key}}, Event,
 handle_event(#wx{event=#wxMouse{type=motion, x=X}},
 	     #state{this=This, mode=Mode, curr=Curr, capture=true} = State0) ->
     State = State0#state{curr=slider_pos(This, X, Mode, Curr)},
-    [apply_callback(H, get_curr_color(State)) || H <- State#state.handlers],
+    self() ! apply_cb,
     {noreply, State};
 
 handle_event(#wx{event=#wxMouse{type=left_down, x=X}},
@@ -189,7 +189,7 @@ handle_event(#wx{event=#wxMouse{type=left_down, x=X}},
     %% wxPanel:setFocus(This),  %% crashes on win64 when in autouv..
     wxPanel:captureMouse(This),
     State = State0#state{curr=slider_pos(This, X, Mode, Curr), capture=true},
-    [apply_callback(H, get_curr_color(State)) || H <- State#state.handlers],
+    self() ! apply_cb,
     {noreply, State#state{focus=true}};
 handle_event(#wx{event=#wxMouse{type=left_up}},
 	     #state{this=This, capture=Captured} = State) ->
@@ -230,9 +230,17 @@ terminate(_Reason, #state{this=_This, bmp=Bmp, bgb=BGB, fpen=Fpen}) ->
     ok.
 
 handle_info({move,Move}, State0 = #state{this=This, mode=Mode, curr=Prev}) ->
-    wxWindow:refresh(This),
     V = get_curr(Mode, Prev),
     State = State0#state{curr=set_curr(Mode, max(0.0, min(1.0, V+Move)), Prev)},
+    [apply_callback(H, get_curr_color(State)) || H <- State#state.handlers],
+    wxWindow:refresh(This),
+    {noreply, State};
+handle_info(apply_cb, State) ->
+    fun Flush () ->
+            receive apply_cb -> Flush()
+            after 0 -> ok
+            end
+    end(),
     [apply_callback(H, get_curr_color(State)) || H <- State#state.handlers],
     {noreply, State};
 handle_info(_, State) -> State.
