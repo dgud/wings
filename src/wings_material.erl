@@ -677,11 +677,18 @@ edit_dialog(Name, Assign, St=#st{mat=Mtab0}, Mat0, DrawSphere) ->
 	      end,
     Refresh = fun(_Key, _Value, Fields) ->
 		      GLCanvas = wings_dialog:get_widget(preview, Fields),
-		      wxWindow:refresh(GLCanvas)
+                      case wxWindow:isShown(GLCanvas) andalso os:type() of
+                          false -> ok;
+                          {_, darwin} -> %% workaround wxWidgets 3.0.4 and mojave
+                              wxGLCanvas:setCurrent(GLCanvas),
+                              Preview(GLCanvas, Fields),
+                              wxGLCanvas:swapBuffers(GLCanvas);
+                          _ ->
+                              wxWindow:refresh(GLCanvas)
+                      end
 	      end,
-    RHook = {hook, Refresh},
     VtxColMenu = vertex_color_menu(VertexColors0),
-    OptDef = [RHook, {proportion,1}],
+    OptDef = [{hook, Refresh}, {proportion,1}],
     TexOpt = [{range,{0.0,1.0}}, {digits, 6}|OptDef],
 
     Qs1 = {hframe,
@@ -796,7 +803,14 @@ mat_preview(Canvas, Common, Vbo, Maps) ->
     gl:disable(?GL_BLEND),
     gl:shadeModel(?GL_FLAT),
     gl:popAttrib(),
-    wings_develop:gl_error_check("Rendering mat viewer").
+    case os:type() of
+        {_, darwin} ->
+            %% Known problem during redraws before window is shown
+            %% only reset error check
+            _ = gl:getError();
+        _ ->
+            wings_develop:gl_error_check("Rendering mat viewer")
+    end.
 
 zip(Vs, Ns, UVs, Tgs) ->
     zip_0(Vs, Ns, UVs, Tgs, []).

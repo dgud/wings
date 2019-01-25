@@ -437,7 +437,9 @@ reset_dialog_parent(Dialog) ->
     case Stack of
 	[Next|_] ->
 	    wxDialog:raise(Next);
-	[] -> ok
+	[] ->
+            wxGLCanvas:setCurrent(?GET(gl_canvas)),
+            ok
     end,
     ?SET(dialog_parent, Stack).
 
@@ -451,6 +453,8 @@ enter_dialog(return, _, _, Fields, Fun) -> % No dialog return def values
     return_result(fun(R) -> {return, Fun(R)} end, Values, wings_wm:this());
 enter_dialog(true, no_preview, Dialog, Fields, Fun) -> %% No preview cmd / modal dialog
     set_dialog_parent(Dialog),
+    %% wx bug (mac modal) workaround fixed in 21.3?
+    os:type() == {unix,darwin} andalso timer:sleep(200),
     case wxDialog:showModal(Dialog) of
 	?wxID_CANCEL ->
 	    reset_dialog_parent(Dialog),
@@ -741,7 +745,6 @@ setup_hook(#in{key=Key, wx=Ctrl, type=table, hook=UserHook}, Fields) ->
 
 %% Kind of special
 setup_hook(#in{wx=Canvas, type=custom_gl, hook=CustomRedraw}, Fields) ->
-    Env = wx:get_env(),
     Custom = fun() ->
                      try
                          wxGLCanvas:setCurrent(Canvas),
@@ -753,17 +756,17 @@ setup_hook(#in{wx=Canvas, type=custom_gl, hook=CustomRedraw}, Fields) ->
                      end
 	     end,
     Redraw = fun(#wx{}, _) ->
-		     case os:type() of
-                         {win32, _} -> DC=wxPaintDC:new(Canvas),
-                                       wxPaintDC:destroy(DC);
-                         _ -> false
+		     DC = case os:type() of
+                              {win32, _} -> wxPaintDC:new(Canvas);
+                              _ -> false
                      end,
-                     wx:set_env(Env),
                      wx:batch(Custom),
+                     DC =/= false andalso wxPaintDC:destroy(DC),
 		     ok
 	     end,
     wxWindow:connect(Canvas, paint, [{callback, Redraw}]),
-    wxWindow:connect(Canvas, erase_background, [{callback, fun(_,_) -> ok end}]), %% WIN32 only?
+    element(1,os:type()) =:= win32 andalso
+        wxWindow:connect(Canvas, erase_background, [{callback, fun(_,_) -> ok end}]),
     ok;
 
 setup_hook(_What, _) ->
