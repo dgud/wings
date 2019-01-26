@@ -212,11 +212,11 @@ merge_2(cont, #{we:=We11, el:=EL01, fs:=Fs1}=I10, #{we:=We21, el:=EL02, fs:=Fs2}
     ?PUT(we1,We11), ?PUT(we2,We21),
     case get(?MODULE) of
         5 ->
-            ?D("DEBUG interrupt ~w~n",[erase(?MODULE)]),
+            ?dbg("DEBUG interrupt ~w~n",[erase(?MODULE)]),
             exit(interrupt);
         _N ->
             ?PUT(?MODULE, _N+1),
-            ?D("DEBUG not interrupted ~w~n",[get(?MODULE)]),
+            ?D("DEBUG not interrupted ~w~n",[_N]),
             {We12, Vmap1, Es1, B1} = remake_bvh(Fs1, EL01, We1, We11),
             {We22, Vmap2, Es2, B2} = remake_bvh(Fs2, EL02, We2, We21),
             EI0 = e3d_bvh:intersect(B1, B2),
@@ -232,14 +232,11 @@ merge_2(cont, #{we:=We11, el:=EL01, fs:=Fs1}=I10, #{we:=We21, el:=EL02, fs:=Fs2}
 %% merge the two we's
 merge_2(done, #{we:=_We1} = I1, #{we:=_We2} = I2, #we{id=Id1}, #we{id=Id2}) ->
     ?D("~p ~p ~p done~n",[?FUNCTION_NAME, Id1, Id2]),
+    ?PUT(we1,_We1), ?PUT(we2,_We2),
     {DRes1,DRes2} = build_parts(I1, I2),
-    Weld = fun() ->
-                   {We,Es} = weld(DRes1, DRes2),
-                   [Del] = lists:delete(We#we.id, [Id1,Id2]),
-                   #{sel_es=>Es, we=>We, delete=>Del}
-           end,
-    ?DBG_TRY(Weld(), element(3, DRes1), element(3, DRes2)).
-    %% ?DBG_TRY(Weld(), _We1, _We2).
+    {We,Es} = weld(DRes1, DRes2),
+    [Del] = lists:delete(We#we.id, [Id1,Id2]),
+    #{sel_es=>Es, we=>We, delete=>Del}.
 
 sort_largest(Loops, Vmap) ->
     OnV = fun(#{e:=on_vertex}) -> true; (_) -> false end,
@@ -493,8 +490,7 @@ update_loops([], PartId, Parts0, LMap, _, _, Acc) ->
 %% Weld
 %% Merge the two We's and bridge corresponding face-pairs
 weld({Fs01,TEs01,#we{temp={?MODULE,Es01}}=We01}, {Fs02,TEs02,#we{temp={?MODULE, Es02}}=We02}) ->
-    ?PUT(we1,We01),
-    ?PUT(we2,undefined),
+    ?PUT(we1,We01), ?PUT(we2,undefined),
     TEs1 = ordsets:intersection(TEs01, wings_util:array_keys(We01#we.es)),
     TEs2 = ordsets:intersection(TEs02, wings_util:array_keys(We02#we.es)),
     WeRs = [{We01, [{face,Fs01,weld}, {edge,Es01,border}, {edge,TEs1,temp}]},
@@ -852,8 +848,8 @@ make_face_vs_1([], _, Vmap, EL, We) ->
     {EL, Vmap, We}.
 
 inset_face(Loop0, TEs0, Vmap0,  #we{fs=Ftab0, es=Etab0, vc=Vct0, vp=Vpt0}=We0) ->
-    ?D("~p:~p~n",[?FUNCTION_NAME, ?LINE]),
     Face = pick_ref_face(Loop0, undefined),
+    ?D("~p:~p~n",[?FUNCTION_NAME, Face]),
     NumberOfNew = length(Loop0),
     true = NumberOfNew > 2, %% Otherwise something is wrong
 
@@ -896,11 +892,12 @@ inset_face(Loop0, TEs0, Vmap0,  #we{fs=Ftab0, es=Etab0, vc=Vct0, vp=Vpt0}=We0) -
     Vpt = lists:foldl(fun({Id, Point}, Vtab) -> array:set(Id, Point, Vtab) end,
                       Vpt0, lists:zip(Ids, Pos)),
     WeR = wings_facemat:assign(Mat, [F1, F1+1], We1#we{fs=Ftab,es=Etab,vc=Vct,vp=Vpt}),
-    TEs = gb_sets:union(TEs0, gb_sets:from_ordset([E1,E1+1])),
     EL = wings_face:to_edges([Face], WeR),
     Upd = fun({V,New}, Acc) -> array:set(V,New,Acc) end,
     Vmap = lists:foldl(Upd, Vmap0, lists:zip(VsId, Ids)),
-    {EL, TEs, Vmap, WeR}.
+    %% Double Inset face may cause problems in tesselation later, keep edges
+    %% TEs = gb_sets:union(TEs0, gb_sets:from_ordset([E1,E1+1])),
+    {EL, TEs0, Vmap, WeR}.
 
 make_inset_edges(Id, First, Last, V1, V2, Face, SFace, Etab0) ->
     Prev = if Id =:= First -> Last;
