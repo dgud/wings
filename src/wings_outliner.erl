@@ -377,23 +377,17 @@ handle_sync_event(#wx{event=#wxTree{item=Indx}}, Drag,
 
 handle_sync_event(#wx{event=#wxKey{type=char, keyCode=KC}}, EvObj, #state{tc=TC, shown=Shown}) ->
     Indx = wxTreeCtrl:getSelection(TC),
-    case {key_to_op(KC), obj_to_type_and_param(lists:keyfind(Indx, 1, Shown))} of
-	{Act, {Elm, Param}} when Act =/= ignore ->
-	    Cmd = list_to_atom(Act++"_"++Elm),
-	    wings_wm:psend(?MODULE, {action, {?MODULE, {Cmd, Param}}});
-	_ ->  % false is returned for the root items: 'Lights', 'Materials', 'Images'
-	    wxEvent:skip(EvObj)
-    end,
-    ok.
-
-key_to_op(?WXK_DELETE) -> "delete";
-key_to_op(?WXK_F2) -> "rename";
-key_to_op(_) -> ignore.
-
-obj_to_type_and_param({_, #{type:=mat, name:=Name}}) -> {"material", Name};
-obj_to_type_and_param({_, #{type:=image, id:=Id}}) -> {"image", Id};
-obj_to_type_and_param({_, #{type:=light, id:=Id}}) -> {"object", Id};
-obj_to_type_and_param(_) -> ignore.
+    RowData = lists:keyfind(Indx, 1, Shown),
+    {Type, Id} = obj_to_type_and_param(RowData),
+    wxEvent:skip(EvObj),
+    case key_to_op(Type, KC) of
+        ignore ->
+            ok;
+        Act ->
+	    Cmd = list_to_atom(Act++"_"++Type),
+	    wings_wm:psend(?MODULE, {action, {?MODULE, {Cmd, Id}}}),
+            ok
+    end.
 
 handle_event(#wx{event=#wxMouse{type=right_up, x=X, y=Y}}, #state{tc=TC} = State) ->
     {Indx, _} = wxTreeCtrl:hitTest(TC, {X,Y}),
@@ -884,3 +878,15 @@ menu_cmd(Cmd, Id) ->
 
 button_menu_cmd(Cmd, Id) ->
     {?MODULE,{Cmd,Id}}.
+
+key_to_op(ignore, _) -> ignore;
+key_to_op("texture", ?WXK_DELETE) -> "remove";
+key_to_op(_, ?WXK_DELETE) -> "delete";
+key_to_op(_, ?WXK_F2) -> "rename";
+key_to_op(_, _) -> ignore.
+
+obj_to_type_and_param({_, #{type:=mat, name:=Name}}) -> {"material", Name};
+obj_to_type_and_param({_, #{type:=image, mat:={Mat,Type}}}) -> {"texture", {Type,Mat}};
+obj_to_type_and_param({_, #{type:=image, id:=Id}}) -> {"image", Id};
+obj_to_type_and_param({_, #{type:=light, id:=Id}}) -> {"object", Id};
+obj_to_type_and_param(_) -> ignore.
