@@ -889,4 +889,4 @@ obj_to_type_and_param({_, #{type:=mat, name:=Name}}) -> {"material", Name};
 obj_to_type_and_param({_, #{type:=image, mat:={Mat,Type}}}) -> {"texture", {Type,Mat}};
 obj_to_type_and_param({_, #{type:=image, id:=Id}}) -> {"image", Id};
 obj_to_type_and_param({_, #{type:=light, id:=Id}}) -> {"object", Id};
-obj_to_type_and_param(_) -> ignore.
+obj_to_type_and_param(_) -> {ignore, ignore}.
