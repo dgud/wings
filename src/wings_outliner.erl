@@ -214,7 +214,7 @@ refresh_image(Id) ->
     Props = [{filename,Filename},{alignment,1}],
     case wings_image:image_read(Props) of
 	#e3d_image{}=Image ->
-	    wings_image:update(Id, Image),
+	    ok = wings_image:update(Id, Image),
 	    keep;
 	{error,R} ->
 	    Msg = e3d_image:format_error(R),

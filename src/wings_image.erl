@@ -33,6 +33,9 @@
 -include_lib("wings/e3d/e3d_image.hrl").
 -import(lists, [reverse/1]).
 
+-define(PRINT(What), print_images(?LINE, What)).
+-export([print_images/2]).  %% Debug (avoid unused warning)
+
 start_link() ->
     Env = wings_io:get_process_option(),
     gen_server:start_link({local, ?MODULE}, ?MODULE, [Env], [{spawn_opt, [{fullsweep_after,0}]}]).
@@ -321,7 +324,13 @@ handle_call({delete_from,Id}, _From, #ist{images=Images0}=S) ->
     Images = gb_trees:from_orddict(Images1),
     {reply, ok, S#ist{images=Images}};
 handle_call({update,Id,Image}, _From, S) ->
-    {reply, ok, do_update(Id, Image, S)};
+    try do_update(Id, Image, S) of
+        S1 ->
+            {reply, ok, S1}
+    catch _:Error ->
+            ?dbg("internal error: Tried to update deleted image?~n ~p~n",[Error]),
+            {reply, error, S}
+    end;
 handle_call({find_image, Dir, File}, _From, #ist{images=Ims}=S) ->
     AbsName = filename:join(Dir, File),
     Find = fun(Fn) -> Fn == AbsName end,
@@ -411,7 +420,6 @@ init_texture_2(#e3d_image{width=W,height=H,image=Bits,extra=Opts}=Image, TxId) -
 do_update(Id, In = #e3d_image{width=W,height=H,type=Type,name=NewName},
 	  #ist{images=Images0}=S) ->
     #img{e3d=Im0, partof=Combs} = Image = gb_trees:get(Id, Images0),
-
     %% Cleanup combined textures and recreate (later) on the fly (can be optimized)
     Ids = [erase(Comb)|| Comb <- Combs],
     wings_gl:deleteTextures([Tex || Tex <- Ids, is_integer(Tex)]),
@@ -419,26 +427,26 @@ do_update(Id, In = #e3d_image{width=W,height=H,type=Type,name=NewName},
 
     #e3d_image{filename=File,name=OldName} = Im0,
     Name = if is_list(NewName), length(NewName) > 2 -> NewName;
-	      true -> OldName
-	   end,
+              true -> OldName
+           end,
     Im   = maybe_convert(In#e3d_image{filename=File, name=Name}),
     TxId = get(Id),
     Images = gb_trees:update(Id, Image#img{e3d=Im, partof=[]}, Images1),
     Size = {Im0#e3d_image.width, Im0#e3d_image.height, Im0#e3d_image.type},
     case Size of
-	{W,H,Type} ->
+        {W,H,Type} ->
             {Format, TexType} = texture_format(Im),
-	    gl:bindTexture(?GL_TEXTURE_2D, TxId),
-	    gl:texSubImage2D(?GL_TEXTURE_2D, 0, 0, 0, W, H, Format, TexType, Im#e3d_image.image);
-	_ ->
-	    init_texture_1(Im, TxId)
+            gl:bindTexture(?GL_TEXTURE_2D, TxId),
+            gl:texSubImage2D(?GL_TEXTURE_2D, 0, 0, 0, W, H, Format, TexType, Im#e3d_image.image);
+        _ ->
+            init_texture_1(Im, TxId)
     end,
     case get({Id,normal}) of
-	undefined ->
-	    S#ist{images=Images};
-	Bid ->
-	    create_normal(Id, Bid, S#ist{images=Images}),
-	    S#ist{images=Images}
+        undefined ->
+            S#ist{images=Images};
+        Bid ->
+            create_normal(Id, Bid, S#ist{images=Images}),
+            S#ist{images=Images}
     end.
 
 create_combined(CIds, #ist{images=Images0}=S) ->
@@ -480,8 +488,11 @@ remove_all_combs(CIdsList, Images) ->
 remove_combined(CIds, Images) ->
     Update = fun(none, Tree) -> Tree;
                 (Id, Tree) ->
-                     #img{partof=Old} = Im = gb_trees:get(Id, Tree),
-                     gb_trees:update(Id, Im#img{partof=lists:delete(CIds,Old)}, Tree)
+                     case gb_trees:lookup(Id, Tree) of
+                         none -> Tree;
+                         {value, #img{partof=Old} = Im} ->
+                             gb_trees:update(Id, Im#img{partof=lists:delete(CIds,Old)}, Tree)
+                     end
              end,
     lists:foldl(Update, Images, CIds).
 
@@ -956,3 +967,11 @@ try_relative_paths(Start, Rel, File, Ps0) ->
 	Other ->
 	    Other
     end.
+
+print_images(Line, #ist{images=Imgs}) ->
+    print_images(Line, Imgs);
+print_images(Line, Imgs0) ->
+    Imgs = gb_trees:to_list(Imgs0),
+    io:format("~p:~p: image state~n",[?MODULE, Line]),
+    _ = [io:format(" ~P~n",[Img,20]) || Img <- Imgs],
+    ok.

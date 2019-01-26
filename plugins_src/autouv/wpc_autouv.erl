@@ -633,7 +633,7 @@ handle_event_3({action,{auv,{draw_options,Opt}}}, #st{bb=Uvs}=St) ->
     Tx = ?SLOW(auv_texture:get_texture(St, Opt)),
     case MatName0 of 
 	none -> 
-	    wings_image:update(Image, Tx),
+	    ok = wings_image:update(Image, Tx),
 	    put({?MODULE,show_background}, true),
 	    get_event(St);
 	_ ->

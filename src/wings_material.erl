@@ -260,7 +260,7 @@ update_image(MatName, MapType, Image, #st{mat=Mtab}) ->
     Mat = gb_trees:get(MatName, Mtab),
     Maps = prop_get(maps, Mat, []),
     {MapType,ImageId} = keyfind(MapType, 1, Maps),
-    wings_image:update(ImageId, Image).
+    ok = wings_image:update(ImageId, Image).
 
 add_materials(Ms, St) ->
     Dir = wings_pref:get_value(current_directory),
@@ -546,7 +546,7 @@ get_normal_map(Maps) ->
     end.
 
 image_id(_, none) -> none;
-image_id(_, {[none,none,none],_}) -> none;
+image_id(_, [none,none,none]) -> none;
 image_id(normal, Map) -> wings_image:bumpid(Map);
 image_id(combined, Map) -> wings_image:combid(Map);
 image_id(_, Map) -> wings_image:txid(Map).
