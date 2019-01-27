@@ -1,3 +1,55 @@
+--- 2.2.2 --------------------------------------------
+
+- Improved STL importer. [dgud]
+
+- Fixed crash when zooming to a negative distance, thanks, Tkbd. [dgud]
+
+- UV mapping windows are displayed in the same monitor as the first was.
+  Thanks OXO. [micheus]
+
+- Fixed hard crash caused by malformed faces. Thanks Hank. [micheus]
+
+- Fixed the EPS/SVG plugin exporting back edges. Thanks to tkbd. [micheus]
+
+- Fixed the crash caused by Tighten in AutoUV window. Thanks to Hank. [Micheus Vieira]
+
+- Changing to a saved view in the middle of a vector input operation
+  was causing Wings3D to crash. Thanks to Hank. [micheus]
+
+- Wings3D was crashing when a material was selected by using it's color
+  icon. Thanks to Hank. [micheus]
+
+- Selection groups has not been saved for hidden/locked objects.
+  Thanks to Hank. [micheus]
+
+- Importing a .gbl project was causing a crash just before it to be
+  displayed. Thanks to tkbd. [micheus]
+
+- If a area light is present only the faces facing the camera can get
+  selected by marquee selection. Thanks Hank. [micheus]
+
+- Wings3D was crashing unexpected in module wings_frame. Added a
+  workaround and some information to help us to find the cause. Thanks to  Hank [micheus]
+
+- Select similar material isn't working properly in AutoUV. Thanks to Hank [micheus]
+
+- Worked some more on the boolean operations. [dgud]
+
+- Moving a light and using translation was causing Wings3D to crash.
+  Thanks to tkbd. [micheus]
+
+- Alpha channel of a diffuse texture was drawing in black. Thanks to tkbd [micheus]
+
+- Upgraded to erlang/otp-21.2 (windows, mac) which should improve performance on large models. [dgud]
+
+- General Mac improvements, menues and material viewer. Reported by tkbd [dgud]
+
+- Fixed opencl crash on old ATI cards. [dgud]
+
+- Fixed image handling crash. [dgud]
+
+- Fixed exporting lights to plugin. [dgud]
+
 --- 2.2.1 --------------------------------------------
 
 - Materials have been changed to have roughness and
