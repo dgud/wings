@@ -172,7 +172,7 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_CLAMP_RGB, true).
 -define(DEF_AA_FILTER_TYPE, box).
 -define(DEF_TRANSPARENT_SHADOWS, false).
--define(DEF_BACKGROUND_TRANSP_REFRACT, true).
+-define(DEF_BACKGROUND_TRANSP_REFRACT, false).
 -define(DEF_SHADOW_DEPTH, 2).
 -define(DEF_RAYDEPTH, 12).
 -define(DEF_BIAS, 0.001).
