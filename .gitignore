@@ -23,6 +23,7 @@
 /ebin/*.app
 /ebin/*.bundle
 /ebin/*.lang
+/ebin/*.png
 
 # /intl_tools/
 /intl_tools/wings_chars.hrl
