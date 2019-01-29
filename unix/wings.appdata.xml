@@ -1,9 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Copyright 2014 Chris Roberts <croberts@croberts.org -->
-<application>
-  <id type="desktop">wings.desktop</id>
+<component type="desktop-application">
+  <id>com.wings3d.WINGS.desktop</id>
   <metadata_license>CC0-1.0</metadata_license>
+  <project_license>TCL</project_license>
   <summary>An advanced subdivision modeler</summary>
+  <content_rating type="oars-1.1" />
+  <name>Wings 3D</name>
+  <launchable type="desktop-id">com.wings3d.WINGS.desktop</launchable>
   <description>
   <p>
     Wings 3D is an advanced subdivision modeler that is both powerful and easy to use.
@@ -23,6 +27,9 @@
   </description>
   <url type="homepage">http://www.wings3d.com</url>
   <screenshots>
-    <screenshot type="default">http://www.wings3d.com/wp-content/uploads/SS04.png</screenshot>
+    <screenshot type="default">http://www.wings3d.com/wp-content/uploads/linux-screenshot.png</screenshot>
   </screenshots>
-</application>
+  <releases>
+    <release version="2.2.2" type="stable" date="2019-01-28" />
+  </releases>
+</component>

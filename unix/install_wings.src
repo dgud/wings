@@ -28,16 +28,18 @@ EOF
 
 chmod +x $INSTALL_DIR/wings
 
-sed <<'EOF' -e "s^%ROOTDIR%^$INSTALL_DIR^" > $INSTALL_DIR/wings.desktop
+sed <<'EOF' -e "s^%ROOTDIR%^$INSTALL_DIR^;s^%WINGS_VSN%^$WINGS_VSN^" > $INSTALL_DIR/wings.desktop
 [Desktop Entry]
-Version=$WINGS_VSN$
 Type=Application
 Terminal=false
 Exec=%ROOTDIR%/wings
 Name=Wings 3D
+GenericName=A 3D Subdivision Modeler
+Comment=A 3D modeler that is both powerful and easy to use
 GenericName[en]=A 3D Subdivision Modeler
 Comment[en]=A 3D modeler that is both powerful and easy to use
 Icon=%ROOTDIR%/lib/wings-%WINGS_VSN%/ebin/wings_icon_379x379.png
+Categories=GNOME;GTK;Graphics;3DGraphics;
 EOF
 
 chmod +x $INSTALL_DIR/wings.desktop
