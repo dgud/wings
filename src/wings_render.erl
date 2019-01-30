@@ -226,19 +226,33 @@ render_smooth_objects(Open, Closed, SceneLights, RS0) ->
     RS2 = render_smooth_objects_0(Closed, false, SceneLights, RS1),
     wings_pref:get_value(show_backfaces) andalso gl:disable(?GL_CULL_FACE),
     RS3 = render_smooth_objects_0(Open, false, SceneLights, RS2),
+
+    %% Render a alpha test pass for almost opaque fragments
+    gl:disable(?GL_BLEND),
+    gl:drawBuffer(?GL_NONE),
+    polygonOffset(3.0),
+    RS4 = wings_shaders:use_prog(alpha_test, RS3),
+    RS5 = render_smooth_objects_0(Closed, true, false, RS4),
+    RS6 = render_smooth_objects_0(Open, true, false, RS5),
+    gl:drawBuffer(?GL_BACK),
+    gl:depthFunc(?GL_LEQUAL),
+    polygonOffset(2.0),
+    RS8 = enable_lighting(SceneLights, RS6),
     gl:enable(?GL_BLEND),
     gl:blendFunc(?GL_SRC_ALPHA, ?GL_ONE_MINUS_SRC_ALPHA),
     gl:depthMask(?GL_FALSE),
     gl:enable(?GL_CULL_FACE),
-    RS4 = render_smooth_objects_0(Closed, true, SceneLights, RS3),
+    RS9 = render_smooth_objects_0(Closed, true, SceneLights, RS8),
     wings_pref:get_value(show_backfaces) andalso gl:disable(?GL_CULL_FACE),
-    RS5 = render_smooth_objects_0(Open, true, SceneLights, RS4),
-    RS = disable_lighting(RS5),
+    RS10 = render_smooth_objects_0(Open, true, SceneLights, RS9),
+    RS = disable_lighting(RS10),
     gl:enable(?GL_CULL_FACE),
     gl:disable(?GL_BLEND),
     gl:depthMask(?GL_TRUE),
     RS.
 
+render_smooth_objects_0([], _, _, RS0) ->
+    RS0;
 render_smooth_objects_0(Dls, RenderTrans, [Light|SLs], RS0) ->
     RS1 = wings_light:setup_light(Light, RS0),
     RS = render_smooth_objects_1(Dls, RenderTrans, true, RS1),
@@ -351,6 +365,7 @@ enable_lighting(_, RS) ->
 
 disable_lighting(RS0) ->
     RS = wings_shaders:use_prog(0, RS0),
+    gl:depthFunc(?GL_LESS),
     gl:disable(?GL_BLEND),
     gl:depthMask(?GL_TRUE),
     RS.

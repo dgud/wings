@@ -34,6 +34,7 @@ compile_all() ->
 	  {'GroundColor', wings_pref:get_value(hl_groundcol)}],
     Programs0 = [{1, camera_light, [], "One Camera Lights"},
                  {2, hemilight, HL, "Hemispherical Lighting"},
+                 {alpha_test, alpha_test, [], ""},
                  {ambient_light, ambient_light, [], ""},
                  {infinite_light, infinite_light, [], ""},
                  {point_light, point_light, [], ""},
