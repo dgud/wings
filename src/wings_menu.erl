@@ -356,7 +356,9 @@ popup_event_handler({click, Id, Click, Ns}, {Parent,Owner}=Own, Entries0) ->
     case popup_result(lists:keyfind(Id, 2, Entries0), Click, Ns, Owner) of
 	pop -> pop;
 	{submenu, Names, Menus, MagnetClick} ->
-	    {_, X, Y} = wings_io:get_mouse_state(),
+	    {_, X0, Y0} = wings_io:get_mouse_state(),
+	    Pos = wxWindow:screenToClient(wings_wm:this_win(), {X0,Y0}),
+	    {X,Y} = wxWindow:clientToScreen(wings_wm:this_win(), Pos),
 	    Entries = wx_popup_menu(Parent, {X,Y}, Names, Menus, MagnetClick, Owner),
 	    {replace, fun(Ev) -> popup_event_handler(Ev, Own, Entries) end}
     end;
