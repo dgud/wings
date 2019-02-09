@@ -172,10 +172,14 @@ build_hierarchy([Node], _TT) -> Node;
 build_hierarchy(Nodes, TT) ->
     Split = find_best_split(Nodes),
     case partition(Split, Nodes) of
-	{L1,L2} ->
+	{L1,L2} when L1 =/= [], L2 =/= [] ->
 	    #{bb:=LBB} = Left  = build_hierarchy(L1, TT),
 	    #{bb:=RBB} = Right = build_hierarchy(L2, TT),
-	    #{bb=>e3d_bv:union(LBB,RBB), left=>Left, right=>Right}
+	    #{bb=>e3d_bv:union(LBB,RBB), left=>Left, right=>Right};
+        _ -> %% More than two faces in the same place, arbitrary split
+            [Left|Rest] = Nodes,
+	    #{bb:=RBB} = Right = build_hierarchy(Rest, TT),
+            #{bb=>RBB, left=>Left, right=>Right}
     end.
 
 find_best_split(Nodes) ->
