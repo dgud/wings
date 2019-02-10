@@ -184,7 +184,7 @@ merge_0(#{we:=We1}=I1, #{we:=We2}=I2, EdgeInfo0) ->
         [] -> ?DBG_TRY(merge_1(I1, I2, EdgeInfo, We1, We2), get(we1),get(we2));
         Coplanar ->
             %% ?D("~p coplanar tesselate and restart ~w ~n",[?FUNCTION_NAME, Coplanar]),
-            tesselate_and_restart(Coplanar, I1, I2)
+            ?DBG_TRY(tesselate_and_restart(Coplanar, I1, I2), get(we1),get(we2))
     end.
 
 merge_1(#{we:=We10,el:=_EL10,temp_es:=TEs1}=I10,
@@ -741,7 +741,7 @@ pick_edge_face(#{v:=V1,o_n:=N1}, #{v:=V2,o_n:=N2}, Vmap, We) ->
         [Face|_] ->
             {WeV1,WeV2,Face,e3d_vec:norm(e3d_vec:average(N1,N2))};
         [] ->
-            ?D("Restart: ~w: v1:~w v2:~w~n~p~n", [We#we.id, V1, V2, process_info(self(),current_stacktrace)]),
+            ?D("Restart: ~w: v1:~w v2:~w~n~p~n", [We#we.id, WeV1, WeV2, process_info(self(),current_stacktrace)]),
             throw({restart, Vmap, We})
     end.
 
@@ -752,7 +752,10 @@ pick_face(#{v:=V1,o_n:=N1}, #{v:=V2,o_n:=N2}, Fss, Vmap, We) ->
     Fs = [Face || {Face, [_,_]} <- wings_vertex:per_face([WeV1,WeV2],We)],
     case lists:member(Wanted, Fs) of
         true -> {WeV1,WeV2,Wanted,e3d_vec:norm(e3d_vec:average(N1,N2))};
-        false -> throw({restart, Vmap, We})
+        false ->
+            ?D("Restart: ~w: v1:~w v2:~w ~w in ~w~n~p~n",
+               [We#we.id, WeV1, WeV2, Wanted, Fs, process_info(self(),current_stacktrace)]),
+            throw({restart, Vmap, We})
     end.
 
 pick_face_2(F1, {F1,_}, {_Edge,F1,_F2}) -> F1;
@@ -766,7 +769,9 @@ pick_ref_face([#{f:=F}|Ss], undefined) ->
     pick_ref_face(Ss, F);
 pick_ref_face([#{f:=F}|Ss], F) ->
     pick_ref_face(Ss, F);
-pick_ref_face([], F) -> F.
+pick_ref_face([], F) -> F;
+pick_ref_face(_, _) ->
+    undefined.  %% Will throw restart
 
 half_inset_face(#{v:=EV1,o_n:=ON, fs:=CFs}=R0, #{v:=EV2}=R1, [#{v:=NV}=R2|FSs],
                 RefEdgeFs, Vmap0, We0) ->
@@ -1071,12 +1076,18 @@ keep_tess_edge(#{e:=Edge}, #we{es=Etab}=We1, #{e:=none, f:=Face, vs:={VS2,VE2}},
     #edge{vs=VS1,ve=VE1} = array:get(Edge,Etab),
     P1 = wings_vertex:pos(VS1, We1),
     Q1 = wings_vertex:pos(VE1, We1),
+    Vec1 = e3d_vec:sub(Q1,P1),
     P2 = wings_vertex:pos(VS2, We2),
     Q2 = wings_vertex:pos(VE2, We2),
+    Vec2 = e3d_vec:sub(Q2,P2),
     N = wings_face:normal(Face, We2),
-    Cross = e3d_vec:cross(N, e3d_vec:sub(Q2,P2)),
-    Dot = e3d_vec:dot(Cross, e3d_vec:sub(Q1,P1)),
-    abs(Dot) < ?EPS.
+    Cross = e3d_vec:cross(N, Vec2),
+    Dot = e3d_vec:dot(Cross, Vec1),
+    %% ?D("~w:~w: ~w ~.6f ~.6f ~n",
+    %%    [We1#we.id, Edge,
+    %%     abs(Dot) < ?EPS orelse abs(e3d_vec:dot(N, Vec1)) > ?EPS,
+    %%     Dot, e3d_vec:dot(N, Vec1)]),
+    abs(Dot) < ?EPS orelse abs(e3d_vec:dot(N, Vec1)) > ?EPS.
 
 edge_to_face(#{op:=split_edge}=Orig) ->
     Orig#{op=>split_face}.
@@ -1155,7 +1166,12 @@ make_directed(_, Start, Start, All, _G, Es) ->
        true -> ?D("~n ~w~n ~w~n",[hd(Es),hd(_EL)]), error(no_loop)
     end,
     First = Last, %% Assert loop
-    {All, Es}.
+    {All, Es};
+make_directed([], _End, _Start, _, _, _Es) ->
+    %% When this fails, check filter_tess_edges or triangulation functions
+    ?D("Find loop failed:~n~s~n",
+       [ [io_lib:format(" ~w~n",[Edge]) || Edge <- lists:reverse(_Es)] ]),
+    error(no_loop).
 
 swap(#{mf1:=MF1,mf2:=MF2,p1:=P1,p2:=P2,other:=O}) ->
     #{mf1=>MF2,mf2=>MF1,p1=>P2,p2=>P1,other=>O}.
@@ -1341,9 +1357,25 @@ triangle(Face, We, Acc) ->
 tri_quad([Ai,Bi,Ci,Di] = Vs, #we{vp=Vtab}, Face, Acc) ->
     [A,B,C,D] = VsPos = [array:get(V, Vtab) || V <- Vs],
     N = e3d_vec:normal(VsPos),
-    case wings_tesselation:is_good_triangulation(N, A, B, C, D) of
-	true  -> [{{Ai,Bi,Ci}, Face}, {{Ai,Ci,Di}, Face}|Acc];
-	false -> [{{Ai,Bi,Di}, Face}, {{Bi,Ci,Di}, Face}|Acc]
+    T1 = e3d_vec:area(A,B,C),
+    T2 = e3d_vec:area(C,D,A),
+    T3 = e3d_vec:area(A,B,D),
+    T4 = e3d_vec:area(B,C,D),
+    D1 = (abs(T1-T2) / (T1+T2)),
+    D2 = (abs(T3-T4) / (T3+T4)),
+    Tess1 = wings_tesselation:is_good_triangulation(N, A, B, C, D),
+    Tess2 = wings_tesselation:is_good_triangulation(N, B, C, D, A),
+    if
+        Tess1 andalso not Tess2, D1 < 0.98 ->
+            %% ?D("~p:~w:  ~.3f ~.3f ~n",[WeId, Face, D1, D2]),
+            [{{Ai,Bi,Ci}, Face}, {{Ai,Ci,Di}, Face}|Acc];
+        Tess2 andalso not Tess1, D2 < 0.98 ->
+            %% ?D("~p:~w:  ~.3f ~.3f ~n",[WeId, Face, D1, D2]),
+            [{{Ai,Bi,Di}, Face}, {{Bi,Ci,Di}, Face}|Acc];
+        D1 < D2 ->
+            [{{Ai,Bi,Ci}, Face}, {{Ai,Ci,Di}, Face}|Acc];
+        true ->
+            [{{Ai,Bi,Di}, Face}, {{Bi,Ci,Di}, Face}|Acc]
     end.
 
 tri_poly(Vs, #we{vp=Vtab}, Face, Acc0) ->
