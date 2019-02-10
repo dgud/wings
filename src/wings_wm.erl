@@ -740,12 +740,15 @@ dispatch_event(#wx{obj=Obj, event=#wxFocus{type=kill_focus, win=New}}) ->
                 true -> %% For some reason wxWidgets sends focus lost
                     ok; %% to the already focused window, just ignore
                 false ->
-                    io:format("Grabbed focus lost: ~p ~p~n", [Obj, Win]),
+                    ?dbg("Grabbed focus lost: ~p ~p~n", [Obj, Win]),
                     do_dispatch(Win, lost_focus),
                     update_focus(none)
             end;
         {{grabbed, OtherWin}, Win} ->
-            io:format("Grabbed focus lost old?: ~p ~p~n", [OtherWin, Win]),
+            case OtherWin of
+                dialog_blanket -> ignore;
+                _ -> ?dbg("Grabbed focus lost old?: ~p ~p~n", [OtherWin, Win])
+            end,
             ok;
         {_OldFocus, _CurrentFocus} ->
             ok

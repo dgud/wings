@@ -496,6 +496,9 @@ handle_event_3(ignore, _St) ->
 handle_event_3({system,_,_}, _St) ->
     %% observer or other system message
     keep;
+handle_event_3({command_error, Error}, _St) ->
+    wings_u:error_msg(Error),
+    keep;
 handle_event_3({adv_menu_abort, Ev}, _St) ->
     This = wings_wm:actual_focus_window(),
     wings_wm:send(This,Ev);

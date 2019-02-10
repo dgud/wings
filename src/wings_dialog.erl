@@ -507,8 +507,14 @@ notify_event_handler_cb(false, _) -> fun(_,_) -> ignore end;
 notify_event_handler_cb(no_preview, _) -> fun(_,_) -> ignore end;
 notify_event_handler_cb(_, Msg) -> fun(_,_) -> wings_wm:psend(send_once, dialog_blanket, Msg) end.
 
+close(Pid) ->
+    Ref = erlang:monitor(process, Pid),
+    Pid ! closed,
+    receive {'DOWN',Ref,process,_,_} -> ok end.
+
 event_handler(#wx{id=?wxID_CANCEL},
 	      #eh{apply=Fun, owner=Owner, type=Preview, pid=Pid}) ->
+    wings_wm:release_focus(),
     case Preview of
 	preview ->
 	    #st{}=St = Fun(cancel),
@@ -516,16 +522,17 @@ event_handler(#wx{id=?wxID_CANCEL},
 	drag_preview ->
 	    wings_wm:send(Owner, cancel)
     end,
-    Pid ! closed,
+    close(Pid),
     delete;
 event_handler(#wx{id=Result}=_Ev,
 	      #eh{fs=Fields, apply=Fun, owner=Owner, pid=Pid}) ->
     %%io:format("Ev closing ~p~n  ~p~n",[_Ev, Fields]),
+    wings_wm:release_focus(),
     Values = get_output(Result, Fields),
-    Pid ! closed,
+    close(Pid),
     try return_result(Fun, Values, Owner)
-    catch throw:{command_error,Error} ->
-	    wings_u:message(Error);
+    catch throw:{command_error,_} = Error ->
+	    wings_wm:send(Owner, Error);
           _:Reason ->
             io:format("Dialog preview crashed: ~p~n~p~n",[Reason, erlang:get_stacktrace()])
     end,
