@@ -115,11 +115,11 @@ who([_|_]=PL) ->
 log(#{msg:={report, #{label:={supervisor,Ignore}}}}, _)
   when Ignore =:= shutdown; Ignore =:= shutdown_error; Ignore =:= child_terminated ->
     ok;
-log(#{msg:={report, #{label:={proc_lib,_},report:=[Data|_]}}}=_Log, Config) ->
+log(#{msg:={report, #{label:={proc_lib,_},report:=[Data|_]}}}=_Log, #{config:=Config}=St) ->
     Error = proplists:get_value(error_info, Data),
     case log_error(Data,Error,Config) of
         {ok, Config} -> ok;
-        {ok, NewConfig} -> logger:set_handler_config(wings_logger, NewConfig)
+        {ok, NewConfig} -> logger:set_handler_config(wings_logger, St#{config:=NewConfig})
     end;
 log(LogEvent, #{formatter := {FModule, FConfig}}) ->
     io:put_chars(FModule:format(LogEvent, FConfig)).
@@ -156,11 +156,12 @@ init(Env, GroupLeader) ->
             logger:update_formatter_config(wings_logger, single_line, false),
             logger:update_formatter_config(wings_logger, depth, 20),
             logger:update_formatter_config(wings_logger, max_size, 500),
-            case logger:get_handler_config(wings_logger) of
-                {error, _} -> ok;
-                {ok,Config} ->
-                    logger:set_handler_config(wings_logger, maps:remove(error, Config))
-            end;
+            logger:set_handler_config(wings_logger, config, #{});
+            %% case logger:get_handler_config(wings_logger) of
+            %%     {error, _} -> ok;
+            %%     {ok,Config} ->
+            %%         logger:set_handler_config(wings_logger, maps:remove(error, Config))
+            %% end;
         _ ->
             error_logger:add_report_handler(?MODULE)
     end,
