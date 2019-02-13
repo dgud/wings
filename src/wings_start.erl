@@ -13,7 +13,7 @@
 
 -module(wings_start).
 -export([start/0,start/1,start_halt/0,start_halt/1]).
--export([get_patches/0,enable_patches/0,disable_patches/0]).
+-export([get_patches/0,enable_patches/0,disable_patches/0, patch_dir/0]).
 
 -include("wings.hrl").
 
@@ -76,7 +76,7 @@ disable_patches() ->
 
 patch_dir() ->
     Dir = wings_u:basedir(user_data),
-    filename:join([Dir, "patches", ?WINGS_VERSION]).
+    filename:join([Dir, ?WINGS_VERSION, "patches"]).
 
 
 

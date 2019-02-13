@@ -43,6 +43,14 @@ init() ->
     ets:new(wings_seen_plugins, [named_table,public,ordered_set]),
     ?SET(wings_plugins, []),
     put(wings_ui, def_ui_plugin()),
+
+    %% Activate user installed plugins
+    case try_dir(plugin_dir()) of
+	none -> ok;
+	UserPluginDir -> init_dir(UserPluginDir)
+    end,
+
+    %% Activate plugins contained in wings distribution
     case try_dir(wings_util:lib_dir(wings), "plugins") of
 	none -> ok;
 	PluginDir -> init_dir(PluginDir)
@@ -190,12 +198,13 @@ def_ui_plugin() ->
 	    aborted
     end.
 
-try_dir(Base, Dir0) ->
-    Dir = filename:join(Base, Dir0),
+try_dir(Dir) ->
     case filelib:is_dir(Dir) of
 	true -> Dir;
 	false -> none
     end.
+try_dir(Base, Dir0) ->
+    try_dir(filename:join(Base, Dir0)).
 
 list_dir(Dir) ->
     list_dir([Dir], []).
@@ -272,12 +281,18 @@ object_name(Prefix, #st{onext=Oid}) ->
 %%%
 
 install(Name) ->
-    case install_file_type(Name) of
-	beam -> install_beam(Name);
-	tar -> install_tar(Name)
-    end,
-    init_dir(plugin_dir()),
-    wings_u:message(?__(1,"The plug-in was successfully installed.")).
+    Type = case install_file_type(Name) of
+               beam -> install_beam(Name);
+               tar -> install_tar(Name)
+           end,
+    io:format("Installed ~w to ~ts~n",[Type, plugin_dir()]),
+    case Type of
+        plugin ->
+            init_dir(plugin_dir()),
+            wings_u:message(?__(1,"The plug-in was successfully installed."));
+        patch ->
+            wings_u:message(?__(2,"The patch was successfully installed, please restart wings."))
+    end.
 
 install_file_type(Name) ->
     case filename:extension(Name) of
@@ -295,21 +310,22 @@ install_file_type(Name) ->
     end.
 
 install_beam(Name) ->
-    case is_plugin(Name) of
-	true ->
-	    PluginDir = plugin_dir(),
-	    DestBase = filename:rootname(filename:basename(Name), ".gz"),
-	    Dest = filename:join(PluginDir, DestBase),
-	    case file:copy(Name, Dest) of
-		{ok,_} -> ok;
-		{error,Reason} ->
- 		 wings_u:error_msg(?__(1,"Install of \"~s\" failed: ~p"),
-			       [filename:basename(Name),
-				file:format_error(Reason)])
-	    end;
-	false ->
-	    wings_u:error_msg(?__(2,"File \"~s\" is not a Wings plug-in module"),
-			  [filename:basename(Name)])
+    {Patch,Dir} = case is_plugin(Name) of
+                      true -> {false, plugin_dir()};
+                      false -> {true, wings_start:patch_dir()}  %% Assume patch
+                  end,
+    DestBase = filename:rootname(filename:basename(Name), ".gz"),
+    Dest = filename:join(Dir, DestBase),
+    ok = filelib:ensure_dir(Dest),
+    case file:copy(Name, Dest) of
+        {ok,_} ->
+            if Patch -> wings_start:enable_patches(), patch;
+               true -> plugin
+            end;
+        {error,Reason} ->
+            wings_u:error_msg(?__(1,"Install of \"~s\" failed: ~p"),
+                              [filename:basename(Name),
+                               file:format_error(Reason)])
     end.
 
 erl_tar() -> %% Fool dialyzer the spec is wrong for erl_tar:table() in 20.0-20.2
@@ -319,7 +335,7 @@ install_tar(Name) ->
     {ok,Files} = (erl_tar()):table(Name, [compressed]),
     install_verify_files(Files, Name),
     case erl_tar:extract(Name, [compressed,{cwd,plugin_dir()}]) of
-	ok -> ok;
+	ok -> plugin;
 	{error, {_File, Reason}} -> 
 	    wings_u:error_msg(?__(1,"Install of \"~s\" failed: ~p"),
 			      [filename:basename(Name),
@@ -349,11 +365,8 @@ is_plugin(Name) ->
     end.
 
 plugin_dir() ->
-    case try_dir(wings_util:lib_dir(wings), "plugins") of
-	none -> wings_u:error_msg(?__(1,"No \"plugins\" directory found"));
-	PluginDir -> PluginDir
-    end.
-    
+    filename:join([wings_u:basedir(user_data), ?WINGS_VERSION, "plugins"]).
+
 %%%
 %%% Plug-in manager.
 %%%
