@@ -718,10 +718,13 @@ update_folders({Curr, Fld0}, TC) ->
 update_shapes(_Sorted, Prev, Prev, _LC) ->
     Prev;
 update_shapes(Sorted, #{sel:=Sel, wire:=Wire}, _, LC) ->
-    Indx = get_selection(LC),
+    Active = case get_selection(LC) of
+                 none -> none;
+                 PrevIdx -> wxListCtrl:getItemText(LC, PrevIdx)
+             end,
     Update = wxListCtrl:getItemCount(LC) == length(Sorted),
     Update orelse wxListCtrl:deleteAllItems(LC),
-    Add = fun({_, #{id:=Id,name:=Name,perm:=Perm}=Obj}, J) ->
+    Add = fun({_, #{id:=Id,name:=Name,perm:=Perm}=Obj}, {J, ActIndx}) ->
                   Light = maps:is_key(light, Obj),
 		  case Update of
 		      true  ->
@@ -734,11 +737,20 @@ update_shapes(Sorted, #{sel:=Sel, wire:=Wire}, _, LC) ->
 		  wxListCtrl:setItemColumnImage(LC, J, 1, bm_visibilty(Perm)),
 		  wxListCtrl:setItemColumnImage(LC, J, 2, bm_lock(Perm)),
 		  wxListCtrl:setItemColumnImage(LC, J, 3, bm_wire(Id, Wire)),
-		  J+1
+                  Act = case Name =:= Active of
+                            true -> J;
+                            false -> ActIndx
+                        end,
+		  {J+1, Act}
 	  end,
-    wx:foldl(Add, 0, Sorted),
-    Indx =/= none andalso
-	wxListCtrl:setItemState(LC, Indx, 16#FFFF, ?wxLIST_STATE_SELECTED),
+    {_, Indx} = wx:foldl(Add, {0, none}, Sorted),
+    case Indx of
+        none ->
+            ignore;
+        _ ->
+            wxListCtrl:setItemState(LC, Indx, 16#FFFF, ?wxLIST_STATE_SELECTED),
+            wxListCtrl:ensureVisible(LC, Indx)
+    end,
     Sorted.
 
 sort_folder(#{shs:=Shs,current:=Current}) ->
