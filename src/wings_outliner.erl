@@ -349,25 +349,25 @@ init([Frame,  _Ps, Os]) ->
     wxPanel:connect(Panel, drop_files),
     wxSizer:add(Szr, TC, [{proportion,1}, {flag, ?wxEXPAND}]),
     wxPanel:setSizer(Panel, Szr),
-    {Shown,IMap} = update_object(Os, TC, IL, IMap0),
     Msg = wings_msg:button_format(?__(1,"Select"), [],
 				  ?__(2,"Show outliner menu (if selection)"
 				      " or creation menu (if no selection)")),
     wings_status:message(?MODULE, Msg),
-    {Panel, #state{top=Panel, szr=Szr, tc=TC, os=Os, shown=Shown, il=IL, imap=IMap}}.
+    State = update_object(Os, #state{top=Panel, szr=Szr, tc=TC, shown=#{}, il=IL, imap=IMap0}),
+    {Panel, State}.
 
 handle_sync_event(#wx{event=#wxTree{type=command_tree_begin_label_edit, item=Indx}}, From,
 		  #state{shown=Tree}) ->
-    case lists:keyfind(Indx, 1, Tree) of
+    case maps:get(Indx, Tree, undefined) of
 	{_, #{type:=mat, name:="default"}} -> wxTreeEvent:veto(From);
-	false -> wxTreeEvent:veto(From);  % false is returned for the root items: 'Lights', 'Materials', 'Images'
+	undefined -> wxTreeEvent:veto(From);  % returned for the root items: 'Lights', 'Materials', 'Images'
 	_ -> ignore
     end,
     ok;
 handle_sync_event(#wx{event=#wxTree{item=Indx}}, Drag,
 		  #state{tc=TC, shown=Shown}) ->
-    case lists:keyfind(Indx, 1, Shown) of
-	{_, #{type:=image}=Obj} ->
+    case maps:get(Indx, Shown, undefined) of
+	#{type:=image}=Obj ->
 	    wings_io:set_cursor(pointing_hand),
 	    wxTreeEvent:allow(Drag),
 	    wx_object:get_pid(TC) ! {drag, Obj};
@@ -377,7 +377,7 @@ handle_sync_event(#wx{event=#wxTree{item=Indx}}, Drag,
 
 handle_sync_event(#wx{event=#wxKey{type=char, keyCode=KC}}, EvObj, #state{tc=TC, shown=Shown}) ->
     Indx = wxTreeCtrl:getSelection(TC),
-    RowData = lists:keyfind(Indx, 1, Shown),
+    RowData = maps:get(Indx, Shown, undefined),
     {Type, Id} = obj_to_type_and_param(RowData),
     wxEvent:skip(EvObj),
     case key_to_op(Type, KC) of
@@ -395,8 +395,8 @@ handle_event(#wx{event=#wxMouse{type=right_up, x=X, y=Y}}, #state{tc=TC} = State
     {noreply, State};
 handle_event(#wx{event=#wxTree{type=command_tree_item_menu, item=Indx, pointDrag=Pos}},
 	     #state{shown=Tree, tc=TC} = State) ->
-    case lists:keyfind(Indx, 1, Tree) of
-	false -> ignore;
+    case maps:get(Indx, Tree, undefined) of
+	undefined -> ignore;
 	_ -> make_menus(Indx, wxWindow:clientToScreen(TC, Pos), State)
     end,
     {noreply, State};
@@ -408,35 +408,35 @@ handle_event(#wx{event=#wxTree{type=command_tree_end_label_edit, item=Indx}},
 	     #state{shown=Tree, tc=TC} = State) ->
     NewName = wxTreeCtrl:getItemText(TC, Indx),
     if NewName =/= [] ->
-	case lists:keyfind(Indx, 1, Tree) of
-	    {_, #{type:=mat, name:=Old}} ->
-		wings_wm:psend(geom, {action,{material,{rename, Old, NewName}}});
-	    {_, #{type:=image, id:=Id}} ->
-		Apply = fun(_) ->
-				wings_image:rename(Id, NewName),
-				wings_wm:psend(geom, need_save),
-				keep
-			end,
-		wings_wm:psend(?MODULE, {apply, false, Apply});
-	    {_, #{id:=Id}} ->
-		Apply = fun(St) -> rename_obj(Id, NewName, St), keep end,
-		wings_wm:psend(?MODULE, {apply, false, Apply})
-	end;
-    true ->
-	case lists:keyfind(Indx, 1, Tree) of
-	    {_, #{name:=Old}} ->
-		wxTreeCtrl:setItemText(TC, Indx, Old);
-	    _ ->
-		ignore
-	end
+            case maps:get(Indx, Tree, undefined) of
+                #{type:=mat, name:=Old} ->
+                    wings_wm:psend(geom, {action,{material,{rename, Old, NewName}}});
+                #{type:=image, id:=Id} ->
+                    Apply = fun(_) ->
+                                    wings_image:rename(Id, NewName),
+                                    wings_wm:psend(geom, need_save),
+                                    keep
+                            end,
+                    wings_wm:psend(?MODULE, {apply, false, Apply});
+                #{id:=Id} ->
+                    Apply = fun(St) -> rename_obj(Id, NewName, St), keep end,
+                    wings_wm:psend(?MODULE, {apply, false, Apply})
+            end;
+       true ->
+            case maps:get(Indx, Tree, undefined) of
+                {_, #{name:=Old}} ->
+                    wxTreeCtrl:setItemText(TC, Indx, Old);
+                _ ->
+                    ignore
+            end
     end,
     {noreply, State};
 
 handle_event(#wx{event=#wxTree{type=command_tree_end_drag, item=Indx, pointDrag=Pos0}},
 	     #state{shown=Tree, drag={Drag,_}, tc=TC} = State) ->
     wings_io:set_cursor(arrow),
-    case lists:keyfind(Indx, 1, Tree) of
-	{_, #{type:=mat} = Mat} when Drag =/= undefined ->
+    case maps:get(Indx, Tree, undefined) of
+	#{type:=mat} = Mat when Drag =/= undefined ->
 	    Menu = handle_drop(Drag, Mat),
 	    Pos = wxWindow:clientToScreen(TC, Pos0),
 	    Cmd = fun(_) -> wings_menu:popup_menu(TC, Pos, ?MODULE, Menu) end,
@@ -448,16 +448,16 @@ handle_event(#wx{event=#wxTree{type=command_tree_end_drag, item=Indx, pointDrag=
 
 handle_event(#wx{event=#wxTree{type=command_tree_item_activated, item=Indx}},
 	     #state{shown=Tree, tc=_TC} = State) ->
-    case lists:keyfind(Indx, 1, Tree) of
+    case maps:get(Indx, Tree, undefined) of
         false ->
-            io:format("~p:~p Unknown Item activated ~p~n", [?MODULE,?LINE, Indx]);
-        {_, #{type:=mat, name:=Name}} ->
+            ok;
+        #{type:=mat, name:=Name} ->
             wings_wm:psend(?MODULE, {action, {?MODULE, {edit_material, Name}}});
-        {_, #{type:=image, id:=Id}} ->
+        #{type:=image, id:=Id} ->
             wings_wm:psend(?MODULE, {action, {?MODULE, {show_image, Id}}});
-        {_, #{type:=light, id:=Id}} ->
+        #{type:=light, id:=Id} ->
             wings_wm:psend(?MODULE, {action, {?MODULE, {edit_light, Id}}});
-        {_, What} ->
+        What ->
             io:format("~p:~p Item activated ~p~n", [?MODULE,?LINE, What])
     end,
     {noreply, State};
@@ -491,10 +491,9 @@ handle_call(_Req, _From, State) ->
     %%io:format("~p:~p Got unexpected call ~p~n", [?MODULE,?LINE, _Req]),
     {reply, ok, State}.
 
-handle_cast({new_state, Os}, #state{tc=TC, il=IL, imap=IMap0} = State) ->
+handle_cast({new_state, Os}, State) ->
     try
-        {Shown,IMap} = update_object(Os, TC, IL, IMap0),
-        {noreply, State#state{os=Os, shown=Shown, imap=IMap}}
+        {noreply, update_object(Os, State)}
     catch _:Reason ->
             io:format("~p:~p: crashed ~P~n",[?MODULE,?LINE,Reason,30]),
             io:format(" at: ~P~n",[Reason,30]),
@@ -507,17 +506,17 @@ handle_cast(_Req, State) ->
     {noreply, State}.
 
 handle_info(parent_changed,
-	    #state{top=Top, szr=Szr, tc=TC0, os=Os, il=IL, imap=IMap} = State) ->
+	    #state{top=Top, szr=Szr, shown=Prev, tc=TC0, os=Os, il=IL} = State) ->
     case os:type() of
 	{win32, _} ->
 	    %% Windows or wxWidgets somehow messes up the icons when reparented,
 	    %% Recreating the tree ctrl solves it
+            Expanded = expanded_items(maps:to_list(Prev), TC0),
 	    TC = make_tree(Top, wings_frame:get_colors(), IL),
 	    wxSizer:replace(Szr, TC0, TC),
 	    wxSizer:recalcSizes(Szr),
 	    wxWindow:destroy(TC0),
-	    {Shown,_} = update_object(Os, TC, IL, IMap),
-	    {noreply, State#state{tc=TC, shown=Shown}};
+	    {noreply, update_object(Os, Expanded, State#state{tc=TC})};
 	_ ->
 	    {noreply, State}
     end;
@@ -581,13 +580,21 @@ scroll_window(Y, TC, {Obj, Prev}) ->
             {Obj, Prev}
     end.
 
-update_object(Os, TC, IL, Imap0) ->
-    Sorted = [{{order(T), wings_util:cap(N)},O} || #{type:=T,name:=N} = O <- Os],
+update_object(Os, #state{tc=TC, shown=Prev}=State) ->
+    Expanded = expanded_items(maps:to_list(Prev), TC),
+    update_object(Os, Expanded, State).
+
+update_object(Os, Expanded, #state{tc=TC, il=IL, imap=Imap0}=State) ->
     wxTreeCtrl:deleteAllItems(TC),
+    Sorted = [{{order(T), wings_util:cap(N)},O} || #{type:=T,name:=N} = O <- Os],
     Root = wxTreeCtrl:addRoot(TC, []),
     Lights = wxTreeCtrl:appendItem(TC, Root, root_name(light)),
+    wxTreeCtrl:setItemBold(TC, Lights),
     Materials = wxTreeCtrl:appendItem(TC, Root, root_name(mat)),
+    wxTreeCtrl:setItemBold(TC, Materials),
     Images = wxTreeCtrl:appendItem(TC, Root, root_name(image)),
+    wxTreeCtrl:setItemBold(TC, Images),
+
     Do = fun({_, #{type:=Type, name:=Name}=O}, {Acc0,Imap00}) ->
 		 {Indx, Imap} = image_index(O, IL, Imap00),
 		 Item =
@@ -601,7 +608,12 @@ update_object(Os, TC, IL, Imap0) ->
                          case maps:get(maps, O, []) of
                              [] -> {Acc, Imap};
                              Maps ->
-                                 add_maps(Maps, TC, Item, Name, IL, Imap, Os, Acc)
+                                 Res = add_maps(Maps, TC, Item, Name, IL, Imap, Os, Acc),
+                                 case lists:member({Type,Name}, Expanded) of
+                                     true -> wxTreeCtrl:expand(TC, Item);
+                                     false -> ignore
+                                 end,
+                                 Res
                          end;
                     true -> {Acc, Imap}
 		 end
@@ -609,17 +621,16 @@ update_object(Os, TC, IL, Imap0) ->
 		 %% wxTreeCtrl:selectItem(TC, Node),
 		 %% wxTreeCtrl:ensureVisible(TC, Node),
 	 end,
-    Res = wx:foldl(Do, {[],Imap0}, Sorted),
-    wxTreeCtrl:expand(TC, Lights),
-    wxTreeCtrl:setItemBold(TC, Lights),
-    wxTreeCtrl:expand(TC, Materials),
-    wxTreeCtrl:setItemBold(TC, Materials),
-    wxTreeCtrl:expand(TC, Images),
-    wxTreeCtrl:setItemBold(TC, Images),
+    {Items,Imap}  = wx:foldl(Do, {[],Imap0}, Sorted),
+    lists:member(ligths, Expanded) andalso wxTreeCtrl:expand(TC, Lights),
+    lists:member(mats, Expanded) andalso wxTreeCtrl:expand(TC, Materials),
+    lists:member(images, Expanded) andalso wxTreeCtrl:expand(TC, Images),
     wxTreeCtrl:selectItem(TC, Lights),
     wxTreeCtrl:refresh(TC),
     wxTreeCtrl:update(TC),
-    Res.
+    Shown0 = maps:from_list(Items),
+    Shown = Shown0#{lights=>Lights, mats=>Materials, images=>Images},
+    State#state{imap=Imap, shown=Shown, os=Os}.
 
 add_maps([{MType,Mid}|Rest], TC, Dir, Mat, IL, Imap0, Os,Acc) ->
     case [O || #{type:=image, id:=Id} = O <- Os, Id =:= Mid] of
@@ -660,6 +671,20 @@ image_index(#{type:=mat, color:=Col}, IL, Map) ->
 	    {Indx, Map#{Col=>Indx}};
 	Indx ->
 	    {Indx, Map}
+    end.
+
+expanded_items(Items, TC) ->
+    lists:foldl(fun(Item, Acc) -> expanded(Item, TC, Acc) end, [lights, mats, images], Items).
+
+expanded({Item0, Obj0}, TC, Acc) ->
+    {Item, Obj} = case Obj0 of
+                      #{name:=Name, type:=Type} -> {Item0, {Type,Name}};
+                      _ -> {Obj0, Item0}
+                  end,
+    Exp = wxTreeCtrl:isTreeItemIdOk(Item) andalso wxTreeCtrl:isExpanded(TC, Item),
+    case Exp of
+        true -> [Obj|Acc];
+        false -> lists:delete(Obj,Acc)
     end.
 
 image_maps_index(Type) ->
@@ -730,13 +755,13 @@ set_pid({wx_ref, Ref, Type, []}, Pid) when is_pid(Pid) ->
 make_menus(0, Pos, #state{tc=TC}) ->
     wings_wm:psend(?MODULE, {apply, false, fun(_) -> wings_shapes:menu(TC,Pos) end});
 make_menus(Indx, Pos, #state{tc=TC, shown=Tree}) ->
-    case lists:keyfind(Indx, 1, Tree) of
-        {_, Obj} ->
+    case maps:get(Indx, Tree, undefined) of
+        undefined -> %% Material or light or images r-clicked
+            ok;
+        Obj ->
             Menus = do_menu(Obj),
             Cmd = fun(_) -> wings_menu:popup_menu(TC, Pos, ?MODULE, Menus) end,
-            wings_wm:psend(?MODULE, {apply, false, Cmd});
-        false ->  %% Material or light or images r-clicked
-            ok
+            wings_wm:psend(?MODULE, {apply, false, Cmd})
     end.
 
 do_menu(#{type:=mat, name:=Name}) ->
@@ -885,8 +910,8 @@ key_to_op(_, ?WXK_DELETE) -> "delete";
 key_to_op(_, ?WXK_F2) -> "rename";
 key_to_op(_, _) -> ignore.
 
-obj_to_type_and_param({_, #{type:=mat, name:=Name}}) -> {"material", Name};
-obj_to_type_and_param({_, #{type:=image, mat:={Mat,Type}}}) -> {"texture", {Type,Mat}};
-obj_to_type_and_param({_, #{type:=image, id:=Id}}) -> {"image", Id};
-obj_to_type_and_param({_, #{type:=light, id:=Id}}) -> {"object", Id};
+obj_to_type_and_param(#{type:=mat, name:=Name}) -> {"material", Name};
+obj_to_type_and_param(#{type:=image, mat:={Mat,Type}}) -> {"texture", {Type,Mat}};
+obj_to_type_and_param(#{type:=image, id:=Id}) -> {"image", Id};
+obj_to_type_and_param(#{type:=light, id:=Id}) -> {"object", Id};
 obj_to_type_and_param(_) -> {ignore, ignore}.
