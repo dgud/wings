@@ -512,11 +512,12 @@ handle_info(parent_changed,
 	    %% Windows or wxWidgets somehow messes up the icons when reparented,
 	    %% Recreating the tree ctrl solves it
             Expanded = expanded_items(maps:to_list(Prev), TC0),
+            Selected = selected_item(Prev, TC0),
 	    TC = make_tree(Top, wings_frame:get_colors(), IL),
 	    wxSizer:replace(Szr, TC0, TC),
 	    wxSizer:recalcSizes(Szr),
 	    wxWindow:destroy(TC0),
-	    {noreply, update_object(Os, Expanded, State#state{tc=TC})};
+	    {noreply, update_object(Os, Selected, Expanded, State#state{tc=TC})};
 	_ ->
 	    {noreply, State}
     end;
@@ -582,9 +583,10 @@ scroll_window(Y, TC, {Obj, Prev}) ->
 
 update_object(Os, #state{tc=TC, shown=Prev}=State) ->
     Expanded = expanded_items(maps:to_list(Prev), TC),
-    update_object(Os, Expanded, State).
+    Selected = selected_item(Prev, TC),
+    update_object(Os, Selected, Expanded, State).
 
-update_object(Os, Expanded, #state{tc=TC, il=IL, imap=Imap0}=State) ->
+update_object(Os, Selected, Expanded, #state{tc=TC, il=IL, imap=Imap0}=State) ->
     wxTreeCtrl:deleteAllItems(TC),
     Sorted = [{{order(T), wings_util:cap(N)},O} || #{type:=T,name:=N} = O <- Os],
     Root = wxTreeCtrl:addRoot(TC, []),
@@ -617,17 +619,20 @@ update_object(Os, Expanded, #state{tc=TC, il=IL, imap=Imap0}=State) ->
                          end;
                     true -> {Acc, Imap}
 		 end
-		 %% {Node,_} = lists:keyfind(Curr, 2, All),
-		 %% wxTreeCtrl:selectItem(TC, Node),
-		 %% wxTreeCtrl:ensureVisible(TC, Node),
 	 end,
-    {Items,Imap}  = wx:foldl(Do, {[],Imap0}, Sorted),
+    {Items, Imap}  = wx:foldl(Do, {[],Imap0}, Sorted),
     lists:member(ligths, Expanded) andalso wxTreeCtrl:expand(TC, Lights),
-    lists:member(mats, Expanded) andalso wxTreeCtrl:expand(TC, Materials),
+    lists:member(mats, Expanded)   andalso wxTreeCtrl:expand(TC, Materials),
     lists:member(images, Expanded) andalso wxTreeCtrl:expand(TC, Images),
-    wxTreeCtrl:selectItem(TC, Lights),
+
+    SelItem = case find_sel(Selected, Items) of
+                  none -> Lights;
+                  Sel -> Sel
+              end,
     wxTreeCtrl:refresh(TC),
     wxTreeCtrl:update(TC),
+    wxTreeCtrl:selectItem(TC, SelItem),
+    wxTreeCtrl:ensureVisible(TC, SelItem),
     Shown0 = maps:from_list(Items),
     Shown = Shown0#{lights=>Lights, mats=>Materials, images=>Images},
     State#state{imap=Imap, shown=Shown, os=Os}.
@@ -671,6 +676,21 @@ image_index(#{type:=mat, color:=Col}, IL, Map) ->
 	    {Indx, Map#{Col=>Indx}};
 	Indx ->
 	    {Indx, Map}
+    end.
+
+find_sel({Type,Name}, [{Item, #{type:=Type,name:=Name}}|_]) ->
+    Item;
+find_sel(Sel, [_|Rest]) ->
+    find_sel(Sel, Rest);
+find_sel(_, []) -> none.
+
+selected_item(Prev, TC) ->
+    Item0 = wxTreeCtrl:getSelection(TC),
+    case maps:get(Item0, Prev, none) of
+        #{name:=Name, type:=Type} ->
+            {Type,Name};
+        Else ->
+            Else
     end.
 
 expanded_items(Items, TC) ->
