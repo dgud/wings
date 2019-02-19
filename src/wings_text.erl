@@ -94,9 +94,17 @@ wxfont_style(normal) -> ?wxFONTSTYLE_NORMAL;
 wxfont_style(italic) -> ?wxFONTSTYLE_ITALIC;
 wxfont_style(slant)  -> ?wxFONTSTYLE_SLANT.
 
-font_weight(?wxFONTWEIGHT_NORMAL) -> normal;
-font_weight(?wxFONTWEIGHT_LIGHT) -> light;
-font_weight(?wxFONTWEIGHT_BOLD) ->  bold.
+font_weight(Weight) ->
+    %% We only support light | normal | bold currently
+    %% made to work with both wxWidgets-3.0.0 and 3.1.2.
+    Light  = ?wxFONTWEIGHT_LIGHT,
+    Normal = ?wxFONTWEIGHT_NORMAL,
+    Bold   = ?wxFONTWEIGHT_BOLD,
+    if Weight =:= Normal -> normal;
+       Weight =< Light -> light;
+       Weight < Bold -> normal;
+       Weight >= Bold -> bold
+    end.
 
 wxfont_weight(normal) -> ?wxFONTWEIGHT_NORMAL;
 wxfont_weight(bold) -> ?wxFONTWEIGHT_BOLD;
