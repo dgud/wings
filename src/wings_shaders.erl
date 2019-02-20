@@ -35,6 +35,7 @@ compile_all() ->
     Programs0 = [{1, camera_light, [], "One Camera Lights"},
                  {2, hemilight, HL, "Hemispherical Lighting"},
                  {alpha_test, alpha_test, [], ""},
+                 {skybox, skybox, [], ""},
                  {ambient_light, ambient_light, [], ""},
                  {infinite_light, infinite_light, [], ""},
                  {point_light, point_light, [], ""},
@@ -65,7 +66,7 @@ use_prog(Name, RS) ->
             #{prog:=Prog} = Shader,
             wings_gl:use_prog(Prog),
             RS1 = set_uloc(ws_matrix, e3d_mat:identity(), RS#{shader=>Shader}),
-            RS2 = set_uloc(ws_eyepoint, maps:get(ws_eyepoint, RS1), RS1),
+            RS2 = set_uloc(ws_eyepoint, maps:get(ws_eyepoint, RS1, undefined), RS1),
             case Name of
                 1 ->
                     WorldFromView = e3d_transform:inv_matrix(maps:get(view_from_world, RS2)),

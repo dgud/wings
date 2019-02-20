@@ -47,6 +47,7 @@ render(#st{selmode=Mode}=St) ->
     end,
     {PM,MM,SceneLights} = wings_view:load_matrices(true),
     View = wings_view:current(),
+    _RS0 = render_skybox(#{}),
     AxesData = ground_and_axes(View, PM,MM),
     mini_axis_icon(View, MM),
     show_saved_bb(St),
@@ -141,8 +142,9 @@ render_objects(Mode, PM, MM, UseSceneLights) ->
     Dls = wings_dl:display_lists(),
     {Open,Closed,Lights} = split_objects(Dls, [], [], []),
     NonLights = Open ++ Closed,
-    RS0 = #{ws_eyepoint => e3d_mat:mul_point(e3d_transform:inv_matrix(MM), {0.0,0.0,0.0}),
+    RS00 = #{ws_eyepoint => e3d_mat:mul_point(e3d_transform:inv_matrix(MM), {0.0,0.0,0.0}),
             view_from_world => MM},
+    RS0 = render_skybox(RS00),
     RS1 = render_lights(Lights, Mode, PM, RS0),
     {SL, RS2} = setup_scene_lights(UseSceneLights, Lights, RS1),
     case wings_wm:get_prop(workmode) of
@@ -163,6 +165,38 @@ render_objects(Mode, PM, MM, UseSceneLights) ->
             RS22 = render_wire(NonLights, Mode, false, RS21),
             render_sel_highlight(NonLights, Mode, false, PM, RS22)
     end.
+
+-define(V1, {-1.0,-1.0,-1.0}).
+-define(V2, { 1.0,-1.0,-1.0}).
+-define(V3, { 1.0, 1.0,-1.0}).
+-define(V4, {-1.0, 1.0,-1.0}).
+-define(V5, {-1.0,-1.0, 1.0}).
+-define(V6, { 1.0,-1.0, 1.0}).
+-define(V7, { 1.0, 1.0, 1.0}).
+-define(V8, {-1.0, 1.0, 1.0}).
+
+render_skybox(RS0) ->
+    case wings_pref:get_value(show_skybox, true) of
+        true ->
+            RS1 = wings_shaders:use_prog(skybox, RS0),
+            Coords = [?V1,?V2,?V3,?V4, ?V2,?V6,?V7,?V3,
+                      ?V6,?V5,?V8,?V7, ?V5,?V1,?V4,?V8,
+                      ?V4,?V3,?V7,?V8, ?V1,?V5,?V6,?V2],
+            Update = fun(Data) ->
+                             D = fun(RS) ->
+                                         gl:drawArrays(?GL_QUADS, 0, 4*6),
+                                         RS
+                                 end,
+                             wings_vbo:new(D, Data, [vertex])
+                     end,
+            gl:depthMask(?GL_FALSE),
+            RS = wings_dl:draw(skybox, Coords, Update, RS1),
+            gl:depthMask(?GL_TRUE),
+            wings_shaders:use_prog(0, RS);
+        false ->
+            RS0
+    end.
+
 
 render_lights([], _Mode, _PM, RS0) ->
     RS0;
