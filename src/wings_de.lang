@@ -917,8 +917,8 @@
    ]},
   {import_image,
    [
-    {1,"Laden fehlgeschlagen \"~s\": ~s\n"},
-    {2,"The image cannot be loaded.~nFile: \"~s\"~n GLU Error: ~p - ~s~n"}
+    {1,"Laden fehlgeschlagen \"~ts\": ~ts\n"},
+    {2,"The image cannot be loaded.~nFile: \"~ts\"~n GLU Error: ~p - ~s~n"}
    ]},
   {import_ndo,
    [

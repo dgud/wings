@@ -888,8 +888,8 @@
    ]},
   {import_image,
    [
-    {1,"Le chargement de « ~s » a échouée : ~s\n"},
-    {2,"The image cannot be loaded.~nFile: « ~s »~n Erreur GLU : ~p - ~s~n"}
+    {1,"Le chargement de « ~ts » a échouée : ~ts\n"},
+    {2,"The image cannot be loaded.~nFile: « ~ts »~n Erreur GLU : ~p - ~s~n"}
    ]},
   {import_ndo,
    [

@@ -770,7 +770,7 @@
    ]},
   {import_image,
    [
-    {1,"Nahrávání selhalo \"~s\": ~s\n"}
+    {1,"Nahrávání selhalo \"~ts\": ~ts\n"}
    ]},
   {import_ndo,
    [

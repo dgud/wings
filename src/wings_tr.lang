@@ -816,7 +816,7 @@
    ]},
   {import_image,
    [
-    {1,"\"~s\"'yi yükleme başarısız: ~s\n"}
+    {1,"\"~ts\"'yi yükleme başarısız: ~ts\n"}
    ]},
   {import_ndo,
    [

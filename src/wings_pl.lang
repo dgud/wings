@@ -805,7 +805,7 @@
    ]},
   {import_image,
    [
-    {1,"Załadowanie \"~s\" nie powiodło: ~s\n"}
+    {1,"Załadowanie \"~ts\" nie powiodło: ~ts\n"}
    ]},
   {import_ndo,
    [

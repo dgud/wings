@@ -925,8 +925,8 @@
    ]},
   {import_image,
    [
-    {1,"Falló al cargar \"~s\": ~s\n"},
-    {2,"No se puede cargar la imagen.~nFile: \"~s\"~n GLU Error: ~p - ~s~n"}
+    {1,"Falló al cargar \"~ts\": ~ts\n"},
+    {2,"No se puede cargar la imagen.~nFile: \"~ts\"~n GLU Error: ~p - ~s~n"}
    ]},
   {import_ndo,
    [

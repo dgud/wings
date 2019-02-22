@@ -1962,7 +1962,7 @@
    ]},
   {import_image,
    [
-    {1,"Falha ao abrir \"~s\": ~s\n"}
+    {1,"Falha ao abrir \"~ts\": ~ts\n"}
    ]},
   {import_ndo,
    [

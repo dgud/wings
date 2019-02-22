@@ -405,7 +405,7 @@ enhanced_hl_info(Base,#hl{redraw=#st{sel=[],shapes=Shs},prev=Prev}) when is_tupl
         {X,Y,Z} = wings_face:center(Elem, We),
         Area = area_info(Elem, We),
         Mat = wings_facemat:face(Elem, We),
-        [Base|io_lib:format(?__(4,". Midpoint <~s  ~s  ~s> \nMaterial ~s.")
+        [Base|io_lib:format(?__(4,". Midpoint <~s  ~s  ~s> \nMaterial ~ts.")
                             ++ Area,
                             [wings_util:nice_float(X),
                              wings_util:nice_float(Y),
