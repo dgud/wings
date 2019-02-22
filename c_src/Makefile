@@ -14,6 +14,8 @@ OS := $(shell uname -s)
 
 ERL=erl
 
+LIBDIR = ../priv
+
 ifeq ($(findstring CYGWIN,$(OS)),CYGWIN)
   USEMINGWGCC := true
   DEF_CC = mingw32-gcc
@@ -39,12 +41,9 @@ ifneq (x$(UseMCL),x)
   DEF_CC = cl.exe
 endif
 
-LIBDIR = ../../plugins/accel
-
 FRD = 'io:fwrite("~n=:~s~n",[code:root_dir()]),init:stop().'
 ERL_DIR := $(shell echo $(FRD) | $(ERL) | sed -n '/^=:/s/^=://p')
 ERL_INC = "$(ERL_DIR)/usr/include"
-BEAM = $(LIBDIR)/wpc_pick.beam
 
 UNIVERSAL_FLAGS =
 COMMON_CFLAGS = -Wall
@@ -80,23 +79,16 @@ ifeq ($(GCC),)
     GCC = $(DEF_CC)
 endif
 
-ERLC = erlc
-ERLC_FLAGS = -Werror -o $(LIBDIR) +debug_info
-
-DRV = $(LIBDIR)/wings_pick_drv.$(SO_EXT)
+DRV = $(LIBDIR)/wings_pick_nif.$(SO_EXT)
 
 TARGET_FILES=$(BEAM) $(DRV)
 
 all: $(TARGET_FILES)
-
-$(LIBDIR)/%.beam: %.erl
-	install -d $(LIBDIR)
-	$(ERLC) $(ERLC_FLAGS) $<
 
 $(LIBDIR)/%.$(SO_EXT): %.c
 	install -d $(LIBDIR)
 	$(GCC) $(CFLAGS) -I$(ERL_INC) $(OUT) $@ $< $(LIBS) $(GL_LIBS)
 
 clean:
-	rm -f $(TARGET_FILES) vc*.pdb wings_pick_drv.obj
+	rm -f $(TARGET_FILES) vc*.pdb wings_pick_*.obj
 	rm -f core
