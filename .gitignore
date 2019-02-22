@@ -31,6 +31,14 @@
 # /fonts/
 /fonts/*.wingsfont
 
+# /priv/
+/priv/*
+
+# /c_src/
+/c_src/*.o
+/c_src/*.obj
+/c_src/*.pdb
+
 # /plugins/
 /plugins/*
 
@@ -39,10 +47,6 @@
 
 # /plugins_src/autouv/
 /plugins_src/autouv/autouv_en.lang
-
-# /plugins_src/accel/
-/plugins_src/accel/*.obj
-/plugins_src/accel/*.pdb
 
 # /plugins_src/fbx/
 /plugins_src/fbx/*.o

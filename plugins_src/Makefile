@@ -46,7 +46,6 @@ opt debug:
 common: $(TARGET_FILES) subdirs
 
 subdirs:
-	(cd accel; $(MAKE))
 	(cd import_export; $(MAKE))
 	(cd primitives; $(MAKE))
 	(cd commands; $(MAKE))
@@ -70,7 +69,6 @@ clean: subdirs_clean
 	rm -f core
 
 subdirs_clean:
-	(cd accel; $(MAKE) clean)
 	(cd import_export; $(MAKE) clean)
 	(cd primitives; $(MAKE) clean)
 	(cd commands; $(MAKE) clean)

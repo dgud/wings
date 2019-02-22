@@ -88,6 +88,7 @@ MODULES= \
 	wings_palette \
 	wings_pb \
 	wings_pick \
+	wings_pick_nif \
 	wings_plugin \
 	wings_pref \
 	wings_pref_dlg \

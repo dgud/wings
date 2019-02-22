@@ -1,14 +1,12 @@
 %%
-%%  wpc_pick.erl --
+%%  wings_pick_nif.erl --
 %%
-%%     This module handles picking using our own driver.
+%%     This module handles picking.
 %%
-%%  Copyright (c) 2009-2011 Bjorn Gustavsson
+%%  Copyright (c) 2009-2019 Bjorn Gustavsson & Dan Gudmundsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
-%%
-%%     $Id$
 %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%
@@ -35,40 +33,35 @@
 %% Paul Heckbert: Generic Convex Polygon Scan Conversion and Clipping in
 %%                Graphics Gems.
 %%
--module(wpc_pick).
--export([init/0,pick_matrix/5,matrix/2,cull/1,culling/0,front_face/1,
+-module(wings_pick_nif).
+-export([pick_matrix/5,matrix/2,cull/1,culling/0,front_face/1,
 	 faces/2,vertices/1,edges/1]).
 
-%% Comment out the following line to use the pure Erlang
-%% reference implementation.
--define(USE_DRIVER, 1).
+-on_load(init/0).
 
 -import(lists, [foldl/3,last/1,sort/1]).
 -define(FL, 32/native-float).
 
+%% Comment out the following line to use the pure Erlang
+%% reference implementation.
+-define(USE_DRIVER, 1).
+-define(nif_stub,nif_stub_error(?LINE)).
+nif_stub_error(Line) ->
+    erlang:nif_error({nif_not_loaded,module,?MODULE,line,Line}).
+
 init() ->
     case get(wings_not_running) of
 	undefined ->
-	    Dir = filename:dirname(code:which(?MODULE)),
-	    Name = "wings_pick_drv",
-	    case erl_ddll:load_driver(Dir, Name) of
-		ok -> ok;
-		{error,Reason} ->
-		    io:format("Failed to load ~s in ~s\n~s\n",
-			      [Name,Dir,erl_ddll:format_error(Reason)]),
-		    erlang:halt()
-	    end,
-	    try
-		Port = open_port({spawn_driver,Name}, [binary]),
-		register(wings_pick_port, Port)
-	    catch error:_ ->
-		    io:format("Failed to open port ~s.\n", [Name]),
-		    erlang:halt()
-	    end;
+            Name = "wings_pick_nif",
+	    Dir = case code:priv_dir(wings) of
+                      {error, _} -> filename:join(wings_util:lib_dir(wings),"priv");
+                      Priv -> Priv
+                  end,
+            Nif = filename:join(Dir, Name),
+            erlang:load_nif(Nif, 0);
 	_ ->
-	    ignore
-    end,
-    false.
+	    false
+    end.
 
 %% pick_matrix(X, Y, Xs, Ys, ViewPort) -> PickMatrix
 %%  Set up a pick matrix like glu:pickMatrix/5,
@@ -91,23 +84,17 @@ matrix(Model, Proj) when is_list(Proj) ->
     matrix(Model, list_to_tuple(Proj));
 matrix(Model, Proj) ->
     Mat = e3d_mat:mul(Proj, Model),
-    case put({?MODULE,matrix}, Mat) of
-	Mat -> ok;
-	_ -> drv_matrix(Mat)
-    end.
+    put({?MODULE,matrix}, Mat),
+    ok.
 
 %% cull(true|false)
 %%  Enable or disable backface culling when picking.
 cull(false) ->
-    case erase({?MODULE,cull}) of
-	undefined -> ok;
-	_ -> drv_cull(0)
-    end;
+    erase({?MODULE,cull}),
+    ok;
 cull(true) ->
-    case put({?MODULE,cull}, true) of
-	true -> ok;
-	_ -> drv_cull(1)
-    end.
+    put({?MODULE,cull}, true),
+    ok.
 
 culling() ->
     get({?MODULE,cull}) =:= true.
@@ -115,15 +102,11 @@ culling() ->
 %% front_face(ccw|cw)
 %%  Define the vertex order for front facing triangles.
 front_face(ccw) ->
-    case erase({?MODULE,front_face}) of
-	undefined -> ok;
-	_ -> drv_ccw_is_front(1)
-    end;
+    erase({?MODULE,front_face}),
+    ok;
 front_face(cw) ->
-    case put({?MODULE,front_face}, cw) of
-	cw -> ok;
-	_ -> drv_ccw_is_front(0)
-    end.
+    put({?MODULE,front_face}, cw),
+    ok.
 
 %% faces({Stride,VertexBuffer}, OneHit) -> {Index,Depth} | [Index]
 %%     Depth = 0..2^32-1 (0 means the near clipping plane)
@@ -139,27 +122,16 @@ faces({_,<<>>}, _) ->
     %% of the I/O vector will be 2, not 3, and the driver will
     %% ignore the request without sending any data back to us.)
     [];
-faces({Stride,Bin}, OneHit0) ->
-    OneHit = case OneHit0 of
-		 false -> <<0>>;
-		 true -> <<1>>
-	     end,
-    erlang:port_control(wings_pick_port, 3, OneHit),
-    erlang:port_command(wings_pick_port, [<<Stride:32/native>>,Bin]),
-    receive
-	{Port,{data,Data}} when is_port(Port) ->
-	    case OneHit0 of
-		false ->
-		    [Hit || <<Hit:32/native>> <= Data];
-		true ->
-		    case Data of
-			<<>> ->
-			    [];
-			<<Hit:32/native,Depth:32/native>> ->
-			    {Hit,Depth}
-		    end
-	    end
-    end.
+faces({Stride, Bin}, OneHit) ->
+    faces_1(Stride, Bin, OneHit,
+            get({?MODULE,cull}) =:= true,
+            get({?MODULE,front_face}) /= cw,
+            get({?MODULE,matrix})
+           ).
+
+faces_1(_, _, _, _, _, _) ->
+    ?nif_stub.
+
 -else.
 faces({Stride,Bin}, OneHit) ->
     Matrix = get({?MODULE,matrix}),
@@ -188,28 +160,6 @@ vertices(VsPos) ->
 edges(EsPos) ->
     Matrix = get({?MODULE,matrix}),
     edges_1(EsPos, Matrix, []).
-
-%%%
-%%% Communication with the driver.
-%%%
-
--ifndef(USE_DRIVER).
-%% Dummies when there is no driver.
-drv_matrix(_) -> ok.
-drv_cull(_) -> ok.
-drv_ccw_is_front(_) -> ok.
--else.
-drv_matrix(Mat0) ->
-    Mat = << <<F:?FL>> || F <- tuple_to_list(Mat0) >>,
-    drv(0, Mat).
-
-drv_cull(Bool) -> drv(1, [Bool]).
-
-drv_ccw_is_front(Bool) -> drv(2, [Bool]).
-
-drv(Cmd, Data) ->
-    erlang:port_control(wings_pick_port, Cmd, Data).
--endif.
 
 %%%
 %%% Internal functions.
@@ -323,9 +273,9 @@ pdot2(1, {_,_,Z,W}) -> W-Z.
 faces_1(Bin0, Unused, Mat, Cull, OneHit, I, Acc) ->
     case Bin0 of
 	<<X1:?FL,Y1:?FL,Z1:?FL,_:Unused/binary,
-	 X2:?FL,Y2:?FL,Z2:?FL,_:Unused/binary,
-	 X3:?FL,Y3:?FL,Z3:?FL,_:Unused/binary,
-	 Bin/binary>> ->
+          X2:?FL,Y2:?FL,Z2:?FL,_:Unused/binary,
+          X3:?FL,Y3:?FL,Z3:?FL,_:Unused/binary,
+          Bin/binary>> ->
 	    Tri0 = [{X1,Y1,Z1,1.0},{X2,Y2,Z2,1.0},{X3,Y3,Z3,1.0}],
 	    Tri = [e3d_mat:mul(Mat, P) || P <- Tri0],
 	    case clip_tri(Tri, Cull) of

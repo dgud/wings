@@ -668,9 +668,9 @@ raw_pick(X0, Y0, St) ->
     case wings_wm:lookup_prop(select_backface) of
 	{value,true} ->
 	    %% Only in AutoUV windows.
-	    wpc_pick:cull(false);
+	    wings_pick_nif:cull(false);
 	_ ->
-	    wpc_pick:cull(true)
+	    wings_pick_nif:cull(true)
     end,
     case dlo_pick(St, true, Ms) of
 	[] -> none;
@@ -678,7 +678,7 @@ raw_pick(X0, Y0, St) ->
     end.
 
 set_pick_matrix(X, Y, Xs, Ys, W, H) ->
-    Pick = wpc_pick:pick_matrix(X, Y, Xs, Ys, {0,0,W,H}),
+    Pick = wings_pick_nif:pick_matrix(X, Y, Xs, Ys, {0,0,W,H}),
     ProjMatrix = wings_view:projection(Pick),
     {_, ModelMatrix} = wings_view:modelview(),
     set_pick_matrix_1(e3d_transform:matrix(ProjMatrix),
@@ -691,7 +691,7 @@ set_pick_matrix({PM, MM}, PostModel) ->
     set_pick_matrix_1(PM, e3d_mat:mul(MM, PostModel)).
 
 set_pick_matrix_1(ProjMatrix, ModelMatrix) ->
-    wpc_pick:matrix(ModelMatrix, ProjMatrix),
+    wings_pick_nif:matrix(ModelMatrix, ProjMatrix),
     {ProjMatrix, ModelMatrix}.
 
 %% update_selection({Mode,MM,{Id,Item}}, St0) ->
@@ -876,10 +876,10 @@ pick_all(DrawFaces, X, Y0, W, H, St) ->
     Ms = set_pick_matrix(X, Y, W, H, Ww, Wh),
     case DrawFaces of
 	true ->
-	    wpc_pick:cull(true),
+	    wings_pick_nif:cull(true),
 	    {dlo_pick(St, false, Ms),St};
 	false ->
-	    wpc_pick:cull(false),
+	    wings_pick_nif:cull(false),
 	    {marquee_pick(St, Ms),St}
     end.
 
@@ -888,7 +888,7 @@ marquee_pick(#st{selmode=edge}, Ms) ->
 		      Vis = gb_sets:from_ordset(wings_we:visible(We)),
 		      EsPos = visible_edges(array:sparse_to_orddict(Etab),
 					    Vtab, Vis, []),
-		      case wpc_pick:edges(EsPos) of
+		      case wings_pick_nif:edges(EsPos) of
 			  [] ->
 			      Acc;
 			  Picked -> [{Id,E} || E <- Picked] ++ Acc
@@ -904,7 +904,7 @@ marquee_pick(#st{selmode=vertex}, Ms) ->
 				      Vs = wings_we:visible_vs(We),
 				      [{V,array:get(V, Vtab)} || V <- Vs]
 			      end,
-		      case wpc_pick:vertices(VsPos) of
+		      case wings_pick_nif:vertices(VsPos) of
 			  [] ->
 			      Acc;
 			  Picked ->
@@ -938,9 +938,9 @@ setup_pick_context_fun(#dlo{mirror=none,src_we=We}, PickFun, _, Acc) ->
 setup_pick_context_fun(#dlo{mirror=Mirror,src_we=We}, PickFun, Ms, Acc0) ->
     Acc1 = PickFun(We, Acc0),
     set_pick_matrix(Ms, Mirror),
-    wpc_pick:front_face(cw),
+    wings_pick_nif:front_face(cw),
     Acc = PickFun(We, Acc1),
-    wpc_pick:front_face(ccw),
+    wings_pick_nif:front_face(ccw),
     set_pick_matrix(Ms),
     Acc.
 
@@ -970,36 +970,36 @@ do_dlo_pick(D=#dlo{vab=#vab{face_vs=none}}, St, OneHit, Ms, Acc) ->
     do_dlo_pick(wings_draw_setup:work(D, St), St, OneHit, Ms, Acc);
 do_dlo_pick(#dlo{mirror=none,src_we=#we{id=Id}=We}=D, _, OneHit, _Ms, Acc)
   when ?IS_AREA_LIGHT(We) ->
-    Cull = wpc_pick:culling(),
-    wpc_pick:cull(false),
+    Cull = wings_pick_nif:culling(),
+    wings_pick_nif:cull(false),
     Res = do_dlo_pick_0(Id, D, OneHit, Acc),
-    wpc_pick:cull(Cull),
+    wings_pick_nif:cull(Cull),
     Res;
 do_dlo_pick(#dlo{mirror=none,open=Open,src_we=#we{id=Id}}=D, _, OneHit, _Ms, Acc) ->
     case wings_pref:get_value(show_backfaces) of
-        true when Open -> wpc_pick:front_face(cw);
-        _ -> wpc_pick:front_face(ccw)
+        true when Open -> wings_pick_nif:front_face(cw);
+        _ -> wings_pick_nif:front_face(ccw)
     end,
     do_dlo_pick_0(Id, D, OneHit, Acc);
 do_dlo_pick(#dlo{mirror=Matrix,open=Open,src_we=#we{id=Id}}=D0, _, OneHit, Ms, Acc0) ->
     case wings_pref:get_value(show_backfaces) of
         true when Open ->
-            wpc_pick:front_face(cw),
+            wings_pick_nif:front_face(cw),
             {D1,Acc1} = do_dlo_pick_0(Id, D0, OneHit, Acc0);
         _ ->
             {D1,Acc1} = do_dlo_pick_0(Id, D0, OneHit, Acc0),
-            wpc_pick:front_face(cw)
+            wings_pick_nif:front_face(cw)
     end,
     set_pick_matrix(Ms, Matrix),
     {D,Acc} = do_dlo_pick_0(-Id, D1, OneHit, Acc1),
-    wpc_pick:front_face(ccw),
+    wings_pick_nif:front_face(ccw),
     set_pick_matrix(Ms),
     {D,Acc}.
 
 do_dlo_pick_0(Id, #dlo{vab=#vab{data=VsBin,face_vs={Stride,_},face_map=Map0}}=D0,
 	      OneHit, Acc0) ->
     Vs = {Stride,VsBin},
-    case wpc_pick:faces(Vs, OneHit) of
+    case wings_pick_nif:faces(Vs,OneHit) of
 	[] ->
 	    %% No hit.
 	    {D0,Acc0};
