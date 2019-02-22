@@ -28,6 +28,7 @@ all: $(DEPS)
 	(cd intl_tools; $(MAKE))
 	(cd src; $(MAKE))
 	(cd e3d; $(MAKE))
+	(cd c_src; $(MAKE))
 	(cd plugins_src; $(MAKE))
 	(cd icons; $(MAKE))
 	@cat _deps/build_log 2> /dev/null || true
@@ -36,6 +37,7 @@ debug: $(DEPS)
 	(cd intl_tools; $(MAKE) debug)
 	(cd src; $(MAKE) debug)
 	(cd e3d; $(MAKE) debug)
+	(cd c_src; $(MAKE) debug)
 	(cd plugins_src; $(MAKE) debug)
 	(cd icons; $(MAKE) debug)
 	@cat _deps/build_log 2> /dev/null || true
@@ -44,6 +46,7 @@ clean:
 	(cd intl_tools; $(MAKE) clean)
 	(cd src; $(MAKE) clean)
 	(cd e3d; $(MAKE) clean)
+	(cd c_src; $(MAKE) clean)
 	(cd plugins_src; $(MAKE) clean)
 	(cd icons; $(MAKE) clean)
 
