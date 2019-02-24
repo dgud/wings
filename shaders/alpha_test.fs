@@ -8,11 +8,10 @@
 #include "lib_base.glsl"
 #include "lib_material.glsl"
 
+uniform float alpha;
+
 void main(void)
 {
   vec4 basecolor = get_basecolor();
-  gl_FragColor = vec4(gl_FragCoord.z, basecolor.a, 0.0, 1.0);
-  if (basecolor.a < 0.8) {
-    discard;
-  }
+  if (basecolor.a < alpha) { discard; }
 }

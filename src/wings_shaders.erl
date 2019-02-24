@@ -26,15 +26,17 @@
 init() ->
     wings_pref:set_default(hl_skycol, {0.95,0.95,0.90}),
     wings_pref:set_default(hl_groundcol, {0.026,0.024,0.021}),
+    wings_pref:set_default(smooth_alpha, 0.850013),
     compile_all().
 
 compile_all() ->
     HL = [{'LightPosition', wings_pref:get_value(hl_lightpos)},
 	  {'SkyColor', wings_pref:get_value(hl_skycol)},
 	  {'GroundColor', wings_pref:get_value(hl_groundcol)}],
+    SA = [{'alpha', wings_pref:get_value(smooth_alpha)}],
     Programs0 = [{1, camera_light, [], "One Camera Lights"},
                  {2, hemilight, HL, "Hemispherical Lighting"},
-                 {alpha_test, alpha_test, [], ""},
+                 {alpha_test, alpha_test, SA, ""},
                  {ambient_light, ambient_light, [], ""},
                  {infinite_light, infinite_light, [], ""},
                  {point_light, point_light, [], ""},
