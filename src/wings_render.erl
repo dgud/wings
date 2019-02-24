@@ -26,6 +26,7 @@
 
 init() ->
     wings_pref:set_default(multisample, true),
+    wings_pref:set_default(smooth_alpha, 0.850013),
     init_polygon_stipple().
 
 %% render(St)
@@ -229,20 +230,18 @@ render_smooth_objects(Transp, Open, Closed, SceneLights, RS0) ->
     case Transp of
         true ->
             %% Render a alpha test pass for almost opaque fragments
-            gl:drawBuffer(?GL_NONE),
-            polygonOffset(3.0),
-            RS4 = wings_shaders:use_prog(alpha_test, RS3),
-            RS5 = render_smooth_objects_0(Open, true, false, RS4),
-            gl:enable(?GL_CULL_FACE),
-            RS6 = render_smooth_objects_0(Closed, true, false, RS5),
-            gl:drawBuffer(?GL_BACK),
-            gl:depthFunc(?GL_LEQUAL),
-            polygonOffset(2.0),
-            RS8 = enable_lighting(SceneLights, RS6),
+            gl:enable(?GL_ALPHA_TEST),
+            gl:alphaFunc(?GL_GEQUAL, wings_pref:get_value(smooth_alpha)),
             gl:enable(?GL_BLEND),
             gl:blendFunc(?GL_SRC_ALPHA, ?GL_ONE_MINUS_SRC_ALPHA),
+            RS5 = render_smooth_objects_0(Open, true, false, RS3),
+            gl:enable(?GL_CULL_FACE),
+            RS6 = render_smooth_objects_0(Closed, true, false, RS5),
+            gl:disable(?GL_ALPHA_TEST),
+            gl:depthFunc(?GL_LESS),
+
             gl:depthMask(?GL_FALSE),
-            RS9 = render_smooth_objects_0(Closed, true, SceneLights, RS8),
+            RS9 = render_smooth_objects_0(Closed, true, SceneLights, RS6),
             wings_pref:get_value(show_backfaces) andalso gl:disable(?GL_CULL_FACE),
             RS10 = render_smooth_objects_0(Open, true, SceneLights, RS9),
             RS = disable_lighting(RS10),
