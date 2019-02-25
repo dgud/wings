@@ -46,6 +46,7 @@ MODULES= \
 	wpc_grid_snap \
 	wpc_intersect_edge \
 	wpc_intersect_vertex \
+	wpc_isometric_view \
 	wpc_magnet_mask \
 	wpc_move_planar \
 	wpc_numeric_camera \
