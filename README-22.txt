@@ -1,3 +1,25 @@
+--- 2.2.3 --------------------------------------------
+
+- The submenu in 'AutoUV Segmentating' was shown in the wrong display for
+  multiple monitors layout. Thanks to OXO. [micheus]
+
+- Improved handling of patches and plugins.
+  Now installs in the user data directory according to OS
+  recommendations this avoids tampering with the original installation.
+  I.e. on windows USERHOME/AppData/Local/Wings3D [dgud]
+
+- Improve rendering of transparent faces in smooth preview. [dgud]
+
+- Isometric view command [micheus]
+
+- Boolean fixes [dgud]
+
+- Exporter fixes [Julian Richardson]
+
+- Upgraded to erlang/otp-21.2 on Windows which should improve performance on large models. [dgud]
+
+- Minor fixes in Outliner and Geom Graph windows. [dgud]
+
 --- 2.2.2 --------------------------------------------
 
 - Improved STL importer. [dgud]
@@ -40,7 +62,7 @@
 
 - Alpha channel of a diffuse texture was drawing in black. Thanks to tkbd [micheus]
 
-- Upgraded to erlang/otp-21.2 (windows, mac) which should improve performance on large models. [dgud]
+- Upgraded to erlang/otp-21.2 (mac) which should improve performance on large models. [dgud]
 
 - General Mac improvements, menues and material viewer. Reported by tkbd [dgud]
 
