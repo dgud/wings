@@ -119,20 +119,22 @@ handle_hilite_event(redraw,#hl{redraw=#st{sel=[]}=St,prev=Prev}=Hl) when is_tupl
     Info = case Where of
       original ->
         case SelMode of
-          body ->
-            wings_util:format("~s #~p", [?__(3,"Object"),Obj]);
-          _Other ->
-            enhanced_hl_info(wings_util:format("~s #~p, ~s #~p",
-               [?__(3,"Object"),Obj,Mode,Elem]),Hl)
+            body ->
+                wings_util:format("~ts #~p", [?__(3,"Object"),Obj]);
+            _Other ->
+                Str = wings_util:format("~ts #~p, ~ts #~p",
+                                        [?__(3,"Object"),Obj,Mode,Elem]),
+                enhanced_hl_info(Str,Hl)
         end;
       mirror ->
         case SelMode of
           body ->
-            wings_util:format("~s #~p ~s", [?__(3,"Object"),
-              Obj,?__(2,"(in mirror)")]);
+                wings_util:format("~ts #~p ~ts",
+                                  [?__(3,"Object"), Obj,?__(2,"(in mirror)")]);
           _Other ->
-            enhanced_hl_info(wings_util:format("~s #~p, ~s #~p ~s",
-            [?__(3,"Object"),Obj,Mode,Elem,?__(2,"(in mirror)")]),Hl)
+                Str = wings_util:format("~ts #~p, ~ts #~p ~ts",
+                                        [?__(3,"Object"),Obj,Mode,Elem,?__(2,"(in mirror)")]),
+                enhanced_hl_info(Str,Hl)
         end
       end,
     wings:redraw(Info, St),
@@ -405,7 +407,7 @@ enhanced_hl_info(Base,#hl{redraw=#st{sel=[],shapes=Shs},prev=Prev}) when is_tupl
         {X,Y,Z} = wings_face:center(Elem, We),
         Area = area_info(Elem, We),
         Mat = wings_facemat:face(Elem, We),
-        [Base|io_lib:format(?__(4,". Midpoint <~s  ~s  ~s> \nMaterial ~s.")
+        [Base|io_lib:format(?__(4,". Midpoint <~s  ~s  ~s> \nMaterial ~ts.")
                             ++ Area,
                             [wings_util:nice_float(X),
                              wings_util:nice_float(Y),
