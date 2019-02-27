@@ -550,7 +550,7 @@
   {import_filename,
    [{1,"Tuo"}]},
   {import_image,
-   [{1,"Virhe ladatessa \"~s\": ~s\n"}]},
+   [{1,"Virhe ladatessa \"~ts\": ~ts\n"}]},
   {import_ndo,
    [{1,"Tuonti epäonnistui: "}]},
   {install_plugin,

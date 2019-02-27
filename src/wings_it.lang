@@ -517,7 +517,7 @@
   {import_filename,
    [{1,"Importa"}]},
   {import_image,
-   [{1,"Apertura di \"~s\" fallita: ~s\n"}]},
+   [{1,"Apertura di \"~ts\" fallita: ~ts\n"}]},
   {import_ndo,
    [{1,"Importazione fallita: "}]},
   {install_plugin,

@@ -557,7 +557,7 @@
   {import_filename,
    [{1,"Importerar"}]},
   {import_image,
-   [{1,"Kunde inte läsa \"~s\": ~s\n"}]},
+   [{1,"Kunde inte läsa \"~ts\": ~ts\n"}]},
   {import_ndo,
    [{1,"Importering misslyckades: "}]},
   {install_plugin,
