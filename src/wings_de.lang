@@ -1796,7 +1796,7 @@
    [
     {1,". Position <~s  ~s  ~s>"},
     {3,". Mittelpunkt <~s  ~s  ~s>\nLänge ~s"},
-    {4,". Mittelpunkt <~s  ~s  ~s> \nMaterial ~s."}
+    {4,". Mittelpunkt <~s  ~s  ~s> \nMaterial ~ts."}
    ]},
   {handle_hilite_event,
    [

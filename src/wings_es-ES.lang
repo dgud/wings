@@ -1898,7 +1898,7 @@
    [
     {1,". Posición <~s  ~s  ~s>"},
     {3,". Punto medio <~s  ~s  ~s>\nLongitud ~s"},
-    {4,". Punto medio <~s  ~s  ~s> \nMaterial ~s."}
+    {4,". Punto medio <~s  ~s  ~s> \nMaterial ~ts."}
    ]},
   {handle_hilite_event,
    [

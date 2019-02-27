@@ -1,8 +1,5 @@
 --- 2.2.3 --------------------------------------------
 
-- The submenu in 'AutoUV Segmentating' was shown in the wrong display for
-  multiple monitors layout. Thanks to OXO. [micheus]
-
 - Improved handling of patches and plugins.
   Now installs in the user data directory according to OS
   recommendations this avoids tampering with the original installation.
@@ -12,13 +9,19 @@
 
 - Isometric view command [micheus]
 
+- Upgraded to erlang/otp-21.2 on Windows which should improve performance on large models. [dgud]
+
 - Boolean fixes [dgud]
+
+- The submenu in 'AutoUV Segmentating' was shown in the wrong display for
+  multiple monitors layout. Thanks to OXO. [micheus]
 
 - Exporter fixes [Julian Richardson]
 
-- Upgraded to erlang/otp-21.2 on Windows which should improve performance on large models. [dgud]
-
 - Minor fixes in Outliner and Geom Graph windows. [dgud]
+
+- Select an element with non latin character was causing Wings3D
+  to crash. Thanks tkbd [micheus]
 
 --- 2.2.2 --------------------------------------------
 

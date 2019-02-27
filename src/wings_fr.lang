@@ -1821,7 +1821,7 @@
    [
     {1,". Position <~s  ~s  ~s>"},
     {3,". Point médian <~s  ~s  ~s>\Longueur ~s"},
-    {4,". Point médian <~s  ~s  ~s> \nMatériau ~s."}
+    {4,". Point médian <~s  ~s  ~s> \nMatériau ~ts."}
    ]},
   {handle_hilite_event,
    [

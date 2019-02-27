@@ -1713,7 +1713,7 @@
    [
     {1,". Konum <~s  ~s  ~s>"},
     {3,". Orta Nokta <~s  ~s  ~s>\nUzunluk ~s"},
-    {4,". Orta Nokta <~s  ~s  ~s> \nMalzeme ~s."}
+    {4,". Orta Nokta <~s  ~s  ~s> \nMalzeme ~ts."}
    ]},
   {handle_hilite_event,
    [
