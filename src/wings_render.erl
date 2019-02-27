@@ -250,7 +250,9 @@ render_smooth_objects(Transp, Open, Closed, SceneLights, RS0) ->
             gl:depthMask(?GL_TRUE),
             RS;
         false ->
-            RS3
+            RS = disable_lighting(RS3),
+            gl:enable(?GL_CULL_FACE),
+            RS
     end.
 
 render_smooth_objects_0([], _, _, RS0) ->
