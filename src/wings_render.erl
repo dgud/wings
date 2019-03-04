@@ -140,7 +140,7 @@ setup_scene_lights(true, Lights, RS0) ->
 
 render_objects(Mode, PM, MM, UseSceneLights) ->
     Dls = wings_dl:display_lists(),
-    {Transp, Open,Closed,Lights} = split_objects(Dls, false, [], [], []),
+    {Open,Closed,Lights} = split_objects(Dls, [], [], []),
     NonLights = Open ++ Closed,
     RS0 = #{ws_eyepoint => e3d_mat:mul_point(e3d_transform:inv_matrix(MM), {0.0,0.0,0.0}),
             view_from_world => MM},
@@ -149,10 +149,10 @@ render_objects(Mode, PM, MM, UseSceneLights) ->
     case wings_wm:get_prop(workmode) of
 	false ->
             RS10 = case UseSceneLights of
-                       true -> render_smooth_objects(Transp, Open, Closed, ambient, RS2); %% amb pass
+                       true -> render_smooth_objects(Open, Closed, ambient, RS2); %% amb pass
                        false -> RS2
                    end,
-            RS21 = render_smooth_objects(Transp, Open, Closed, SL, RS10),
+            RS21 = render_smooth_objects(Open, Closed, SL, RS10),
             RS22 = render_wire(NonLights, Mode, true, RS21),
             render_sel_highlight(NonLights, Mode, true, PM, RS22);
 	true ->
@@ -217,7 +217,7 @@ render_work_objects_1([D|Dls], SceneLights, RS0) ->
     render_work_objects_1(Dls, SceneLights, RS);
 render_work_objects_1([], _, RS) -> RS.
 
-render_smooth_objects(Transp, Open, Closed, SceneLights, RS0) ->
+render_smooth_objects(Open, Closed, SceneLights, RS0) ->
     gl:shadeModel(?GL_SMOOTH),
     gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_FILL),
     RS1 = enable_lighting(SceneLights, RS0),
@@ -227,7 +227,7 @@ render_smooth_objects(Transp, Open, Closed, SceneLights, RS0) ->
     RS2 = render_smooth_objects_0(Closed, false, SceneLights, RS1),
     wings_pref:get_value(show_backfaces) andalso gl:disable(?GL_CULL_FACE),
     RS3 = render_smooth_objects_0(Open, false, SceneLights, RS2),
-    case Transp of
+    case maps:get(transparent, RS3, false) of
         true ->
             %% Render a alpha test pass for almost opaque fragments
             gl:enable(?GL_ALPHA_TEST),
@@ -335,20 +335,18 @@ render_plain(#dlo{proxy_data=PD, drag=Drag}, SceneLights, RS0) ->
             wings_dl:call(Faces, RS0)
     end.
 
-render_smooth(#dlo{work=Work,smooth=Smooth0, proxy=Proxy,proxy_data=PD},
+render_smooth(#dlo{work=Work,smooth=Smooth0, proxy=Proxy,proxy_data=PD, transparent=Trans0},
 	      RenderTrans, _SceneLights, RS) ->
-    Smooth = case Proxy of
-                 false -> Smooth0;
-                 true -> element(1, wings_proxy:smooth_dl(PD))
-             end,
-
-    Draw = case {Smooth,RenderTrans} of
-               {none,false}   -> Work;
-               {[Op,_],false} -> Op;
-               {[_,Tr],true}  -> Tr;
-               {_,_} -> none
-           end,
-    wings_dl:call(Draw, RS).
+    {Smooth, HaveTrans} = case Proxy of
+                              false -> {Smooth0, Trans0};
+                              true -> wings_proxy:smooth_dl(PD)
+                          end,
+    case {Smooth,RenderTrans} of
+        {none,false}   -> wings_dl:call(Work, RS);
+        {[Op,_],false} -> wings_dl:call(Op, RS#{transparent=>HaveTrans});
+        {[_,Tr],true}  -> wings_dl:call(Tr, RS);
+        {_,_} -> RS
+    end.
 
 enable_lighting(false, #{}=RS0) ->
     Lighting = wings_pref:get_value(number_of_lights),
@@ -456,14 +454,14 @@ render_wire_object_1(#dlo{mirror=Matrix}=D, PStyle, RS0) ->
     gl:frontFace(?GL_CCW),
     RS.
 
-split_objects([#dlo{src_we=We}=D|Dls], Trans, Open, Closed, Lights) when ?IS_ANY_LIGHT(We) ->
-    split_objects(Dls, Trans, Open, Closed, [D|Lights]);
-split_objects([#dlo{open=true, transparent=T}=D|Dls], Trans, Open, Closed, Lights) ->
-    split_objects(Dls, T orelse Trans, [D|Open], Closed, Lights);
-split_objects([#dlo{open=false, transparent=T}=D|Dls], Trans, Open, Closed, Lights) ->
-    split_objects(Dls, T orelse Trans, Open, [D|Closed], Lights);
-split_objects([], Trans, Open, Closed, Lights) ->
-    {Trans, Open, Closed, Lights}.
+split_objects([#dlo{src_we=We}=D|Dls], Open, Closed, Lights) when ?IS_ANY_LIGHT(We) ->
+    split_objects(Dls, Open, Closed, [D|Lights]);
+split_objects([#dlo{open=true}=D|Dls], Open, Closed, Lights) ->
+    split_objects(Dls, [D|Open], Closed, Lights);
+split_objects([#dlo{open=false}=D|Dls], Open, Closed, Lights) ->
+    split_objects(Dls, Open, [D|Closed], Lights);
+split_objects([], Open, Closed, Lights) ->
+    {Open, Closed, Lights}.
 
 split_wires([#dlo{src_we=We}|Dls], WOs, Show, Wires, Others, Proxis) when ?IS_LIGHT(We) ->
     split_wires(Dls, WOs, Show, Wires, Others, Proxis);
