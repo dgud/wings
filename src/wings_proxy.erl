@@ -78,8 +78,8 @@ invalidate(#sp{}, all) ->
     none.
 
 smooth_dl(#sp{smooth=Smooth}) when Smooth =/= none -> Smooth;
-smooth_dl(#sp{smooth=none, faces=FL}) when FL =/= none -> {[FL,[]], false};
-smooth_dl(_) -> {none, false}.
+smooth_dl(#sp{smooth=none, faces=FL}) when FL =/= none -> {FL,none};
+smooth_dl(_) -> none.
 
 flat_dl(#sp{faces=FL}) -> FL.
 

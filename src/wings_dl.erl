@@ -19,7 +19,7 @@
 	 update/2,map/2,fold/2,changed_materials/1,
 	 display_lists/0,
 	 call/2,mirror_matrix/1,draw/4]).
--export_type([dl/0,real_dl/0,sel_dl/0]).
+-export_type([dl/0,smooth/0,real_dl/0,sel_dl/0]).
 
 %%% This module manages Vertex Buffer Objects (VBOs, represented by
 %%% #vab{} records) for all objects in a Geometry or AutoUV window.
@@ -57,6 +57,8 @@
 -type dl() :: 'none' | real_dl().
 -type sel_dl() :: 'none' | vab() | vbo() | draw_fun()
                 | {'call',draw_fun()|'none',vab()|vbo()}.
+
+-type smooth() :: 'none' | {real_dl(), real_dl()}.
 
 -type rs() :: map().
 

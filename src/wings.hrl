@@ -259,7 +259,7 @@
 %%  or record to not be interpreted as a display list.
 -record(dlo,
         {work=none :: wings_dl:dl(),            %Workmode faces.
-         smooth=none :: wings_dl:dl(),          %Smooth-shaded faces.
+         smooth=none :: wings_dl:smooth(),      %Smooth-shaded faces.
          edges=none :: wings_dl:dl(),           %Edges and wire-frame.
          vs=none :: wings_dl:dl(),              %Unselected vertices.
          hard=none :: wings_dl:dl(),            %Hard edges.
@@ -293,7 +293,7 @@
                     | wings_drag:drag()
                     | wings_tweak:drag()
                     | {matrix,_,_,e3d_mat:matrix()}, %For dragging.
-         transparent=false :: boolean() | #we{}, %Object includes transparency.
+         temp_we :: 'undefined' | #we{},        % ??? used in drag and ligth ??
          open=false :: boolean(),               %Open (has hole).
 
 	 %% List of display lists known to be needed only based

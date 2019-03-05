@@ -332,8 +332,8 @@ update_fun_2(work, #dlo{work=none}=D0, St) ->
     D#dlo{work=Dl};
 update_fun_2(smooth, #dlo{smooth=none,proxy=false}=D0, St) ->
     D  = wings_draw_setup:smooth(D0, St),
-    {List,Tr} = draw_smooth_faces(D, St),
-    D#dlo{smooth=List,transparent=Tr};
+    Smooth = draw_smooth_faces(D, St),
+    D#dlo{smooth=Smooth};
 update_fun_2(smooth, #dlo{proxy=true}=D0, St) ->
     wings_proxy:smooth(D0,St);
 update_fun_2({vertex,_PtSize}, #dlo{vs=none,src_we=We}=D, _) ->
@@ -900,11 +900,11 @@ draw_smooth_faces(#vab{mat_map=MatMap}=Vab, #st{mat=Mtab}) ->
     case Transparent of
 	[] ->
 	    %% All faces are solid.
-	    {[DrawSolid,none],false};
+	    {DrawSolid,none};
 	_ ->
 	    %% Create the display list for the transparent faces.
 	    DrawTr = draw_mat_faces(Vab, Extra, Transparent, Mtab),
-	    {[DrawSolid,DrawTr],true}
+	    {DrawSolid,DrawTr}
     end.
 
 draw_mat_faces(Vab, Extra, MatGroups, Mtab) ->

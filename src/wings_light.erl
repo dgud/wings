@@ -471,7 +471,7 @@ update_dynamic(#dlo{src_we=We0}=D, Vtab0) ->
 update_matrix(#dlo{src_we=We0}=D, Matrix) ->
     We = wings_we:transform_vs(Matrix, We0),
     List = update_1(We, D),
-    D#dlo{work=List,sel=none,transparent=We}.
+    D#dlo{work=List,sel=none,temp_we=We}.
 
 update(#dlo{work=none,src_we=#we{light=#light{}}=We}=D) ->
     List = update_1(We, D),
@@ -825,7 +825,7 @@ camera_infinite_2_1() ->
 	   aim      = {-0.71,-0.71,0.0}
 	  }.
 
-scene_lights_fun(#dlo{transparent=#we{light=L}=We}) ->
+scene_lights_fun(#dlo{temp_we=#we{light=L}=We}) ->
     %% This happens when dragging a light in Body selection mode.
     %% (Not area light.)
     prepare_light(L, We, none);
