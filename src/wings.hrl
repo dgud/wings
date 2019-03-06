@@ -328,11 +328,48 @@
 -type vab() :: #vab{}.
 
 
+%%% WORK_IN_PROGRESS
+
+-type st_generation() :: non_neg_integer().
+
+%% wings_obj is a new module for handling the non-geometry part
+%% of objects.
+
+%% All data that must be versioned in each we process. We keep
+%% those records in a map.
+
+-record(wst_versioned,
+        {
+         we :: #we{},
+         sel = gb_sets:empty() :: gb_sets:set(wings_sel:item_id()),
+         saved_mode = none :: 'none' | wings_sel:mode()        %Only valid when invisible.
+        }).
+
+%% This record holds a copy of the geometry and selection corresponding
+%% to the display lists in the #dlo{} record.
+
+-record(dlo_src,
+        {
+         we :: #we{},
+         ns    = 'none' :: wings_draw:normals(),
+         sel   = []     :: [wings_sel:item_id()],
+         split = 'none' :: 'none' | wings_draw:split()
+        }).
+
+%% This record is the state data for the processes holding the #we{} records.
+%% NOTE: Should probably remain a record. We should attempt to make it
+%% internal to a single module, instead of having it globally visible.
+
+-record(wst,
+	{insts :: #{st_generation() := #wst_versioned{}},
+
+         %% Data used for drawing and picking.
+         dlo_src=#dlo_src{} :: #dlo_src{}
+	}).
+
 -ifdef(WORK_IN_PROGRESS).
 %% Here are some suggested changes needed for moving each #we{} into its own
 %% process.
-
--type st_generation() :: non_neg_integer().
 
 -record(st,
 	{
@@ -353,45 +390,6 @@
 	  %% The rest of #st{} is as before.
 	  ...
 	}).
-
-
-%% wings_obj is a new module for handling the non-geometry part
-%% of objects.
-
-%% All data that must be versioned in each we process. We keep
-%% those records in a map.
-
--record(wst_versioned,
-        {
-          we :: #we{},
-          sel :: gb_sets:set(wings_sel:item_id()),
-          saved_mode :: wings_sel:mode()        %Only valid when invisible.
-        }).
-
-
-%% This record holds a copy of the geometry and selection corresponding
-%% to the display lists in the #dlo{} record.
-
--record(dlo_src,
-        {
-          we :: #we{},
-          ns :: wings_draw:normals(),
-          sel :: [wings_sel:item_id()],
-          split :: wings_draw:split()
-        }).
-
-
-%% This record is the state data for the processes holding the #we{} records.
-%% NOTE: Should probably remain a record. We should attempt to make it
-%% internal to a single module, instead of having it globally visible.
-
--record(wst,
-	{insts :: map(st_generation(), #wst_versioned{}),
-
-         %% Data used for drawing and picking.
-         dlo_src=#dlo_src{} :: #dlo_src{}
-	}).
-
 
 %% The Winged-Edge data structure.
 %% See http://www.cs.mtu.edu/~shene/COURSES/cs3621/NOTES/model/winged-e.html

@@ -29,7 +29,7 @@
 -type perm() :: 0..3.
 
 -type obj() :: #{'id' := id(),
-                 'pid' := pid(),
+                 'pid' := pid(),  %% From wings_we_srv:start(We,Gen),
                  'name' := string(),
                  'perm' := perm(),
                  'matrix' := term(),

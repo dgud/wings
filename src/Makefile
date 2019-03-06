@@ -126,6 +126,7 @@ MODULES= \
 	wings_we \
 	wings_we_build \
 	wings_we_util \
+	wings_we_srv \
 	wings_wm \
 	wpa \
 	ww_color_ctrl \

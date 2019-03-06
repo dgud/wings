@@ -14,10 +14,10 @@
 -behaviour(supervisor).
 
 %% API
--export([start/2, start_link/0, stop/1, window/3]).
+-export([start/2, start_link/0, stop/1, window/3, object/1]).
 
 %% Supervisor callbacks
--export([init/1, init_done/0, window_sup/1, mandatory_sup/1, wx_object/3]).
+-export([init/1, init_done/0, window_sup/1, object_sup/0, mandatory_sup/1, wx_object/3]).
 
 %% Main start function
 
@@ -41,8 +41,12 @@ start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, [top]).
 
 window(Name, Module, Args) ->
-    {ok, _, Window} = supervisor:start_child(windows, [Name, Module, Args]),
+    {ok, _, Window} = supervisor:start_child(windows_sup, [Name, Module, Args]),
     Window.
+
+object(Args) ->
+    {ok, Child} = supervisor:start_child(objects_sup, [Args]),
+    Child.
 
 %%%===================================================================
 %%% Supervisor callbacks
@@ -65,10 +69,13 @@ wx_object(Name, Module, Args) ->
 
 %% Starts the window supervisor
 window_sup(Env) ->
-    supervisor:start_link({local, windows}, ?MODULE, [windows, Env]).
+    supervisor:start_link({local, windows_sup}, ?MODULE, [windows, Env]).
+
+object_sup() ->
+    supervisor:start_link({local, objects_sup}, ?MODULE, [objects]).
 
 mandatory_sup(Env) ->
-    supervisor:start_link({local, mandatory}, ?MODULE, [mandatory, Env]).
+    supervisor:start_link({local, mandatory_sup}, ?MODULE, [mandatory, Env]).
 
 init_done() ->
     Pid = spawn_link(fun() -> wings ! supervisor_initialization_done, normal end),
@@ -92,19 +99,25 @@ init([top]) ->
                 shutdown => 5000,
                 type => worker,
                 modules => [wings_console]},
-    WindowSup = #{id => windows,
+    WindowSup = #{id => windows_sup,
                   start => {?MODULE, window_sup, [Env]},
                   restart => permanent,
                   shutdown => 5000,
                   type => supervisor,
                   modules => [?MODULE]},
-    MandatorySup = #{id => mandatory,
+    ObjSup = #{id => objects_sup,
+               start => {?MODULE, object_sup, []},
+               restart => permanent,
+               shutdown => 5000,
+               type => supervisor,
+               modules => [?MODULE]},
+    MandatorySup = #{id => mandatory_sup,
                      start => {?MODULE, mandatory_sup, [Env]},
                      restart => permanent,
                      shutdown => 5000,
                      type => supervisor,
                      modules => [?MODULE]},
-    {ok, {SupFlags, [Console, WindowSup, Main, MandatorySup]}};
+    {ok, {SupFlags, [Console, WindowSup, ObjSup, Main, MandatorySup]}};
 
 init([mandatory, Env]) ->
     wx:set_env(Env),
@@ -154,6 +167,19 @@ init([windows, Env]) ->
 
     ChildSpec = #{id=>window,
                   start=>{?MODULE, wx_object, []},
+                  restart=>temporary,
+                  shutdown=>1000,
+                  type=>worker
+                 },
+    {ok, {SupFlags, [ChildSpec]}};
+
+init([objects]) ->
+    SupFlags = #{strategy => simple_one_for_one,
+                 intensity => 1,
+                 period => 5},
+
+    ChildSpec = #{id=>object,
+                  start=>{wings_we_srv, start_link, []},
                   restart=>temporary,
                   shutdown=>1000,
                   type=>worker
