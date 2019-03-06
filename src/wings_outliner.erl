@@ -49,7 +49,7 @@ window(St) ->
 window(Pos, Size, Ps0, St) ->
     Shapes = get_state(St),
     {Frame,Ps} = wings_frame:make_win(title(), [{size, Size}, {pos, Pos}|Ps0]),
-    Window = wings_sup:window(undefined, ?MODULE, [Frame, Ps, Shapes]),
+    Window = wings_sup:window(outliner, ?MODULE, [Frame, Ps, Shapes]),
     Fs = [{display_data, geom_display_lists}|Ps],
     wings_wm:toplevel(?MODULE, Window, Fs, {push, change_state(Window, St)}),
     keep.

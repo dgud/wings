@@ -428,7 +428,7 @@ window(St) ->
 window(Name, Pos, Size, Ps0, St) ->
     State = get_state(Name),
     {Frame,Ps} = wings_frame:make_win(title(), [{size, Size}, {pos, Pos}|Ps0]),
-    Window = wings_sup:window(undefined, ?MODULE, [Frame, Name, State]),
+    Window = wings_sup:window(snap_image, ?MODULE, [Frame, Name, State]),
     wings_wm:toplevel(Name, Window, Ps, {push,change_state(Window, St)}),
     keep.
 

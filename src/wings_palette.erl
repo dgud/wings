@@ -72,7 +72,7 @@ palette(#st{pal=Pal0}) ->
 create_window(Pos, Size, Ps0, St) ->
     Cols  = get_all_colors(St),
     {Frame,Ps} = wings_frame:make_win(title(), [{size, Size}, {pos, Pos}|Ps0]),
-    Window = wings_sup:window(undefined, ?MODULE, [Frame, Size, Ps, Cols]),
+    Window = wings_sup:window(palette, ?MODULE, [Frame, Size, Ps, Cols]),
     F = fun({color,_}) -> yes;
 	   ({material, _}) -> yes;
 	   (_) -> no

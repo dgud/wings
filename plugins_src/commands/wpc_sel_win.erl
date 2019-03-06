@@ -84,7 +84,7 @@ window(St) ->
 window(?WIN_NAME, Pos, Size, Ps0, St) ->
     Sel = get_sel_state(St),
     {Frame,Ps} = wings_frame:make_win(title(), [{size, Size}, {pos, Pos}|Ps0]),
-    Window = wings_sup:window(undefined, ?MODULE, [Frame, Ps, Sel]),
+    Window = wings_sup:window(sel_groups, ?MODULE, [Frame, Ps, Sel]),
     Fs = [{display_data, geom_display_lists}|Ps],
     wings_wm:toplevel(?WIN_NAME, Window, Fs, {push,change_state(Window, Sel)}),
     keep.
