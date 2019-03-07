@@ -337,15 +337,22 @@ render_plain(#dlo{proxy_data=PD, drag=Drag}, SceneLights, RS0) ->
 
 render_smooth(#dlo{work=Work,smooth=Smooth0, proxy=Proxy,proxy_data=PD, transparent=Trans0},
 	      RenderTrans, _SceneLights, RS) ->
-    {Smooth, HaveTrans} = case Proxy of
-                              false -> {Smooth0, Trans0};
-                              true -> wings_proxy:smooth_dl(PD)
-                          end,
+    {Smooth, Trans} = case Proxy of
+                          false -> {Smooth0, Trans0};
+                          true -> wings_proxy:smooth_dl(PD)
+                      end,
     case {Smooth,RenderTrans} of
-        {none,false}   -> wings_dl:call(Work, RS);
-        {[Op,_],false} -> wings_dl:call(Op, RS#{transparent=>HaveTrans});
-        {[_,Tr],true}  -> wings_dl:call(Tr, RS);
-        {_,_} -> RS
+        {none,false}   ->
+            wings_dl:call(Work, RS);
+        {[Op,_],false} ->
+            RS1 = if Trans -> RS#{transparent=>Trans};
+                     true -> RS
+                  end,
+            wings_dl:call(Op, RS1);
+        {[_,Tr],true}  ->
+            wings_dl:call(Tr, RS);
+        {_,_} ->
+            RS
     end.
 
 enable_lighting(false, #{}=RS0) ->
