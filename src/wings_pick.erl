@@ -246,12 +246,13 @@ insert_hilite_dl(Hit, St) ->
     insert_hilite_dl(Hit, Extra, St).
 
 insert_hilite_dl(Hit, Extra, St) ->
-    wings_dl:map(fun(D, _) ->
-			 insert_hilite_dl_1(D, Hit, Extra, St)
+    wings_dl:map(fun(D, Src, _) ->
+			 insert_hilite_dl_1(D, Src, Hit, Extra, St)
 		 end, []).
 
-insert_hilite_dl_1(#dlo{src_we=We}=D, _, _, _) when ?IS_LIGHT(We) -> D;
-insert_hilite_dl_1(#dlo{open=Open,src_we=#we{id=Id}=We}=D,
+insert_hilite_dl_1(#dlo{}=D, #dlo_src{we=We}, _, _, _) when ?IS_LIGHT(We) -> D;
+insert_hilite_dl_1(#dlo{open=Open}=D,
+                   #dlo_src{we=#we{id=Id}=We},
 		   {Mode,_,{Id,Item}=Hit}, Extra, St) ->
     DrawExtra = Extra(We),
     HiliteColor = hilite_color(Hit, St),
@@ -269,8 +270,8 @@ insert_hilite_dl_1(#dlo{open=Open,src_we=#we{id=Id}=We}=D,
 		   Draw0
 	   end,
     D#dlo{hilite={Mode, Draw}};
-insert_hilite_dl_1(#dlo{hilite=none}=D, _, _, _) -> D;
-insert_hilite_dl_1(D, _, _, _) -> D#dlo{hilite=none}.
+insert_hilite_dl_1(#dlo{hilite=none}=D, _, _, _, _) -> D;
+insert_hilite_dl_1(D, _, _, _, _) -> D#dlo{hilite=none}.
 
 tweak_vector() ->
     Draw = wings_wm:lookup_prop(tweak_draw) =:= {value,true},
@@ -333,7 +334,7 @@ draw_tweak_vector_fun(Center, Normal) ->
 	end,
     wings_vbo:new(D, Data).
 
-hilite_draw_sel_fun(vertex, V, #dlo{src_we=#we{vp=Vtab}}) ->
+hilite_draw_sel_fun(vertex, V, #dlo{src=#dlo_src{we=#we{vp=Vtab}}}) ->
     PointSize = wings_pref:get_value(selected_vertex_size),
     Data = [array:get(V, Vtab)],
     D = fun(RS) ->
@@ -342,7 +343,7 @@ hilite_draw_sel_fun(vertex, V, #dlo{src_we=#we{vp=Vtab}}) ->
                 RS
 	end,
     wings_vbo:new(D, Data);
-hilite_draw_sel_fun(edge, Edge, #dlo{src_we=#we{es=Etab,vp=Vtab}}) ->
+hilite_draw_sel_fun(edge, Edge, #dlo{src=#dlo_src{we=#we{es=Etab,vp=Vtab}}}) ->
     #edge{vs=Va,ve=Vb} = array:get(Edge, Etab),
     LineWidth = wings_pref:get_value(selected_edge_width),
     Data = [array:get(Va, Vtab),array:get(Vb, Vtab)],
@@ -925,17 +926,17 @@ visible_edges([{Edge,#edge{vs=Va,ve=Vb,lf=Lf,rf=Rf}}|Es], Vtab, Vis, Acc) ->
 visible_edges([], _, _, Acc) -> Acc.
 
 setup_pick_context(PickFun, Ms) ->
-    Res = wings_dl:fold(fun(D, Acc) ->
-				setup_pick_context_fun(D, PickFun, Ms, Acc)
+    Res = wings_dl:fold(fun(D, Src, Acc) ->
+				setup_pick_context_fun(D, Src, PickFun, Ms, Acc)
 			end, []),
     sort(Res).
 
-setup_pick_context_fun(#dlo{src_we=#we{perm=Perm}}, _PickFun, _, Acc)
+setup_pick_context_fun(#dlo{}, #dlo_src{we=#we{perm=Perm}}, _PickFun, _, Acc)
   when ?IS_NOT_SELECTABLE(Perm) ->
     Acc;
-setup_pick_context_fun(#dlo{mirror=none,src_we=We}, PickFun, _, Acc) ->
+setup_pick_context_fun(#dlo{mirror=none}, #dlo_src{we=We}, PickFun, _, Acc) ->
     PickFun(We, Acc);
-setup_pick_context_fun(#dlo{mirror=Mirror,src_we=We}, PickFun, Ms, Acc0) ->
+setup_pick_context_fun(#dlo{mirror=Mirror}, #dlo_src{we=We}, PickFun, Ms, Acc0) ->
     Acc1 = PickFun(We, Acc0),
     set_pick_matrix(Ms, Mirror),
     wings_pick_nif:front_face(cw),
@@ -949,8 +950,8 @@ setup_pick_context_fun(#dlo{mirror=Mirror,src_we=We}, PickFun, Ms, Acc0) ->
 %%
 
 dlo_pick(St, OneHit, Matrices) ->
-    Hits0 = wings_dl:map(fun(D, Acc) ->
-				 do_dlo_pick(D, St, OneHit, Matrices, Acc)
+    Hits0 = wings_dl:map(fun(D, Src, Acc) ->
+				 do_dlo_pick(D, Src, St, OneHit, Matrices, Acc)
 			 end, []),
     case Hits0 of
 	{_,Hits} ->
@@ -961,27 +962,27 @@ dlo_pick(St, OneHit, Matrices) ->
 	    usort(Hits0)
     end.
 
-do_dlo_pick(#dlo{src_we=#we{perm=Perm}}=D, _St, _OneHit, _Ms, Acc)
+do_dlo_pick(#dlo{}=D, #dlo_src{we=#we{perm=Perm}}, _St, _OneHit, _Ms, Acc)
   when ?IS_NOT_SELECTABLE(Perm) ->
     {D,Acc};
-do_dlo_pick(D=#dlo{vab=none}, St, OneHit, Ms, Acc) ->
-    do_dlo_pick(wings_draw_setup:work(D, St), St, OneHit, Ms, Acc);
-do_dlo_pick(D=#dlo{vab=#vab{face_vs=none}}, St, OneHit, Ms, Acc) ->
-    do_dlo_pick(wings_draw_setup:work(D, St), St, OneHit, Ms, Acc);
-do_dlo_pick(#dlo{mirror=none,src_we=#we{id=Id}=We}=D, _, OneHit, _Ms, Acc)
+do_dlo_pick(D=#dlo{vab=none}, Src, St, OneHit, Ms, Acc) ->
+    do_dlo_pick(wings_draw_setup:work(D, Src, St), Src, St, OneHit, Ms, Acc);
+do_dlo_pick(D=#dlo{vab=#vab{face_vs=none}}, Src, St, OneHit, Ms, Acc) ->
+    do_dlo_pick(wings_draw_setup:work(D, Src, St), Src, St, OneHit, Ms, Acc);
+do_dlo_pick(#dlo{mirror=none}=D, #dlo_src{we=#we{id=Id}=We}, _, OneHit, _Ms, Acc)
   when ?IS_AREA_LIGHT(We) ->
     Cull = wings_pick_nif:culling(),
     wings_pick_nif:cull(false),
     Res = do_dlo_pick_0(Id, D, OneHit, Acc),
     wings_pick_nif:cull(Cull),
     Res;
-do_dlo_pick(#dlo{mirror=none,open=Open,src_we=#we{id=Id}}=D, _, OneHit, _Ms, Acc) ->
+do_dlo_pick(#dlo{mirror=none,open=Open}=D,#dlo_src{we=#we{id=Id}}, _, OneHit, _Ms, Acc) ->
     case wings_pref:get_value(show_backfaces) of
         true when Open -> wings_pick_nif:front_face(cw);
         _ -> wings_pick_nif:front_face(ccw)
     end,
     do_dlo_pick_0(Id, D, OneHit, Acc);
-do_dlo_pick(#dlo{mirror=Matrix,open=Open,src_we=#we{id=Id}}=D0, _, OneHit, Ms, Acc0) ->
+do_dlo_pick(#dlo{mirror=Matrix,open=Open}=D0,#dlo_src{we=#we{id=Id}}, _, OneHit, Ms, Acc0) ->
     case wings_pref:get_value(show_backfaces) of
         true when Open ->
             wings_pick_nif:front_face(cw),

@@ -639,23 +639,23 @@ delayed_set_value(Key, OldVal, NewVal) ->
     ets:insert(wings_delayed_update, {Key,NewVal}).
 
 update_normal_dlist(St) ->
-    wings_dl:map(fun(D, _) -> D#dlo{normals=none} end, []),
+    wings_dl:map(fun(D, _, _) -> D#dlo{normals=none} end, []),
     wings_draw:refresh_dlists(St).
 
 clear_vertex_dlist() ->
-    wings_dl:map(fun clear_vertex_dlist/2, []).
+    wings_dl:map(fun clear_vertex_dlist/3, []).
 
-clear_vertex_dlist(D, _) -> D#dlo{vs=none}.
+clear_vertex_dlist(D, _, _) -> D#dlo{vs=none}.
 
 clear_proxy(St) ->
-    wings_dl:map(fun(D, _) -> clear_proxy(D, St) end, []).
+    wings_dl:map(fun(D, _, _) -> clear_proxy(D, St) end, []).
 
 clear_proxy(#dlo{proxy_data=Data}=D, St) ->
     PD = wings_proxy:invalidate(Data, all),
     wings_proxy:update(D#dlo{proxy_data=PD}, St).
 
 clear_proxy_edges(St) ->
-    wings_dl:map(fun(D, _) -> clear_proxy_edges(D, St) end, []).
+    wings_dl:map(fun(D, _, _) -> clear_proxy_edges(D, St) end, []).
 
 clear_proxy_edges(#dlo{proxy_data=Data}=D, St) ->
     PD = wings_proxy:invalidate(Data, edges),

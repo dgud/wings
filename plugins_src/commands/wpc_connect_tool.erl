@@ -259,9 +259,9 @@ mode_change(Mode, #cs{st=St0}=C) ->
     update_connect_handler(C#cs{st=St}).
 
 topological_change(#st{shapes=Shs}) ->
-    R = wings_dl:fold(fun(#dlo{src_we=We}, [We|Wes]) -> Wes;
-			 (#dlo{drag=none}, [_|Wes]) -> Wes;
-			 (_, _) -> changed
+    R = wings_dl:fold(fun(#dlo{}, #dlo_src{we=We}, [We|Wes]) -> Wes;
+			 (#dlo{drag=none}, _, [_|Wes]) -> Wes;
+			 (_, _, _) -> changed
 		      end, gb_trees:values(Shs)),
     R =:= changed.
 
@@ -566,10 +566,10 @@ lc_help(#cs{loop_cut=true}) -> "[1] " ++ ?__(1,"Loop Connect Off");
 lc_help(_) ->                  "[1] " ++ ?__(2,"Loop Connect On").
 
 fake_selection(St) ->
-    wings_dl:fold(fun(#dlo{src_sel=none}, S) ->
+    wings_dl:fold(fun(#dlo{}, #dlo_src{sel=none}, S) ->
 			  %% No selection, try highlighting.
 			  fake_sel_1(S);
-		     (#dlo{src_we=#we{id=Id},src_sel={Mode,Els}}, S) ->
+		     (#dlo{}, #dlo_src{we=#we{id=Id},sel={Mode,Els}}, S) ->
 			  S#st{selmode=Mode,sel=[{Id,Els}]}
 		  end, St).
 

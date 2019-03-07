@@ -430,10 +430,10 @@ cleanup_before_exit() ->
     wings_dl:delete_dlists().
 
 fake_selection(St) ->
-    wings_dl:fold(fun(#dlo{src_sel=none}, S) ->
+    wings_dl:fold(fun(#dlo{}, #dlo_src{sel=none}, S) ->
 			  %% No selection, try highlighting.
 			  fake_sel_1(S);
-		     (#dlo{src_we=#we{id=Id},src_sel={Mode,Els}}, S) ->
+		     (#dlo{}, #dlo_src{we=#we{id=Id},sel={Mode,Els}},S) ->
 			  S#st{selmode=Mode,sel=[{Id,Els}]}
 		  end, St).
 

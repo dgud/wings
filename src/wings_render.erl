@@ -68,7 +68,7 @@ render(#st{selmode=Mode}=St) ->
 
 -spec draw_orig_sel_dl(wings_sel:mode()) -> 'ok'.
 draw_orig_sel_dl(Mode) ->
-    wings_dl:map(fun(#dlo{orig_sel=none,sel=Dlist0}=D, _) ->
+    wings_dl:map(fun(#dlo{sel=Dlist0}=D, #dlo_src{sel=none}, _) ->
                          Draw = draw_orig_sel_fun(Mode, Dlist0),
                          Dlist = {call,Draw,Dlist0},
 			 D#dlo{orig_sel=Dlist}
@@ -179,7 +179,7 @@ render_lights(Lights, Mode, PM, RS0) ->
     RS21 = wings_shaders:use_prog(0, RS2),
     polygonOffset(0.0),
     gl:disable(?GL_POLYGON_OFFSET_FILL),
-    AreaLights = [D || #dlo{src_we=We}=D <- Lights, ?IS_AREA_LIGHT(We)],
+    AreaLights = [D || #dlo{src=#dlo_src{we=We}}=D <- Lights, ?IS_AREA_LIGHT(We)],
     case AreaLights of
         [] -> RS21;
         AreaLights ->
@@ -304,7 +304,7 @@ render_object_2(D, true, _, SceneLights, RS) ->
 render_object_2(D, false, RenderTrans, SceneLights, RS) ->
     render_smooth(D, RenderTrans, SceneLights, RS).
 
-render_plain(#dlo{work=Faces,src_we=We,proxy=false}, _SceneLights, RS) ->
+render_plain(#dlo{work=Faces,src=#dlo_src{we=We},proxy=false}, _SceneLights, RS) ->
     case wire(We) of
         _ when ?IS_LIGHT(We) -> wings_dl:call(Faces, RS);
         false -> wings_dl:call(Faces, RS);
@@ -462,7 +462,7 @@ render_wire_object_1(#dlo{mirror=Matrix}=D, PStyle, RS0) ->
     gl:frontFace(?GL_CCW),
     RS.
 
-split_objects([#dlo{src_we=We}=D|Dls], Open, Closed, Lights) when ?IS_ANY_LIGHT(We) ->
+split_objects([#dlo{src=#dlo_src{we=We}}=D|Dls], Open, Closed, Lights) when ?IS_ANY_LIGHT(We) ->
     split_objects(Dls, Open, Closed, [D|Lights]);
 split_objects([#dlo{open=true}=D|Dls], Open, Closed, Lights) ->
     split_objects(Dls, [D|Open], Closed, Lights);
@@ -471,9 +471,9 @@ split_objects([#dlo{open=false}=D|Dls], Open, Closed, Lights) ->
 split_objects([], Open, Closed, Lights) ->
     {Open, Closed, Lights}.
 
-split_wires([#dlo{src_we=We}|Dls], WOs, Show, Wires, Others, Proxis) when ?IS_LIGHT(We) ->
+split_wires([#dlo{src=#dlo_src{we=We}}|Dls], WOs, Show, Wires, Others, Proxis) when ?IS_LIGHT(We) ->
     split_wires(Dls, WOs, Show, Wires, Others, Proxis);
-split_wires([#dlo{src_we=#we{id=Id}, proxy=Proxy}=D|Dls], WOs, Show, Wires, Others,Proxis) ->
+split_wires([#dlo{src=#dlo_src{we=#we{id=Id}}, proxy=Proxy}=D|Dls], WOs, Show, Wires, Others,Proxis) ->
     case gb_sets:is_member(Id, WOs) of
         true when Proxy -> split_wires(Dls, WOs, Show, Wires, Others, [D|Proxis]);
         true -> split_wires(Dls, WOs, Show, [D|Wires], Others,Proxis);
@@ -533,7 +533,7 @@ render_sel_2(#dlo{}=D, SelMode, false, RS0) ->
     draw_normals(D, RS2);
 render_sel_2(#dlo{sel=none, orig_sel=none, hilite=none}, _SelMode, _, RS0) ->
     RS0;
-render_sel_2(#dlo{src_we=We}=D, _SelMode, true, RS0) ->
+render_sel_2(#dlo{src=#dlo_src{we=We}}=D, _SelMode, true, RS0) ->
     RS = case wire(We) of
              true ->
                  gl:disable(?GL_CULL_FACE),
@@ -552,11 +552,11 @@ wire(#we{id=Id}) ->
     gb_sets:is_member(Id, W).
 
 draw_sel(#dlo{sel=none}, RS) -> RS;
-draw_sel(#dlo{sel=SelDlist,src_sel={edge,_}}, RS0) ->
+draw_sel(#dlo{sel=SelDlist,src=#dlo_src{sel={edge,_}}}, RS0) ->
     gl:lineWidth(wings_pref:get_value(selected_edge_width)),
     RS = sel_color(RS0),
     wings_dl:call(SelDlist, RS);
-draw_sel(#dlo{sel=SelDlist,src_sel={vertex,_}}, RS0) ->
+draw_sel(#dlo{sel=SelDlist,src=#dlo_src{sel={vertex,_}}}, RS0) ->
     gl:pointSize(wings_pref:get_value(selected_vertex_size)),
     RS = sel_color(RS0),
     wings_dl:call(SelDlist, RS);
@@ -589,7 +589,7 @@ sel_color(RS0) ->
     gl:color3fv(wings_pref:get_value(selected_color)),
     RS0.
 
-draw_vertices(#dlo{src_we=#we{perm=P},vs=VsDlist}, vertex, RS0) when ?IS_SELECTABLE(P) ->
+draw_vertices(#dlo{src=#dlo_src{we=#we{perm=P}},vs=VsDlist}, vertex, RS0) when ?IS_SELECTABLE(P) ->
     {R,G,B} = wings_pref:get_value(vertex_color),
 	Size = wings_pref:get_value(vertex_size),
     gl:pointSize(Size),

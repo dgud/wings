@@ -15,7 +15,7 @@
 -export([init/0, init/1, init_opengl/0, load_env_image/1,
          light_types/0,menu/3,command/2,is_any_light_selected/1,
 	 any_enabled_lights/0,info/1,setup_light/2,
-	 create/2,update_dynamic/2,update_matrix/2,update/1,
+	 create/2,update_dynamic/3,update_matrix/3,update/2,
 	 global_lights/1,
 	 export/1,export_bc/1,export_camera_lights/0,
 	 import/2,import/1,shape_materials/2,
@@ -162,7 +162,7 @@ is_any_light_selected(St) ->
     wings_sel:dfold(MF, RF, false, St).
 
 any_enabled_lights() ->
-    wings_dl:fold(fun(#dlo{src_we=We}, Bool) ->
+    wings_dl:fold(fun(#dlo{}, #dlo_src{we=We}, Bool) ->
 			  Bool orelse ?IS_ANY_LIGHT(We)
 		  end, false).
 
@@ -216,12 +216,12 @@ color(St0) ->
     DF = fun(#we{temp=General}) -> General end,
     wings_drag:general(DF, Units, Flags, St).
 
-color([H,V,S], #dlo{src_we=#we{light=L0}=We0}=D, A) ->
+color([H,V,S], #dlo{src=#dlo_src{we=#we{light=L0}=We0}=Src}=D, A) ->
     {R,G,B} = wings_color:hsv_to_rgb(H, S, V),
     Col = {R,G,B,A},
     L = update_color(L0, Col),
     We = We0#we{light=L},
-    update(D#dlo{work=none,src_we=We}).
+    update(D#dlo{work=none},Src#dlo_src{we=We}).
 
 get_light_color(#light{type=ambient,ambient=Col}) -> Col;
 get_light_color(#light{diffuse=Diff}) -> Diff.
@@ -311,10 +311,10 @@ adjust_fun(AdjFun) ->
        (Ds, D) -> adjust_fun_1(AdjFun, Ds, D)
     end.
 
-adjust_fun_1(AdjFun, Ds, #dlo{src_we=#we{light=L0}=We0}=D) ->
+adjust_fun_1(AdjFun, Ds, #dlo{src=#dlo_src{we=#we{light=L0}=We0}=Src}=D) ->
     L = AdjFun(Ds, L0),
     We = We0#we{light=L},
-    update(D#dlo{work=none,src_we=We}).
+    update(D#dlo{work=none},Src#dlo_src{we=We}).
 
 %%
 %% The Edit Properties command.
@@ -462,26 +462,26 @@ create(Type, #st{onext=Oid}=St) ->
 %%%
 %%% Updating, drawing and rendering lights.
 %%%
-update_dynamic(#dlo{src_we=We0}=D, Vtab0) ->
+update_dynamic(#dlo{}=D, #dlo_src{we=We0}=Src, Vtab0) ->
     Vtab = array:from_orddict(sort(Vtab0)),
     We = We0#we{vp=Vtab},
-    List = update_1(We, D),
-    D#dlo{work=List,src_we=We}.
+    List = update_1(We, Src),
+    D#dlo{work=List,src=Src#dlo_src{we=We}}.
 
-update_matrix(#dlo{src_we=We0}=D, Matrix) ->
+update_matrix(#dlo{}=D, #dlo_src{we=We0}=Src, Matrix) ->
     We = wings_we:transform_vs(Matrix, We0),
-    List = update_1(We, D),
+    List = update_1(We, Src),
     D#dlo{work=List,sel=none,temp_we=We}.
 
-update(#dlo{work=none,src_we=#we{light=#light{}}=We}=D) ->
-    List = update_1(We, D),
-    D#dlo{work=List,sel=List};
-update(#dlo{sel=none,src_we=#we{light=#light{}}=We}=D) ->
-    List = update_1(We, D),
-    D#dlo{work=List,sel=List};
-update(D) -> D.
+update(#dlo{work=none}=D, #dlo_src{we=#we{light=#light{}}=We}=Src) ->
+    List = update_1(We, Src),
+    D#dlo{work=List,sel=List,src=Src};
+update(#dlo{sel=none}=D,#dlo_src{we=#we{light=#light{}}=We}=Src) ->
+    List = update_1(We, Src),
+    D#dlo{work=List,sel=List,src=Src};
+update(D,_) -> D.
 
-update_1(#we{light=#light{type=Type}}=We, #dlo{src_sel=SrcSel}) ->
+update_1(#we{light=#light{type=Type}}=We, #dlo_src{sel=SrcSel}) ->
     SelColor = case SrcSel of
 		   none -> {0.0,0.0,1.0,1.0};
 		   _ -> {R,G,B} = wings_pref:get_value(selected_color),
@@ -829,7 +829,7 @@ scene_lights_fun(#dlo{temp_we=#we{light=L}=We}) ->
     %% This happens when dragging a light in Body selection mode.
     %% (Not area light.)
     prepare_light(L, We, none);
-scene_lights_fun(#dlo{drag=Drag,src_we=We0}=D) ->
+scene_lights_fun(#dlo{drag=Drag,src=#dlo_src{we=We0}=Src}) ->
     %% Area lights handled here in all selection modes +
     %% other lights in vertex/edge/face modes.
     We = case We0 of
@@ -839,7 +839,7 @@ scene_lights_fun(#dlo{drag=Drag,src_we=We0}=D) ->
 		 %% during drag. It would be more correct if the area light
 		 %% updating would use the resulting #we{}, but it does not
 		 %% exist until the drag is done.
-		 wings_draw:original_we(D);
+		 wings_draw:original_we(Src);
 	     _ ->
 		 %% Non-area lights drag the whole shape so they can use
 		 %% the dynamic part of the splitted shape

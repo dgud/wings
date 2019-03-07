@@ -1097,7 +1097,7 @@ get_vs_influence(V, VsDyn) ->
 %%%
 
 %% It generate the OpenGl list of colored vertices
-update_dlist({edge_info,EdgeInfo},#dlo{plugins=Pdl,src_we=#we{vp=Vtab}}=D, _) ->
+update_dlist({edge_info,EdgeInfo},#dlo{plugins=Pdl,src=#dlo_src{we=#we{vp=Vtab}}}=D, _) ->
     Key = ?MODULE,
     case EdgeInfo of
 	[] ->

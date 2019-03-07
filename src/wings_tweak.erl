@@ -684,11 +684,11 @@ redraw(St) ->
 
 begin_magnet_adjustment(SelElem, St) ->
     wings_draw:refresh_dlists(St),
-    wings_dl:map(fun(D, _) ->
-			 begin_magnet_adjustment_fun(D, SelElem)
+    wings_dl:map(fun(D, Src, _) ->
+			 begin_magnet_adjustment_fun(D, Src, SelElem)
 		 end, []).
 
-begin_magnet_adjustment_fun(#dlo{src_sel={Mode,Els},src_we=We}=D, SelElem) ->
+begin_magnet_adjustment_fun(#dlo{}=D, #dlo_src{sel={Mode,Els},we=We}, SelElem) ->
     Vs0 = sel_to_vs(Mode, gb_sets:to_list(Els), We),
     case Vs0 of
 	[] -> D;
@@ -700,7 +700,7 @@ begin_magnet_adjustment_fun(#dlo{src_sel={Mode,Els},src_we=We}=D, SelElem) ->
 		 end,
 	    D#dlo{drag=#drag{pos=Center,mm=MM}}
     end;
-begin_magnet_adjustment_fun(D, _) -> D.
+begin_magnet_adjustment_fun(D, _, _) -> D.
 
 adjust_magnet_radius(MouseMovement, #tweak{mag_rad=Falloff0}=T0) ->
     case Falloff0 + MouseMovement * wings_pref:get_value(tweak_mag_adj_sensitivity) of
@@ -717,8 +717,8 @@ in_drag_adjust_magnet_radius(MouseMovement, #tweak{mag_rad=Falloff0}=T) ->
     end.
 
 end_magnet_adjust({OrigId,El}) ->
-    wings_dl:map(fun(#dlo{src_we=#we{id=Id}}=D, _) ->
-			 if OrigId =:= Id -> show_cursor(El,D); true -> ok end,
+    wings_dl:map(fun(#dlo{}=D, #dlo_src{we=#we{id=Id}}=Src, _) ->
+			 if OrigId =:= Id -> show_cursor(El,D,Src); true -> ok end,
 			 D#dlo{vs=none,sel=none,drag=none}
 		 end, []).
 
@@ -728,23 +728,23 @@ end_magnet_adjust({OrigId,El}) ->
 
 begin_drag(SelElem, St, T) ->
     wings_draw:refresh_dlists(St),
-    wings_dl:map(fun(D, _) ->
-			 begin_drag_fun(D, SelElem, St, T)
+    wings_dl:map(fun(D, Src, _) ->
+			 begin_drag_fun(D, Src, SelElem, St, T)
 		 end, []).
 
-begin_drag_fun(#dlo{src_sel={body,_},src_we=#we{vp=Vtab}=We}=D, _, _, _) ->
+begin_drag_fun(#dlo{}=D, #dlo_src{sel={body,_},we=#we{vp=Vtab}=We}, _, _, _) ->
     Vs = wings_util:array_keys(Vtab),
     Center = wings_vertex:center(Vs, We),
     Id = e3d_mat:identity(),
     D#dlo{drag={matrix,Center,Id,e3d_mat:expand(Id)}};
-begin_drag_fun(#dlo{src_sel={Mode,Els},src_we=We}=D0, SelElem, #st{sel=Sel}=St, T) ->
+begin_drag_fun(#dlo{}=D0, #dlo_src{sel={Mode,Els},we=We}=Src0, SelElem, #st{sel=Sel}=St, T) ->
     Vs0 = sel_to_vs(Mode, gb_sets:to_list(Els), We),
     case Vs0 of
 	[] -> D0;
 	_ ->
 	    Center = wings_vertex:center(Vs0, We),
 	    {Vs,Magnet,VsDyn} = begin_magnet(T, Vs0, Center, We),
-	    #dlo{src_we=We0}= D = wings_draw:split(D0, Vs, St),
+	    #dlo{src=#dlo_src{we=We0}=Src}= D = wings_draw:split(D0, Src0, Vs, St),
 
 	    L = length(Sel) > 1,
 	    MM = case {We,SelElem} of
@@ -754,14 +754,15 @@ begin_drag_fun(#dlo{src_sel={Mode,Els},src_we=We}=D0, SelElem, #st{sel=Sel}=St, 
 		     {_,_} -> original
 		 end,
 	    NewPst = set_edge_influence(Vs,VsDyn,We0),
-	    D#dlo{src_we=We0#we{pst=NewPst},drag=#drag{vs=Vs0,pos0=Center,pos=Center,mag=Magnet,mm=MM}}
+	    D#dlo{src=Src#dlo_src{we=We0#we{pst=NewPst}},
+                  drag=#drag{vs=Vs0,pos0=Center,pos=Center,mag=Magnet,mm=MM}}
     end;
-begin_drag_fun(D, _, _, _) -> D.
+begin_drag_fun(D, _, _, _, _) -> D.
 
 end_drag(#tweak{mode=Mode,id={_,{OrigId,El}},st=St0}) ->
-    St = wings_dl:map(fun (#dlo{src_we=#we{id=Id}}=D, St1) ->
-			      if OrigId =:= Id -> show_cursor(El,D); true -> ok end,
-			      end_drag(Mode, D, St1)
+    St = wings_dl:map(fun(#dlo{}=D, #dlo_src{we=#we{id=Id}}=Src, St1) ->
+			      if OrigId =:= Id -> show_cursor(El,D,Src); true -> ok end,
+			      end_drag(Mode, D, Src, St1)
 		      end, St0),
     wings_wm:later({new_state,St}),
     pop.
@@ -772,37 +773,39 @@ end_drag(#tweak{mode=Mode,id={_,{OrigId,El}},st=St0}) ->
 %%%
 
 %% update
-end_drag(update, #dlo{src_sel={Mode,Sel}, src_we=#we{id=Id},drag={matrix,_,Matrix,_}}=D,
+end_drag(update, #dlo{drag={matrix,_,Matrix,_}}=D,
+         #dlo_src{sel={Mode,Sel}, we=#we{id=Id}},
 	 #st{shapes=Shs0}=St0) ->
     We0 = gb_trees:get(Id, Shs0),
     We = wings_we:transform_vs(Matrix, We0),
     Shs = gb_trees:update(Id, We, Shs0),
     St = St0#st{shapes=Shs},
     {D,St#st{selmode=Mode,sel=[{Id,Sel}]}};
-end_drag(update, #dlo{src_sel={Mode,Sel},src_we=#we{id=Id}}=D0, #st{shapes=Shs0}=St0) ->
-    #dlo{src_we=We} = wings_draw:join(D0),
+end_drag(update, #dlo{}=D0, #dlo_src{sel={Mode,Sel},we=#we{id=Id}}=Src, #st{shapes=Shs0}=St0) ->
+    #dlo{src=#dlo_src{we=We}} = wings_draw:join(D0, Src),
     Shs = gb_trees:update(Id, We, Shs0),
     St = St0#st{shapes=Shs},
     {D0,St#st{selmode=Mode,sel=[{Id,Sel}]}};
 %% tweak modes
-end_drag(_, #dlo{src_we=#we{id=Id},drag={matrix,_,Matrix,_}}=D,
+end_drag(_, #dlo{drag={matrix,_,Matrix,_}}=D,
+         #dlo_src{we=#we{id=Id}},
 	 #st{shapes=Shs0}=St0) ->
     We0 = gb_trees:get(Id, Shs0),
     We = wings_we:transform_vs(Matrix, We0),
     Shs = gb_trees:update(Id, We, Shs0),
     St = St0#st{shapes=Shs},
-    {D#dlo{vs=none,sel=none,drag=none,src_we=none},St};
-end_drag(Mode, #dlo{src_sel={_,_},src_we=#we{id=Id}}=D0, #st{shapes=Shs0}=St0) ->
+    {D#dlo{vs=none,sel=none,drag=none,src=none},St};
+end_drag(Mode, #dlo{}=D0, #dlo_src{sel={_,_},we=#we{id=Id}}=Src0, #st{shapes=Shs0}=St0) ->
     case Mode of
 	slide ->
 	    case wings_io:is_key_pressed(?SDLK_F1) of
 		false ->
-		    #dlo{src_we=We}=D = wings_draw:join(D0),
+		    #dlo{src=#dlo_src{we=We}} = D = wings_draw:join(D0, Src0),
 		    Shs = gb_trees:update(Id, We, Shs0),
 		    St = St0#st{shapes=Shs},
 		    {D#dlo{vs=none,sel=none,drag=none},St};
 		true ->
-		    #dlo{src_we=We} = D = wings_draw:join(D0),
+		    #dlo{src=#dlo_src{we=We}} = D = wings_draw:join(D0, Src0),
 		    St = case collapse_short_edges(0.0001,We) of
 			     {delete, _} ->
 				 Shs = gb_trees:delete(Id,Shs0),
@@ -817,13 +820,13 @@ end_drag(Mode, #dlo{src_sel={_,_},src_we=#we{id=Id}}=D0, #st{shapes=Shs0}=St0) -
 		    {D#dlo{vs=none,sel=none,drag=none},St}
 	    end;
 	_ ->
-	    #dlo{src_we=#we{pst=Pst}=We}=D = wings_draw:join(D0),
-	    We0=We#we{pst=remove_pst(Pst)},
+	    #dlo{src=#dlo_src{we=#we{pst=Pst}=We}=Src}=D = wings_draw:join(D0, Src0),
+            We0=We#we{pst=remove_pst(Pst)},
 	    Shs = gb_trees:update(Id, We0, Shs0),
 	    St = St0#st{shapes=Shs},
-	    {D#dlo{plugins=[],vs=none,sel=none,drag=none,src_we=We0},St}
+            {D#dlo{plugins=[],vs=none,sel=none,drag=none,src=Src#dlo_src{we=We0}},St}
     end;
-end_drag(_, D, St) -> {D, St}.
+end_drag(_, D, _, St) -> {D, St}.
 
 %%%
 %%% Do Tweak
@@ -833,22 +836,22 @@ do_tweak_0(DX0, DY0, DxOrg, DyOrg, Mode) ->
     TweakSpeed = wings_pref:get_value(tweak_speed),
     DX = DX0 * TweakSpeed,
     DY = DY0 * TweakSpeed,
-    wings_dl:map(fun
-		     (#dlo{src_we=We}=D, _) when ?IS_LIGHT(We) ->
-			case Mode of
-			    {move,Dir} when Dir =:= normal; Dir =:= element_normal;
-					    Dir =:= default; Dir =:= element_normal_edge ->
-				do_tweak(D, DX, DY, DxOrg, DyOrg, {move,screen});
-			    {move,_} ->
-				do_tweak(D, DX, DY, DxOrg, DyOrg, Mode);
-			    _ ->
-				do_tweak(D, DX, DY, DxOrg, DyOrg, {move,screen})
-			end;
-		     (D, _) ->
-			do_tweak(D, DX, DY, DxOrg, DyOrg, Mode)
-		end, []).
+    wings_dl:map(fun(#dlo{}=D, #dlo_src{we=We}=Src, _) when ?IS_LIGHT(We) ->
+                         case Mode of
+                             {move,Dir} when Dir =:= normal; Dir =:= element_normal;
+                                             Dir =:= default; Dir =:= element_normal_edge ->
+                                 do_tweak(D, Src, DX, DY, DxOrg, DyOrg, {move,screen});
+                             {move,_} ->
+                                 do_tweak(D, Src, DX, DY, DxOrg, DyOrg, Mode);
+                             _ ->
+                                 do_tweak(D, Src, DX, DY, DxOrg, DyOrg, {move,screen})
+                         end;
+                    (D, Src, _) ->
+                         do_tweak(D, Src, DX, DY, DxOrg, DyOrg, Mode)
+                 end, []).
 
-do_tweak(#dlo{drag={matrix,Pos0,Matrix0,_},src_we=#we{id=Id}}=D0,
+do_tweak(#dlo{drag={matrix,Pos0,Matrix0,_}}=D0,
+         #dlo_src{we=#we{id=Id}},
 	 DX,DY,_,_,Mode) ->
     Matrices = wings_u:get_matrices(Id, original),
     {Xs,Ys,Zs} = obj_to_screen(Matrices, Pos0),
@@ -870,7 +873,8 @@ do_tweak(#dlo{drag={matrix,Pos0,Matrix0,_},src_we=#we{id=Id}}=D0,
     D0#dlo{drag={matrix,Pos,Matrix,e3d_mat:expand(Matrix)}};
 
 do_tweak(#dlo{drag=#drag{vs=Vs,pos=Pos0,pos0=Orig,pst=none,  %% pst =:= none
-			 mag=Mag0,mm=MM}=Drag, src_we=#we{id=Id,mirror=Mir}}=D0,
+			 mag=Mag0,mm=MM}=Drag}=D0,
+         #dlo_src{we=#we{id=Id,mirror=Mir}}=Src,
 	 DX, DY, _DxOrg, _DyOrg, {Scale,Type})
   when Scale =:= scale; Scale =:= scale_uniform ->
     %% This is the first time through for Scale ops.
@@ -893,7 +897,7 @@ do_tweak(#dlo{drag=#drag{vs=Vs,pos=Pos0,pos0=Orig,pst=none,  %% pst =:= none
 		    xy -> {radial,{0.0,0.0,1.0}};
 		    yz -> {radial,{1.0,0.0,0.0}};
 		    zx -> {radial,{0.0,1.0,0.0}};
-		    normal -> {dir, sel_normal_0(Vs,D0)};
+		    normal -> {dir, sel_normal_0(Vs,Src)};
 		    default_axis ->
 			{_,Normal} = wings_pref:get_value(default_axis),
 			{axis,Normal};
@@ -901,7 +905,7 @@ do_tweak(#dlo{drag=#drag{vs=Vs,pos=Pos0,pos0=Orig,pst=none,  %% pst =:= none
 		    element_normal_edge -> {element_normal_edge, ENorm};
 		    screen ->
 			case Radial of
-			    true -> {dir, sel_normal_0(Vs,D0)};
+			    true -> {dir, sel_normal_0(Vs,Src)};
 			    false when Scale =:= scale ->
 				{user,TweakPos}; %% This is for Default Scaling
 			    false when Scale =:= scale_uniform ->
@@ -960,10 +964,11 @@ do_tweak(#dlo{drag=#drag{vs=Vs,pos=Pos0,pos0=Orig,pst=none,  %% pst =:= none
 
     Pst = {Type,Dir,VecData},
     D = D0#dlo{sel=none,drag=Drag#drag{pos=TweakPos,pst=Pst,mag=Mag}},
-    wings_draw:update_dynamic(D, Vtab);
+    wings_draw:update_dynamic(D, Src, Vtab);
 
 do_tweak(#dlo{drag=#drag{pos=Pos0,pos0=Orig,pst={Type,Dir,PrimeVec},
-			 mag=Mag0,mm=MM}=Drag, src_we=#we{id=Id,mirror=Mir}}=D0,
+			 mag=Mag0,mm=MM}=Drag}=D0,
+         #dlo_src{we=#we{id=Id,mirror=Mir}}=Src,
 	 DX, DY, _DxOrg, _DyOrg, {Scale,Type})
   when Scale =:= scale; Scale =:= scale_uniform ->
     Matrices = case Mir of
@@ -984,9 +989,11 @@ do_tweak(#dlo{drag=#drag{pos=Pos0,pos0=Orig,pst={Type,Dir,PrimeVec},
 			 end
 		 end,
     D = D0#dlo{sel=none,drag=Drag#drag{pos=TweakPos,mag=Mag}},
-    wings_draw:update_dynamic(D, Vtab);
-do_tweak(#dlo{drag=#drag{vs=Vs,pos=Pos0,mag=Mag0,mm=MM}=Drag,
-	      src_we=#we{id=Id,mirror=Mir}}=D0, DX, DY, _DxOrg, _DyOrg,
+    wings_draw:update_dynamic(D, Src, Vtab);
+
+do_tweak(#dlo{drag=#drag{vs=Vs,pos=Pos0,mag=Mag0,mm=MM}=Drag}=D0,
+         #dlo_src{we=#we{id=Id,mirror=Mir}}=Src,
+         DX, DY, _DxOrg, _DyOrg,
 	 {Move,Type}) when Move =:= move; Move =:= move_normal ->
     Matrices = case Mir of
 		   none -> wings_u:get_matrices(Id, original);
@@ -1017,7 +1024,7 @@ do_tweak(#dlo{drag=#drag{vs=Vs,pos=Pos0,mag=Mag0,mm=MM}=Drag,
 			 Pos = if Rad -> {Px,Ty,Pz}; true -> {Tx,Py,Tz} end,
 			 magnet_tweak(Mag0, Pos);
 		     normal ->
-			 Normal = sel_normal_0(Vs, D0),
+			 Normal = sel_normal_0(Vs, Src),
 			 Pos = tweak_along_axis(Rad, Normal, Pos0, TweakPos),
 			 magnet_tweak(Mag0, Pos);
 		     default_axis ->
@@ -1034,7 +1041,7 @@ do_tweak(#dlo{drag=#drag{vs=Vs,pos=Pos0,mag=Mag0,mm=MM}=Drag,
 			 magnet_tweak(Mag0, Pos);
 		     screen ->
 			 if Rad; Move =:= move_normal ->
-				 Normal = sel_normal_0(Vs, D0),
+				 Normal = sel_normal_0(Vs, Src),
 				 Pos = tweak_along_axis(Rad, Normal, Pos0, TweakPos),
 				 magnet_tweak(Mag0, Pos);
 			    true ->
@@ -1043,9 +1050,10 @@ do_tweak(#dlo{drag=#drag{vs=Vs,pos=Pos0,mag=Mag0,mm=MM}=Drag,
 			 end
 		 end,
     D = D0#dlo{sel=none,drag=Drag#drag{pos=Pos,pst=none,mag=Mag}},
-    wings_draw:update_dynamic(D, Vtab);
-do_tweak(#dlo{drag=#drag{pos=Pos0,pos0=Orig,mag=Mag0,mm=MM}=Drag,
-	      src_we=#we{id=Id,mirror=Mir}=We}=D0, DX, DY, DxOrg, _DyOrg, Mode)
+    wings_draw:update_dynamic(D, Src, Vtab);
+do_tweak(#dlo{drag=#drag{pos=Pos0,pos0=Orig,mag=Mag0,mm=MM}=Drag}=D0,
+         #dlo_src{we=#we{id=Id,mirror=Mir}=We}=Src,
+         DX, DY, DxOrg, _DyOrg, Mode)
   when Mode =:= relax; Mode =:= slide ->
     Matrices = case Mir of
 		   none -> wings_u:get_matrices(Id, original);
@@ -1066,10 +1074,10 @@ do_tweak(#dlo{drag=#drag{pos=Pos0,pos0=Orig,mag=Mag0,mm=MM}=Drag,
 		magnet_tweak_slide_fn(Mag0, We, Orig, TweakPos)
 	end,
     D = D0#dlo{sel=none,drag=Drag#drag{pos=TweakPos,pst=none,mag=Mag}},
-    wings_draw:update_dynamic(D, Vtab);
-do_tweak(#dlo{drag=#drag{}=Drag}=D, _, _, _, _, _) ->
+    wings_draw:update_dynamic(D, Src, Vtab);
+do_tweak(#dlo{drag=#drag{}=Drag}=D, _, _, _, _, _, _) ->
     D#dlo{drag=Drag#drag{pst=none}};
-do_tweak(D, _, _, _, _, _) -> D.
+do_tweak(D, _, _, _, _, _, _) -> D.
 
 %%%
 %%% Tweak Tool Calculations
@@ -1238,7 +1246,7 @@ sel_normal_0(Vs, D) ->
     Normals = sel_normal(Vs,D),
     e3d_vec:norm(e3d_vec:add(Normals)).
 
-sel_normal( _, #dlo{src_we=#we{}=We,src_sel={face,Sel0}}) ->
+sel_normal( _, #dlo_src{we=#we{}=We,sel={face,Sel0}}) ->
     Faces = gb_sets:to_list(Sel0),
     face_normals(Faces,We,[]);
 sel_normal(Vs,D) ->
@@ -1295,7 +1303,7 @@ vertex_normal(V, D) ->
 %% face_normal(Face, DLO) -> Normal
 %%  Calculate the face normal. Will also work for faces that
 %%  are hidden (including the virtual mirror face).
-face_normal(Face, #dlo{src_we=#we{vp=Vtab}}=D) ->
+face_normal(Face, #dlo_src{we=#we{vp=Vtab}}=D) ->
     #we{vp=OrigVtab} = OrigWe = wings_draw:original_we(D),
     Vs = wings_face:vertices_ccw(Face, OrigWe),
     VsPos = [vertex_pos(V, Vtab, OrigVtab) || V <- Vs],
@@ -1380,27 +1388,28 @@ point_center(face, F, We) ->
 %% Setup magnet in the middle of a tweak op
 setup_magnet(#tweak{mode=TwkMode, cx=X, cy=Y}=T)
   when TwkMode =:= scale;  TwkMode =:= scale_uniform; TwkMode =:= move_normal; TwkMode =:= move ->
-    wings_dl:map(fun(D, _) ->
-			 setup_magnet_fun(D, T)
+    wings_dl:map(fun(D, Src, _) ->
+			 setup_magnet_fun(D, Src, T)
 		 end, []),
     Mode = actual_mode(TwkMode),
     do_tweak_0(0, 0, X, Y, Mode),
     T;
 setup_magnet(#tweak{mode=Mode, cx=X, cy=Y}=T) ->
-    wings_dl:map(fun(D, _) ->
-			 setup_magnet_fun(D, T)
+    wings_dl:map(fun(D, Src, _) ->
+			 setup_magnet_fun(D, Src, T)
 		 end, []),
     do_tweak_0(0, 0, X, Y, Mode),
     T.
 
-setup_magnet_fun(#dlo{src_sel={_,_},drag=#drag{vs=Vs0,pos0=Center}=Drag}=Dl0,
+setup_magnet_fun(#dlo{drag=#drag{vs=Vs0,pos0=Center}=Drag}=Dl0,
+                 #dlo_src{sel={_,_}}=Src0,
 		 #tweak{st=St}=T) ->
-    We = wings_draw:original_we(Dl0),
+    We = wings_draw:original_we(Src0),
     {Vs,Mag,VsDyn} = begin_magnet(T, Vs0, Center, We),
-    #dlo{src_we=We0} = Dl = wings_draw:split(Dl0, Vs, St),
+    #dlo{src=#dlo_src{we=We0}=Src} = Dl = wings_draw:split(Dl0, Src0, Vs, St),
     NewPst = set_edge_influence(Vs,VsDyn,We0),
-    Dl#dlo{src_we=We0#we{pst=NewPst},drag=Drag#drag{mag=Mag}};
-setup_magnet_fun(Dl, _) -> Dl.
+    Dl#dlo{src=Src#dlo_src{we=We0#we{pst=NewPst}},drag=Drag#drag{mag=Mag}};
+setup_magnet_fun(Dl, _, _) -> Dl.
 
 begin_magnet(#tweak{magnet=false}=T, Vs, Center, We) ->
     Mirror = mirror_info(We),
@@ -1465,7 +1474,7 @@ magnet_type_calc(spike, D0, R) when is_float(R) ->
 
 draw_magnet(#tweak{st=#st{selmode=body}}) -> ok;
 draw_magnet(#tweak{magnet=true, mag_rad=R}) ->
-    wings_dl:fold(fun(D, _) ->
+    wings_dl:fold(fun(D, Src, _) ->
 			  gl:pushAttrib(?GL_ALL_ATTRIB_BITS),
 			  gl:disable(?GL_DEPTH_TEST),
 			  gl:enable(?GL_BLEND),
@@ -1473,12 +1482,14 @@ draw_magnet(#tweak{magnet=true, mag_rad=R}) ->
 			  wings_view:load_matrices(false),
 			  {CR,CG,CB,CA}=wings_pref:get_value(tweak_magnet_color),
 			  wings_io:set_color({CR,CG,CB,CA}),
-			  draw_magnet_1(D, R),
+			  draw_magnet_1(D, Src, R),
 			  gl:popAttrib()
 		  end, []);
 draw_magnet(_) -> ok.
 
-draw_magnet_1(#dlo{src_sel={Mode,Els},src_we=We,mirror=Mtx,drag=#drag{mm=Side}}, R) ->
+draw_magnet_1(#dlo{mirror=Mtx,drag=#drag{mm=Side}},
+              #dlo_src{sel={Mode,Els},we=We},
+              R) ->
     case Side of
 	mirror -> gl:multMatrixf(Mtx);
 	original -> ok
@@ -1489,7 +1500,7 @@ draw_magnet_1(#dlo{src_sel={Mode,Els},src_we=We,mirror=Mtx,drag=#drag{mm=Side}},
     Obj = glu:newQuadric(),
     glu:sphere(Obj, R, 40, 40),
     glu:deleteQuadric(Obj);
-draw_magnet_1(_, _) -> [].
+draw_magnet_1(_, _, _) -> [].
 
 mirror_info(#we{mirror=none}) -> {[],identity};
 mirror_info(#we{mirror=Face}=We) ->
@@ -1548,8 +1559,8 @@ is_tweak_hotkey({tweak,Cmd}, #tweak{magnet=Magnet,sym=Sym,st=St0}=T0) ->
 		    wings_pref:set_value(tweak_axis_toggle, Data),
 		    toggle_axis(Axis),
 		    wings_wm:send({tweak,axis_constraint}, update_palette),
-		    St = wings_dl:map(fun (D, _) ->
-					      update_drag(D, T0)  % used to find mid tweak model data..
+		    St = wings_dl:map(fun (D, Src, _) ->
+					      update_drag(D, Src, T0)  % used to find mid tweak model data..
 				      end, St0),
 		    do_tweak_0(0, 0, 0, 0, {move,screen}),
 		    update_tweak_handler(T0#tweak{st=St})
@@ -1593,8 +1604,8 @@ is_tweak_hotkey({tweak,Cmd}, #tweak{magnet=Magnet,sym=Sym,st=St0}=T0) ->
     end;
 
 is_tweak_hotkey({view,Cmd}, #tweak{st=St0}) when Cmd =/= quick_preview ->
-    St = wings_dl:map(fun (D, St1) ->
-			      end_drag(update, D, St1)  % used to find mid tweak model data
+    St = wings_dl:map(fun(D, Src, St1) ->
+			      end_drag(update, D, Src, St1)  % used to find mid tweak model data
 		      end, St0),
     wings_view:command(Cmd, St),
     wings_wm:dirty(),
@@ -1617,8 +1628,8 @@ is_tweak_combo(#tweak{mode=Mode,st=St0}=T) ->
         {ok, Mode} -> keep;
         {ok, NewMode} when element(1,Mode) =:= NewMode -> keep;
         {ok, NewMode} ->
-            St = wings_dl:map(fun (D, _) ->
-				      update_drag(D,T)  % used to find mid tweak model data
+            St = wings_dl:map(fun(D, Src, _) ->
+				      update_drag(D,Src,T)  % used to find mid tweak model data
 			      end, St0),
             do_tweak_0(0, 0, 0, 0, {move,screen}),
 	    {X,Y} = wings_wm:screen2local({X0,Y0}),
@@ -1626,18 +1637,20 @@ is_tweak_combo(#tweak{mode=Mode,st=St0}=T) ->
         _ -> keep
     end.
 
-update_drag(#dlo{src_sel={Mode,Els},src_we=#we{id=Id},drag=#drag{mm=MM}}=D0,
+update_drag(#dlo{drag=#drag{mm=MM}}=D0,
+            #dlo_src{sel={Mode,Els},we=#we{id=Id}}=Src,
 	    #tweak{st=#st{shapes=Shs0}=St0}=T) ->
-    #dlo{src_we=We}=D1 = wings_draw:join(D0),
+    #dlo{src=#dlo_src{we=We}=Src0}=D1 = wings_draw:join(D0, Src),
     Shs = gb_trees:update(Id, We, Shs0),
     St = St0#st{shapes=Shs},
     Vs0 = sel_to_vs(Mode, gb_sets:to_list(Els), We),
     Center = wings_vertex:center(Vs0, We),
     {Vs,Magnet,VsDyn} = begin_magnet(T#tweak{st=St}, Vs0, Center, We),
-    #dlo{src_we=We0}= D = wings_draw:split(D1, Vs, St),
+    #dlo{src=#dlo_src{we=We0}=Src1}= D = wings_draw:split(D1, Src0, Vs, St),
     NewPst = set_edge_influence(Vs,VsDyn,We0),
-    {D#dlo{src_we=We0#we{pst=NewPst},drag=#drag{vs=Vs0,pos0=Center,pos=Center,mag=Magnet,mm=MM}},St};
-update_drag(D,#tweak{st=St}) -> {D,St}.
+    Src = Src1#dlo_src{we=We0#we{pst=NewPst}},
+    {D#dlo{src=Src,drag=#drag{vs=Vs0,pos0=Center,pos=Center,mag=Magnet,mm=MM}},St};
+update_drag(D,_,#tweak{st=St}) -> {D,St}.
 
 %%%
 %%% XYZ Tweak Constraints
@@ -1668,11 +1681,11 @@ axis_constraints(Mode) -> %% Mode =:= move; Mode =:= scale
 
 %% After releasing lmb to conclude drag, unhide the cursor and make sure its
 %% inside the window at the centre of the selection if possible.
-show_cursor(_, #dlo{src_we=#we{id=Id}, drag={matrix,Pos,_,_}}) ->
+show_cursor(_, #dlo{drag={matrix,Pos,_,_}}, #dlo_src{we=#we{id=Id}}) ->
     Matrices = wings_u:get_matrices(Id, original),
     {X0,Y0,_} = obj_to_screen(Matrices, Pos),
     show_cursor_1(X0,Y0);
-show_cursor(El, #dlo{src_sel={Mode,_},src_we=#we{id=Id}=We,drag=#drag{mm=MM}}) ->
+show_cursor(El, #dlo{drag=#drag{mm=MM}}, #dlo_src{sel={Mode,_},we=#we{id=Id}=We}) ->
     Vs0 = case catch sel_to_vs(Mode, El, We) of
 	      VsList when is_list(VsList) -> VsList;
 	      _ -> crash_the_next_check_too
@@ -1686,7 +1699,7 @@ show_cursor(El, #dlo{src_sel={Mode,_},src_we=#we{id=Id}=We,drag=#drag{mm=MM}}) -
     Matrices = wings_u:get_matrices(Id, MM),
     {X0,Y0,_} = obj_to_screen(Matrices, Center),
     show_cursor_1(X0,Y0);
-show_cursor(_,_) ->
+show_cursor(_,_,_) ->
     {{_,_,Center},{_,Mir,{Id,_}}} = wings_pref:get_value(tweak_geo_point),
     Matrices = wings_u:get_matrices(Id, Mir),
     {X0,Y0,_} = obj_to_screen(Matrices, Center),
@@ -2421,7 +2434,7 @@ get_vs_influence(V, VsDyn) ->
 %%%
 
 update_dlist({edge_info,{EdList,ClBin}},
-	     #dlo{plugins=Pdl,src_we=#we{vp=Vtab}}=D, _) ->
+	     #dlo{plugins=Pdl,src=#dlo_src{we=#we{vp=Vtab}}}=D, _) ->
     Key = ?MODULE,
     case EdList of
 	[] ->

@@ -890,7 +890,7 @@ stop_camera(#camera{ox=Ox,oy=Oy}) ->
 	no_grab ->
 	    wings_wm:dirty()
     end,
-    update_sel(fun show_sel_fun/2),
+    update_sel(fun show_sel_fun/3),
     pop.
 
 camera_mouse_range(X1, Y1, #camera{x=OX,y=OY, xt=Xt0, yt=Yt0}=Camera) ->
@@ -949,14 +949,14 @@ message(Message) ->
 grab() ->
     wings_io:grab(),
     wings_wm:grab_focus(),
-    update_sel(fun hide_sel_fun/2).
+    update_sel(fun hide_sel_fun/3).
 
-hide_sel_fun(#dlo{sel=Sel}=D, _) ->
+hide_sel_fun(#dlo{sel=Sel}=D, _, _) ->
     D#dlo{sel={call,none,Sel}}.
 
-show_sel_fun(#dlo{sel={call,none,Sel}}=D, _) ->
+show_sel_fun(#dlo{sel={call,none,Sel}}=D, _, _) ->
     D#dlo{sel=Sel};
-show_sel_fun(D, _) -> D.
+show_sel_fun(D, _, _) -> D.
 
 allow_rotation() ->
     wings_wm:get_prop(allow_rotation).

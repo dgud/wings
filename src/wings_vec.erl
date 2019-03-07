@@ -118,15 +118,15 @@ mode_restriction(#ss{selmodes=Modes}, #st{selmode=Mode}=St) ->
 
 pick_finish() ->
     wings_wm:dirty(),
-    wings_dl:map(fun clear_orig_sel/2, []).
+    wings_dl:map(fun clear_orig_sel/3, []).
 
-clear_orig_sel(D, _) -> D#dlo{sel=none,orig_sel=none}.
+clear_orig_sel(D, Src, _) -> D#dlo{sel=none,src=Src#dlo_src{sel=none}}.
 
 clear_sel() ->
     wings_wm:dirty(),
-    wings_dl:map(fun clear_sel/2, []).
+    wings_dl:map(fun clear_sel/3, []).
 
-clear_sel(D, _) -> D#dlo{sel=none}.
+clear_sel(D, _, _) -> D#dlo{sel=none}.
 
 reset(#ss{selmodes=Modes}, #st{selmode=Mode}=St0) ->
     St = wings_sel:set(Mode, [], St0),

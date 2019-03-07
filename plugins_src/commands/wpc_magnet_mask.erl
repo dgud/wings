@@ -215,7 +215,7 @@ convert_to_vs(face,Sel,We) ->
 convert_to_vs(body,_,We) ->
     wings_we:visible_vs(We).
 
-update_dlist({vs,LockedVs}, #dlo{plugins=Pdl,src_we=#we{vp=Vtab}=We}=D, _) ->
+update_dlist({vs,LockedVs}, #dlo{plugins=Pdl,src=#dlo_src{we=#we{vp=Vtab}=We}}=D, _) ->
     Key = ?MODULE,
     Locked0 = gb_sets:to_list(LockedVs),
     Visible = wings_we:visible_vs(We),

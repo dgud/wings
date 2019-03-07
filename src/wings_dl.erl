@@ -104,7 +104,7 @@ changed_materials(#st{mat=NewMat}) ->
 %%  Update existing #dlo{} records and/or delete or add new #dlo{}
 %%  records. Data0 is any Erlang term. The callback Fun will be
 %%  called like this
-%%      CallbackFun(#dlo{}, DataN)
+%%      CallbackFun(#dlo{}, #dlo_src{}, DataN)
 %%  for each #dlo{} entry in the list kept by this module.
 %%
 %%  Allowed return values are:
@@ -123,6 +123,13 @@ changed_materials(#st{mat=NewMat}) ->
 %%  {#dlo{},Data}   Add a #dlo{} record for a new object; updated Data.
 %%  eol             Finished (the callback fun will not be called again).
 
+-spec update(Fun, Data0) -> Data1 when
+      Fun :: fun((#dlo{}, #dlo_src{}, DataIn) -> #dlo{} | {#dlo{},DataOut} | eol),
+      Data0 :: term(),
+      Data1 :: term(),
+      DataIn :: term(),
+      DataOut :: term().
+
 update(Fun, Data) ->
     #du{dl=Dlists} = get_dl_data(),
     update_1(Fun, Dlists, Data, [], []).
@@ -131,12 +138,19 @@ update(Fun, Data) ->
 %%  Map over existing #dlo{} records and update them.
 %%  Data0 is any Erlang term. The callback Fun will be
 %%  called like this
-%%      CallbackFun(#dlo{}, DataN)
+%%      CallbackFun(#dlo{}, #dlo_src{}, Data)
 %%  for each #dlo{} entry in the list kept by this module.
 %%
 %%  Allowed return values are:
 %%    #dlo{}          Updated #dlo{} record; Data not updated.
 %%    {#dlo{},Data}   Update #dlo{} record and Data.
+
+-spec map(Fun, Data0) -> Data1 when
+      Fun :: fun((#dlo{}, #dlo_src{}, DataIn) -> #dlo{} | {#dlo{},DataOut}),
+      Data0 :: term(),
+      Data1 :: term(),
+      DataIn :: term(),
+      DataOut :: term().
 
 map(Fun, Data) ->
     case get_dl_data() of
@@ -148,13 +162,21 @@ map(Fun, Data) ->
 %% fold(CallbackFun, Acc0)
 %%  Fold over the list of #dlo{} records. The callback will
 %%  be called like this
-%%    CallbackFun(#dlo{}, AccN)
+%%    CallbackFun(#dlo{}, #dlo_src{}, AccN)
 %%  for each #dlo{} record. The callback fun must return
 %%  the updated Acc value.
 
+-spec fold(Fun, Acc0) -> Acc1 when
+      Fun :: fun((#dlo{}, #dlo_src{}, AccIn) -> AccOut),
+      Acc0 :: term(),
+      Acc1 :: term(),
+      AccIn :: term(),
+      AccOut :: term().
+
 fold(Fun, Acc) ->
     #du{dl=Dlists} = get_dl_data(),
-    foldl(Fun, Acc, Dlists).
+    Split = fun(#dlo{src=Src}=D, A) -> Fun(D, Src, A) end,
+    foldl(Split, Acc, Dlists).
 
 %% call(Term, RenderState) -> RenderState.
 %%  Call OpenGL to render the geometry using the VBOs embedded in
@@ -182,10 +204,10 @@ call(Draw, #{}=State) when is_function(Draw, 1) ->
 %% mirror_matrix(Id)
 %%  Return the mirror matrix for the object having id Id.
 
-mirror_matrix(Id) -> fold(fun mirror_matrix/2, Id).
+mirror_matrix(Id) -> fold(fun mirror_matrix/3, Id).
 
-mirror_matrix(#dlo{mirror=Matrix,src_we=#we{id=Id}}, Id) -> Matrix;
-mirror_matrix(_, Acc) -> Acc.
+mirror_matrix(#dlo{mirror=Matrix}, #dlo_src{we=#we{id=Id}}, Id) -> Matrix;
+mirror_matrix(_, _, Acc) -> Acc.
 
 
 %% draw(Category, Key, Update, RS) -> ok.
@@ -246,9 +268,9 @@ delete_dlists() ->
 %%% Local functions.
 %%%
 
-clear_old_dl([#dlo{src_we=We,proxy_data=Pd0,ns=Ns}|T]) ->
+clear_old_dl([#dlo{src=Src,proxy_data=Pd0}|T]) ->
     Pd = wings_proxy:invalidate(Pd0, vab),
-    [#dlo{src_we=We,mirror=none,proxy_data=Pd,ns=Ns}|clear_old_dl(T)];
+    [#dlo{src=Src,mirror=none,proxy_data=Pd}|clear_old_dl(T)];
 clear_old_dl([]) -> [].
 
 get_dl_data() ->
@@ -260,8 +282,8 @@ get_dl_data() ->
 put_dl_data(Data) ->
     put(wings_wm:get_dd(), Data).
 
-update_1(Fun, [D0|Dlists], Data0, Seen0, Acc) ->
-    case Fun(D0, Data0) of
+update_1(Fun, [#dlo{src=Src}=D0|Dlists], Data0, Seen0, Acc) ->
+    case Fun(D0, Src, Data0) of
 	#dlo{}=D ->
 	    Seen = update_seen(D, Seen0),
 	    update_1(Fun, Dlists, Data0, Seen, [D|Acc]);
@@ -274,7 +296,7 @@ update_1(Fun, [D0|Dlists], Data0, Seen0, Acc) ->
 	    update_1(Fun, Dlists, Data, Seen, [D|Acc])
     end;
 update_1(Fun, [], Data0, Seen0, Acc) ->
-    case Fun(eol, Data0) of
+    case Fun(eol, eol, Data0) of
 	{D,Data} ->
 	    Seen = update_seen(D, Seen0),
 	    update_1(Fun, [], Data, Seen, [D|Acc]);
@@ -292,8 +314,8 @@ changed_materials_1([{Name,Val}|T], New, Acc) ->
 changed_materials_1([], _, Acc) -> Acc.
 
 
-map_1(Fun, [D0|Dlists], Data0, Seen0, Acc) ->
-    case Fun(D0, Data0) of
+map_1(Fun, [#dlo{src=Src}=D0|Dlists], Data0, Seen0, Acc) ->
+    case Fun(D0, Src, Data0) of
 	#dlo{}=D ->
 	    Seen = update_seen(D, Seen0),
 	    map_1(Fun, Dlists, Data0, Seen, [D|Acc]);

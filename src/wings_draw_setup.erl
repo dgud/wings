@@ -13,7 +13,7 @@
 
 -module(wings_draw_setup).
 
--export([work/2,smooth/2,prepare/3,prepare/4,flat_faces/2]).
+-export([work/3,smooth/3,prepare/3,prepare/4,flat_faces/2]).
 -export([enable_pointers/3,disable_pointers/2]).
 -export([face_vertex_count/1,has_active_color/1]).
 
@@ -129,42 +129,42 @@ face_vertex_count(#vab{mat_map=[{_Mat,_Type,Start,Count}|_]}) ->
     Start+Count.
 
 %% Setup face_vs and face_fn and additional uv coords or vertex colors
-work(Dlo, St) ->
-    work(Dlo, St, undefined).
+work(Dlo, Src, St) ->
+    work(Dlo, Src, St, undefined).
 
-work(#dlo{ns={_}}=D0, St, Attr) ->
-    D = wings_draw:update_normals(D0),
-    work(D, St, Attr);
-work(#dlo{vab=none,src_we=#we{fs=Ftab}}=D, St, Attr) ->
-    Prepared = prepare(gb_trees:to_list(Ftab), D, St, Attr),
-    flat_faces(Prepared, D);
-work(#dlo{vab=#vab{face_vs=none},src_we=#we{fs=Ftab}}=D, St, Attr) ->
-    Prepared = prepare(gb_trees:to_list(Ftab), D, St, Attr),
-    flat_faces(Prepared, D);
-work(#dlo{vab=#vab{face_fn=none}=Vab}=D, St, Attr) ->
+work(D, #dlo_src{ns={_}}=Src0, St, Attr) ->
+    Src = wings_draw:update_normals(Src0),
+    work(D#dlo{src=Src}, Src, St, Attr);
+work(#dlo{vab=none}=D, #dlo_src{we=#we{fs=Ftab}}=Src, St, Attr) ->
+    Prepared = prepare(gb_trees:to_list(Ftab), Src, St, Attr),
+    D#dlo{vab=flat_faces(Prepared, Src)};
+work(#dlo{vab=#vab{face_vs=none}}=D, #dlo_src{we=#we{fs=Ftab}}=Src, St, Attr) ->
+    Prepared = prepare(gb_trees:to_list(Ftab), Src, St, Attr),
+    D#dlo{vab=flat_faces(Prepared, Src)};
+work(#dlo{vab=#vab{face_fn=none}=Vab}=D, Src, St, Attr) ->
     %% Can this really happen? If it can, it happens infrequently,
     %% so we don't have to handle it efficiently.
-    work(D#dlo{vab=Vab#vab{face_vs=none}}, St, Attr);
-work(D, _, _) -> D.
+    work(D#dlo{vab=Vab#vab{face_vs=none}}, Src, St, Attr);
+work(D, _, _, _) -> D.
 
 %% Setup face_vs and face_sn and additional uv coords or vertex colors
-smooth(Dlo, St) ->
-    smooth(Dlo, St, undefined).
+smooth(#dlo{}=Dlo, Src, St) ->
+    smooth(Dlo, Src, St, undefined).
 
-smooth(#dlo{ns={_}}=D0, St, Attr) ->
-    D = wings_draw:update_normals(D0),
-    smooth(D, St, Attr);
-smooth(#dlo{vab=none}=D, St, Attr) ->
-    setup_smooth_normals(work(D, St, Attr));
-smooth(#dlo{vab=#vab{face_vs=none}}=D, St, Attr) ->
-    setup_smooth_normals(work(D, St, Attr));
-smooth(D=#dlo{vab=#vab{face_sn=none}}, _St, _) ->
+smooth(D, #dlo_src{ns={_}}=Src0, St, Attr) ->
+    Src = wings_draw:update_normals(Src0),
+    smooth(D#dlo{src=Src}, Src, St, Attr);
+smooth(#dlo{vab=none}=D, Src, St, Attr) ->
+    setup_smooth_normals(work(D, Src, St, Attr));
+smooth(#dlo{vab=#vab{face_vs=none}}=D, Src, St, Attr) ->
+    setup_smooth_normals(work(D, Src, St, Attr));
+smooth(D=#dlo{vab=#vab{face_sn=none}}, _Src, _St, _) ->
     setup_smooth_normals(D);
-smooth(D, _, _) -> D.
+smooth(D, _, _, _) -> D.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
--spec flat_faces(plan(), #dlo{}) -> #dlo{}.
+-spec flat_faces(plan(), #dlo_src{}) -> #vab{}.
 
 flat_faces({plain,MatFaces}, D) ->
     plain_flat_faces(MatFaces, D, 0, <<>>, [], []);
@@ -183,14 +183,13 @@ flat_faces({color_uv_tangent,MatFaces}, D) ->
     Array = array:new([{default, {Z,Z}}]),
     col_tangent_faces(MatFaces, D, 0, <<>>, [], [], {Array, []}).
 
-plain_flat_faces([{Mat,Fs}|T], #dlo{ns=Ns}=D, Start0, Vs0, Fmap0, MatInfo0) ->
+plain_flat_faces([{Mat,Fs}|T], #dlo_src{ns=Ns}=D, Start0, Vs0, Fmap0, MatInfo0) ->
     {Start,Vs,FaceMap} = flat_faces_1(Fs, Ns, Start0, Vs0, Fmap0),
     MatInfo = [{Mat,?GL_TRIANGLES,Start0,Start-Start0}|MatInfo0],
     plain_flat_faces(T, D, Start, Vs, FaceMap, MatInfo);
-plain_flat_faces([], D, _Start, Vs, FaceMap0, MatInfo) ->
+plain_flat_faces([], _D, _Start, Vs, FaceMap0, MatInfo) ->
     FaceMap = array:from_orddict(sort(FaceMap0)),
-    Vab = create_vab([vertices,face_normals], Vs, FaceMap, MatInfo),
-    D#dlo{vab=Vab}.
+    create_vab([vertices,face_normals], Vs, FaceMap, MatInfo).
 
 flat_faces_1([{Face,_}|Fs], Ns, Start, Vs, FaceMap) ->
     case array:get(Face, Ns) of
@@ -215,12 +214,11 @@ uv_flat_faces([{Mat,Fs}|T], D, Start0, Vs0, Fmap0, MatInfo0) ->
     {Start,Vs,FaceMap} = uv_flat_faces_1(Fs, D, Start0, Vs0, Fmap0),
     MatInfo = [{Mat,?GL_TRIANGLES,Start0,Start-Start0}|MatInfo0],
     uv_flat_faces(T, D, Start, Vs, FaceMap, MatInfo);
-uv_flat_faces([], D, _Start, Vs, FaceMap0, MatInfo) ->
+uv_flat_faces([], _D, _Start, Vs, FaceMap0, MatInfo) ->
     FaceMap = array:from_orddict(sort(FaceMap0)),
-    Vab = create_vab([vertices,face_normals,uvs], Vs, FaceMap, MatInfo),
-    D#dlo{vab=Vab}.
+    create_vab([vertices,face_normals,uvs], Vs, FaceMap, MatInfo).
 
-uv_flat_faces_1([{Face,Edge}|Fs], #dlo{ns=Ns,src_we=We}=D, Start, Vs, FaceMap) ->
+uv_flat_faces_1([{Face,Edge}|Fs], #dlo_src{ns=Ns,we=We}=D, Start, Vs, FaceMap) ->
     UVs = wings_va:face_attr(uv, Face, Edge, We),
     case array:get(Face, Ns) of
 	[Normal|Pos =[_,_,_]] ->
@@ -246,17 +244,16 @@ tangent_flat_faces([{Mat,Fs}|T], D, Start0, Vs0, Fmap0, MatInfo0, Ts0) ->
     {Start,Vs,FaceMap,Ts} = tangent_flat_faces_1(Fs, D, Start0, Vs0, Fmap0, Ts0),
     MatInfo = [{Mat,?GL_TRIANGLES,Start0,Start-Start0}|MatInfo0],
     tangent_flat_faces(T, D, Start, Vs, FaceMap, MatInfo, Ts);
-tangent_flat_faces([], D, _Start, Vs, FaceMap0, MatInfo, {VsTs0, RevF2V}) ->
+tangent_flat_faces([], _D, _Start, Vs, FaceMap0, MatInfo, {VsTs0, RevF2V}) ->
     FaceMap = array:from_orddict(sort(FaceMap0)),
     VsTs = array:map(fun(_V, {T,BT}) ->
 			     {e3d_vec:norm(T),e3d_vec:norm(BT)}
 		     end, VsTs0),
     Data = add_tangents(lists:reverse(RevF2V), VsTs, Vs),
     What = [vertices,face_normals,uvs],
-    Vab = create_tangent_vab(What, Vs, Data, FaceMap, MatInfo),
-    D#dlo{vab=Vab}.
+    create_tangent_vab(What, Vs, Data, FaceMap, MatInfo).
 
-tangent_flat_faces_1([{Face,Edge}|Fs], #dlo{ns=Ns,src_we=We}=D, Start, Vs, FaceMap, Ts0) ->
+tangent_flat_faces_1([{Face,Edge}|Fs], #dlo_src{ns=Ns,we=We}=D, Start, Vs, FaceMap, Ts0) ->
     UVs = wings_va:face_attr(uv, Face, Edge, We),
     case array:get(Face, Ns) of
 	[Normal|Pos =[_,_,_]] ->
@@ -289,12 +286,11 @@ col_flat_faces([{Mat,Fs}|T], D, Start0, Vs0, Fmap0, MatInfo0) ->
     {Start,Vs,FaceMap} = col_flat_faces_1(Fs, D, Start0, Vs0, Fmap0),
     MatInfo = [{Mat,?GL_TRIANGLES,Start0,Start-Start0}|MatInfo0],
     col_flat_faces(T, D, Start, Vs, FaceMap, MatInfo);
-col_flat_faces([], D, _Start, Vs, FaceMap0, MatInfo) ->
+col_flat_faces([], _D, _Start, Vs, FaceMap0, MatInfo) ->
     FaceMap = array:from_orddict(sort(FaceMap0)),
-    Vab = create_vab([vertices,face_normals,colors], Vs, FaceMap, MatInfo),
-    D#dlo{vab=Vab}.
+    create_vab([vertices,face_normals,colors], Vs, FaceMap, MatInfo).
 
-col_flat_faces_1([{Face,Edge}|T], #dlo{ns=Ns,src_we=We}=D, Start, Vs0, Fmap0) ->
+col_flat_faces_1([{Face,Edge}|T], #dlo_src{ns=Ns,we=We}=D, Start, Vs0, Fmap0) ->
     Cols = wings_va:face_attr(color, Face, Edge, We),
     case array:get(Face, Ns) of
 	[Normal|Pos =[_,_,_]] ->
@@ -319,13 +315,12 @@ col_uv_faces([{Mat,Fs}|T], D, Start0, Vs0, Fmap0, MatInfo0) ->
     {Start,Vs,FaceMap} = col_uv_faces_1(Fs, D, Start0, Vs0, Fmap0),
     MatInfo = [{Mat,?GL_TRIANGLES,Start0,Start-Start0}|MatInfo0],
     col_uv_faces(T, D, Start, Vs, FaceMap, MatInfo);
-col_uv_faces([], D, _Start, Vs, FaceMap0, MatInfo) ->
+col_uv_faces([], _D, _Start, Vs, FaceMap0, MatInfo) ->
     FaceMap = array:from_orddict(sort(FaceMap0)),
-    Vab = create_vab([vertices,face_normals,colors,uvs],
-		     Vs, FaceMap, MatInfo),
-    D#dlo{vab=Vab}.
+    create_vab([vertices,face_normals,colors,uvs],
+               Vs, FaceMap, MatInfo).
 
-col_uv_faces_1([{Face,Edge}|Fs], #dlo{ns=Ns,src_we=We}=D, Start, Vs, FaceMap) ->
+col_uv_faces_1([{Face,Edge}|Fs], #dlo_src{ns=Ns,we=We}=D, Start, Vs, FaceMap) ->
     UVs = wings_va:face_attr([color|uv], Face, Edge, We),
     case array:get(Face, Ns) of
 	[Normal|Pos =[_,_,_]] ->
@@ -351,17 +346,16 @@ col_tangent_faces([{Mat,Fs}|T], D, Start0, Vs0, Fmap0, MatInfo0, Ts0) ->
     {Start,Vs,FaceMap,Ts} = col_tangent_faces_1(Fs, D, Start0, Vs0, Fmap0, Ts0),
     MatInfo = [{Mat,?GL_TRIANGLES,Start0,Start-Start0}|MatInfo0],
     col_tangent_faces(T, D, Start, Vs, FaceMap, MatInfo, Ts);
-col_tangent_faces([], D, _Start, Vs, FaceMap0, MatInfo, {VsTs0, RevF2V}) ->
+col_tangent_faces([], _D, _Start, Vs, FaceMap0, MatInfo, {VsTs0, RevF2V}) ->
     FaceMap = array:from_orddict(sort(FaceMap0)),
     VsTs = array:map(fun(_V, {T,BT}) ->
 			     {e3d_vec:norm(T),e3d_vec:norm(BT)}
 		     end, VsTs0),
     Data = add_tangents(lists:reverse(RevF2V), VsTs, Vs),
     What = [vertices,face_normals,colors,uvs],
-    Vab = create_tangent_vab(What, Vs, Data, FaceMap, MatInfo),
-    D#dlo{vab=Vab}.
+    create_tangent_vab(What, Vs, Data, FaceMap, MatInfo).
 
-col_tangent_faces_1([{Face,Edge}|Fs], #dlo{ns=Ns,src_we=We}=D, Start, Vs, FaceMap, Ts0) ->
+col_tangent_faces_1([{Face,Edge}|Fs], #dlo_src{ns=Ns,we=We}=D, Start, Vs, FaceMap, Ts0) ->
     UVs = wings_va:face_attr([color|uv], Face, Edge, We),
     case array:get(Face, Ns) of
 	[Normal|Pos =[_,_,_]] ->
@@ -388,9 +382,8 @@ col_tangent_faces_1([{Face,Edge}|Fs], #dlo{ns=Ns,src_we=We}=D, Start, Vs, FaceMa
 col_tangent_faces_1([], _, Start, Vs, FaceMap,Ts) ->
     {Start,Vs,FaceMap,Ts}.
 
-
-setup_smooth_normals(D=#dlo{src_we=#we{}=We,ns=Ns0,mirror=MM,
-			    vab=#vab{face_map=Fmap0}=Vab}) ->
+setup_smooth_normals(D=#dlo{src=#dlo_src{we=#we{}=We,ns=Ns0},
+                            mirror=MM,vab=#vab{face_map=Fmap0}=Vab}) ->
     Ns1 = array:sparse_foldl(fun(F,[N|_], A) -> [{F,N}|A];
 				(F,{N,_,_}, A) -> [{F,N}|A]
 			     end, [], Ns0),
@@ -860,12 +853,12 @@ cross_axis(N = {NX,NY,NZ}) ->
 %%% Collect information about faces.
 %%%
 
--spec prepare([{_,_}], #dlo{}|#we{}, #st{}) -> plan().
+-spec prepare([{_,_}], #dlo_src{}|#we{}, #st{}) -> plan().
 
 prepare(Ftab, Dlo, St) ->
     prepare(Ftab, Dlo, St, undefined).
 
-prepare(Ftab, #dlo{src_we=We}, St, Attr) ->
+prepare(Ftab, #dlo_src{we=We}, St, Attr) ->
     prepare(Ftab, We, St, Attr);
 prepare(Ftab0, #we{}=We, St, Attr) ->
     Ftab = wings_we:visible(Ftab0, We),

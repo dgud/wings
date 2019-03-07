@@ -285,7 +285,7 @@ cut_pick_make_tvs(Edge, #we{es=Etab,vp=Vtab,next_id=NewV}=We) ->
     Sel = gb_sets:singleton(NewV),
     {We#we{temp=Fun},Sel}.
 
-cut_pick_marker([I], D, Edge, We0, Start, Dir, Char) ->
+cut_pick_marker([I], #dlo{src=Src}=D, Edge, We0, Start, Dir, Char) ->
     {X,Y,Z} = Pos = e3d_vec:add_prod(Start, Dir, I),
     {MM,PM,ViewPort} = wings_u:get_matrices(0, original),
     {Sx,Sy,_} = wings_gl:project(X, Y, Z, MM, PM, ViewPort),
@@ -311,7 +311,8 @@ cut_pick_marker([I], D, Edge, We0, Start, Dir, Char) ->
                    Ds
 	   end,
     {We,_} = wings_edge:fast_cut(Edge, Pos, We0),
-    D#dlo{hilite={edge, {call_in_this_win,wings_wm:this(),Draw}},src_we=We};
+    %% todo split drawing
+    D#dlo{hilite={edge, {call_in_this_win,wings_wm:this(),Draw}},src=Src#dlo_src{we=We}};
 cut_pick_marker({finish,[I]}, D0, Edge, We, Start, Dir, Char) ->
     D = cut_pick_marker([I], D0, Edge, We, Start, Dir, Char),
     D#dlo{vs=none,hilite=none}.

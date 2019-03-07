@@ -14,7 +14,7 @@
 -module(wings_proxy).
 -export([setup/1,quick_preview/1,update/2,draw_smooth_edges/3,
 	 smooth/2, smooth_dl/1, flat_dl/1, invalidate/2,
-	 split_proxy/3, update_dynamic/3, reset_dynamic/1]).
+	 split_proxy/4, update_dynamic/3, reset_dynamic/1]).
 -export_type([sp/0]).
 
 -define(NEED_OPENGL, 1).
@@ -84,13 +84,13 @@ smooth_dl(_) -> none.
 flat_dl(#sp{faces=FL}) -> FL.
 
 setup(#st{sel=OrigSel}=St) ->
-    wings_dl:map(fun(D, Sel) -> setup_1(D, Sel) end, OrigSel),
+    wings_dl:map(fun(D, Src, Sel) -> setup_1(D, Src, Sel) end, OrigSel),
     {save_state,wings_sel:reset(St)}.
 
-setup_1(#dlo{src_we=#we{id=Id}=We}=D, [{Id,_}|Sel]) when ?IS_ANY_LIGHT(We) ->
+setup_1(#dlo{}=D, #dlo_src{we=#we{id=Id}=We}, [{Id,_}|Sel]) when ?IS_ANY_LIGHT(We) ->
     %% Never use proxies on lights.
     {D#dlo{proxy=false},Sel};
-setup_1(#dlo{src_we=#we{id=Id},proxy=false, proxy_data=Pd}=D, [{Id,_}|Sel]) ->
+setup_1(#dlo{proxy=false, proxy_data=Pd}=D, #dlo_src{we=#we{id=Id}}, [{Id,_}|Sel]) ->
     case Pd of
 	none ->
 	    Wire0 = wings_wm:get_prop(wings_wm:this(), wireframed_objects),
@@ -103,44 +103,44 @@ setup_1(#dlo{src_we=#we{id=Id},proxy=false, proxy_data=Pd}=D, [{Id,_}|Sel]) ->
 	    wings_wm:set_prop(wings_wm:this(), wireframed_objects, Wire),
 	    {D#dlo{proxy=true},Sel}
     end;
-setup_1(#dlo{src_we=#we{id=Id},proxy=true}=D, [{Id,_}|Sel]) ->
+setup_1(#dlo{proxy=true}=D, #dlo_src{we=#we{id=Id}}, [{Id,_}|Sel]) ->
     Wire0 = wings_wm:get_prop(wings_wm:this(), wireframed_objects),
     Wire = gb_sets:delete_any(Id, Wire0),
     wings_wm:set_prop(wings_wm:this(), wireframed_objects, Wire),
     {D#dlo{proxy=false},Sel};
-setup_1(D, Sel) -> {D,Sel}.
+setup_1(D, _, Sel) -> {D,Sel}.
 
 setup_all(Activate) ->
-    wings_dl:map(fun(D, _) -> setup_all(D, Activate) end, []).
+    wings_dl:map(fun(D, Src, _) -> setup_all(D, Src, Activate) end, []).
 
-setup_all(#dlo{src_we=We}=D, _) when ?IS_ANY_LIGHT(We) ->
+setup_all(#dlo{}=D, #dlo_src{we=We}, _) when ?IS_ANY_LIGHT(We) ->
     %% Never use proxies on lights.
     D#dlo{proxy=false};
-setup_all(#dlo{src_we=#we{id=Id},proxy_data=none}=D, true) ->
+setup_all(#dlo{proxy_data=none}=D, #dlo_src{we=#we{id=Id}}, true) ->
     Wire0 = wings_wm:get_prop(wings_wm:this(), wireframed_objects),
     Wire = gb_sets:add(Id, Wire0),
     wings_wm:set_prop(wings_wm:this(), wireframed_objects, Wire),
     D#dlo{proxy=true, proxy_data=#sp{}};
-setup_all(#dlo{src_we=#we{id=Id}}=D, true) ->
+setup_all(#dlo{}=D, #dlo_src{we=#we{id=Id}}, true) ->
     Wire0 = wings_wm:get_prop(wings_wm:this(), wireframed_objects),
     Wire = gb_sets:add(Id, Wire0),
     wings_wm:set_prop(wings_wm:this(), wireframed_objects, Wire),
     D#dlo{proxy=true};
-setup_all(#dlo{proxy=false}=D, false) -> D;
-setup_all(#dlo{src_we=#we{id=Id}}=D, false) ->
+setup_all(#dlo{proxy=false}=D, _, false) -> D;
+setup_all(#dlo{}=D, #dlo_src{we=#we{id=Id}}, false) ->
     Wire0 = wings_wm:get_prop(wings_wm:this(), wireframed_objects),
     Wire = gb_sets:delete_any(Id, Wire0),
     wings_wm:set_prop(wings_wm:this(), wireframed_objects, Wire),
     D#dlo{proxy=false};
-setup_all(D, _) -> D.
+setup_all(D, _, _) -> D.
 
 update(#dlo{proxy=false}=D, _) -> D;
-update(#dlo{src_we=We}=D, _) when ?IS_ANY_LIGHT(We) ->
+update(#dlo{src=#dlo_src{we=We}}=D, _) when ?IS_ANY_LIGHT(We) ->
     D#dlo{proxy=false}; %% Never use proxies on lights.
 %% Proxy data is not up to date. Recalculate!
 update(#dlo{proxy_data=#sp{faces=[_]}=Pd0}=D, St) ->
     update(D#dlo{proxy_data=Pd0#sp{faces=none}},St);
-update(#dlo{src_we=We0,proxy_data=#sp{faces=none}=Pd0}=D, St) ->
+update(#dlo{src=#dlo_src{we=We0},proxy_data=#sp{faces=none}=Pd0}=D, St) ->
     Pd = proxy_smooth(We0, Pd0, St),
     Faces = wings_draw:draw_flat_faces(Pd#sp.vab, St),
     ProxyEdges = update_edges(D, Pd),
@@ -148,14 +148,14 @@ update(#dlo{src_we=We0,proxy_data=#sp{faces=none}=Pd0}=D, St) ->
 update(#dlo{proxy_data=#sp{proxy_edges=none}=Pd}=D, _) ->
     ProxyEdges = update_edges(D, Pd),
     D#dlo{proxy_data=Pd#sp{proxy_edges=ProxyEdges}};
-update(#dlo{src_we=We0,proxy_data=none}=D, St) ->
+update(#dlo{src=#dlo_src{we=We0},proxy_data=none}=D, St) ->
     Pd = proxy_smooth(We0, #sp{}, St),
     Faces = wings_draw:draw_flat_faces(Pd#sp.vab, St),
     ProxyEdges = update_edges(D, Pd),
     D#dlo{proxy_data=Pd#sp{faces=Faces,proxy_edges=ProxyEdges}};
 update(D, _) -> D.
 
-update_edges(D, Pd) ->
+update_edges(#dlo{src=D}, Pd) ->
     update_edges_1(D, Pd, wings_pref:get_value(proxy_shaded_edge_style)).
 
 update_edges_1(_, _, cage) -> none;
@@ -173,9 +173,9 @@ update_edges_1(_, #sp{vab=#vab{mat_map=MatMap}=Vab}, all) ->
 	    gl:drawArrays(?GL_QUADS, 0, Count),
             wings_draw_setup:disable_pointers(Vab,RS)
     end;
-update_edges_1(#dlo{}, #sp{type={wings_cc,_}, vab=#vab{face_es={0,Bin}}}, some) ->
+update_edges_1(#dlo_src{}, #sp{type={wings_cc,_}, vab=#vab{face_es={0,Bin}}}, some) ->
     vbo_draw_arrays(?GL_LINES, Bin);
-update_edges_1(#dlo{src_we=#we{vp=OldVtab}}, #sp{we=#we{vp=Vtab,es=Etab}=We}, some) ->
+update_edges_1(#dlo_src{we=#we{vp=OldVtab}}, #sp{we=#we{vp=Vtab,es=Etab}=We}, some) ->
     Edges0 = wings_edge:from_vs(wings_util:array_keys(OldVtab), We),
     case wings_we:is_open(We) of
 	true ->
@@ -203,7 +203,7 @@ vbo_draw_arrays(Type, Data) ->
 
 smooth(D=#dlo{proxy=false},_) -> D;
 smooth(D=#dlo{drag=Active},_) when Active =/= none -> D;
-smooth(D=#dlo{src_we=We},_) when ?IS_ANY_LIGHT(We) -> D;
+smooth(D=#dlo{src=#dlo_src{we=We}},_) when ?IS_ANY_LIGHT(We) -> D;
 smooth(D=#dlo{proxy_data=#sp{smooth=none, 
 			     vab=#vab{face_map=FN}=Vab0,
 			     type=Type,
@@ -240,8 +240,8 @@ setup_smooth_normals([{Face,_Normal}|Fs], Ftab, SN0) ->
 setup_smooth_normals([], _, SN) -> SN.
 
 any_proxy() ->
-    wings_dl:fold(fun(#dlo{proxy=false}, A) -> A;
-		     (#dlo{}, _) -> true end, false).
+    wings_dl:fold(fun(#dlo{proxy=false}, _, A) -> A;
+		     (#dlo{}, _, _) -> true end, false).
 
 draw_smooth_edges(#dlo{drag=none}=D, Style, RS) ->
     draw_edges(D, Style, RS);
@@ -316,8 +316,8 @@ create_proxy_cc(We = #we{fs=Ftab}, Level, St) ->
     Vab  = wings_cc:gen_vab(Data),
     #sp{src_we=We,we=We,vab=Vab,type={wings_cc,Data}}.
 
-split_proxy(#dlo{proxy=true, src_we=We=#we{fs=Ftab},
-		 proxy_data=Pd=#sp{type={wings_cc,Data0}}},
+split_proxy(#dlo{proxy=true, proxy_data=Pd=#sp{type={wings_cc,Data0}}},
+            #dlo_src{we=We=#we{fs=Ftab}},
 	    DynVs0, St) ->
     Fs0 = gb_trees:keys(Ftab),
     DynFs0 = wings_face:from_vs(DynVs0, We),
@@ -355,7 +355,9 @@ split_proxy(#dlo{proxy=true, src_we=We=#we{fs=Ftab},
     #sp{we=We,src_we=We,type={wings_cc,Data},
 	faces=[StaticDL,DynDL],split=Split};
 
-split_proxy(#dlo{proxy=true,proxy_data=Pd0,src_we=SrcWe}, DynVs0, St) ->
+split_proxy(#dlo{proxy=true,proxy_data=Pd0},
+            #dlo_src{we=SrcWe},
+            DynVs0, St) ->
     DynFs0 = wings_face:from_vs(DynVs0, SrcWe),
     #we{mirror=Mirror,holes=Holes} = SrcWe,
     DynFs = ordsets:subtract(DynFs0, ordsets:union([Mirror], Holes)),
@@ -385,7 +387,7 @@ split_proxy(#dlo{proxy=true,proxy_data=Pd0,src_we=SrcWe}, DynVs0, St) ->
     Temp = wings_draw:draw_flat_faces(DynD#sp.vab, St),
     DynD#sp{faces=[StaticDL,Temp]};
 
-split_proxy(#dlo{proxy_data=PD},_, _St) ->
+split_proxy(#dlo{proxy_data=PD}, _, _, _St) ->
     PD.
 
 update_dynamic(ChangedVs, St, 
