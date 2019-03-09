@@ -16,7 +16,9 @@
 -module(wings_dl).
 
 -export([init/0,delete_dlists/0,
-	 update/2,map/2,fold/2,changed_materials/1,
+	 update/2,map/2,map_dlo/2,
+         fold/2,fold_src/2,fold_dlo/2,
+         changed_materials/1,
 	 display_lists/0,
 	 call/2,mirror_matrix/1,draw/4]).
 -export_type([dl/0,smooth/0,real_dl/0,sel_dl/0]).
@@ -159,6 +161,21 @@ map(Fun, Data) ->
 	    map_1(Fun, Dlists, Data, [], [])
     end.
 
+-spec map_dlo(Fun, Data0) -> Data1 when
+      Fun :: fun((#dlo{}, DataIn) -> #dlo{} | {#dlo{},DataOut}),
+      Data0 :: term(),
+      Data1 :: term(),
+      DataIn :: term(),
+      DataOut :: term().
+
+map_dlo(Fun, Data) ->
+    case get_dl_data() of
+	undefined -> ok;
+	#du{dl=Dlists} ->
+	    map_dlo_1(Fun, Dlists, Data, [], [])
+    end.
+
+
 %% fold(CallbackFun, Acc0)
 %%  Fold over the list of #dlo{} records. The callback will
 %%  be called like this
@@ -176,6 +193,30 @@ map(Fun, Data) ->
 fold(Fun, Acc) ->
     #du{dl=Dlists} = get_dl_data(),
     Split = fun(#dlo{src=Src}=D, A) -> Fun(D, Src, A) end,
+    foldl(Split, Acc, Dlists).
+
+-spec fold_src(Fun, Acc0) -> Acc1 when
+      Fun :: fun((#dlo_src{}, AccIn) -> AccOut),
+      Acc0 :: term(),
+      Acc1 :: term(),
+      AccIn :: term(),
+      AccOut :: term().
+
+fold_src(Fun, Acc) ->
+    #du{dl=Dlists} = get_dl_data(),
+    Split = fun(#dlo{src=Src}, A) -> Fun(Src, A) end,
+    foldl(Split, Acc, Dlists).
+
+-spec fold_dlo(Fun, Acc0) -> Acc1 when
+      Fun :: fun((#dlo{}, AccIn) -> AccOut),
+      Acc0 :: term(),
+      Acc1 :: term(),
+      AccIn :: term(),
+      AccOut :: term().
+
+fold_dlo(Fun, Acc) ->
+    #du{dl=Dlists} = get_dl_data(),
+    Split = fun(D, A) -> Fun(D, A) end,
     foldl(Split, Acc, Dlists).
 
 %% call(Term, RenderState) -> RenderState.
@@ -325,6 +366,19 @@ map_1(Fun, [#dlo{src=Src}=D0|Dlists], Data0, Seen0, Acc) ->
     end;
 map_1(_Fun, [], Data, Seen, Acc) ->
     update_last(Data, Seen, Acc).
+
+map_dlo_1(Fun, [D0|Dlists], Data0, Seen0, Acc) ->
+    case Fun(D0, Data0) of
+	#dlo{}=D ->
+	    Seen = update_seen(D, Seen0),
+	    map_dlo_1(Fun, Dlists, Data0, Seen, [D|Acc]);
+	{D,Data} ->
+	    Seen = update_seen(D, Seen0),
+	    map_dlo_1(Fun, Dlists, Data, Seen, [D|Acc])
+    end;
+map_dlo_1(_Fun, [], Data, Seen, Acc) ->
+    update_last(Data, Seen, Acc).
+
 
 update_last(Data, Seen, Acc) ->
     #du{used=Used0} = Du = get_dl_data(),

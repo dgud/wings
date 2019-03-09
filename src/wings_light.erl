@@ -162,9 +162,9 @@ is_any_light_selected(St) ->
     wings_sel:dfold(MF, RF, false, St).
 
 any_enabled_lights() ->
-    wings_dl:fold(fun(#dlo{}, #dlo_src{we=We}, Bool) ->
-			  Bool orelse ?IS_ANY_LIGHT(We)
-		  end, false).
+    wings_dl:fold_src(fun(#dlo_src{we=We}, Bool) ->
+                              Bool orelse ?IS_ANY_LIGHT(We)
+                      end, false).
 
 -spec info(#we{}) -> iolist().
 

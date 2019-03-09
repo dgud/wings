@@ -840,7 +840,7 @@ clean_st(St) ->
 				sel=[],ssels=Empty,saved=Limit}).
 
 clean_images(#st{saved=Limit}=St) when is_integer(Limit) ->
-    wings_dl:map(fun(D, _, _) -> D#dlo{proxy_data=none, proxy=false} end, []),
+    wings_dl:map_dlo(fun(D, _) -> D#dlo{proxy_data=none, proxy=false} end, []),
     wings_image:delete_older(Limit),
     St#st{saved=false}.
 

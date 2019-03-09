@@ -168,20 +168,20 @@ command(Option={show,What}, St) ->
     Prev = toggle_option(Option),
     if
 	What =:= show_normals ->
-	    Prev andalso wings_dl:map(fun(D, _, _) -> D#dlo{normals=none} end, []);
+	    Prev andalso wings_dl:map_dlo(fun(D, _) -> D#dlo{normals=none} end, []);
 	What =:= filter_texture ->
             wings_image:filter_images(not Prev),
-	    wings_dl:map(fun(#dlo{proxy_data=PD}=D, _, _) ->
+	    wings_dl:map_dlo(fun(#dlo{proxy_data=PD}=D, _) ->
 				 %% We only need to invalidate display lists.
 				 D#dlo{work=none,smooth=none,
 				       proxy_data=wings_proxy:invalidate(PD, dl)}
 			 end, []);
        true -> %% show_textures, show_normal_maps, show_colors
-	    wings_dl:map(fun(#dlo{proxy_data=PD}=D, _, _) ->
+	    wings_dl:map_dlo(fun(#dlo{proxy_data=PD}=D, _) ->
 				 %% Must invalidate vertex buffers.
 				 D#dlo{work=none,smooth=none,vab=none,
 				       proxy_data=wings_proxy:invalidate(PD, vab)};
-			    (D, _, _) -> D
+                                (D, _) -> D
 			 end, [])
     end,
     St;
@@ -190,7 +190,7 @@ command(show_edges, St) ->
     case Bool of
 	false -> St;
 	true ->
-	    wings_dl:map(fun(D, _, _) -> D#dlo{hard=none} end, []),
+	    wings_dl:map_dlo(fun(D, _) -> D#dlo{hard=none} end, []),
 	    St
     end;
 command(show_backfaces, St) ->

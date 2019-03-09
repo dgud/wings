@@ -566,12 +566,12 @@ lc_help(#cs{loop_cut=true}) -> "[1] " ++ ?__(1,"Loop Connect Off");
 lc_help(_) ->                  "[1] " ++ ?__(2,"Loop Connect On").
 
 fake_selection(St) ->
-    wings_dl:fold(fun(#dlo{}, #dlo_src{sel=none}, S) ->
-			  %% No selection, try highlighting.
-			  fake_sel_1(S);
-		     (#dlo{}, #dlo_src{we=#we{id=Id},sel={Mode,Els}}, S) ->
-			  S#st{selmode=Mode,sel=[{Id,Els}]}
-		  end, St).
+    wings_dl:fold_src(fun(#dlo_src{sel=none}, S) ->
+                              %% No selection, try highlighting.
+                              fake_sel_1(S);
+                         (#dlo_src{we=#we{id=Id},sel={Mode,Els}}, S) ->
+                              S#st{selmode=Mode,sel=[{Id,Els}]}
+                      end, St).
 
 fake_sel_1(St0) ->
     {_,X,Y} = wings_wm:local_mouse_state(),

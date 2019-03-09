@@ -699,8 +699,8 @@ handle_drag_event_0(Event, Drag = #drag{st=St}) ->
 	keep ->
 	    %% Clear any potential marker for an edge about to be
 	    %% cut (Cut RMB).
-	    wings_dl:map(fun(#dlo{hilite=none}=D, _, _) -> D;
-			    (D, _, _) -> D#dlo{hilite=none}
+	    wings_dl:map_dlo(fun(#dlo{hilite=none}=D, _) -> D;
+			    (D, _) -> D#dlo{hilite=none}
 			 end, []),
 	    %% Recalc unit_scales since zoom can have changed.   UNITS ARE MIXED IN SOME CASES
 	    #drag{xs=Xs0,ys=Ys0,zs=Zs0,p4=P4th0,p5=P5th0,psum=Psum0,unit=Unit,
@@ -712,9 +712,9 @@ handle_drag_event_0(Event, Drag = #drag{st=St}) ->
 	Other ->
 	    %% Clear any potential marker for an edge about to be
 	    %% cut (Cut RMB).
-	    wings_dl:map(fun(#dlo{hilite=none}=D, _, _) -> D;
-			    (D, _,_) -> D#dlo{hilite=none}
-			 end, []),
+	    wings_dl:map_dlo(fun(#dlo{hilite=none}=D, _) -> D;
+                                (D,_) -> D#dlo{hilite=none}
+                             end, []),
 	    Other
     end.
 
@@ -1324,9 +1324,9 @@ possible_falloff_update(Move, Drag) ->
     parameter_update(new_falloff, NewFalloff, Drag#drag{falloff=NewFalloff}).
 
 parameter_update(Key, Val, Drag) ->
-    wings_dl:map(fun(D, _Src, _) ->
-			 parameter_update_fun(D, Key, Val)
-		 end, []),
+    wings_dl:map_dlo(fun(D, _) ->
+                             parameter_update_fun(D, Key, Val)
+                     end, []),
     {_,X,Y} = wings_wm:local_mouse_state(),
     Ev = #mousemotion{x=X,y=Y,state=0},
     motion(Ev, Drag).
@@ -1426,8 +1426,8 @@ redraw(#drag{info=Info,st=St}) ->
     wings:redraw(Info, St).
 
 clear_sel_dlists() ->
-    wings_dl:map(fun clear_sel_dlists/3, []).
+    wings_dl:map_dlo(fun clear_sel_dlists/2, []).
 
-clear_sel_dlists(#dlo{drag=none}=D, _, _) -> D;
-clear_sel_dlists(#dlo{drag={matrix,_,_,_}}=D, _, _) -> D;
-clear_sel_dlists(D,_ , _) -> D#dlo{sel=none}.
+clear_sel_dlists(#dlo{drag=none}=D, _) -> D;
+clear_sel_dlists(#dlo{drag={matrix,_,_,_}}=D, _) -> D;
+clear_sel_dlists(D, _) -> D#dlo{sel=none}.

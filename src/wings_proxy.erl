@@ -240,8 +240,8 @@ setup_smooth_normals([{Face,_Normal}|Fs], Ftab, SN0) ->
 setup_smooth_normals([], _, SN) -> SN.
 
 any_proxy() ->
-    wings_dl:fold(fun(#dlo{proxy=false}, _, A) -> A;
-		     (#dlo{}, _, _) -> true end, false).
+    wings_dl:fold_dlo(fun(#dlo{proxy=false}, A) -> A;
+                         (_, _) -> true end, false).
 
 draw_smooth_edges(#dlo{drag=none}=D, Style, RS) ->
     draw_edges(D, Style, RS);
