@@ -995,14 +995,9 @@ frame(#st{sel=[]}=St) ->
          end,
     BB = wings_obj:dfold(MF, RF, none, St),
     frame_1(BB);
-frame(St0) ->
-    St = case wings_pref:get_value(frame_disregards_mirror) of
-             true ->
-                 kill_mirror(St0);
-             false ->
-                 St0
-         end,
-    frame_1(wings_sel:bounding_box(St)).
+frame(St) ->
+    BreakMirror = wings_pref:get_value(frame_disregards_mirror),
+    frame_1(wings_sel:bounding_box(St, BreakMirror)).
 
 frame_1(none) -> ok;
 frame_1([A,B]) ->
@@ -1012,9 +1007,6 @@ frame_1([A,B]) ->
     Dist = max(R/math:tan(Fov*math:pi()/2/180),Hither),
     set_current(View#view{origin=e3d_vec:neg(C),
 			  distance=Dist,pan_x=0.0,pan_y=0.0}).
-
-kill_mirror(St) ->
-    wings_obj:we_map(fun wings_we:break_mirror/1, St).
 
 views({save,[Legend]}, #st{views={_,{}}}=St0) ->
     St = St0#st{views={1,{{current(),Legend}}},saved=false},

@@ -646,36 +646,14 @@ guard_string() ->
 
 check_point(#st{sel=[]}) -> {none,""};
 check_point(St) ->
-    case kill_mirror(St) of
-        St ->
-            Center = e3d_vec:average(wings_sel:bounding_box(St)),
-            [{Center,?__(1,"Midpoint of selection saved.")}];
-        NoMirror ->
-            Center = e3d_vec:average(wings_sel:bounding_box(St)),
-            NoMirrorCenter = e3d_vec:average(wings_sel:bounding_box(NoMirror)),
-            [{NoMirrorCenter,
-              {?__(1,"Midpoint of selection saved."),
-               ?__(3,"Include virtual mirror in reference point calculation")}},
-             {Center,
-              {?__(1,"Midpoint of selection saved."),
-               ?__(2,"Disregard virtual mirror in reference point calculation")}}]
-    end.
-
-check_magnet_point(#st{sel=[]}) -> {none,""};
-check_magnet_point(St0) ->
-    St = kill_mirror(St0),
-    Center = e3d_vec:average(wings_sel:bounding_box(St)),
+    BreakMirror = wings_pref:get_value(frame_disregards_mirror),
+    Center = wings_sel:bbox_center(St, BreakMirror),
     [{Center,?__(1,"Midpoint of selection saved.")}].
 
-kill_mirror(#st{shapes=Shs0}=St) ->
-    Shs = kill_mirror_1(gb_trees:values(Shs0), []),
-    St#st{shapes=Shs}.
-
-kill_mirror_1([#we{id=Id}=We0|Wes], Acc) ->
-    We = wings_we:break_mirror(We0),
-    kill_mirror_1(Wes, [{Id,We}|Acc]);
-kill_mirror_1([], Acc) ->
-    gb_trees:from_orddict(reverse(Acc)).
+check_magnet_point(#st{sel=[]}) -> {none,""};
+check_magnet_point(St) ->
+    Center = wings_sel:bbox_center(St, true),
+    [{Center,?__(1,"Midpoint of selection saved.")}].
 
 %%%
 %%% Magnet functions.

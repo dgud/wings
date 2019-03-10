@@ -23,7 +23,7 @@
 	 new_sel/3,make/3,valid_sel/1,valid_sel/3,valid_sel_groups/3,
          clone/2,clone/3,combine/2,combine/3,merge/2,
 	 center/1,center_vs/1,
-	 bbox_center/1,bounding_box/1,
+	 bbox_center/1,bbox_center/2,bounding_box/1,bounding_box/2,
 	 face_regions/2,strict_face_regions/2,edge_regions/2,
 	 select_object/2,deselect_object/2,
 	 get_all_items/2,get_all_items/3,
@@ -424,19 +424,29 @@ center_vs(#st{selmode=Mode}=St) ->
 %% Calculate center of bounding box.
 
 -spec bbox_center(#st{}) -> e3d_vec:vector().
-
 bbox_center(St) ->
-    BBox = bounding_box(St),
+    bbox_center(St, false).
+
+-spec bbox_center(#st{}, boolean()) -> e3d_vec:vector().
+bbox_center(St, BreakMirror) ->
+    BBox = bounding_box(St, BreakMirror),
     e3d_vec:average(BBox).
 
 %%%
 %%% Calculate the bounding-box for the selection.
 %%%
-
 -spec bounding_box(#st{}) -> [e3d_vec:vector()] | 'none'.
+bounding_box(St) ->
+    bounding_box(St, false).
+-spec bounding_box(#st{}, boolean()) -> [e3d_vec:vector()] | 'none'.
 
-bounding_box(#st{selmode=Mode}=St) ->
+bounding_box(#st{selmode=Mode}=St, _BreakMirror) ->
     MF = fun(Items, We) ->
+                 %% Todo fixme
+                 %% We = case BreakMirror of
+                 %%          true -> wings_we:break_mirror(We0);
+                 %%          false -> We0
+                 %%      end,
 		 Vs = to_vertices(Mode, Items, We),
 		 wings_vertex:bounding_box(Vs, We)
 	 end,
