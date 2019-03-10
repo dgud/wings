@@ -50,7 +50,7 @@
 	 cx,cy,     % Calculated X,Y
          warp,      % true or size limits
 	 clk=none,  % click selection/deselection
-	 st}).      % wings st record (working)
+	 st}).      % wings st record (working)  %% todo how do we handle non-functional stuff to we processes
 
 -record(drag,
 	{vs,
@@ -286,7 +286,7 @@ handle_initial_event(redraw, What, St, T) ->
     wings_draw:refresh_dlists(St),
     wings:redraw(St),
     initiate_tweak_handler(What, St, T);
-handle_initial_event(#mousebutton{button=1,state=?SDL_RELEASED}, What, #st{shapes=Shs,sel=Sel0}=St0,
+handle_initial_event(#mousebutton{button=1,state=?SDL_RELEASED}, What, #st{sel=Sel0}=St0,
 		     #tweak{id={Action,{Id,[Elem]}},clk=none,x=X,y=Y}=T) ->
     case wings_io:is_grabbed() of
 	false -> ok;
@@ -295,9 +295,9 @@ handle_initial_event(#mousebutton{button=1,state=?SDL_RELEASED}, What, #st{shape
     St = case Action of
 	     add -> St0;
 	     delete ->
-		 We = gb_trees:get(Id, Shs),
+		 #{light:=Light} = wings_obj:get(Id, St0),
 		 case orddict:find(Id, Sel0) of
-		     _ when ?IS_LIGHT(We) ->
+		     _ when ?IS_LIGHT2(Light) ->
 			 Sel = orddict:erase(Id, Sel0),
 			 St0#st{sel=Sel};
 		     {ok,Sel1} ->
@@ -774,57 +774,43 @@ end_drag(#tweak{mode=Mode,id={_,{OrigId,El}},st=St0}) ->
 
 %% update
 end_drag(update, #dlo{drag={matrix,_,Matrix,_}}=D,
-         #dlo_src{sel={Mode,Sel}, we=#we{id=Id}},
-	 #st{shapes=Shs0}=St0) ->
-    We0 = gb_trees:get(Id, Shs0),
-    We = wings_we:transform_vs(Matrix, We0),
-    Shs = gb_trees:update(Id, We, Shs0),
-    St = St0#st{shapes=Shs},
+         #dlo_src{sel={Mode,Sel}, we=#we{id=Id}}, #st{}=St0) ->
+    St = wings_obj:update(fun(We) -> wings_we:transform_vs(Matrix, We) end, [Id], St0),
     {D,St#st{selmode=Mode,sel=[{Id,Sel}]}};
-end_drag(update, #dlo{}=D0, #dlo_src{sel={Mode,Sel},we=#we{id=Id}}=Src, #st{shapes=Shs0}=St0) ->
+end_drag(update, #dlo{}=D0, #dlo_src{sel={Mode,Sel},we=#we{id=Id}}=Src, #st{}=St0) ->
     #dlo{src=#dlo_src{we=We}} = wings_draw:join(D0, Src),
-    Shs = gb_trees:update(Id, We, Shs0),
-    St = St0#st{shapes=Shs},
+    St = wings_obj:update(fun(_) -> We end, [Id], St0),
     {D0,St#st{selmode=Mode,sel=[{Id,Sel}]}};
 %% tweak modes
-end_drag(_, #dlo{drag={matrix,_,Matrix,_}}=D,
-         #dlo_src{we=#we{id=Id}},
-	 #st{shapes=Shs0}=St0) ->
-    We0 = gb_trees:get(Id, Shs0),
-    We = wings_we:transform_vs(Matrix, We0),
-    Shs = gb_trees:update(Id, We, Shs0),
-    St = St0#st{shapes=Shs},
+end_drag(_, #dlo{drag={matrix,_,Matrix,_}}=D, #dlo_src{we=#we{id=Id}},#st{}=St0) ->
+    St = wings_obj:update(fun(We) -> wings_we:transform_vs(Matrix, We) end, [Id], St0),
     {D#dlo{vs=none,sel=none,drag=none,src=none},St};
-end_drag(Mode, #dlo{}=D0, #dlo_src{sel={_,_},we=#we{id=Id}}=Src0, #st{shapes=Shs0}=St0) ->
+end_drag(Mode, #dlo{}=D0, #dlo_src{sel={_,_},we=#we{id=Id}}=Src0, #st{}=St0) ->
     case Mode of
 	slide ->
 	    case wings_io:is_key_pressed(?SDLK_F1) of
 		false ->
 		    #dlo{src=#dlo_src{we=We}} = D = wings_draw:join(D0, Src0),
-		    Shs = gb_trees:update(Id, We, Shs0),
-		    St = St0#st{shapes=Shs},
+                    St = wings_obj:update(fun(_) -> We end, [Id], St0),
 		    {D#dlo{vs=none,sel=none,drag=none},St};
 		true ->
 		    #dlo{src=#dlo_src{we=We}} = D = wings_draw:join(D0, Src0),
 		    St = case collapse_short_edges(0.0001,We) of
 			     {delete, _} ->
-				 Shs = gb_trees:delete(Id,Shs0),
-				 St0#st{shapes=Shs,sel=[]};
-			     {true, We1} ->
-				 Shs = gb_trees:update(Id, We1, Shs0),
-				 St0#st{shapes=Shs};
-			     {false, We1} ->
-				 Shs = gb_trees:update(Id, We1, Shs0),
-				 St0#st{shapes=Shs, sel=[]}
-			 end,
+				 St0#st{shapes=gb_trees:delete(Id,St0#st.shapes),sel=[]};
+			     {true, We} ->
+                                 wings_obj:update(fun(_) -> We end, [Id], St0);
+			     {false, We} ->
+                                 St1 = wings_obj:update(fun(_) -> We end, [Id], St0),
+                                 St1#st{sel=[]}
+                         end,
 		    {D#dlo{vs=none,sel=none,drag=none},St}
 	    end;
 	_ ->
-	    #dlo{src=#dlo_src{we=#we{pst=Pst}=We}=Src}=D = wings_draw:join(D0, Src0),
-            We0=We#we{pst=remove_pst(Pst)},
-	    Shs = gb_trees:update(Id, We0, Shs0),
-	    St = St0#st{shapes=Shs},
-            {D#dlo{plugins=[],vs=none,sel=none,drag=none,src=Src#dlo_src{we=We0}},St}
+	    #dlo{src=#dlo_src{we=#we{pst=Pst}=We0}=Src}=D = wings_draw:join(D0, Src0),
+            We=We0#we{pst=remove_pst(Pst)},
+            St = wings_obj:update(fun(_) -> We end, [Id], St0),
+            {D#dlo{plugins=[],vs=none,sel=none,drag=none,src=Src#dlo_src{we=We}},St}
     end;
 end_drag(_, D, _, St) -> {D, St}.
 
@@ -1336,12 +1322,11 @@ magnet_tweak(#mag{orig=Orig,vs=Vs}=Mag, Pos) ->
 
 %% Get center point from closest element to cursor and store it for
 %% From Element constraints.
-from_element_point(X ,Y, #st{shapes=Shs}=St0) ->
+from_element_point(X ,Y, #st{}=St0) ->
     Stp = St0#st{selmode=face,sel=[],sh=true}, % smart highlight mode
     GeomPoint = wings_pick:raw_pick(X,Y,Stp),
     {Selmode, _, {IdP, ElemP}} = GeomPoint,
-    We = gb_trees:get(IdP, Shs),
-    AxisPoint  = point_center(Selmode, ElemP, We),
+    AxisPoint = wings_obj:with_we(fun(We) -> point_center(Selmode, ElemP, We) end, IdP, St0),
     wings_pref:set_value(tweak_geo_point, {AxisPoint,GeomPoint}).
 
 point_center(vertex, V, #we{vp=Vtab,mirror=Mir}=We) ->
@@ -1639,10 +1624,9 @@ is_tweak_combo(#tweak{mode=Mode,st=St0}=T) ->
 
 update_drag(#dlo{drag=#drag{mm=MM}}=D0,
             #dlo_src{sel={Mode,Els},we=#we{id=Id}}=Src,
-	    #tweak{st=#st{shapes=Shs0}=St0}=T) ->
+	    #tweak{st=#st{}=St0}=T) ->
     #dlo{src=#dlo_src{we=We}=Src0}=D1 = wings_draw:join(D0, Src),
-    Shs = gb_trees:update(Id, We, Shs0),
-    St = St0#st{shapes=Shs},
+    St = wings_obj:update(fun(_) -> We end, [Id], St0),
     Vs0 = sel_to_vs(Mode, gb_sets:to_list(Els), We),
     Center = wings_vertex:center(Vs0, We),
     {Vs,Magnet,VsDyn} = begin_magnet(T#tweak{st=St}, Vs0, Center, We),

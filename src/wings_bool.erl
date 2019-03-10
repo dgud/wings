@@ -90,37 +90,38 @@ repeat(Bvhs, [], _, _, St) ->
     finish(Bvhs, St);
 repeat([], Merged, _, _, St) ->
     finish(Merged, St);
-repeat(Bvhs0, Merged0, Map, Reduce, #st{shapes=Sh0}=St) ->
+repeat(Bvhs0, Merged0, Map, Reduce, #st{}=St0) ->
     Redo = fun(#{we:=We, sel_es:=Es0}, Acc) ->
                    Reduce(Map(gb_sets:empty(), We#we{temp={?MODULE,Es0}}),Acc)
            end,
     {Bvhs, Merged} = lists:foldl(Redo, {Bvhs0, []}, Merged0),
-    Sh = lists:foldl(fun(#{delete:=Del}, Sh) ->
-                             gb_trees:delete_any(Del, Sh)
-                     end, Sh0, Merged0),
+    St = lists:foldl(fun(#{delete:=Del}, St) ->
+                             St#st{shapes=gb_trees:delete_any(Del, St#st.shapes)}
+                     end, St0, Merged0),
     case Bvhs0 =:= Bvhs of
         true ->
             finish(Bvhs++Merged, St);
         false ->
-            repeat(Bvhs, Merged, Map, Reduce, St#st{shapes=Sh})
+            repeat(Bvhs, Merged, Map, Reduce, St)
     end.
 
-finish(Merged, #st{shapes=Sh0}=St0) ->
-    Upd = fun(#{we:=#we{id=Id}=We}=MI, Sh1) ->
-                  Sh2 = case maps:get(delete, MI, undefined) of
-                            undefined -> Sh1;
-                            Del -> gb_trees:delete_any(Del, Sh1)
+finish(Merged, #st{}=St0) ->
+    Upd = fun(#{we:=#we{id=Id}=We}=MI, St1) ->
+                  St2 = case maps:get(delete, MI, undefined) of
+                            undefined -> St1;
+                            Del ->
+                                St1#st{shapes=gb_trees:delete_any(Del, St1#st.shapes)}
                         end,
-                  Sh3 = gb_trees:update(Id, We#we{temp=[]}, Sh2),
+                  St3 = wings_obj:update(fun(_) -> We#we{temp=[]} end, [Id], St2),
                   case maps:get(error, MI, undefined) of
-                      undefined -> Sh3;
+                      undefined -> St3;
                       #we{id=IdDbg}=WeDbg ->
-                          gb_trees:update(IdDbg, WeDbg, Sh3)
+                          wings_obj:update(fun(_) -> WeDbg#we{temp=[]} end, [IdDbg], St3)
                   end
 	  end,
-    Sh  = lists:foldl(Upd, Sh0, Merged),
+    St1  = lists:foldl(Upd, St0, Merged),
     Sel = [{Id,gb_sets:from_list(Es)} || #{we:=#we{id=Id}, sel_es:=Es} <- Merged],
-    wings_sel:set(edge, Sel, St0#st{shapes=Sh}).
+    wings_sel:set(edge, Sel, St1).
 
 sub_ask(OrigSel) ->
     Desc  = ?__(1,"Pick body to subtract from original selection"),
