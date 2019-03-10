@@ -175,27 +175,30 @@ clean_bad_edges([], We) -> We.
 %% Export.
 %%
 
-export(Name, #st{shapes=Shapes0}=St) ->
-    Shapes1 = gb_trees:values(Shapes0),
-    foreach(fun check_size/1, Shapes1),
-    Shapes2 = foldl(fun(Sh, A) ->
-			    shape(Sh, St, A)
-		end, [], Shapes1),
+export(Name, St) ->
+    case wings_obj:fold(fun check_size/2, "", St) of
+        [] -> ok;
+        Names ->
+            wings_u:error_msg(?__(1,"Objects \"")
+                              ++ Names
+                              ++?__(2,"\" cannot be exported ")
+                              ++?__(3,"to Nendo format (too many edges)."))
+    end,
+
+    Shapes2 = wings_obj:fold(fun(Sh, A) -> shape(Sh, St, A) end, [], St),
     Shapes = reverse(Shapes2),
     write_file(Name, Shapes).
 
-check_size(#we{name=Name,es=Etab}) ->
-    case wings_util:array_entries(Etab) of
+check_size(#{name:=Name}=Obj, Acc) ->
+    GetSize = fun(#we{es=Etab}) -> wings_util:array_entries(Etab) end,
+    case wings_obj:with_we(GetSize, Obj) of
 	Sz when Sz > 65535 ->
-	    wings_u:error_msg(?__(1,"Object \"")
-			  ++Name
-			  ++?__(2,"\" cannot be exported ")
-			  ++?__(3,"to Nendo format (too many edges)."));
-	_ -> ok
+            Name ++ " " ++ Acc;
+	_ -> Acc
     end.
-	    
-shape(We, _, Acc) when ?IS_LIGHT(We) -> Acc;
-shape(#we{name=Name,perm=Perm}=We0, St, Acc) ->
+
+shape(Obj, _, Acc) when ?IS_LIGHT(Obj) -> Acc;
+shape(#{name:=Name,perm:=Perm}=Obj, St, Acc) ->
     NameChunk = [<<(length(Name)):16>>|Name],
     Vis = if
 	      ?IS_VISIBLE(Perm) -> 1;
@@ -208,15 +211,19 @@ shape(#we{name=Name,perm=Perm}=We0, St, Acc) ->
     Shaded = 1,
     EnableColors = 1,
     Header = <<Vis:8,Sense:8,Shaded:8,EnableColors:8,0:72/unit:8>>,
-    We1 = wings_we:uv_to_color(We0, St),
-    We = wings_we:renumber(We1, 0),
-    #we{vc=Vct,vp=Vtab,es=Etab,fs=Ftab} = We,
-    EdgeChunk = write_edges(array:sparse_to_orddict(Etab), We, []),
-    FaceChunk = write_faces(gb_trees:values(Ftab), []),
-    VertexChunk = write_vertices(array:sparse_to_list(Vct),
-				 array:sparse_to_list(Vtab), []),
-    FillChunk = [0,0,0,0,0,1],
-    [[NameChunk,Header,EdgeChunk,FaceChunk,VertexChunk,FillChunk]|Acc].
+    Fetch = fun(We0) ->
+                    We1 = wings_we:uv_to_color(We0, St),
+                    We = wings_we:renumber(We1, 0),
+                    #we{vc=Vct,vp=Vtab,es=Etab,fs=Ftab} = We,
+                    EdgeChunk = write_edges(array:sparse_to_orddict(Etab), We, []),
+                    FaceChunk = write_faces(gb_trees:values(Ftab), []),
+                    VertexChunk = write_vertices(array:sparse_to_list(Vct),
+                                                 array:sparse_to_list(Vtab), []),
+                    FillChunk = [0,0,0,0,0,1],
+                    [EdgeChunk,FaceChunk,VertexChunk,FillChunk]
+            end,
+    Chunks = wings_obj:with_we(Fetch, Obj),
+    [[NameChunk,Header|Chunks]|Acc].
 
 write_edges([{Edge,Erec0}|Es], #we{he=Htab}=We, Acc) ->
     Hardness = case gb_sets:is_member(Edge, Htab) of

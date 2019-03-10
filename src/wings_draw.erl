@@ -73,41 +73,41 @@ prepare_dlists(#st{shapes=Shs}) ->
 			    prepare_fun(D, Src, A)
 		    end, gb_trees:values(Shs)).
 
-prepare_fun(eol, Src, [#we{perm=Perm}|Wes]) when ?IS_NOT_VISIBLE(Perm) ->
-    prepare_fun(eol, Src, Wes);
-prepare_fun(eol, _Src, [We|Wes]) ->
+prepare_fun(eol, Src, [#{perm:=Perm}|Objs]) when ?IS_NOT_VISIBLE(Perm) ->
+    prepare_fun(eol, Src, Objs);
+prepare_fun(eol, _Src, [#{we:=We}|Objs]) ->
     D = #dlo{open=wings_we:is_open(We)},
     Dsrc = #dlo_src{we=We},
-    {D#dlo{src=changed_we(Dsrc, Dsrc)},Wes};
+    {D#dlo{src=changed_we(Dsrc, Dsrc)},Objs};
 prepare_fun(eol, eol, []) ->
     eol;
 prepare_fun(#dlo{}, #dlo_src{we=#we{id=Id}},
-	    [#we{id=Id,perm=Perm}|Wes]) when ?IS_NOT_VISIBLE(Perm) ->
-    {deleted,Wes};
-prepare_fun(#dlo{}=D, Src, [#we{perm=Perm}|Wes]) when ?IS_NOT_VISIBLE(Perm) ->
-    prepare_fun(D, Src, Wes);
-prepare_fun(#dlo{}=D, #dlo_src{we=We,split=#split{}=Split}=Src, [We|Wes]) ->
-    {D#dlo{src=Src#dlo_src{we=We,split=Split#split{orig_we=We}}},Wes};
+	    [#{id:=Id,perm:=Perm}|Objs]) when ?IS_NOT_VISIBLE(Perm) ->
+    {deleted,Objs};
+prepare_fun(#dlo{}=D, Src, [#{perm:=Perm}|Objs]) when ?IS_NOT_VISIBLE(Perm) ->
+    prepare_fun(D, Src, Objs);
+prepare_fun(#dlo{}=D, #dlo_src{we=We,split=#split{}=Split}=Src, [#{we:=We}|Objs]) ->
+    {D#dlo{src=Src#dlo_src{we=We,split=Split#split{orig_we=We}}},Objs};
 
-prepare_fun(#dlo{}=D, #dlo_src{we=We}=Src, [We|Wes]) ->
+prepare_fun(#dlo{}=D, #dlo_src{we=We}=Src, [#{we:=We}|Objs]) ->
     %% No real change - take the latest We for possible speed-up
     %% of further comparisons.
-    {D#dlo{src=Src#dlo_src{we=We}},Wes};
+    {D#dlo{src=Src#dlo_src{we=We}},Objs};
 
-prepare_fun(#dlo{}=D, #dlo_src{we=#we{id=Id}}=Src0, [#we{id=Id}=We1|Wes]) ->
+prepare_fun(#dlo{}=D, #dlo_src{we=#we{id=Id}}=Src0, [#{id:=Id, we:=We1}|Objs]) ->
     case prepare_fun_1(Src0, We1) of
         {keep, Src} ->
-            {D#dlo{src=Src}, Wes};
+            {D#dlo{src=Src}, Objs};
         {changed, Src} ->
             #dlo{proxy=IsUsed, proxy_data=Proxy} = D,
             Open = wings_we:is_open(We1),
             {#dlo{src=Src,open=Open,mirror=none,
                   proxy=IsUsed,proxy_data=wings_proxy:invalidate(Proxy, maybe)},
-             Wes}
+             Objs}
     end;
 
-prepare_fun(#dlo{}, _, Wes) ->
-    {deleted,Wes}.
+prepare_fun(#dlo{}, _, Objs) ->
+    {deleted,Objs}.
 
 prepare_fun_1(#dlo_src{we=#we{perm=Perm0}=We0}=D, #we{perm=Perm1}=We) ->
     case only_permissions_changed(We0, We) of
