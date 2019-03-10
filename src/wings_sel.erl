@@ -230,7 +230,7 @@ dfold(Map, Reduce, Acc0, St) when is_function(Map, 2),
     dfold_1(Sel, Map, Reduce, Shapes, Acc0).
 
 dfold_1([{Id,Items}|T], Map, Reduce, Shapes, Acc0) ->
-    We = gb_trees:get(Id, Shapes),
+    #{we:=We} = gb_trees:get(Id, Shapes),
     ?ASSERT(We#we.id =:= Id),
     Int = Map(Items, We),
     Acc = Reduce(Int, Acc0),
@@ -269,8 +269,8 @@ fold_obj(F, Acc0, #st{sel=Sel}=St) ->
       AccIn :: term(),
       AccOut :: term().
 
-fold(F, Acc, #st{sel=Sel,shapes=Shapes}) ->
-    fold_1(F, Acc, Shapes, Sel).
+fold(F, Acc, #st{sel=Sel}=St) ->
+    fold_1(F, Acc, St, Sel).
 
 %%%
 %%% Map and fold over the selection.
@@ -361,8 +361,8 @@ clone(Fun, Mode, St0) ->
       Fun :: fun((item_set(), #we{}) -> {#we{},item_set()}).
 
 combine(F, St) ->
-    MF = fun(Wes, Sel, Mode) ->
-                 Zipped = combine_zip(Wes, Sel, Mode),
+    MF = fun(Objs, Sel, Mode) ->
+                 Zipped = combine_zip(Objs, Sel, Mode),
                  {We,Items0} = wings_we:merge_root_set(Zipped),
                  Items1 = combine_items(Mode, Items0),
                  Items = gb_sets:from_ordset(Items1),
@@ -382,8 +382,8 @@ combine(F, Mode, St0) ->
       Fun :: fun(({#we{},item_set()}) -> {#we{},item_set()}).
 
 merge(F, St) when is_function(F, 1) ->
-    MF = fun(Wes, Sel, _Mode) ->
-                 Zipped = merge_zip(Wes, Sel),
+    MF = fun(Objs, Sel, _Mode) ->
+                 Zipped = merge_zip(Objs, Sel),
                  F(Zipped)
          end,
     comb_merge(MF, St).
@@ -584,12 +584,15 @@ to_vertices(body, _, #we{vp=Vtab}) ->
 %%% Local functions.
 %%%
 
-map_1(F, [{Id,Items}|Sel], [{Id,We0}|Shs], St, Acc) ->
-    ?ASSERT(We0#we.id =:= Id),
-    #we{es=Etab} = We = F(Items, We0),
-    case wings_util:array_is_empty(Etab) of
-	true -> map_1(F, Sel, Shs, St, Acc);
-	false -> map_1(F, Sel, Shs, St, [{Id,We}|Acc])
+map_1(F, [{Id,Items}|Sel], [{Id,Obj0}|Shs], St, Acc) ->
+    ?ASSERT(maps:get(id, Obj0) =:= Id),
+    Update = fun(We0) ->
+                     #we{es=Etab} = We = F(Items, We0),
+                     {We, wings_util:array_is_empty(Etab)}
+             end,
+    case wings_obj:update(Update, Obj0) of
+	{_, true} -> map_1(F, Sel, Shs, St, Acc);
+	{Obj, false} -> map_1(F, Sel, Shs, St, [{Id,Obj}|Acc])
     end;
 map_1(F, [_|_]=Sel, [Pair|Shs], St, Acc) ->
     map_1(F, Sel, Shs, St, [Pair|Acc]);
@@ -597,7 +600,7 @@ map_1(_F, [], Shs, _St, Acc) ->
     gb_trees:from_orddict(reverse(Acc, Shs)).
 
 update_sel_1([{Id,Sel0}|T], F, Shapes) ->
-    We = gb_trees:get(Id, Shapes),
+    #{we:=We} = gb_trees:get(Id, Shapes),
     ?ASSERT(We#we.id =:= Id),
     Sel = F(Sel0, We),
     case gb_sets:is_empty(Sel) of
@@ -608,48 +611,55 @@ update_sel_1([{Id,Sel0}|T], F, Shapes) ->
     end;
 update_sel_1([], _, _) -> [].
 
-update_sel_all_1([#we{id=Id}=We|Wes], [{Id,Items0}|Sel], F) ->
-    Items = F(Items0, We),
+update_sel_all_1([#{id:=Id}=Obj|Objs], [{Id,Items0}|Sel], F) ->
+    Items = wings_obj:with_we(fun(We) -> F(Items0, We) end, Obj),
     case gb_sets:is_empty(Items) of
 	false ->
-	    [{Id,Items}|update_sel_all_1(Wes, Sel, F)];
+	    [{Id,Items}|update_sel_all_1(Objs, Sel, F)];
 	true ->
-            update_sel_all_1(Wes, Sel, F)
+            update_sel_all_1(Objs, Sel, F)
     end;
-update_sel_all_1([#we{id=Id,perm=P}|Wes]=Wes0, Sel, F) ->
+update_sel_all_1([#{id:=Id,perm:=P}|Objs]=Objs0, Sel, F) ->
     if
         ?IS_SELECTABLE(P) ->
-            update_sel_all_1(Wes0, [{Id,gb_sets:empty()}|Sel], F);
+            update_sel_all_1(Objs0, [{Id,gb_sets:empty()}|Sel], F);
         true ->
-            update_sel_all_1(Wes, Sel, F)
+            update_sel_all_1(Objs, Sel, F)
     end;
 update_sel_all_1([], _, _) -> [].
 
-fold_1(F, Acc0, Shapes, [{Id,Items}|T]) ->
-    We = gb_trees:get(Id, Shapes),
-    ?ASSERT(We#we.id =:= Id),
-    fold_1(F, F(Items, We, Acc0), Shapes, T);
-fold_1(_F, Acc, _Shapes, []) -> Acc.
+fold_1(F, Acc0, St, [{Id,Items}|T]) ->
+    Acc = wings_obj:with_we(fun(We) ->
+                                    ?ASSERT(We#we.id =:= _Id),
+                                    F(Items, We, Acc0)
+                            end, Id, St),
+    fold_1(F, Acc, St, T);
+fold_1(_F, Acc, _St, []) -> Acc.
 
-mapfold_1(F, Acc0, [{Id,Items}|Sel], [{Id,We0}|Shs], St, ShsAcc) ->
-    ?ASSERT(We0#we.id =:= Id),
-    {#we{es=Etab}=We,Acc} = F(Items, We0, Acc0),
-    case wings_util:array_is_empty(Etab) of
-	true -> mapfold_1(F, Acc0, Sel, Shs, St, ShsAcc);
-	false -> mapfold_1(F, Acc, Sel, Shs, St, [{Id,We}|ShsAcc])
+mapfold_1(F, Acc0, [{Id,Items}|Sel], [{Id,Obj0}|Shs], St, ShsAcc) ->
+    Update = fun(We0) ->
+                     ?ASSERT(We0#we.id =:= Id),
+                     {#we{es=Etab}=We,Acc} = F(Items, We0, Acc0),
+                     {We, {wings_util:array_is_empty(Etab), Acc}}
+             end,
+    case wings_obj:update(Update, Obj0) of
+	{_, {true, _Acc}} -> mapfold_1(F, Acc0, Sel, Shs, St, ShsAcc);
+	{Obj, {false, Acc}} -> mapfold_1(F, Acc, Sel, Shs, St, [{Id,Obj}|ShsAcc])
     end;
 mapfold_1(F, Acc, [_|_]=Sel, [Pair|Shs], St, ShsAcc) ->
     mapfold_1(F, Acc, Sel, Shs, St, [Pair|ShsAcc]);
 mapfold_1(_F, Acc, [], Shs, _St, ShsAcc) ->
     {gb_trees:from_orddict(reverse(ShsAcc, Shs)),Acc}.
 
-new_sel_1([#we{perm=Perm}|Shs], F, Mode) when ?IS_NOT_SELECTABLE(Perm) ->
+new_sel_1([#{perm:=Perm}|Shs], F, Mode) when ?IS_NOT_SELECTABLE(Perm) ->
     new_sel_1(Shs, F, Mode);
-new_sel_1([We|Shs], F, Mode) when ?IS_LIGHT(We), Mode =/= body ->
+new_sel_1([Obj|Shs], F, Mode) when ?IS_LIGHT(Obj), Mode =/= body ->
     new_sel_1(Shs, F, Mode);
-new_sel_1([#we{id=Id}=We|Shs], F, Mode) ->
-    Sel0 = get_all_items(Mode, We),
-    Sel = F(Sel0, We),
+new_sel_1([#{id:=Id}=Obj|Shs], F, Mode) ->
+    Sel = wings_obj:with_we(fun(We) ->
+                                    Sel0 = get_all_items(Mode, We),
+                                    F(Sel0, We)
+                            end, Obj),
     case gb_sets:is_empty(Sel) of
 	false ->
 	    [{Id,Sel}|new_sel_1(Shs, F, Mode)];
@@ -658,19 +668,23 @@ new_sel_1([#we{id=Id}=We|Shs], F, Mode) ->
     end;
 new_sel_1([], _, _) -> [].
 
-clone_fun(F, Items0, #we{id=Id}=We0, #st{shapes=Shs0}=St0) ->
-    {We,Items,New} = F(Items0, We0),
-    Shs = gb_trees:update(Id, We, Shs0),
+clone_fun(F, Items0, #{id:=Id}=Obj0, #st{shapes=Shs0}=St0) ->
+    Do = fun(We0) ->
+                 {We,Items,New} = F(Items0, We0),
+                 {We, {Items,New}}
+         end,
+    %% todo New exports out the we !!!
+    {Obj,{Items,New}} = wings_obj:update(Do, Obj0),
+    Shs = gb_trees:update(Id,Obj, Shs0),
     St1 = St0#st{shapes=Shs},
     St = clone_add_sel(Items, Id, St1),
     clone_fun_add(New, St).
 
 clone_fun_add([{#we{name=Name0}=We0,Items,Suffix}|T],
-              #st{onext=Id,shapes=Shs0}=St0) ->
+              #st{onext=Id}=St0) ->
     Name = new_name(Name0, Suffix, Id),
     We = We0#we{id=Id,name=Name},
-    Shs = gb_trees:insert(Id, We, Shs0),
-    St1 = St0#st{shapes=Shs,onext=Id+1},
+    St1 = wings_obj:new(Name, We, St0),
     St = clone_add_sel(Items, Id, St1),
     clone_fun_add(T, St);
 clone_fun_add([], St) -> St.
@@ -722,23 +736,24 @@ comb_merge(MF, #st{shapes=Shs0,selmode=Mode,sel=[{Id,_}|_]=Sel0}=St) ->
     Shs1 = sofs:from_external(gb_trees:to_list(Shs0), [{id,object}]),
     Sel1 = sofs:from_external(Sel0, [{id,dummy}]),
     Sel2 = sofs:domain(Sel1),
-    {Wes0,Shs2} = sofs:partition(1, Shs1, Sel2),
-    Wes = sofs:to_external(sofs:range(Wes0)),
-    {We0,Items} = MF(Wes, Sel0, Mode),
-    We = case lists:usort([wings_obj:get_folder(We) || We <- Wes]) of
-             [Folder] -> wings_obj:set_folder(Folder, We0);
-             _ -> We0 %% From different folders add to root folder
-         end,
-    Shs = gb_trees:from_orddict(sort([{Id,We}|sofs:to_external(Shs2)])),
+    {Objs0,Shs2} = sofs:partition(1, Shs1, Sel2),
+    Objs = sofs:to_external(sofs:range(Objs0)),
+    {We0,Items} = MF(Objs, Sel0, Mode),
+    Obj0 = wings_obj:obj_from_we(We0),
+    Obj = case lists:usort([wings_obj:get_folder(Obj) || Obj <- Objs]) of
+              [Folder] -> wings_obj:set_folder(Folder, Obj0);
+              _ -> Obj0 %% From different folders add to root folder
+          end,
+    Shs = gb_trees:from_orddict(sort([{Id,Obj}|sofs:to_external(Shs2)])),
     Sel = case gb_sets:is_empty(Items) of
               true -> [];
               false -> [{Id,Items}]
           end,
     St#st{shapes=Shs,sel=Sel}.
 
-combine_zip([#we{id=Id}=We|Wes], [{Id,Items0}|Sel], Mode) ->
+combine_zip([#{id:=Id,we:=We}|Objs], [{Id,Items0}|Sel], Mode) ->
     RootSet = combine_root_set(Mode, Items0),
-    [{We,RootSet}|combine_zip(Wes, Sel, Mode)];
+    [{We,RootSet}|combine_zip(Objs, Sel, Mode)];
 combine_zip([], [], _) -> [].
 
 combine_root_set(body, _Items) ->
@@ -751,8 +766,8 @@ combine_items(body, _RootSet) ->
 combine_items(_, RootSet) ->
     ordsets:from_list([Item || {_,Item} <- RootSet]).
 
-merge_zip([#we{id=Id}=We|Wes], [{Id,Items}|Sel]) ->
-    [{We,Items}|merge_zip(Wes, Sel)];
+merge_zip([#{id:=Id, we:=We}|Objs], [{Id,Items}|Sel]) ->
+    [{We,Items}|merge_zip(Objs, Sel)];
 merge_zip([], []) -> [].
 
 

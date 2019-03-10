@@ -123,7 +123,8 @@
 %% State and records
 %% Main state record containing all objects and other important state.
 -record(st,
-	{shapes=gb_trees:empty() :: gb_trees:tree(),%All visible objects
+	{shapes=gb_trees:empty() ::                 %All visible objects
+                  gb_trees:tree(non_neg_integer(), wings_obj:obj()),
 	 selmode=face :: wings_sel:mode(),          %Selection mode.
 	 sh=false :: boolean(),			    %Smart highlighting active.
 	 sel=[] :: selection(),                     %Current sel: [{Id,GbSet}]
