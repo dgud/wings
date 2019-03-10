@@ -211,6 +211,10 @@
 -define(IS_AREA_LIGHT(We), (We#we.light =/= none andalso
 			    element(2, We#we.light) =:= area)).
 
+-define(IS_ANY_LIGHT2(Light), (Light =/= none)).
+-define(IS_LIGHT2(Light), (Light =/= none andalso element(2, Light) =/= area)).
+-define(IS_AREA_LIGHT2(Light), (Light =/= none andalso element(2, Light) =:= area)).
+
 %% Edge in a winged-edge object.
 %%
 %%                \       /           

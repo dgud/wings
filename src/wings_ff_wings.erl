@@ -83,12 +83,12 @@ import_vsn2(Shapes, Materials0, Props, Dir, St0) ->
 import_vsn2_dlg(Shapes0, Materials0, Props5, Dir,
                 #st{selmode=Mode0,sel=Sel0,shapes=Shps0,mat=Mat0,ssels=Ssels0,views={_,Views0}}=St0) ->
     %% Current elements names
-    {OldShpNames,OldLgtNames} = lists:foldr(
-                                fun(#we{name=Name}=We, {OAcc,LAcc}) when ?IS_LIGHT(We) ->
-                                        {OAcc, LAcc++[Name]};
-                                   (#we{name=Name}, {OAcc,LAcc}) ->
-                                        {OAcc++[Name], LAcc}
-                                end, {[],[]}, gb_trees:values(Shps0)),
+    GetNames = fun(#{name:=Name, ligth:=Light}, {OAcc,LAcc}) when ?IS_LIGHT2(Light) ->
+                       {OAcc, [Name|LAcc]};
+                  (#{name:=Name}, {OAcc,LAcc}) ->
+                       {[Name|OAcc], LAcc}
+               end,
+    {OldShpNames,OldLgtNames} = wings_obj:fold(GetNames, {[],[]}, St0),
     OldMtlNames = gb_trees:keys(Mat0),
     OldVwsNames = [Name || {_,Name} <- tuple_to_list(Views0)],
     OldSelGroups = [Id || {{_Mode,_Name}=Id,_} <- gb_trees:to_list(Ssels0)],
@@ -282,21 +282,23 @@ import_vsn2_dlg(Shapes0, Materials0, Props5, Dir,
                     end,
 
                 wings_pb:update(0.8, ?__(3,"converting binary")),
-                #st{shapes=NewShps} = St2 =
-                    wings_pb:done(import_vsn2(Objs, NMtls, Props, Dir, St0#st{shapes=Shps,mat=Mtls,views={tuple_size(Vws),Vws}})),
-                St1 =
+                St1 = St0#st{shapes=Shps,mat=Mtls,views={tuple_size(Vws),Vws}},
+                #st{shapes=NewShps} = St2 = import_vsn2(Objs, NMtls, Props, Dir, St1),
+                wings_pb:done(),
+                St3 =
                     if (SelOpt=/=keep) and NewSel ->
                             SelShp = gb_trees:to_list(NewShps) -- gb_trees:to_list(Shps0),
                             case SelShp of
                                 [] -> St2;
                                 _ ->
-                                    #st{sel=SelTmp} = wings_sel:make(fun(_,#we{}) -> true
-                                                                   end,body,St2#st{shapes=gb_trees:from_orddict(SelShp)}),
+                                    #st{sel=SelTmp} =
+                                        wings_sel:make(fun(_,#we{}) -> true
+                                                       end,body,St2#st{shapes=gb_trees:from_orddict(SelShp)}),
                                     St2#st{selmode=body,sel=SelTmp}
                             end;
                        true -> St2
                     end,
-                St = wings_sel:valid_sel(merge_sel(SelOpt,Mode0,Sel0,St1)),
+                St = wings_sel:valid_sel(merge_sel(SelOpt,Mode0,Sel0,St3)),
                 wings_obj:recreate_folder_system(St#st{saved=false})
         end,
     wings_dialog:dialog("Merge", Qs, ?SLOW(Fun)),
@@ -314,7 +316,8 @@ remove_selgroups_0([{{selection_group,_},_}|T], Acc) ->
 remove_selgroups_0([H|T], Acc) ->
     remove_selgroups_0(T,Acc++[H]).
 
-process_obj_light({_Id,#we{name=Name}=We}=I, {{{MrgLgt,LgtOpt},_}=Opt, AShp, AObj, ASNames, ALgt, ALNames}) when ?IS_LIGHT(We) ->
+process_obj_light({_Id,#{name:=Name, light:=Ligth}}=I, {{{MrgLgt,LgtOpt},_}=Opt, AShp, AObj, ASNames, ALgt, ALNames})
+  when ?IS_LIGHT2(Ligth) ->
     case MrgLgt of
         none ->
             {Opt,AShp++[I],AObj,ASNames,ALgt,ALNames};
@@ -332,7 +335,7 @@ process_obj_light({_Id,#we{name=Name}=We}=I, {{{MrgLgt,LgtOpt},_}=Opt, AShp, AOb
                 _ -> {Opt,AShp++[I],AObj,ASNames,ALgt,ALNames}
             end
     end;
-process_obj_light({_Id,#we{name=Name}}=I, {{_,{MrgObj,ObjOpt}}=Opt, AShp, AObj, ASNames, ALgt, ALNames}) ->
+process_obj_light({_Id,#{name:=Name}}=I, {{_,{MrgObj,ObjOpt}}=Opt, AShp, AObj, ASNames, ALgt, ALNames}) ->
     case MrgObj of
         none ->
             {Opt,AShp++[I],AObj,ASNames,ALgt,ALNames};
@@ -717,12 +720,7 @@ optimize_name_map([{Name,_}|Ms], NameMap, Acc) ->
     end;
 optimize_name_map([], _, Acc) -> gb_trees:from_orddict(sort(Acc)).
 
-import_objects(Shapes, NameMap, #st{selmode=Mode,shapes=Shs0,onext=Oid0}=St) ->
-    {Objs,Oid} = import_objects(Shapes, Mode, NameMap, Oid0, []),
-    Shs = gb_trees:from_orddict(gb_trees:to_list(Shs0) ++ Objs),
-    St#st{shapes=Shs,onext=Oid}.
-
-import_objects([Sh0|Shs], Mode, NameMap, Oid, ShAcc) ->
+import_objects([Sh0|Shs], NameMap, #st{onext=Oid}=St) ->
     {object,Name,{winged,Es,Fs,Vs,He},Props} = Sh0,
     Etab = import_edges(Es, 0, []),
     %% The 'default' material saved in this .wings file might not
@@ -744,16 +742,16 @@ import_objects([Sh0|Shs], Mode, NameMap, Oid, ShAcc) ->
     Pst = try gb_trees:from_orddict(Pst0)
 	  catch error:_ -> gb_trees:empty()
 	  end,
-    We = #we{he=Htab,perm=Perm,holes=Holes,pst=Pst,
-	     id=Oid,name=Name,mirror=Mirror,mat=FaceMat},
+    We0 = #we{he=Htab,perm=Perm,holes=Holes,pst=Pst,
+              id=Oid,name=Name,mirror=Mirror,mat=FaceMat},
     HiddenFaces = proplists:get_value(num_hidden_faces, Props, 0),
-    import_objects(Shs, Mode, NameMap, Oid+1, [{HiddenFaces,We,{Vtab,Etab}}|ShAcc]);
-import_objects([], _Mode, _NameMap, Oid, Objs0) ->
-    %%io:format("flat_size: ~p\n", [erts_debug:flat_size(Objs0)]),
-    Objs = share_list(Objs0),
-    %%io:format("size: ~p\n", [erts_debug:size(Objs)]),
-    {Objs,Oid}.
-    
+    %% Previosly we shared floats on all objects but since we will
+    %% keep a we per process that is not longer needed/usefull.
+    We = share_list(HiddenFaces, We0, {Vtab,Etab}),
+    import_objects(Shs, NameMap, wings_obj:new(Name, We, St));
+import_objects([], _NameMap, St) ->
+    St.
+
 import_edges([[{edge,Va,Vb,Lf,Rf,Ltpr,Ltsu,Rtpr,Rtsu}]|Es], Edge, Acc) ->
     Rec = #edge{vs=Va,ve=Vb,lf=Lf,rf=Rf,
 		ltpr=Ltpr,ltsu=Ltsu,rtpr=Rtpr,rtsu=Rtsu},
@@ -989,20 +987,17 @@ translate_map_images_2([], _, _) -> [].
 %%% Sharing of floating point numbers on import.
 %%%
 
-share_list(Wes) ->
-    Tabs0 = [Tabs || {_,_,{_,_}=Tabs} <- Wes],
+share_list(Hidden, We, {_,_}=Tabs0) ->
     Floats = share_floats(Tabs0, tuple_to_list(wings_color:white())),
-    Tabs = share_list_1(Tabs0, Floats, gb_trees:empty(), []),
-    share_list_2(Tabs, Wes, []).
+    Tabs = share_list_1(Tabs0, Floats, gb_trees:empty()),
+    share_list_2(Tabs, Hidden, We).
 
-share_list_1([{Vtab0,Etab0}|Ts], Floats, Tuples0, Acc) ->
+share_list_1({Vtab0,Etab0}, Floats, Tuples0) ->
     Vtab = share_vs(Vtab0, Floats, []),
-    {Etab,Attr,Tuples} = share_es(Etab0, Floats, [], [], Tuples0),
-    share_list_1(Ts, Floats, Tuples, [{Vtab,Etab,Attr}|Acc]);
-share_list_1([], _, _, Ts) -> reverse(Ts).
+    {Etab,Attr,_Tuples} = share_es(Etab0, Floats, [], [], Tuples0),
+    {Vtab,Etab,Attr}.
 
-share_list_2([{Vtab0,Etab0,Attr}|Ts],
-	     [{NumHidden,#we{id=Id,mat=FaceMat}=We0,_}|Wes], Acc) ->
+share_list_2({Vtab0,Etab0,Attr}, NumHidden, #we{mat=FaceMat}=We0) ->
     Vtab = array:from_orddict(Vtab0),
     Etab = array:from_orddict(Etab0),
     We1 = wings_we:rebuild(We0#we{vp=Vtab,es=Etab,mat=default}),
@@ -1028,24 +1023,20 @@ share_list_2([{Vtab0,Etab0,Attr}|Ts],
 		end, We6, Attr),
 
     %% At last, hide the virtual mirror face.
-    We = case We7 of
-	     #we{mirror=none} ->
-		 We7;
-	     #we{mirror=MirrorFace} ->
-		 %% Hide the virtual mirror face.
-		 We8 = wings_we:hide_faces([MirrorFace], We7),
-		 We8#we{mirror=-MirrorFace-1}
-	 end,
-    share_list_2(Ts, Wes, [{Id,We}|Acc]);
-share_list_2([], [], Wes) -> sort(Wes).
+    case We7 of
+        #we{mirror=none} ->
+            We7;
+        #we{mirror=MirrorFace} ->
+            %% Hide the virtual mirror face.
+            We8 = wings_we:hide_faces([MirrorFace], We7),
+            We8#we{mirror=-MirrorFace-1}
+    end.
 
-share_floats([{Vtab,Etab}|T], Shared0) ->
+share_floats({Vtab,Etab}, Shared0) ->
     Shared1 = share_floats_1(Vtab, Shared0),
-    Shared = share_floats_2(Etab, Shared1),
-    share_floats(T, Shared);
-share_floats([], Shared0) ->
-    Shared1 = ordsets:from_list(Shared0),
-    Shared = share_floats_4(Shared1, []),
+    Shared2 = share_floats_2(Etab, Shared1),
+    Shared3 = ordsets:from_list(Shared2),
+    Shared = share_floats_4(Shared3, []),
     gb_trees:from_orddict(Shared).
 
 share_floats_1([{_,{A,B,C}}|T], Shared) ->
@@ -1231,25 +1222,21 @@ validate_holes(#we{fs=Ftab,holes=Holes0}=We) ->
 %%% Save a Wings file (in version 2).
 %%%
 
-export(Name, OnlySel, St0) ->
+export(Name, OnlySel, #st{views={CurrentView,_}} = St) ->
     wings_pb:start( ?__(1,"saving")),
     wings_pb:update(0.01, ?__(2,"lights")),
-    Lights = wings_light:export_bc(St0),
+    Lights = wings_light:export_bc(St),
     Materials = case wings_pref:get_value(save_unused_materials) of
                     true ->
-                        #st{mat=Mat} = St0,
+                        #st{mat=Mat} = St,
                         gb_trees:to_list(Mat);
                     false ->
-                        wings_material:used_materials(St0)
+                        wings_material:used_materials(St)
                 end,
-    #st{shapes=Shs0,views={CurrentView,_}} = St =
-        remove_lights(St0),
     Sel0 = collect_sel(St),
     wings_pb:update(0.65, ?__(3,"renumbering")),
-    Shs1 = [{Id,show_mirror_face(We)} ||
-	       {Id,We} <- gb_trees:to_list(Shs0)],
-    {Shs2,Sel} = renumber(Shs1, Sel0, 0, [], []),
-    Shs = foldl(fun shape/2, [], Shs2),
+    {_, [], Shs0, Sel} = wings_obj:fold(fun get_shape/2, {0, Sel0, [], []}, St),
+    Shs = lists:reverse(Shs0),
     wings_pb:update(0.98, ?__(4,"objects")),
     Props0 = export_props(Sel),
     Props1 = case Lights of
@@ -1285,13 +1272,32 @@ export(Name, OnlySel, St0) ->
     wings_pb:update(1.0, ?__(6,"writing file")),
     wings_pb:done(write_file(Name, Bin)).
 
-remove_lights(#st{sel=Sel0,shapes=Shs0}=St) ->
-    Shs1 = foldl(fun(We, A) when ?IS_ANY_LIGHT(We) -> A;
-		    (#we{id=Id}=We, A) -> [{Id,We}|A]
-		 end, [], gb_trees:values(Shs0)),
-    Shs = gb_trees:from_orddict(reverse(Shs1)),
-    Sel = [S || {Id,_}=S <- Sel0, gb_trees:is_defined(Id, Shs)],
-    St#st{sel=Sel,shapes=Shs}.
+get_shape(#{id:=Id, light:=Light}, {NextId, SelP, Acc, SelAcc})
+  when ?IS_ANY_LIGHT2(Light) ->  %% Ignore lights
+    case SelP of
+        [{Id,_}|Sel] ->
+            {NextId, Sel, Acc, SelAcc};
+        _ ->
+            {NextId, SelP, Acc, SelAcc}
+    end;
+get_shape(#{id:=Id}=Obj, {NextId, SelP, Acc, SelAcc}) ->
+    Get = fun(We0) ->
+                  We1 = show_mirror_face(We0),
+                  Hidden = wings_we:num_hidden(We1),
+                  case SelP of
+                      [{Id,Root0}|Sel] ->
+                          {We,Root} = wings_we:renumber(We1, 0, Root0),
+                          {NextId+1, Sel,
+                           [shape(Hidden,We)|Acc],
+                           [{NextId,Root}|SelAcc]};
+                      _ ->
+                          We = wings_we:renumber(We1, 0),
+                          {NextId+1, SelP,
+                           [shape(Hidden,We)|Acc],
+                           SelAcc}
+                  end
+          end,
+    wings_obj:with_we(Get,Obj).
 
 collect_sel(#st{selmode=Mode,sel=Sel0,ssels=Ssels}=St) ->
     Sel1 = [{Id,{Mode,gb_sets:to_list(Elems),selection}} ||
@@ -1313,17 +1319,6 @@ show_mirror_face(#we{mirror=Face}=We) ->
     %% (For compatibility with previous versions.)
     wings_we:show_faces([Face], We#we{mirror=-Face-1}).
 
-renumber([{Id,We0}|Shs], [{Id,Root0}|Sel], NewId, WeAcc, RootAcc) ->
-    Hidden = wings_we:num_hidden(We0),
-    {We,Root} = wings_we:renumber(We0, 0, Root0),
-    renumber(Shs, Sel, NewId+1, [{Hidden,We}|WeAcc],
-	     [{NewId,Root}|RootAcc]);
-renumber([{_,We0}|Shs], Sel, NewId, WeAcc, RootAcc) ->
-    Hidden = wings_we:num_hidden(We0),
-    We = wings_we:renumber(We0, 0),
-    renumber(Shs, Sel, NewId+1, [{Hidden,We}|WeAcc], RootAcc);
-renumber([], [], _NewId, WeAcc, RootAcc) ->
-    {WeAcc,RootAcc}.
 
 used_images(Images, Materials) ->
     UsedImgs =
@@ -1375,7 +1370,7 @@ write_file(Name, Bin) ->
 	{error,Reason} -> {error,file:format_error(Reason)}
     end.
 
-shape({Hidden,#we{name=Name,vp=Vs0,es=Es0,he=Htab,pst=Pst}=We}, Acc) ->
+shape(Hidden,#we{name=Name,vp=Vs0,es=Es0,he=Htab,pst=Pst}=We) ->
     Vs1 = foldl(fun export_vertex/2, [], array:sparse_to_list(Vs0)),
     Vs = reverse(Vs1),
     UvFaces = gb_sets:from_ordset(wings_we:uv_mapped_faces(We)),
@@ -1391,7 +1386,7 @@ shape({Hidden,#we{name=Name,vp=Vs0,es=Es0,he=Htab,pst=Pst}=We}, Acc) ->
     Props2 = mirror(We, Props1),
     Props3 = export_holes(We, Props2),
     Props  = export_pst(Pst, Props3),
-    [{object,Name,{winged,Es,Fs,Vs,He},Props}|Acc].
+    {object,Name,{winged,Es,Fs,Vs,He},Props}.
 
 mirror(#we{mirror=none}, Props) -> Props;
 mirror(#we{mirror=Face}, Props) -> [{mirror_face,Face}|Props].
