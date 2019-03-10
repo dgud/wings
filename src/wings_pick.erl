@@ -374,47 +374,49 @@ hilite_draw_sel_fun(body, _, #dlo{vab=#vab{}=Vab}=D) ->
             wings_draw_setup:disable_pointers(Vab, RS)
     end.
 
-enhanced_hl_info(Base,#hl{redraw=#st{sel=[],shapes=Shs},prev=Prev}) when is_tuple(Prev) ->
+enhanced_hl_info(Base,#hl{redraw=#st{sel=[]}=St,prev=Prev}) when is_tuple(Prev) ->
     case Prev of
-      {_,_} ->
-        {{SelMode,_,{Obj,Elem}},_} = Prev;
-      _ -> {SelMode,_,{Obj,Elem}} = Prev
+        {_,_} ->
+            {{SelMode,_,{Id,Elem}},_} = Prev;
+        _ -> {SelMode,_,{Id,Elem}} = Prev
     end,
     %% Mouseover info text for temp hilited selection
-    We = gb_trees:get(Obj, Shs),
-    case SelMode of
-      vertex ->
-        {X,Y,Z} = wings_vertex:pos(Elem, We),
-        [Base|io_lib:format(?__(1,". Position <~s  ~s  ~s>"),
-                            [wings_util:nice_float(X),
-                             wings_util:nice_float(Y),
-                             wings_util:nice_float(Z)])];
-      edge -> 
-        #edge{vs=Va,ve=Vb} = array:get(Elem, We#we.es),
-        {Xa,Ya,Za} = wings_vertex:pos(Va, We),
-        {Xb,Yb,Zb} = wings_vertex:pos(Vb, We),
-        Length = e3d_vec:dist({Xa,Ya,Za}, {Xb,Yb,Zb}),
-        {X,Y,Z} = e3d_vec:average({Xa,Ya,Za}, {Xb,Yb,Zb}),
-        [Base|io_lib:format(?__(3,". Midpoint <~s  ~s  ~s>\nLength ~s") ++
-                            "  <~s  ~s  ~s>",
-                            [wings_util:nice_float(X),
-                             wings_util:nice_float(Y),
-                             wings_util:nice_float(Z),
-                             wings_util:nice_float(Length),
-                             wings_util:nice_float(Xb - Xa),
-                             wings_util:nice_float(Yb - Ya),
-                             wings_util:nice_float(Zb - Za)])];
-      face ->
-        {X,Y,Z} = wings_face:center(Elem, We),
-        Area = area_info(Elem, We),
-        Mat = wings_facemat:face(Elem, We),
-        [Base|io_lib:format(?__(4,". Midpoint <~s  ~s  ~s> \nMaterial ~ts.")
-                            ++ Area,
-                            [wings_util:nice_float(X),
-                             wings_util:nice_float(Y),
-                             wings_util:nice_float(Z),
-                             Mat])]
-    end.
+    GetString = fun(We) ->
+                        case SelMode of
+                            vertex ->
+                                {X,Y,Z} = wings_vertex:pos(Elem, We),
+                                [Base|io_lib:format(?__(1,". Position <~s  ~s  ~s>"),
+                                                    [wings_util:nice_float(X),
+                                                     wings_util:nice_float(Y),
+                                                     wings_util:nice_float(Z)])];
+                            edge ->
+                                #edge{vs=Va,ve=Vb} = array:get(Elem, We#we.es),
+                                {Xa,Ya,Za} = wings_vertex:pos(Va, We),
+                                {Xb,Yb,Zb} = wings_vertex:pos(Vb, We),
+                                Length = e3d_vec:dist({Xa,Ya,Za}, {Xb,Yb,Zb}),
+                                {X,Y,Z} = e3d_vec:average({Xa,Ya,Za}, {Xb,Yb,Zb}),
+                                [Base|io_lib:format(?__(3,". Midpoint <~s  ~s  ~s>\nLength ~s") ++
+                                                        "  <~s  ~s  ~s>",
+                                                    [wings_util:nice_float(X),
+                                                     wings_util:nice_float(Y),
+                                                     wings_util:nice_float(Z),
+                                                     wings_util:nice_float(Length),
+                                                     wings_util:nice_float(Xb - Xa),
+                                                     wings_util:nice_float(Yb - Ya),
+                                                     wings_util:nice_float(Zb - Za)])];
+                            face ->
+                                {X,Y,Z} = wings_face:center(Elem, We),
+                                Area = area_info(Elem, We),
+                                Mat = wings_facemat:face(Elem, We),
+                                [Base|io_lib:format(?__(4,". Midpoint <~s  ~s  ~s> \nMaterial ~ts.")
+                                                    ++ Area,
+                                                    [wings_util:nice_float(X),
+                                                     wings_util:nice_float(Y),
+                                                     wings_util:nice_float(Z),
+                                                     Mat])]
+                        end
+                end,
+    wings_obj:with_we(GetString, Id, St).
 
 area_info(Face, We) ->
     case wings_face:vertices(Face,We) =< 50 of
@@ -522,20 +524,21 @@ marquee_pick(true, X, Y0, W, H, St0) ->
 	    {Hits,St}
     end.
 
-marquee_convert([{Id,Faces}|Hits], RectData0,
-	       #st{selmode=Mode,shapes=Shs}=St, Acc) ->
-    We = gb_trees:get(abs(Id), Shs),
-    RectData = if
-		   Id < 0 ->
-		       {MM,PM,_} = wings_u:get_matrices(-Id, mirror),
-		       RectData1 = setelement(2, RectData0, PM),
-		       setelement(1, RectData1, MM);
-		   true -> RectData0
-	       end,
-    case marquee_convert_1(Faces, Mode, RectData, We) of
-	[] ->
+marquee_convert([{Id,Faces}|Hits], RectData0, #st{selmode=Mode}=St, Acc) ->
+    Get = fun(We) ->
+                  RectData = if
+                                 Id < 0 ->
+                                     {MM,PM,_} = wings_u:get_matrices(-Id, mirror),
+                                     RectData1 = setelement(2, RectData0, PM),
+                                     setelement(1, RectData1, MM);
+                                 true -> RectData0
+                             end,
+                  {marquee_convert_1(Faces, Mode, RectData, We), RectData}
+          end,
+    case wings_obj:with_we(Get, abs(Id), St) of
+	{[], RectData} ->
 	    marquee_convert(Hits, RectData, St, Acc);
-	Items ->
+	{Items, RectData} ->
 	    marquee_convert(Hits, RectData, St, [{abs(Id),Items}|Acc])
     end;
 marquee_convert([], _, _, Hits) ->
@@ -735,28 +738,31 @@ update_selection(Id, Items1, [{_,Items0}|T0], Acc) -> %Id == I
 update_selection(Id, Items, [], Acc) ->
     {add,reverse(Acc, [{Id,Items}])}.
 
-expand_light_items(Mode, Id, Items, #st{shapes=Shs}) ->
-    We = gb_trees:get(Id, Shs),
-    case ?IS_LIGHT(We) of
+expand_light_items(Mode, Id, Items, St) ->
+    Obj = wings_obj:get(Id, St),
+    Light = maps:get(light, Obj, none),
+    case ?IS_LIGHT2(Light) of
 	false -> Items;
-	true -> wings_sel:get_all_items(Mode, We)
+	true -> wings_obj:with_we(fun(We) -> wings_sel:get_all_items(Mode, We) end, Obj)
     end.
 
 %%
 %% Given a face selection hit, return the correct vertex/edge/face/body.
 %%
 
-convert_hit(Id, Face, X, Y, #st{selmode=Mode0,shapes=Shs,sel=Sel,sh=Sh}) ->
+convert_hit(Id, Face, X, Y, #st{selmode=Mode0,sel=Sel,sh=Sh}=St) ->
     Mode = if
 	       Sh, Mode0 =/= body, Sel == [] ->
 		   {auto,Mode0};
 	       true -> Mode0
 	   end,
-    We = gb_trees:get(abs(Id), Shs),
-    if
-	Id < 0 -> convert_hit_1(Mode, X, Y, -Id, Face, mirror, We);
-	true -> convert_hit_1(Mode, X, Y, Id, Face, original, We)
-    end.
+    Hit = fun(We) ->
+                  if
+                      Id < 0 -> convert_hit_1(Mode, X, Y, -Id, Face, mirror, We);
+                      true -> convert_hit_1(Mode, X, Y, Id, Face, original, We)
+                  end
+          end,
+    wings_obj:with_we(Hit, Id, St).
 
 convert_hit_1(body, _X, _Y, Id, _Face, MM, _We) ->
     {body,MM,{Id,0}};
