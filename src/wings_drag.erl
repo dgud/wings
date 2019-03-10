@@ -121,9 +121,8 @@ fold(F, Units, St) when is_function(F, 2) ->
 -spec fold(Fun, [unit()], [flag()], #st{}) -> {'drag',#drag{}} when
       Fun :: fun((wings_sel:item_set(), #we{}) -> fold_tv()).
 
-fold(F, Units, Flags, St) when is_function(F, 2) ->
-    #st{sel=Sel,shapes=Shapes} = St,
-    Tvs = fold_1(Sel, F, Shapes),
+fold(F, Units, Flags, #st{sel=Sel}=St) when is_function(F, 2) ->
+    Tvs = fold_1(Sel, F, St),
     Drag = init(Units, Flags, St),
     wings_draw:refresh_dlists(St),
     break_apart(Tvs, St),
@@ -138,9 +137,8 @@ matrix(F, Units, #st{selmode=body}=St) ->
 -spec matrix(Fun, [unit()], [flag()], #st{}) -> {'drag',#drag{}} when
       Fun :: fun((#we{}) -> mat_transform_fun()).
 
-matrix(F, Units, Flags, #st{selmode=body}=St) when is_function(F, 1) ->
-    #st{sel=Sel,shapes=Shapes} = St,
-    Tvs = get_funs(Sel, F, Shapes),
+matrix(F, Units, Flags, #st{selmode=body, sel=Sel}=St) when is_function(F, 1) ->
+    Tvs  = get_funs(Sel, F, St),
     Drag = init(Units, Flags, St),
     wings_draw:refresh_dlists(St),
     insert_matrix(Tvs),
@@ -149,9 +147,8 @@ matrix(F, Units, Flags, #st{selmode=body}=St) when is_function(F, 1) ->
 -spec general(Fun, [unit()], [flag()], #st{}) -> {'drag',#drag{}} when
       Fun :: fun((#we{}) -> general_fun()).
 
-general(F, Units, Flags, St) when is_function(F, 1) ->
-    #st{sel=Sel,shapes=Shapes} = St,
-    Tvs = get_funs(Sel, F, Shapes),
+general(F, Units, Flags, #st{sel=Sel}=St) when is_function(F, 1) ->
+    Tvs = get_funs(Sel, F, St),
     Drag = init(Units, Flags, St),
     wings_draw:refresh_dlists(St),
     break_apart_general(Tvs),
@@ -212,23 +209,22 @@ init(Units, Flags, St, DragFun) ->
           mode_fun=ModeFun,mode_data=ModeData,
           st=St,drag=DragFun}.
 
-fold_1([{Id,Items}|T], F, Shapes) ->
-    We0 = gb_trees:get(Id, Shapes),
-    ?ASSERT(We0#we.id =:= Id),
-    Tv = F(Items, We0),
+fold_1([{Id,Items}|T], F, St) ->
+    Tv = wings_obj:with_we(fun(We0) ->
+                                   ?ASSERT(We0#we.id =:= Id),
+                                   F(Items, We0)
+                           end, Id, St),
     case Tv of
         {we,WeFuns,OtherTv} when is_list(WeFuns) ->
-            [{Id,WeFuns,OtherTv}|fold_1(T, F, Shapes)];
+            [{Id,WeFuns,OtherTv}|fold_1(T, F, St)];
         _ ->
-            [{Id,[],Tv}|fold_1(T, F, Shapes)]
+            [{Id,[],Tv}|fold_1(T, F, St)]
     end;
 fold_1([], _, _) -> [].
 
-get_funs([{Id,_}|T], F, Shapes) ->
-    We0 = gb_trees:get(Id, Shapes),
-    ?ASSERT(We0#we.id =:= Id),
-    General = F(We0),
-    [{Id,General}|get_funs(T, F, Shapes)];
+get_funs([{Id,_}|T], F, St) ->
+    General = wings_obj:with_we(F, Id, St),
+    [{Id,General}|get_funs(T, F, St)];
 get_funs([], _, _) -> [].
 
 
@@ -1381,42 +1377,41 @@ trim([[_|_]=H|T]) ->
 trim(S) -> S.
 
 normalize(Move, #drag{mode_fun=ModeFun,mode_data=ModeData,
-		      st=#st{shapes=Shs0}=St}) ->
+		      st=St}) ->
     ModeFun(done, ModeData),
     gl:disable(gl_rescale_normal()),
-    Shs = wings_dl:map(fun(D, Src, Sh) ->
-			       normalize_fun(D, Src, Move, Sh)
-		       end, Shs0),
-    St#st{shapes=Shs}.
+    wings_dl:map(fun(D, Src, Sh) ->
+                         normalize_fun(D, Src, Move, Sh)
+                 end, St).
 
-normalize_fun(#dlo{drag=none}=D, _, _Move, Shs) -> {D,Shs};
+normalize_fun(#dlo{drag=none}=D, _, _Move, St) -> {D,St};
 normalize_fun(#dlo{drag={matrix,_,_,_},temp_we=#we{id=Id}=We,
-		   proxy_data=PD}=D0, Src, _Move, Shs0) when ?IS_LIGHT(We) ->
-    Shs = gb_trees:update(Id, We, Shs0),
+		   proxy_data=PD}=D0, Src, _Move, St0) when ?IS_LIGHT(We) ->
+    St = wings_obj:update(fun(_) -> We end, [Id], St0), %% todo
     D = D0#dlo{work=none,smooth=none,drag=none,
                src=Src#dlo_src{we=We},
                temp_we=undefined,
                proxy_data=wings_proxy:invalidate(PD, dl)},
-    {D,Shs};
+    {D,St};
 normalize_fun(#dlo{drag={matrix,_,_,Matrix}, proxy_data=PD}=D0,
               #dlo_src{we=#we{id=Id}=We0}=Src,
-	      _Move, Shs0) ->
+	      _Move, St0) ->
     We1 = We0#we{temp=[]},
     We = wings_we:transform_vs(Matrix, We1),
-    Shs = gb_trees:update(Id, We, Shs0),
+    St = wings_obj:update(fun(_) -> We end, [Id], St0), %% todo,
     D = D0#dlo{work=none,smooth=none,edges=none,sel=none,drag=none,
                src=Src#dlo_src{we=We},
 	       mirror=none,proxy_data=wings_proxy:invalidate(PD, dl)},
-    {D,Shs};
-normalize_fun(#dlo{drag={general,Fun}}=D0, #dlo_src{we=#we{id=Id}=We0}=Src, Move, Shs) ->
+    {D,St};
+normalize_fun(#dlo{drag={general,Fun}}=D0, #dlo_src{we=#we{id=Id}=We0}=Src, Move, St0) ->
     D1 = Fun({finish,Move}, D0),
     We = We0#we{temp=[]},
     D = D1#dlo{drag=none,sel=none,src=Src#dlo_src{we=We}},
-    {D,gb_trees:update(Id, We, Shs)};
-normalize_fun(#dlo{}=D0, #dlo_src{we=#we{id=Id}}=Src0, _Move, Shs) ->
+    {D, wings_obj:update(fun(_) -> We end, [Id], St0)}; %% todo
+normalize_fun(#dlo{}=D0, #dlo_src{we=#we{id=Id}}=Src0, _Move, St0) ->
     #dlo{src=#dlo_src{we=We0}} = D = wings_draw:join(D0, Src0),
     We = We0#we{temp=[]},
-    {D,gb_trees:update(Id, We, Shs)}.
+    {D,wings_obj:update(fun(_) -> We end, [Id], St0)}. %% todo
 
 %%%
 %%% Redrawing while dragging.
