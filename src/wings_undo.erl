@@ -34,7 +34,7 @@
 	 
 %% The essential part of the state record.
 -record(est,
-	{shapes=[] :: list(#we{}) | gb_trees:tree(),
+	{shapes=[] :: list(wings_obj:obj()) | gb_trees:tree(),
 	 selmode=face :: wings_sel:mode(),
 	 sel=[] :: list(),
 	 onext=1 :: elem_num(),
@@ -128,21 +128,21 @@ compress(#est{shapes=OldShapes}, #est{shapes=NewShapes}=Est) ->
     Shapes = compress_1(OldShapes, gb_trees:values(NewShapes), []),
     Est#est{shapes=Shapes}.
 
-compress_1([#we{id=OldId}|OldWes], [#we{id=NewId}|_]=NewWes, Acc)
+compress_1([#{id:=OldId}|OldWes], [#{id:=NewId}|_]=NewWes, Acc)
   when OldId < NewId ->
     compress_1(OldWes, NewWes, Acc);
-compress_1([#we{id=OldId}|OldWes], [#we{id=NewId}=NewWe|NewWes], Acc)
+compress_1([#{id:=OldId}|OldWes], [#{id:=NewId, we:=NewWe}=Obj0|NewWes], Acc)
   when OldId > NewId ->
-    We = NewWe#we{fs=undefined,vc=undefined},
-    compress_1(OldWes, NewWes, [We|Acc]);
-compress_1([#we{}=OldWe|OldWes], [#we{}=NewWe|NewWes], Acc) ->
+    Obj = Obj0#{we:=NewWe#we{fs=undefined,vc=undefined}},
+    compress_1(OldWes, NewWes, [Obj|Acc]);
+compress_1([#{we:=OldWe}=OldObj|OldWes], [#{we:=NewWe}=NewObj|NewWes], Acc) ->
     case NewWe#we{fs=undefined,vc=undefined} of
-	OldWe -> compress_1(OldWes, NewWes, [OldWe|Acc]);
-	We -> compress_1(OldWes, NewWes, [We|Acc])
+	OldWe -> compress_1(OldWes, NewWes, [OldObj|Acc]);
+	We -> compress_1(OldWes, NewWes, [NewObj#{we:=We}|Acc])
     end;
-compress_1(_, [We0|NewWes], Acc) ->
-    We = We0#we{fs=undefined,vc=undefined},
-    compress_1([], NewWes, [We|Acc]);
+compress_1(_, [#{we:=We0}=Obj0|NewWes], Acc) ->
+    Obj = Obj0#{we:=We0#we{fs=undefined,vc=undefined}},
+    compress_1([], NewWes, [Obj|Acc]);
 compress_1(_, [], Acc) -> reverse(Acc).
 
 pop(#st{undo=Undo0}=St) ->
@@ -168,9 +168,9 @@ discard_old_states_1(0, St) -> St;
 discard_old_states_1(N, Undo) ->
     discard_old_states_1(N-1, queue:drop(Undo)).
 
-uncompress([#we{id=Id}=We0|Wes], Acc) ->
+uncompress([#{id:=Id,we:=We0}=Obj|Wes], Acc) ->
     We = wings_we:fast_rebuild(We0),
-    uncompress(Wes, [{Id,We}|Acc]);
+    uncompress(Wes, [{Id,Obj#{we:=We}}|Acc]);
 uncompress([], Acc) -> gb_trees:from_orddict(reverse(Acc)).
 
 %%%
@@ -239,11 +239,11 @@ obj_change({O1,O2}) ->
 
 obj_change_1([Obj|T1], [Obj|T2], New, Del, Ch) ->
     obj_change_1(T1, T2, New, Del, Ch);
-obj_change_1([#we{id=Id1}|T1], [#we{id=Id2}|_]=T2, New, Del, Ch) when Id1 < Id2 ->
+obj_change_1([#{id:=Id1}|T1], [#{id:=Id2}|_]=T2, New, Del, Ch) when Id1 < Id2 ->
     obj_change_1(T1, T2, New+1, Del, Ch);
-obj_change_1([#we{id=Id1}|_]=T1, [#we{id=Id2}|T2], New, Del, Ch) when Id1 > Id2 ->
+obj_change_1([#{id:=Id1}|_]=T1, [#{id:=Id2}|T2], New, Del, Ch) when Id1 > Id2 ->
     obj_change_1(T1, T2, New, Del+1, Ch);
-obj_change_1([#we{id=Id}=We1|T1], [#we{id=Id}=We2|T2], New, Del, Ch) ->
+obj_change_1([#{id:=Id}=We1|T1], [#{id:=Id}=We2|T2], New, Del, Ch) ->
     obj_change_1(T1, T2, New, Del, [{We1,We2}|Ch]);
 obj_change_1([_|T], [], New, Del, Ch) ->
     {New,Del+1+length(T),Ch};
@@ -257,7 +257,7 @@ fmt_cnt(1, Action) -> "1 object " ++ Action;
 fmt_cnt(N, Action) ->  integer_to_list(N) ++ " objects " ++ Action.
 
 we_changes([]) -> "";
-we_changes([{#we{}=We1,#we{}=We2}]) ->
+we_changes([{#{we:=We1},#{we:=We2}}]) ->
     Empty = array:new(),
     case We1#we{vp=Empty} =:= We2#we{vp=Empty} of
 	true ->
