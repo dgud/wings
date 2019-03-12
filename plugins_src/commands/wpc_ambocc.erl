@@ -47,10 +47,8 @@ ambient_occlusion(St) ->
     AO_0 = setup_shaders(),
     DrawFun = make_disp_list(St),
     AO = AO_0#ao{df=DrawFun},
-    #st{shapes=Shapes} = St,
-    ProcessObject = fun(_,We) -> process_obj(We, AO) end,
-    Shapes2 = ?SLOW(gb_trees:map(ProcessObject, Shapes)),
-    St2 = St#st{shapes=Shapes2},
+    ProcessObject = fun(Obj) -> process_obj(Obj, AO) end,
+    St2 = ?SLOW(wings_obj:map(ProcessObject, St)),
     cleanup(AO),
     gl:popAttrib(),
     EndTime = os:timestamp(),
@@ -81,17 +79,17 @@ setup_shaders() ->
 cleanup(#ao{cleanup_fbo=Fbo}) ->
     wings_gl:delete_fbo(Fbo).
 
-process_obj(We, _) when ?IS_NOT_VISIBLE(We#we.perm) ->
-    We;
-process_obj(We, _) when ?IS_NOT_SELECTABLE(We#we.perm) ->
-    We;
-process_obj(We, _) when ?IS_ANY_LIGHT(We) ->
-    case We#we.name =/= ambient() of
-	true -> We#we{perm=?PERM_HIDDEN_BIT};
-	false -> We
+process_obj(#{perm:=Perm}=Obj, _) when ?IS_NOT_VISIBLE(Perm) ->
+    Obj;
+process_obj(#{perm:=Perm}=Obj, _) when ?IS_NOT_SELECTABLE(Perm) ->
+    Obj;
+process_obj(#{name:=Name, light:=Light}=Obj, _) when ?IS_ANY_LIGHT2(Light) ->
+    case Name =/= ambient() of
+	true -> Obj#{perm:=?PERM_HIDDEN_BIT};
+	false -> Obj
     end;
-process_obj(We0, AO) ->
-    #we{es=Etab,vp=Vtab,name=Name} = We0,
+process_obj(#{we:=We0}=Obj, AO) ->
+    #we{es=Etab,vp=Vtab,name=Name} = We0, %%todo  hmm render, needs to be split up in passes
     io:fwrite(?__(1,"Processing: ~s\n"), [Name]),
     gl:clear(?GL_COLOR_BUFFER_BIT  bor ?GL_DEPTH_BUFFER_BIT),
     VertexColors = calc_ao(array:sparse_to_orddict(Vtab), We0, AO, []),
@@ -100,7 +98,7 @@ process_obj(We0, AO) ->
 		       Color2 = array:get(Vb, VertexColors),
 		       wings_va:set_edge_color(Edge, Color1, Color2, W)
 	       end,
-    array:sparse_foldl(SetColor, We0, Etab).
+    Obj#{we:=array:sparse_foldl(SetColor, We0, Etab)}.
 
 calc_ao([], _We, _AO, Vc) ->
     array:from_orddict(lists:reverse(Vc));

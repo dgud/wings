@@ -30,8 +30,7 @@
      rad,              % magnet radius
      mag_type,         % magnet type
      str,              % strength
-     mir,              % mirror info
-     locked,           % masked vertices
+     attr,             % {mirror info, masked vertices}
      st,               % state
      wst}).            % original state
 
@@ -68,42 +67,20 @@ command({tools,sculpt}, St) ->
 command({sculpt,_}, St) -> St;
 command(_,_) -> next.
 
-sculpt_mode_setup(#st{shapes=Shs}=St0) ->
+sculpt_mode_setup(#st{}=St0) ->
     wings_tweak:toggle_draw(false),
     St = wings_undo:init(St0#st{selmode=face,sel=[],sh=false}),
-    Mir = mirror_info(Shs, []),
     Mode = wings_pref:get_value(sculpt_mode),
     Str = wings_pref:get_value(sculpt_strength),
     {Mag,Rad} = wings_pref:get_value(sculpt_magnet),
     MagType = wings_pref:get_value(sculpt_magnet_type),
-    Lv = shape_attr(gb_trees:to_list(Shs)),
+    Attr = attr_info(St0),
     wings_pref:set_default(sculpt_current_id, none),
-    Sc = #sculpt{mode=Mode,mir=Mir,str=Str,mag=Mag,rad=Rad,mag_type=MagType,
-                 locked=Lv,st=St,wst=St},
+    Sc = #sculpt{mode=Mode,str=Str,mag=Mag,rad=Rad,mag_type=MagType,
+                 attr=Attr,st=St,wst=St},
     wings:mode_restriction([face]),
     wings_wm:dirty(),
     {seq,push,update_sculpt_handler(Sc)}.
-
-shape_attr(S) ->
-    L = foldl(fun
-        ({_,We}, Acc) when ?IS_LIGHT(We) -> Acc;
-        ({Id,#we{perm=P,pst=Pst}}, Lv0) when ?IS_SELECTABLE(P) ->
-            locked_vs(Pst, Id, Lv0);
-        (_, Acc) -> Acc
-    end, [], S),
-    reverse(L).
-
-locked_vs(Pst, Id, Lv) ->
-    case wings_pref:get_value(magnet_mask_on) of
-      true ->
-        case gb_trees:is_defined(wpc_magnet_mask, Pst) of
-          true ->
-            [{Id,gb_sets:to_list(wpc_magnet_mask:get_locked_vs(Pst))}|Lv];
-          _otherwise ->
-            Lv
-        end;
-      false -> Lv
-    end.
 
 update_sculpt_handler(Sc) ->
     {replace,fun(Ev) ->
@@ -118,18 +95,17 @@ handle_sculpt_event_0(close, Sc) ->
     exit_sculpt(Sc);
 handle_sculpt_event_0(Ev, #sculpt{active=true}=Sc) ->
     handle_sculpt_event_1(Ev, Sc);
-handle_sculpt_event_0({reset_sculpt_state,#st{shapes=Shs}=St0}, Sc) ->
+handle_sculpt_event_0({reset_sculpt_state,#st{}=St0}, Sc) ->
     St = wings_undo:init(St0#st{selmode=face,sh=false}),
-    Mir = mirror_info(Shs, []),
-    Lv = shape_attr(gb_trees:to_list(Shs)),
-    update_sculpt_handler(Sc#sculpt{mir=Mir,locked=Lv,st=St,wst=St});
+    Attr = attr_info(St0),
+    update_sculpt_handler(Sc#sculpt{attr=Attr,st=St,wst=St});
 handle_sculpt_event_0({update_state,St}, Sc) ->
     wings_draw:refresh_dlists(St#st{sel=[]}),
     wings_wm:current_state(St),
     update_sculpt_handler(Sc#sculpt{st=St,wst=St});
 handle_sculpt_event_0({current_state,St}, #sculpt{st=St}) ->
     keep;
-handle_sculpt_event_0({current_state,#st{saved=Saved,file=File,shapes=Shs}=St1},
+handle_sculpt_event_0({current_state,#st{saved=Saved,file=File}=St1},
                       #sculpt{st=St0}=Sc) ->
     St =
         case {Saved,File==undefined} of
@@ -138,17 +114,15 @@ handle_sculpt_event_0({current_state,#st{saved=Saved,file=File,shapes=Shs}=St1},
             _ ->
                 wings_undo:save(St0, St1)
         end,
-    Mir = mirror_info(Shs, []),
-    Lv = shape_attr(gb_trees:to_list(Shs)),
-    update_sculpt_handler(Sc#sculpt{locked=Lv,mir=Mir,st=St,wst=St});
-handle_sculpt_event_0({new_state,#st{shapes=Shs}=St1},
-  #sculpt{st=St0}=Sc) ->
-    Mir = mirror_info(Shs, []),
-    Lv = shape_attr(gb_trees:to_list(Shs)),
+    Attr = attr_info(St1),
+    update_sculpt_handler(Sc#sculpt{attr=Attr,st=St,wst=St});
+handle_sculpt_event_0({new_state,#st{}=St1},
+                      #sculpt{st=St0}=Sc) ->
+    Attr = attr_info(St1),
     St = wings_undo:save(St0, St1#st{selmode=face,sh=false}),
     wings_draw:refresh_dlists(St#st{sel=[]}),
     wings_wm:current_state(St),
-    update_sculpt_handler(Sc#sculpt{locked=Lv,mir=Mir,st=St,wst=St});
+    update_sculpt_handler(Sc#sculpt{attr=Attr,st=St,wst=St});
 handle_sculpt_event_0(Ev, #sculpt{st=St}=Sc) ->
     case wings_camera:event(Ev, St#st{sel=[]}) of
       next -> handle_sculpt_event_1(Ev, Sc);
@@ -166,7 +140,7 @@ handle_sculpt_event_1(#mousebutton{state=?SDL_RELEASED},
     update_sculpt_handler(Sc#sculpt{id=none,active=false});
 handle_sculpt_event_1(#mousebutton{state=?SDL_RELEASED},
 		      #sculpt{active=true}=Sc) ->
-    #sculpt{st=#st{shapes=Shs},wst=St0} =Sc0=clear_influence(Sc),
+    #sculpt{st=#st{shapes=Shs},wst=St0} =Sc0= clear_influence(Sc),
     St = wings_undo:save(St0, St0#st{shapes=Shs}),
     wings_draw:refresh_dlists(St#st{sel=[]}),
     wings_wm:current_state(St),
@@ -301,22 +275,25 @@ strength_increment() ->
 %%% Draw Magnet
 %%%
 
-draw_magnet(X, Y, #sculpt{rad=Rad,str=Str,st=#st{shapes=Shs}=St}) ->
-    {Xm,Ym,Zm} = case wings_pick:raw_pick(X, Y, St#st{selmode=face,sel=[],sh=false}) of
-		     {_,Side,{Id,Face}} ->
-			 #we{mirror=Mir}=We = gb_trees:get(Id, Shs),
-			 Point = wings_face:center(Face, We),
-			 case Side of
-			     mirror ->
-				 Mnorm = wings_face:normal(Mir, We),
-				 PointOnPlane = wings_face:center(Mir, We),
-				 Dist = dist_along_vector(Point, PointOnPlane, Mnorm),
-				 e3d_vec:add_prod(Point, Mnorm, Dist * -2);
-			     original -> Point
-			 end;
-		     none ->
-			 {0.0,0.0,0.0}
-		 end,
+draw_magnet(X, Y, #sculpt{rad=Rad,str=Str,st=#st{}=St}) ->
+    {Xm,Ym,Zm} =
+        case wings_pick:raw_pick(X, Y, St#st{selmode=face,sel=[],sh=false}) of
+            {_,Side,{Id,Face}} ->
+                Get = fun(#we{mirror=Mir}=We) ->
+                              Point = wings_face:center(Face, We),
+                              case Side of
+                                  mirror ->
+                                      Mnorm = wings_face:normal(Mir, We),
+                                      PointOnPlane = wings_face:center(Mir, We),
+                                      Dist = dist_along_vector(Point, PointOnPlane, Mnorm),
+                                      e3d_vec:add_prod(Point, Mnorm, Dist * -2);
+                                  original -> Point
+                              end
+                      end,
+                wings_obj:with_we(Get, Id, St);
+            none ->
+                {0.0,0.0,0.0}
+        end,
     gl:pushAttrib(?GL_ALL_ATTRIB_BITS),
     gl:disable(?GL_DEPTH_TEST),
     gl:enable(?GL_BLEND),
@@ -351,205 +328,208 @@ do_sculpt(X, Y, Sc) ->
         update_sculpt_handler(Sc#sculpt{id=Id,st=St})
     end.
 
-sculpt(X, Y, #sculpt{id=ID,mir=Mir,str=Str0,mag=false,mode=smooth,locked=Locked,
-  st=#st{shapes=Shs0}=St}) ->
-%% Smooth mode
+sculpt(X, Y, #sculpt{id=ID,str=Str0,mag=false,mode=smooth,attr=Attr,st=St}) ->
+    %% Smooth mode
     case wings_pick:raw_pick(X, Y, St#st{selmode=face,sel=[],sh=false}) of
-      {_,_,{Id,Face}} when ID =:= none; Id =:= ID ->
-        Lvs = lookup_locked_vs(Id, Locked),
-        Str = Str0*10,
-        #we{vp=Vtab0}=We = gb_trees:get(Id, Shs0),
-        Vtab = wings_face:fold_faces(fun
-            (_, V, _, _, Vtab1) ->
-                case ordsets:is_element(V, Lvs) of
-                    true -> Vtab1;
-                    false ->
-                        Pos = array:get(V, Vtab0),
-                        smooth(V, Pos, 1, Str, Mir, We, Vtab1)
-                end
-            end, Vtab0, [Face], We),
-        Shs = gb_trees:update(Id, We#we{vp=Vtab}, Shs0),
-        {St#st{shapes=Shs},Id};
-      _ ->
-        keep
+        {_,_,{Id,Face}} when ID =:= none; Id =:= ID ->
+            Lvs = lookup_locked_vs(Id, Attr),
+            Str = Str0*10,
+            Upd = fun(#we{vp=Vtab0}=We) ->
+                          Vtab = wings_face:fold_faces(
+                                   fun(_, V, _, _, Vtab1) ->
+                                           case ordsets:is_element(V, Lvs) of
+                                               true -> Vtab1;
+                                               false ->
+                                                   Pos = array:get(V, Vtab0),
+                                                   smooth(V, Pos, 1, Str, Attr, We, Vtab1)
+                                           end
+                                   end, Vtab0, [Face], We),
+                          We#we{vp=Vtab}
+                  end,
+            {wings_obj:update(Upd, [Id], St),Id};
+        _ ->
+            keep
     end;
-sculpt(X, Y, #sculpt{id=ID,mir=Mir,str=Str0,rad=Rad,mag_type=MagType,mode=smooth,
-  locked=Locked,st=#st{shapes=Shs1}=St}) ->
-%% Smooth mode with magnet
-    case wings_pick:raw_pick(X, Y, St#st{selmode=face,sel=[],sh=false}) of
-      {_,_,{Id,Face}} when ID =:= none; Id =:= ID ->
-        Shs0=check_is_same_id(Id,Shs1),
-        We = gb_trees:get(Id, Shs1),
-        {Positions,_} = vpos(Face, We),
-        Cnt = e3d_vec:average(Positions),
-        {VsDyn,Vtab} = smooth_magnetic(Locked,Str0,Rad,Cnt,MagType,Mir,We),
-        NewPst = set_edge_influence(VsDyn,We#we{vp=Vtab}),
-        Shs = gb_trees:update(Id, We#we{vp=Vtab,pst=NewPst}, Shs0),
-        {St#st{shapes=Shs},Id};
-      _ ->
-        keep
+sculpt(X, Y, #sculpt{id=ID,str=Str0,rad=Rad,mag_type=MagType,mode=smooth,attr=Attr,st=St0}) ->
+    %% Smooth mode with magnet
+    case wings_pick:raw_pick(X, Y, St0#st{selmode=face,sel=[],sh=false}) of
+        {_,_,{Id,Face}} when ID =:= none; Id =:= ID ->
+            St=check_is_same_id(Id,St0),
+            Upd = fun(We) ->
+                          {Positions,_} = vpos(Face, We),
+                          Cnt = e3d_vec:average(Positions),
+                          {VsDyn,Vtab} = smooth_magnetic(Attr,Str0,Rad,Cnt,MagType,We),
+                          NewPst = set_edge_influence(VsDyn,We#we{vp=Vtab}),
+                          We#we{vp=Vtab,pst=NewPst}
+                  end,
+            {wings_obj:update(Upd, [Id], St),Id};
+        _ ->
+            keep
     end;
-sculpt(X, Y, #sculpt{id=ID,mir=Mir,str=Str,mag=false,mode=pinch,locked=Locked,
-  st=#st{shapes=Shs0}=St}) ->
-%% Pinch mode
+sculpt(X, Y, #sculpt{id=ID,str=Str,mag=false,mode=pinch,attr=Attr,
+                     st=St}) ->
+    %% Pinch mode
     case wings_pick:raw_pick(X, Y, St#st{selmode=face,sel=[],sh=false}) of
-      {_,_,{Id,Face}} when ID =:= none; Id =:= ID ->
-        Lvs = lookup_locked_vs(Id, Locked),
-        #we{vp=Vtab0}=We = gb_trees:get(Id, Shs0),
-        {Positions,_} = vpos(Face, We),
-        Cnt = e3d_vec:average(Positions),
-        Vtab = wings_face:fold_faces(fun
-            (_, V, _, _, Vtab1) ->
-                case ordsets:is_element(V, Lvs) of
-                    true -> Vtab1;
-                    false ->
-                        Pos = array:get(V, Vtab0),
-                        Vtab2 = pinch(V, Pos, Cnt, 1, Str, Mir, We, Vtab1),
-                        case wings_io:is_modkey_pressed(?SHIFT_BITS) of
-                            false ->
-                              Vtab2;
-                            true ->
-                              NewPos = array:get(V, Vtab2),
-                              smooth(V, NewPos, 1, Str*10, Mir, We, Vtab2)
-                        end
-                end
-            end, Vtab0, [Face], We),
-        Shs = gb_trees:update(Id, We#we{vp=Vtab}, Shs0),
-        {St#st{shapes=Shs},Id};
-      _ ->
-        keep
+        {_,_,{Id,Face}} when ID =:= none; Id =:= ID ->
+            Lvs = lookup_locked_vs(Id, Attr),
+            Upd = fun(#we{vp=Vtab0}=We) ->
+                          {Positions,_} = vpos(Face, We),
+                          Cnt = e3d_vec:average(Positions),
+                          FF = fun(_, V, _, _, Vtab1) ->
+                                       case ordsets:is_element(V, Lvs) of
+                                           true -> Vtab1;
+                                           false ->
+                                               Pos = array:get(V, Vtab0),
+                                               Vtab2 = pinch(V, Pos, Cnt, 1, Str, Attr, We, Vtab1),
+                                               case wings_io:is_modkey_pressed(?SHIFT_BITS) of
+                                                   false ->
+                                                       Vtab2;
+                                                   true ->
+                                                       NewPos = array:get(V, Vtab2),
+                                                       smooth(V, NewPos, 1, Str*10, Attr, We, Vtab2)
+                                               end
+                                       end
+                               end,
+                          Vtab = wings_face:fold_faces(FF, Vtab0, [Face], We),
+                          We#we{vp=Vtab}
+                  end,
+            {wings_obj:update(Upd, [Id], St),Id};
+        _ ->
+            keep
     end;
-sculpt(X, Y, #sculpt{id=ID,mir=Mir,str=Str,rad=Rad,mag_type=MagType,mode=pinch,
-  locked=Locked,st=#st{shapes=Shs1}=St}) ->
-%% Pinch mode with magnet
-    case wings_pick:raw_pick(X, Y, St#st{selmode=face,sel=[],sh=false}) of
-      {_,_,{Id,Face}} when ID =:= none; Id =:= ID ->
-        Smooth=wings_io:is_modkey_pressed(?SHIFT_BITS),
-        Shs0=check_is_same_id(Id,Shs1),
-        #we{vp=Vtab0}=We = gb_trees:get(Id, Shs0),
-        {Positions,_} = vpos(Face, We),
-        Cnt = {Cx,Cy,Cz} = e3d_vec:average(Positions),
-        Lvs = lookup_locked_vs(Id, Locked),
-        {VsDyn,Vtab} = case Smooth of
-          true ->
-            smooth_magnetic(Locked,Str,Rad,Cnt,MagType,Mir,We);
-          _ ->
-            array:sparse_foldl(fun
-            (V, Pos={Px,Py,Pz}, {VsDyn0,Vtab1}) ->
-                case ordsets:is_element(V, Lvs) of
-                    true -> {VsDyn0,Vtab1};
-                    false ->
-                        case in_dist_boundaries([Cx,Cy,Cz], [Px,Py,Pz], Rad) of
-                            true ->
-                                Dist = e3d_vec:dist(Pos, Cnt),
-                                case Dist =< Rad of
-                                    true ->
-                                        Inf = magnetic_influence(MagType, Dist, Rad),
-                                        VsDyn1=VsDyn0++[{V,Inf}],
-                                        {VsDyn1,pinch(V, Pos, Cnt, Inf, Str, Mir, We, Vtab1)};
-                                    false -> {VsDyn0,Vtab1}
-                                end;
-                            false -> {VsDyn0,Vtab1}
-                        end
-                end
-            end, {[],Vtab0}, Vtab0)
-        end,
-        NewPst = set_edge_influence(VsDyn,We),
-        Shs = gb_trees:update(Id, We#we{vp=Vtab,pst=NewPst}, Shs0),
-        {St#st{shapes=Shs},Id};
-      _ ->
-        keep
+sculpt(X, Y, #sculpt{id=ID,str=Str,rad=Rad,mag_type=MagType,mode=pinch,
+                     attr=Attr,st=St0}) ->
+    %% Pinch mode with magnet
+    case wings_pick:raw_pick(X, Y, St0#st{selmode=face,sel=[],sh=false}) of
+        {_,_,{Id,Face}} when ID =:= none; Id =:= ID ->
+            Smooth=wings_io:is_modkey_pressed(?SHIFT_BITS),
+            St=check_is_same_id(Id,St0),
+            Upd = fun(#we{vp=Vtab0}=We) ->
+                          {Positions,_} = vpos(Face, We),
+                          Cnt = {Cx,Cy,Cz} = e3d_vec:average(Positions),
+                          Lvs = lookup_locked_vs(Id, Attr),
+                          SF = fun(V, Pos={Px,Py,Pz}, {VsDyn0,Vtab1}) ->
+                                       case ordsets:is_element(V, Lvs) of
+                                           true -> {VsDyn0,Vtab1};
+                                           false ->
+                                               case in_dist_boundaries([Cx,Cy,Cz], [Px,Py,Pz], Rad) of
+                                                   true ->
+                                                       Dist = e3d_vec:dist(Pos, Cnt),
+                                                       case Dist =< Rad of
+                                                           true ->
+                                                               Inf = magnetic_influence(MagType, Dist, Rad),
+                                                               VsDyn1=VsDyn0++[{V,Inf}],
+                                                               {VsDyn1,pinch(V, Pos, Cnt, Inf, Str, Attr, We, Vtab1)};
+                                                           false -> {VsDyn0,Vtab1}
+                                                       end;
+                                                   false -> {VsDyn0,Vtab1}
+                                               end
+                                       end
+                               end,
+                          {VsDyn,Vtab} = case Smooth of
+                                             true ->
+                                                 smooth_magnetic(Attr,Str,Rad,Cnt,MagType,We);
+                                             _ ->
+                                                 array:sparse_foldl(SF, {[],Vtab0}, Vtab0)
+                                         end,
+                          NewPst = set_edge_influence(VsDyn,We),
+                          We#we{vp=Vtab,pst=NewPst}
+                  end,
+            {wings_obj:update(Upd, [Id], St),Id};
+        _ ->
+            keep
     end;
 
-sculpt(X, Y, #sculpt{id=ID,locked=Locked,mir=Mir,str=Str,mag=false,
-  st=#st{shapes=Shs0}=St}) ->
-%% Push and Pull mode
+sculpt(X, Y, #sculpt{id=ID,attr=Attr,str=Str,mag=false,st=St}) ->
+    %% Push and Pull mode
     case wings_pick:raw_pick(X, Y, St#st{selmode=face,sel=[],sh=false}) of
-      {_,_,{Id,Face}} when ID =:= none; Id =:= ID ->
-        #we{vp=Vtab0}=We = gb_trees:get(Id, Shs0),
-        {Positions,Vpos} = vpos(Face, We),
-        Lvs = lookup_locked_vs(Id, Locked),
-        Normal0 = e3d_vec:normal(Positions),
-        Normal = case wings_io:is_modkey_pressed(?CTRL_BITS) of
-          false -> Normal0;
-          true -> e3d_vec:neg(Normal0)
-        end,
-        Vtab = foldl(fun
-            ({V,Pos}, Vtab1) ->
-                 case ordsets:is_element(V, Lvs) of
-                     true -> Vtab1;
-                     false ->
-                         NewPos0 = e3d_vec:add_prod(Pos, Normal, Str),
-                         NewPos1 = constraint_check(Pos, NewPos0),
-                         NewPos = handle_mirror(Id, V, NewPos1, Mir),
-                         case wings_io:is_modkey_pressed(?SHIFT_BITS) of
-                           false ->
-                             array:set(V, NewPos, Vtab1);
-                           true ->
-                             smooth(V, NewPos, 1, Str*10, Mir, We, Vtab1)
-                         end
-                 end
-            end, Vtab0, Vpos),
-        Shs = gb_trees:update(Id, We#we{vp=Vtab}, Shs0),
-        {St#st{shapes=Shs},Id};
-      _ ->
-        keep
+        {_,_,{Id,Face}} when ID =:= none; Id =:= ID ->
+            Upd = fun(#we{vp=Vtab0}=We) ->
+                          {Positions,Vpos} = vpos(Face, We),
+                          Lvs = lookup_locked_vs(Id, Attr),
+                          Normal0 = e3d_vec:normal(Positions),
+                          Normal = case wings_io:is_modkey_pressed(?CTRL_BITS) of
+                                       false -> Normal0;
+                                       true -> e3d_vec:neg(Normal0)
+                                   end,
+                          F = fun({V,Pos}, Vtab1) ->
+                                      case ordsets:is_element(V, Lvs) of
+                                          true -> Vtab1;
+                                          false ->
+                                              NewPos0 = e3d_vec:add_prod(Pos, Normal, Str),
+                                              NewPos1 = constraint_check(Pos, NewPos0),
+                                              NewPos = handle_mirror(Id, V, NewPos1, Attr),
+                                              case wings_io:is_modkey_pressed(?SHIFT_BITS) of
+                                                  false ->
+                                                      array:set(V, NewPos, Vtab1);
+                                                  true ->
+                                                      smooth(V, NewPos, 1, Str*10, Attr, We, Vtab1)
+                                              end
+                                      end
+                              end,
+                          Vtab = foldl(F, Vtab0, Vpos),
+                          We#we{vp=Vtab}
+                  end,
+            {wings_obj:update(Upd, [Id], St),Id};
+        _ ->
+            keep
     end;
-sculpt(X, Y, #sculpt{id=ID,locked=Locked,mir=Mir,str=Str,rad=Rad,
-  mag_type=MagType,st=#st{shapes=Shs1}=St}) ->
-%% Push and Pull mode with magnet
-    case wings_pick:raw_pick(X, Y, St#st{selmode=face,sel=[],sh=false}) of
-      {_,_,{Id,Face}} when ID =:= none; Id =:= ID ->
-        Smooth=wings_io:is_modkey_pressed(?SHIFT_BITS),
-        Shs0=check_is_same_id(Id,Shs1),
-        #we{vp=Vtab0}=We = gb_trees:get(Id, Shs0),
-        {Positions,_} = vpos(Face, We),
-        Cnt = {Cx,Cy,Cz} = e3d_vec:average(Positions),
-        Lvs = lookup_locked_vs(Id, Locked),
-        {_,VsDyn,Vtab} = case Smooth of
-          true ->
-            {VsDyn0,Vtab1}=smooth_magnetic(Locked,Str,Rad,Cnt,MagType,Mir,We),
-            {none,VsDyn0,Vtab1};
-          _ ->
-            array:sparse_foldl(fun
-            (V, Pos={Px,Py,Pz}, {FNs0,VsDyn0,Vtab1}) ->
-                 case ordsets:is_element(V, Lvs) of
-                     true -> {FNs0,VsDyn0,Vtab1};
-                     false ->
-                         case in_dist_boundaries([Cx,Cy,Cz], [Px,Py,Pz], Rad) of
-                             true ->
-                                 Dist = e3d_vec:dist(Pos, Cnt),
-                                 case Dist =< Rad of
-                                     true ->
-                                       Inf = magnetic_influence(MagType, Dist, Rad),
-                                       VsDyn1=VsDyn0++[{V,Inf}],
-                                       {FNs,Normal0} = vertex_normal(V, We, FNs0),
-                                       Normal = case wings_io:is_modkey_pressed(?CTRL_BITS) of
-                                         false -> Normal0;
-                                         true -> e3d_vec:neg(Normal0)
-                                       end,
-                                       NewPos0 = e3d_vec:add_prod(Pos, Normal, Str*Inf),
-                                       NewPos1 = constraint_check(Pos, NewPos0),
-                                       NewPos = handle_mirror(Id, V, NewPos1, Mir),
-                                       {FNs,VsDyn1,array:set(V, NewPos, Vtab1)};
-                                     false -> {FNs0,VsDyn0,Vtab1}
-                                 end;
-                             false -> {FNs0,VsDyn0,Vtab1}
-                         end
-                 end
-            end, {gb_trees:empty(),[],Vtab0}, Vtab0)
-        end,
-        NewPst = set_edge_influence(VsDyn,We#we{vp=Vtab}),
-        Shs = gb_trees:update(Id, We#we{vp=Vtab,pst=NewPst}, Shs0),
-        {St#st{shapes=Shs},Id};
-      _ ->
-        keep
+sculpt(X, Y, #sculpt{id=ID,attr=Attr,str=Str,rad=Rad,
+                     mag_type=MagType,st=St0}) ->
+    %% Push and Pull mode with magnet
+    case wings_pick:raw_pick(X, Y, St0#st{selmode=face,sel=[],sh=false}) of
+        {_,_,{Id,Face}} when ID =:= none; Id =:= ID ->
+            Smooth=wings_io:is_modkey_pressed(?SHIFT_BITS),
+            St=check_is_same_id(Id,St0),
+            Upd = fun(#we{vp=Vtab0}=We) ->
+                          {Positions,_} = vpos(Face, We),
+                          Cnt = {Cx,Cy,Cz} = e3d_vec:average(Positions),
+                          Lvs = lookup_locked_vs(Id, Attr),
+                          SF = fun(V, Pos={Px,Py,Pz}, {FNs0,VsDyn0,Vtab1}) ->
+                                       case ordsets:is_element(V, Lvs) of
+                                           true -> {FNs0,VsDyn0,Vtab1};
+                                           false ->
+                                               case in_dist_boundaries([Cx,Cy,Cz], [Px,Py,Pz], Rad) of
+                                                   true ->
+                                                       Dist = e3d_vec:dist(Pos, Cnt),
+                                                       case Dist =< Rad of
+                                                           true ->
+                                                               Inf = magnetic_influence(MagType, Dist, Rad),
+                                                               VsDyn1=VsDyn0++[{V,Inf}],
+                                                               {FNs,Normal0} = vertex_normal(V, We, FNs0),
+                                                               Normal = case wings_io:is_modkey_pressed(?CTRL_BITS) of
+                                                                            false -> Normal0;
+                                                                            true -> e3d_vec:neg(Normal0)
+                                                                        end,
+                                                               NewPos0 = e3d_vec:add_prod(Pos, Normal, Str*Inf),
+                                                               NewPos1 = constraint_check(Pos, NewPos0),
+                                                               NewPos = handle_mirror(Id, V, NewPos1, Attr),
+                                                               {FNs,VsDyn1,array:set(V, NewPos, Vtab1)};
+                                                           false -> {FNs0,VsDyn0,Vtab1}
+                                                       end;
+                                                   false -> {FNs0,VsDyn0,Vtab1}
+                                               end
+                                       end
+                               end,
+                          {_,VsDyn,Vtab} = case Smooth of
+                                               true ->
+                                                   {VsDyn0,Vtab1}=smooth_magnetic(Attr,Str,Rad,Cnt,MagType,We),
+                                                   {none,VsDyn0,Vtab1};
+                                               _ ->
+                                                   array:sparse_foldl(SF, {gb_trees:empty(),[],Vtab0}, Vtab0)
+                                           end,
+                          NewPst = set_edge_influence(VsDyn,We#we{vp=Vtab}),
+                          We#we{vp=Vtab,pst=NewPst}
+                  end,
+            {wings_obj:update(Upd, [Id], St),Id};
+        _ ->
+            keep
     end.
 
-smooth_magnetic(Locked,Str0,Rad,{Cx,Cy,Cz}=Cnt,MagType,Mir,We) ->
+smooth_magnetic(Attr,Str0,Rad,{Cx,Cy,Cz}=Cnt,MagType,We) ->
     Str = Str0*10,
     #we{id=Id,vp=Vtab0}=We,
-    Lvs = lookup_locked_vs(Id, Locked),
+    Lvs = lookup_locked_vs(Id, Attr),
     array:sparse_foldl(fun
         (V, Pos={Px,Py,Pz}, {VsDyn0,Vtab1}) ->
             case ordsets:is_element(V, Lvs) of
@@ -562,7 +542,7 @@ smooth_magnetic(Locked,Str0,Rad,{Cx,Cy,Cz}=Cnt,MagType,Mir,We) ->
                                 true ->
                                     Inf = magnetic_influence(MagType, Dist, Rad),
                                     VsDyn1=VsDyn0++[{V,Inf}],
-                                    {VsDyn1,smooth(V, Pos, Inf, Str, Mir, We, Vtab1)};
+                                    {VsDyn1,smooth(V, Pos, Inf, Str, Attr, We, Vtab1)};
                                 false -> {VsDyn0,Vtab1}
                             end;
                         false ->  {VsDyn0,Vtab1}
@@ -614,11 +594,11 @@ vpos_1(Edge, Etab, Vtab, Face, LastEdge, Acc, Vpos) ->
         vpos_1(NextEdge, Etab, Vtab, Face, LastEdge, [Pos|Acc], [{V,Pos}|Vpos])
     end.
 
-lookup_locked_vs(_, []) -> [];
-lookup_locked_vs(Id, Locked) ->
-    case orddict:find(Id, Locked) of
-        {_,Lvs0} -> Lvs0;
-        error -> []
+lookup_locked_vs(Id, Attr) ->
+    case array:get(Id, Attr) of
+        undefined -> [];
+        {_, none} -> [];
+        {_,Lvs0} -> Lvs0
     end.
 
 magnetic_influence(bell, Dist, Rad) -> math:sin((Rad-Dist)/Rad*math:pi());
@@ -629,7 +609,7 @@ magnetic_influence(spike, Dist, Rad) ->
     D*D;
 magnetic_influence(absolute, _, _) -> 1.0.
 
-smooth(V, Pos, Inf, Str, Mir, #we{id=Id}=We, Vtab) ->
+smooth(V, Pos, Inf, Str, Attr, #we{id=Id}=We, Vtab) ->
     Positions = wings_vertex:fold(fun(_, _, E, Acc) ->
                  OtherPos = wings_vertex:other_pos(V, E, We),
                  [OtherPos|Acc]
@@ -638,17 +618,17 @@ smooth(V, Pos, Inf, Str, Mir, #we{id=Id}=We, Vtab) ->
     Vec = e3d_vec:sub(Avg, Pos),
     NewPos0 = e3d_vec:add_prod(Pos, Vec, Str*Inf),
     NewPos1 = constraint_check(Pos, NewPos0),
-    NewPos = handle_mirror(Id, V, NewPos1, Mir),
+    NewPos = handle_mirror(Id, V, NewPos1, Attr),
     array:set(V, NewPos, Vtab).
 
-pinch(V, Pos, Cnt, Inf, Str, Mir, #we{id=Id}, Vtab) ->
+pinch(V, Pos, Cnt, Inf, Str, Attr, #we{id=Id}, Vtab) ->
     Vec = case wings_io:is_modkey_pressed(?CTRL_BITS) of
           false -> e3d_vec:sub(Cnt, Pos);
           true -> e3d_vec:sub(Pos, Cnt)
     end,
     NewPos0 = e3d_vec:add_prod(Pos, Vec, Str*Inf),
     NewPos1 = constraint_check(Pos, NewPos0),
-    NewPos = handle_mirror(Id, V, NewPos1, Mir),
+    NewPos = handle_mirror(Id, V, NewPos1, Attr),
     array:set(V, NewPos, Vtab).
 
 constraint_check({X1,Y1,Z1}=OrigPos, {X2,Y2,Z2}=NewPos) ->
@@ -680,29 +660,45 @@ intersect_vec_plane(PosA, PosB, Plane, Vec) ->
         e3d_vec:add(PosA, e3d_vec:mul(Vec, Intersection))
     end.
 
+attr_info(St) ->
+    MM = wings_pref:get_value(magnet_mask_on),
+    AI = fun(#we{mirror=M, pst=Pst}=We) ->
+                 MI = case M of
+                          none ->
+                              none;
+                          _ ->
+                              FaceVs = wings_face:vertices_ccw(M, We),
+                              Flatten = wings_we:mirror_projection(We),
+                              {FaceVs,Flatten}
+                      end,
+                 Lv = case MM andalso gb_trees:is_defined(wpc_magnet_mask, Pst) of
+                          true ->
+                              gb_sets:to_list(wpc_magnet_mask:get_locked_vs(Pst));
+                          false ->
+                              none
+                      end,
+                 {MI, Lv}
+         end,
+    Get = fun(#{id:=Id, perm:=Perm, light:=Light}=Obj, Acc)
+                when ?IS_SELECTABLE(Perm), not ?IS_LIGHT2(Light) ->
+                  case wings_obj:with_we(AI, Obj) of
+                      {none,none} -> Acc;
+                      Res -> [{Id, Res}|Acc]
+                  end;
+             (_, Acc) ->
+                  Acc
+          end,
+    array:from_orddict(reverse(wings_obj:fold(Get, [], St))).
+
 %%%
 %%% Mirror Handling
 %%%
 
-mirror_info(Shs0, Acc0) ->
-    case gb_trees:is_empty(Shs0) of
-      true -> sort(Acc0);
-      false ->
-        {Id,#we{mirror=M}=We,Shs} = gb_trees:take_smallest(Shs0),
-        Acc = case M of
-          none -> Acc0;
-          _ ->
-            FaceVs = wings_face:vertices_ccw(M, We),
-            Flatten = wings_we:mirror_projection(We),
-            [{Id,{FaceVs,Flatten}}|Acc0]
-        end,
-        mirror_info(Shs, Acc)
-    end.
-
 handle_mirror(Id, V, Pos, Mir) ->
-    case orddict:find(Id, Mir) of
-        error -> Pos;
-        {ok,{MirVs,Matrix}} ->
+    case array:get(Id, Mir) of
+        undefined -> Pos;
+        {none, _} -> Pos;
+        {{MirVs,Matrix},_} ->
             case member(V, MirVs) of
                 true -> e3d_mat:mul_point(Matrix, Pos);
                 false -> Pos
@@ -1024,50 +1020,48 @@ add_pst(InfData,Pst) ->
 %% It removes the plugin functionality
 remove_pst(Pst) ->
     case gb_trees:lookup(?MODULE, Pst) of
-    none -> Pst;
-    {_,Data} ->
-        NewData = gb_trees:delete_any(edge_info,Data),
-        gb_trees:update(?MODULE,NewData,Pst)
+        none -> Pst;
+        {_,Data} ->
+            NewData = gb_trees:delete_any(edge_info,Data),
+            gb_trees:update(?MODULE,NewData,Pst)
     end.
 
 %% It removes the plugin functionality
-remove_influence(#sculpt{id=none,st=#st{shapes=Shs0}=St}=Sc) ->
+remove_influence(#sculpt{id=none,st=St0}=Sc) ->
     wings_pref:delete_value(sculpt_current_id),
-    Shs1 = lists:map(fun
-            (#we{id=Id,pst=none}=We) -> {Id,We};
-            (#we{id=Id,pst=Pst}=We) ->
-                NewPst=gb_trees:delete_any(?MODULE, Pst),
-              {Id,We#we{pst=NewPst}}
-          end,gb_trees:values(Shs0)),
-    Sc#sculpt{st=St#st{shapes=gb_trees:from_orddict(Shs1)}}.
+    RM = fun(#we{pst=none}=We) -> We;
+            (#we{pst=Pst}=We) ->
+                 We#we{pst=gb_trees:delete_any(?MODULE, Pst)}
+         end,
+    St = wings_obj:map(fun(Obj) -> wings_obj:update(RM,Obj) end,St0),
+    Sc#sculpt{st=St}.
 
 %% It clean any information about the vertices influence from the shapes
-clear_influence(#sculpt{id=none,st=#st{shapes=Shs0}=St}=Sc) ->
-    Sc#sculpt{st=St#st{shapes=clear_influence_vs(Shs0)}};
-clear_influence(#sculpt{id=Id,st=#st{shapes=Shs0}=St}=Sc) ->
-    #we{pst=Pst}=We= gb_trees:get(Id, Shs0),
-    Shs = gb_trees:update(Id, We#we{pst=remove_pst(Pst)}, Shs0),
-    Sc#sculpt{st=St#st{shapes=Shs}}.
+clear_influence(#sculpt{id=none,st=St}=Sc) ->
+    Sc#sculpt{st=clear_influence_vs(St)};
+clear_influence(#sculpt{id=Id,st=St0}=Sc) ->
+    St = wings_obj:update(fun(#we{pst=Pst}=We) -> We#we{pst=remove_pst(Pst)} end,
+                          [Id], St0),
+    Sc#sculpt{st=St}.
 
-clear_influence_vs(Shs) ->
-    Shs1 = lists:map(fun
-            (#we{id=Id,pst=none}=We) -> {Id,We};
-            (#we{id=Id,pst=Pst}=We) ->
-                NewPst=remove_pst(Pst),
-              {Id,We#we{pst=NewPst}}
-          end,gb_trees:values(Shs)),
-    gb_trees:from_orddict(Shs1).
+clear_influence_vs(St) ->
+    Clear = fun(#we{pst=none}=We) -> We;
+               (#we{pst=Pst}=We) ->
+                    NewPst=remove_pst(Pst),
+                    We#we{pst=NewPst}
+            end,
+    wings_obj:map(fun(Obj) -> wings_obj:update(Clear,Obj) end,St).
 
 %% It's used to reset the highlighting when a new we# got the focus
-check_is_same_id(IdNew,Shs0) ->
+check_is_same_id(IdNew,St) ->
     OldId=wings_pref:get_value(sculpt_current_id),
     wings_pref:set_value(sculpt_current_id,IdNew),
     case OldId of
-    none -> Shs0;
-    IdNew -> Shs0;
-    ID ->
-        #we{pst=Pst0}=We0 = gb_trees:get(ID, Shs0),
-        gb_trees:update(ID,We0#we{pst=remove_pst(Pst0)},Shs0)
+        none -> St;
+        IdNew -> St;
+        _ID ->
+            Update = fun(#we{pst=Pst0}=We) -> We#we{pst=remove_pst(Pst0)} end,
+            wings_obj:update(Update, [OldId], St)
     end.
 
 %%%

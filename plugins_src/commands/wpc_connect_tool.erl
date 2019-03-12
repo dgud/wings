@@ -259,7 +259,7 @@ mode_change(Mode, #cs{st=St0}=C) ->
     update_connect_handler(C#cs{st=St}).
 
 topological_change(#st{shapes=Shs}) ->
-    R = wings_dl:fold(fun(#dlo{}, #dlo_src{we=We}, [We|Wes]) -> Wes;
+    R = wings_dl:fold(fun(#dlo{}, #dlo_src{we=We}, [#{we:=We}|Wes]) -> Wes; %todo
 			 (#dlo{drag=none}, _, [_|Wes]) -> Wes;
 			 (_, _, _) -> changed
 		      end, gb_trees:values(Shs)),

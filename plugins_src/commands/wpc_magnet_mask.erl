@@ -76,10 +76,10 @@ command(_,_) ->
 locking(Type, #st{sel=[]}=St0) when Type =:= mask; Type =:= unmask ->
     {_,X,Y} = wings_wm:local_mouse_state(),
     case wings_pick:do_pick(X, Y, St0) of
-      {add,_,TempSt} ->
-          #st{shapes=Shs} = locking_1(Type, TempSt),
-          St0#st{shapes=Shs,sel=[]};
-      none -> locking_1(Type, St0)
+        {add,_,TempSt} ->
+            #st{shapes=Shs} = locking_1(Type, TempSt),
+            St0#st{shapes=Shs,sel=[]};
+        none -> locking_1(Type, St0)
     end;
 locking(Type, St) ->
     locking_1(Type, St).
@@ -110,17 +110,16 @@ locking_1(unmask, #st{selmode=Selmode}=St) ->
               We#we{pst=NewPst}
           end, St);
 
-locking_1(invert_masked, #st{shapes=Shs0, sel=[]}=St) ->
-    Shs1 = lists:map(fun
-            (#we{id=Id,pst=Pst,perm=0}=We) ->
-              Lvs = get_locked_vs(Pst),
-              Diff = wings_sel:inverse_items(vertex, Lvs, We),
-              NewPst = set_locked_vs(Diff,Pst),
-              {Id,We#we{pst=NewPst}};
-            (#we{id=Id}=We) -> {Id,We}
-          end,gb_trees:values(Shs0)),
-    Shs = gb_trees:from_orddict(Shs1),
-    St#st{shapes=Shs};
+locking_1(invert_masked, #st{sel=[]}=St) ->
+    Lock = fun(#we{pst=Pst}=We) ->
+                   Lvs = get_locked_vs(Pst),
+                   Diff = wings_sel:inverse_items(vertex, Lvs, We),
+                   NewPst = set_locked_vs(Diff,Pst),
+                   We#we{pst=NewPst}
+           end,
+    wings_obj:map(fun(#{perm:=0}=Obj) -> wings_obj:update(Lock, Obj);
+                     (Obj) -> Obj
+                  end,St);
 locking_1(invert_masked, #st{}=St) ->
     wings_sel:map(fun
             (_,#we{pst=Pst}=We) ->

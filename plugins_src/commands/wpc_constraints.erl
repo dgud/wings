@@ -779,81 +779,89 @@ angle(Axis,St) ->
     Angle = measure_angle(Axis,St),
     set_angle(Keys,Angle,St).
 
-to_axis(Axis,#st{selmode=edge,shapes=Shs,sel=[{Id,Sel}]}=St) ->
+to_axis(Axis,#st{selmode=edge,sel=[{Id,Sel}]}=St) ->
     Keys = mod_key_combo(),
     Vec1 = wings_util:make_vector(Axis),
-    We = gb_trees:get(Id, Shs),
     [Edge] = gb_sets:to_list(Sel),
-    #edge{vs=V0s,ve=V0e} = array:get(Edge, We#we.es),
-    Pos1 = wings_vertex:pos(V0s, We),
-    Pos2 = wings_vertex:pos(V0e, We),
-    Vec2 = e3d_vec:sub(Pos1,Pos2),
-    Norm1 = e3d_vec:norm(Vec1),
-    Norm2 = e3d_vec:norm(Vec2),
-    Angle = e3d_vec:degrees(Norm1,Norm2),
+    Get = fun(We) ->
+                  #edge{vs=V0s,ve=V0e} = array:get(Edge, We#we.es),
+                  Pos1 = wings_vertex:pos(V0s, We),
+                  Pos2 = wings_vertex:pos(V0e, We),
+                  Vec2 = e3d_vec:sub(Pos1,Pos2),
+                  Norm1 = e3d_vec:norm(Vec1),
+                  Norm2 = e3d_vec:norm(Vec2),
+                  e3d_vec:degrees(Norm1,Norm2)
+          end,
+    Angle = wings_obj:with_we(Get, Id, St),
     set_angle(Keys,Angle,St);
 
-to_axis(Axis,#st{selmode=face,shapes=Shs,sel=[{Id,Sel}]}=St) ->
+to_axis(Axis,#st{selmode=face,sel=[{Id,Sel}]}=St) ->
     Keys = mod_key_combo(),
     Vec1 = wings_util:make_vector(Axis),
-    We = gb_trees:get(Id, Shs),
     [Face] = gb_sets:to_list(Sel),
-    Norm1 = wings_face:normal(Face,We),
-    Norm2 = e3d_vec:norm(Vec1),
-    Angle = e3d_vec:degrees(Norm1,Norm2),
+    Get = fun(We) ->
+                  Norm1 = wings_face:normal(Face,We),
+                  Norm2 = e3d_vec:norm(Vec1),
+                  e3d_vec:degrees(Norm1,Norm2)
+          end,
+    Angle = wings_obj:with_we(Get, Id, St),
     set_angle(Keys,Angle,St).
 
-measure_angle(Axis,#st{selmode=edge,shapes=Shs,sel=[{Id0,Sel0},{Id1,Sel1}]}) ->
-    We0 = gb_trees:get(Id0, Shs),
-    We1 = gb_trees:get(Id1, Shs),
+measure_angle(Axis,#st{selmode=edge,sel=[{Id0,Sel0},{Id1,Sel1}]}=St) ->
     [E0] = gb_sets:to_list(Sel0),
     [E1] = gb_sets:to_list(Sel1),
-    #edge{vs=V0s,ve=V0e} = array:get(E0, We0#we.es),
-    #edge{vs=V1s,ve=V1e} = array:get(E1, We1#we.es),
-    Pos1 = wings_vertex:pos(V0s, We0),
-    Pos2 = wings_vertex:pos(V0e, We0),
-    Pos3 = wings_vertex:pos(V1s, We1),
-    Pos4 = wings_vertex:pos(V1e, We1),
+    Get = fun(We, E) ->
+                  #edge{vs=V0s,ve=V0e} = array:get(E, We#we.es),
+                  {V0s,V0e,
+                   wings_vertex:pos(V0s, We),
+                   wings_vertex:pos(V0e, We)}
+          end,
+    {V0s, V0e, Pos1, Pos2} = wings_obj:with_we(fun(We) -> Get(We,E0) end, Id0, St),
+    {V1s, V1e, Pos3, Pos4} = wings_obj:with_we(fun(We) -> Get(We,E1) end, Id1, St),
     [Vec0,Vec1] = get_angle(Axis,[Pos1,Pos2,Pos3,Pos4]),
     raw_angle_to_angle(Vec0,Vec1,V0s,V0e,V1s,V1e);
 
-measure_angle(Axis,#st{selmode=edge,shapes=Shs,sel=[{Id,Sel}]}) ->
-    We = gb_trees:get(Id, Shs),
-    [E0,E1] = gb_sets:to_list(Sel),
-    #edge{vs=V0s,ve=V0e} = array:get(E0, We#we.es),
-    #edge{vs=V1s,ve=V1e} = array:get(E1, We#we.es),
-    Pos1 = wings_vertex:pos(V0s, We),
-    Pos2 = wings_vertex:pos(V0e, We),
-    Pos3 = wings_vertex:pos(V1s, We),
-    Pos4 = wings_vertex:pos(V1e, We),
-    [Vec0,Vec1] = get_angle(Axis,[Pos1,Pos2,Pos3,Pos4]),
-    raw_angle_to_angle(Vec0,Vec1,V0s,V0e,V1s,V1e);
+measure_angle(Axis,#st{selmode=edge,sel=[{Id,Sel}]}=St) ->
+    Get = fun(We) ->
+                  [E0,E1] = gb_sets:to_list(Sel),
+                  #edge{vs=V0s,ve=V0e} = array:get(E0, We#we.es),
+                  #edge{vs=V1s,ve=V1e} = array:get(E1, We#we.es),
+                  Pos1 = wings_vertex:pos(V0s, We),
+                  Pos2 = wings_vertex:pos(V0e, We),
+                  Pos3 = wings_vertex:pos(V1s, We),
+                  Pos4 = wings_vertex:pos(V1e, We),
+                  [Vec0,Vec1] = get_angle(Axis,[Pos1,Pos2,Pos3,Pos4]),
+                  raw_angle_to_angle(Vec0,Vec1,V0s,V0e,V1s,V1e)
+          end,
+    wings_obj:with_we(Get, Id, St);
 
-measure_angle(Axis,#st{selmode=face,shapes=Shs,sel=[{Id0,Sel0},{Id1,Sel1}]}) ->
-    We0 = gb_trees:get(Id0, Shs),
-    We1 = gb_trees:get(Id1, Shs),
+measure_angle(Axis,#st{selmode=face,sel=[{Id0,Sel0},{Id1,Sel1}]}=St) ->
     [F0] = gb_sets:to_list(Sel0),
     [F1] = gb_sets:to_list(Sel1),
-    N0 = wings_face:normal(F0,We0),
-    N1 = wings_face:normal(F1,We1),
-    Pos1 = wings_face:center(F0,We0),
-    Pos2 = e3d_vec:add(Pos1,e3d_vec:mul(N0,0.2)),
-    Pos3 = wings_face:center(F1,We1),
-    Pos4 = e3d_vec:add(Pos3,e3d_vec:mul(N1,0.2)),
+    Get = fun(We, F) ->
+                  N0 = wings_face:normal(F,We),
+                  Pos1 = wings_face:center(F,We),
+                  Pos2 = e3d_vec:add(Pos1,e3d_vec:mul(N0,0.2)),
+                  {Pos1,Pos2}
+          end,
+    {Pos1, Pos2} = wings_obj:with_we(fun(We) -> Get(We,F0) end, Id0, St),
+    {Pos3, Pos4} = wings_obj:with_we(fun(We) -> Get(We,F1) end, Id1, St),
     [Vec0,Vec1] = get_angle(Axis,[Pos1,Pos2,Pos3,Pos4]),
     e3d_vec:degrees(Vec0,Vec1);
 
-measure_angle(Axis,#st{selmode=face,shapes=Shs,sel=[{Id,Sel}]}) ->
-    We = gb_trees:get(Id, Shs),
+measure_angle(Axis,#st{selmode=face,sel=[{Id,Sel}]}=St) ->
     [F0,F1] = gb_sets:to_list(Sel),
-    N0 = wings_face:normal(F0,We),
-    N1 = wings_face:normal(F1,We),
-    Pos1 = wings_face:center(F0,We),
-    Pos2 = e3d_vec:add(Pos1,e3d_vec:mul(N0,0.2)),
-    Pos3 = wings_face:center(F1,We),
-    Pos4 = e3d_vec:add(Pos3,e3d_vec:mul(N1,0.2)),
-    [Vec0,Vec1] = get_angle(Axis,[Pos1,Pos2,Pos3,Pos4]),
-    e3d_vec:degrees(Vec0,Vec1).
+    Get = fun(We) ->
+                  N0 = wings_face:normal(F0,We),
+                  N1 = wings_face:normal(F1,We),
+                  Pos1 = wings_face:center(F0,We),
+                  Pos2 = e3d_vec:add(Pos1,e3d_vec:mul(N0,0.2)),
+                  Pos3 = wings_face:center(F1,We),
+                  Pos4 = e3d_vec:add(Pos3,e3d_vec:mul(N1,0.2)),
+                  [Vec0,Vec1] = get_angle(Axis,[Pos1,Pos2,Pos3,Pos4]),
+                  e3d_vec:degrees(Vec0,Vec1)
+          end,
+    wings_obj:with_we(Get, Id, St).
 
 get_angle(Axis,Vlist) ->
     [{X0s,Y0s,Z0s},{X0e,Y0e,Z0e},{X1s,Y1s,Z1s},{X1e,Y1e,Z1e}] = Vlist,
