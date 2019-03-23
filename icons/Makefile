@@ -49,7 +49,7 @@ opt debug: collect_bmp.beam $(TARGET_FILES)
 bluecube/%.png: orig/bluecube-assests/%.png
 	mv $? $@
 
-$(EBIN)/wings_icon_%.bundle: %/*.bmp %/*.png collect_bmp.beam about_wings.bmp
+$(EBIN)/wings_icon_%.bundle: %/*.bmp %/*.png collect_bmp.beam about_wings.bmp about_wings_art.bmp
 	erl $(ERL_FLAGS) -noinput -run collect_bmp start . $(ESRC)/$* $@ -s erlang halt
 
 clean:

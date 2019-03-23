@@ -311,6 +311,8 @@ read_icons() ->
 	       end,
     Patch = fun({about_wings, {3, W, H, Bin0, <<>>}}) ->
 		    {about_wings, {W, H, Bin0}};
+	       ({about_wings_art, {3, W, H, Bin0, <<>>}}) ->
+		   {about_wings_art, {W, H, Bin0}};
 	       ({Name, {3, W, H, Bin, <<>>}}) ->
 		    {Rgb, Alpha} = rgb3(Bin, <<>>, <<>>),
 		    {Name, {W, H, Rgb, Alpha}};
