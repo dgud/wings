@@ -17,6 +17,8 @@
 %% For the Develop menu.
 -export([mem_stat_help/0]).
 
+-export_type([undo/0]).
+
 -include("wings.hrl").
 
 -import(lists, [reverse/1,reverse/2]).
@@ -25,13 +27,21 @@
                   | wings_edge:edge_num()
                   | wings_face:face_num().
 
+%% Undo information (stored in #st.undo).
+-record(undo,
+        {q=queue:new() :: queue:queue(),    %Undo (de)queue.
+         next_is_undo=true :: boolean(),    %State of undo/redo toggle.
+         undone=[] :: list()                %States that were undone.
+        }).
+-opaque undo() :: #undo{}.
+
 %% Develop info.
 -record(info,
 	{change,
 	 sz_diff,
 	 own_size
 	}).
-	 
+
 %% The essential part of the state record.
 -record(est,
 	{shapes=[] :: list(wings_obj:obj()) | gb_trees:tree(),
@@ -47,66 +57,105 @@
 	}).
 
 init(St) ->
-    St#st{undo=queue:new(),undone=[],next_is_undo=true}.
-    
-save(OldState, St0) ->
-    St1 = discard_old_states(St0),
-    St = push(St1, OldState),
-    mem_stat(St#st{undone=[],next_is_undo=true}).
+    Undo = #undo{},
+    St#st{undo=Undo}.
 
-undo_toggle(#st{next_is_undo=true}=St) -> undo(St);
-undo_toggle(St) -> redo(St).
+-spec save(OldState, St0) -> St when
+      OldState :: #st{},
+      St0 :: #st{},
+      St :: #st{}.
 
-undo(#st{undone=Undone}=St0) ->
-    case pop(St0) of
-	empty -> St0;
-	St -> mem_stat(St#st{undone=[St0|Undone],next_is_undo=false})
+save(#st{}=OldState, #st{undo=Undo0}=St) ->
+    Undo1 = discard_old_states(Undo0),
+    Est = state_to_est(OldState),
+    Undo2 = push(Undo1, Est),
+    Undo = Undo2#undo{undone=[],next_is_undo=true},
+    mem_stat(St#st{undo=Undo}).
+
+-spec undo_toggle(St0) -> St when
+      St0 :: #st{},
+      St :: #st{}.
+
+undo_toggle(#st{undo=#undo{next_is_undo=NextIsUndo}}=St) ->
+    case NextIsUndo of
+        true -> undo(St);
+        false -> redo(St)
     end.
 
-redo(#st{undone=[StOld|Undone]}=St0) ->
-    St1 = push(St0, St0),
-    #st{shapes=Sh,selmode=Mode,sel=Sel,onext=Onext,
-	mat=Mat,last_cmd=Cmd,pst=Pst} = StOld,
-    St = St1#st{shapes=Sh,selmode=Mode,sel=Sel,onext=Onext,
-		mat=Mat,last_cmd=Cmd,pst=Pst},
-    mem_stat(St#st{undone=Undone,next_is_undo=true});
+-spec undo(St0) -> St when
+      St0 :: #st{},
+      St :: #st{}.
+
+undo(#st{undo=#undo{undone=Undone}=Undo0}=St0) ->
+    case pop(Undo0) of
+	empty ->
+            St0;
+        {NewEst,Undo1} ->
+            St = state_from_est(uncompress, NewEst, St0),
+            UndoneEst = state_to_est(St0),
+            Undo = Undo1#undo{undone=[UndoneEst|Undone],next_is_undo=false},
+            mem_stat(St#st{undo=Undo})
+    end.
+
+-spec redo(St0) -> St when
+      St0 :: #st{},
+      St :: #st{}.
+
+redo(#st{undo=#undo{undone=[RedoEst|Undone]}=Undo0}=St0) ->
+    Est = state_to_est(St0),
+    Undo1 = push(Undo0, Est),
+    Undo = Undo1#undo{undone=Undone,next_is_undo=true},
+    St1 = state_from_est(no_uncompress, RedoEst, St0),
+    St = St1#st{undo=Undo},
+    mem_stat(St);
 redo(St) -> St.
 
-info(#st{undo=Undo,undone=Undone}) ->
-    {queue:len(Undo),length(Undone)}.
+-spec info(St) -> {NumUndoable,NumUndone} when
+      St :: #st{},
+      NumUndoable :: non_neg_integer(),
+      NumUndone :: non_neg_integer().
+
+info(#st{undo=#undo{q=Q,undone=Undone}}) ->
+    {queue:len(Q),length(Undone)}.
 
 %%
 %% Low-level queue operations.
 %%
 
-push(St, OldState) ->
-    Est = save_essential(OldState),
-    push_1(St, Est).
-
-push_1(#st{undo=Undo0}=St, #est{sel=Sel}=Est0) ->
-    case queue:is_empty(Undo0) of
+push(#undo{q=Q0}=Undo, #est{sel=Sel}=Est0) ->
+    case queue:is_empty(Q0) of
 	true ->
 	    Est = compress(#est{shapes=[]}, Est0),
-	    St#st{undo=queue:in(Est, Undo0)};
+	    Undo#undo{q=queue:in(Est, Q0)};
 	false ->
-	    PrevEst = queue:get_r(Undo0),
+	    PrevEst = queue:get_r(Q0),
 	    Est = compress(PrevEst, Est0),
 	    case compare_states(PrevEst, Est) of
 		new ->
-		    St#st{undo=queue:in(Est, Undo0)};
+		    Undo#undo{q=queue:in(Est, Q0)};
 		new_sel ->
-		    Undo1 = queue:drop_r(Undo0),
-		    Undo = queue:in(PrevEst#est{sel=Sel}, Undo1),
-		    St#st{undo=Undo};
+		    Q1 = queue:drop_r(Q0),
+		    Q = queue:in(PrevEst#est{sel=Sel}, Q1),
+		    Undo#undo{q=Q};
 		unchanged ->
-		    St
+		    Undo
 	    end
     end.
 
-save_essential(#st{last_cmd=Cmd,shapes=Sh,selmode=Mode,sel=Sel,
+state_to_est(#st{last_cmd=Cmd,shapes=Sh,selmode=Mode,sel=Sel,
 		   onext=Onext,mat=Mat,pst=Pst}) ->
     #est{cmd=Cmd,shapes=Sh,selmode=Mode,sel=Sel,onext=Onext,mat=Mat,pst=Pst}.
-    
+
+state_from_est(Uncompress, Est, St) ->
+    #est{shapes=Sh0,selmode=Mode,sel=Sel,
+         onext=Onext,mat=Mat,cmd=Cmd,pst=Pst} = Est,
+    Sh = case Uncompress of
+             no_uncompress -> Sh0;
+             uncompress -> uncompress(Sh0, [])
+         end,
+    St#st{shapes=Sh,selmode=Mode,sel=Sel,
+          onext=Onext,mat=Mat,last_cmd=Cmd,pst=Pst}.
+
 compare_states(Old, New) ->
     #est{shapes=Osh,selmode=Omode,sel=Osel,onext=Oonext,mat=Omat,pst=Opst} = Old,
     #est{shapes=Nsh,selmode=Nmode,sel=Nsel,onext=Nonext,mat=Nmat,pst=Npst} = New,
@@ -145,28 +194,27 @@ compress_1(_, [#{we:=We0}=Obj0|NewWes], Acc) ->
     compress_1([], NewWes, [Obj|Acc]);
 compress_1(_, [], Acc) -> reverse(Acc).
 
-pop(#st{undo=Undo0}=St) ->
-    case queue:out_r(Undo0) of
-	{empty,_} -> empty;
-	{{value,Est},Undo} ->
-	    #est{shapes=Sh0,selmode=Mode,sel=Sel,
-		 onext=Onext,mat=Mat,cmd=Cmd,pst=Pst} = Est,
-	    Sh = uncompress(Sh0, []),
-	    St#st{undo=Undo,shapes=Sh,selmode=Mode,sel=Sel,
-		  onext=Onext,mat=Mat,last_cmd=Cmd,pst=Pst}
+pop(#undo{q=Q0}=Undo0) ->
+    case queue:out_r(Q0) of
+	{empty,_} ->
+            empty;
+	{{value,Est},Q} ->
+            Undo = Undo0#undo{q=Q},
+            {Est,Undo}
     end.
 
-discard_old_states(#st{undo=Undo0}=St) ->
-    case 1 + queue:len(Undo0) - wings_pref:get_value(num_undo_levels) of
+discard_old_states(#undo{q=Q0}=Undo) ->
+    case 1 + queue:len(Q0) - wings_pref:get_value(num_undo_levels) of
 	N when N > 0 ->
-	    Undo = discard_old_states_1(N, Undo0),
-	    St#st{undo=Undo};
-	_ -> St
+	    Q = discard_old_states_1(N, Q0),
+	    Undo#undo{q=Q};
+	_ ->
+            Undo
     end.
 
-discard_old_states_1(0, St) -> St;
-discard_old_states_1(N, Undo) ->
-    discard_old_states_1(N-1, queue:drop(Undo)).
+discard_old_states_1(0, Q) -> Q;
+discard_old_states_1(N, Q) ->
+    discard_old_states_1(N-1, queue:drop(Q)).
 
 uncompress([#{id:=Id,we:=We0}=Obj|Wes], Acc) ->
     We = wings_we:fast_rebuild(We0),
@@ -179,17 +227,17 @@ uncompress([], Acc) -> gb_trees:from_orddict(reverse(Acc)).
 
 mem_stat(St) ->
     case wings_pref:get_value(develop_undo_stat) of
-	false -> St;
+	false -> ok;
 	true -> mem_stat_1(St)
-    end.
+    end,
+    St.
 
-mem_stat_1(#st{undo=Undo0}=St) ->
-    Undo = queue:in_r(#est{}, Undo0),
-    Est0 = save_essential(St),
-    Est = compress(queue:get_r(Undo), Est0),
-    Stat = mem_stat_2([Est|reverse(queue:to_list(Undo))]),
-    print_stat(Stat),
-    St#st{undo=queue:from_list(reverse(tl(Stat)))}.
+mem_stat_1(#st{undo=#undo{q=Q0}}=St) ->
+    Q = queue:in_r(#est{}, Q0),
+    Est0 = state_to_est(St),
+    Est = compress(queue:get_r(Q), Est0),
+    Stat = mem_stat_2([Est|reverse(queue:to_list(Q))]),
+    print_stat(Stat).
 
 mem_stat_2([#est{info=undefined}=S1|[S2|_]=Ss]) ->
     Total = erts_debug:size({S1#est{info=undefined},S2#est{info=undefined}}),

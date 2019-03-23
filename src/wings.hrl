@@ -159,9 +159,7 @@
 
 	 %% Undo information.
 	 last_cmd=empty_scene,		        %Last command.
-	 undo=queue:new() :: queue:queue(),	%Undo (de)queue.
-	 next_is_undo=true :: boolean(),	%State of undo/redo toggle.
-	 undone=[] :: list()		        %States that were undone.
+         undo :: 'undefined' | wings_undo:undo() %Undo information.
 	}).
 
 %% The Winged-Edge data structure.
