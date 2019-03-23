@@ -17,7 +17,7 @@
 %% For the Develop menu.
 -export([mem_stat_help/0]).
 
--export_type([undo/0]).
+-export_type([st_generation/0,undo/0]).
 
 -include("wings.hrl").
 
@@ -26,6 +26,8 @@
 -type elem_num() :: wings_vertex:vertex_num()
                   | wings_edge:edge_num()
                   | wings_face:face_num().
+
+-type st_generation() :: non_neg_integer().
 
 %% Undo information (stored in #st.undo).
 -record(undo,

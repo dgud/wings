@@ -17,8 +17,23 @@
 -export([start/2]).
 -export([start_link/1, init/1, handle_call/3, handle_cast/2, terminate/2]).
 
-
 -include("wings.hrl").
+
+-record(wst_versioned,
+        {
+         we :: #we{},
+         sel = gb_sets:empty() :: gb_sets:set(wings_sel:item_id()),
+         saved_mode = none :: 'none' | wings_sel:mode()        %Only valid when invisible.
+        }).
+
+%% State for processes holding #wst_versioned{} records.
+-record(wst,
+	{insts :: #{wings_undo:st_generation() := #wst_versioned{}},
+
+         %% Data used for drawing and picking.
+         dlo_src=#dlo_src{} :: #dlo_src{}
+	}).
+
 
 %% API
 -spec start(#we{}, non_neg_integer()) -> pid().

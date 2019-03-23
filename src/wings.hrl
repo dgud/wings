@@ -339,36 +339,10 @@
 
 -type vab() :: #vab{}.
 
-
-%%% WORK_IN_PROGRESS
-
--type st_generation() :: non_neg_integer().
-
+-ifdef(WORK_IN_PROGRESS).
 %% wings_obj is a new module for handling the non-geometry part
 %% of objects.
 
-%% All data that must be versioned in each we process. We keep
-%% those records in a map.
-
--record(wst_versioned,
-        {
-         we :: #we{},
-         sel = gb_sets:empty() :: gb_sets:set(wings_sel:item_id()),
-         saved_mode = none :: 'none' | wings_sel:mode()        %Only valid when invisible.
-        }).
-
-%% This record is the state data for the processes holding the #we{} records.
-%% NOTE: Should probably remain a record. We should attempt to make it
-%% internal to a single module, instead of having it globally visible.
-
--record(wst,
-	{insts :: #{st_generation() := #wst_versioned{}},
-
-         %% Data used for drawing and picking.
-         dlo_src=#dlo_src{} :: #dlo_src{}
-	}).
-
--ifdef(WORK_IN_PROGRESS).
 %% Here are some suggested changes needed for moving each #we{} into its own
 %% process.
 
