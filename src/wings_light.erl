@@ -1050,6 +1050,7 @@ make_envmap(CL, EnvImgRec0) ->
     cl:release_mem_object(OrigImg),
     cl:release_mem_object(Buff0),
     cl:release_mem_object(Buff1),
+    wings_cl:working(),
     [DiffId,SpecId,BrdfId].
 
 make_brdf(Buff, W, H, CL) ->
