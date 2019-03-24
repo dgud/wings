@@ -527,7 +527,11 @@ material_prop(Name, Mtab) ->
              {{tex,emission}, get_texture_map(emission, Maps)}
              |OpenGL];
         false ->
-            OpenGL
+            [{{tex,diffuse}, none},
+             {{tex,normal}, get_normal_map(Maps)},
+             {{tex,pbr_orm},  none},
+             {{tex,emission}, none}
+             |OpenGL]
     end.
 
 get_texture_map(Type, Maps) ->
@@ -540,9 +544,13 @@ get_pbr_map(Maps) ->
     image_id(combined, PBRId).
 
 get_normal_map(Maps) ->
-    case prop_get(normal, Maps, none) of
-        none -> image_id(normal, prop_get(bump, Maps, none));
-        Map -> image_id(normal, Map)
+    case wings_pref:get_value(show_normal_maps, true) of
+        false -> none;
+        true ->
+            case prop_get(normal, Maps, none) of
+                none -> image_id(normal, prop_get(bump, Maps, none));
+                Map -> image_id(normal, Map)
+            end
     end.
 
 image_id(_, none) -> none;
