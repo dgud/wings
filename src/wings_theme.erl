@@ -47,8 +47,6 @@ native_theme() ->
 		 {hard_edge_color,{1.0,0.5,0.0}},
 		 {info_background_color,{0.38,0.38,0.38,0.5}},
 		 {info_color,{1.0,1.0,1.0}},
-		 {info_line_bg,{0.33131360000000004,0.4,0.0}},
-		 {info_line_text,{1.0,1.0,1.0}},
 		 {masked_vertex_color,{0.5,1.0,0.0,0.8}},
 		 {material_default, {0.7898538076923077,0.8133333333333334,0.6940444444444445}},
 		 {neg_x_color,{0.8,0.8,0.8}},
@@ -80,6 +78,8 @@ native_theme() ->
 	      {outliner_geograph_hl,      highlight},
 	      {outliner_geograph_hl_text, highlighttext},
 	      {outliner_geograph_text, windowtext},
+	      {info_line_bg,c3dface},
+	      {info_line_text,windowtext},
 	      {title_active_color, activecaption},
 	      {title_passive_color,inactivecaption},
 	      {title_text_color,   captiontext}
