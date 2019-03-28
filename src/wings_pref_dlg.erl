@@ -363,6 +363,7 @@ ui_prefs() ->
 	  separator,
 	  {?__(28,"Menubar Background"),{color,menu_bar_bg}},
 	  {?__(31,"Menubar Text"),	  {color,menubar_text}},
+	  {?__(48,"Button bar"),{color,button_bar_bg}},
 	  separator,
 	  {?__(6,"Menu Background"),       {color,menu_color}},
 	  {?__(3,"Menu Text"),	     {color,menu_text}},
