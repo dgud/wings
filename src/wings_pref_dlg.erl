@@ -463,10 +463,9 @@ misc_prefs() ->
     AutoFun = fun(_, Enable, Store) ->
 		      wings_dialog:enable(autosave_time, Enable, Store)
 	      end,
-    OpenCL = case wings_cl:is_available() of
-		 true -> [{info,?__(40,"A value of 0 will use the standard implementation, " 
-				    "a larger value takes more memory "
-				    "(experimental feature requires good OpenCL drivers)")}];
+    OpenCL = case wings_cl:is_available(false) of
+		 true -> [{info,?__(40,"A value of 0 will use the standard implementation, "
+				    "a larger value takes more memory ")}];
 		 false ->
 		     [disable,{info,?__(41,"OpenCL drivers is required ")}]
 	     end,

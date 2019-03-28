@@ -16,7 +16,7 @@
 -compile([{nowarn_deprecated_function, {erlang,get_stacktrace,0}}]).
 -include_lib("wings/e3d/e3d_image.hrl").
 
--export([is_available/0, setup/0, stop/1, working/0,
+-export([is_available/1, setup/0, stop/1, working/0,
          compile/2, compile/3,
 	 %% Queries
 	 get_context/1, get_device/1, get_queue/1, get_vendor/1,
@@ -42,7 +42,10 @@ init_develop() ->
     _ = code:add_patha(filename:join(Top, "_deps/cl/ebin")),
     ok.
 
-is_available() ->
+%%
+%% A call to wings_cl:is_available(true) must be followed by a call to wings_cl:working()
+%%
+is_available(Write) ->
     try
 	true == erlang:system_info(smp_support) orelse throw({error, no_smp_support}),
         Type = wings_pref:get_value(cl_type, gpu),
@@ -51,7 +54,7 @@ is_available() ->
             {ok, _} -> throw({error, {opencl_failed_previously, temp_file()}});
             {error,_} -> ok
         end,
-        file:write_file(temp_file(), <<"Delete me if OpenCL is working">>),
+        Write andalso file:write_file(temp_file(), <<"Delete me if OpenCL is working">>),
 	ok == cl:start() orelse throw({error, no_opencl_loaded}),
 	{ok, Ps} = cl:get_platform_ids(),
 	[] /= Ps
