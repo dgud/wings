@@ -64,7 +64,7 @@ native_theme() ->
 		 {y_color,{0.37210077142857145,0.82,0.0}},
 		 {z_color,{0.0,0.3,0.8}}],
     UserIF = [{background_color, appworkspace},
-	      {dialog_color, desktop},
+	      {dialog_color, c3dface},
 	      {dialog_disabled, graytext},
 	      {dialog_text, windowtext},
 	      {menu_bar_bg,  menubar},
