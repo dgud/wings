@@ -802,6 +802,7 @@ command_1({edit,{preferences,Pref}}, St) ->
 command_1({edit,{theme,Theme}}, St) ->
     wings_pref:pref({load,Theme,St}),
     wings_frame:update_theme(),
+    wings_status:update_theme(),
     keep;
 
 %% Select menu.

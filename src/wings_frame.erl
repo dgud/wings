@@ -571,9 +571,13 @@ terminate_frame(_Ev, CB) ->
 update_active(Name, #state{active=Prev, windows=#{ch:=Root}}=State) ->
     ABG = wings_color:rgb4bv(wings_pref:get_value(title_active_color)),
     PBG = wings_color:rgb4bv(wings_pref:get_value(title_passive_color)),
+    TFG = wings_color:rgb4bv(wings_pref:get_value(title_text_color)),
     try
 	#win{bar={PBar,_}} = find_win(Prev, Root),
 	_ = wxWindow:getSize(PBar), %% Sync to check PBar validity
+	PChildren = wxWindow:getChildren(PBar),
+	[wxWindow:setForegroundColour(PChild, TFG) || PChild <- PChildren,
+	 wx:getObjectType(PChild) == wxWindow],
 	wxWindow:setBackgroundColour(PBar, PBG),
 	wxWindow:refresh(PBar)
     catch _:_ -> ignore
@@ -582,6 +586,9 @@ update_active(Name, #state{active=Prev, windows=#{ch:=Root}}=State) ->
 	false ->
 	    State#state{active=undefined};
 	#win{bar={ABar,_}} ->
+	    AChildren = wxWindow:getChildren(ABar),
+	    [wxWindow:setForegroundColour(AChild, TFG) || AChild <- AChildren,
+	     wx:getObjectType(AChild) == wxWindow],
 	    wxWindow:setBackgroundColour(ABar, ABG),
 	    wxWindow:refresh(ABar),
 	    State#state{active=Name}
