@@ -74,7 +74,7 @@ latin1_file_to_unicode(PrefFile) ->
 get_dir() ->
     PFile = case get_value(pref_directory) of
 		undefined -> 
-		    File = get_pref_directory("backup_prefs.txt"),
+		    File = get_pref_directory("backup_prefs.pref"),
 		    set_value(pref_directory,File),
 		    File;
 		File -> File
