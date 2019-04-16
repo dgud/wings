@@ -281,11 +281,11 @@ object_name(Prefix, #st{onext=Oid}) ->
 %%%
 
 install(Name) ->
-    Type = case install_file_type(Name) of
-               beam -> install_beam(Name);
-               tar -> install_tar(Name)
-           end,
-    io:format("Installed ~w to ~ts~n",[Type, plugin_dir()]),
+    {Type,Dest} = case install_file_type(Name) of
+		      beam -> install_beam(Name);
+		      tar -> install_tar(Name)
+		  end,
+    io:format("Installed ~w to ~ts~n",[Type, Dest]),
     case Type of
         plugin ->
             init_dir(plugin_dir()),
@@ -319,8 +319,11 @@ install_beam(Name) ->
     ok = filelib:ensure_dir(Dest),
     case file:copy(Name, Dest) of
         {ok,_} ->
-            if Patch -> wings_start:enable_patches(), patch;
-               true -> plugin
+            if Patch ->
+                    wings_start:enable_patches(),
+                    {patch, Dest};
+               true ->
+                    {plugin, Dest}
             end;
         {error,Reason} ->
             wings_u:error_msg(?__(1,"Install of \"~s\" failed: ~p"),
@@ -333,10 +336,16 @@ erl_tar() -> %% Fool dialyzer the spec is wrong for erl_tar:table() in 20.0-20.2
 
 install_tar(Name) ->
     {ok,Files} = (erl_tar()):table(Name, [compressed]),
-    install_verify_files(Files, Name),
-    case erl_tar:extract(Name, [compressed,{cwd,plugin_dir()}]) of
-	ok -> plugin;
-	{error, {_File, Reason}} -> 
+    Type = install_verify_files(Files, Name),
+    Dest = case Type of
+		plugin -> plugin_dir();
+		patch -> wings_start:patch_dir()
+	    end,
+    case erl_tar:extract(Name, [compressed,{cwd,Dest}]) of
+	ok when Type =:= patch ->
+	    wings_start:enable_patches();
+	ok -> ok;
+	{error, {_File, Reason}} ->
 	    wings_u:error_msg(?__(1,"Install of \"~s\" failed: ~p"),
 			      [filename:basename(Name),
 			       file:format_error(Reason)]);
@@ -344,19 +353,32 @@ install_tar(Name) ->
 	    wings_u:error_msg(?__(1,"Install of \"~s\" failed: ~p"),
 			      [filename:basename(Name),
 			       file:format_error(Reason)])
-    end.
+    end,
+    {Type,Dest}.
 
-install_verify_files(["/"++_|_], Name) ->
+install_verify_files(Fs, Name) when is_list(Name) ->
+    install_verify_files(Fs, Name, undefined).
+
+install_verify_files(["/"++_|_], Name, _) ->
     wings_u:error_msg(?__(1,"File \"~s\" contains a file with an absolute path"),
 		  [filename:basename(Name)]);
-install_verify_files([F|Fs], Name) ->
+install_verify_files([F|Fs], Name, Content) ->
     case is_plugin(F) of
-	false -> install_verify_files(Fs, Name);
-	true -> ok
+	true ->
+	    %% plugin has priority, so we don't need to keep checking the other files
+	    plugin;
+	false ->
+	    case filename:extension(F) of
+		".beam" -> install_verify_files(Fs, Name, patch);
+		_ -> install_verify_files(Fs, Name, Content)
+	    end
     end;
-install_verify_files([], Name) ->
-    wings_u:error_msg(?__(2,"File \"~s\" does not contain any Wings plug-in modules"),
-		  [filename:basename(Name)]).
+install_verify_files([], Name, undefined)->
+    wings_u:error_msg(?__(2,"File \"~s\" does not contain any Wings patch or plug-in modules"),
+		      [filename:basename(Name)]);
+install_verify_files([], _, Type) ->
+    Type.
+
 
 is_plugin(Name) ->
     case filename:basename(Name) of

@@ -215,12 +215,14 @@ selected_items(Mode, Mat, #we{fs=Ftab}=We) ->
     case keyfind(Mat, 1, MatFaces) of
 	false ->
 	    gb_sets:empty();
+        _ when Mode =:= body ->
+            gb_sets:singleton(0);
 	{Mat,FaceInfoList} ->
 	    Fs = [F || {F,_} <- FaceInfoList, F >= 0],
             SelItems = case Mode of
                            vertex -> wings_face:to_vertices(Fs, We);
                            edge -> wings_face:to_edges(Fs, We);
-                           _ -> Fs
+                           face -> Fs
                        end,
             gb_sets:from_ordset(SelItems)
     end.
@@ -527,7 +529,11 @@ material_prop(Name, Mtab) ->
              {{tex,emission}, get_texture_map(emission, Maps)}
              |OpenGL];
         false ->
-            OpenGL
+            [{{tex,diffuse}, none},
+             {{tex,normal}, get_normal_map(Maps)},
+             {{tex,pbr_orm},  none},
+             {{tex,emission}, none}
+             |OpenGL]
     end.
 
 get_texture_map(Type, Maps) ->
@@ -540,9 +546,13 @@ get_pbr_map(Maps) ->
     image_id(combined, PBRId).
 
 get_normal_map(Maps) ->
-    case prop_get(normal, Maps, none) of
-        none -> image_id(normal, prop_get(bump, Maps, none));
-        Map -> image_id(normal, Map)
+    case wings_pref:get_value(show_normal_maps, true) of
+        false -> none;
+        true ->
+            case prop_get(normal, Maps, none) of
+                none -> image_id(normal, prop_get(bump, Maps, none));
+                Map -> image_id(normal, Map)
+            end
     end.
 
 image_id(_, none) -> none;

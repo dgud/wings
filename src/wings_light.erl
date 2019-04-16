@@ -1050,6 +1050,7 @@ make_envmap(CL, EnvImgRec0) ->
     cl:release_mem_object(OrigImg),
     cl:release_mem_object(Buff0),
     cl:release_mem_object(Buff1),
+    wings_cl:working(),
     [DiffId,SpecId,BrdfId].
 
 make_brdf(Buff, W, H, CL) ->
@@ -1113,7 +1114,7 @@ cl_multipass(_Kernel, _Args, Buff0, Buff1, _N, _Tot, _No, Wait, _CL) ->
 cl_setup(Recompile) ->
     case ?GET(opencl) of
 	undefined ->
-            case wings_cl:is_available() of
+            case wings_cl:is_available(true) of
                 true ->
                     try cl_setup_1()
                     catch _:Reason ->

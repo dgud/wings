@@ -1,3 +1,17 @@
+--- 2.2.4 --------------------------------------------
+
+- Fixed View/Show Texture bug. [dgud]
+
+- Fixed transparent rendering. [dgud]
+
+- Added a fail-safe if OpenCL crashes during start,
+  which will disable OpenCL for future runs. [dgud]
+
+- Select by Material in Outliner window was not working in accord when in
+  body selection mode. Thanks Hank. [micheus]
+
+- Fixed some ui color settings. [micheus]
+
 --- 2.2.3 --------------------------------------------
 
 - Improved handling of patches and plugins.

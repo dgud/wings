@@ -715,6 +715,17 @@ update_menu(Menu, Item, Cmd0, Help) ->
     MI = case ets:lookup(wings_menus, Id) of
 	     [#menu{object=MO}] ->
 		 MO;
+	     [] when Menu =:= file, element(1, Item) =:= load_pref ->
+		 Names0 = build_names(Item, [Menu]),
+		 Names = lists:droplast(Names0),
+		 [#menu{object=CustomTheme, type=submenu}] = ets:match_object(wings_menus, #menu{name=Names, _ = '_'}),
+		 N  = wxMenu:getMenuItemCount(CustomTheme),
+		 MO = wxMenu:insert(CustomTheme, N, ?wxITEM_NORMAL, [{text, Cmd0}]),
+		 ME=#menu{name=build_command(Item,[Menu]), object=MO,
+			  wxid=Id, type=?wxITEM_NORMAL},
+		 true = ets:insert(wings_menus, ME),
+		 wxMenu:insertSeparator(CustomTheme, N),
+		 MO;
 	     [] when Menu =:= file, element(1, Item) =:= recent_file ->
 		 FileId = predefined_item(menu, Menu),
 		 [#menu{object=File, type=submenu}] = ets:lookup(wings_menus, FileId),

@@ -18,6 +18,7 @@
 -define(NEED_ESDL, 1).
 -include("wings.hrl").
 -import(lists, [foldl/3,mapfoldl/3,reverse/1,sort/1,seq/2]).
+-define(STR_LIGHT(A,B,Str), wings_lang:str({wings_light,A,B},Str)).
 
 menu(X, Y, St) ->
     Dir = wings_menu_util:directions(St),
@@ -143,13 +144,22 @@ mode_dependent(St) ->
             (_, _) -> mixed
          end,
     Kind = wings_sel:dfold(MF, RF, [], St),
-    Tail = vertex_color_item(Kind),
+    Tail0 = vertex_color_item(Kind),
+    Tail =
+	case wings_sel:selected_ids(St) of
+	    [Id] -> arealight_edit(Id, Tail0);
+	    _ -> Tail0
+	end,
     arealight_conv(Kind, Tail).
 
 vertex_color_item(object) ->
     [{?__(1,"Vertex Color"),vertex_color,
       ?__(3,"Apply vertex colors to selected objects")}];
 vertex_color_item(_) -> [].
+
+arealight_edit(Id, T) ->
+    [{?STR_LIGHT(menu,16,"Edit Properties..."),{edit_arealight,Id},
+      ?STR_LIGHT(menu,17,"Edit light properties")}|T].
 
 arealight_conv(arealight, T) ->
     [{?__(1,"Area Light to Object"),from_arealight,
@@ -217,6 +227,8 @@ command(to_arealight, St) ->
     to_arealight(St);
 command(from_arealight, St) ->
     from_arealight(St);
+command({edit_arealight,Id}, St) ->
+    wings_light:command({edit,Id},St);
 command({vertex_attributes,materials_to_colors}, St) ->
     {save_state,materials_to_colors(St)};
 command({vertex_attributes,colors_to_materials}, St) ->
