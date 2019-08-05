@@ -107,10 +107,14 @@ handle_cast({start, Msg, percent}, #state{frame=Frame, overlay=OV, level=Level})
     S = #state{msg=["",Msg], t0=os:timestamp(),
 	       refresh=?REFRESH_T, level=1,
 	       pb=PB, frame=Frame, overlay=OV},
-    wxFrame:show(OV),
-    wxGauge:show(PB),
-    wxFrame:raise(OV),
-    draw_position(S),
+    case wxFrame:isIconized(Frame) of
+        true -> ok;
+        false ->
+            wxFrame:show(OV),
+            wxGauge:show(PB),
+            wxFrame:raise(OV),
+            draw_position(S)
+    end,
     {noreply, S, ?REFRESH_T};
 handle_cast({start, Msg, percent}, #state{level=Level,next_pos=Next,
 					  pos=Pos,msg=Msg0,

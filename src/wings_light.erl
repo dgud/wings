@@ -60,9 +60,16 @@ init(Recompile) ->
     AreaMatTxId = load_area_light_tab(LTCmat),
     DefEnvMap = "grandcanyon.png",
     EnvImgRec = wings_image:image_read([{filename, filename:join(Path, DefEnvMap)}]),
-    EnvIds = case cl_setup(Recompile) of
-                 {error, _} -> fake_envmap(Path, EnvImgRec);
-                 CL -> make_envmap(CL, EnvImgRec)
+    EnvIds = case wings:is_fast_start() orelse cl_setup(Recompile) of
+                 true ->
+                     fake_envmap(Path, EnvImgRec);
+                 {error, _} ->
+                     ErrorStr = ?__(1, "Could not initialize OpenCL: env lighting limited ~n"),
+                     io:format(ErrorStr,[]),
+                     wings_status:message(geom, ErrorStr),
+                     fake_envmap(Path, EnvImgRec);
+                 CL ->
+                     make_envmap(CL, EnvImgRec)
              end,
     [?SET(Tag, Id) || {Tag,Id} <- [AreaMatTxId|EnvIds]],
     init_opengl(),
@@ -923,9 +930,6 @@ load_area_light_tab(LTCmat) ->
     {areamatrix_tex, ImId}.
 
 fake_envmap(Path, EnvImgRec) ->
-    ErrorStr = ?__(1, "Could not initialize OpenCL: env lighting limited ~n"),
-    io:format(ErrorStr,[]),
-    wings_status:message(geom, ErrorStr),
     %% Poor mans version with blured images
     SpecBG = wings_image:e3d_to_wxImage(EnvImgRec),
     wxImage:rescale(SpecBG, 512, 256, [{quality, ?wxIMAGE_QUALITY_HIGH}]),

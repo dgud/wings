@@ -546,7 +546,10 @@ use_autosave_1(#file_info{mtime=SaveTime0}, File, Body) ->
 	{ok,#file_info{mtime=AutoInfo0}} ->
 	    SaveTime = calendar:datetime_to_gregorian_seconds(SaveTime0),
 	    AutoTime = calendar:datetime_to_gregorian_seconds(AutoInfo0),
+            FastStart = wings:is_fast_start(),
 	    if
+                FastStart -> %% Ignore autosave
+                    Body(File);
 		AutoTime > SaveTime ->
 		    Msg = ?__(1,"An autosaved file with a later time stamp exists;"
                               " do you want to load the autosaved file instead?"),
