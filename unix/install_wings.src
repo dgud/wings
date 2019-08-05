@@ -3,7 +3,12 @@
 # $Id$
 #
 WINGS_VSN="%WINGS_VSN%"
-INSTALL_DIR="$HOME/wings-$WINGS_VSN"
+
+if test x"$1" = x"" ; then
+    INSTALL_DIR="$HOME/wings-$WINGS_VSN"
+else
+    INSTALL_DIR="$1/wings-$WINGS_VSN"
+fi
 
 echo "Installing Wings 3D $WINGS_VSN in $INSTALL_DIR"
 mkdir -p $INSTALL_DIR

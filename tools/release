@@ -96,8 +96,7 @@ unix_release(BuildRoot, WingsVsn) ->
     MakeSelf = filename:join(UnixDir, "makeself.sh"),
     convert_script(Root),
     ok = file:set_cwd(lib_dir(wings)),
-    run(MakeSelf, ["--bzip2",Root,Name++".bzip2.run","Wings3D",
-		   "./install_wings",WingsVsn]),
+    run(MakeSelf, ["--bzip2",Root,Name++".bzip2.run","Wings3D","./install_wings"]),
     ok.
 
 win_release(Root, WingsVsn) ->
