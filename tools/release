@@ -72,6 +72,7 @@ mac_release(BuildRoot, WingsVsn) ->
     [copy(F, Resources) || F <- ResourceFiles],
     copy("InfoPlist.strings", filename:join(Resources, "English.lproj")),
     release_otp(Resources, undefined),
+    convert_script(Root),
     run("codesign", ["-s","Developer ID",Root]),
     ok = file:set_cwd(lib_dir(wings)),
     MakeDmg = filename:join([lib_dir(wings),"macosx","make_dmg"]),
@@ -93,9 +94,9 @@ unix_release(BuildRoot, WingsVsn) ->
     ok = file:write_file(Installer, Install),
     ok = file:write_file_info(Installer, #file_info{mode=8#555}),
     MakeSelf = filename:join(UnixDir, "makeself.sh"),
+    convert_script(Root),
     ok = file:set_cwd(lib_dir(wings)),
-    run(MakeSelf, ["--bzip2",Root,Name++".bzip2.run","Wings3D",
-		   "./install_wings",WingsVsn]),
+    run(MakeSelf, ["--bzip2",Root,Name++".bzip2.run","Wings3D","./install_wings"]),
     ok.
 
 win_release(Root, WingsVsn) ->
@@ -108,6 +109,7 @@ win_release(Root, WingsVsn) ->
 		"install.ico", "uninstall.ico"],
     [copy(File, Root) || File <- WinFiles],
     check_build_target("Wings3D.exe", BitSize),
+    convert_script(Root),
     ok = file:set_cwd(Root),
     run(makensis, ["/DREDIST_DLL_VERSION="++VcVersion,
 		   "/DWINGS_VERSION="++WingsVsn,
@@ -140,6 +142,19 @@ redist_version_ok(Current, Required) ->
 nsi_file(32) -> "wings.nsi";
 nsi_file(64) -> "wings64.nsi".
 
+convert_script(Root) ->
+    ok = file:set_cwd(filename:join(lib_dir(wings), src)),
+    copy("wings_convert.escript", Root),
+    {Escript, Convert} =
+        case os:type() of
+            {win32,nt} -> {"escript.exe", "wings_convert.exe"};
+            _          -> {"escript", "wings_convert"}
+        end,
+    %% Rename escript to wings_convert, which fixes the problem
+    %% of finding the escript executable from the escript file.
+    ok = file:rename(filename:join([Root, bin, Escript]),
+                     filename:join(Root, Convert)).
+
 release_otp(TargetDir0, BitSize) ->
     TargetDir = filename:absname(TargetDir0),
     Lib = filename:join(TargetDir, "lib"),
@@ -156,10 +171,10 @@ copy_erts(TargetDir) ->
 		{unix,_} ->
 		    %% Do not copy to erts-VSN/bin, then the start scripts must find
 		    %% erts-VSN in start script
-		    {["beam.smp","erlexec","inet_gethost"|VDeps], []};
+		    {["beam.smp","erlexec","inet_gethost","escript"|VDeps], []};
 		{win32,nt} ->
 		    %% To get Windows working without install, erts-VSN must exist
-		    {["erl.exe", "werl.exe"],
+		    {["erl.exe", "werl.exe", "escript.exe"],
 		     ["erlexec.dll", "beam.smp.dll","inet_gethost.exe"]}
 	    end,
     copy_erts(TargetDir, Files).
@@ -180,6 +195,7 @@ copy_erts(TargetDir, {BinExecFiles, ErtsExecFiles}) ->
     [copy(File, TargetBin) || File <- BinExecFiles],
     ok = file:set_cwd(filename:join(code:root_dir(), "bin")),
     copy("start.boot", TargetBin),
+    copy("no_dot_erlang.boot", TargetBin),
     ok.
 
 copy_app(App0, Lib, BitSize) ->
@@ -320,7 +336,9 @@ get_data(Port, Sofar) ->
     end.
 
 wings_apps() ->
-    [cl,kernel,stdlib,wings,wx,xmerl].
+    %% compiler is needed for the wings_convert script
+    %% adds 0.5 meg to the installer
+    [cl,kernel,stdlib,wings,wx,xmerl,compiler].
 
 check_build_target(_File, undefined) -> true;
 check_build_target(File, Bits) ->

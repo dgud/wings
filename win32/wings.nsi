@@ -100,6 +100,8 @@ SectionIn 1 2 3 RO
 
   	SetOutPath "$INSTDIR"
   	File /r Wings3D.exe
+	File /r wings_convert.exe
+	File /r wings_convert.escript
   	SetOutPath "$INSTDIR\lib"
   	File /r lib\*.*
   	SetOutPath "$INSTDIR\bin"
@@ -263,6 +265,9 @@ Section Uninstall
   Delete "$INSTDIR\AUTHORS"
   Delete "$INSTDIR\license.terms"
   Delete "$INSTDIR\Wings3D.exe"
+  Delete "$INSTDIR\wings_convert.exe"
+  Delete "$INSTDIR\wings_convert.escript"
+
   Delete "$INSTDIR\wings_crash.dump"
   SetShellVarContext All
   ;MessageBox MB_OK "$DESKTOP\Wings 3D ${WINGS_VERSION}.lnk"

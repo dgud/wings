@@ -12,7 +12,7 @@
 %%
 
 -module(wings).
--export([start/0,start_link/1, init/1]).
+-export([start/0, start_link/1, init/1, is_fast_start/0]).
 -export([redraw/1,redraw/2,init_opengl/1,command/2]).
 -export([mode_restriction/1,clear_mode_restriction/0,get_mode_restriction/0]).
 -export([ask/3]).
@@ -53,11 +53,12 @@ init(Env) ->
     process_flag(trap_exit, true),
     register(wings, self()),
     erlang:system_flag(backtrace_depth, 25),
+    Args = application:get_env(wings, args),
     wx:set_env(Env),
 
     wings_pref:init(),
     wings_hotkey:set_default(),
-    wings_pref:load(),
+    is_fast_start(Args) orelse wings_pref:load(),
     wings_lang:init(),
     wings_plugin:init(),
     wings_sel_cmd:init(),
@@ -66,13 +67,14 @@ init(Env) ->
     %% Ack that we are done, need to create top window now
     proc_lib:init_ack(self()),
     Frame = receive {frame_created, Window} -> Window end,
+    is_fast_start(Args) andalso wxTopLevelWindow:iconize(Frame),
     GeomGL = wings_gl:init(Frame),
     wx_object:get_pid(Frame) ! opengl_initialized,
     %% Wait for other mandatory processes to become initialized
     receive supervisor_initialization_done -> ok end,
-    init_part2(Frame, GeomGL).
+    init_part2(Args, Frame, GeomGL).
 
-init_part2(Frame, GeomGL) ->
+init_part2(Args, Frame, GeomGL) ->
     St0 = new_st(),
     St1 = wings_sel:reset(St0),
     St2 = wings_undo:init(St1),
@@ -95,14 +97,14 @@ init_part2(Frame, GeomGL) ->
 
     wings_view:init(),
     wings_u:caption(St),
-    wings_file:init_autosave(),
     wings_dialog:init(),
     wings_job:init(),
     wings_tweak:init(),
 
-    open_file(),
+    is_fast_start(Args) orelse open_file(Args),
     make_geom_window(GeomGL, St),
-    restore_windows(St),
+    is_fast_start(Args) orelse wings_file:init_autosave(),
+    is_fast_start(Args) orelse restore_windows(St),
     case catch wings_wm:enter_event_loop() of
 	{'EXIT',shutdown} ->
 	    wings_io:quit(),
@@ -211,7 +213,7 @@ free_viewer_num(N) ->
 	true -> free_viewer_num(N+1)
     end.
 
-open_file() ->
+open_file(Args) ->
     USFile = wings_file:autosave_filename(wings_file:unsaved_filename()),
     case filelib:is_file(USFile) of
 	true ->
@@ -223,13 +225,13 @@ open_file() ->
 			   end,
 			   fun() ->
 			       wings_file:del_unsaved_file(),
-			       open_file_start()
+			       open_file_start(Args)
 			   end);
-	_ -> open_file_start()
+	_ -> open_file_start(Args)
     end.
 
-open_file_start() ->
-    File1 = case application:get_env(wings, args) of
+open_file_start(Args) ->
+    File1 = case Args of
                 undefined -> none;
                 {ok, File0} ->
                     case filelib:is_regular(File0) of
@@ -251,6 +253,12 @@ open_file_start() ->
 	    timer:sleep(200), %% For splash screen :-)
 	    wings_wm:send_after_redraw(geom, {open_file,File})
     end.
+
+is_fast_start() ->
+    is_fast_start(application:get_env(wings, args)).
+
+is_fast_start({ok, script_usage}) -> true;
+is_fast_start(_) -> false.
 
 init_opengl(St) ->
     wings_render:init(),
@@ -682,9 +690,16 @@ command_response({replace,_,_}=Replace, _, _) ->
 command_response(keep, _, _) ->
     keep;
 command_response(quit, _, _) ->
-    save_windows(),
-    wings_pref:finish(),
-    exit(shutdown).
+    case is_fast_start() of
+        true  ->
+            ignore;
+        false ->
+            save_windows(),
+            wings_pref:finish()
+    end,
+    erlang:process_flag(trap_exit, false),
+    sys:terminate(wings_sup, shutdown),  %% async
+    receive hang_until_killed -> ok end.
 
 remember_command({C,_}=Cmd, St) when C =:= vertex; C =:= edge;
                      C =:= face; C =:= body ->
