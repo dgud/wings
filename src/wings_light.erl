@@ -291,14 +291,17 @@ edit(St) ->
 
 edit(Id, St) ->
     Obj = wings_obj:get(Id, St),
-    {_, Prop} = get_light(Obj, false, St),
     case Obj of
 	#{light:=#light{type=ambient}} ->
+            {_, Prop} = get_light(Obj, false, St),
 	    {dialog,Qs,Fun} = edit_ambient_dialog(Obj, Prop, St),
 	    wings_dialog:dialog(?__(2,"Ambient Light Properties"), Qs, Fun);
 	#{light:=#light{}} ->
+            {_, Prop} = get_light(Obj, false, St),
 	    {dialog,Qs,Fun} = edit_dialog(Obj, Prop, St),
-	    wings_dialog:dialog(?__(3,"Light Properties"), Qs, Fun)
+	    wings_dialog:dialog(?__(3,"Light Properties"), Qs, Fun);
+        _ ->
+            wings_u:error_msg(?__(4,"Select one area light."))
     end.
 
 edit_ambient_dialog(Obj, Prop0, St) ->
