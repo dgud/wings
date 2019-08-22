@@ -221,7 +221,7 @@ get_mipmaps(Bin, W, H, Div, BSz, Level, Max, Decomp, Acc) when Level < Max ->
     Sz = b_size(W, H, Div, BSz),
     <<MM:Sz/binary, Rest/binary>> = Bin,
     Image = Decomp(MM,W,H),
-    get_mipmaps(Rest, W div 2, H div 2, Div, BSz, Level+1, Max, Decomp,
+    get_mipmaps(Rest, max(1,W div 2), max(1,H div 2), Div, BSz, Level+1, Max, Decomp,
                 [{Image,W,H,Level}|Acc]).
 
 b_size(W, H, Div, BSz) ->
