@@ -158,7 +158,7 @@ vertex_color_item(object) ->
 vertex_color_item(_) -> [].
 
 arealight_edit(Id, T) ->
-    [{?STR_LIGHT(menu,16,"Edit Properties..."),{edit_arealight,Id},
+    [{?STR_LIGHT(menu,16,"Edit Area Light..."),{edit_arealight,Id},
       ?STR_LIGHT(menu,17,"Edit light properties")}|T].
 
 arealight_conv(arealight, T) ->
