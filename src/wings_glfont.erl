@@ -267,17 +267,17 @@ gen_texture(TW,TH,Bin,Options) ->
 
     %% gl:pixelStorei(?GL_UNPACK_ALIGNMENT, 1),
     Mode = proplists:get_value(tex_mode, Options, ?GL_MODULATE),
-    gl:texEnvf(?GL_TEXTURE_ENV, ?GL_TEXTURE_ENV_MODE, Mode),
+    gl:texEnvi(?GL_TEXTURE_ENV, ?GL_TEXTURE_ENV_MODE, Mode),
 
     MinF = proplists:get_value(tex_min, Options, ?GL_LINEAR),
-    gl:texParameterf(?GL_TEXTURE_2D,?GL_TEXTURE_MIN_FILTER,MinF),
+    gl:texParameteri(?GL_TEXTURE_2D,?GL_TEXTURE_MIN_FILTER, MinF),
     MagF = proplists:get_value(tex_mag, Options, ?GL_LINEAR),
-    gl:texParameterf(?GL_TEXTURE_2D,?GL_TEXTURE_MAG_FILTER,MagF),
+    gl:texParameteri(?GL_TEXTURE_2D,?GL_TEXTURE_MAG_FILTER,MagF),
 
     WS = proplists:get_value(tex_wrap_s, Options, ?GL_CLAMP),
-    gl:texParameterf(?GL_TEXTURE_2D,?GL_TEXTURE_WRAP_S, WS),
+    gl:texParameteri(?GL_TEXTURE_2D,?GL_TEXTURE_WRAP_S, WS),
     WT = proplists:get_value(tex_wrap_t, Options, ?GL_CLAMP),
-    gl:texParameterf(?GL_TEXTURE_2D,?GL_TEXTURE_WRAP_T, WT),
+    gl:texParameteri(?GL_TEXTURE_2D,?GL_TEXTURE_WRAP_T, WT),
 
     GEN_MM = proplists:get_value(tex_gen_mipmap, Options, ?GL_FALSE),
     gl:texParameteri(?GL_TEXTURE_2D, ?GL_GENERATE_MIPMAP, GEN_MM),
