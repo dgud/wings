@@ -92,19 +92,24 @@ make_text(Ask, St) when is_atom(Ask) ->
 	    wings_shapes:transform_obj_dlg()
 	],[{margin,false}]
 	 }],
-    wings_dialog:dialog(Ask,?__(1,"Create Text"), {preview, Dlg},
-			fun({dialog_preview,[T,N,{_,Ctrl},RX,RY,RZ,MX,MY,MZ,Grnd]=_Res}) ->
-				{_, FPath} = get_font_file(GbtFonts,Ctrl),
-				{preview,{shape,{text,[T,N,{fontdir,FPath},RX,RY,RZ,MX,MY,MZ,Grnd]}},St};
-			   (cancel) ->
-				St;
-			   ([T,N,{_,WxFont},RX,RY,RZ,MX,MY,MZ,Grnd]=_Res) when is_tuple(WxFont) ->
-				{NewFontI, FPath} = get_font_file(GbtFonts,WxFont),
-				wpa:pref_set(wpc_tt, fontname, NewFontI),
-				wpa:pref_set(wpc_tt, text, element(2,T)),
-				wpa:pref_set(wpc_tt, bisections, element(2,N)),
-				{commit,{shape,{text,[T,N,{fontdir,FPath},RX,RY,RZ,MX,MY,MZ,Grnd]}},St}
-			end);
+    Fun = fun({dialog_preview,[T,N,{_,Ctrl},RX,RY,RZ,MX,MY,MZ,Grnd]=_Res}) ->
+                  {_, FPath} = get_font_file(GbtFonts,Ctrl),
+                  {preview,{shape,{text,[T,N,{fontdir,FPath},RX,RY,RZ,MX,MY,MZ,Grnd]}},St};
+             (cancel) ->
+                  St;
+             ([T,N,{_,WxFont},RX,RY,RZ,MX,MY,MZ,Grnd]=_Res) when is_tuple(WxFont) ->
+                  {NewFontI, FPath} = get_font_file(GbtFonts,WxFont),
+                  case FPath of
+                      undefined ->
+                          St;
+                      _ ->
+                          wpa:pref_set(wpc_tt, fontname, NewFontI),
+                          wpa:pref_set(wpc_tt, text, element(2,T)),
+                          wpa:pref_set(wpc_tt, bisections, element(2,N)),
+                          {commit,{shape,{text,[T,N,{fontdir,FPath},RX,RY,RZ,MX,MY,MZ,Grnd]}},St}
+                  end
+          end,
+    wings_dialog:dialog(Ask,?__(1,"Create Text"), {preview, Dlg}, Fun);
 
 make_text([{_,T},{_,N},{_,DirFont}|Transf], _) ->
     F = filename:basename(DirFont),
@@ -170,10 +175,7 @@ read_ttf_name(File) ->
 get_font_file(GbtFonts, WxFont) ->
     FontInfo = wings_text:get_font_info(WxFont),
     #{face:=FName, style:=FStyle, weight:=FWeight} = FontInfo,
-    case get_font_file(0,GbtFonts,FName,FStyle,FWeight) of
-        undefined -> {FontInfo, "unknown"};
-        FPath -> {FontInfo, FPath}
-    end.
+    {FontInfo, get_font_file(0,GbtFonts,FName,FStyle,FWeight)}.
 
 get_font_file(0=Try,GbtFonts,FName,FStyle,FWeight) ->  % try to get the right fount
     case gb_trees:lookup({FName,FStyle,FWeight},GbtFonts) of

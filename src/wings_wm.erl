@@ -572,12 +572,29 @@ get_value(Key) ->
     end.
 
 set_value(Key,Val) ->
-    put(Key, Val),
+    case cache_key(Key) of
+        true ->
+            %% (self() =:= whereis(wings)) orelse
+            %%     io:format("Cached value (~p) updated from wrong process~n",[Key]),
+            put(Key, Val);
+        false -> ok
+    end,
     wings_pref:set_value({temp, Key}, Val).
 
 delete_value(Key) ->
     erase(Key),
     wings_pref:delete_value({temp, Key}).
+
+
+cache_key(cursors) -> true;
+cache_key(wings_plugins) -> true;
+cache_key(gl_canvas) -> true;
+cache_key(top_frame) -> true;
+cache_key(light_shaders) -> true;
+cache_key(system_font) -> true;
+cache_key({geom, _}) -> true;  %% Only set by wings_wm?
+cache_key({_, props}) -> true;  %% Only set by wings_wm?
+cache_key(_) -> false.
 
 new_props(Win, Props0) ->
     Props = gb_trees:from_orddict(Props0),
