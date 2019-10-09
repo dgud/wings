@@ -656,10 +656,10 @@ draw_normals(#dlo{normals=Ns}, RS) ->
     wings_dl:call(Ns, RS).
 
 edge_width(edge) -> wings_pref:get_value(edge_width);
-edge_width(_) -> 1.
+edge_width(_) -> 1.0.
 
 hard_edge_width(edge) -> wings_pref:get_value(hard_edge_width);
-hard_edge_width(_) -> max(wings_pref:get_value(hard_edge_width) - 1, 1).
+hard_edge_width(_) -> max(wings_pref:get_value(hard_edge_width) - 1, 1.0).
 
 ground_and_axes(#view{yon=Yon0} = View, PM,MM) ->
     Axes = wings_wm:get_prop(show_axes),
@@ -708,7 +708,7 @@ axis_letters(TPM, TMM, {ShowGrid, ShowAxes, Yon0}) ->
 	    gl:matrixMode(?GL_PROJECTION),
 	    gl:loadIdentity(),
 	    {_,_,W,H} = ViewPort,
-	    glu:ortho2D(0.0, W, H, 0.0),
+	    glu:ortho2D(0.0, float(W), float(H), 0.0),
 	    gl:matrixMode(?GL_MODELVIEW),
 	    gl:loadIdentity(),
 	    gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_FILL),
