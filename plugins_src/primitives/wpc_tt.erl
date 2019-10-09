@@ -68,7 +68,7 @@ command({shape,{text,Ask}}, St) -> make_text(Ask, St);
 command(_, _) -> next.
 
 make_text(Ask, St) when is_atom(Ask) ->
-    FontDir  = sysfontdir(),
+    FontDirs = sysfontdirs(),
     DefFont  = default_font(),
     FontInfo = case wpa:pref_get(wpc_tt, fontname, DefFont) of
 		   FI = #{type := font} -> FI;
@@ -77,7 +77,7 @@ make_text(Ask, St) when is_atom(Ask) ->
 
     Text = wpa:pref_get(wpc_tt, text, "Wings 3D"),
     Bisect = wpa:pref_get(wpc_tt, bisections, 0),
-    GbtFonts = process_ttfs(FontDir),
+    GbtFonts = process_ttfs(FontDirs),
     %% io:format("FontList: ~p\n\n",[gb_trees:to_list(GbtFonts)]),
     Dlg =
     	[{vframe, [
@@ -144,7 +144,7 @@ gen(Font, Dir, Text, Nsubsteps, Transf) ->
 	    wpa:error_msg(?__(3,"Text failed: internal error"))
     end.
 
-process_ttfs(Dir) ->
+process_ttfs(Dirs) ->
     Add = fun(FileName, Acc) ->
 		  case read_ttf_name(FileName) of
 		      {FName,FStyle,FWeight} ->
@@ -152,7 +152,9 @@ process_ttfs(Dir) ->
 		      _ -> Acc
 		  end
 	  end,
-    filelib:fold_files(Dir, ".ttf|.TTF", true, Add, gb_trees:empty()).
+    lists:foldl(fun(Dir, Tree) ->
+                        filelib:fold_files(Dir, ".ttf|.TTF", true, Add, Tree)
+                end, gb_trees:empty(), Dirs).
 
 read_ttf_name(File) ->
     case file:read_file(File) of
@@ -408,12 +410,12 @@ font_file(Name, Dir) ->
 				Fname -> Fname
 			    end,
 		    case Dir of
-			"." -> filename:join([sysfontdir(),Name2]);
+			"." -> filename:join([hd(sysfontdirs()),Name2]);
 			_ -> filename:absname(Dir ++ "\\" ++ Name2)
 		    end;
 		_ ->
 		    case Dir of
-			"." -> filename:join([sysfontdir(),Name]);
+			"." -> filename:join([hd(sysfontdirs()),Name]);
 			_ -> Name1
 		    end
 	    end
@@ -465,7 +467,7 @@ win_font_substitutes(FName,GbtFonts) ->
     end.
 
 %% Try to find default system directory for fonts
-sysfontdir() ->
+sysfontdirs() ->
     case os:type() of
 	{win32,Wintype} ->
 	    SR = case winregval("", "SystemRoot") of
@@ -476,18 +478,14 @@ sysfontdir() ->
 			 end;
 		     Val -> Val
 		 end,
-	    SR ++ "/Fonts";
+	    [SR ++ "/Fonts"];
 	{unix,Utype} ->
-	    Dir = case Utype of
-		      darwin -> "/Library/Fonts";
-		      _ -> "/usr/share/fonts/"
-		  end,
-	    case file:list_dir(Dir) of
-		{error, _} ->
-		    "/~";
-		_ ->
-		    Dir
-	    end
+            Home = os:getenv("HOME"),
+	    case Utype of
+                darwin -> ["/Library/Fonts", filename:join(Home, "Library/Fonts")];
+                _ -> ["/usr/share/fonts/", "/usr/local/share/fonts",
+                      filename:join(Home, ".fonts"), filename:join(Home, ".local/share")]
+            end
     end.
 
 default_font() ->
