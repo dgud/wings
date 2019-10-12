@@ -23,7 +23,7 @@
 
 -define(SCALEFAC, 0.01). % amount to scale coords by
 
--record(cedge,% polyarea and cedge records must match definitions in wpc_tt.erl
+-record(cedge,% polyarea and cedge records must match definitions in wpc_ai.erl
     {vs,cp1=nil,cp2=nil,ve}).	%all are {x,y} pairs
 
 -record(path,
@@ -83,9 +83,9 @@ try_import_svg(Name, Nsubsteps) ->
         Objs = parse_bin_svg(Rest),
         Closedpaths = [ P || P <- Objs, P#path.close =:= true ],
         Cntrs = getcontours(Closedpaths),
-        Pas = wpc_tt:findpolyareas(Cntrs),
-        Pas1 = wpc_tt:subdivide_pas(Pas,Nsubsteps),
-        {Vs0,Fs,HEs} = wpc_tt:polyareas_to_faces(Pas1),
+        Pas = wpc_ai:findpolyareas(Cntrs),
+        Pas1 = wpc_ai:subdivide_pas(Pas,Nsubsteps),
+        {Vs0,Fs,HEs} = wpc_ai:polyareas_to_faces(Pas1),
         Center = e3d_vec:average(e3d_vec:bounding_box(Vs0)),
         Vec = e3d_vec:sub(e3d_vec:zero(),Center),
         Vs = reverse(center_object(Vec,Vs0)),
