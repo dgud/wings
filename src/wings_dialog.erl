@@ -33,7 +33,7 @@
 %%-compile(export_all).
 
 -record(in, {key, type, def, wx, wx_ext=[], validator, data, hook, output=true}).
--record(eh, {fs, apply, prev_parent, owner, type, pid, dialog}).
+-record(eh, {fs, apply, prev_parent, owner, type, pid, dialog, timer}).
 
 %%
 %% Syntax of Qs.
@@ -513,7 +513,8 @@ close(Pid) ->
     receive {'DOWN',Ref,process,_,_} -> ok end.
 
 event_handler(#wx{id=?wxID_CANCEL},
-	      #eh{apply=Fun, owner=Owner, type=Preview, pid=Pid}) ->
+	      #eh{apply=Fun, owner=Owner, type=Preview, pid=Pid}=Eh0) ->
+    reset_timer(Eh0),
     wings_wm:release_focus(),
     case Preview of
 	preview ->
@@ -525,8 +526,9 @@ event_handler(#wx{id=?wxID_CANCEL},
     close(Pid),
     delete;
 event_handler(#wx{id=Result}=_Ev,
-	      #eh{fs=Fields, apply=Fun, owner=Owner, pid=Pid}) ->
+	      #eh{fs=Fields, apply=Fun, owner=Owner, pid=Pid} = Eh0) ->
     %%io:format("Ev closing ~p~n  ~p~n",[_Ev, Fields]),
+    reset_timer(Eh0),
     wings_wm:release_focus(),
     Values = get_output(Result, Fields),
     close(Pid),
@@ -537,7 +539,12 @@ event_handler(#wx{id=Result}=_Ev,
             io:format("Dialog preview crashed: ~p~n~p~n",[Reason, erlang:get_stacktrace()])
     end,
     delete;
-event_handler(preview, #eh{fs=Fields, apply=Fun, owner=Owner}) ->
+event_handler(preview, Eh0) ->
+    Eh = reset_timer(Eh0),
+    New = wings_wm:set_timer(150, preview_exec),
+    {replace, fun(Ev) -> event_handler(Ev, Eh#eh{timer=New}) end};
+event_handler(preview_exec, #eh{fs=Fields, apply=Fun, owner=Owner}=Eh0) ->
+    Eh = reset_timer(Eh0),
     Values = get_output(preview, Fields),
     try Fun({dialog_preview,Values}) of
 	{preview,#st{}=St0,#st{}=St} ->
@@ -545,17 +552,16 @@ event_handler(preview, #eh{fs=Fields, apply=Fun, owner=Owner}) ->
 	    wings_wm:send(Owner, {current_state,St0});
 	{preview,Action,#st{}=St}->
 	    wings_wm:send_once_after_redraw(Owner, {action,Action}),
-	    wings_wm:send(Owner, {current_state,St}),
-	    keep;
+	    wings_wm:send(Owner, {current_state,St});
 	Action = {numeric_preview, _} ->
 	    wings_wm:send(Owner, {action,Action});
 	Action when is_tuple(Action); is_atom(Action) ->
 	    %%io:format("~p:~p: ~p~n",[?MODULE,?LINE,{preview,[Owner,{action,Action}]}]),
 	    wings_wm:send(Owner, {action,Action})
     catch _:Reason ->
-            io:format("Dialog preview crashed: ~p~n~p~n",[Reason, erlang:get_stacktrace()]),
-            keep
-    end;
+            io:format("Dialog preview crashed: ~p~n~p~n",[Reason, erlang:get_stacktrace()])
+    end,
+    {replace, fun(Ev) -> event_handler(Ev, Eh) end};
 event_handler(#mousebutton{which=Obj}=Ev, _) ->
     wings_wm:send(wings_wm:wx2win(Obj), {camera,Ev,keep});
 event_handler(#mousemotion{}, _) -> keep;
@@ -566,6 +572,12 @@ event_handler(got_focus, #eh{dialog=Dialog}) ->
 event_handler(_Ev, _) ->
     %% io:format("unhandled Ev ~p~n",[_Ev]),
     keep.
+
+reset_timer(#eh{timer=undefined} = Eh) ->
+    Eh;
+reset_timer(#eh{timer=Timer}=Eh) ->
+    wings_wm:cancel_timer(Timer),
+    Eh#eh{timer=undefined}.
 
 get_output(Result, {Table, Order}) ->
     Get = fun(Key, Acc) ->
