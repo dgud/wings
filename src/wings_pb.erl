@@ -112,7 +112,6 @@ handle_cast({start, Msg, percent}, #state{frame=Frame, overlay=OV, level=Level})
         false ->
             wxFrame:show(OV),
             wxGauge:show(PB),
-            wxFrame:raise(OV),
             draw_position(S)
     end,
     {noreply, S, ?REFRESH_T};
