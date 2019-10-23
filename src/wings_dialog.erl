@@ -1976,6 +1976,9 @@ fix_expr([], Acc)   -> lists:reverse(Acc, ".");
 fix_expr([$.],Acc) -> lists:reverse(Acc, ".");
 fix_expr([$.|T], [X|_]=Acc) when X >= $0, X =< $9 ->
     fix_expr(T, [$.|Acc]);
+%% Translate float 2,4 to erlangish 2.4
+fix_expr([$, |[Y|_]=T], [X|_]=Acc) when X >= $0, X =< $9, Y >= $0, Y =< $9 ->
+    fix_expr(T, [$.|Acc]);
 fix_expr([$.|T], Acc)  ->
     fix_expr(T, [$.,$0|Acc]);
 %% Some math simplifications.
