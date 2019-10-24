@@ -1622,30 +1622,33 @@ add_sizer(What, Sizer, Ctrl, Opts) ->
     wxSizer:add(Sizer, Ctrl, [{proportion, Proportion},{border, Border},{flag, Flags}]).
 
 sizer_flags(label, ?wxHORIZONTAL)      -> {0, 2, ?wxRIGHT bor ?wxALIGN_CENTER_VERTICAL};
-sizer_flags(label, ?wxVERTICAL)        -> {1, 2, ?wxRIGHT bor ?wxALIGN_CENTER_VERTICAL};
+sizer_flags(label, ?wxVERTICAL)        -> {1, 2, ?wxRIGHT };
 sizer_flags(separator, ?wxHORIZONTAL)  -> {1, 5, ?wxALL bor ?wxALIGN_CENTER_VERTICAL};
 sizer_flags(separator, ?wxVERTICAL)    -> {0, 5, ?wxALL bor ?wxEXPAND};
 sizer_flags(text, ?wxHORIZONTAL)       -> {1, 2, ?wxRIGHT bor ?wxALIGN_CENTER_VERTICAL};
 sizer_flags(slider, ?wxHORIZONTAL)     -> {2, 0, ?wxALIGN_CENTER_VERTICAL};
 sizer_flags(slider, ?wxVERTICAL)       -> {0, 0, ?wxEXPAND};
-sizer_flags(button, _)                 -> {0, 0, ?wxALIGN_CENTER_VERTICAL};
-sizer_flags(image, _)                  -> {0, 5, ?wxALL bor ?wxEXPAND bor ?wxALIGN_CENTER_VERTICAL};
-sizer_flags(choice, _)                 -> {0, 0, ?wxALIGN_CENTER_VERTICAL};
-sizer_flags(checkbox, ?wxVERTICAL)     -> {0, 3, ?wxTOP bor ?wxBOTTOM bor ?wxALIGN_CENTER_VERTICAL};
+sizer_flags(button, Dir)               -> {0, 0, center_v(Dir)};
+sizer_flags(image, _Dir)               -> {0, 5, ?wxALL bor ?wxEXPAND};
+sizer_flags(choice, Dir)               -> {0, 0, center_v(Dir)};
+sizer_flags(checkbox, ?wxVERTICAL)     -> {0, 3, ?wxTOP bor ?wxBOTTOM };
 sizer_flags(checkbox, ?wxHORIZONTAL)   -> {0, 2, ?wxRIGHT bor ?wxALIGN_CENTER_VERTICAL};
 sizer_flags(table,  _)                 -> {4, 0, ?wxEXPAND};
-sizer_flags({radiobox, Dir}, Dir)      -> {5, 0, ?wxEXPAND bor ?wxALIGN_CENTER_VERTICAL};
-sizer_flags({radiobox, _}, _)          -> {1, 0, ?wxEXPAND bor ?wxALIGN_CENTER_VERTICAL};
-sizer_flags({box, Dir}, Dir)           -> {0, 2, ?wxALL bor ?wxEXPAND bor ?wxALIGN_CENTER_VERTICAL};
-sizer_flags({box, _}, _)               -> {0, 2, ?wxALL bor ?wxEXPAND bor ?wxALIGN_CENTER_VERTICAL};
+sizer_flags({radiobox, Dir}, Dir)      -> {5, 0, ?wxEXPAND};
+sizer_flags({radiobox, _}, _Dir)       -> {1, 0, ?wxEXPAND};
+sizer_flags({box, Dir}, Dir)           -> {0, 2, ?wxALL bor ?wxEXPAND};
+sizer_flags({box, _}, _Dir)            -> {0, 2, ?wxALL bor ?wxEXPAND};
 sizer_flags(fontpicker, ?wxHORIZONTAL) -> {2, 2, ?wxRIGHT};
 sizer_flags(fontpicker, ?wxVERTICAL)   -> {0, 2, ?wxRIGHT bor ?wxEXPAND};
 sizer_flags(filepicker, ?wxHORIZONTAL) -> {2, 2, ?wxRIGHT};
 sizer_flags(filepicker, ?wxVERTICAL)   -> {0, 2, ?wxRIGHT bor ?wxEXPAND};
 sizer_flags(custom, _)                 -> {0, 5, ?wxALL};
-sizer_flags(panel, _)                  -> {0, 0, ?wxALL bor ?wxEXPAND bor ?wxALIGN_CENTER_VERTICAL}; %?wxEXPAND};
+sizer_flags(panel, _Dir)               -> {0, 0, ?wxALL bor ?wxEXPAND};
 sizer_flags(_, ?wxHORIZONTAL)          -> {1, 0, ?wxALIGN_CENTER_VERTICAL};
 sizer_flags(_, ?wxVERTICAL)            -> {0, 0, ?wxEXPAND}.
+
+center_v(?wxHORIZONTAL) -> ?wxALIGN_CENTER_VERTICAL;
+center_v(?wxVERTICAL) -> 0.
 
 create(false, _) -> undefined;
 create(_, Fun) -> Fun().
