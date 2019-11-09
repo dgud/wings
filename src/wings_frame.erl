@@ -943,6 +943,7 @@ close_win(Win, #state{windows=#{frame:=TopFrame,ch:=Tree,loose:=Loose,szr:=Szr}=
 close_window(Delete, Split, Other, GrandP, Szr) ->
     case GrandP of
 	Split when is_record(Other, win) -> %% TopLevel
+            wxWindow:hide(Delete),
 	    wxWindow:reparent(win(Other), win(GrandP)),
 	    wxSplitterWindow:unsplit(win(GrandP), [{toRemove, Delete}]),
 	    wxWindow:destroy(Delete),
@@ -951,13 +952,15 @@ close_window(Delete, Split, Other, GrandP, Szr) ->
 	Split when is_record(Other, split) ->
 	    Frame = wxWindow:getParent(win(GrandP)),
 	    wxWindow:reparent(win(Other), Frame),
-	    wxSizer:replace(Szr, win(GrandP), win(Other)),
+            wxSizer:replace(Szr, win(GrandP), win(Other)),
+            wxWindow:hide(win(GrandP)),
 	    wxWindow:destroy(win(GrandP)),
             _ = wxWindow:findFocus(), %% Sync the destroy
 	    {ok, Other};
 	#split{} ->
 	    wxWindow:reparent(win(Other), win(GrandP)),
 	    wxSplitterWindow:replaceWindow(win(GrandP), win(Split), win(Other)),
+            wxWindow:hide(win(Split)),
 	    wxWindow:destroy(win(Split)),
             _ = wxWindow:findFocus(), %% Sync the destroy
 	    {ok, Other}
@@ -1011,9 +1014,13 @@ detach_window(#wxMouse{type=left_up}, F, #{action:=Action, op:=#{win:=Win}}=Stat
     end,
     State#{action:=undefined, op:=undefined};
 detach_window(#wxMouse{type=left_down, x=X, y=Y}, Frame, #{ch:=Top} = State) ->
-    #win{bar={Bar,_}} = Win = find_win(Frame, Top),
-    Pos = wxWindow:clientToScreen(Bar, {X,Y}),
-    State#{action:=detach_init, op:=#{win=>Win, pos=>Pos}};
+    case find_win(Frame, Top) of
+        false ->
+            State;
+        #win{bar={Bar,_}} = Win ->
+            Pos = wxWindow:clientToScreen(Bar, {X,Y}),
+            State#{action:=detach_init, op:=#{win=>Win, pos=>Pos}}
+    end;
 detach_window(_Ev, _, State) ->
     %% io:format("Ignore: ~p~n",[_Ev]),
     State.
