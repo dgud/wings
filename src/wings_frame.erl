@@ -584,13 +584,16 @@ terminate_frame(_Ev, CB) ->
 update_active(Name, #state{active=Prev, windows=#{ch:=Root}}=State) ->
     ABG = wings_color:rgb4bv(wings_pref:get_value(title_active_color)),
     PBG = wings_color:rgb4bv(wings_pref:get_value(title_passive_color)),
-    TFG = wings_color:rgb4bv(wings_pref:get_value(title_text_color)),
+    AFG = wings_color:rgb4bv(wings_pref:get_value(title_text_color)),
+    PFG0 = wings_color:rgb4bv(wings_pref:get_value(title_passive_text_color, AFG)),
+    PFG = passive_color(PFG0,AFG),
     try
 	#win{bar={PBar,_}} = find_win(Prev, Root),
 	_ = wxWindow:getSize(PBar), %% Sync to check PBar validity
 	PChildren = wxWindow:getChildren(PBar),
-	[wxWindow:setForegroundColour(PChild, TFG) || PChild <- PChildren,
-	 wx:getObjectType(PChild) == wxWindow],
+	[wxWindow:setForegroundColour(PChild, PFG) ||
+            PChild <- PChildren,
+            wx:getObjectType(PChild) == wxWindow],
 	wxWindow:setBackgroundColour(PBar, PBG),
 	wxWindow:refresh(PBar)
     catch _:_ -> ignore
@@ -600,13 +603,25 @@ update_active(Name, #state{active=Prev, windows=#{ch:=Root}}=State) ->
 	    State#state{active=undefined};
 	#win{bar={ABar,_}} ->
 	    AChildren = wxWindow:getChildren(ABar),
-	    [wxWindow:setForegroundColour(AChild, TFG) || AChild <- AChildren,
-	     wx:getObjectType(AChild) == wxWindow],
+	    [wxWindow:setForegroundColour(AChild, AFG) ||
+                AChild <- AChildren,
+                wx:getObjectType(AChild) == wxWindow],
 	    wxWindow:setBackgroundColour(ABar, ABG),
 	    wxWindow:refresh(ABar),
 	    State#state{active=Name}
     catch _:_ ->
 	    State
+    end.
+
+passive_color({R,G,B,A} = PFG0,AFG) ->
+    if PFG0 =:= AFG ->
+            if R+G+B < 180 -> %% Dark text
+                    {R+50,G+50,B+50,A};
+               true ->
+                    {R-50,G-50,B-50,A}
+            end;
+       true ->
+            PFG0
     end.
 
 update_theme(#state{windows=#{ch:=Root,loose:=Loose}, active=Active}) ->
@@ -630,7 +645,10 @@ update_theme_0(#win{win=Win, name=WinName, bar=Bar}, Active) ->
     WBG = wings_color:rgb4bv(wings_pref:get_value(outliner_geograph_bg)),
 
     WChildren = wxWindow:getChildren(Win),
-    [wxWindow:setBackgroundColour(WChild, WBG) || WChild <- WChildren],
+    [wxWindow:setBackgroundColour(WChild, WBG) ||
+        Parent <- [Win|WChildren],
+        WChild <- wxWindow:getChildren(Parent) ++ [Parent],
+        not wx:is_null(WChild)],
     case Bar of
 	{TBar,_} -> wxWindow:setBackgroundColour(TBar, TBG);
 	_ -> ignore
@@ -752,7 +770,7 @@ split_win([Which|Path], NewWin, #split{mode=Mode} = Node, Pos) ->
 make(Parent) ->
     Style = case os:type() of
 		{unix, darwin} -> ?wxSP_3DSASH bor ?wxSP_LIVE_UPDATE;
-		{win32, _} -> ?wxSP_LIVE_UPDATE;
+		{win32, _} -> ?wxSP_BORDER bor ?wxSP_LIVE_UPDATE;
 		_ -> ?wxSP_3D bor ?wxSP_LIVE_UPDATE
 	    end,
     New = wxSplitterWindow:new(Parent, [{style, Style}]),
@@ -1149,12 +1167,13 @@ make_internal_win(Parent, #win{title=Label, win=Child, ps=#{close:=Close, move:=
     WinC#win{frame=Win, bar=Wins}.
 
 make_bar(Parent, BG, Label, Close) ->
-    Bar = wxPanel:new(Parent, [{style, ?wxBORDER_SIMPLE}, {size, {-1, ?WIN_BAR_HEIGHT}}]),
+    Bar = wxPanel:new(Parent, [{style, ?wxBORDER_NONE}, {size, {-1, ?WIN_BAR_HEIGHT}}]),
     FG = wings_pref:get_value(title_text_color),
-    #{size:=Sz} = FI = wings_text:get_font_info(?GET(system_font_wx)),
+    #{size:=Sz} = FI0 = wings_text:get_font_info(?GET(system_font_wx)),
+    FI = FI0#{size:=Sz-1, weight=>bold},
     {Font,Space} = case os:type() of
-		       {unix, darwin} -> {wings_text:make_wxfont(FI#{size:=Sz-1}), 4};
-		       _ -> {wings_text:make_wxfont(FI#{size:=Sz-2}), 2}
+		       {unix, darwin} -> {wings_text:make_wxfont(FI), 6};
+		       _ -> {wings_text:make_wxfont(FI), 4}
 		   end,
     wxPanel:setFont(Bar, Font),
     wxWindow:setBackgroundColour(Bar, BG),
