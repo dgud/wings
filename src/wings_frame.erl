@@ -11,7 +11,7 @@
 
 -module(wings_frame).
 
--export([top_menus/0, make_win/2, register_win/3, close/1, set_focus/1,set_title/2,
+-export([make_win/2, register_win/3, close/1, set_focus/1,set_title/2,
          get_top_frame/0,
          show_toolbar/1,
 	 export_layout/0, import_layout/2, reinit_layout/0,
@@ -49,7 +49,7 @@ start_link() ->
     ?SET(top_frame, Frame),
     {ok, wx_object:get_pid(Frame)}.
 
-top_menus() ->
+top_menus(WorkAround) ->
     Tail0 = [{?__(7,"Help"),help,wings_help:menu()}],
     Tail = case wings_pref:get_value(show_develop_menu) of
 	       true ->
@@ -57,12 +57,17 @@ top_menus() ->
 	       false ->
 		   Tail0
 	   end,
+    WinStr = case WorkAround of
+                 true -> ?__(16,"Windows"); %% Temporary
+                 false -> ?__(6,"Window")
+             end,
     [{?__(1,"File"),  file,wings_file:menu()},
      {?__(2,"Edit"),  edit,wings:edit_menu()},
      {?__(3,"View"),  view,wings_view:menu()},
      {?__(4,"Select"),select,wings_sel_cmd:menu()},
      {?__(5,"Tools"), tools, wings:tools_menu()},
-     {?__(6,"Window"),window,wings:window_menu()}|Tail].
+     {WinStr,window,wings:window_menu()}
+     |Tail].
 
 make_win(Title, Opts) ->
     case proplists:get_value(internal, Opts, false) of
@@ -1190,26 +1195,32 @@ make_bar(Parent, BG, Label, Close) ->
     {Bar,ST}.
 
 make_close_button(Parent, Bar, WBSz, H) ->
-    Bitmap0 = wxArtProvider:getBitmap("wxART_CROSS_MARK",[{client, "wxART_MESSAGE_BOX"}]),
-    Bitmap = case os:type() of
-		{unix, linux} ->
-		     Im0 = wxBitmap:convertToImage(Bitmap0),
-		     Im1 = wxImage:scale(Im0,H,H,[{quality, ?wxIMAGE_QUALITY_HIGH}]),
-		     BM = wxBitmap:new(Im1),
-		     wxImage:destroy(Im1), wxImage:destroy(Im0),
-		     BM;
-		 {_, _} -> %% Do not scale on windows
-		     Bitmap0
-	     end,
-    SBM = wxStaticBitmap:new(Bar, ?wxID_EXIT, Bitmap),
-    %% io:format("SBM = ~p~n",[wxWindow:getSize(SBM)]),
-    wxSizer:add(WBSz, SBM, [{flag, ?wxALIGN_CENTER}]),
     Self = self(),
     CB = fun(_, Ev) ->
 		 wxMouseEvent:skip(Ev),
 		 Self ! {close_window, Parent}
 	 end,
-    wxWindow:connect(SBM, left_up, [{callback, CB}]).
+    SBM = case {os:type(), {?wxMAJOR_VERSION, ?wxMINOR_VERSION}} of
+              {{_, linux}, Ver} when Ver < {3,1} ->
+                  Bitmap = wxArtProvider:getBitmap("wxART_CLOSE", [{size,{16,16}}]),
+                  Butt = wxStaticBitmap:new(Bar, ?wxID_EXIT, Bitmap),
+                  wxWindow:connect(Butt, left_down, [{callback, CB}]),
+                  Butt;
+              {{win32, _}, Ver} when Ver < {3,1} ->
+                  Bitmap = wxArtProvider:getBitmap("wxART_CLOSE", []),
+                  Butt = wxStaticBitmap:new(Bar, ?wxID_EXIT, Bitmap),
+                  wxWindow:connect(Butt, left_down, [{callback, CB}]),
+                  Butt;
+              {_, _} ->
+                  Bitmap = wxArtProvider:getBitmap("wxART_CLOSE", []),
+                  Butt = wxBitmapButton:new(Bar, ?wxID_EXIT, Bitmap,
+                                            [{size, {H,H}}, {style,?wxNO_BORDER}]),
+                  wxWindow:connect(Butt, command_button_clicked, [{callback, CB}]),
+                  Butt
+          end,
+    %% io:format("SBM = ~p~n",[wxWindow:getSize(SBM)]),
+    wxSizer:add(WBSz, SBM, [{flag, ?wxALIGN_CENTER}]),
+    wxWindow:connect(SBM, command_button_clicked, [{callback, CB}]).
 
 export_loose(Windows) ->
     Exp = fun(#win{name=Name, win=Win, frame=Frame}) ->
@@ -1306,8 +1317,20 @@ make_icons() ->
 init_menubar(Frame) ->
     ets:new(wings_menus, [named_table, public, {keypos,2}]),
     put(wm_active, {menubar, geom}),
+    WorkAround = try
+                     %% Only exists in future wx (erlang release)
+                     %% and fool dialyzer
+                     WxMB = list_to_atom("wxMenuBar"),
+                     WxMB:setAutoWindowMenu(false),
+                     false
+                 catch _:_ ->
+                         case os:type() of
+                             {_, darwin} -> true;
+                             _ -> false
+                         end
+                 end,
     MB = wxMenuBar:new(),
-    wings_menu:setup_menus(MB, top_menus()),
+    wings_menu:setup_menus(MB, top_menus(WorkAround)),
     wxFrame:setMenuBar(Frame, MB),
     erase(wm_active),
     MB.
