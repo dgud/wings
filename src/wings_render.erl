@@ -822,8 +822,9 @@ clip_1({O1,D1}=Axis, [{O2,D2}|Lines], {Ow,_}=W) ->
 clip_1(_, [], _W) -> none.
 
 show_letter(X0, Y0, W, Char, {_,_,Vw,Vh}) ->
-    X = trunc((0.5*X0/W+0.5)*(Vw-20) + 10),
-    Y = Vh - trunc((0.5*Y0/W+0.5)*(Vh-16) - 1),
+    PosX = trunc((0.5*X0/W+0.5)*(Vw-20) + 10),
+    X = max(5, min(Vw-20, PosX)),
+    Y = max(30, min(Vh-20, Vh - trunc((0.5*Y0/W+0.5)*(Vh-16) - 1))),
     axis_text(X, Y, Char).
 
 axis_text(X, Y, C) ->

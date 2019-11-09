@@ -157,7 +157,7 @@ font_cw_lh(Font) ->
     {glyph_info(Font, width), glyph_info(Font, height)}.
 
 render(X, Y, S) ->
-    Res = render_1(S, Font=current_font(), {X, Y, <<>>}),
+    Res = render_1(S, Font=current_font(), {X, Y, X, <<>>}),
     gl:pushAttrib(?GL_TEXTURE_BIT bor ?GL_ENABLE_BIT),
     gl:enable(?GL_BLEND),
     gl:blendFunc(?GL_SRC_ALPHA, ?GL_ONE_MINUS_SRC_ALPHA),
@@ -167,9 +167,9 @@ render(X, Y, S) ->
     gl:popAttrib(),
     ok.
 
-render_1([{bold, S}|Rest], Font, {X0, Y0, _} = Acc0) ->
-    {_, _, Bin} = wings_glfont:render_to_binary(Font, S, Acc0),
-    Acc = wings_glfont:render_to_binary(Font, S, {X0+1, Y0, Bin}),
+render_1([{bold, S}|Rest], Font, {X0, Y0, XS, _} = Acc0) ->
+    {_, _, _, Bin} = wings_glfont:render_to_binary(Font, S, Acc0),
+    Acc = wings_glfont:render_to_binary(Font, S, {X0+1, Y0, XS, Bin}),
     render_1(Rest, Font, Acc);
 render_1([{ul,S}|Cs], Font, Acc0) -> %% ignore for now
     Acc = wings_glfont:render_to_binary(Font, S, Acc0),
@@ -181,7 +181,7 @@ render_1([C|Cs], Font, Acc) ->
     render_1(Cs, Font, char(C, Font, Acc));
 render_1([], _, Acc) -> Acc.
 
-char(C, Font, Acc) when is_integer(C) -> 
+char(C, Font, Acc) when is_integer(C) ->
     wings_glfont:render_to_binary(Font, [C], Acc);
 char(C, Font, Acc) when is_atom(C) ->
     case special(C) of
