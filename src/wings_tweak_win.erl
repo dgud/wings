@@ -96,7 +96,7 @@ tweak_tool(Button, Modifiers) ->
 -record(state, {me, name, shown, mode, menu, prev, cols}).
 
 init([Frame, Name, {Mode, Menus}]) ->
-    Panel = wxPanel:new(Frame, [{style, ?wxBORDER_SIMPLE}]),
+    Panel = wxPanel:new(Frame, [{style, wings_frame:get_border()}]),
     HotKeys = wings_hotkey:matching([tweak]),
     Entries0 = [wings_menu:normalize_menu_wx(Entry, HotKeys, [tweak])
 		|| Entry <- lists:flatten(Menus)],

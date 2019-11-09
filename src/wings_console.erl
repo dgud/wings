@@ -466,7 +466,7 @@ wc_getopts(State, _, _) ->
     {State,{error,badarg}}.
 
 wc_open_window(#state{lines=Lines}=State, Win, Font) ->
-    TStyle = ?wxTE_MULTILINE bor ?wxTE_READONLY bor ?wxTE_RICH2,
+    TStyle = ?wxTE_MULTILINE bor ?wxTE_READONLY bor ?wxTE_RICH2 bor wings_frame:get_border(),
     Ctrl = wxTextCtrl:new(Win, ?wxID_ANY, [{style, TStyle}]),
 
     wxWindow:setFont(Ctrl, Font),

@@ -542,7 +542,7 @@ fake_enter_window(Ev, Obj) ->
 
 make_tree(Parent, #{bg:=BG, text:=FG}, IL) ->
     TreeStyle = ?wxTR_EDIT_LABELS bor ?wxTR_HIDE_ROOT bor ?wxTR_HAS_BUTTONS
-	bor ?wxTR_LINES_AT_ROOT bor ?wxTR_NO_LINES,
+	bor ?wxTR_LINES_AT_ROOT bor ?wxTR_NO_LINES bor wings_frame:get_border(),
     TC = set_pid(wxTreeCtrl:new(Parent, [{style, TreeStyle}]), self()),
     wxTreeCtrl:setBackgroundColour(TC, BG),
     wxTreeCtrl:setForegroundColour(TC, FG),

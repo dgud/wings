@@ -71,7 +71,7 @@ attributes() ->
     }.
 
 window(Parent, Context, Connect, Show) ->
-    Style = ?wxFULL_REPAINT_ON_RESIZE bor ?wxWANTS_CHARS,
+    Style = ?wxFULL_REPAINT_ON_RESIZE bor ?wxWANTS_CHARS bor wings_frame:get_border(),
     Flags = [attributes(), {style, Style}],
     GL = case Context of
 	     undefined ->

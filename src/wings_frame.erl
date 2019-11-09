@@ -16,7 +16,7 @@
          show_toolbar/1,
 	 export_layout/0, import_layout/2, reinit_layout/0,
 	 get_overlay/0, overlay_draw/3, overlay_hide/1,
-	 get_icon_images/0, get_colors/0, update_theme/0]).
+	 get_icon_images/0, get_colors/0, get_border/0, update_theme/0]).
 
 -export([start_link/0, forward_event/1]).
 
@@ -134,6 +134,18 @@ get_colors() ->
       hl_bg   => wings_color:rgb4bv(wings_pref:get_value(outliner_geograph_hl)),
       hl_text => wings_color:rgb4bv(wings_pref:get_value(outliner_geograph_hl_text))
      }.
+
+get_border() ->
+    %% Alternatives are:
+    %%  ?wxBORDER_DEFAULT ?wxBORDER_THEME
+    %%  ?wxBORDER_SUNKEN ?wxBORDER_RAISED
+    %%  ?wxBORDER_STATIC ?wxBORDER_SIMPLE
+    %%  ?wxBORDER_NONE
+    case os:type() of
+        {win32, _}  -> ?wxBORDER_NONE;
+        {_, darwin} -> ?wxBORDER_NONE;
+        _ -> ?wxBORDER_NONE
+    end.
 
 update_theme() ->
     wx_object:call(?MODULE, update_theme).
@@ -301,7 +313,8 @@ init(_Opts) ->
 	Sizer = wxBoxSizer:new(?wxVERTICAL),
 	Top = make(Frame),
 	Canvas = make_splash(wxPanel:new(win(Top)), IconImgs),
-	wxSizer:add(Sizer, win(Top), [{proportion, 1}, {flag, ?wxEXPAND}]),
+	wxSizer:add(Sizer, win(Top), [{proportion, 1}, {border, 3},
+                                      {flag, ?wxEXPAND bor ?wxLEFT bor ?wxRIGHT}]),
 	wxSplitterWindow:initialize(win(Top), Canvas),
 	Toolbar = wings_toolbar:init(Frame, IconImgs),
 	wxSizer:setSizeHints(Sizer, win(Top)),
