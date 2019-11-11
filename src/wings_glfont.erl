@@ -100,7 +100,7 @@ tex_id(#font{tex=TexId}) ->
 render(#font{} = GLFont, String) when is_list(String) ->
     render_text(GLFont, String);
 render(#font{}, {_, _, <<>>}) -> ok;
-render(#font{tex=TexId, height=H}, {X,Y, Bin0}) ->
+render(#font{tex=TexId, height=H}, {X,Y, _, Bin0}) ->
     Size = byte_size(Bin0),
     Bin = <<_:2/unit:32, TxBin/bytes>> =
 	if Size < ?BIN_XTRA -> <<Bin0/bytes, 0:(?BIN_XTRA*8)>>;
@@ -141,8 +141,8 @@ render_to_binary(#font{glyphs=Gs, height=H, ih=IH, iw=IW}, String) ->
 %%     gl:enableClientState(?GL_TEXTURE_COORD_ARRAY),</br>
 %%     gl:drawArrays(?GL_QUADS, 0, (byte_size(Bin)-?BIN_XTRA) div 16),</br>
 render_to_binary(#font{glyphs=Gs, height=H, ih=IH, iw=IW},
-		 String, Data = {X,Y,D})
-  when is_integer(X), is_integer(Y), is_binary(D) ->
+		 String, Data = {X,Y,XS,D})
+  when is_integer(X), is_integer(Y), is_integer(XS), is_binary(D) ->
     render_text3(String, Gs, IH, IW, H, Data).
 
 %%--------------------------------------------------------------------
@@ -300,13 +300,12 @@ memory_dc(Font) ->
     MDC.
 
 render_text(Font=#font{glyphs=Gs, height=H, ih=IH, iw=IW}, String) ->
-    Res = render_text3(String, Gs, IH, IW, H, {0,0, <<>>}),
+    Res = render_text3(String, Gs, IH, IW, H, {0,0,0, <<>>}),
     render(Font, Res).
 
-render_text3([$\n|String], Gs, IH, IW, H, Data0) ->
+render_text3([$\n|String], Gs, IH, IW, H, {_,H0,XS,Bin}) ->
     %% New line
-    {_,H0,Bin} = Data0,
-    render_text3(String, Gs, IH, IW, H, {0, H0+H, Bin});
+    render_text3(String, Gs, IH, IW, H, {XS,H0+H,XS,Bin});
 render_text3([$\t|String], Gs, IH, IW, H, Data0) ->
     %% Tab
     [{_,Space}] = ets:lookup(Gs, 32),
@@ -327,15 +326,15 @@ render_text3([Other|String], Gs, IH, IW, H, Data0) ->
     render_text3(String, Gs, IH, IW, H, Data);
 render_text3(Bin, Gs, IH, IW, H, Data) when is_binary(Bin) ->
     render_text3(unicode:characters_to_list(Bin), Gs, IH, IW, H, Data);
-render_text3([], _Gs, _IH, _IW, _H, {W,H0,Bin}) ->
-    {W, H0, Bin}.
+render_text3([], _Gs, _IH, _IW, _H, Res) ->
+    Res.
 
-render_glyph(#glyph{u=U,v=V,w=W,h=H},IW,IH, {X0,Y0,Bin}) ->
+render_glyph(#glyph{u=U,v=V,w=W,h=H},IW,IH, {X0,Y0,XS,Bin}) ->
     X1 = X0 + W,
     UD = U + W*IW,
     VD = V + H*IH,
     YH = Y0 - H,
-    {X1,Y0,
+    {X1,Y0,XS,
      <<Bin/binary,         %% wxImage: 0,0 is upper left turn each
        X0:?F32,Y0:?F32, U:?F32, VD:?F32, % Vertex lower left, UV-coord up-left
        X1:?F32,Y0:?F32, UD:?F32,VD:?F32, % Vertex lower right,UV-coord up-right

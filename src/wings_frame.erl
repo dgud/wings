@@ -11,12 +11,12 @@
 
 -module(wings_frame).
 
--export([top_menus/0, make_win/2, register_win/3, close/1, set_focus/1,set_title/2,
+-export([make_win/2, register_win/3, close/1, set_focus/1,set_title/2,
          get_top_frame/0,
          show_toolbar/1,
 	 export_layout/0, import_layout/2, reinit_layout/0,
 	 get_overlay/0, overlay_draw/3, overlay_hide/1,
-	 get_icon_images/0, get_colors/0, update_theme/0]).
+	 get_icon_images/0, get_colors/0, get_border/0, update_theme/0]).
 
 -export([start_link/0, forward_event/1]).
 
@@ -49,7 +49,7 @@ start_link() ->
     ?SET(top_frame, Frame),
     {ok, wx_object:get_pid(Frame)}.
 
-top_menus() ->
+top_menus(WorkAround) ->
     Tail0 = [{?__(7,"Help"),help,wings_help:menu()}],
     Tail = case wings_pref:get_value(show_develop_menu) of
 	       true ->
@@ -57,12 +57,17 @@ top_menus() ->
 	       false ->
 		   Tail0
 	   end,
+    WinStr = case WorkAround of
+                 true -> ?__(16,"Windows"); %% Temporary
+                 false -> ?__(6,"Window")
+             end,
     [{?__(1,"File"),  file,wings_file:menu()},
      {?__(2,"Edit"),  edit,wings:edit_menu()},
      {?__(3,"View"),  view,wings_view:menu()},
      {?__(4,"Select"),select,wings_sel_cmd:menu()},
      {?__(5,"Tools"), tools, wings:tools_menu()},
-     {?__(6,"Window"),window,wings:window_menu()}|Tail].
+     {WinStr,window,wings:window_menu()}
+     |Tail].
 
 make_win(Title, Opts) ->
     case proplists:get_value(internal, Opts, false) of
@@ -134,6 +139,18 @@ get_colors() ->
       hl_bg   => wings_color:rgb4bv(wings_pref:get_value(outliner_geograph_hl)),
       hl_text => wings_color:rgb4bv(wings_pref:get_value(outliner_geograph_hl_text))
      }.
+
+get_border() ->
+    %% Alternatives are:
+    %%  ?wxBORDER_DEFAULT ?wxBORDER_THEME
+    %%  ?wxBORDER_SUNKEN ?wxBORDER_RAISED
+    %%  ?wxBORDER_STATIC ?wxBORDER_SIMPLE
+    %%  ?wxBORDER_NONE
+    case os:type() of
+        {win32, _}  -> ?wxBORDER_NONE;
+        {_, darwin} -> ?wxBORDER_NONE;
+        _ -> ?wxBORDER_NONE
+    end.
 
 update_theme() ->
     wx_object:call(?MODULE, update_theme).
@@ -301,7 +318,8 @@ init(_Opts) ->
 	Sizer = wxBoxSizer:new(?wxVERTICAL),
 	Top = make(Frame),
 	Canvas = make_splash(wxPanel:new(win(Top)), IconImgs),
-	wxSizer:add(Sizer, win(Top), [{proportion, 1}, {flag, ?wxEXPAND}]),
+	wxSizer:add(Sizer, win(Top), [{proportion, 1}, {border, 3},
+                                      {flag, ?wxEXPAND bor ?wxLEFT bor ?wxRIGHT}]),
 	wxSplitterWindow:initialize(win(Top), Canvas),
 	Toolbar = wings_toolbar:init(Frame, IconImgs),
 	wxSizer:setSizeHints(Sizer, win(Top)),
@@ -571,13 +589,16 @@ terminate_frame(_Ev, CB) ->
 update_active(Name, #state{active=Prev, windows=#{ch:=Root}}=State) ->
     ABG = wings_color:rgb4bv(wings_pref:get_value(title_active_color)),
     PBG = wings_color:rgb4bv(wings_pref:get_value(title_passive_color)),
-    TFG = wings_color:rgb4bv(wings_pref:get_value(title_text_color)),
+    AFG = wings_color:rgb4bv(wings_pref:get_value(title_text_color)),
+    PFG0 = wings_color:rgb4bv(wings_pref:get_value(title_passive_text_color, AFG)),
+    PFG = passive_color(PFG0,AFG),
     try
 	#win{bar={PBar,_}} = find_win(Prev, Root),
 	_ = wxWindow:getSize(PBar), %% Sync to check PBar validity
 	PChildren = wxWindow:getChildren(PBar),
-	[wxWindow:setForegroundColour(PChild, TFG) || PChild <- PChildren,
-	 wx:getObjectType(PChild) == wxWindow],
+	[wxWindow:setForegroundColour(PChild, PFG) ||
+            PChild <- PChildren,
+            wx:getObjectType(PChild) == wxWindow],
 	wxWindow:setBackgroundColour(PBar, PBG),
 	wxWindow:refresh(PBar)
     catch _:_ -> ignore
@@ -587,13 +608,25 @@ update_active(Name, #state{active=Prev, windows=#{ch:=Root}}=State) ->
 	    State#state{active=undefined};
 	#win{bar={ABar,_}} ->
 	    AChildren = wxWindow:getChildren(ABar),
-	    [wxWindow:setForegroundColour(AChild, TFG) || AChild <- AChildren,
-	     wx:getObjectType(AChild) == wxWindow],
+	    [wxWindow:setForegroundColour(AChild, AFG) ||
+                AChild <- AChildren,
+                wx:getObjectType(AChild) == wxWindow],
 	    wxWindow:setBackgroundColour(ABar, ABG),
 	    wxWindow:refresh(ABar),
 	    State#state{active=Name}
     catch _:_ ->
 	    State
+    end.
+
+passive_color({R,G,B,A} = PFG0,AFG) ->
+    if PFG0 =:= AFG ->
+            if R+G+B < 180 -> %% Dark text
+                    {R+50,G+50,B+50,A};
+               true ->
+                    {R-50,G-50,B-50,A}
+            end;
+       true ->
+            PFG0
     end.
 
 update_theme(#state{windows=#{ch:=Root,loose:=Loose}, active=Active}) ->
@@ -617,7 +650,10 @@ update_theme_0(#win{win=Win, name=WinName, bar=Bar}, Active) ->
     WBG = wings_color:rgb4bv(wings_pref:get_value(outliner_geograph_bg)),
 
     WChildren = wxWindow:getChildren(Win),
-    [wxWindow:setBackgroundColour(WChild, WBG) || WChild <- WChildren],
+    [wxWindow:setBackgroundColour(WChild, WBG) ||
+        Parent <- [Win|WChildren],
+        WChild <- wxWindow:getChildren(Parent) ++ [Parent],
+        not wx:is_null(WChild)],
     case Bar of
 	{TBar,_} -> wxWindow:setBackgroundColour(TBar, TBG);
 	_ -> ignore
@@ -739,7 +775,7 @@ split_win([Which|Path], NewWin, #split{mode=Mode} = Node, Pos) ->
 make(Parent) ->
     Style = case os:type() of
 		{unix, darwin} -> ?wxSP_3DSASH bor ?wxSP_LIVE_UPDATE;
-		{win32, _} -> ?wxSP_LIVE_UPDATE;
+		{win32, _} -> ?wxSP_BORDER bor ?wxSP_LIVE_UPDATE;
 		_ -> ?wxSP_3D bor ?wxSP_LIVE_UPDATE
 	    end,
     New = wxSplitterWindow:new(Parent, [{style, Style}]),
@@ -907,6 +943,7 @@ close_win(Win, #state{windows=#{frame:=TopFrame,ch:=Tree,loose:=Loose,szr:=Szr}=
 close_window(Delete, Split, Other, GrandP, Szr) ->
     case GrandP of
 	Split when is_record(Other, win) -> %% TopLevel
+            wxWindow:hide(Delete),
 	    wxWindow:reparent(win(Other), win(GrandP)),
 	    wxSplitterWindow:unsplit(win(GrandP), [{toRemove, Delete}]),
 	    wxWindow:destroy(Delete),
@@ -915,13 +952,15 @@ close_window(Delete, Split, Other, GrandP, Szr) ->
 	Split when is_record(Other, split) ->
 	    Frame = wxWindow:getParent(win(GrandP)),
 	    wxWindow:reparent(win(Other), Frame),
-	    wxSizer:replace(Szr, win(GrandP), win(Other)),
+            wxSizer:replace(Szr, win(GrandP), win(Other)),
+            wxWindow:hide(win(GrandP)),
 	    wxWindow:destroy(win(GrandP)),
             _ = wxWindow:findFocus(), %% Sync the destroy
 	    {ok, Other};
 	#split{} ->
 	    wxWindow:reparent(win(Other), win(GrandP)),
 	    wxSplitterWindow:replaceWindow(win(GrandP), win(Split), win(Other)),
+            wxWindow:hide(win(Split)),
 	    wxWindow:destroy(win(Split)),
             _ = wxWindow:findFocus(), %% Sync the destroy
 	    {ok, Other}
@@ -975,9 +1014,13 @@ detach_window(#wxMouse{type=left_up}, F, #{action:=Action, op:=#{win:=Win}}=Stat
     end,
     State#{action:=undefined, op:=undefined};
 detach_window(#wxMouse{type=left_down, x=X, y=Y}, Frame, #{ch:=Top} = State) ->
-    #win{bar={Bar,_}} = Win = find_win(Frame, Top),
-    Pos = wxWindow:clientToScreen(Bar, {X,Y}),
-    State#{action:=detach_init, op:=#{win=>Win, pos=>Pos}};
+    case find_win(Frame, Top) of
+        false ->
+            State;
+        #win{bar={Bar,_}} = Win ->
+            Pos = wxWindow:clientToScreen(Bar, {X,Y}),
+            State#{action:=detach_init, op:=#{win=>Win, pos=>Pos}}
+    end;
 detach_window(_Ev, _, State) ->
     %% io:format("Ignore: ~p~n",[_Ev]),
     State.
@@ -1136,12 +1179,13 @@ make_internal_win(Parent, #win{title=Label, win=Child, ps=#{close:=Close, move:=
     WinC#win{frame=Win, bar=Wins}.
 
 make_bar(Parent, BG, Label, Close) ->
-    Bar = wxPanel:new(Parent, [{style, ?wxBORDER_SIMPLE}, {size, {-1, ?WIN_BAR_HEIGHT}}]),
+    Bar = wxPanel:new(Parent, [{style, ?wxBORDER_NONE}, {size, {-1, ?WIN_BAR_HEIGHT}}]),
     FG = wings_pref:get_value(title_text_color),
-    #{size:=Sz} = FI = wings_text:get_font_info(?GET(system_font_wx)),
+    #{size:=Sz} = FI0 = wings_text:get_font_info(?GET(system_font_wx)),
+    FI = FI0#{size:=Sz-1, weight=>bold},
     {Font,Space} = case os:type() of
-		       {unix, darwin} -> {wings_text:make_wxfont(FI#{size:=Sz-1}), 4};
-		       _ -> {wings_text:make_wxfont(FI#{size:=Sz-2}), 2}
+		       {unix, darwin} -> {wings_text:make_wxfont(FI), 6};
+		       _ -> {wings_text:make_wxfont(FI), 4}
 		   end,
     wxPanel:setFont(Bar, Font),
     wxWindow:setBackgroundColour(Bar, BG),
@@ -1158,26 +1202,32 @@ make_bar(Parent, BG, Label, Close) ->
     {Bar,ST}.
 
 make_close_button(Parent, Bar, WBSz, H) ->
-    Bitmap0 = wxArtProvider:getBitmap("wxART_CROSS_MARK",[{client, "wxART_MESSAGE_BOX"}]),
-    Bitmap = case os:type() of
-		{unix, linux} ->
-		     Im0 = wxBitmap:convertToImage(Bitmap0),
-		     Im1 = wxImage:scale(Im0,H,H,[{quality, ?wxIMAGE_QUALITY_HIGH}]),
-		     BM = wxBitmap:new(Im1),
-		     wxImage:destroy(Im1), wxImage:destroy(Im0),
-		     BM;
-		 {_, _} -> %% Do not scale on windows
-		     Bitmap0
-	     end,
-    SBM = wxStaticBitmap:new(Bar, ?wxID_EXIT, Bitmap),
-    %% io:format("SBM = ~p~n",[wxWindow:getSize(SBM)]),
-    wxSizer:add(WBSz, SBM, [{flag, ?wxALIGN_CENTER}]),
     Self = self(),
     CB = fun(_, Ev) ->
 		 wxMouseEvent:skip(Ev),
 		 Self ! {close_window, Parent}
 	 end,
-    wxWindow:connect(SBM, left_up, [{callback, CB}]).
+    SBM = case {os:type(), {?wxMAJOR_VERSION, ?wxMINOR_VERSION}} of
+              {{_, linux}, Ver} when Ver < {3,1} ->
+                  Bitmap = wxArtProvider:getBitmap("wxART_CLOSE", [{size,{16,16}}]),
+                  Butt = wxStaticBitmap:new(Bar, ?wxID_EXIT, Bitmap),
+                  wxWindow:connect(Butt, left_down, [{callback, CB}]),
+                  Butt;
+              {{win32, _}, Ver} when Ver < {3,1} ->
+                  Bitmap = wxArtProvider:getBitmap("wxART_CLOSE", []),
+                  Butt = wxStaticBitmap:new(Bar, ?wxID_EXIT, Bitmap),
+                  wxWindow:connect(Butt, left_down, [{callback, CB}]),
+                  Butt;
+              {_, _} ->
+                  Bitmap = wxArtProvider:getBitmap("wxART_CLOSE", []),
+                  Butt = wxBitmapButton:new(Bar, ?wxID_EXIT, Bitmap,
+                                            [{size, {H,H}}, {style,?wxNO_BORDER}]),
+                  wxWindow:connect(Butt, command_button_clicked, [{callback, CB}]),
+                  Butt
+          end,
+    %% io:format("SBM = ~p~n",[wxWindow:getSize(SBM)]),
+    wxSizer:add(WBSz, SBM, [{flag, ?wxALIGN_CENTER}]),
+    wxWindow:connect(SBM, command_button_clicked, [{callback, CB}]).
 
 export_loose(Windows) ->
     Exp = fun(#win{name=Name, win=Win, frame=Frame}) ->
@@ -1274,8 +1324,20 @@ make_icons() ->
 init_menubar(Frame) ->
     ets:new(wings_menus, [named_table, public, {keypos,2}]),
     put(wm_active, {menubar, geom}),
+    WorkAround = try
+                     %% Only exists in future wx (erlang release)
+                     %% and fool dialyzer
+                     WxMB = list_to_atom("wxMenuBar"),
+                     WxMB:setAutoWindowMenu(false),
+                     false
+                 catch _:_ ->
+                         case os:type() of
+                             {_, darwin} -> true;
+                             _ -> false
+                         end
+                 end,
     MB = wxMenuBar:new(),
-    wings_menu:setup_menus(MB, top_menus()),
+    wings_menu:setup_menus(MB, top_menus(WorkAround)),
     wxFrame:setMenuBar(Frame, MB),
     erase(wm_active),
     MB.

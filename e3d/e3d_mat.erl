@@ -187,7 +187,7 @@ project_to_plane(Vec) ->
 rotate_to_z(Vec) ->
     {Vx,Vy,Vz} = V =
 	case e3d_vec:norm(Vec) of
-	    {Wx,Wy,Wz}=W when abs(Wx) < abs(Wy), abs(Wx) < abs(Wz) ->
+	    {Wx,Wy,Wz}=W when abs(Wx) =< abs(Wy), abs(Wx) < abs(Wz) ->
 		e3d_vec:norm(0.0, Wz, -Wy);
 	    {Wx,Wy,Wz}=W when abs(Wy) < abs(Wz) ->
 		e3d_vec:norm(Wz, 0.0, -Wx);

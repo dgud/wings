@@ -229,10 +229,10 @@ info(X, Y, Info) ->
 		  set_color(Color),
 		  N = info_lines(Info),
 		  {W,_} = wings_wm:win_size(),
-		  gl:recti(X, Y, W, Y + N*?LINE_HEIGHT + 2)
+		  gl:recti(X, Y, W, Y + N*?LINE_HEIGHT + 6)
 	  end),
     set_color(wings_pref:get_value(info_color)),
-    text_at(X + 4, Y + ?CHAR_HEIGHT, Info).
+    text_at(X + 5, Y + ?CHAR_HEIGHT+3, Info).
 
 info_lines(Info) ->
     info_lines_1(Info, 1).

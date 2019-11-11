@@ -50,9 +50,11 @@ are runnable from an Msys (bash) shell.
   export GCC=x86_64-w64-mingw32-gcc (for 64bits build)
 
 If using WSL (Linux in Windows 10)
-  Currently requires Microsoft Compiler and both linux and windows erlang installed
-  export WSLENV=ERL_LIBS/l:WINGS_VCREDIST/w:INCLUDE/w:LIB/w:LIBPATH/w:$WSLENV
-  export WSLcross=true
+  Currently requires Microsoft Compiler and both linux and windows erlang
+  installed and added to the $PATH enviroment variable.
+  If Visual Studio is installed in default installation directories you can
+  setup the MSVS environment in bash with:
+     eval `cmd.exe /C "C:/Path/to/Wings/win32/SetupWSLcross.bat" x64`
 
 To build a distribution you need:
   WINGS_VCREDIST needs to be set to point at vcredist.exe in your Erlang

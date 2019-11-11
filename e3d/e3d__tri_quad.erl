@@ -792,41 +792,51 @@ angle(A,B,C,Vtab) ->
 
 %% does segment AB intersect CD?  Just touching -> false.
 segsintersect(IA, IB, IC, ID, Vtab) ->
-    A = coords2(IA,Vtab),
-    B = coords2(IB,Vtab),
-    C = coords2(IC,Vtab),
-    D = coords2(ID,Vtab),
-    U = sub2(B,A),
-    V = sub2(D,C),
-    W = sub2(A,C),
-    PP = perp2(U,V),
-    case (-1.0e-7 < PP) andalso (PP < 1.0e-7) of
-	false ->
-	    SI = perp2(V,W) / PP,
-	    TI = perp2(U,W) / PP,
-	    (SI > 0.0 andalso SI < 1.0
-	     andalso TI > 0.0 andalso TI < 1.0);
-	true ->
-	    %% parallel or overlapping
-	    case {dot2(U, U),dot2(V, V)} of
-		{0.0,_} -> false;
-		{_,0.0} -> false;
-		{_,_} ->
-		    %% At this point, we know that none of the
-		    %% segments are points.
-		    Z = sub2(B, C),
-		    {Vx,Vy}=V, {Wx,Wy}=W, {Zx,Zy}=Z,
-		    {T0,T1} = case Vx of
-				  0.0 ->
-				      {Wy/Vy, Zy/Vy};
-				  _ ->
-				      {Wx/Vx, Zx/Vx}
-			      end,
-		    (0.0 < T0) andalso (T0 < 1.0) andalso
-		    (0.0 < T1) andalso (T1 < 1.0)
-	    end
-    end.
+    {Ax,Ay} = A = coords2(IA,Vtab),
+    {Bx,By} = B = coords2(IB,Vtab),
+    {Cx,Cy} = C = coords2(IC,Vtab),
+    {Dx,Dy} = D = coords2(ID,Vtab),
+    {Ux,Uy} = U = sub2(B,A),
+    {Vx,Vy} = V = sub2(D,C),
 
+    {UxMin,UxMax} = if Ux < 0 -> {Bx,Ax}; true -> {Ax,Bx} end,
+    if Vx > 0, UxMax < Dx ; Cx < UxMin -> false;
+       UxMax < Cx ; Dx < UxMin -> false;
+       true ->
+            {UyMin,UyMay} = if Uy < 0 -> {By,Ay}; true -> {Ay,By} end,
+            if Vy > 0, UyMay < Dy ; Cy < UyMin -> false;
+               UyMay < Cy ; Dy < UyMin -> false;
+               true ->
+                    W = sub2(A,C),
+                    PP = perp2(U,V),
+                    case (-1.0e-7 < PP) andalso (PP < 1.0e-7) of
+                        false ->
+                            SI = perp2(V,W) / PP,
+                            TI = perp2(U,W) / PP,
+                            (SI > 0.0 andalso SI < 1.0
+                             andalso TI > 0.0 andalso TI < 1.0);
+                        true ->
+                            %% parallel or overlapping
+                            case {dot2(U, U),dot2(V, V)} of
+                                {0.0,_} -> false;
+                                {_,0.0} -> false;
+                                {_,_} ->
+                                    %% At this point, we know that none of the
+                                    %% segments are points.
+                                    Z = sub2(B, C),
+                                    {Wx,Wy}=W, {Zx,Zy}=Z,
+                                    {T0,T1} = case Vx of
+                                                  0.0 -> {Wy/Vy, Zy/Vy};
+                                                  _ ->   {Wx/Vx, Zx/Vx}
+                                              end,
+                                    (0.0 < T0)
+                                        andalso (T0 < 1.0)
+                                        andalso (0.0 < T1)
+                                        andalso (T1 < 1.0)
+                            end
+                    end
+            end
+    end.
 
 %% element(I,T), but wrap I if necessary to stay in range 1..N
 welement(I, N, T) -> element(windex(I, N), T).

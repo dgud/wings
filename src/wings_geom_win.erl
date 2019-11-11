@@ -465,7 +465,8 @@ init([Frame, {W,_}, _Ps, Name, SS]) ->
     wxTreeCtrl:setForegroundColour(TC, FG),
     wxTreeCtrl:assignImageList(TC, load_icons()),
 
-    LCStyle = ?wxLC_REPORT bor ?wxLC_NO_HEADER bor ?wxLC_EDIT_LABELS bor ?wxLC_SINGLE_SEL,
+    LCStyle = ?wxLC_REPORT bor ?wxLC_NO_HEADER bor ?wxLC_EDIT_LABELS
+        bor ?wxLC_SINGLE_SEL bor wings_frame:get_border(),
     LC = wxListCtrl:new(Splitter, [{style, LCStyle}]),
     wxListCtrl:setBackgroundColour(LC, BG),
     wxListCtrl:setForegroundColour(LC, FG),

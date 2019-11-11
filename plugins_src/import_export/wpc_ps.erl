@@ -2,7 +2,7 @@
 %%  wpc_ps.erl --
 %%
 %%    Adobe PostScript (*.ps/*.eps) import based on wpc_ai.erl by Howard Trickey
-%%    To work, the wpc_tt plugin must also be loaded.
+%%    To work, the wpc_ai plugin must also be loaded.
 %%
 %%  Copyright (c) 2009-2011 Richard Jones.
 %%                2017 Micheus (add/fixed support to Adobe Illustrator, LibreOffice, Inkscape and scribus (partial)).
@@ -21,7 +21,7 @@
 
 -define(SCALEFAC, 0.01).		% amount to scale PS coords by
 
--record(cedge,% polyarea and cedge records must match definitions in wpc_tt.erl
+-record(cedge,% polyarea and cedge records must match definitions in wpc_ai.erl
         {vs,cp1=nil,cp2=nil,ve}).	%all are {x,y} pairs
 
 -record(path,
@@ -95,9 +95,9 @@ try_import_ps(Name, Nsubsteps) ->
                                 io:format("~ts: ~ts\n",[Creator, ?__(5,"Some token structures were not valid in the file and were ignored")]);
                                 true -> ok
                             end,
-                            Pas = [wpc_tt:findpolyareas(Cntr) || Cntr <- Cntrs],
+                            Pas = [wpc_ai:findpolyareas(Cntr) || Cntr <- Cntrs],
                             Pas0 = lists:flatten(Pas),
-                            Pas1 = wpc_tt:subdivide_pas(Pas0,Nsubsteps),
+                            Pas1 = wpc_ai:subdivide_pas(Pas0,Nsubsteps),
                             {Vs0,Fs,HEs} = process_islands(Pas1),
                             Center = e3d_vec:average(e3d_vec:bounding_box(Vs0)),
                             Vec = e3d_vec:sub(e3d_vec:zero(),Center),
@@ -119,7 +119,7 @@ reverse_def(Contours) ->
     [[lists:reverse(Cntr) || Cntr <- Cntrs] || Cntrs <- Contours, Cntrs=/=[[]]].
 
 process_islands(Plas) ->
-    Process = fun(Pla) -> wpc_tt:polyareas_to_faces([Pla]) end,
+    Process = fun(Pla) -> wpc_ai:polyareas_to_faces([Pla]) end,
     Objs =
         lists:foldr(fun(Pla, Acc) ->
             %% it was noticed during the tests that some files may contain data that causes
@@ -142,7 +142,7 @@ fix_slands_vertices([{Vs,Fs0,HEs0}|Objs], {I,{AcVs,AcFs,AcHEs}}) ->
     fix_slands_vertices(Objs, {I+length(Vs), {AcVs++Vs,AcFs++Fs,AcHEs++HEs}}).
 
 %% some paths definitions can contain many 'pmoveto' operators that cannot be understand
-%% for the code in wpc_tt module. Then, we break them in separated objects in order to
+%% for the code in wpc_ai module. Then, we break them in separated objects in order to
 %% provide user with most objects as he/she expect to get.
 break_grouped_moveto(Objs) ->
     [break_grouped_moveto_0(Paths,[]) || Paths <- Objs].
@@ -347,7 +347,7 @@ parse_ps([_|T], Pst) ->
 ps_dopathop0(CP,Pst) when CP=:="closepath"; CP=:="cp"; CP=:="h"; CP=:="cl"; CP=:="p"; CP=:="pc" ->
     P = Pst#pstate.curpath,
     Pst#pstate{curpath=P#path{close=true}};
-%% we intercept the clip new path to remove the bounding box data - it causes a crash in wpc_tt module
+%% we intercept the clip new path to remove the bounding box data - it causes a crash in wpc_ai module
 ps_dopathop0(CP,Pst) when CP=:="clp"; CP=:="clp_npth"; CP=:="clip" ->
     Pst#pstate{curobjs=[]};
 ps_dopathop0(_,Pst) -> Pst.

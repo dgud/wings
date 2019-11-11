@@ -33,7 +33,7 @@
 %%-compile(export_all).
 
 -record(in, {key, type, def, wx, wx_ext=[], validator, data, hook, output=true}).
--record(eh, {fs, apply, prev_parent, owner, type, pid, dialog}).
+-record(eh, {fs, apply, prev_parent, owner, type, pid, dialog, timer}).
 
 %%
 %% Syntax of Qs.
@@ -513,7 +513,8 @@ close(Pid) ->
     receive {'DOWN',Ref,process,_,_} -> ok end.
 
 event_handler(#wx{id=?wxID_CANCEL},
-	      #eh{apply=Fun, owner=Owner, type=Preview, pid=Pid}) ->
+	      #eh{apply=Fun, owner=Owner, type=Preview, pid=Pid}=Eh0) ->
+    reset_timer(Eh0),
     wings_wm:release_focus(),
     case Preview of
 	preview ->
@@ -525,8 +526,9 @@ event_handler(#wx{id=?wxID_CANCEL},
     close(Pid),
     delete;
 event_handler(#wx{id=Result}=_Ev,
-	      #eh{fs=Fields, apply=Fun, owner=Owner, pid=Pid}) ->
+	      #eh{fs=Fields, apply=Fun, owner=Owner, pid=Pid} = Eh0) ->
     %%io:format("Ev closing ~p~n  ~p~n",[_Ev, Fields]),
+    reset_timer(Eh0),
     wings_wm:release_focus(),
     Values = get_output(Result, Fields),
     close(Pid),
@@ -537,7 +539,12 @@ event_handler(#wx{id=Result}=_Ev,
             io:format("Dialog preview crashed: ~p~n~p~n",[Reason, erlang:get_stacktrace()])
     end,
     delete;
-event_handler(preview, #eh{fs=Fields, apply=Fun, owner=Owner}) ->
+event_handler(preview, Eh0) ->
+    Eh = reset_timer(Eh0),
+    New = wings_wm:set_timer(150, preview_exec),
+    {replace, fun(Ev) -> event_handler(Ev, Eh#eh{timer=New}) end};
+event_handler(preview_exec, #eh{fs=Fields, apply=Fun, owner=Owner}=Eh0) ->
+    Eh = reset_timer(Eh0),
     Values = get_output(preview, Fields),
     try Fun({dialog_preview,Values}) of
 	{preview,#st{}=St0,#st{}=St} ->
@@ -545,17 +552,16 @@ event_handler(preview, #eh{fs=Fields, apply=Fun, owner=Owner}) ->
 	    wings_wm:send(Owner, {current_state,St0});
 	{preview,Action,#st{}=St}->
 	    wings_wm:send_once_after_redraw(Owner, {action,Action}),
-	    wings_wm:send(Owner, {current_state,St}),
-	    keep;
+	    wings_wm:send(Owner, {current_state,St});
 	Action = {numeric_preview, _} ->
 	    wings_wm:send(Owner, {action,Action});
 	Action when is_tuple(Action); is_atom(Action) ->
 	    %%io:format("~p:~p: ~p~n",[?MODULE,?LINE,{preview,[Owner,{action,Action}]}]),
 	    wings_wm:send(Owner, {action,Action})
     catch _:Reason ->
-            io:format("Dialog preview crashed: ~p~n~p~n",[Reason, erlang:get_stacktrace()]),
-            keep
-    end;
+            io:format("Dialog preview crashed: ~p~n~p~n",[Reason, erlang:get_stacktrace()])
+    end,
+    {replace, fun(Ev) -> event_handler(Ev, Eh) end};
 event_handler(#mousebutton{which=Obj}=Ev, _) ->
     wings_wm:send(wings_wm:wx2win(Obj), {camera,Ev,keep});
 event_handler(#mousemotion{}, _) -> keep;
@@ -566,6 +572,12 @@ event_handler(got_focus, #eh{dialog=Dialog}) ->
 event_handler(_Ev, _) ->
     %% io:format("unhandled Ev ~p~n",[_Ev]),
     keep.
+
+reset_timer(#eh{timer=undefined} = Eh) ->
+    Eh;
+reset_timer(#eh{timer=Timer}=Eh) ->
+    wings_wm:cancel_timer(Timer),
+    Eh#eh{timer=undefined}.
 
 get_output(Result, {Table, Order}) ->
     Get = fun(Key, Acc) ->
@@ -1610,30 +1622,33 @@ add_sizer(What, Sizer, Ctrl, Opts) ->
     wxSizer:add(Sizer, Ctrl, [{proportion, Proportion},{border, Border},{flag, Flags}]).
 
 sizer_flags(label, ?wxHORIZONTAL)      -> {0, 2, ?wxRIGHT bor ?wxALIGN_CENTER_VERTICAL};
-sizer_flags(label, ?wxVERTICAL)        -> {1, 2, ?wxRIGHT bor ?wxALIGN_CENTER_VERTICAL};
+sizer_flags(label, ?wxVERTICAL)        -> {1, 2, ?wxRIGHT };
 sizer_flags(separator, ?wxHORIZONTAL)  -> {1, 5, ?wxALL bor ?wxALIGN_CENTER_VERTICAL};
 sizer_flags(separator, ?wxVERTICAL)    -> {0, 5, ?wxALL bor ?wxEXPAND};
 sizer_flags(text, ?wxHORIZONTAL)       -> {1, 2, ?wxRIGHT bor ?wxALIGN_CENTER_VERTICAL};
 sizer_flags(slider, ?wxHORIZONTAL)     -> {2, 0, ?wxALIGN_CENTER_VERTICAL};
 sizer_flags(slider, ?wxVERTICAL)       -> {0, 0, ?wxEXPAND};
-sizer_flags(button, _)                 -> {0, 0, ?wxALIGN_CENTER_VERTICAL};
-sizer_flags(image, _)                  -> {0, 5, ?wxALL bor ?wxEXPAND bor ?wxALIGN_CENTER_VERTICAL};
-sizer_flags(choice, _)                 -> {0, 0, ?wxALIGN_CENTER_VERTICAL};
-sizer_flags(checkbox, ?wxVERTICAL)     -> {0, 3, ?wxTOP bor ?wxBOTTOM bor ?wxALIGN_CENTER_VERTICAL};
+sizer_flags(button, Dir)               -> {0, 0, center_v(Dir)};
+sizer_flags(image, _Dir)               -> {0, 5, ?wxALL bor ?wxEXPAND};
+sizer_flags(choice, Dir)               -> {0, 0, center_v(Dir)};
+sizer_flags(checkbox, ?wxVERTICAL)     -> {0, 3, ?wxTOP bor ?wxBOTTOM };
 sizer_flags(checkbox, ?wxHORIZONTAL)   -> {0, 2, ?wxRIGHT bor ?wxALIGN_CENTER_VERTICAL};
 sizer_flags(table,  _)                 -> {4, 0, ?wxEXPAND};
-sizer_flags({radiobox, Dir}, Dir)      -> {5, 0, ?wxEXPAND bor ?wxALIGN_CENTER_VERTICAL};
-sizer_flags({radiobox, _}, _)          -> {1, 0, ?wxEXPAND bor ?wxALIGN_CENTER_VERTICAL};
-sizer_flags({box, Dir}, Dir)           -> {0, 2, ?wxALL bor ?wxEXPAND bor ?wxALIGN_CENTER_VERTICAL};
-sizer_flags({box, _}, _)               -> {0, 2, ?wxALL bor ?wxEXPAND bor ?wxALIGN_CENTER_VERTICAL};
+sizer_flags({radiobox, Dir}, Dir)      -> {5, 0, ?wxEXPAND};
+sizer_flags({radiobox, _}, _Dir)       -> {1, 0, ?wxEXPAND};
+sizer_flags({box, Dir}, Dir)           -> {0, 2, ?wxALL bor ?wxEXPAND};
+sizer_flags({box, _}, _Dir)            -> {0, 2, ?wxALL bor ?wxEXPAND};
 sizer_flags(fontpicker, ?wxHORIZONTAL) -> {2, 2, ?wxRIGHT};
 sizer_flags(fontpicker, ?wxVERTICAL)   -> {0, 2, ?wxRIGHT bor ?wxEXPAND};
 sizer_flags(filepicker, ?wxHORIZONTAL) -> {2, 2, ?wxRIGHT};
 sizer_flags(filepicker, ?wxVERTICAL)   -> {0, 2, ?wxRIGHT bor ?wxEXPAND};
 sizer_flags(custom, _)                 -> {0, 5, ?wxALL};
-sizer_flags(panel, _)                  -> {0, 0, ?wxALL bor ?wxEXPAND bor ?wxALIGN_CENTER_VERTICAL}; %?wxEXPAND};
+sizer_flags(panel, _Dir)               -> {0, 0, ?wxALL bor ?wxEXPAND};
 sizer_flags(_, ?wxHORIZONTAL)          -> {1, 0, ?wxALIGN_CENTER_VERTICAL};
 sizer_flags(_, ?wxVERTICAL)            -> {0, 0, ?wxEXPAND}.
+
+center_v(?wxHORIZONTAL) -> ?wxALIGN_CENTER_VERTICAL;
+center_v(?wxVERTICAL) -> 0.
 
 create(false, _) -> undefined;
 create(_, Fun) -> Fun().
@@ -1963,6 +1978,9 @@ check_form_list([]) ->
 fix_expr([], Acc)   -> lists:reverse(Acc, ".");
 fix_expr([$.],Acc) -> lists:reverse(Acc, ".");
 fix_expr([$.|T], [X|_]=Acc) when X >= $0, X =< $9 ->
+    fix_expr(T, [$.|Acc]);
+%% Translate float 2,4 to erlangish 2.4
+fix_expr([$, |[Y|_]=T], [X|_]=Acc) when X >= $0, X =< $9, Y >= $0, Y =< $9 ->
     fix_expr(T, [$.|Acc]);
 fix_expr([$.|T], Acc)  ->
     fix_expr(T, [$.,$0|Acc]);

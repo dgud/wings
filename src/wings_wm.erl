@@ -731,6 +731,12 @@ dispatch_event(#wx{event=#wxActivate{active=Active}}) ->
 	    dirty(),
             true;
 	false ->
+            case get_focus_window() of
+                {grabbed, Grab} ->
+                    do_dispatch(Grab, lost_focus);
+                _ ->
+                    ignore
+            end,
 	    update_focus(none),
 	    true
     end;
@@ -764,7 +770,8 @@ dispatch_event(#wx{obj=Obj, event=#wxFocus{type=kill_focus, win=New}}) ->
         {{grabbed, OtherWin}, Win} ->
             case OtherWin of
                 dialog_blanket -> ignore;
-                _ -> ?dbg("Grabbed focus lost old?: ~p ~p~n", [OtherWin, Win])
+                _ ->
+                    ?dbg("Grabbed focus lost old?: ~p ~p ~p~n", [OtherWin, Win, New])
             end,
             ok;
         {_OldFocus, _CurrentFocus} ->
