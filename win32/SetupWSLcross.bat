@@ -5,8 +5,7 @@ rem Usage: eval `cmd.exe /c SetupWSLcross.bat x64`
 IF "%~1"=="x86" GOTO search
 IF "%~1"=="x64" GOTO search
 
-echo "Bad TARGET or not specified: %~1 expected x86 or x64"
-exit
+GOTO badarg
 
 :search
 IF EXIST "C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\vcvarsall.bat". (
@@ -29,8 +28,7 @@ IF EXIST "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat".
    goto continue
 )
 
-echo "Error: SetupWSLcross.bat: Could not find vcvarsall.bat"
-exit
+GOTO no_vcvars
 
 :continue
 FOR /F "delims==" %%F IN ('where cl.exe') DO SET _cl_exec_=%%F
@@ -50,3 +48,14 @@ wsl.exe echo WSLENV='$WSLENV:LIBPATH/l:LIB/l:INCLUDE/l';
 wsl.exe echo WSLcross=true;
 wsl.exe echo export 'INCLUDE LIB LIBPATH VCToolsRedistDir WSLENV PATH WSLcross';
 wsl.exe echo "# Eval this file eval \`cmd.exe /c SetupWSLcross.bat\`"
+
+rem done
+exit
+
+:badarg
+echo "Bad TARGET or not specified: %~1 expected x86 or x64"
+exit
+
+:no_vcvars
+echo "Error: SetupWSLcross.bat: Could not find vcvarsall.bat"
+exit
