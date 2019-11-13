@@ -361,25 +361,13 @@ bg_img_id() ->
 	[ImId] -> ImId;
 	_ -> wings_image:new("auvBG",bg_image())
     end.
-  
-change_texture_id(NewId, MatName, GeomSt0=#st{mat=Materials}) -> 
-    case gb_trees:lookup(MatName, Materials) of
-	none -> 
-	    GeomSt0;
-	{value,Mat0} ->
-	    Maps0 = proplists:get_value(maps, Mat0, []),
-	    Maps = lists:keyreplace(diffuse,1,Maps0,{diffuse,NewId}),
-	    Mat  = lists:keyreplace(maps,1,Mat0,{maps,Maps}),
-	    GeomSt0#st{mat=gb_trees:update(MatName,Mat,Materials)}
-    end.
-    
 
 %%%% Menus.
 
 command_menu(body, X, Y) ->
     Menu = [{?__(2,"Move"), {move, move_directions(false)},
 	     ?__(3,"Move selected charts")},
-	    {?__(4,"Scale"), {scale, scale_directions(false) ++ 
+	    {?__(4,"Scale"), {scale, scale_directions(false) ++
 			      [separator] ++ stretch_directions() ++
 			      [separator,
 			       {?__(411,"Normalize Sizes"), normalize,
@@ -622,7 +610,7 @@ handle_event_3(#mousebutton{button=?SDL_BUTTON_RIGHT}=Ev,
 		   end,
 	    command_menu(Mode, X, Y)
     end;
-handle_event_3({drop,_,DropData}, St) ->
+handle_event_3({drop,DropData}, St) ->
     handle_drop(DropData, St);
 handle_event_3({action,{{auv,_},create_texture}},_St) ->
     auv_texture:draw_options();
@@ -640,17 +628,17 @@ handle_event_3({action,{auv,{draw_options,Opt}}}, #st{bb=Uvs}=St) ->
 	    TexName = case get_texture(MatName0, St) of
 			  false -> atom_to_list(MatName0);
 			  Old  -> 
-			      OldE3d = wings_image:info(Old), 
+			      OldE3d = wings_image:info(Old),
 			      case OldE3d#e3d_image.name of
 				  "auvBG" -> atom_to_list(MatName0);
 				  Other -> Other
 			      end
 		      end,
-	    {GeomSt,MatName} = 
-		update_texture(Tx#e3d_image{name=TexName}, 
-			       MatName0, GeomSt0),
+	    {GeomSt,MatName} = update_texture(Tx#e3d_image{name=TexName},
+                                              MatName0, GeomSt0),
+            ImId = get_texture(MatName, GeomSt),
 	    wings_wm:send(geom, {new_state,GeomSt}),
-	    get_event(St#st{bb=Uvs#uvstate{st=GeomSt,matname=MatName}})
+	    get_event(St#st{bb=Uvs#uvstate{bg_img=ImId, st=GeomSt,matname=MatName}})
     end;
 %% Others
 handle_event_3({vec_command,Command,_St}, _) when is_function(Command, 0) ->
@@ -1435,19 +1423,11 @@ drag_filter({image,_,_}) ->
     {yes,?__(1,"Drop: Change the texture image")};
 drag_filter(_) -> no.
 
-handle_drop({image,Id,_Im}, #st{bb=Uvs0}=St) ->
-    #uvstate{st=GeomSt0,matname=MatName} = Uvs0,
-    case MatName of 
-	none -> 
-	    Uvs = Uvs0#uvstate{bg_img=Id},
-	    get_event(St#st{bb=Uvs});
-	_ ->
-	    GeomSt = change_texture_id(Id,MatName,GeomSt0),
-	    wings_wm:send(geom, {new_state,GeomSt}),
-	    Uvs = Uvs0#uvstate{st=GeomSt,matname=MatName},
-	    get_event(St#st{bb=Uvs})
-    end;
+handle_drop(#{type:=image,id:=Id}, #st{bb=Uvs0}=St) ->
+    Uvs = Uvs0#uvstate{bg_img=Id},
+    get_event(St#st{bb=Uvs});
 handle_drop(_DropData, _) ->
+    ?dbg("Ignore ~P~n",[_DropData,30]),
     keep.
 
 %% is_power_of_two(X) ->
@@ -1467,11 +1447,23 @@ new_geom_state(GeomSt, AuvSt0) ->
     end.
 
 update_geom_state(#st{mat=Mat,shapes=Shs}=GeomSt, AuvSt0) ->
-    case new_geom_state_1(Shs, AuvSt0#st{mat=Mat}) of
+    case new_geom_state_0(Shs, Mat, AuvSt0) of
 	{AuvSt1,ForceRefresh0} ->
 	    {AuvSt,ForceRefresh1} = update_selection(GeomSt, AuvSt1),
 	    {AuvSt,ForceRefresh0 or ForceRefresh1};
 	Other -> Other  %% delete
+    end.
+
+new_geom_state_0(Shs, Mat, #st{bb=#uvstate{matname=none}}=AuvSt) ->
+    new_geom_state_1(Shs, AuvSt#st{mat=Mat});
+new_geom_state_0(Shs, Mtab0, #st{bb=#uvstate{matname=MatName}=BB, mat=Mtab1}=AuvSt) ->
+    case {get_texture(MatName, Mtab0), get_texture(MatName, Mtab1)} of
+        {Same,Same} ->
+            new_geom_state_1(Shs, AuvSt#st{mat=Mtab0});
+        {New, _} when New =/= false ->
+            new_geom_state_1(Shs, AuvSt#st{mat=Mtab0, bb=BB#uvstate{bg_img=New}});
+        _ ->
+            new_geom_state_1(Shs, AuvSt#st{mat=Mtab0})
     end.
 
 new_geom_state_1(Shs, #st{bb=#uvstate{id=Id,st=#st{shapes=Orig}}}=AuvSt) ->
@@ -1908,7 +1900,7 @@ update_and_scale_chart(Vs0,We0) ->
 %%% Draw routines.
 %%%
 
-draw_background(#st{bb=#uvstate{matname=MatName,st=St,bg_img=Image}}) ->
+draw_background(#st{bb=#uvstate{bg_img=Image}}) ->
     gl:pushAttrib(?GL_ALL_ATTRIB_BITS),
     wings_view:load_matrices(false),
 
@@ -1931,11 +1923,7 @@ draw_background(#st{bb=#uvstate{matname=MatName,st=St,bg_img=Image}}) ->
     case get({?MODULE,show_background}) of
 	false -> ok;
 	_ ->
-	    Tx = case get_texture(MatName,St) of
-		     false -> wings_image:txid(Image);
-		     DiffId -> wings_image:txid(DiffId)
-		 end,
-            case Tx of
+            case wings_image:txid(Image) of
                 none -> ignore; %% Avoid crash if TexImage is deleted
                 Tx ->
                     gl:enable(?GL_TEXTURE_2D),
