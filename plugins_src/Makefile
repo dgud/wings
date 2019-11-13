@@ -11,13 +11,14 @@
 #     $Id: Makefile,v 1.20 2006/01/19 22:30:47 giniu Exp $
 #
 
+include ../erl.mk
+
 .SUFFIXES: .erl .jam .beam .yrl .xrl .bin .mib .hrl .sgml .html .ps .3 .1 \
 	.fig .dvi .tex .class .java .pdf .psframe .pscrop
 
 ESRC=.
 WINGS_INTL=../intl_tools
 EBIN=../plugins/default
-ERLC=erlc
 WINGS_TOP=../..
 
 ifeq ($(TYPE),debug)
@@ -52,11 +53,11 @@ subdirs:
 	(cd autouv; $(MAKE))
 
 template: opt
-	erl -pa $(WINGS_INTL) -noinput -run tools generate_template_files $(EBIN)
+	$(ERL) -pa $(WINGS_INTL) -noinput -run tools generate_template_files $(EBIN)
 
 lang: subdirs_lang template
 	cp *.lang $(EBIN)
-	erl -pa $(WINGS_INTL) -noinput -run tools diff_lang_files $(EBIN)
+	$(ERL) -pa $(WINGS_INTL) -noinput -run tools diff_lang_files $(EBIN)
 
 subdirs_lang:
 	(cd import_export; $(MAKE) lang)

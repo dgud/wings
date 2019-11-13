@@ -15,11 +15,11 @@
 	.fig .dvi .tex .class .java .pdf .psframe .pscrop
 
 include ../vsn.mk
+include ../erl.mk
 
 ESRC=.
 WINGS_INTL=../intl_tools
 EBIN=../ebin
-ERLC=erlc
 
 ifeq ($(TYPE),debug)
 TYPE_FLAGS=-DDEBUG +debug_info
@@ -156,7 +156,7 @@ opt debug wx:
 common: $(EBIN)/wings_lang.beam $(TARGET_FILES) $(APP_TARGET)
 
 template: $(TARGET_FILES)
-	erl -pa $(WINGS_INTL) -noinput -run tools generate_template ../ebin -run erlang halt
+	$(ERL) -pa $(WINGS_INTL) -noinput -run tools generate_template ../ebin -run erlang halt
 
 lang: template
 	@cp *.lang $(EBIN)

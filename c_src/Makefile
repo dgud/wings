@@ -10,9 +10,9 @@
 #
 #     $Id: Makefile,v 1.11 2006/01/14 09:02:38 dgud Exp $
 #
-OS := $(shell uname -s)
+include ../erl.mk
 
-ERL=erl
+OS := $(shell uname -s)
 
 LIBDIR = ../priv
 
@@ -29,7 +29,6 @@ ifdef MSYSTEM
 else
  ifeq ($(WSLcross), true)
   UseMCL = true
-  ERL = erl.exe
  endif
 endif
 
