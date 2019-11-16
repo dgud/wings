@@ -10,11 +10,8 @@
 #
 
 # Check if OpenCL package is needed
-ifeq ($(WSLcross), true)
-ERL = erl.exe
-else
-ERL = erl
-endif
+
+include erl.mk
 
 CL_PATH = $(shell $(ERL) -noshell -eval 'erlang:display(code:which(cl))' -s erlang halt)
 ifneq (,$(findstring non_existing, $(CL_PATH)))
@@ -54,7 +51,7 @@ lang: all
 	(cd intl_tools; $(MAKE))
 	(cd src; $(MAKE) lang)
 	(cd plugins_src; $(MAKE) lang)
-	escript tools/verify_language_files .
+	$(ESCRIPT) tools/verify_language_files .
 
 #
 # Build installer for Windows.

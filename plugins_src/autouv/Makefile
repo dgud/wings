@@ -11,13 +11,14 @@
 #     $Id: Makefile,v 1.16 2006/01/17 23:22:01 dgud Exp $
 #
 
+include ../../erl.mk
+
 .SUFFIXES: .erl .jam .beam .yrl .xrl .bin .mib .hrl .sgml .html .ps .3 .1 \
 	.fig .dvi .tex .class .java .pdf .psframe .pscrop
 
 ESRC=.
 WINGS_INTL=../../intl_tools
 EBIN=../../plugins/autouv
-ERLC=erlc
 WINGS_TOP=../../..
 
 ifeq ($(TYPE),debug)
@@ -58,11 +59,11 @@ subdirs:
 	(cd shaders; $(MAKE))
 
 template: opt
-	erl -pa $(WINGS_INTL) -noinput -run tools generate_template $(EBIN) -run erlang halt
+	$(ERL) -pa $(WINGS_INTL) -noinput -run tools generate_template $(EBIN) -run erlang halt
 
 lang: template
 	cp *.lang $(EBIN)
-	erl -pa $(WINGS_INTL) -noinput -run tools diff_lang_files $(EBIN)
+	$(ERL) -pa $(WINGS_INTL) -noinput -run tools diff_lang_files $(EBIN)
 
 clean:
 	(cd shaders; $(MAKE) clean)

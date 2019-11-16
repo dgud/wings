@@ -417,8 +417,7 @@ init_texture_2(#e3d_image{width=W,height=H,image=Bits,extra=Opts}=Image, TxId) -
     ?CHECK_ERROR(),
     TxId.
 
-do_update(Id, In = #e3d_image{width=W,height=H,type=Type,name=NewName},
-	  #ist{images=Images0}=S) ->
+do_update(Id, In = #e3d_image{name=NewName}, #ist{images=Images0}=S) ->
     #img{e3d=Im0, partof=Combs} = Image = gb_trees:get(Id, Images0),
     %% Cleanup combined textures and recreate (later) on the fly (can be optimized)
     Ids = [erase(Comb)|| Comb <- Combs],
@@ -432,15 +431,7 @@ do_update(Id, In = #e3d_image{width=W,height=H,type=Type,name=NewName},
     Im   = maybe_convert(In#e3d_image{filename=File, name=Name}),
     TxId = get(Id),
     Images = gb_trees:update(Id, Image#img{e3d=Im, partof=[]}, Images1),
-    Size = {Im0#e3d_image.width, Im0#e3d_image.height, Im0#e3d_image.type},
-    case Size of
-        {W,H,Type} ->
-            {Format, TexType} = texture_format(Im),
-            gl:bindTexture(?GL_TEXTURE_2D, TxId),
-            gl:texSubImage2D(?GL_TEXTURE_2D, 0, 0, 0, W, H, Format, TexType, Im#e3d_image.image);
-        _ ->
-            init_texture_1(Im, TxId)
-    end,
+    init_texture_1(Im, TxId),
     case get({Id,normal}) of
         undefined ->
             S#ist{images=Images};

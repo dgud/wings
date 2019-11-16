@@ -122,7 +122,7 @@ command({invert_channel, {Ch, Id}}, _) ->
 command({from_channel, {Ch, Id}}, _) ->
     from_channel(Ch, Id);
 command(Cmd, _) ->
-    io:format(?__(1,"NYI: ~p\n"), [Cmd]),
+    ?dbg(?__(1,"NYI: ~p\n"), [Cmd]),
     keep.
 
 prop_get_delete(Key, List) ->
@@ -441,6 +441,10 @@ handle_event(#wx{event=#wxTree{type=command_tree_end_drag, item=Indx, pointDrag=
 	    Pos = wxWindow:clientToScreen(TC, Pos0),
 	    Cmd = fun(_) -> wings_menu:popup_menu(TC, Pos, ?MODULE, Menu) end,
 	    wings_wm:psend(?MODULE, {apply, false, Cmd});
+        undefined when Indx =:= 0 ->
+	    Pos = wxWindow:clientToScreen(TC, Pos0),
+            wings ! {wm, {drop, Pos, Drag}},
+            ignore;
 	_ ->
 	    ignore
     end,
@@ -458,7 +462,7 @@ handle_event(#wx{event=#wxTree{type=command_tree_item_activated, item=Indx}},
         #{type:=light, id:=Id} ->
             wings_wm:psend(?MODULE, {action, {?MODULE, {edit_light, Id}}});
         What ->
-            io:format("~p:~p Item activated ~p~n", [?MODULE,?LINE, What])
+            ?dbg("Item activated ~p~n", [What])
     end,
     {noreply, State};
 

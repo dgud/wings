@@ -11,12 +11,13 @@
 #     $Id: Makefile,v 1.7 2006/08/23 02:56:49 antoneos Exp $
 #
 
+include ../erl.mk
+
 .SUFFIXES: .erl .jam .beam .yrl .xrl .bin .mib .hrl .sgml .html .ps .3 .1 \
 	.fig .dvi .tex .class .java .pdf .psframe .pscrop
 
 ESRC=.
 EBIN=../ebin
-ERLC=erlc
 
 ICONSETS= \
 	classic \
@@ -50,7 +51,7 @@ bluecube/%.png: orig/bluecube-assests/%.png
 	mv $? $@
 
 $(EBIN)/wings_icon_%.bundle: %/*.bmp %/*.png collect_bmp.beam about_wings.bmp
-	erl $(ERL_FLAGS) -noinput -run collect_bmp start . $(ESRC)/$* $@ -s erlang halt
+	$(ERL) $(ERL_FLAGS) -noinput -run collect_bmp start . $(ESRC)/$* $@ -s erlang halt
 
 clean:
 	for ICONSET in $(ICONSETS); do \

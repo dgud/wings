@@ -43,9 +43,6 @@
 %% Setting the information bar message.
 -export([message/1,message/2,message_right/1]).
 
-%% Drag & Drop support.
--export([drag/3,drag/4,allow_drag/1]).
-
 %% Window property mangagement.
 -export([get_props/1,get_prop/1,get_prop/2,lookup_prop/1,lookup_prop/2,
 	 set_win_props/2, set_prop/2,set_prop/3,erase_prop/1,erase_prop/2,
@@ -1148,7 +1145,15 @@ wm_event({message_right,Name,Right0}) ->
 	    dirty()
     end;
 wm_event({callback,Cb}) ->
-    Cb().
+    Cb();
+wm_event({drop, GlobalPos, Drop}) ->
+    case window_below(GlobalPos) of
+        none ->
+            ok;
+        Win ->
+            send(Win, {drop, Drop}),
+            ok
+    end.
 
 %%%
 %%% Finding the active geom window, wings_wm only handles focus of geom windows
@@ -1160,8 +1165,6 @@ find_active() ->
  	Focus -> Focus
     end.
 
-window_below(X,Y) ->
-    window_below({X,Y}).
 window_below(Pos) ->
     Win0 = wx_misc:findWindowAtPoint(Pos),
     case wx:is_null(Win0) of
@@ -1201,120 +1204,6 @@ geom_below(Pos) ->
             Geoms = [get_window_data(Name) || Name <- Geoms0],
             find_window(Geoms, Geoms, Win0)
     end.
-
-%%%
-%%% Drag and drop support.
-%%%
--record(drag,
-	{data,					%Drop data.
-	 bstate,				%State of mouse buttons.
-	 redraw,				%Redraw function.
-	 over=none,				%We are over this window.
-	 drop_ok=false				%Drop is OK on this window.
-	}).
-
-allow_drag(false) -> allow_drag_1(arrow);
-allow_drag(true) -> allow_drag_1(pointing_hand).
-
-allow_drag_1(Cursor) ->
-    case get(wm_cursor) of
-	Cursor -> ok;
-	_ ->
-	    put(wm_cursor, Cursor),
-	    wings_io:set_cursor(Cursor)
-    end.
-
-drag(Ev, Rect, DropData) ->
-    Redraw = fun() ->
-		     gl:pushAttrib(?GL_POLYGON_BIT bor ?GL_LINE_BIT),
-		     gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_LINE),
-		     gl:lineStipple(2, 2#0101010101010101),
-		     gl:enable(?GL_LINE_STIPPLE),
-		     gl:color3b(0, 0, 0),
-		     {W,H} = wings_wm:win_size(),
-		     gl:rectf(0.5, 0.5, W-1, H-1),
-		     gl:popAttrib()
-	     end,
-    drag(Ev, Rect, Redraw, DropData).
-
-drag(#mousemotion{x=X,y=Y,state=State}, Rect, Redraw, DropData) ->
-    drag_1(X, Y, State, Rect, Redraw, DropData);
-drag(#mousebutton{x=X,y=Y,button=B}, Rect, Redraw, DropData) ->
-    State = 1 bsl (B-1),
-    drag_1(X, Y, State, Rect, Redraw, DropData).
-
-drag_1(X1, Y1, State, {W,H}, Redraw, DropData) ->
-    X = X1 - W div 2,
-    Y = Y1 - H div 2,
-    Drag = #drag{data=DropData,bstate=State,redraw=Redraw},
-    Op = {seq,push,get_drag_event(Drag)},
-    Name = dragger,
-    new(Name, {X,Y,highest}, {W,H}, Op),
-    grab_focus(Name),
-    dirty(),
-    keep.
-
-get_drag_event(Drag) ->
-    {replace,fun(Ev) -> drag_event(Ev, Drag) end}.
-		     
-drag_event(redraw, #drag{redraw=Redraw}) ->
-    wings_io:ortho_setup(),
-    Redraw(),
-    keep;
-drag_event(#mousemotion{x=X0,y=Y0}, #drag{over=Over0}=Drag0) ->
-    {W,H} = wings_wm:win_size(),
-    offset(dragger, X0 - W div 2, Y0 - H div 2),
-    {X,Y} = local2screen({X0, Y0}),
-    hide(dragger),
-    Over = window_below(X, Y),
-    show(dragger),
-    case Over of
-	Over0 -> keep;
-	_ ->
-	    Drag = Drag0#drag{over=Over},
-	    drag_filter(Drag)
-    end;
-drag_event(#mousebutton{button=B,state=?SDL_RELEASED},
-	   #drag{bstate=State,data=DropData,drop_ok=DropOK}) ->
-    if
-	((1 bsl (B-1)) band State) =/= 0 ->
-	    case DropOK of
-		false -> ok;
-		true ->
-		    {X,Y,W,H} = wings_wm:win_rect(dragger),
-		    Ev = {drop,{X + W div 2,Y + H div 2},DropData},
-		    wings_io:putback_event(Ev)
-	    end,
-	    put(wm_cursor, arrow),
-	    delete;
-	true -> keep
-    end;
-drag_event(_, _) -> keep.
-
-drag_filter(#drag{over=none}=Drag) ->
-    stop_cursor(Drag);
-drag_filter(#drag{over=Win,data=DropData}=Drag) ->
-    case lookup_prop(Win, drag_filter) of
-	{value,Fun} when is_function(Fun) ->
-	    case Fun(DropData) of
-		yes ->
-		    message(""),
-		    put(wm_cursor, closed_hand),
-		    get_drag_event(Drag#drag{drop_ok=true});
-		{yes,Message} ->
-		    message(Message),
-		    put(wm_cursor, closed_hand),
-		    get_drag_event(Drag#drag{drop_ok=true});
-		no ->
-		    stop_cursor(Drag)
-	    end;
-	none -> stop_cursor(Drag)
-    end.
-
-stop_cursor(Drag) ->
-    put(wm_cursor, stop),
-    message(""),
-    get_drag_event(Drag#drag{drop_ok=false}).
 
 %%%
 %%% Utility functions.

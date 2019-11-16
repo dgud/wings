@@ -11,15 +11,13 @@ Wings can be built on Windows using only free/open-source software.
 
 The following software is needed:
 
-- The Wings source. http://www.wings3d.com
+- The Wings source @ http://www.wings3d.com or git
 
-- Msys2 (or WSL) with git and gcc for windows
+- WSL or (Msys2 or WSL) for make and bash scripts
 
 - Erlang/Otp 22.1 or later. http://www.erlang.org
   Include the vcredist packaged with Erlang, in your installation.
   (It is easiest to download the pre-built binaries for Windows.)
-
-- git or cl-1.2.3 or later. http://github.com/tonyrog/cl
 
 Optional software
 =================
@@ -27,8 +25,12 @@ Optional software
 - NSIS 2.02 or higher, an installer/uninstaller maker.
   http://nsis.sf.net.
 
-- rebar3 script see https://github.com/erlang/rebar3
+- git (to fetch sources from github)
 
+- cl-1.2.3 or later. http://github.com/tonyrog/cl
+
+- rebar3 script see https://github.com/erlang/rebar3
+  To build opencl package above
 
 Installing the software
 =======================
@@ -42,19 +44,21 @@ A few environment variables need to be set. They can be set
 for Windows globally from "My Computer".
 
 Modify the PATH environment variable so that the following programs
-are runnable from an Msys (bash) shell.
+are runnable from an (bash) shell.
 
-  erlc.exe     (Erlang/OTP)
+  erl.exe escript.exe erlc.exe     (Erlang/OTP)
 
+MSYS:
   gcc  (MinGW)
   export GCC=x86_64-w64-mingw32-gcc (for 64bits build)
 
-If using WSL (Linux in Windows 10)
-  Currently requires Microsoft Compiler and both linux and windows erlang
-  installed and added to the $PATH enviroment variable.
-  If Visual Studio is installed in default installation directories you can
-  setup the MSVS environment in bash with:
-     eval `cmd.exe /C "C:/Path/to/Wings/win32/SetupWSLcross.bat" x64`
+WSL: (Linux in Windows 10)
+  Currently requires Microsoft Compiler installed,
+  Setup the MSVC environment with:
+  eval `cmd.exe /C "C:/Path/to/Wings/win32/SetupWSLcross.bat" x64`
+
+  Also if you want OpenCL built and build the installer you will need a
+  linux erlang installed in wsl, so that 'rebar3' and 'escript' works.
 
 To build a distribution you need:
   WINGS_VCREDIST needs to be set to point at vcredist.exe in your Erlang

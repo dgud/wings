@@ -11,13 +11,14 @@
 #     $Id: Makefile,v 1.25 2006/09/06 22:52:18 antoneos Exp $
 #
 
+include ../../erl.mk
+
 .SUFFIXES: .erl .jam .beam .yrl .xrl .bin .mib .hrl .sgml .html .ps .3 .1 \
 	.fig .dvi .tex .class .java .pdf .psframe .pscrop
 
 ESRC=.
 WINGS_INTL=../../intl_tools
 EBIN=../../plugins/import_export
-ERLC=erlc
 WINGS_E3D=../../e3d
 WINGS_TOP=../../..
 
@@ -64,11 +65,11 @@ opt debug:
 	$(MAKE) TYPE=$@ common
 
 template: opt
-	erl -pa $(WINGS_INTL) -noinput -run tools generate_template_files $(EBIN)
+	$(ERL) -pa $(WINGS_INTL) -noinput -run tools generate_template_files $(EBIN)
 
 lang: template
 	cp *.lang $(EBIN)
-	erl -pa $(WINGS_INTL) -noinput -run tools diff_lang_files $(EBIN)
+	$(ERL) -pa $(WINGS_INTL) -noinput -run tools diff_lang_files $(EBIN)
 
 common: $(TARGET_FILES)
 
