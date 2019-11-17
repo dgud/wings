@@ -15,9 +15,14 @@ include erl.mk
 
 CL_PATH = $(shell $(ERL) -noshell -eval 'erlang:display(code:which(cl))' -s erlang halt)
 ifneq (,$(findstring non_existing, $(CL_PATH)))
-DEPS = cl
+DEPS=cl
 CL_VER=cl-1.2.4
 endif
+
+IGL_VER=master
+EIGEN_VER=3.3.7
+# see libigl/cmake/LibiglDownloadExternal.cmake for eigen version
+DEPS += libigl eigen
 
 .PHONY: all debug clean lang
 
@@ -97,15 +102,34 @@ dist:
 	bzip2 -f -9 $(WINGS_TARNAME).tar
 
 #
-# cl (erl wrapper library) not in path try to download and build it
+#  Dependencies
 #
 
-CL_REPO = https://github.com/tonyrog/cl.git
+# cl (erl wrapper library) not in path try to download and build it
 
-.PHONY: cl
+CL_REPO = https://github.com/tonyrog/cl.git
+IGL_REPO = https://github.com/dgud/libigl.git
+EIGEN_REPO = https://github.com/eigenteam/eigen-git-mirror.git
+
+GIT_FLAGS = -c advice.detachedHead=false clone --depth 1
+
+.PHONY: cl igl eigen
 cl: _deps/cl
 	@(cd _deps/cl; rebar3 compile > ../build_log 2>&1 && rm ../build_log) \
 	  || echo ***Warning*** OpenCL not useable >> _deps/build_log
 
 _deps/cl:
-	git -c advice.detachedHead=false clone --depth 1 -b $(CL_VER) $(CL_REPO) _deps/cl
+	git $(GIT_FLAGS) -b $(CL_VER) $(CL_REPO) _deps/cl
+
+
+# libigl have many useful function
+libigl: _deps/libigl
+
+_deps/libigl:
+	git $(GIT_FLAGS) -b $(IGL_VER) $(IGL_REPO) _deps/libigl
+
+# eigen needed by libigl
+eigen: _deps/eigen
+
+_deps/eigen:
+	git $(GIT_FLAGS) -b $(EIGEN_VER) $(EIGEN_REPO) _deps/eigen

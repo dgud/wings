@@ -44,32 +44,42 @@ FRD = 'io:fwrite("~n=:~s~n",[code:root_dir()]),init:stop().'
 ERL_DIR := $(shell echo $(FRD) | $(ERL) | sed -n '/^=:/s/^=://p')
 ERL_INC = "$(ERL_DIR)/usr/include"
 
+WORDSIZE := $(shell $(ERL) -noinput -eval 'io:format("~w~n", [erlang:system_info(wordsize)*8]),init:stop()')
+
 UNIVERSAL_FLAGS =
-COMMON_CFLAGS = -Wall
+COMMON_CFLAGS = -Wall -g
 
 ifeq ($(UseMCL),true)
  OUT = -Fe:
+ OUT_OBJ = -Fo
+ OBJ = obj
  SO_EXT = dll
  LIBS = -LD
- CFLAGS += -nologo -Zi -Ox
+ CFLAGS += -nologo -Zi -Ox /FS /MP -D__WIN32__
+ CXXFLAGS += /EHsc
 else
  OUT = -o
+ OUT_OBJ = -o
+ OBJ = o
+ CFLAGS += $(COMMON_CFLAGS) -O3
+ CXXFLAGS += -Wno-int-in-bool-context -Wno-sign-compare \
+		-Wno-unused-local-typedefs -Wno-misleading-indentation \
+		-Wno-deprecated-declarations -Wno-unknown-pragmas
  ifdef USEMINGWGCC
   SO_EXT = dll
   LIBS = -mdll
   GL_LIBS += -lopengl32 -lglu32
-  CFLAGS += $(COMMON_CFLAGS) -Werror -O3
  else
   SO_EXT = so
   DEF_CC = $(CC)
   ifeq ($(OS),Darwin)
-    CFLAGS = $(UNIVERSAL_FLAGS) $(COMMON_CFLAGS) -Werror -O3
+    CFLAGS = $(UNIVERSAL_FLAGS) $(COMMON_CFLAGS) -O3
     LIBS = $(UNIVERSAL_FLAGS) -bundle -flat_namespace -undefined suppress
     GL_LIBS =
   else
     LIBS = -shared -fpic
+    CXX_LD = -lstdc++
     GL_LIBS += -L/usr/local/lib -lGLU -lGL
-    CFLAGS += $(COMMON_CFLAGS) -Werror -O3
   endif
  endif
 endif
@@ -78,16 +88,29 @@ ifeq ($(GCC),)
     GCC = $(DEF_CC)
 endif
 
+IGL_INCLUDE = -I../_deps/eigen -I../_deps/libigl/include
+
 DRV = $(LIBDIR)/wings_pick_nif.$(SO_EXT)
 
-TARGET_FILES=$(BEAM) $(DRV)
+# libigl can only supports 64b
+ifeq (x"${WORDSIZE}",x"64")
+    DRV += $(LIBDIR)/libigl.$(SO_EXT)
+else
+    $(info 32bits build ignoring libigl not supported)
+endif
+
+TARGET_FILES=$(DRV)
 
 all: $(TARGET_FILES)
+
+$(LIBDIR)/libigl.$(SO_EXT): libigl.cpp
+	install -d $(LIBDIR)
+	$(GCC) $(CFLAGS) $(CXXFLAGS) $(IGL_OPTS) -I$(ERL_INC) $(IGL_INCLUDE) $(OUT)$@ $< $(LIBS) $(CXX_LD)
 
 $(LIBDIR)/%.$(SO_EXT): %.c
 	install -d $(LIBDIR)
 	$(GCC) $(CFLAGS) -I$(ERL_INC) $(OUT) $@ $< $(LIBS) $(GL_LIBS)
 
 clean:
-	rm -f $(TARGET_FILES) vc*.pdb wings_pick_*.obj
+	rm -f $(TARGET_FILES) vc*.pdb *.$(OBJ)
 	rm -f core

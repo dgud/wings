@@ -32,6 +32,7 @@ endif
 # rule to ensure that it gets compiled before all other modules.
 
 MODULES= \
+	libigl \
 	user_default \
 	wings \
 	wings_align \

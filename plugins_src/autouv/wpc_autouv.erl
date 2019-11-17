@@ -369,14 +369,32 @@ bg_img_id() ->
 %%%% Menus.
 
 command_menu(body, X, Y) ->
+    First = [{?__(37,"Stretch optimization"), stretch_opt,
+              ?__(38,"Optimize the chart stretch")},
+             separator],
+    Unfold = case erlang:system_info(wordsize) of
+                 4 ->
+                     [{?__(39,"Unfold"), lsqcm, ?__(40,"Unfold the chart")}];
+                 8 ->
+                     [{?__(39,"Unfold"), lsqcm, ?__(40,"Unfold the chart")},
+                      {?__(391,"Unfold (slow)"),slim,
+                       ?__(392,"Unfold the chart, slow for charts with many faces but better")}]
+             end,
+    Rest = [{?__(41,"Project Normal"), project,
+             ?__(42,"Project UVs from chart normal")},
+            {?__(43,"Spherical"), sphere,
+             ?__(44,"Spherical mapping")}
+           ],
+    Remap = First ++ Unfold ++ Rest,
+
     Menu = [{?__(2,"Move"), {move, move_directions(false)},
 	     ?__(3,"Move selected charts")},
 	    {?__(4,"Scale"), {scale, scale_directions(false) ++
-			      [separator] ++ stretch_directions() ++
-			      [separator,
-			       {?__(411,"Normalize Sizes"), normalize,
-				?__(412,"Normalize Chart Sizes so that each"
-				    "chart get it's corresponding 2d area")}]},
+                                  [separator] ++ stretch_directions() ++
+                                  [separator,
+                                   {?__(411,"Normalize Sizes"), normalize,
+                                    ?__(412,"Normalize Chart Sizes so that each"
+                                        "chart get it's corresponding 2d area")}]},
 	     ?__(5,"Scale selected charts")},
 	    {?__(6,"Rotate"), rotate, ?__(7,"Rotate selected charts")},
 	    separator,
@@ -391,8 +409,8 @@ command_menu(body, X, Y) ->
 	       {?__(21,"Right"), right, ?__(22,"Move to right border")}
 	      ]}, ?__(23,"Move charts to position")},
 	    {?__(24,"Flip"),{flip,
-		     [{?__(25,"Horizontal"),horizontal,?__(26,"Flip selection horizontally")},
-		      {?__(27,"Vertical"),vertical,?__(28,"Flip selection vertically")}]},
+                             [{?__(25,"Horizontal"),horizontal,?__(26,"Flip selection horizontally")},
+                              {?__(27,"Vertical"),vertical,?__(28,"Flip selection vertically")}]},
 	     ?__(29,"Flip selected charts")},
 	    separator,
 	    {?__(30,"Tighten"),tighten,
@@ -401,15 +419,7 @@ command_menu(body, X, Y) ->
 	    {?__(32,"Hide"),hide,?__(33,"Hide selected charts but keep UV-coordinates")},
 	    {?__(34,"Delete"),delete,?__(35,"Remove UV-coordinates for the selected charts")},
 	    separator,
-	    {?__(36,"ReMap UV"), {remap, [{?__(37,"Stretch optimization"), stretch_opt, 
-				   ?__(38,"Optimize the chart stretch")},
-				  separator,
-				  {?__(39,"Unfold"), lsqcm, ?__(40,"Unfold the chart")},
-				  {?__(41,"Project Normal"), project, 
-				   ?__(42,"Project UVs from chart normal")},
-				  {?__(43,"Spherical"), sphere, 
-				   ?__(44,"Spherical mapping")}
-				 ]}, 
+	    {?__(36,"ReMap UV"), {remap, Remap},
 	     ?__(45,"Calculate new UVs with chosen algorithm")}
 	   ] ++ option_menu(),
     wings_menu:popup_menu(X,Y, {auv,body}, Menu);
@@ -420,7 +430,7 @@ command_menu(face, X, Y) ->
 	    {?__(49,"Scale"),{scale,Scale},?__(50,"Scale selected faces"), [magnet]},
 	    {?__(51,"Rotate"),rotate,?__(52,"Rotate selected faces"), [magnet]},
 	    separator,
-	    {?__(521,"Project-Unfold"),	proj_lsqcm,
+	    {?__(521,"Project-Unfold"),	{remap, proj_lsqcm},
 	     ?__(522,"Project selected faces from normal and unfold the rest of chart")}
 	   ] ++ option_menu(),
     wings_menu:popup_menu(X,Y, {auv,face}, Menu);
@@ -448,11 +458,11 @@ command_menu(edge, X, Y) ->
 command_menu(vertex, X, Y) ->
     Scale = scale_directions(true),
     Move = move_directions(true),
-    Align = 	    
+    Align =
 	[{?__(70,"Free"),free,?__(71,"Rotate selection freely"), [magnet]},
-	 {?__(72,"Chart to X"), align_x, 
+	 {?__(72,"Chart to X"), align_x,
 	  ?__(73,"Rotate chart to align (imaginary) edge joining selected verts to X-axis")},
-	 {?__(74,"Chart to Y"), align_y, 
+	 {?__(74,"Chart to Y"), align_y,
 	  ?__(75,"Rotate chart to align (imaginary) edge joining selected verts to Y-axis")}],
 
     Menu = [{?__(77,"Move"),{move,Move},?__(78,"Move selected vertices"),[magnet]},
@@ -460,14 +470,14 @@ command_menu(vertex, X, Y) ->
 	    {?__(81,"Rotate"),{rotate,Align},?__(82,"Rotation commands")},
 	    separator,
 	    {?__(83,"Flatten"),{flatten,
-			[{"X", x, ?__(84,"Flatten horizontally")},
-			 {"Y", y, ?__(85,"Flatten vertically")}]}, 
+                                [{"X", x, ?__(84,"Flatten horizontally")},
+                                 {"Y", y, ?__(85,"Flatten vertically")}]},
 	     ?__(86,"Flatten selected vertices")},
 	    {?__(87,"Tighten"),tighten,
 	     ?__(88,"Move UV coordinates towards average midpoint"),
 	     [magnet]},
-	    separator, 
-	    {?__(89,"Unfold"),lsqcm,?__(90,"Unfold the chart (without moving the selected vertices)")},
+	    separator,
+	    {?__(89,"Unfold"),{remap, lsqcm},?__(90,"Unfold the chart (without moving the selected vertices)")},
 	    {?__(91,"SphereMap"),sphere,?__(92,"Create a spherical mapping with "
 	     "selected vertices being North/South pole")}
 	   ] ++ option_menu(),
@@ -824,15 +834,6 @@ handle_command_1({'ASK',Ask}, St) ->
 handle_command_1({remap,Method}, St0) ->
     St = remap(Method, St0),
     get_event(St);
-handle_command_1(M=proj_lsqcm, St0) ->
-    St = remap(M,St0),
-    get_event(St);
-handle_command_1(lsqcm, St0) ->
-    St = reunfold(lsqcm,St0),
-    get_event(St);
-handle_command_1(sphere, St0) ->
-    St = reunfold(sphere,St0),
-    get_event(St);
 handle_command_1(move, St) ->
     wings_move:setup(free_2d, St);
 handle_command_1({move,{'ASK',Ask}}, St) ->
@@ -1011,10 +1012,10 @@ replace_ask(Tuple0, AskArgs) when is_tuple(Tuple0) ->
     list_to_tuple(Tuple);
 replace_ask(Term, _) -> Term.
 
-repeatable({remap,_},Mode) -> Mode == body;
-repeatable(lsqcm, Mode) -> Mode == vertex;
-repeatable(sphere, Mode)-> Mode == vertex;
-repeatable(proj_lsqcm, Mode) -> Mode == face;
+repeatable({remap, proj_lsqcm}, Mode) -> Mode == face;
+repeatable({remap, proj_slim}, Mode) -> Mode == face;
+repeatable({remap,_},body) -> true;
+repeatable({remap,_},Mode) -> Mode == vertex;
 repeatable({scale, Dir}, Mode) 
   when ((Dir == max_uniform) or (Dir == max_x) or (Dir == max_y) or 
 	(Dir == normalize)) and (Mode /= body) -> false;
@@ -1792,7 +1793,7 @@ stretch(Dir,We) ->
     T = e3d_mat:mul(e3d_mat:translate(Pos), T1),
     wings_we:transform_vs(T, We).
     
-reunfold(Method,#st{sel=Sel,selmode=vertex}=St0) ->
+remap(Method,#st{sel=Sel,selmode=vertex}=St0) ->
     %% Check correct pinning.
     Ch = fun(Vs, #we{vp=Vtab}, _) ->
 		 case gb_sets:size(Vs) of
@@ -1827,24 +1828,28 @@ reunfold(Method,#st{sel=Sel,selmode=vertex}=St0) ->
 		{remap(Method, Pinned, Vs, We, St0),I+1}
 	end,
     {St,_} = wings_sel:mapfold(R, 1, St0),
-    wings_pb:done(update_selected_uvcoords(St)).
-
+    wings_pb:done(update_selected_uvcoords(St));
 remap(Method, #st{sel=Sel}=St0) ->
-    wings_pb:start(?__(1,"remapping")),
+    wings_pb:start(?__(3,"remapping")),
     wings_pb:update(0.001),
     N = length(Sel),
     Remap = fun(Elems, We, I) ->
-		    Msg = ?__(2,"chart")++" " ++ integer_to_list(I+1),
+		    Msg = ?__(4,"chart")++" " ++ integer_to_list(I+1),
 		    wings_pb:update(I/N, Msg),
 		    {remap(Method, none, Elems, We, St0),I+1}
 	    end,
     {St,_} = wings_sel:mapfold(Remap, 1, St0),
     wings_pb:done(update_selected_uvcoords(St)).
 
+remap(proj_lsqcm, Pinned, Sel, We, St) ->
+    remap({proj,lsqcm}, Pinned, Sel, We, St);
+remap(proj_slim, Pinned, Sel, We, St) ->
+    remap({proj,slim}, Pinned, Sel, We, St);
+
 remap(stretch_opt, _, _, We, St) ->
     Vs3d = orig_pos(We, St),
     ?SLOW(auv_mapping:stretch_opt(We, Vs3d));
-remap(proj_lsqcm, _, Sel, We0, St = #st{selmode=face}) ->
+remap({proj,Method}, _, Sel, We0, St = #st{selmode=face}) ->
     Vs3d = orig_pos(We0, St),
     try
 	Fs0   = gb_sets:to_list(Sel),
@@ -1859,7 +1864,7 @@ remap(proj_lsqcm, _, Sel, We0, St = #st{selmode=face}) ->
 			      {S,T,_} = array:get(V, Vtab),
 			      {V,{S,T}}
 			  end || V <- SelVs],
-		remap(lsqcm, Pinned, Sel, We0, St)
+		remap(Method, Pinned, Sel, We0, St)
 	end
     catch throw:{_,What} ->
 	    wpa:error_msg(What);

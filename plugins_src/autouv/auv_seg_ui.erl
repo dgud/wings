@@ -135,12 +135,19 @@ seg_event_3(Ev, #seg{st=#st{selmode=Mode}}=Ss) ->
 -ifndef(DEBUG).
 seg_debug(Tail) -> Tail.
 mappers() ->
-    [{?__(1,"Unfolding"),lsqcm},				  
-     {?__(2,"Projection Normal"),project},
-     {?__(3,"Projection Camera"),camera},
-     {?__(4,"Sphere Map"),sphere}
-    ,{?__(5,"Cylindrical Map"),cyl}
-    ].
+    First = case erlang:system_info(wordsize) of
+                4 ->
+                    [{?__(1,"Unfolding"),lsqcm}];
+                8 ->
+                    [{?__(1,"Unfolding"),lsqcm},
+                     {?__(6,"Unfolding (slower)"),slim}]
+            end,
+    First ++
+        [{?__(2,"Projection Normal"),project},
+         {?__(3,"Projection Camera"),camera},
+         {?__(4,"Sphere Map"),sphere},
+         {?__(5,"Cylindrical Map"),cyl}
+        ].
 -else.
 seg_debug(Tail) ->
     [separator,
@@ -150,9 +157,11 @@ seg_debug(Tail) ->
 	{?__(3,"Select seeds"),select_seeds},
         {?__(4,"Select Pinned vertices"), select_pinned}]}}|Tail].
 mappers() ->
-    [{?__(1,"Unfolding"),lsqcm}, 
+    [{?__(1,"Unfolding (lscm alg)"),lsqcm},
      {?__(2,"Two pass Unfolding"),lsqcm2},
-     {?__(3,"Projection"),project}].
+     {?__(6,"Unfolding (slim alg)"),slim},
+     {"Harmonic", harmonic},
+     {?__(2,"Projection Normal"),project}].
 -endif.
 
 seg_mode_menu(vertex, _, Tail) -> Tail;
