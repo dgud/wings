@@ -344,6 +344,7 @@ is_geom() ->
     case this() of
       geom -> true;
       {geom,_} -> true;
+      {plugin, {_, geom}} -> true;
       _ -> false
     end.
 
