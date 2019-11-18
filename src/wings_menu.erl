@@ -195,8 +195,8 @@ wx_popup_menu(Parent,Pos,Names,Menus0,Magnet,Owner) ->
 			   wx:set_env(Env),
 			   {Dialog, Panel, MEs, Cols} = wx:batch(CreateMenu),
 			   popup_events(Dialog, Panel, MEs, Cols, Magnet, undefined, Names, Owner),
-                           wxWindow:hide(Dialog),
                            wxWindow:releaseMouse(Panel),
+                           wxWindow:hide(Dialog),
                            wxFrame:destroy(Dialog)
 		       catch _:Reason ->
 			       io:format("CRASH ~p ~p~n",[Reason, erlang:get_stacktrace()])
