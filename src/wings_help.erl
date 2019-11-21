@@ -403,42 +403,115 @@ about(_) ->
 %%     \  /  \ 	/      |  |  | 	|  |  |__      	   \   |   |
 %%	\/    \/       |  |  | 	|__|   __|	\__/   |__/
 %%		       	     	 __|
-    Flags  = [{style, ?wxCAPTION bor ?wxRESIZE_BORDER bor ?wxCLOSE_BOX}],
+    Flags  = [{style, ?wxCAPTION bor ?wxCLOSE_BOX}],
     Frame = wxMiniFrame:new(?GET(top_frame), ?wxID_ANY, ?__(1, "About"), Flags),
     Icons = wings_frame:get_icon_images(),
     {_Panel,Szr} = about_panel(Frame, Icons),
     wxSizer:setSizeHints(Szr, Frame),
     wxWindow:centerOnParent(Frame),
     wxWindow:show(Frame),
+    wxWindow:setFocus(Frame),
     keep.
 
 about_panel(Parent, Imgs) ->
-    Panel = wxPanel:new(Parent),
-    Szr = wxBoxSizer:new(?wxVERTICAL),
-    {_, _Sz, Img} = lists:keyfind(about_wings, 1, Imgs),
-    Center = [{flag, ?wxALIGN_CENTER bor ?wxALL},  {border, 15}],
-    Right  = [{flag, ?wxALIGN_RIGHT bor ?wxRIGHT}, {border, 15}],
-    wxSizer:add(Szr, wxStaticBitmap:new(Panel, ?wxID_ANY, wxBitmap:new(Img)), Center),
-    Add = fun({spacer, _, H}) -> wxSizer:addSpacer(Szr, H);
-	     ({text, String}) -> wxSizer:add(Szr, wxStaticText:new(Panel, ?wxID_ANY, String), Right)
-	  end,
-    wx:foreach(Add, splash_contents()),
-    wxSizer:addSpacer(Szr, 15),
-    wxPanel:setSizer(Panel, Szr),
-    {Panel, Szr}.
+    %% the border shows a nice splash window when Wings3d starts
+    Panel = wxPanel:new(Parent,[{style,?wxBORDER_SIMPLE}]),
+
+    {_, {W,H}, Img} = lists:keyfind(about_wings, 1, Imgs),
+    P = fun(Sz) -> {proportion, Sz} end,
+    B = fun(Sz) -> {border,Sz} end,
+    SzrMain = wxBoxSizer:new(?wxVERTICAL),
+    TopPanel = wxPanel:new(Panel, [{size,{W,H}}]),
+    wxSizer:add(SzrMain, TopPanel, [P(0)]),
+
+    ImageFile = filename:join([wings_util:lib_dir(wings), "textures", "about_wings_art.png"]),
+    Image = wxImage:new(ImageFile),
+    BMImage = wxBitmap:new(Image),
+    wxSizer:add(SzrMain, wxStaticBitmap:new(Panel, ?wxID_ANY, BMImage),
+                [P(0), B(3), {flag, ?wxALL bor ?wxALIGN_CENTER}]),
+    wxImage:destroy(Image),
+    wxBitmap:destroy(BMImage),
+
+    SzrBottomCol = wxBoxSizer:new(?wxHORIZONTAL),
+    Left = wxStaticText:new(Panel, ?wxID_ANY, splash_content(bottom_left), []),
+    wxSizer:add(SzrBottomCol, Left, [P(0), B(5), {flag, ?wxLEFT}]),
+    wxSizer:add(SzrBottomCol, 0, 0, [P(1), {flag, ?wxEXPAND}]),
+    Rigth = wxStaticText:new(Panel, ?wxID_ANY, splash_content(bottom_right),
+                             [{style, ?wxALIGN_RIGHT}]),
+    wxSizer:add(SzrBottomCol, Rigth, [P(0), B(5), {flag, ?wxRIGHT}]),
+
+    wxSizer:add(SzrMain, SzrBottomCol, [P(0), B(10), {flag,?wxALL bor ?wxEXPAND}]),
+    wxPanel:setSizer(Panel, SzrMain),
+    wxPanel:layout(Panel),
+    %% used to allow us to draw the header text over the StaticBitmap
+    wxWindow:connect(TopPanel, paint, [{callback, fun redraw/2}, {userData,Img}]),
+    {Panel, SzrMain}.
+
+-define(lblVerX, 180).
+-define(lblVerY, 27).
+-define(lblDesX, 48).
+redraw(#wx{obj=TopPanel, userData=Img}, Obj) ->
+    wxEvent:skip(Obj),
+    String = splash_content(top),
+    Www = "www.wings3d.com",
+    {MaxW,MaxH} = wxWindow:getSize(TopPanel),
+    DC = case os:type() of
+	     {win32, _} -> %% Flicker on windows
+		 wx:typeCast(wxBufferedPaintDC:new(TopPanel), wxPaintDC);
+	     _ ->
+		 wxPaintDC:new(TopPanel)
+	 end,
+
+    GC = wxGraphicsContext:create(DC),
+    %% Drawing the top image background which will get the Wings3D's version stamped over
+    BM = wxBitmap:new(Img),
+    wxGraphicsContext:drawBitmap(GC, BM, 0, 0, wxBitmap:getWidth(BM), wxBitmap:getHeight(BM)),
+    wxBitmap:destroy(BM),
+
+    %% Prepating to use transparent color for the text background
+    BGB = wxBrush:new({0,0,0}, [{style, ?wxTRANSPARENT}]),
+    wxGraphicsContext:setBrush(GC, BGB),
+
+    %% Drawing the version number
+    Font1 = wxFont:new(11, ?wxDEFAULT, ?wxNORMAL, ?wxFONTWEIGHT_BOLD),
+    wxGraphicsContext:setFont(GC, Font1, {200,200,200}),
+    {_,H0,_,_} = wxGraphicsContext:getTextExtent(GC, "v2"),
+    wxGraphicsContext:drawText(GC, "v" ++ ?WINGS_VERSION, ?lblVerX, ?lblVerY-H0),
+    wxFont:destroy(Font1),
+
+    %% Drawing Wings3D description
+    Font2 = wxFont:new(8, ?wxDEFAULT, ?wxNORMAL, ?wxFONTWEIGHT_NORMAL),
+    wxGraphicsContext:setFont(GC, Font2, {200,200,200}),
+    {W,H,_,_} = wxGraphicsContext:getTextExtent(GC, Www),
+    wxGraphicsContext:drawText(GC, String, ?lblDesX, MaxH-H-3),
+    wxGraphicsContext:drawText(GC, Www, MaxW-W-5, MaxH-H-3),
+    wxFont:destroy(Font2),
+
+    wxBrush:destroy(BGB),
+    wxGraphicsContext:destroy(GC),
+    wxPaintDC:destroy(DC),
+    ok.
+
+splash_content(top) ->
+    [Top,_,_] = splash_contents(),
+    Top;
+splash_content(bottom_left) ->
+    [_,Left,_] = splash_contents(),
+    Left;
+splash_content(bottom_right) ->
+    [_,_,Right] = splash_contents(),
+    Right.
 
 splash_contents() ->
-    [{text,  ?WINGS_VERSION},
-     {spacer,0,10},
-     {text,?__(1,"Wings 3D is a subdivision modeler inspired")},
-     {text,?__(2,"by Nendo and Mirai from IZware.")},
-     {spacer,0,10},
-     {text,?__(3,"Wings 3D comes with absolutely no warranty,")},
-     {text,?__(4,"but is completely free for any kind of use")},
-     {text,?__(5,"(including commercial).")},
-     {spacer,0,10},
-     {text,?__(6,"Copyright") ++ [$\s,169] ++ " 2001-2016 Björn Gustavsson "},
-     {text,"Dan Gudmundsson" ++	?__(7," and Others")}
+    [?__(1,"Wings 3D is a subdivision modeler inspired") ++ " " ++
+     ?__(2,"by Nendo and Mirai from IZware."),
+
+     ?__(3,"Wings 3D comes with absolutely no warranty,") ++ "\n" ++
+     ?__(4,"but is completely free for any kind of use") ++ "\n" ++
+     ?__(5,"(including commercial)."),
+
+     ?__(6,"Copyright") ++ [$\s,169] ++ " 2001-2019 Björn Gustavsson" ++ "\n" ++
+     "Dan Gudmundsson" ++ ?__(7," and Others")
     ].
 
 edit_prefs() ->
