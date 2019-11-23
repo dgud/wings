@@ -525,9 +525,13 @@ make_button(Parent, Id, FloatCol, Empty) ->
 		       none -> {false, Empty};
 		       _ -> {true, make_bitmap(FloatCol)}
 		   end,
-    Static = case os:type() of
-		 {win32, _} -> wxBitmapButton:new(Parent, Id, BM, [{style, ?wxBORDER_NONE}]);
-		 {_, _}     -> wxStaticBitmap:new(Parent, Id, BM)
+    Static = case {os:type(), {?wxMAJOR_VERSION, ?wxMINOR_VERSION}} of
+		 {{win32, _},_} ->
+                     wxBitmapButton:new(Parent, Id, BM, [{style, ?wxBORDER_NONE}]);
+                 {{_,darwin},Ver} when Ver > {3,0} ->
+                     wxBitmapButton:new(Parent, Id, BM, [{style, ?wxBORDER_NONE}]);
+		 {_, _}     ->
+                     wxStaticBitmap:new(Parent, Id, BM)
 	     end,
     Delete andalso wxBitmap:destroy(BM),
     [wxWindow:connect(Static, Ev, [{skip, false}]) ||
@@ -556,9 +560,13 @@ setColor(Id, Color, _, Parent) ->
 setBitmap(Id, Bitmap, Parent) ->
     Win = wxWindow:findWindow(Parent, Id),
     wx:is_null(Win) andalso error({no_such_id, Id}),
-    case os:type() of
-	{win32, _} -> wxBitmapButton:setBitmapLabel(wx:typeCast(Win, wxBitmapButton), Bitmap);
-	{_, _}     -> wxStaticBitmap:setBitmap(wx:typeCast(Win, wxStaticBitmap), Bitmap)
+    case  {os:type(), {?wxMAJOR_VERSION, ?wxMINOR_VERSION}} of
+	{{win32, _},_} ->
+            wxBitmapButton:setBitmapLabel(wx:typeCast(Win, wxBitmapButton), Bitmap);
+        {{_,darwin}, Ver} when Ver > {3,0} ->
+            wxBitmapButton:setBitmapLabel(wx:typeCast(Win, wxBitmapButton), Bitmap);
+	{_, _}     ->
+            wxStaticBitmap:setBitmap(wx:typeCast(Win, wxStaticBitmap), Bitmap)
     end.
 
 make_bitmap(Col0) ->

@@ -211,11 +211,11 @@ setup_dialog(Parent, Entries0, Magnet, {X0,Y0}=ScreenPos) ->
     Flags = ?wxFRAME_TOOL_WINDOW bor ?wxFRAME_FLOAT_ON_PARENT bor ?wxFRAME_NO_TASKBAR,
     Frame = wxFrame:new(),
     wxWindow:setExtraStyle(Frame, ?wxWS_EX_PROCESS_IDLE bor ?wxFRAME_EX_METAL),
-    case {os:type(), {?wxMAJOR_VERSION, ?wxMINOR_VERSION}} of
-        {{_, linux}, Ver} when Ver > {3,0} ->
-            wxFrame:setBackgroundStyle(Frame, 3); %% ?wxBG_STYLE_TRANSPARENT
-        _ -> ok
-    end,
+    %% case {os:type(), {?wxMAJOR_VERSION, ?wxMINOR_VERSION}} of
+    %%     {{_, linux}, Ver} when Ver > {3,0} ->
+    %%         wxFrame:setBackgroundStyle(Frame, 3); %% ?wxBG_STYLE_TRANSPARENT
+    %%     _ -> ok
+    %% end,
     true = wxFrame:create(Frame, Parent, -1, "", [{style, Flags}]),
     Panel = wxWindow:new(Frame, -1, [{style, ?wxWANTS_CHARS}]),
     wxWindow:setFont(Panel, ?GET(system_font_wx)),

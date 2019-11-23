@@ -90,9 +90,16 @@ make_win(Parent, Title, Ps) ->
 	       false  ->
 		   []
 	   end,
-    Frame = wxMiniFrame:new(Parent, ?wxID_ANY, Title, [FStyle|Opts]),
+    Frame = (useframe()):new(Parent, ?wxID_ANY, Title, [FStyle|Opts]),
     Size =/= false andalso wxWindow:setClientSize(Frame, Size),
     Frame.
+
+useframe() ->
+    %% Miniframes can't be resized in gtk and wxWidgets 3.1
+    case {os:type(), {?wxMAJOR_VERSION, ?wxMINOR_VERSION}} of
+        {{_, linux}, Ver} when Ver > {3,0} ->  wxFrame;
+        _ -> wxMiniFrame
+    end.
 
 register_win(Window, Name, Ps) ->
     wx_object:call(?MODULE, {new_window, Window, Name, Ps}).
@@ -439,7 +446,7 @@ handle_call({new_window, Window, Name, Ps}, _From,
     Geom = proplists:get_value(top, Ps),
     Win0 = #win{win=Window, name=Name},
     if External ->
-	    Frame = wx:typeCast(wxWindow:getParent(Window), wxMiniFrame),
+	    Frame = wx:typeCast(wxWindow:getParent(Window), useframe()),
 	    Title = wxFrame:getTitle(Frame),
 	    Win = Win0#win{frame=Frame, title=Title, ps=#{close=>true, move=>true}},
 	    wxWindow:connect(Frame, move),
@@ -925,7 +932,7 @@ close_win(Win, #state{windows=#{frame:=TopFrame,ch:=Tree,loose:=Loose,szr:=Szr}=
 	false ->
 	    case lists:keyfind(Win, #win.win, maps:values(Loose)) of
 		#win{frame=Frame} = _Win ->
-		    wxMiniFrame:destroy(Frame),
+		    wxFrame:destroy(Frame),
                     _ = wxWindow:findFocus(), %% Sync the destroy
 		    State#state{windows=Wins#{loose:=maps:remove(Frame, Loose)}};
 		false ->

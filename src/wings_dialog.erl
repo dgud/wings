@@ -209,7 +209,7 @@ init() ->
 info(Title, Info, Options) ->
     Parent = proplists:get_value(parent, Options, get_dialog_parent()),
     Flags  = [{size, {500, 400}}, {style, ?wxCAPTION bor ?wxRESIZE_BORDER bor ?wxCLOSE_BOX}],
-    Frame  = wxMiniFrame:new(Parent, ?wxID_ANY, Title, Flags),
+    Frame  = wxFrame:new(Parent, ?wxID_ANY, Title, Flags),
     Panel  = wxHtmlWindow:new(Frame, []),
     Sizer  = wxBoxSizer:new(?wxVERTICAL),
     Html = text_to_html(Info),

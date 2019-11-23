@@ -404,7 +404,7 @@ about(_) ->
 %%	\/    \/       |  |  | 	|__|   __|	\__/   |__/
 %%		       	     	 __|
     Flags  = [{style, ?wxCAPTION bor ?wxCLOSE_BOX}],
-    Frame = wxMiniFrame:new(?GET(top_frame), ?wxID_ANY, ?__(1, "About"), Flags),
+    Frame = wxFrame:new(?GET(top_frame), ?wxID_ANY, ?__(1, "About"), Flags),
     Icons = wings_frame:get_icon_images(),
     {_Panel,Szr} = about_panel(Frame, Icons),
     wxSizer:setSizeHints(Szr, Frame),
