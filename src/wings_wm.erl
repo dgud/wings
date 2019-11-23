@@ -234,7 +234,10 @@ new_resolve_z(highest) ->
 new_resolve_z(Z) when is_integer(Z), Z >= 0-> Z.
 
 delete(Name) ->
-    wings_frame:close(wxwindow(Name)),
+    case wxwindow(Name) of
+        undefined -> ignore;
+        Win -> wings_frame:close(Win)
+    end,
     Windows = delete_windows(Name, get(wm_windows)),
     put(wm_windows, Windows),
     case is_window(grabbed_focus_window()) of

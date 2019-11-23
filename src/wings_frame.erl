@@ -928,6 +928,7 @@ update_win(Win, #split{w1=W1, w2=W2}=Parent, _, Fun) ->
 update_win(_, _, _, _) -> false.
 
 close_win(Win, #state{windows=#{frame:=TopFrame,ch:=Tree,loose:=Loose,szr:=Szr}=Wins}=State) ->
+    catch wx_object:stop(Win),
     case find_win(Win, Tree) of
 	false ->
 	    case lists:keyfind(Win, #win.win, maps:values(Loose)) of
