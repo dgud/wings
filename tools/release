@@ -72,7 +72,7 @@ mac_release(BuildRoot, WingsVsn) ->
     [copy(F, Resources) || F <- ResourceFiles],
     copy("InfoPlist.strings", filename:join(Resources, "English.lproj")),
     release_otp(Resources, undefined),
-    convert_script(Root),
+    convert_script(Resources),
     run("codesign", ["-s","Developer ID",Root]),
     ok = file:set_cwd(lib_dir(wings)),
     MakeDmg = filename:join([lib_dir(wings),"macosx","make_dmg"]),
