@@ -300,7 +300,8 @@ ext(".glsl") -> {text, shader};
 ext(".fs")   -> {text, shader};
 ext(".vs")   -> {text, shader};
 ext(".auv")  -> {text, shader};
-ext("." ++ Rest) -> {unknown, list_to_atom(Rest)}.
+ext("." ++ Rest) -> {unknown, list_to_atom(Rest)};
+ext("") -> {unknown, []}.
 
 
 fix_app_version(App0, Lib) ->
