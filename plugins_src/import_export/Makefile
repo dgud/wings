@@ -36,6 +36,7 @@ MODULES= \
 	collada_import \
 	wpc_gltf \
 	wpc_hlines \
+	wpc_jscad \
 	wpc_kerky \
 	wpc_lwo \
 	wpc_obj \
