@@ -73,8 +73,8 @@ export(Filename, Contents0, Attr) ->
     io:format(F, "// Objects      : ~lp\n",[NObjs]),
     io:format(F, "// Exported from: ~ts\n",[Creator]),
     %% Write file body
-    io:format(F, "function main() {\n",[]),
-    io:format(F, "  return [\n",[]),
+    io:put_chars(F, "function main() {\n"),
+    io:put_chars(F, "\treturn [\n"),
     try
 	lists:foldl(fun(#e3d_object{name = Name, obj=Obj}, AccObj) ->
 			Meshes = e3d_mesh:split_by_material(Obj),
@@ -89,7 +89,7 @@ export(Filename, Contents0, Attr) ->
 			end,
 			AccObj-1
 		  end, NObjs, Objs),
-    	io:format(F, "\n  ];\n}\n",[])
+	io:put_chars(F, "\n\t];\n}\n")
     catch _:Err:Stacktrace ->
 	io:format(?__(1,"OpenJSCAD Error: ~P in")++" ~p~n", [Err,30,Stacktrace])
     end,
@@ -98,49 +98,34 @@ export(Filename, Contents0, Attr) ->
 export_object(F, ObjName, #e3d_mesh{type=Type,fs=Fs,vs=VTab}, Mat_defs) ->
     [#e3d_face{mat=[Material|_]}|_] = Fs,
     DifColor = material(Material, Mat_defs),
-    io:format(F, "    // ~ts.~ts\n",[ObjName,Material]),
-    io:format(F, "    color(~p, \n",[DifColor]),
-    io:format(F, "      polyhedron(\n",[]),
+    io:format(F, "\t\t// ~ts.~ts\n",[ObjName,Material]),
+    io:format(F, "\t\tcolor(~w, \n",[DifColor]),
+    io:put_chars(F, "\t\t\tpolyhedron(\n"),
 
-    %% Helpers
-    W3 = fun({X,Y,Z}) ->  io:format(F, "                    [~p,~p,~p]", [X,Y,Z]) end,
     %% Write vertex coordinates
-    io:format(F, "        { points: [\n",[]),
-    all(W3,F,VTab),
-    io:format(F, "\n                  ],\n",[]),
+    io:put_chars(F, "\t\t\t\t{ points: [\n"),
+    all(fun({X,Y,Z}) -> io:format(F, "\t\t\t\t\t\t[~f,~f,~f]", [X,Y,Z]) end,F,VTab),
+    io:put_chars(F, "\n\t\t\t\t\t],\n"),
     %% Write vertex indexes for faces
     SType =
 	case Type of
 	    triangle -> "triangles";
 	    _ -> "polygons"
 	end,
-    io:format(F, "          ~s: [\n",[SType]),
-    Ident = "          "++string:right("",length(SType))++"     ",
-    all(fun(#e3d_face{vs=Vs}) -> print_face(F,Ident,Vs) end,F,Fs),
-    io:format(F, "\n          ~s  ]\n",[string:right("",length(SType))]),
+    io:format(F, "\t\t\t\t  ~s: [\n",[SType]),
+    all(fun(#e3d_face{vs=Vs}) -> io:format(F, "\t\t\t\t\t\t~w", [lists:reverse(Vs)]) end,F,Fs),
+    io:put_chars(F, "\n\t\t\t\t\t]\n"),
     %% Close polyhedron's data (points and triangles/polygons)
-    io:put_chars(F, "        }\n"),
+    io:put_chars(F, "\t\t\t\t}\n"),
     %% Close color and polyhedron
-    io:put_chars(F, "      )\n"),
-    io:put_chars(F, "    )").
+    io:put_chars(F, "\t\t\t)\n"),
+    io:put_chars(F, "\t\t)").
 
 material(Name, Mat_defs) ->
     MatInfo = lookup(Name, Mat_defs),
     Mat = lookup(opengl, MatInfo),
     {Dr, Dg, Db, _} = lookup(diffuse, Mat),
     [Dr, Dg, Db].
-
-print_face(F, Ident, Vs0) ->
-    Vs = Vs0,
-    io:put_chars(F, Ident++"["),
-    %% we need to invert the face order to get it in CW sequence as OpenJSCAD needs
-    lists:foldr(fun(V,1) ->
-		    io:format(F, "~lp", [V]);
-	       (V,Acc) ->
-		    io:format(F, "~lp,", [V]),
-		   Acc-1
-	       end, length(Vs), Vs),
-    io:put_chars(F, "]").
 
 dialog(export) ->
     [{label_column,
