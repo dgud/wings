@@ -72,7 +72,17 @@ event_1(_, _) -> next.
 
 lookup(Ev, {Menu,_}=Cmd) ->
     Mode = suitable_mode(Menu),
-    case ets:lookup(?KL, bindkey(Ev, Cmd)) of
+    BKey = bindkey(Ev, Cmd),
+    KeyInfo =
+	case ets:lookup(?KL, BKey) of
+	    [] ->  %% It can happens if we are bind a main menu item
+		case BKey of
+		    {B1,{_,_}=B2} -> ets:match_object(?KL, {{B1,'_',B2},'_','_'});
+		    _ -> []
+		end;
+	    KInfo -> KInfo
+	end,
+    case KeyInfo of
 	[{_,Action,_}] when not Mode -> Action;
 	[{_,{Menu,_}=Action,_}] -> Action;
 	[] -> next;
@@ -169,7 +179,15 @@ event_handler(Ev = #keyboard{}, #cs{op=bind, action=Cmd})
                     C = wings_util:stringify(OtherCmd),
                     Q = ?__(1,"This key is already bound to the ") ++ C ++
                         ?__(2," command. Do you want to re-define it?"),
-                    wings_u:yes_no(Q, fun() -> do_bind(Ev, Cmd) end)
+                    wings_u:yes_no(Q, fun() ->
+					    case hotkeys_by_commands([OtherCmd]) of
+						[] -> none;
+						HotKeys ->
+						    [wings_hotkey:unbind(Key) || {Key, _, _, _} <- HotKeys],
+						    wings_menu:update_menu_hotkey(OtherCmd, "")
+					    end,
+					    do_bind(Ev, Cmd)
+				      end)
             end,
             wings_wm:dirty(),
             pop
