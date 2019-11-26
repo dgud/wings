@@ -28,6 +28,11 @@
 
 - Fixed rendering bug when editing materials with vertex colors. Thanks Hank. [dgud]
 
+- The option "File->Save Selected" was saving images not used by the
+  selected object(s); Thanks Hank [Micheus Vieira]
+
+- Added an exporter to OpenJSCAD file format (.jscad); [micheus]
+
 --- 2.2.4 --------------------------------------------
 
 - Fixed View/Show Texture bug. [dgud]
