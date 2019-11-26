@@ -436,7 +436,7 @@ save_now(Next, #st{file=Name0}=St) ->
     end,
     file:rename(Name, Backup),
     file:delete(autosave_filename(Name)),
-    case ?SLOW(wings_ff_wings:export(Name, St)) of
+    case ?SLOW(wings_ff_wings:export(Name, false, St)) of
 	ok ->
 	    set_cwd(dirname(Name)),
 	    add_recent(Name),
@@ -474,7 +474,7 @@ save_selected(St) ->
 
 save_selected(Name, St0) ->
     St = delete_unselected(St0),
-    case ?SLOW(wings_ff_wings:export(Name, St)) of
+    case ?SLOW(wings_ff_wings:export(Name, true, St)) of
 	ok -> keep;
 	{error,Reason} -> wings_u:error_msg(Reason)
     end.
@@ -618,7 +618,7 @@ autosave(#st{file=Name}=St) ->
     View = wings_wm:get_prop(geom, current_view),
     wings_view:set_current(View),
     filelib:ensure_dir(Auto),
-    case ?SLOW(wings_ff_wings:export(Auto, St)) of
+    case ?SLOW(wings_ff_wings:export(Auto, false, St)) of
 	ok ->
 	    wings_u:caption(St#st{saved=auto});
 	{error,Reason} ->
