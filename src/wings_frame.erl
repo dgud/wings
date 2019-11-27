@@ -352,7 +352,10 @@ init(_Opts) ->
 
 make_splash(Canvas, Imgs) ->
     BG = wxSystemSettings:getColour(?wxSYS_COLOUR_WINDOWFRAME),
-    wxWindow:setBackgroundColour(Canvas, BG),
+    case os:type() of %% Workaround black panel color on gtk and wxWidgets-3.1.3
+        {_, linux} -> wxWindow:setBackgroundColour(Canvas, BG);
+        _ -> ok
+    end,
     Szr = wxBoxSizer:new(?wxHORIZONTAL),
     wxSizer:addStretchSpacer(Szr),
     {Splash, _} = wings_help:about_panel(Canvas,Imgs),
