@@ -403,7 +403,7 @@ about(_) ->
 %%     \  /  \ 	/      |  |  | 	|  |  |__      	   \   |   |
 %%	\/    \/       |  |  | 	|__|   __|	\__/   |__/
 %%		       	     	 __|
-    Flags  = [{style, ?wxCAPTION bor ?wxCLOSE_BOX}],
+    Flags  = [{style, ?wxCAPTION bor ?wxCLOSE_BOX bor ?wxFRAME_FLOAT_ON_PARENT}],
     Frame = wxFrame:new(?GET(top_frame), ?wxID_ANY, ?__(1, "About"), Flags),
     Icons = wings_frame:get_icon_images(),
     {_Panel,Szr} = about_panel(Frame, Icons),
@@ -432,15 +432,18 @@ about_panel(Parent, Imgs) ->
     wxImage:destroy(Image),
     wxBitmap:destroy(BMImage),
 
+    Font = wxFont:new(10, ?wxDEFAULT, ?wxNORMAL, ?wxFONTWEIGHT_BOLD),
+    wxWindow:setFont(Panel, Font),
+    wxFont:destroy(Font),
     SzrBottomCol = wxBoxSizer:new(?wxHORIZONTAL),
     Left = wxStaticText:new(Panel, ?wxID_ANY, splash_content(bottom_left), []),
-    wxSizer:add(SzrBottomCol, Left, [P(0), B(5), {flag, ?wxLEFT}]),
-    wxSizer:add(SzrBottomCol, 0, 0, [P(1), {flag, ?wxEXPAND}]),
-    Rigth = wxStaticText:new(Panel, ?wxID_ANY, splash_content(bottom_right),
+    wxSizer:add(SzrBottomCol, Left, [P(1), B(5), {flag, ?wxLEFT}]),
+    wxSizer:add(SzrBottomCol, 0, 0, [P(0), {flag, ?wxEXPAND}]),
+    Right = wxStaticText:new(Panel, ?wxID_ANY, splash_content(bottom_right),
                              [{style, ?wxALIGN_RIGHT}]),
-    wxSizer:add(SzrBottomCol, Rigth, [P(0), B(5), {flag, ?wxRIGHT}]),
+    wxSizer:add(SzrBottomCol, Right, [P(1), B(5), {flag, ?wxRIGHT}]),
 
-    wxSizer:add(SzrMain, SzrBottomCol, [P(0), B(10), {flag,?wxALL bor ?wxEXPAND}]),
+    wxSizer:add(SzrMain, SzrBottomCol, [P(1), B(10), {flag,?wxALL bor ?wxEXPAND}]),
     wxPanel:setSizer(Panel, SzrMain),
     wxPanel:layout(Panel),
     %% used to allow us to draw the header text over the StaticBitmap

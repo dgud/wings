@@ -320,12 +320,14 @@ init(_Opts) ->
 	TopSize = wings_pref:get_value(window_size),
 	Frame0 = wxFrame:new(wx:null(), -1, "Wings 3D", [{size, TopSize}]),
         Frame = wx_object:set_pid(Frame0, self()),
+
 	IconImgs = make_icons(),
 	set_icon(Frame),
 	Sizer = wxBoxSizer:new(?wxVERTICAL),
+
 	Top = make(Frame),
 	Canvas = make_splash(wxPanel:new(win(Top)), IconImgs),
-	wxSizer:add(Sizer, win(Top), [{proportion, 1}, {border, 3},
+	wxSizer:add(Sizer, win(Top), [{proportion, 1}, {border, 0},
                                       {flag, ?wxEXPAND bor ?wxLEFT bor ?wxRIGHT}]),
 	wxSplitterWindow:initialize(win(Top), Canvas),
 	Toolbar = wings_toolbar:init(Frame, IconImgs),
@@ -349,6 +351,8 @@ init(_Opts) ->
     end.
 
 make_splash(Canvas, Imgs) ->
+    BG = wxSystemSettings:getColour(?wxSYS_COLOUR_WINDOWFRAME),
+    wxWindow:setBackgroundColour(Canvas, BG),
     Szr = wxBoxSizer:new(?wxHORIZONTAL),
     wxSizer:addStretchSpacer(Szr),
     {Splash, _} = wings_help:about_panel(Canvas,Imgs),
