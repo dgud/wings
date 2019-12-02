@@ -30,7 +30,7 @@
 
 %% Window information.
 -export([top_size/0,
-	 viewport/0, viewport/1,
+	 viewport/0, viewport/1, win_scale/0,
 	 win_size/0, win_size/1,
 	 win_rect/0, win_rect/1,
 	 win_ul/0, win_ul/1, win_ur/1,win_ll/1,win_lr/1,win_z/1
@@ -67,7 +67,8 @@
 	 stk,					%Event handler stack.
 	 links=[],			        %Windows linked to this one.
 	 dd=none, 				%Display data cache
-	 obj                                    %wx window
+	 obj,                                   %wx window
+         scale=1                                %HighDpi scale factor
 	}).
 
 -record(se,					%Stack entry record.
@@ -128,9 +129,10 @@ new(Name, Obj, Op) when element(1, Obj) =:= wx_ref ->
     new_props(Name, [{font,system_font}]),
     Z = highest_z(),
     {W,H} = wxWindow:getClientSize(Obj),
-    %% io:format("~p:~p: ~p ~p~n",[?MODULE, ?LINE, Name, Obj]),
+    Scale = wxWindow:getContentScaleFactor(Obj),
+    %% io:format("~p:~p: ~p ~p ~p~n",[?MODULE, ?LINE, Name, Obj, Scale]),
     use_opengl(Obj) andalso init_opengl(Name, Obj),
-    Win = #win{x=0,y=0,z=Z,w=W,h=H,name=Name,stk=Stk,obj=Obj},
+    Win = #win{x=0,y=0,z=Z,w=W,h=H,name=Name,stk=Stk,obj=Obj, scale=Scale},
     put(wm_windows, gb_trees:insert(Name, Win, get(wm_windows))),
     put(Obj, Name),
     dirty().
@@ -496,6 +498,10 @@ cancel_timer(Ref) ->
 
 viewport() ->
     get(wm_viewport).
+
+win_scale() ->
+    #win{scale=Scale} = get_window_data(this()),
+    Scale.
 
 viewport(Name) ->
     #win{x=X,y=Y0,w=W,h=H} = get_window_data(Name),
@@ -896,7 +902,7 @@ redraw_all() ->
     wings_io:set_cursor(get(wm_cursor)),
     event_loop().
 
-redraw_win({Name, #win{w=W,h=H,obj=Obj}}) ->
+redraw_win({Name, #win{w=W,h=H,obj=Obj,scale=Scale}}) ->
     DoSwap = case use_opengl(Obj) of
 		 true ->
                      case get(current_gl) of
@@ -905,7 +911,7 @@ redraw_win({Name, #win{w=W,h=H,obj=Obj}}) ->
                              wxGLCanvas:setCurrent(Obj),
                              put(current_gl, Obj)
                      end,
-		     gl:viewport(0,0,W,H),
+		     gl:viewport(0,0,round(W*Scale),round(H*Scale)),
 		     gl:clear(?GL_COLOR_BUFFER_BIT bor ?GL_DEPTH_BUFFER_BIT),
 		     true;
 		 false ->
