@@ -315,6 +315,7 @@ render_image(Geom0, Passes, #opt{texsz={TexW,TexH}}, Reqs) ->
     gl:pushAttrib(?GL_ALL_ATTRIB_BITS),
 
     Current = wings_wm:viewport(),
+    Scale = wings_wm:win_scale(),
     UsingFbo = setup_fbo(TexW,TexH),
     {W0,H0} = if not UsingFbo ->
                       wings_wm:top_size();
@@ -325,7 +326,7 @@ render_image(Geom0, Passes, #opt{texsz={TexW,TexH}}, Reqs) ->
     {W,Wd} = calc_texsize(W0, TexW),
     {H,Hd} = calc_texsize(H0, TexH),
 %%    io:format("Get texture sz ~p ~p ~n", [{W,Wd},{H,Hd}]),
-    set_viewport({0,0,W,H}),
+    set_viewport({0,0,W,H}, 1),
     Geom = make_vbo(Geom0, Reqs),
     try
         Do = fun(Pass) ->
@@ -354,7 +355,7 @@ render_image(Geom0, Passes, #opt{texsz={TexW,TexH}}, Reqs) ->
             #sh_conf{fbo_d=DeleteMe} -> DeleteMe()
         end,
         wings_vbo:delete(Geom#ts.vbo),
-        set_viewport(Current),
+        set_viewport(Current, Scale),
         gl:readBuffer(?GL_BACK),
         gl:popAttrib(),
         gl:blendEquationSeparate(?GL_FUNC_ADD, ?GL_FUNC_ADD),
@@ -529,9 +530,9 @@ gen_tx_sizes(Sz, Acc) ->
     Str = lists:flatten([Str0|SzStr]),
     gen_tx_sizes(Sz div 2, [{Str,Sz}|Acc]).
 
-set_viewport({X,Y,W,H}=Viewport) ->
+set_viewport({X,Y,W,H}=Viewport, Scale) ->
     put(wm_viewport, Viewport),
-    gl:viewport(X, Y, W, H).
+    gl:viewport(X, Y, round(W*Scale), round(H*Scale)).
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

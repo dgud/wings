@@ -196,7 +196,9 @@ screenshot(Name) ->
 
 viewport_screenshot(Name) ->
 %% screenshot of just the viewport scene
-    {X,Y,W,H} = wings_wm:viewport(),
+    {X,Y,W0,H0} = wings_wm:viewport(),
+    Scale = wings_wm:win_scale(),
+    W = round(W0*Scale), H = round(H0*Scale),
     gl:pixelStorei(?GL_PACK_ALIGNMENT, 1),
     gl:readBuffer(?GL_FRONT),
     Mem = wings_io:get_buffer(W*H*3, ?GL_UNSIGNED_BYTE),
