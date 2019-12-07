@@ -330,7 +330,6 @@ defaults() ->
     wings_theme:native_theme()++
     [
      %% Put any non-constant preferences here.
-     {jumpy_camera,os:type() =:= {unix,darwin}},
 
      %% Advanced menus are always turned on now.
      %% The default must still be false for compatibility
@@ -371,6 +370,8 @@ defaults() ->
      {polygon_offset_r,1.0},
      {multisample, true},
      {ungrab_bug, false},
+     {no_warp, false},
+     {jumpy_camera, false},
 
      %% Advanced features.
      {default_commands,false},

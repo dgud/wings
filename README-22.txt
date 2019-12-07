@@ -33,6 +33,9 @@
 
 - Added an exporter to OpenJSCAD file format (.jscad); [micheus]
 
+- Added a minimal warp mouse camera workaround see 'Options/Misc/' tickbox.
+  Enable it and test again if you have problems.
+
 --- 2.2.4 --------------------------------------------
 
 - Fixed View/Show Texture bug. [dgud]
