@@ -416,11 +416,18 @@ fatal(Format, Args) ->
     throw({fatal,["release: "|io_lib:format(Format, Args)]}).
 
 lib_dir(App) ->
-    case code:lib_dir(App) of
-        {error,_} ->  %% ERL_LIBS is not set
-            case App of
-                wings -> get(top_dir);
-                cl -> filename:join([get(top_dir), "_deps", "cl"])
-            end;
-        Dir -> Dir
+    case is_wslcross() of
+        true when App /= wings, App /= cl ->
+            Str = io_lib:format("erl.exe -eval  \"erlang:display(code:lib_dir(~s))\" -run erlang halt", [App]),
+            WinPath = os:cmd(lists:flatten(Str)),
+            string:chomp(os:cmd("wslpath -u " ++ WinPath));
+        _ ->
+            case code:lib_dir(App) of
+                {error,_} ->  %% ERL_LIBS is not set
+                    case App of
+                        wings -> get(top_dir);
+                        cl -> filename:join([get(top_dir), "_deps", "cl"])
+                    end;
+                Dir -> Dir
+            end
     end.
