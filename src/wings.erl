@@ -422,6 +422,7 @@ handle_event_3({vec_command,Command,St}, _) when is_function(Command) ->
     command_response(Command(), none, St);
 handle_event_3(#mousebutton{}, _St) -> keep;
 handle_event_3(#mousemotion{}, _St) -> keep;
+%handle_event_3(#mousewheel{}, _St) -> keep;
 handle_event_3(init_opengl, St) ->
     init_opengl(St),
     main_loop_noredraw(St);

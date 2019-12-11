@@ -60,7 +60,7 @@ prefs() ->
     CamRotSpeed = wings_pref:get_value(cam_rotation_speed, 25),
     PanSpeed0 = wings_pref:get_value(pan_speed, 25),
     ArrowPanSpeed = wings_pref:get_value(pan_speed_arrow_keys, 50),
-    WheelAdds = wings_pref:get_value(wheel_adds,false),
+    WheelAdds = wings_pref:get_value(wheel_adds,true),
     WhScrollInfo = wings_pref:get_value(wh_scroll_info,true),
     WhPanSpd = wings_pref:get_value(wh_pan_spd, 50),
     WhRotate = wings_pref:get_value(wh_rot_spd, 7.5),
@@ -106,7 +106,7 @@ prefs() ->
 	    {label,"%"}]}
 	 ],[{title,?__(9,"Scroll Wheel")}]},
 	{vframe,
-	 [{?__(11,"Wheel Pans & Rotates"),WheelAdds,[{key,wheel_adds}, {hook, AddHook}]},
+	 [{?__(11,"Wheel Pans and Rotates"),WheelAdds,[{key,wheel_adds}, {hook, AddHook}]},
 	  {?__(17,"Show Info Line Help String"),WhScrollInfo,[{key,wh_scroll_info}]},
 	  {vframe,
 	   [{hframe,
@@ -189,7 +189,7 @@ scroll_help() ->
 event(Ev, St=#st{}) -> 
     event(Ev,St,none).
 %% Scroll wheel camera events
-event(#mousebutton{button=B}=Ev, _St, _Redraw) when B=:=4; B=:=5 ->
+event(#mousewheel{}=Ev, _St, _Redraw) ->
     generic_event(Ev,_St,_Redraw);
 % Camera mode specific events
 event(Ev, St, Redraw) ->
@@ -698,50 +698,40 @@ generic_event(redraw, _Camera, #state{func=Redraw}) when is_function(Redraw) ->
     Redraw(),
     keep;
 
-generic_event(#mousebutton{button=4,mod=Mod,state=?SDL_RELEASED}, _Camera, _Redraw)
-  when Mod band ?SHIFT_BITS =/= 0 andalso Mod band ?ALT_BITS =/= 0 ->
-    whrotate(0.5,0.0);
-generic_event(#mousebutton{button=5,mod=Mod,state=?SDL_RELEASED}, _Camera, _Redraw)
-  when Mod band ?SHIFT_BITS =/= 0 andalso Mod band ?ALT_BITS =/= 0 ->
-    whrotate(-0.5,0.0);
-generic_event(#mousebutton{button=4,mod=Mod,state=?SDL_RELEASED}, _Camera, _Redraw)
-  when Mod band ?SHIFT_BITS =/= 0 ->
-    whrotate(0.0,0.5);
-generic_event(#mousebutton{button=5,mod=Mod,state=?SDL_RELEASED}, _Camera, _Redraw)
-  when Mod band ?SHIFT_BITS =/= 0 ->
-    whrotate(0.0,-0.5);
-
-generic_event(#mousebutton{button=4,mod=Mod,state=?SDL_RELEASED}, _Camera, _Redraw)
-  when Mod band ?CTRL_BITS =/= 0 andalso Mod band ?ALT_BITS =/= 0 ->
-    whpan(0.05,0.0);
-generic_event(#mousebutton{button=5,mod=Mod,state=?SDL_RELEASED}, _Camera, _Redraw)
-  when Mod band ?CTRL_BITS =/= 0 andalso Mod band ?ALT_BITS =/= 0 ->
-    whpan(-0.05,0.0);
-generic_event(#mousebutton{button=4,mod=Mod,state=?SDL_RELEASED}, _Camera, _Redraw)
-  when Mod band ?CTRL_BITS =/= 0 ->
-    whpan(0.0,0.05);
-generic_event(#mousebutton{button=5,mod=Mod,state=?SDL_RELEASED}, _Camera, _Redraw)
-  when Mod band ?CTRL_BITS =/= 0 ->
-    whpan(0.0,-0.05);
-
-generic_event(#mousebutton{button=4,mod=Mod,state=?SDL_RELEASED}, _Camera, _Redraw)
-  when Mod band ?ALT_BITS =/= 0 ->
-    zoom_step_alt(-1);
-generic_event(#mousebutton{button=4,state=?SDL_RELEASED}, #st{}=St, none) ->
-%% Matching 'none' stops zoom aim from being activated during a drag sequence.
-%% Zoom aim warps the mouse to the screen's centre, and this can cause a crash
-%% in since drag events also depend on cursor position.
-    aim_zoom(-1, St);
-generic_event(#mousebutton{button=4,state=?SDL_RELEASED}, _Camera, _Redraw) ->
-    zoom_step(-1);
-generic_event(#mousebutton{button=5,mod=Mod,state=?SDL_RELEASED}, _Camera, _Redraw)
-  when Mod band ?ALT_BITS =/= 0 ->
-    zoom_step_alt(1);
-generic_event(#mousebutton{button=5,state=?SDL_RELEASED}, _, none) ->
-%% Matching 'none' stops zoom aim from being activated during a drag sequence
-    zoom_step(1);
-generic_event(#mousebutton{button=5,state=?SDL_RELEASED}, _Camera, _Redraw) ->
-    zoom_step(1);
+generic_event(#mousewheel{dir=ver, wheel=N, mod=Mod}, Camera, Redraw) ->
+    %% ?dbg("Wheel: ~w  shift: ~p   alt ~p   ctrl: ~p~n",
+    %%      [N,Mod band ?SHIFT_BITS =/= 0,Mod band ?ALT_BITS =/= 0, Mod band ?CTRL_BITS =/= 0]),
+    if Mod band ?SHIFT_BITS =/= 0 andalso Mod band ?ALT_BITS =/= 0 ->
+            whrotate(N/2.0,0.0);
+       Mod band ?SHIFT_BITS =/= 0 ->
+            whrotate(0.0,N/2.0);
+       Mod band ?CTRL_BITS =/= 0 andalso Mod band ?ALT_BITS =/= 0 ->
+            whpan(N/20.0,0.0);
+       Mod band ?CTRL_BITS =/= 0 ->
+            whpan(0.0,N/20.0);
+       Mod band ?ALT_BITS =/= 0 ->
+            zoom_step_alt(-N);
+       is_record(Camera, st), Redraw =:= none ->
+            %% Matching 'none' stops zoom aim from being activated during a drag sequence.
+            %% Zoom aim warps the mouse to the screen's centre, and this can cause a crash
+            %% in since drag events also depend on cursor position.
+            aim_zoom(-N, Camera);
+       true ->
+            zoom_step(-N)
+    end;
+generic_event(#mousewheel{dir=hor, wheel=N, mod=Mod}, _Camera, _Redraw) ->
+    %% ?dbg("Wheel: ~w  shift: ~p   alt ~p   ctrl: ~p~n",
+    %%      [N,Mod band ?SHIFT_BITS =/= 0,Mod band ?ALT_BITS =/= 0, Mod band ?CTRL_BITS =/= 0]),
+    if
+        Mod band ?CTRL_BITS =/= 0 andalso Mod band ?ALT_BITS =/= 0 ->
+            whpan(0.0,N/20.0);
+        Mod band ?CTRL_BITS =/= 0 ->
+            whpan(N/20.0,0.0);
+        Mod band ?ALT_BITS =/= 0 ->
+            whrotate(0.0,N/2.0);
+        true ->  %% rotate X wether SHIFT is pressed or not
+            do_whrotate(N/2.0,0.0)
+    end;
 generic_event(grab_lost, Camera, _Redraw) ->
     stop_camera(Camera);
 generic_event(_, _, _) -> keep.
@@ -789,17 +779,24 @@ whrotate(Dx, Dy) ->
       true ->
         case wings_pref:get_value(wheel_adds, true) of
           false -> keep;
-          true ->
-             wings_wm:dirty(),
-             View0= wings_view:current(),
-             #view{azimuth=Az0,elevation=El0} = View0,
-             S = 2 * wings_pref:get_value(wh_rot_spd),
-             Az = Az0 + Dx*S,
-             El = El0 + Dy*S,
-             View = View0#view{azimuth=Az,elevation=El,along_axis=none},
-             wings_view:set_current(View),
-             keep
+          true -> do_whrotate(Dx,Dy)
         end
+    end.
+
+do_whrotate(Dx,Dy) ->
+    case allow_rotation() of
+	false ->
+            keep;
+        true ->
+            wings_wm:dirty(),
+            View0= wings_view:current(),
+            #view{azimuth=Az0,elevation=El0} = View0,
+            S = 2 * wings_pref:get_value(wh_rot_spd),
+            Az = Az0 + Dx*S,
+            El = El0 + Dy*S,
+            View = View0#view{azimuth=Az,elevation=El,along_axis=none},
+            wings_view:set_current(View),
+            keep
     end.
 
 zoom_step_alt(Dir) ->

@@ -236,13 +236,8 @@ handle_magnet_event(#mousemotion{x=X}, X0, Y0, Sc0) ->
     wings_io:warp(X0,Y0),
     Sc = adjust_magnet_radius(DX, Sc0),
     update_magnet_handler(X0, Y0, Sc);
-handle_magnet_event(#mousebutton{button=4,state=?SDL_RELEASED}, X, Y, Sc0) ->
-    update_magnet_handler(X, Y, adjust_strength(1, Sc0));
-handle_magnet_event(#mousebutton{button=5,state=?SDL_RELEASED}, X, Y, Sc0) ->
-    update_magnet_handler(X, Y, adjust_strength(-1, Sc0));
-handle_magnet_event(#mousebutton{button=Button}, X, Y, Sc)
-  when Button =:= 4; Button =:= 5 ->
-    update_magnet_handler(X, Y, Sc);
+handle_magnet_event(#mousewheel{dir=ver,wheel=N}, X, Y, Sc0) ->
+    update_magnet_handler(X, Y, adjust_strength(N, Sc0));
 handle_magnet_event(#mousebutton{}=Ev, X, Y, Sc) ->
     wings_wm:later(Ev),
     end_magnet_event(X, Y, Sc);
