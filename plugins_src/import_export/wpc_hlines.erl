@@ -573,7 +573,7 @@ do_export(Props, File_name, #e3d_file{objs=Objs, mat=Mats}) ->
 						?__(1,"reading objects") ++ " " ++
 						    integer_to_list(round(Percent * 100.0)) ++ "%"),
 				wings_pb:pause(),
-				io:format(?__(2,"Reading object ~B of") ++" ~B \"~s\"...",
+				io:format(?__(2,"Reading object ~B of") ++" ~B \"~ts\"...",
 					  [Obj_count, Objs_total, Name]),
 
 				#e3d_mesh{vs=MVCs, fs=MFs, he=MHEs}=Mesh,
