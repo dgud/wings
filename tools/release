@@ -72,8 +72,8 @@ mac_release(BuildRoot, WingsVsn) ->
     [copy(F, Resources) || F <- ResourceFiles],
     copy("InfoPlist.strings", filename:join(Resources, "English.lproj")),
     release_otp(Resources, undefined),
-    convert_script(Root),
-    run("codesign", ["-s","Developer ID",Root]),
+    convert_script(Resources),
+    run("codesign", ["--timestamp", "-s","Developer ID",Root]),
     ok = file:set_cwd(lib_dir(wings)),
     MakeDmg = filename:join([lib_dir(wings),"macosx","make_dmg"]),
     run(MakeDmg, ["wings-"++WingsVsn++"-macosx.dmg",Root,"Wings3D "++WingsVsn++".app"]),
@@ -300,7 +300,8 @@ ext(".glsl") -> {text, shader};
 ext(".fs")   -> {text, shader};
 ext(".vs")   -> {text, shader};
 ext(".auv")  -> {text, shader};
-ext("." ++ Rest) -> {unknown, list_to_atom(Rest)}.
+ext("." ++ Rest) -> {unknown, list_to_atom(Rest)};
+ext("") -> {unknown, []}.
 
 
 fix_app_version(App0, Lib) ->
@@ -415,11 +416,18 @@ fatal(Format, Args) ->
     throw({fatal,["release: "|io_lib:format(Format, Args)]}).
 
 lib_dir(App) ->
-    case code:lib_dir(App) of
-        {error,_} ->  %% ERL_LIBS is not set
-            case App of
-                wings -> get(top_dir);
-                cl -> filename:join([get(top_dir), "_deps", "cl"])
-            end;
-        Dir -> Dir
+    case is_wslcross() of
+        true when App /= wings, App /= cl ->
+            Str = io_lib:format("erl.exe -eval  \"erlang:display(code:lib_dir(~s))\" -run erlang halt", [App]),
+            WinPath = os:cmd(lists:flatten(Str)),
+            string:chomp(os:cmd("wslpath -u " ++ WinPath));
+        _ ->
+            case code:lib_dir(App) of
+                {error,_} ->  %% ERL_LIBS is not set
+                    case App of
+                        wings -> get(top_dir);
+                        cl -> filename:join([get(top_dir), "_deps", "cl"])
+                    end;
+                Dir -> Dir
+            end
     end.

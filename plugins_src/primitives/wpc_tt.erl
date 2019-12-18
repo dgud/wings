@@ -298,7 +298,7 @@ sysfontdirs({win32,Wintype}) ->
     [filename:join(System, "Fonts"), filename:join(UserInstalled, "Fonts")];
 sysfontdirs({unix,darwin}) ->
     Home = os:getenv("HOME"),
-    ["/Library/Fonts", filename:join(Home, "Library/Fonts")];
+    ["/Library/Fonts", "/System/Library/Fonts/", filename:join(Home, "Library/Fonts")];
 sysfontdirs({unix,_}) ->
     Home = os:getenv("HOME"),
     ["/usr/share/fonts/", "/usr/local/share/fonts",

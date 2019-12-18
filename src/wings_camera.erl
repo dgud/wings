@@ -29,7 +29,8 @@
 -record(camera,
 	{x,y,					%Current mouse position.
 	 ox,oy,					%Original mouse position.
-	 xt=0,yt=0				%Last warp length.
+	 xt=0,yt=0,				%Last warp length.
+         w,h                                    %Win size
 	}).
 
 -record(state, {st, func}).
@@ -208,7 +209,7 @@ event(Ev, St, Redraw) ->
 %%%
 
 tweak_camera_event(Sym, X, Y, St) when Sym =:= $c; Sym =:= $s; Sym =:= $d ->
-    Camera = #camera{x=X,y=Y,ox=X,oy=Y},
+    Camera = start_camera(X,Y),
     {seq,push,get_tweak_cam_event(Sym, Camera, St)};
 tweak_camera_event(Sym, _, _, _) ->
     arrow_key_pan(Sym).
@@ -263,7 +264,7 @@ quit_tweak_cam() ->
 
 blender(#mousebutton{button=2,state=?SDL_PRESSED,x=X,y=Y,mod=Mod}, Redraw)
   when Mod band ?ALT_BITS =:= 0 ->
-    Camera = #camera{x=X,y=Y,ox=X,oy=Y},
+    Camera = start_camera(X,Y),
     grab(),
     message(blender_help()),
     {seq,push,get_blender_event(Camera, Redraw)};
@@ -305,7 +306,7 @@ blender_help() ->
 
 nendo(#mousebutton{button=2,x=X,y=Y,mod=Mod,state=?SDL_RELEASED}, Redraw)
   when Mod band ?CTRL_BITS =:= 0 ->
-    Camera = #camera{x=X,y=Y,ox=X,oy=Y},
+    Camera = start_camera(X,Y),
     grab(),
     MoveTumbles = allow_rotation(),
     nendo_message(MoveTumbles),
@@ -374,7 +375,7 @@ nendo_message(false) ->
 
 mirai(#mousebutton{button=2,x=X,y=Y,mod=Mod,state=?SDL_RELEASED}, Redraw)
   when Mod band ?CTRL_BITS =:= 0 ->
-    Camera = #camera{x=X,y=Y,ox=X,oy=Y},
+    Camera = start_camera(X,Y),
     grab(),
     MoveTumbles = allow_rotation(),
     mirai_message(MoveTumbles),
@@ -644,7 +645,7 @@ sketchup_help() ->
 
 wings_cam(#mousebutton{button=2,x=X,y=Y,mod=Mod,state=?SDL_RELEASED}, Redraw)
   when Mod band (?CTRL_BITS bor ?SHIFT_BITS bor ?ALT_BITS) =:= 0 ->
-    Camera = #camera{x=X,y=Y,ox=X,oy=Y},
+    Camera = start_camera(X,Y),
     grab(),
     wings_cam_message(),
     View = wings_view:current(),
@@ -769,7 +770,6 @@ aim_zoom(Dir, St0) ->
         zoom_step(Dir)
     end.
 
-
 rotate(Dx, Dy) ->
     Speed = wings_pref:get_value(cam_rotation_speed,25)/25,
     case allow_rotation() of
@@ -881,6 +881,10 @@ whpan(Dx0, Dy0) ->
 dist_factor(Dist) ->
     max(abs(Dist), 0.2).
 
+start_camera(X,Y) ->
+    {0,0,W,H} = wings_wm:viewport(),
+    #camera{x=X,y=Y,ox=X,oy=Y,w=W,h=H}.
+
 stop_camera(#camera{ox=Ox,oy=Oy}) ->
     wings_wm:release_focus(),
     case wings_io:ungrab(Ox, Oy) of
@@ -893,17 +897,39 @@ stop_camera(#camera{ox=Ox,oy=Oy}) ->
     pop.
 
 camera_mouse_range(X1, Y1, #camera{x=OX,y=OY, xt=Xt0, yt=Yt0}=Camera) ->
-%%    io:format("Camera Mouse Range ~p ~p~n", [{X0,Y0}, {OX,OY,Xt0,Yt0}]),
+    %% ?dbg("Camera ~w ~w~n", [X1,Y1]),
     XD0 = (X1 - OX),
     YD0 = (Y1 - OY),
     {XD,YD} = wings_pref:lowpass(XD0 + Xt0, YD0 + Yt0),
-
     if
 	XD0 =:= 0, YD0 =:= 0 ->
-	    {0.0,0.0,Camera#camera{xt=0,yt=0}};
+            case wings_pref:get_value(no_warp, false) of
+                false ->
+                    {0.0,0.0,Camera#camera{xt=0,yt=0}};
+                _ ->
+                    #camera{w=W, h=H} = Camera,
+                    Cx = W div 2, Cy = H div 2,
+                    wings_io:warp(Cx, Cy),
+                    {0.0,0.0,Camera#camera{xt=0,yt=0,x=Cx,y=Cy}}
+            end;
 	true ->
-	    wings_io:warp(OX, OY),
-	    {XD/?CAMDIV, YD/?CAMDIV, Camera#camera{xt=XD0, yt=YD0}}
+            case wings_pref:get_value(no_warp, false) of
+                false ->
+                    wings_io:warp(OX, OY),
+                    {XD/?CAMDIV, YD/?CAMDIV, Camera#camera{xt=XD0, yt=YD0}};
+                true ->
+                    %% Warp as few times as possible
+                    #camera{w=W, h=H} = Camera,
+                    case X1 < 10 orelse Y1 < 10 orelse X1 > (W-10) orelse Y1 > (H-10) of
+                        true ->
+                            #camera{w=W, h=H} = Camera,
+                            Cx = W div 2, Cy = H div 2,
+                            wings_io:warp(Cx, Cy),
+                            {XD/?CAMDIV, YD/?CAMDIV, Camera#camera{xt=XD0,yt=YD0,x=Cx,y=Cy}};
+                        false ->
+                            {XD/?CAMDIV, YD/?CAMDIV, Camera#camera{xt=XD0,yt=YD0,x=X1,y=Y1}}
+                    end
+            end
     end.
 
 view_hotkey(Ev, Camera, #state{st=St}) ->

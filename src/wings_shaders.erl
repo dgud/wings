@@ -124,7 +124,7 @@ set_state(Id, To, Rs0) ->
 
 clear_state(Id, Rs0) ->
     case maps:get(shader, Rs0) of
-        0 -> {false, Rs0};
+        0 -> Rs0;
         #{name:=Name} ->
             maps:remove({Name, Id}, Rs0)
     end.

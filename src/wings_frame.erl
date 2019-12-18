@@ -90,9 +90,16 @@ make_win(Parent, Title, Ps) ->
 	       false  ->
 		   []
 	   end,
-    Frame = wxMiniFrame:new(Parent, ?wxID_ANY, Title, [FStyle|Opts]),
+    Frame = (useframe()):new(Parent, ?wxID_ANY, Title, [FStyle|Opts]),
     Size =/= false andalso wxWindow:setClientSize(Frame, Size),
     Frame.
+
+useframe() ->
+    %% Miniframes can't be resized in gtk and wxWidgets 3.1
+    case {os:type(), {?wxMAJOR_VERSION, ?wxMINOR_VERSION}} of
+        {{_, linux}, Ver} when Ver > {3,0} ->  wxFrame;
+        _ -> wxMiniFrame
+    end.
 
 register_win(Window, Name, Ps) ->
     wx_object:call(?MODULE, {new_window, Window, Name, Ps}).
@@ -313,12 +320,14 @@ init(_Opts) ->
 	TopSize = wings_pref:get_value(window_size),
 	Frame0 = wxFrame:new(wx:null(), -1, "Wings 3D", [{size, TopSize}]),
         Frame = wx_object:set_pid(Frame0, self()),
+
 	IconImgs = make_icons(),
 	set_icon(Frame),
 	Sizer = wxBoxSizer:new(?wxVERTICAL),
+
 	Top = make(Frame),
 	Canvas = make_splash(wxPanel:new(win(Top)), IconImgs),
-	wxSizer:add(Sizer, win(Top), [{proportion, 1}, {border, 3},
+	wxSizer:add(Sizer, win(Top), [{proportion, 1}, {border, 0},
                                       {flag, ?wxEXPAND bor ?wxLEFT bor ?wxRIGHT}]),
 	wxSplitterWindow:initialize(win(Top), Canvas),
 	Toolbar = wings_toolbar:init(Frame, IconImgs),
@@ -342,6 +351,11 @@ init(_Opts) ->
     end.
 
 make_splash(Canvas, Imgs) ->
+    BG = wxSystemSettings:getColour(?wxSYS_COLOUR_WINDOWFRAME),
+    case os:type() of %% Workaround black panel color on gtk and wxWidgets-3.1.3
+        {_, linux} -> wxWindow:setBackgroundColour(Canvas, BG);
+        _ -> ok
+    end,
     Szr = wxBoxSizer:new(?wxHORIZONTAL),
     wxSizer:addStretchSpacer(Szr),
     {Splash, _} = wings_help:about_panel(Canvas,Imgs),
@@ -439,7 +453,7 @@ handle_call({new_window, Window, Name, Ps}, _From,
     Geom = proplists:get_value(top, Ps),
     Win0 = #win{win=Window, name=Name},
     if External ->
-	    Frame = wx:typeCast(wxWindow:getParent(Window), wxMiniFrame),
+	    Frame = wx:typeCast(wxWindow:getParent(Window), useframe()),
 	    Title = wxFrame:getTitle(Frame),
 	    Win = Win0#win{frame=Frame, title=Title, ps=#{close=>true, move=>true}},
 	    wxWindow:connect(Frame, move),
@@ -700,7 +714,13 @@ make_overlay(Parent) ->
 	?wxFRAME_FLOAT_ON_PARENT bor
 	?wxFRAME_NO_TASKBAR bor
 	?wxNO_BORDER,
-    Overlay = wxFrame:new(Parent, -1, "", [{style, Flags}]),
+    Overlay = wxFrame:new(),
+    case {os:type(), {?wxMAJOR_VERSION, ?wxMINOR_VERSION}} of
+        {{_, linux}, Ver} when Ver > {3,0} ->
+            wxFrame:setBackgroundStyle(Overlay, 3); %% ?wxBG_STYLE_TRANSPARENT
+        _ -> ok
+    end,
+    true = wxFrame:create(Overlay, Parent, -1, "", [{style, Flags}]),
     wxFrame:setBackgroundColour(Overlay, {95,138,255,200}),
     Overlay.
 
@@ -915,11 +935,12 @@ update_win(Win, #split{w1=W1, w2=W2}=Parent, _, Fun) ->
 update_win(_, _, _, _) -> false.
 
 close_win(Win, #state{windows=#{frame:=TopFrame,ch:=Tree,loose:=Loose,szr:=Szr}=Wins}=State) ->
+    catch wx_object:stop(Win),
     case find_win(Win, Tree) of
 	false ->
 	    case lists:keyfind(Win, #win.win, maps:values(Loose)) of
 		#win{frame=Frame} = _Win ->
-		    wxMiniFrame:destroy(Frame),
+		    wxFrame:destroy(Frame),
                     _ = wxWindow:findFocus(), %% Sync the destroy
 		    State#state{windows=Wins#{loose:=maps:remove(Frame, Loose)}};
 		false ->

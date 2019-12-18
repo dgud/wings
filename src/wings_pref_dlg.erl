@@ -503,7 +503,10 @@ misc_prefs() ->
 	 workaround([
 		     {jumpy_camera,
 		      ?__(19,"Camera moves and interactive commands are jumpy"),
-		      ?__(20,"Problem occurs on Mac OS X 10.3 (Panther)")},
+		      ?__(20,"Decreases large jumps in mouse coordinate changes")},
+                     {no_warp,
+                      ?__(31,"Camera moves and interactive commands not working"),
+		      ?__(32,"Minimize mouse moves programatically")},
 		     {ungrab_bug,
 		      ?__(26,"Camera moves steals focus"),
 		      ?__(27,"Problem occurs on linux")}
@@ -522,7 +525,6 @@ misc_prefs() ->
 	    [{?__(28,"Maximum menu height in pixels"),max_menu_height,
 	     [{info,?__(29,"Menus are clipped and continue in 'More...' submenu.")
 	       ++" "++?__(30,"Less than 1 sets menu clipping to auto.")}]}]}]}]}
-       
      ]}.
 
 workaround(L) ->

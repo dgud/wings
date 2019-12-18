@@ -193,11 +193,11 @@ wx_popup_menu(Parent,Pos,Names,Menus0,Magnet,Owner) ->
     Pid = spawn_link(fun() ->
 		       try
 			   wx:set_env(Env),
-			   {Dialog, Panel, MEs, Cols} = wx:batch(CreateMenu),
-			   popup_events(Dialog, Panel, MEs, Cols, Magnet, undefined, Names, Owner),
+			   {Frame, Panel, MEs, Cols} = wx:batch(CreateMenu),
+			   popup_events(Frame, Panel, MEs, Cols, Magnet, undefined, Names, Owner),
                            wxWindow:releaseMouse(Panel),
-                           wxWindow:hide(Dialog),
-                           wxFrame:destroy(Dialog)
+                           wxWindow:hide(Frame),
+                           wxFrame:destroy(Frame)
 		       catch _:Reason ->
 			       io:format("CRASH ~p ~p~n",[Reason, erlang:get_stacktrace()])
 		       end,
@@ -209,15 +209,20 @@ setup_dialog(Parent, Entries0, Magnet, {X0,Y0}=ScreenPos) ->
     X  = X0-20,
     Y1 = Y0-10,
     Flags = ?wxFRAME_TOOL_WINDOW bor ?wxFRAME_FLOAT_ON_PARENT bor ?wxFRAME_NO_TASKBAR,
-    Dialog = wxFrame:new(),
-    wxWindow:setExtraStyle(Dialog, ?wxWS_EX_PROCESS_IDLE bor ?wxFRAME_EX_METAL),
-    true = wxFrame:create(Dialog, Parent, -1, "", [{style, Flags}]),
-    Panel = wxWindow:new(Dialog, -1, [{style, ?wxWANTS_CHARS}]),
+    Frame = wxFrame:new(),
+    wxWindow:setExtraStyle(Frame, ?wxWS_EX_PROCESS_IDLE bor ?wxFRAME_EX_METAL),
+    %% case {os:type(), {?wxMAJOR_VERSION, ?wxMINOR_VERSION}} of
+    %%     {{_, linux}, Ver} when Ver > {3,0} ->
+    %%         wxFrame:setBackgroundStyle(Frame, 3); %% ?wxBG_STYLE_TRANSPARENT
+    %%     _ -> ok
+    %% end,
+    true = wxFrame:create(Frame, Parent, -1, "", [{style, Flags}]),
+    Panel = wxWindow:new(Frame, -1, [{style, ?wxWANTS_CHARS}]),
     wxWindow:setFont(Panel, ?GET(system_font_wx)),
     {{R,G,B,A},FG} = {colorB(menu_color),colorB(menu_text)},
     Cols = {{R,G,B,A}, FG},
-    catch wxFrame:setTransparent(Dialog, 240),
-    wxWindow:setBackgroundColour(Dialog, {R,G,B, 240}),
+    catch wxFrame:setTransparent(Frame, 240),
+    wxWindow:setBackgroundColour(Frame, {R,G,B, 240}),
     wxWindow:setBackgroundColour(Panel, {R,G,B, 240}),
     Main = wxBoxSizer:new(?wxHORIZONTAL),
     Sizer = wxBoxSizer:new(?wxVERTICAL),
@@ -229,20 +234,20 @@ setup_dialog(Parent, Entries0, Magnet, {X0,Y0}=ScreenPos) ->
     wxSizer:addSpacer(Main, 5),
     wxPanel:setSizer(Panel, Main),
     wxSizer:fit(Main, Panel),
-    wxWindow:setClientSize(Dialog, wxWindow:getSize(Panel)),
-    wxWindow:connect(Dialog, show),
+    wxWindow:setClientSize(Frame, wxWindow:getSize(Panel)),
+    wxWindow:connect(Frame, show),
     {_, MaxH} = wx_misc:displaySize(),
-    {_,H} = wxWindow:getSize(Dialog),
+    {_,H} = wxWindow:getSize(Frame),
     Y = if ((Y1+H) > MaxH) -> max(0, (MaxH-H-5));
            true -> Y1
         end,
     [wxWindow:connect(Panel, Ev, [{skip, false}]) ||
         Ev <- [motion, left_up, middle_up, right_up]],
-    wxWindow:move(Dialog, {X,Y}),
+    wxWindow:move(Frame, {X,Y}),
     wxPanel:connect(Panel, char),
     wxPanel:connect(Panel, char_hook),
     catch wxWindow:connect(Panel, mouse_capture_lost), %% Not available in old wx's.
-    wxFrame:show(Dialog),
+    wxFrame:show(Frame),
 
     %% Color active menuitem
     {MX, MY} = wxWindow:screenToClient(Panel, ScreenPos),
@@ -252,9 +257,9 @@ setup_dialog(Parent, Entries0, Magnet, {X0,Y0}=ScreenPos) ->
                    wheelRotation=0, wheelDelta=0, linesPerAction=0
                   },
     self() ! #wx{id=-1, obj=wx:null(), event=MEv},
-    {Dialog, Panel, Entries, Cols}.
+    {Frame, Panel, Entries, Cols}.
 
-popup_events(Dialog, Panel, Entries, Cols, Magnet, Previous, Ns, Owner) ->
+popup_events(Frame, Panel, Entries, Cols, Magnet, Previous, Ns, Owner) ->
     receive
 	#wx{event=#wxMouse{x=X,y=Y,type=motion}} ->
             Do = fun() ->
@@ -270,19 +275,19 @@ popup_events(Dialog, Panel, Entries, Cols, Magnet, Previous, Ns, Owner) ->
                          end
                  end,
             Line = wx:batch(Do),
-            popup_events(Dialog, Panel, Entries, Cols, Magnet, Line, Ns, Owner);
+            popup_events(Frame, Panel, Entries, Cols, Magnet, Line, Ns, Owner);
 	#wx{event=Ev=#wxMouse{y=Y, x=X}} ->
 	    What = mouse_button(Ev),
 	    case find_active_panel(Panel, X, Y) of
 		{false, outside} when What =:= right_up ->
-		    Pos = wxWindow:clientToScreen(Dialog,{X,Y}),
-                    wxWindow:move(Dialog, Pos),
+		    Pos = wxWindow:clientToScreen(Frame,{X,Y}),
+                    wxWindow:move(Frame, Pos),
                     wings_wm:psend(Owner, redraw),
-		    popup_events(Dialog, Panel, Entries, Cols, Magnet, Previous, Ns, Owner);
+		    popup_events(Frame, Panel, Entries, Cols, Magnet, Previous, Ns, Owner);
 		{false, outside} ->
 		    wings_wm:psend(Owner, cancel);
                 {false, inside} ->
-                    popup_events(Dialog, Panel, Entries, Cols, Magnet, Previous, Ns, Owner);
+                    popup_events(Frame, Panel, Entries, Cols, Magnet, Previous, Ns, Owner);
                 {PanelId, RowPanel} ->
                     {PX,_} = wxWindow:getPosition(RowPanel),
                     Id = get_hit_id(X-PX, RowPanel, PanelId),
@@ -291,13 +296,13 @@ popup_events(Dialog, Panel, Entries, Cols, Magnet, Previous, Ns, Owner) ->
 		    wings_wm:psend(Owner, {click, Id, {What, MagnetClick}, Ns})
 	    end;
 	#wx{event=#wxShow{show=true}} ->
-            capture_mouse(Dialog, Panel),
-            popup_events(Dialog, Panel, Entries, Cols, Magnet, Previous, Ns, Owner);
+            capture_mouse(Frame, Panel),
+            popup_events(Frame, Panel, Entries, Cols, Magnet, Previous, Ns, Owner);
 	#wx{event=#wxKey{keyCode=Key}} = _Ev ->
 	    if Key =:= ?WXK_ESCAPE ->
 		    wings_wm:psend(Owner, cancel);
 	       true ->
-		    popup_events(Dialog, Panel, Entries, Cols, Magnet, Previous, Ns, Owner)
+		    popup_events(Frame, Panel, Entries, Cols, Magnet, Previous, Ns, Owner)
 	    end;
         cancel ->
             wings_wm:psend(Owner, cancel);
@@ -305,11 +310,11 @@ popup_events(Dialog, Panel, Entries, Cols, Magnet, Previous, Ns, Owner) ->
             wings_wm:psend(Owner, cancel);
 	_Ev ->
 	    ?dbg("Got Ev ~p ~n", [_Ev]),
-	    popup_events(Dialog, Panel, Entries, Cols, Magnet, Previous, Ns, Owner)
+	    popup_events(Frame, Panel, Entries, Cols, Magnet, Previous, Ns, Owner)
     end.
 
-capture_mouse(Dialog, Panel) ->
-    wxWindow:disconnect(Dialog, show),
+capture_mouse(Frame, Panel) ->
+    wxWindow:disconnect(Frame, show),
     case os:type() of          %% Capture mouse on GTK must be done on an realized window
         {unix, linux} -> timer:sleep(150); %% sleep so we ensure that (async) creation is done
         _ -> ok

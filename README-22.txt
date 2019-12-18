@@ -1,3 +1,41 @@
+--- 2.2.5 --------------------------------------------
+
+- Added wings_convert script for batch conversion of models. [dgud]
+
+- Linux installer now accept an optional Install-Dir argument [dgud]
+
+- When exporting ".gltf/.glb" swap_y_z and scale options was ignored. [dgud]
+
+- Fixed importing non-square 'dds' textures with mipmaps
+  which caused an eternal loop. Thanks Simon Griffiths. [dgud]
+
+- Fixed crash when trying to edit area ligth properties
+  and not selecting an area ligth. Thanks Lars Thorsen. [dgud]
+
+- Fix ttf text plugin error handling. Thanks Hank. [dgud]
+
+- Add more search dirs for fonts. [dgud]
+
+- Rewrote "Text" primitive, it can now handle more truetype
+  formats, collection files (.ttc) and opentype (.otf) files. [dgud]
+
+- Fix lost text focus in dialogs. [dgud]
+
+- Allow image drag'n'drop from outliner to autouv to change
+  background image in autouv. [dgud]
+
+- Fixed updating mipmaps when updating dds files. Thanks Vershner. [dgud]
+
+- Fixed rendering bug when editing materials with vertex colors. Thanks Hank. [dgud]
+
+- The option "File->Save Selected" was saving images not used by the
+  selected object(s); Thanks Hank [Micheus Vieira]
+
+- Added an exporter to OpenJSCAD file format (.jscad); [micheus]
+
+- Added a minimal warp mouse camera workaround see 'Options/Misc/' tickbox.
+  Enable it and test again if you have problems.
+
 --- 2.2.4 --------------------------------------------
 
 - Fixed View/Show Texture bug. [dgud]

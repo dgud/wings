@@ -28,7 +28,9 @@
 
 %% Main drag record. Kept in state.
 -record(drag,
-	{x,y,			% Original 2D position,
+	{xy0,			% Original 2D position,
+         xy,                    % Orig or since last mouse (search no_warp)
+         warp,                  % true or Win Size
 	 xs=0,ys=0,		% Summary of mouse movements
 	 zs=0,			% Z move in screen relative
 	 p4=0,p5=0,		% An optional forth drag parameter
@@ -200,10 +202,15 @@ init(Units, Flags, St, DragFun) ->
     UnitSc = unit_scales(Units),
     Falloff = falloff(Units),
     {ModeFun,ModeData} = setup_mode(Flags, Falloff),
-    #drag{unit=Units,unit_sc=UnitSc,flags=Flags,offset=Offset,
-		 falloff=Falloff,
-		 mode_fun=ModeFun,mode_data=ModeData,
-		 st=St,drag=DragFun}.
+    Warp = case wings_pref:get_value(no_warp, false) of
+               false -> true;
+               true -> wings_wm:win_size()
+           end,
+    #drag{warp=Warp,
+          unit=Units,unit_sc=UnitSc,flags=Flags,offset=Offset,
+          falloff=Falloff,
+          mode_fun=ModeFun,mode_data=ModeData,
+          st=St,drag=DragFun}.
 
 fold_1([{Id,Items}|T], F, Shapes) ->
     We0 = gb_trees:get(Id, Shapes),
@@ -467,11 +474,11 @@ do_drag(#drag{flags=Flags}=Drag, none) ->
     {_,X,Y} = wings_wm:local_mouse_state(),
     Ev = #mousemotion{x=X,y=Y,state=0},
     wings_tweak:toggle_draw(false),
-    {seq,push,handle_drag_event_2(Ev, Drag#drag{x=X,y=Y})};
+    {seq,push,handle_drag_event_2(Ev, start_pos(X, Y, Drag))};
 do_drag(#drag{unit=Units}=Drag0, Move) when length(Units) =:= length(Move) ->
     {_,X,Y} = wings_wm:local_mouse_state(),
     Ev = #mousemotion{x=X,y=Y,state=0},
-    Drag1 = motion(Ev, Drag0#drag{x=X,y=Y}),
+    Drag1 = motion(Ev, start_pos(X,Y,Drag0)),
     ungrab(Drag1),
     Drag2 = possible_falloff_update(Move, Drag1),
     Drag = ?SLOW(motion_update(Move, Drag2)),
@@ -482,7 +489,7 @@ do_drag(#drag{unit=Units}=Drag0, Move) when length(Units) =:= length(Move) ->
 do_drag(Drag0, _) ->
     wings_menu:kill_menus(),
     {_,X,Y} = wings_wm:local_mouse_state(),
-    ungrab(Drag0#drag{x=X,y=Y}),
+    ungrab(start_pos(X,Y,Drag0)),
     wings_wm:later(revert_state),
     keep.
 
@@ -744,7 +751,7 @@ handle_drag_event_2(#mousemotion{}=Ev, Drag0) ->
     get_drag_event(Drag);
 handle_drag_event_2({numeric_preview,Move}, Drag0) ->
     {_,X,Y} = wings_wm:local_mouse_state(),
-    Drag1 = possible_falloff_update(Move, Drag0#drag{x=X,y=Y}),
+    Drag1 = possible_falloff_update(Move, start_pos(X,Y,Drag0)),
     Drag = ?SLOW(motion_update(Move, Drag1)),
     get_drag_event(Drag);
 handle_drag_event_2({drag_arguments,Move}, Drag0) ->
@@ -801,7 +808,7 @@ quit_drag(#drag{last_move=Move} = Drag) ->
     wings_wm:later(DragEnded),
     pop.
 
-ungrab(#drag{x=Ox,y=Oy}) ->
+ungrab(#drag{xy0={Ox,Oy}}) ->
     wings_wm:release_focus(),
     wings_io:ungrab(Ox, Oy).
 
@@ -906,9 +913,10 @@ view_changed(#drag{flags=Flags}=Drag0) ->
 	    wings_dl:map(fun view_changed_fun/2, []),
 	    case member(keep_drag,Flags) of
 		true ->
-		    Drag0#drag{x=X,y=Y};
+		    start_pos(X,Y,Drag0);
 		false ->
-		    Drag0#drag{x=X,y=Y,xs=0,ys=0,zs=0,p4=0,p5=0,psum=[0,0,0,0,0]}
+                    Drag1 = start_pos(X,Y,Drag0),
+		    Drag1#drag{xs=0,ys=0,zs=0,p4=0,p5=0,psum=[0,0,0,0,0]}
 	    end
     end.
 
@@ -922,6 +930,11 @@ view_changed_fun(#dlo{drag=#do{tr_fun=F0}=Do,src_we=We}=D, _) ->
     {D#dlo{drag=Do#do{tr_fun=F}},[]};
 view_changed_fun(D, _) -> {D,[]}.
 
+
+start_pos(X,Y,Drag) ->
+    XY0 = {X,Y},
+    Drag#drag{xy=XY0, xy0=XY0}.
+
 motion(Event, Drag0) ->
     {Move,Drag} = mouse_translate(Event, Drag0),
     motion_update(Move, Drag).
@@ -929,98 +942,107 @@ motion(Event, Drag0) ->
 mouse_translate(Event0, Drag0) ->
     Mode = wings_pref:get_value(camera_mode),
     {Event,Mod,Drag1} = mouse_pre_translate(Mode, Event0,Drag0),
-	mouse_range(Event, Drag1, Mod).
+    mouse_range(Event, Mod, Drag1).
 
 mouse_pre_translate(Mode, #mousemotion{state=Mask,mod=Mod}=Ev,Drag)
         when Mode=:=blender; Mode=:=sketchup; Mode=:=tds ->
     if
-    Mask band ?SDL_BUTTON_RMASK =/= 0,
-    Mod band ?CTRL_BITS =/= 0 ->
-        {Ev#mousemotion{state=?SDL_BUTTON_MMASK},
-         Mod band (bnot ?CTRL_BITS),Drag};
-    true -> {Ev,Mod,Drag}
+        Mask band ?SDL_BUTTON_RMASK =/= 0,
+        Mod band ?CTRL_BITS =/= 0 ->
+            {Ev#mousemotion{state=?SDL_BUTTON_MMASK},
+             Mod band (bnot ?CTRL_BITS),Drag};
+        true -> {Ev,Mod,Drag}
     end;
 mouse_pre_translate(_, #mousemotion{mod=Mod}=Ev,Drag) ->
     {Ev,Mod,Drag}.
 
-mouse_range(#mousemotion{x=X, y=Y, state=Mask},
-		#drag{x=OX, y=OY,
-			xs=Xs0, ys=Ys0, zs=Zs0, p4=P4th0,p5=P5th0,
-			psum=Psum0,
-			mode_data=MD,
-			xt=Xt0, yt=Yt0, mmb_timer=Count0,
-			unit_sc=UnitScales, unit=Unit, offset=Offset,
-			last_move=LastMove}=Drag0, Mod) ->
-    %%io:format("Mouse Range ~p ~p~n", [{X0,Y0}, {OX,OY,Xs0,Ys0}]),
-    [Xp,Yp,Zp,P4thp,P5thp] =
-    case Mod =/= 0 of
-		true -> Psum0;
-		false -> [Xs0,Ys0,Zs0,P4th0,P5th0]
-    end,
-
+mouse_range(#mousemotion{x=X, y=Y, state=Mask}, Mod,
+            #drag{xy={OX, OY},mode_data=MD0,last_move=LastMove}=Drag0) ->
     case wings_pref:lowpass(X-OX, Y-OY) of
-		{0,0} ->
-			Drag = Drag0#drag{xt=0,yt=0},
-			{{no_change,LastMove},Drag};
-
-		{XD0,YD0} ->
-			CS = constraints_scale(Unit,Mod,UnitScales),
-			XD = CS*(XD0 + Xt0),
-			YD = CS*(YD0 + Yt0),
-
-			ModeData =
-			case MD of
-				{_,MD0} -> MD0;
-				MD0 -> MD0
-			end,
-			ParaNum = length(Unit),
-			case Mask of
-				?SDL_BUTTON_LEFT when ParaNum >= 3 ->
-					Xs = {no_con, Xs0},
-					Ys = {no_con, -Ys0},
-					Zs = {con, - (Zp - XD)},	%Horizontal motion
-					P4th = {no_con, -P4th0},
-					P5th = {no_con, -P5th0},
-					Count = Count0;
-				?SDL_BUTTON_MMASK when ParaNum >= 4 ->
-					Xs = {no_con, Xs0},
-					Ys = {no_con, -Ys0},
-					Zs = {no_con, -Zs0},
-					P4th = {con, - (P4thp + XD)},
-					P5th = {no_con, -P5th0},
-					Count = Count0 + 1;
-				?SDL_BUTTON_RMASK when ParaNum >= 5 ->
-					Xs = {no_con, Xs0},
-					Ys = {no_con, -Ys0},
-					Zs = {no_con, -Zs0},
-					P4th = {no_con, -P4th0},
-					P5th = {con, - (P5thp + XD)},
-					Count = Count0;
-				_ ->
-					Xs = {con, Xp + XD},
-					Ys = {con, - (Yp + YD)},
-					Zs = {no_con, -Zs0},
-					P4th = {no_con, -P4th0},
-					P5th = {no_con, -P5th0},
-					Count = Count0
-			end,
-			wings_io:warp(OX, OY),
-
-			% Ds means DragSummary
-			Ds0 = mouse_scale([Xs,Ys,Zs,P4th,P5th], UnitScales),
-			Ds1 = add_offset_to_drag_sum(Ds0, Unit, Offset),
-			Ds = round_to_constraint(Unit, Ds1, Mod, []),
-
-			Psum = [S || {_,S} <- [Xs,Ys,Zs,P4th,P5th]],
-			[Xs2,Ys2,Zs2,P4th2,P5th2] = constrain_2(Unit, Psum, UnitScales, Offset),
-
-			[Xs1,Ys1,Zs1,P4th1,P5th1] = scale_mouse_back(Ds, UnitScales, Offset),
-			Move = constrain_1(Unit, Ds, Drag0),
-			Drag = Drag0#drag{xs=Xs1,ys=-Ys1,zs=-Zs1,p4=-P4th1,p5=-P5th1,
-							  psum=[Xs2,-Ys2,-Zs2,-P4th2,-P5th2],
-							  xt=XD0,yt=YD0,mmb_timer=Count,mode_data=ModeData},
-			{Move,Drag}
+        {0,0} ->
+            Drag = Drag0#drag{xt=0,yt=0},
+            {{no_change,LastMove},Drag};
+        {XD0,YD0} ->
+            MD = case MD0 of
+                     {_, MD1} -> MD1;
+                     MD1 -> MD1
+                 end,
+            mouse_range(X, Y, Mask, Mod, XD0, YD0, Drag0#drag{mode_data=MD})
     end.
+
+mouse_range(X, Y, Mask, Mod, XD0, YD0,
+            #drag{xs=Xs0, ys=Ys0, zs=Zs0, p4=P4th0,p5=P5th0,
+                  psum=Psum0,
+                  xt=Xt0, yt=Yt0, mmb_timer=Count0,
+                  unit_sc=UnitScales, unit=Unit, offset=Offset}=Drag0) ->
+
+    CS = constraints_scale(Unit,Mod,UnitScales),
+    XD = CS*(XD0 + Xt0),
+    YD = CS*(YD0 + Yt0),
+
+    ParaNum = length(Unit),
+    [Xp,Yp,Zp,P4thp,P5thp] =
+        case Mod =/= 0 of
+            true -> Psum0;
+            false -> [Xs0,Ys0,Zs0,P4th0,P5th0]
+        end,
+    case Mask of
+        ?SDL_BUTTON_LEFT when ParaNum >= 3 ->
+            Xs = {no_con, Xs0},
+            Ys = {no_con, -Ys0},
+            Zs = {con, - (Zp - XD)},	%Horizontal motion
+            P4th = {no_con, -P4th0},
+            P5th = {no_con, -P5th0},
+            Count = Count0;
+        ?SDL_BUTTON_MMASK when ParaNum >= 4 ->
+            Xs = {no_con, Xs0},
+            Ys = {no_con, -Ys0},
+            Zs = {no_con, -Zs0},
+            P4th = {con, - (P4thp + XD)},
+            P5th = {no_con, -P5th0},
+            Count = Count0 + 1;
+        ?SDL_BUTTON_RMASK when ParaNum >= 5 ->
+            Xs = {no_con, Xs0},
+            Ys = {no_con, -Ys0},
+            Zs = {no_con, -Zs0},
+            P4th = {no_con, -P4th0},
+            P5th = {con, - (P5thp + XD)},
+            Count = Count0;
+        _ ->
+            Xs = {con, Xp + XD},
+            Ys = {con, - (Yp + YD)},
+            Zs = {no_con, -Zs0},
+            P4th = {no_con, -P4th0},
+            P5th = {no_con, -P5th0},
+            Count = Count0
+    end,
+    %% Ds means DragSummary
+    Ds0 = mouse_scale([Xs,Ys,Zs,P4th,P5th], UnitScales),
+    Ds1 = add_offset_to_drag_sum(Ds0, Unit, Offset),
+    Ds = round_to_constraint(Unit, Ds1, Mod, []),
+
+    Psum = [S || {_,S} <- [Xs,Ys,Zs,P4th,P5th]],
+    [Xs2,Ys2,Zs2,P4th2,P5th2] = constrain_2(Unit, Psum, UnitScales, Offset),
+
+    [Xs1,Ys1,Zs1,P4th1,P5th1] = scale_mouse_back(Ds, UnitScales, Offset),
+    Move = constrain_1(Unit, Ds, Drag0),
+    Drag1 = Drag0#drag{xs=Xs1,ys=-Ys1,zs=-Zs1,p4=-P4th1,p5=-P5th1,
+                       psum=[Xs2,-Ys2,-Zs2,-P4th2,-P5th2],
+                       xt=XD0,yt=YD0,mmb_timer=Count},
+    Drag = mouse_warp(X, Y, Drag1),
+    {Move,Drag}.
+
+mouse_warp(_X, _Y, #drag{warp=true, xy={OX,OY}} = Drag0) ->
+    wings_io:warp(OX, OY),
+    Drag0;
+mouse_warp(X,Y, #drag{warp={W,H}} = Drag)
+  when X < 10 orelse Y < 10 orelse X > (W-10) orelse Y > (H-10) ->
+    %% Warp at the window edges
+    Cx = W div 2, Cy = H div 2,
+    wings_io:warp(Cx, Cy),
+    Drag#drag{xy={Cx,Cy}};
+mouse_warp(X,Y, Drag) ->
+    Drag#drag{xy={X,Y}}.
 
 mouse_scale([{Tag,D}|Ds], [S|Ss]) ->
     [{Tag,D*S}|mouse_scale(Ds, Ss)];

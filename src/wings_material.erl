@@ -778,8 +778,9 @@ setup_sphere() ->
 
 mat_preview(Canvas, Common, Vbo, Maps) ->
     {W,H} = wxWindow:getSize(Canvas),
+    Scale = wxWindow:getContentScaleFactor(Canvas),
     gl:pushAttrib(?GL_ALL_ATTRIB_BITS),
-    gl:viewport(0, 0, W, H),
+    gl:viewport(0, 0, round(W*Scale), round(H*Scale)),
     {BR,BG,BB, _} = wxWindow:getBackgroundColour(wxWindow:getParent(Canvas)),
     %% wxSystemSettings:getColour(?wxSYS_COLOUR_BACKGROUND),
     BGC = fun(Col) -> (Col-15) / 255 end,
