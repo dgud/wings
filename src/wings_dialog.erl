@@ -67,11 +67,11 @@
 %% flag makes the checkbox value and the return value of the field to
 %% be the inverted minimized state (the maximized state ;-).
 %%
-%% {oframe,Fields[,Flags]}                      -- Overlay frame
-%%     Flags = [Flag]
-%%     Flag = {title,String}|{style,Style}|{key,Key}|{hook,Hook}|layout
-%%     Style = menu|buttons  -- menu is default
-%%
+%% {oframe, Frames}                      -- Overlay frame
+%%     Frames = [{Title, Fields, Def, Flags}]
+%%     Title = String
+%%     Def = term()  -- Tab index to be focused.
+%%     Flags = [{style,buttons}]
 %%
 %%
 %% Composite fields (consisting of other fields)
@@ -951,8 +951,12 @@ build(Ask, {vframe_dialog, Qs, Flags}, Parent, Sizer, []) ->
 		     output= undefined =/= proplists:get_value(key,Flags),
 		     type=dialog_buttons, wx=Create}|In]};
 
-build(Ask, {oframe, Tabs, Def, Flags}, Parent, WinSizer, In0)
-  when Ask =/= false ->
+build(Ask, {oframe, Tabs, _Def, _Flags}, Parent, WinSizer, In0) when Ask==false ->
+    AddPage = fun({_Title, Data}, In) ->
+		    build(Ask, Data, Parent, WinSizer, In)
+	      end,
+    lists:foldl(AddPage, In0, Tabs);
+build(Ask, {oframe, Tabs, Def, Flags}, Parent, WinSizer, In0) ->
     DY  =  wxSystemSettings:getMetric(?wxSYS_SCREEN_Y)*5 div 6, %% don't take entire screen.
     buttons =:= proplists:get_value(style, Flags, buttons) orelse error(Flags),
     NB = wxNotebook:new(Parent, ?wxID_ANY),
