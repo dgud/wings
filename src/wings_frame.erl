@@ -1345,18 +1345,21 @@ make_icons() ->
 init_menubar(Frame) ->
     ets:new(wings_menus, [named_table, public, {keypos,2}]),
     put(wm_active, {menubar, geom}),
-    WorkAround = try
-                     %% Only exists in future wx (erlang release)
-                     %% and fool dialyzer
-                     WxMB = list_to_atom("wxMenuBar"),
-                     WxMB:setAutoWindowMenu(false),
-                     false
-                 catch _:_ ->
-                         case os:type() of
-                             {_, darwin} -> true;
-                             _ -> false
-                         end
-                 end,
+    WorkAround =
+        case os:type() of
+            {_, darwin} ->
+                try
+                    %% Fool dialyzer
+                    WxMB = list_to_atom("wxMenuBar"),
+                    WxMB:setAutoWindowMenu(false),
+                    false
+                catch _:_ ->
+                        %% Exists in newer wx (erlang release)
+                        true
+                end;
+            _ ->
+                false
+        end,
     MB = wxMenuBar:new(),
     wings_menu:setup_menus(MB, top_menus(WorkAround)),
     wxFrame:setMenuBar(Frame, MB),
