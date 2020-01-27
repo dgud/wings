@@ -20,7 +20,7 @@
 -import(lists, [foldl/3,mapfoldl/3,reverse/1,sort/1,seq/2]).
 -define(STR_LIGHT(A,B,Str), wings_lang:str({wings_light,A,B},Str)).
 
-menu(X, Y, St) ->
+menu(Parent, Pos, St) ->
     Dir = wings_menu_util:directions(St),
     Dup = flip_str(),
     FlipStrL = ?__(34,"Flip the object along ~s axis"),
@@ -99,7 +99,7 @@ menu(X, Y, St) ->
 	       {?__(49,"Remove All Attributes"),remove_all_attributes,
 		?__(50,"Remove all vertex colors and UV coordinates")}]}}|
 	    mode_dependent(St)],
-    wings_menu:popup_menu(X, Y, body, Menu).
+    wings_menu:popup_menu(Parent, Pos, body, Menu).
 
 rename_fun() ->
     fun

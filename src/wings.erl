@@ -401,7 +401,7 @@ handle_event_2(#mousebutton{}=Ev, St) ->
 	    TweakBits = wings_msg:free_rmb_modifier(),
 	    case Mod band TweakBits =/= 0 of
 		true ->
-		    wings_tweak:menu(Xglobal, Yglobal);
+		    wings_tweak:menu(wings_wm:this_win(),wx_misc:getMousePosition());
 		false ->
 		    handle_popup_event(Ev, Xglobal, Yglobal, St)
 	    end
@@ -920,8 +920,7 @@ command_1({tools, put_on_ground}, St) ->
 command_1({tools, unitize}, St) ->
     {save_state,wings_align:unitize(St)};
 command_1({tools, tweak_menu}, _St) ->
-    {_,X,Y} = wings_wm:local_mouse_state(),
-    wings_tweak:menu(X, Y);
+    wings_tweak:menu(wings_wm:this_win(),wx_misc:getMousePosition());
 
 %% Develop menu.
 command_1({develop,Cmd}, St) ->
@@ -943,14 +942,16 @@ command_1({hotkey, Cmd}, St) ->
 popup_menu(X, Y, #st{sel=[]}) ->
     wings_shapes:menu(wings_wm:this_win(), wings_wm:local2screen({X,Y}));
 popup_menu(X, Y, #st{selmode=Mode}=St) ->
+    Win = wings_wm:this_win(),
+    Pos = wings_wm:local2screen({X,Y}),
     case wings_light:is_any_light_selected(St) of
-    true -> wings_light:menu(X, Y, St);
+    true -> wings_light:menu(Win, Pos, St);
     false ->
         case Mode of
-        vertex -> wings_vertex_cmd:menu(X, Y, St);
-        edge -> wings_edge_cmd:menu(X, Y, St);
-        face -> wings_face_cmd:menu(X, Y, St);
-        body -> wings_body:menu(X, Y, St)
+        vertex -> wings_vertex_cmd:menu(Win, Pos, St);
+        edge -> wings_edge_cmd:menu(Win, Pos, St);
+        face -> wings_face_cmd:menu(Win, Pos, St);
+        body -> wings_body:menu(Win, Pos, St)
         end
     end.
 

@@ -372,7 +372,8 @@ exit_menu(X, Y, Mod, #ss{f=Exit,vec=Vec}=Ss, St) ->
 	error ->
 	    Menu = [{wings_s:cancel(),abort,
 		     ?__(2,"Cancel current command")}],
-	    wings_menu:popup_menu(X, Y, secondary_selection, Menu);
+	    Win = wings_wm:this_win(),
+	    wings_menu:popup_menu(Win, wxWindow:clientToScreen(Win, X, Y), secondary_selection, Menu);
 	keep ->
 	    keep;
 	{Do,Done} ->

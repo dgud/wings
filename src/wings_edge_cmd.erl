@@ -25,7 +25,7 @@
 -import(e3d_vec, [add/2,sub/2,neg/1,norm/1,len/1,
 		  average/2, dot/2,cross/2]).
 
-menu(X, Y, St) ->
+menu(Parent, Pos, St) ->
     Dir = wings_menu_util:directions(St),
     Menu = [{?__(2,"Move"),{move,Dir},[],[magnet]},
 	    wings_menu_util:rotate(St),
@@ -64,7 +64,7 @@ menu(X, Y, St) ->
 	    separator,
 	    {?__(19,"Vertex Color"),vertex_color,
 	     ?__(20,"Apply vertex colors to selected edges")}],
-    wings_menu:popup_menu(X, Y, edge, Menu).
+    wings_menu:popup_menu(Parent, Pos, edge, Menu).
 
 connect() ->
     fun

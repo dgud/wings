@@ -923,10 +923,10 @@ set_values([]) -> ok.
 %%% Sculpt Menu
 %%%
 
-sculpt_menu(X0, Y0, Sc) ->
-    Pos = wings_wm:local2screen({X0, Y0}),
+sculpt_menu(Parent, Pos, Sc) ->
+%%    Pos = wings_wm:local2screen({X0, Y0}),
     Menu = sculpt_menu(Sc),
-    wings_menu:popup_menu(wings_wm:this_win(), Pos, sculpt, Menu).
+    wings_menu:popup_menu(Parent, Pos, sculpt, Menu).
 
 sculpt_menu(#sculpt{mag=Mag,mag_type=MagType,mode=Mode}) ->
     [{mode(pull)++"/"++mode(push),pull,?__(4,"Activate the Pull/Push sculpt tool"),crossmark(Mode, pull)},

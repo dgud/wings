@@ -129,7 +129,8 @@ seg_event_3(Ev, #seg{st=#st{selmode=Mode}}=Ss) ->
 		      [{?__(3,"Projection"),autouvmap},
 		       {?__(4,"Feature Detection"),feature}]}}|
 		    seg_mode_menu(Mode, Ss, seg_debug([]))],
-	    wings_menu:popup_menu(X, Y, auv_segmentation, Menu)
+	    Win = wings_wm:this_win(),
+	    wings_menu:popup_menu(Win, wxWindow:clientToScreen(Win, X, Y), auv_segmentation, Menu)
     end.
 
 -ifndef(DEBUG).

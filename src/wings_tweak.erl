@@ -1712,9 +1712,9 @@ show_cursor_1(X0,Y0) ->
 %%% Main Tweak Menu
 %%%
 
-menu(X, Y) ->
+menu(Parent, Pos) ->
     Menu = menu(),
-    wings_menu:popup_menu(X, Y, tweak, Menu).
+    wings_menu:popup_menu(Parent, Pos, tweak, Menu).
 
 menu() ->
     ToggleHelp = ?__(1,"Tweak is a collection of tools for quickly adjusting a mesh."),

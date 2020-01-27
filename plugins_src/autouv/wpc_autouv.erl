@@ -408,7 +408,8 @@ command_menu(body, X, Y) ->
 				 ]}, 
 	     ?__(45,"Calculate new UVs with chosen algorithm")}
 	   ] ++ option_menu(),
-    wings_menu:popup_menu(X,Y, {auv,body}, Menu);
+    Win = wings_wm:this_win(),
+    wings_menu:popup_menu(Win, wxWindow:clientToScreen(Win, X, Y), {auv,body}, Menu);
 command_menu(face, X, Y) ->
     Scale = scale_directions(true),
     Move = move_directions(true),
@@ -419,7 +420,8 @@ command_menu(face, X, Y) ->
 	    {?__(521,"Project-Unfold"),	proj_lsqcm,
 	     ?__(522,"Project selected faces from normal and unfold the rest of chart")}
 	   ] ++ option_menu(),
-    wings_menu:popup_menu(X,Y, {auv,face}, Menu);
+    Win = wings_wm:this_win(),
+    wings_menu:popup_menu(Win, wxWindow:clientToScreen(Win, X, Y), {auv,face}, Menu);
 command_menu(edge, X, Y) ->
     Scale = scale_directions(true),
     Move = move_directions(true),
@@ -440,7 +442,8 @@ command_menu(edge, X, Y) ->
 	    {?__(66,"Stitch"), stitch, ?__(67,"Stitch edges/charts")},
 	    {?__(68,"Cut"), cut_edges, ?__(69,"Cut selected edges")}
 	   ] ++ option_menu(),
-    wings_menu:popup_menu(X,Y, {auv,edge}, Menu);
+    Win = wings_wm:this_win(),
+    wings_menu:popup_menu(Win, wxWindow:clientToScreen(Win, X, Y), {auv,edge}, Menu);
 command_menu(vertex, X, Y) ->
     Scale = scale_directions(true),
     Move = move_directions(true),
@@ -467,10 +470,12 @@ command_menu(vertex, X, Y) ->
 	    {?__(91,"SphereMap"),sphere,?__(92,"Create a spherical mapping with "
 	     "selected vertices being North/South pole")}
 	   ] ++ option_menu(),
-    wings_menu:popup_menu(X,Y, {auv,vertex}, Menu);
+    Win = wings_wm:this_win(),
+    wings_menu:popup_menu(Win, wxWindow:clientToScreen(Win, X, Y), {auv,vertex}, Menu);
 command_menu(_, X, Y) ->
     [_|Menu] = option_menu(),
-    wings_menu:popup_menu(X,Y, {auv,option}, Menu).
+    Win = wings_wm:this_win(),
+    wings_menu:popup_menu(Win, wxWindow:clientToScreen(Win, X, Y), {auv,option}, Menu).
 
 stretch_directions() ->
     [{?__(1,"Max Uniform"), max_uniform, ?__(2,"Maximize either horizontally or vertically")},

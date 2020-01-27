@@ -134,8 +134,8 @@ event_handler(Ev0= #mousebutton{}, #cs{info=Str, st=St, sc=Sc}) ->
             TweakBits = wings_msg:free_rmb_modifier(),
             case Mod band TweakBits =/= 0 of
 		true ->  case Sc of
-			     none -> wings_tweak:menu(Xglobal, Yglobal);
-			     _ -> wpc_sculpt:sculpt_menu(Xglobal, Yglobal, Sc)
+			     none -> wings_tweak:menu(wings_wm:this_win(),{Xglobal, Yglobal});
+			     _ -> wpc_sculpt:sculpt_menu(wings_wm:this_win(),{Xglobal, Yglobal}, Sc)
 			 end;
 		false -> wings:popup_menu(Xglobal, Yglobal, St)
             end

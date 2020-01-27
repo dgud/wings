@@ -1171,7 +1171,7 @@ light_types() ->
      {?__(9,"Area"),area,
       ?__(10,"Create an area that radiates light")}].
 
-menu(X, Y, St) ->
+menu(Parent, Pos, St) ->
     SpotOnly = {iff,[spot]},
     NotAmb = {iff,[spot,infinite,point,area]},
     One = one_light,
@@ -1199,7 +1199,7 @@ menu(X, Y, St) ->
 	     {One,{?__(16,"Edit Properties..."),edit,
 		   ?__(17,"Edit light properties")}}|body_menu(Dir, St)],
     Menu = filter_menu(Menu0, St),
-    wings_menu:popup_menu(X, Y, light, Menu).
+    wings_menu:popup_menu(Parent, Pos, light, Menu).
 
 body_menu(Dir, #st{selmode=body}) ->
     [separator,

@@ -26,7 +26,7 @@
 -include("wings.hrl").
 -import(lists, [foldl/3,reverse/1,sort/1,keyfind/3,member/2]).
 
-menu(X, Y, St) ->
+menu(Parent, Pos, St) ->
     Dir = wings_menu_util:directions(St),
     Menu = [{?__(2,"Move"),{move,Dir},[],[magnet]},
 	    wings_menu_util:rotate(St),
@@ -77,7 +77,7 @@ menu(X, Y, St) ->
 	    separator] ++ wings_material:material_menu(St) ++
 	[{?__(30,"Vertex Color"),vertex_color,
 	  ?__(31,"Apply vertex colors to selected faces")}],
-    wings_menu:popup_menu(X, Y, face, Menu).
+    wings_menu:popup_menu(Parent, Pos, face, Menu).
 
 dissolve_fun() ->
     fun

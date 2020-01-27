@@ -67,10 +67,6 @@ is_popup_event(#wx{event=#wxCommand{type=command_right_click}}) ->
 is_popup_event(_Event) ->
     no.
 
-popup_menu(X, Y, Name, Menu) %% Should be removed, the next should be used !!
-  when is_number(X), is_number(Y) ->
-    Win = wings_wm:this_win(),
-    wx_popup_menu_init(Win, wxWindow:clientToScreen(Win, X, Y), [Name], Menu);
 popup_menu(Parent, {_,_} = GlobalPos, Name, Menu) ->
     wx_popup_menu_init(Parent, GlobalPos, [Name], Menu).
 
