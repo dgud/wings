@@ -195,7 +195,7 @@ wx_popup_menu(Parent,Pos,Names,Menus0,Magnet,Owner) ->
 			   wx:set_env(Env),
 			   {Frame, Panel, MEs, Cols} = wx:batch(CreateMenu),
 			   popup_events(Frame, Panel, MEs, Cols, Magnet, undefined, Names, Owner),
-			   wxWindow:hasCapture(Panel) andalso wxWindow:releaseMouse(Panel),
+                           wxWindow:hasCapture(Panel) andalso wxWindow:releaseMouse(Panel),
                            wxWindow:hide(Frame),
                            wxFrame:destroy(Frame)
 		       catch _:Reason ->
@@ -206,8 +206,8 @@ wx_popup_menu(Parent,Pos,Names,Menus0,Magnet,Owner) ->
     {Pid,Entries}.
 
 setup_dialog(Parent, Entries0, Magnet, {X0,Y0}=ScreenPos) ->
-    X1 = X0-20,
-    Y1 = Y0-10,
+    X1 = X0-25,
+    Y1 = Y0-15,
     Flags = ?wxFRAME_TOOL_WINDOW bor ?wxFRAME_FLOAT_ON_PARENT bor ?wxFRAME_NO_TASKBAR,
     Frame = wxFrame:new(),
     wxWindow:setExtraStyle(Frame, ?wxWS_EX_PROCESS_IDLE bor ?wxFRAME_EX_METAL),
@@ -317,12 +317,12 @@ fit_menu_on_display(Frame,Pos0) ->
     {DX,DY,DW,DH} = wxDisplay:getClientArea(Display),
     MaxW = (DX+DW),
     PX = if (MX+WW) > MaxW -> MaxW-WW-2;
-	 true -> MX
-	 end,
+            true -> MX
+         end,
     MaxH = (DY+DH),
     PY = if (MY+WH) > MaxH -> MaxH-WH-2;
-	 true -> MY
-	 end,
+            true -> MY
+         end,
     wxDisplay:destroy(Display),
     {PX,PY}.
 
