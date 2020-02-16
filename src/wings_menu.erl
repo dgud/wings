@@ -206,7 +206,7 @@ wx_popup_menu(Parent,Pos,Names,Menus0,Magnet,Owner) ->
     {Pid,Entries}.
 
 setup_dialog(Parent, Entries0, Magnet, {X0,Y0}=ScreenPos) ->
-    X  = X0-20,
+    X1 = X0-20,
     Y1 = Y0-10,
     Flags = ?wxFRAME_TOOL_WINDOW bor ?wxFRAME_FLOAT_ON_PARENT bor ?wxFRAME_NO_TASKBAR,
     Frame = wxFrame:new(),
@@ -236,13 +236,9 @@ setup_dialog(Parent, Entries0, Magnet, {X0,Y0}=ScreenPos) ->
     wxSizer:fit(Main, Panel),
     wxWindow:setClientSize(Frame, wxWindow:getSize(Panel)),
     wxWindow:connect(Frame, show),
-    {_, MaxH} = wx_misc:displaySize(),
-    {_,H} = wxWindow:getSize(Frame),
-    Y = if ((Y1+H) > MaxH) -> max(0, (MaxH-H-5));
-           true -> Y1
-        end,
     [wxWindow:connect(Panel, Ev, [{skip, false}]) ||
         Ev <- [motion, left_up, middle_up, right_up]],
+    {X,Y} = fit_menu_on_display(Frame,{X1,Y1}),
     wxWindow:move(Frame, {X,Y}),
     wxPanel:connect(Panel, char),
     wxPanel:connect(Panel, char_hook),
@@ -280,7 +276,7 @@ popup_events(Frame, Panel, Entries, Cols, Magnet, Previous, Ns, Owner) ->
 	    What = mouse_button(Ev),
 	    case find_active_panel(Panel, X, Y) of
 		{false, outside} when What =:= right_up ->
-		    Pos = wxWindow:clientToScreen(Frame,{X,Y}),
+		    Pos = fit_menu_on_display(Frame,{X,Y}),
                     wxWindow:move(Frame, Pos),
                     wings_wm:psend(Owner, redraw),
 		    popup_events(Frame, Panel, Entries, Cols, Magnet, Previous, Ns, Owner);
@@ -312,6 +308,23 @@ popup_events(Frame, Panel, Entries, Cols, Magnet, Previous, Ns, Owner) ->
 	    ?dbg("Got Ev ~p ~n", [_Ev]),
 	    popup_events(Frame, Panel, Entries, Cols, Magnet, Previous, Ns, Owner)
     end.
+
+fit_menu_on_display(Frame,Pos0) ->
+    {MX,MY} = Pos = wxWindow:clientToScreen(Frame,Pos0),
+    {WW,WH} = wxWindow:getSize(Frame),
+    DisplayID = wxDisplay:getFromPoint(Pos),
+    Display = wxDisplay:new([{n, DisplayID}]),
+    {DX,DY,DW,DH} = wxDisplay:getClientArea(Display),
+    MaxW = (DX+DW),
+    PX = if (MX+WW) > MaxW -> MaxW-WW-2;
+	 true -> MX
+	 end,
+    MaxH = (DY+DH),
+    PY = if (MY+WH) > MaxH -> MaxH-WH-2;
+	 true -> MY
+	 end,
+    wxDisplay:destroy(Display),
+    {PX,PY}.
 
 capture_mouse(Frame, Panel) ->
     wxWindow:disconnect(Frame, show),
