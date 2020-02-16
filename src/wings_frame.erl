@@ -584,6 +584,7 @@ code_change(_From, _To, State) ->
 terminate(_Reason, #state{windows=#{frame:=Frame}}) ->
     %% io:format("~p: terminate: ~p~n",[?MODULE, _Reason]),
     catch wxFrame:destroy(Frame),
+    wx:destroy(),
     shutdown.
 
 terminate_frame(_Ev, CB) ->
