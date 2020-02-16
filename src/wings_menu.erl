@@ -195,7 +195,7 @@ wx_popup_menu(Parent,Pos,Names,Menus0,Magnet,Owner) ->
 			   wx:set_env(Env),
 			   {Frame, Panel, MEs, Cols} = wx:batch(CreateMenu),
 			   popup_events(Frame, Panel, MEs, Cols, Magnet, undefined, Names, Owner),
-                           wxWindow:releaseMouse(Panel),
+			   wxWindow:hasCapture(Panel) andalso wxWindow:releaseMouse(Panel),
                            wxWindow:hide(Frame),
                            wxFrame:destroy(Frame)
 		       catch _:Reason ->
