@@ -276,7 +276,7 @@ popup_events(Frame, Panel, Entries, Cols, Magnet, Previous, Ns, Owner) ->
 	    What = mouse_button(Ev),
 	    case find_active_panel(Panel, X, Y) of
 		{false, outside} when What =:= right_up ->
-		    Pos = fit_menu_on_display(Frame,{X,Y}),
+		    Pos = fit_menu_on_display(Frame,wxWindow:clientToScreen(Frame,{X-25,Y-15})),
                     wxWindow:move(Frame, Pos),
                     wings_wm:psend(Owner, redraw),
 		    popup_events(Frame, Panel, Entries, Cols, Magnet, Previous, Ns, Owner);
@@ -309,8 +309,7 @@ popup_events(Frame, Panel, Entries, Cols, Magnet, Previous, Ns, Owner) ->
 	    popup_events(Frame, Panel, Entries, Cols, Magnet, Previous, Ns, Owner)
     end.
 
-fit_menu_on_display(Frame,Pos0) ->
-    {MX,MY} = Pos = wxWindow:clientToScreen(Frame,Pos0),
+fit_menu_on_display(Frame,{MX,MY} = Pos) ->
     {WW,WH} = wxWindow:getSize(Frame),
     DisplayID = wxDisplay:getFromPoint(Pos),
     Display = wxDisplay:new([{n, DisplayID}]),
