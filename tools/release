@@ -219,13 +219,14 @@ copy_erts(TargetDir, {BinExecFiles, ErtsExecFiles}) ->
     [copy(File, TargetErts) || File <- ErtsExecFiles],
     %% To WINGS/bin
     [copy(File, TargetBin) || File <- BinExecFiles],
-    ok = file:set_cwd(filename:join(code:root_dir(), "bin")),
+    ok = file:set_cwd(filename:join(Root, "bin")),
     copy("start.boot", TargetBin),
     copy("no_dot_erlang.boot", TargetBin),
     ok.
 
 copy_app(App0, Lib, BitSize) ->
     AppDir = lib_dir(App0),
+    io:format("\r\nCOPY ~p from ~p\r\n",[App0, AppDir]),
     ok = file:set_cwd(AppDir),
     ok = file:set_cwd(".."),
     App = list_to_atom(filename:basename(AppDir)),
