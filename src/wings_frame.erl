@@ -712,7 +712,7 @@ preview_rect({Obj, Path}, Frame) ->
 
 make_overlay(Parent) ->
     Flags = ?wxFRAME_TOOL_WINDOW bor
-	?wxFRAME_FLOAT_ON_PARENT bor
+	?wxSTAY_ON_TOP bor
 	?wxFRAME_NO_TASKBAR bor
 	?wxNO_BORDER,
     Overlay = wxFrame:new(),
