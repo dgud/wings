@@ -797,6 +797,7 @@ encoding(1, unicode) -> {unicode, {1,1}};
 encoding(2, unicode) -> iso_10646;
 encoding(3, unicode) -> {unicode, bmp, {2,0}};
 encoding(4, unicode) -> {unicode, full,{2,0}};
+encoding(5, unicode) -> {unicode_nyi, format_14};
 
 encoding(0, microsoft)  -> symbol;
 encoding(1, microsoft)  -> {unicode, bmp};
@@ -1074,6 +1075,10 @@ find_font_file(Table, WxFont) ->
             {FontInfo, undefined}
     end.
 
+find_font_file_0(Tab, [$@|FName], TryWin) ->
+    %% Some fonts in windows start with a '@' do know why
+    %% but they can't be found so remove '@'
+    find_font_file_0(Tab, FName, TryWin);
 find_font_file_0(Tab, FName, TryWin) ->
     case ets:match_object(Tab, {{FName,'_', '_', '_'}, '_'}) of
         [] ->
@@ -1158,11 +1163,13 @@ find_index_map1(N, <<?PLATFORM_ID_MICROSOFT:?U16, Enc:?U16, Offset:?U32, Rest/bi
         ?MS_EID_UNICODE_FULL ->
             find_index_map1(N-1, Rest, [{1, Offset}|Prev]);
         _ -> %% For example ?MS_EID_SYMBOL
+            ?DBG("Ignored: ~w ~p~n",[Enc, encoding(Enc, microsoft)]),
             find_index_map1(N-1, Rest, Prev)
     end;
 find_index_map1(N, <<?PLATFORM_ID_UNICODE:?U16, Enc:?U16, Offset:?U32, Rest/binary>>, Prev) ->
     case Enc of
         5 -> %% Cmap format 14 (we don't support that)
+            ?DBG("Ignored: ~w ~p~n",[Enc, encoding(Enc, unicode)]),
             find_index_map1(N-1, Rest, Prev);
         4 ->
             find_index_map1(N-1, Rest, [{0, Offset}|Prev]);
