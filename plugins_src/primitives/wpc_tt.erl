@@ -384,7 +384,8 @@ get_polyarea(Glyph, X, Scale, Nsubsteps, Font) ->
     %% io:format("~p:~p: ~p ~p~n",[?MODULE,?LINE, Scale, get_glyph_box(Font, Glyph)]),
 
     Make = fun(Vs) -> make_edges(Vs, {Scale,Scale}, {X*Scale, 0}, []) end,
-    Edges = lists:map(Make, VsCont),
+    Edges0 = lists:map(Make, VsCont),
+    Edges = [Edge || [_|_] = Edge <- Edges0],  %% Filter out empty lists
     %% io:format("~p:~p: Edges: ~n  ~w~n",[?MODULE,?LINE, Edges]),
     findpolyareas(Edges).
 
@@ -1455,7 +1456,7 @@ setup_vertices([Flag|Fs0], [X|XCs0], [Y|YCs0], GD, StartC, Index,
     <<Next0:?U16, NextGD/binary>> = GD,
     Next = Next0-Index,
     case (Flag band 1) =:= 0 of
-	true  ->
+	true when Fs0 =/= [] ->
 	    StartOff = {X,Y}, %% Save for warparound
 	    [FN|Fs1]  = Fs0,
 	    [XN|Xcs1] = XCs0,
@@ -1471,7 +1472,7 @@ setup_vertices([Flag|Fs0], [X|XCs0], [Y|YCs0], GD, StartC, Index,
 	    %%io:format("SOff ~p ~p ~p~n",[(Flag band 1) =:= 0, S, Next]),
 	    Vs = set_vertex(Vs1, move, S, {0,0}),
 	    setup_vertices(Fs,XCs,YCs,NextGD,Next-Skip,Next0,S,false,StartOff,Vs);
-	false ->
+	_ ->
 	    S = {X,Y},
 	    %%io:format("Start ~p ~p ~p~n",[(Flag band 1) =:= 0, S, Next]),
 	    Vs = set_vertex(Vs1, move, S, {0,0}),
