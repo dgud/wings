@@ -958,12 +958,11 @@ find_font_info_1(#ttf_info{file=_File, collection=_Coll} = TTF) ->
     Family = proplists:get_value(family, FontInfo, undefined),
     PrefFamily = proplists:get_value(preferred_family, FontInfo, undefined),
     {Style, Weight} = font_styles(TTF),
-    %% ?DBG("~s (~w) ~p ~s ~s~n  ~0.p~n~n", [_File, _Coll, Family, Style, Weight, FontInfo]),
-    %% io:format("File: ~p ~p ~p ~p~n", [_File,Family, Style, Weight]),
+    %% ?DBG("~p (~w) ~p ~s ~s~n  ~0.p~n~n", [_File, _Coll, Family, Style, Weight, FontInfo]),
+    %% io:format("File: ~p ~p ~p ~p ~p~n", [_File,Family, PrefFamily, Style, Weight]),
     case PrefFamily of
-        undefined -> {Family,Style,Weight};
-        Family -> {Family,Style,Weight};
-        _ -> {PrefFamily,Style,Weight}
+        undefined -> {Family, Family,Style,Weight};
+        _ -> {Family, PrefFamily, Style, Weight}
     end.
 
 check_enc(A, A) -> true;
@@ -1064,29 +1063,63 @@ find_font_file(Table, WxFont) ->
     FontInfo = wings_text:get_font_info(WxFont),
     try
         #{face:=FName, style:=FStyle, weight:=FWeight} = FontInfo,
-        TryList = [{Style,Weight} || Style <- [FStyle,normal], Weight <- [FWeight,normal]],
-        File = find_font_file_0(Table,FName, TryList),
-        ?DBG("~p => ~p~n", [FontInfo, File]),
+        Alternatives = find_font_file_0(Table, FName, true),
+        ?DBG("~p => ~p~n", [FontInfo, Alternatives]),
+        File = select_fontfile(Alternatives, FStyle, FWeight),
+        ?DBG("FontFile: ~p~n", [File]),
         {FontInfo, {FName, File}}
     catch _:Er:St ->
             io:format("~p: ~p~n",[Er,St]),
             {FontInfo, undefined}
     end.
 
-find_font_file_0(Table,FName,[{FStyle,FWeight}|Rest]) ->
-    case ets:lookup(Table, {FName,FStyle,FWeight}) of
-	[{_Key, FPath}] -> FPath;
-        [] -> find_font_file_0(Table,FName, Rest)
-    end;
-find_font_file_0(Table,FName,[]) ->
-    case winregval("FontSubstitutes",FName) of
-        none -> undefined;
-        FSName ->
-            case ets:lookup(Table, {FSName,normal,normal}) of
-                [{_Key, FPath}] -> FPath;
-                [] -> undefined
-            end
+find_font_file_0(Tab, FName, TryWin) ->
+    case ets:match_object(Tab, {{FName,'_', '_', '_'}, '_'}) of
+        [] ->
+            case ets:match_object(Tab, {{'_', FName, '_', '_'},'_'}) of
+                [] when TryWin ->
+                    find_font_file_1(Tab, FName);
+                List ->
+                    List
+            end;
+        List ->
+            List
     end.
+
+find_font_file_1(Table,FName) ->
+    case winregval("FontSubstitutes",FName) of
+        none -> [];
+        FSName -> find_font_file_0(Table, FSName, false)
+    end.
+
+select_fontfile(Alts0, Style, Weight) ->
+    Alts = case [FI || {{_,_,S,_}, _} = FI <- Alts0, S =:= Style] of
+               [] ->
+                   case [FI || {{_,_,normal,_}, _} = FI <- Alts0] of
+                       [] -> Alts0;
+                       As -> As
+                   end;
+               As -> As
+           end,
+    select_fontfile_1(Alts, Weight).
+
+select_fontfile_1(Alts0, Weight) ->
+    Alts = case [FI || {{_,_,_, W}, _} = FI <- Alts0, W =:= Weight] of
+               [] ->
+                   case [FI || {{_,_,_,normal}, _} = FI <- Alts0] of
+                       [] -> Alts0;
+                       As -> As
+                   end;
+               As -> As
+           end,
+    select_fontfile_2(Alts).
+
+select_fontfile_2([]) ->
+    undefined;
+select_fontfile_2([{_, File}|R] = _Alts) ->
+    R =/= [] andalso ?DBG("Selecting hd of ~p~n",[_Alts]),
+    File.
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
