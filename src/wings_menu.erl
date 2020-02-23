@@ -216,9 +216,10 @@ make_overlay(Parent, ScreenPos) ->
                    wxFrame:setBackgroundStyle(OL, 3), %% ?wxBG_STYLE_TRANSPARENT
                    0;
                {{_, darwin}, _} ->
-                   13;
+                   13;  %% No events received if completly transaparent ??
                _ ->
-                   0
+                   wxFrame:setBackgroundStyle(OL, 3), %% ?wxBG_STYLE_TRANSPARENT
+                   1
            end,
     DisplayID = wxDisplay:getFromPoint(ScreenPos),
     Display = wxDisplay:new([{n, DisplayID}]),
@@ -240,8 +241,6 @@ make_overlay(Parent, ScreenPos) ->
           end,
     [wxWindow:connect(Panel, Ev, [{callback, EvH}]) ||
         Ev <- [left_up, middle_up, right_up, char, char_hook]],
-    %% wxWindow:connect(OL, activate, [{callback, EvH}]),
-
     wxFrame:show(OL),
     {OL, Panel}.
 
