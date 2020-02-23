@@ -511,12 +511,16 @@ handle_event_3({command_error, Error}, _St) ->
 handle_event_3({adv_menu_abort, Ev}, _St) ->
     This = wings_wm:actual_focus_window(),
     wings_wm:send(This,Ev);
-handle_event_3({camera,Ev,NextEv}, St) ->
+handle_event_3({camera,Ev0,NextEv}, St) ->
     %% used by preview dialogs in (blanket event)
     {_,X,Y} = wings_wm:local_mouse_state(),
-    case wings_camera:event(Ev#mousebutton{x=X,y=Y}, St) of
-      next -> NextEv;
-      Other -> Other
+    Ev = case Ev0 of
+             #mousewheel{} -> Ev0#mousewheel{x=X,y=Y};
+             #mousebutton{} -> Ev0#mousebutton{x=X,y=Y}
+         end,
+    case wings_camera:event(Ev, St) of
+        next -> NextEv;
+        Other -> Other
     end.
 
 handle_popup_event(Ev, Xglobal, Yglobal, St0) ->

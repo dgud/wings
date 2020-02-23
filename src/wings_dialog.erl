@@ -564,6 +564,8 @@ event_handler(preview_exec, #eh{fs=Fields, apply=Fun, owner=Owner}=Eh0) ->
     {replace, fun(Ev) -> event_handler(Ev, Eh) end};
 event_handler(#mousebutton{which=Obj}=Ev, _) ->
     wings_wm:send(wings_wm:wx2win(Obj), {camera,Ev,keep});
+event_handler(#mousewheel{which=Obj}=Ev, _) ->
+    wings_wm:send(wings_wm:wx2win(Obj), {camera,Ev,keep});
 event_handler(#mousemotion{}, _) -> keep;
 event_handler(got_focus, #eh{dialog=Dialog}) ->
     %% wxWidgets MacOSX workaround to keep dialog on top
@@ -1729,7 +1731,7 @@ paragraph_to_html([C|Text]) when is_list(C) ->
     [paragraph_to_html(C), paragraph_to_html(Text)];
 paragraph_to_html([]) -> [].
 
-table_to_html({table, _, Header, Items}) ->
+ table_to_html({table, _, Header, Items}) ->
     ["<p><b>", Header, "</b></p><table>",
      [table_row_to_html(Row) || Row <- Items],
      "</table>"].
