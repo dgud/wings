@@ -211,17 +211,21 @@ wx_popup_menu(Parent,Pos,Names,Menus0,Magnet,Owner) ->
 make_overlay(Parent, ScreenPos) ->
     OL = wxFrame:new(),
     Flags = ?wxFRAME_TOOL_WINDOW bor ?wxFRAME_FLOAT_ON_PARENT bor ?wxFRAME_NO_TASKBAR,
-    case {os:type(), {?wxMAJOR_VERSION, ?wxMINOR_VERSION}} of
-        {{_, linux}, Ver} when Ver > {3,0} ->
-            wxFrame:setBackgroundStyle(OL, 3); %% ?wxBG_STYLE_TRANSPARENT
-        _ -> ok
-    end,
+    TCol = case {os:type(), {?wxMAJOR_VERSION, ?wxMINOR_VERSION}} of
+               {{_, linux}, Ver} when Ver > {3,0} ->
+                   wxFrame:setBackgroundStyle(OL, 3), %% ?wxBG_STYLE_TRANSPARENT
+                   0;
+               {{_, darwin}, _} ->
+                   13;
+               _ ->
+                   0
+           end,
     DisplayID = wxDisplay:getFromPoint(ScreenPos),
     Display = wxDisplay:new([{n, DisplayID}]),
     {DX,DY,DW,DH} = wxDisplay:getClientArea(Display),
     true = wxFrame:create(OL, Parent, -1, "", [{pos,{DX,DY}},{size, {DW,DH}},{style, Flags}]),
-    wxFrame:setBackgroundColour(OL, {95,138,255,100}),
-    catch wxFrame:setTransparent(OL, 100),
+    wxFrame:setBackgroundColour(OL, {0,0,0,TCol}),
+    catch wxFrame:setTransparent(OL, TCol),
     Panel = wxWindow:new(OL, -1, [{size, {DW,DH}}, {style, ?wxWANTS_CHARS}]),
     EvH = fun(#wx{event=#wxKey{keyCode=Key}}, _) ->
                   if Key =:= ?WXK_ESCAPE -> wings_menu_process ! cancel;
@@ -231,7 +235,7 @@ make_overlay(Parent, ScreenPos) ->
                   wings_menu_process ! {move, wxWindow:clientToScreen(OL,{X,Y})};
              (_Ev, Obj) ->
                   wxEvent:skip(Obj),
-                  ?dbg("Cancel menu: ~p~n",[_Ev]),
+                  ?dbg("Cancel menu: ~w~n",[_Ev]),
                   catch wings_menu_process ! cancel
           end,
     [wxWindow:connect(Panel, Ev, [{callback, EvH}]) ||
@@ -299,12 +303,12 @@ popup_events(Frame, Panel, Entries, Cols, Magnet, Previous, Ns, Owner) ->
 	    wings_status:message(Owner, entry_msg(Id, Entries), ""),
             popup_events(Frame, Panel, Entries, Cols, Magnet, Line, Ns, Owner);
 	#wx{id=Id0, event=Ev=#wxMouse{y=Y, x=X}} ->
-            ?dbg("Ev: ~p~n",[Ev]),
             Id = case Id0 > 0 orelse find_active_panel(Panel, X, Y) of
 		     true -> Id0;
 		     {false, _} = No -> No;
 		     {AId, _} -> AId
 		 end,
+            ?dbg("Ev: ~w ~w ~w~n",[Ev, Id0, Id]),
 	    case Id of
 		{false, outside} ->
 		    wings_wm:psend(Owner, cancel);
@@ -318,7 +322,7 @@ popup_events(Frame, Panel, Entries, Cols, Magnet, Previous, Ns, Owner) ->
         cancel ->
             wings_wm:psend(Owner, cancel);
         {move, {X,Y}} ->
-            Pos = fit_menu_on_display(Frame,wxWindow:clientToScreen(Frame,{X-25,Y-15})),
+            Pos = fit_menu_on_display(Frame,{X-25,Y-15}),
             wxWindow:move(Frame, Pos),
             wings_wm:psend(Owner, redraw),
             popup_events(Frame, Panel, Entries, Cols, Magnet, Previous, Ns, Owner);
@@ -420,7 +424,7 @@ popup_event_handler(#keyboard{sym=?SDLK_ESCAPE}, {_, _, Pid}, _) ->
     Pid ! cancel, %% Keyboard focus fails on mac wxWidgets-3.1.3
     keep;
 popup_event_handler(_Ev,_,_) ->
-    io:format("Hmm ~p ~n",[_Ev]),
+    %% io:format("Hmm ~p ~n",[_Ev]),
     keep.
 
 popup_result(#menu{type=submenu, name={Name, Menus}, opts=Opts}, {What, MagnetClick}, Names0, Owner) ->
@@ -539,7 +543,13 @@ setup_popup([#menu{type=menu, wxid=Id, desc=Desc, help=Help, opts=Props, hk=HK}=
     BM = case {OpBox = have_option_box(Props),have_color(Props)} of
 	     {true,_} ->
 		 Bitmap = get_pref_bitmap(),
-		 SBM = wxStaticBitmap:new(Panel, Id+1, Bitmap),
+                 SBM = case os:type() of
+                           {_, darwin} ->
+                               wxBitmapButton:new(Panel, Id+1, Bitmap,
+                                                  [{style,?wxNO_BORDER}]);
+                           _ ->
+                               wxStaticBitmap:new(Panel, Id+1, Bitmap)
+                       end,
 		 wxSizer:add(Line, SBM, [{flag, ?wxALIGN_CENTER}]),
 		 [SBM];
 	     {false, true} ->
