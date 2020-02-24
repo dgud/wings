@@ -161,16 +161,7 @@ have_magnet(_, true) -> activated;
 have_magnet(Ps, _) ->
     proplists:is_defined(magnet, Ps).
 
-%% mac_fix() ->
-%%     %% Mac wxWidgets-3.1.3 capture_mouse don't work as expected
-%%     %% Try to work around it.
-%%     case os:type() of
-%%         {unix, darwin} -> true;
-%%         _ -> false
-%%     end.
-
 wx_popup_menu_init(Parent,GlobalPos,Names,Menus0) ->
-    %% mac_fix() andalso wings_wm:grab_focus(),
     Owner = wings_wm:this(),
     {Pid, Entries} = wx_popup_menu(Parent,GlobalPos,Names,Menus0,false,Owner),
     {push, fun(Ev) -> popup_event_handler(Ev, {Parent,Owner,Pid}, Entries) end}.
@@ -216,9 +207,8 @@ make_overlay(Parent, ScreenPos) ->
                    wxFrame:setBackgroundStyle(OL, 3), %% ?wxBG_STYLE_TRANSPARENT
                    0;
                {{_, darwin}, _} ->
-                   13;  %% No events received if completly transaparent ??
+                   13;  %% No events received if completly transparent ??
                _ ->
-                   wxFrame:setBackgroundStyle(OL, 3), %% ?wxBG_STYLE_TRANSPARENT
                    1
            end,
     DisplayID = wxDisplay:getFromPoint(ScreenPos),
@@ -236,7 +226,7 @@ make_overlay(Parent, ScreenPos) ->
                   wings_menu_process ! {move, wxWindow:clientToScreen(OL,{X,Y})};
              (_Ev, Obj) ->
                   wxEvent:skip(Obj),
-                  ?dbg("Cancel menu: ~w~n",[_Ev]),
+                  %% ?dbg("Cancel menu: ~w~n",[_Ev]),
                   catch wings_menu_process ! cancel
           end,
     [wxWindow:connect(Panel, Ev, [{callback, EvH}]) ||
@@ -247,10 +237,12 @@ make_overlay(Parent, ScreenPos) ->
 setup_dialog(Parent, Entries0, Magnet, {X0,Y0}=ScreenPos) ->
     X1 = X0-25,
     Y1 = Y0-15,
-    Flags = ?wxFRAME_TOOL_WINDOW bor ?wxFRAME_FLOAT_ON_PARENT bor ?wxFRAME_NO_TASKBAR,
-    Frame = wxFrame:new(),
-    wxWindow:setExtraStyle(Frame, ?wxWS_EX_PROCESS_IDLE bor ?wxFRAME_EX_METAL),
-    true = wxFrame:create(Frame, Parent, -1, "", [{style, Flags}]),
+    Top = case os:type() of
+              {_, linux} -> ?wxSTAY_ON_TOP;  %% Hmm needed for some reason
+              _ -> ?wxFRAME_FLOAT_ON_PARENT
+          end,
+    Flags = ?wxFRAME_TOOL_WINDOW bor Top bor ?wxFRAME_NO_TASKBAR,
+    Frame = wxFrame:new(Parent, -1, "", [{style, Flags}]),
     Panel = wxPanel:new(Frame),
     wxWindow:setFont(Panel, ?GET(system_font_wx)),
     {{R,G,B,A},FG} = {colorB(menu_color),colorB(menu_text)},
@@ -307,7 +299,7 @@ popup_events(Frame, Panel, Entries, Cols, Magnet, Previous, Ns, Owner) ->
 		     {false, _} = No -> No;
 		     {AId, _} -> AId
 		 end,
-            ?dbg("Ev: ~w ~w ~w~n",[Ev, Id0, Id]),
+            %% ?dbg("Ev: ~w ~w ~w~n",[Ev, Id0, Id]),
 	    case Id of
 		{false, outside} ->
 		    wings_wm:psend(Owner, cancel);
@@ -326,7 +318,7 @@ popup_events(Frame, Panel, Entries, Cols, Magnet, Previous, Ns, Owner) ->
             wings_wm:psend(Owner, redraw),
             popup_events(Frame, Panel, Entries, Cols, Magnet, Previous, Ns, Owner);
 	_Ev ->
-	    ?dbg("Got Ev ~p ~n", [_Ev]),
+	    %% ?dbg("Got Ev ~p ~n", [_Ev]),
 	    popup_events(Frame, Panel, Entries, Cols, Magnet, Previous, Ns, Owner)
     end.
 
