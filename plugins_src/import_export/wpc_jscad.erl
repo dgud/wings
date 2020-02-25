@@ -57,7 +57,8 @@ do_export(Attr, _Op, Exporter, _St) when is_list(Attr) ->
     CreateRet = proplists:get_value(create_returns, Attr, object),
     BuildMain = proplists:get_value(build_main, Attr, true),
     SubDivs = proplists:get_value(subdivisions, Attr, 0),
-    Ps = [{faces_group,FacesGroup},{create_returns,CreateRet},
+    Tesselation = proplists:get_value(tesselation, Attr, none),
+    Ps = [{tesselation,Tesselation},{faces_group,FacesGroup},{create_returns,CreateRet},
           {build_main,BuildMain},{subdivisions,SubDivs}|props()],
     Exporter(Ps, export_fun(Attr)).
 
@@ -230,7 +231,8 @@ material(Name, Mat_defs) ->
     [Dr, Dg, Db, Da].
 
 dialog(export) ->
-    [{label_column,
+    [wpa:dialog_template(?MODULE, tesselation),
+     {label_column,
       [{?__(1,"One group per material"),
         {"",get_pref(group_per_material, true),
         [{key,group_per_material}]}},
@@ -248,12 +250,17 @@ dialog(export) ->
          [{key,faces_group},{info,?__(3,"Exports face's group IDs by material")}]}},
        {?__(4,"Build the main() statement"),
         {"",get_pref(build_main, true),
-         [{key,build_main},{info,?__(5,"Add a main() funtion to build the scene")}]}},
-       {?__(8,"Creation function returns"),
-        {hradio,[{?__(9,"CSG Object"),object},{?__(10,"Properties"),properties}],
-         get_pref(create_returns, object),
-         [{key,create_returns},{info,?__(11,"Returns the object or properties: {points:?,polygons:?,groups:?,cgspolygons:?,csg:?}")}]}}
-      ]}
+         [{key,build_main},{info,?__(5,"Add a main() funtion to build the scene")}]}}
+      ]},
+     {vframe,[{vradio,[{?__(9,"CSG Object"),object},
+                       {?__(10,"Properties"),properties}],
+
+               get_pref(create_returns, object),
+       [{key,create_returns},
+        {info,?__(11,"Returns the object or properties: {points:?,polygons:?,groups:?,"++
+                     "cgspolygons:?,csg:?}")}]}],
+      [{title,?__(8,"Creation function returns")}]}
+
     ].
 
 get_pref(Key, Def) ->
