@@ -191,7 +191,8 @@ wx_popup_menu(Parent,Pos,Names,Menus0,Magnet,Owner) ->
 			   popup_events(Frame, Panel, MEs, Cols, Magnet, undefined, Names, Owner),
                            wxWindow:hide(Frame),
                            wxFrame:destroy(Frame),
-                           wxFrame:destroy(Overlay)
+                           wxFrame:destroy(Overlay),
+                           wxWindow:setFocus(Parent)
 		       catch _:Reason ->
 			       io:format("CRASH ~p ~p~n",[Reason, erlang:get_stacktrace()])
 		       end,
