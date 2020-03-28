@@ -719,6 +719,9 @@ dispatch_event(#mousemotion{which=Obj}=Event) ->
 dispatch_event(#mousebutton{which=Obj}=Event) ->
     Win = update_focus(wx2win(Obj)),
     do_dispatch(Win, Event);
+dispatch_event(#mousewheel{which=Obj}=Event) ->
+    Win = update_focus(wx2win(Obj)),
+    do_dispatch(Win, Event);
 dispatch_event(#keyboard{which=Obj}=Event) ->
     case get_focus_window() of
 	{grabbed, Grab} ->

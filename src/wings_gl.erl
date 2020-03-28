@@ -142,7 +142,17 @@ setup_std_events(Canvas) ->
     wxWindow:connect(Canvas, left_dclick),
     wxWindow:connect(Canvas, right_up),
     wxWindow:connect(Canvas, right_down),
-    wxWindow:connect(Canvas, mousewheel),
+    case code:is_loaded(wxMouseEvent) of
+        false -> code:load_file(wxMouseEvent);
+        _ -> ok
+    end,
+    case erlang:function_exported(wxMouseEvent, getWheelAxis, 1) of
+        true ->
+            wxWindow:connect(Canvas, mousewheel,
+                             [{callback, fun wings_io_wx:scroll_event/2}]);
+        false ->
+            wxWindow:connect(Canvas, mousewheel)
+    end,
     %% wxWindow:connect(Canvas, char_hook, []),
     wxWindow:connect(Canvas, key_down, [{callback, fun key_callback_win32/2}]),
     wxWindow:connect(Canvas, key_up), %% Normally suppressed

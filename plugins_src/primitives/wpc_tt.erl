@@ -16,7 +16,7 @@
 
 -module(wpc_tt).
 -export([init/0,menu/2,command/2,
-         init_font/2, sysfontdirs/0, process_ttfs/1, trygen/3, trygen/5, ttf_info/1 % debugging
+         init_font/2, sysfontdirs/0, process_ttfs/1, trygen/3, trygen/5, find_font_info/1 % debugging
         ]). % for ai
 
 -import(lists, [reverse/1,sort/2,keysearch/3,duplicate/2,nthtail/2,
@@ -134,15 +134,18 @@ make_text(Ask, St) when is_atom(Ask) ->
 		help_button()
 		]},
 	    {label_column, [
-		{?__(5,"Number of edge bisections"),{slider,{text,Bisect,[{key,{wpc_tt,bisections}},{range,{0,4}}]}}},
-		{?__(3,"TrueType font"), {fontpicker,FontInfo,[{key,{wpc_tt,font}}]}}]},
+		{?__(5,"Number of edge bisections"),
+                 {slider,{text,Bisect,[{key,{wpc_tt,bisections}},{range,{0,4}}]}}},
+		{?__(3,"TrueType font"),
+                 {fontpicker,FontInfo,[{key,{wpc_tt,font}}]}}]},
 	    wings_shapes:transform_obj_dlg()
 	],[{margin,false}]
 	 }],
     Fun = fun({dialog_preview,[T,N,{_,Ctrl},RX,RY,RZ,MX,MY,MZ,Grnd]=_Res}) ->
                   {NewFontI, FPath} = find_font_file(GbtFonts,Ctrl),
                   Size = maps:get(size, NewFontI),
-                  {preview,{shape,{text,[T,N,{fontdir,FPath},Size,RX,RY,RZ,MX,MY,MZ,Grnd]}},St};
+                  {preview,{shape,{text,[T,N,{fontdir,FPath},
+                                         Size,RX,RY,RZ,MX,MY,MZ,Grnd]}},St};
              (cancel) ->
                   St;
              ([T,N,{_,WxFont},RX,RY,RZ,MX,MY,MZ,Grnd]=_Res) when is_tuple(WxFont) ->
@@ -155,7 +158,8 @@ make_text(Ask, St) when is_atom(Ask) ->
                           wpa:pref_set(wpc_tt, fontname, NewFontI),
                           wpa:pref_set(wpc_tt, text, element(2,T)),
                           wpa:pref_set(wpc_tt, bisections, element(2,N)),
-                          {commit,{shape,{text,[T,N,{fontdir,FPath},Size,RX,RY,RZ,MX,MY,MZ,Grnd]}},St}
+                          {commit,{shape,{text,[T,N,{fontdir,FPath},
+                                                Size,RX,RY,RZ,MX,MY,MZ,Grnd]}},St}
                   end
           end,
     wings_dialog:dialog(Ask,?__(1,"Create Text"), {preview, Dlg}, Fun);
@@ -176,8 +180,11 @@ help() ->
 
 gen(_FontFile, "", _Nsubsteps, _, _Transf) ->
     keep;
+gen({FName,{{error, Reason, _}, _Idx}}, _, _, _, _) ->
+    Msg = ?__(1,"Text: ") ++ FName ++ " " ++ format_error(Reason),
+    wpa:error_msg(Msg);
 gen({FName,undefined}, _, _, _, _) ->
-    Msg = ?__(1,"Text failed: failed to locate the TTF file for: " ++ FName),
+    Msg = ?__(2,"Text: Failed to locate the TTF file or unknown format: ") ++ FName,
     wpa:error_msg(Msg);
 gen({_FName, {File, Idx}}, Text, Nsubsteps, Size, Transf) ->
     try trygen(File, Text, Idx, Nsubsteps, Size) of
@@ -193,8 +200,8 @@ gen({_FName, {File, Idx}}, Text, Nsubsteps, Size, Transf) ->
             %% ?DBG("error: ~p ~p~n ~P~n", [_What, Msg, _St, 40]),
             wpa:error_msg(Msg);
         _:X:ST ->
-	    io:format(?__(2,"caught error: ") ++"~P~nST:~p", [X, 40,ST]),
-	    wpa:error_msg(?__(3,"Text failed: internal error"))
+	    io:format(?__(5,"caught error: ") ++"~P~nST:~p", [X, 40,ST]),
+	    wpa:error_msg(?__(6,"Text failed: internal error"))
     end.
 
 process_ttfs(Dirs) ->
@@ -202,20 +209,28 @@ process_ttfs(Dirs) ->
         undefined ->
             Tab = ets:new(?MODULE, [named_table, public]),
             Add = fun(FileName, _Acc) ->
-                          Store = fun(FontInfo, Idx) ->
-                                          case ets:lookup(Tab, FontInfo) of
+                          Store = fun(FontInfo0, Idx) ->
+                                          {Key,_} = KV =
+                                              case FontInfo0 of
+                                                  {error, Reason, FI} ->
+                                                      {FI, {{error, Reason, FileName}, Idx}};
+                                                  FI ->
+                                                      {FI, {FileName,Idx}}
+                                              end,
+                                          case ets:lookup(Tab, Key) of
                                               [] -> ok;
                                               [_Old] ->
                                                   %% ?DBG("Overwrite Font Info:~nOLD: ~p~nNEW: ~p~n",
                                                   %%      [_Old,{FontInfo,{FileName,Idx}}]),
                                                   ok
                                           end,
-                                          true = ets:insert(Tab, {FontInfo,{FileName,Idx}}),
+                                          true = ets:insert(Tab, KV),
                                           Idx+1
                                   end,
-                          try ttf_info(FileName) of
-                              error -> ok;
-                              List -> lists:foldl(Store, 0, List), ok
+                          try find_font_info(FileName) of
+                              List ->
+                                  lists:foldl(Store, 0, List),
+                                  ok
                           catch _:_What:_St ->
                                   ?DBG("Fail: ~p : ~P~n ~P~n",[FileName, _What, 20, _St, 20]),
                                   ok
@@ -229,10 +244,6 @@ process_ttfs(Dirs) ->
         [_|_] ->
             ?MODULE
     end.
-
-ttf_info(File) ->
-    {ok,Filecontents} = file:read_file(File),
-    find_font_info(Filecontents, File).
 
 trygen(File, Text, SubDiv) ->
     trygen(File, Text, 0, SubDiv, 2).
@@ -373,7 +384,8 @@ get_polyarea(Glyph, X, Scale, Nsubsteps, Font) ->
     %% io:format("~p:~p: ~p ~p~n",[?MODULE,?LINE, Scale, get_glyph_box(Font, Glyph)]),
 
     Make = fun(Vs) -> make_edges(Vs, {Scale,Scale}, {X*Scale, 0}, []) end,
-    Edges = lists:map(Make, VsCont),
+    Edges0 = lists:map(Make, VsCont),
+    Edges = [Edge || [_|_] = Edge <- Edges0],  %% Filter out empty lists
     %% io:format("~p:~p: Edges: ~n  ~w~n",[?MODULE,?LINE, Edges]),
     findpolyareas(Edges).
 
@@ -449,7 +461,8 @@ bb_box(ListOfLists) ->
                      {min(X,MinX), min(Y,MinY),
                       max(X,MaxX), max(X,MaxY)}
              end,
-    lists:foldl(fun(List, Acc) -> lists:foldl(MinMax, Acc, List) end, {0.0,0.0, 0.0,0.0}, ListOfLists).
+    lists:foldl(fun(List, Acc) -> lists:foldl(MinMax, Acc, List) end,
+                {0.0,0.0, 0.0,0.0}, ListOfLists).
 
 make_edges([{JX,JY}|Rest=[{KX,KY}|_]], Scale = {ScX, ScY}, Shift = {ShX,ShY}, Eds) ->
     Edge = {{JX * ScX + ShX, JY * ScY + ShY},
@@ -784,6 +797,7 @@ encoding(1, unicode) -> {unicode, {1,1}};
 encoding(2, unicode) -> iso_10646;
 encoding(3, unicode) -> {unicode, bmp, {2,0}};
 encoding(4, unicode) -> {unicode, full,{2,0}};
+encoding(5, unicode) -> {unicode_nyi, format_14};
 
 encoding(0, microsoft)  -> symbol;
 encoding(1, microsoft)  -> {unicode, bmp};
@@ -863,8 +877,13 @@ init_font(Filename, Index) ->
 
 init_font_1(Filename, Bin0, Index) ->
     Bin  = get_font_from_offset(Bin0, Index),
-    is_font(Bin) orelse throw({error, bad_ttf_file, ?__(1,"Unsupported ttf format")}),
+    is_font(Bin) orelse throw({error, bad_ttf_file}),
     Tabs = find_tables(Bin),
+    Name = case maps:get(<<"name">>, Tabs, undefined) of
+               undefined -> throw({error, bad_ttf_file});
+               NameData -> NameData
+           end,
+    Os2  = maps:get(<<"OS/2">>, Tabs, undefined),
     try
         CMap = maps:get(<<"cmap">>, Tabs),
         %% Either loca and glyf
@@ -876,14 +895,12 @@ init_font_1(Filename, Bin0, Index) ->
         Hhea = maps:get(<<"hhea">>, Tabs),
         Hmtx = maps:get(<<"hmtx">>, Tabs),
         Kern = maps:get(<<"kern">>, Tabs, undefined),
-        Name = maps:get(<<"name">>, Tabs),
-        Os2  = maps:get(<<"OS/2">>, Tabs, undefined),
         NumGlyphs = num_glyphs(maps:get(<<"maxp">>, Tabs, undefined), Bin0),
         IndexMap  = find_index_map(CMap, Bin0),
         CffMap = pp_cff(Cff, Bin0, Filename),
         (Loca == undefined orelse Glyf == undefined)
             andalso CffMap == undefined
-            andalso throw({error, no_glyf_info, ?__(1,"Unsupported ttf format")}),
+            andalso throw({error, no_glyf_info}),
         Skip = Head+50,
         <<_:Skip/binary, LocFormat:?U16, ?SKIP>> = Bin0,
         #ttf_info{data = Bin0, file = Filename, collection = Index,
@@ -897,9 +914,25 @@ init_font_1(Filename, Bin0, Index) ->
                   index_to_loc_format = LocFormat
                  }
     catch error:_Err:_ST ->
+            %% We create a bad tff_info here to give other user error messages
+            %% than file not found
             io:format("Parse error: ~p~n~P:~n  ~P~n",[Filename, _Err,30,_ST, 100]),
-            throw({error, unsupport_ttf_format, ?__(1, "Unsupported ttf format")})
+            throw({error, parse_error,
+                   #ttf_info{name=Name, os2=Os2, data=Bin0,
+                             file = {error, parse_error, Filename}}});
+          throw:{error,_Err} ->
+            throw({error,_Err,
+                   #ttf_info{name=Name, os2=Os2, data=Bin0,
+                             file = {error, _Err, Filename}}})
     end.
+
+format_error(Error) ->
+    io:format("TFF error: ~p~n", [Error]),
+    ?__(1,"Unsupported ttf format").
+
+find_font_info(File) ->
+    {ok,Filecontents} = file:read_file(File),
+    find_font_info(Filecontents, File).
 
 find_font_info(<<"ttcf", 0,_V,0,0, N:32, ?SKIP >> = Bin, File) ->
     %% ?DBG("Version ~w: Size ~w~n",[V,N]),
@@ -907,7 +940,8 @@ find_font_info(<<"ttcf", 0,_V,0,0, N:32, ?SKIP >> = Bin, File) ->
                    try
                        Font = init_font_1(File, Bin, Idx),
                        [find_font_info_1(Font)|Acc]
-                   catch throw:_ ->
+                   catch throw:_Reason ->
+                           ?DBG("~s:~w: ~p~n", [File, Idx, _Reason]),
                            Acc
                    end
            end,
@@ -916,8 +950,9 @@ find_font_info(Bin, File) ->
     try init_font_1(File, Bin,0) of
         Font ->
             [find_font_info_1(Font)]
-    catch throw:_ ->
-            []
+    catch throw:{error, Reason, #ttf_info{}=Font} ->
+            ?DBG("~s: ~p~n", [File, Reason]),
+            [{error, Reason, find_font_info_1(Font)}]
     end.
 
 find_font_info_1(#ttf_info{file=_File, collection=_Coll} = TTF) ->
@@ -925,12 +960,11 @@ find_font_info_1(#ttf_info{file=_File, collection=_Coll} = TTF) ->
     Family = proplists:get_value(family, FontInfo, undefined),
     PrefFamily = proplists:get_value(preferred_family, FontInfo, undefined),
     {Style, Weight} = font_styles(TTF),
-    %% ?DBG("~s (~w) ~p ~s ~s~n  ~0.p~n~n", [_File, _Coll, Family, Style, Weight, FontInfo]),
-    %% io:format("File: ~p ~p ~p ~p~n", [_File,Family, Style, Weight]),
+    %% ?DBG("~p (~w) ~p ~s ~s~n  ~0.p~n~n", [_File, _Coll, Family, Style, Weight, FontInfo]),
+    %% io:format("File: ~p ~p ~p ~p ~p~n", [_File,Family, PrefFamily, Style, Weight]),
     case PrefFamily of
-        undefined -> {Family,Style,Weight};
-        Family -> {Family,Style,Weight};
-        _ -> {PrefFamily,Style,Weight}
+        undefined -> {Family, Family,Style,Weight};
+        _ -> {Family, PrefFamily, Style, Weight}
     end.
 
 check_enc(A, A) -> true;
@@ -1031,29 +1065,67 @@ find_font_file(Table, WxFont) ->
     FontInfo = wings_text:get_font_info(WxFont),
     try
         #{face:=FName, style:=FStyle, weight:=FWeight} = FontInfo,
-        TryList = [{Style,Weight} || Style <- [FStyle,normal], Weight <- [FWeight,normal]],
-        File = find_font_file_0(Table,FName, TryList),
-        ?DBG("~p => ~p~n", [FontInfo, File]),
+        Alternatives = find_font_file_0(Table, FName, true),
+        ?DBG("~p => ~p~n", [FontInfo, Alternatives]),
+        File = select_fontfile(Alternatives, FStyle, FWeight),
+        ?DBG("FontFile: ~p~n", [File]),
         {FontInfo, {FName, File}}
     catch _:Er:St ->
             io:format("~p: ~p~n",[Er,St]),
             {FontInfo, undefined}
     end.
 
-find_font_file_0(Table,FName,[{FStyle,FWeight}|Rest]) ->
-    case ets:lookup(Table, {FName,FStyle,FWeight}) of
-	[{_Key, FPath}] -> FPath;
-        [] -> find_font_file_0(Table,FName, Rest)
-    end;
-find_font_file_0(Table,FName,[]) ->
-    case winregval("FontSubstitutes",FName) of
-        none -> undefined;
-        FSName ->
-            case ets:lookup(Table, {FSName,normal,normal}) of
-                [{_Key, FPath}] -> FPath;
-                [] -> undefined
-            end
+find_font_file_0(Tab, [$@|FName], TryWin) ->
+    %% Some fonts in windows start with a '@' do know why
+    %% but they can't be found so remove '@'
+    find_font_file_0(Tab, FName, TryWin);
+find_font_file_0(Tab, FName, TryWin) ->
+    case ets:match_object(Tab, {{FName,'_', '_', '_'}, '_'}) of
+        [] ->
+            case ets:match_object(Tab, {{'_', FName, '_', '_'},'_'}) of
+                [] when TryWin ->
+                    find_font_file_1(Tab, FName);
+                List ->
+                    List
+            end;
+        List ->
+            List
     end.
+
+find_font_file_1(Table,FName) ->
+    case winregval("FontSubstitutes",FName) of
+        none -> [];
+        FSName -> find_font_file_0(Table, FSName, false)
+    end.
+
+select_fontfile(Alts0, Style, Weight) ->
+    Alts = case [FI || {{_,_,S,_}, _} = FI <- Alts0, S =:= Style] of
+               [] ->
+                   case [FI || {{_,_,normal,_}, _} = FI <- Alts0] of
+                       [] -> Alts0;
+                       As -> As
+                   end;
+               As -> As
+           end,
+    select_fontfile_1(Alts, Weight).
+
+select_fontfile_1(Alts0, Weight) ->
+    Alts = case [FI || {{_,_,_, W}, _} = FI <- Alts0, W =:= Weight] of
+               [] ->
+                   case [FI || {{_,_,_,normal}, _} = FI <- Alts0] of
+                       [] -> Alts0;
+                       As -> As
+                   end;
+               As -> As
+           end,
+    select_fontfile_2(Alts).
+
+select_fontfile_2([]) ->
+    undefined;
+select_fontfile_2([{_, File}|R] = _Alts) ->
+    R =/= [] andalso ?DBG("Selecting hd of ~p~n",[_Alts]),
+    File.
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -1076,7 +1148,7 @@ num_glyphs(Offset0, Bin) ->
 find_index_map(Cmap, Bin) ->
     <<_:Cmap/binary, _:16, NumTables:?U16, Data/binary>> = Bin,
     case find_index_map1(NumTables, Data, []) of
-        [] -> throw({errror, unsupported_format});
+        [] -> throw({error, supported_index_map_not_found});
         Alternatives ->
             [{_, Offset}|_] = lists:sort(Alternatives),
             %% ?DBG("Index maps: ~p + ~p => ~p~n", [Cmap,lists:sort(Alternatives),Cmap + Offset]),
@@ -1091,11 +1163,13 @@ find_index_map1(N, <<?PLATFORM_ID_MICROSOFT:?U16, Enc:?U16, Offset:?U32, Rest/bi
         ?MS_EID_UNICODE_FULL ->
             find_index_map1(N-1, Rest, [{1, Offset}|Prev]);
         _ -> %% For example ?MS_EID_SYMBOL
+            ?DBG("Ignored: ~w ~p~n",[Enc, encoding(Enc, microsoft)]),
             find_index_map1(N-1, Rest, Prev)
     end;
 find_index_map1(N, <<?PLATFORM_ID_UNICODE:?U16, Enc:?U16, Offset:?U32, Rest/binary>>, Prev) ->
     case Enc of
         5 -> %% Cmap format 14 (we don't support that)
+            ?DBG("Ignored: ~w ~p~n",[Enc, encoding(Enc, unicode)]),
             find_index_map1(N-1, Rest, Prev);
         4 ->
             find_index_map1(N-1, Rest, [{0, Offset}|Prev]);
@@ -1389,7 +1463,7 @@ setup_vertices([Flag|Fs0], [X|XCs0], [Y|YCs0], GD, StartC, Index,
     <<Next0:?U16, NextGD/binary>> = GD,
     Next = Next0-Index,
     case (Flag band 1) =:= 0 of
-	true  ->
+	true when Fs0 =/= [] ->
 	    StartOff = {X,Y}, %% Save for warparound
 	    [FN|Fs1]  = Fs0,
 	    [XN|Xcs1] = XCs0,
@@ -1405,7 +1479,7 @@ setup_vertices([Flag|Fs0], [X|XCs0], [Y|YCs0], GD, StartC, Index,
 	    %%io:format("SOff ~p ~p ~p~n",[(Flag band 1) =:= 0, S, Next]),
 	    Vs = set_vertex(Vs1, move, S, {0,0}),
 	    setup_vertices(Fs,XCs,YCs,NextGD,Next-Skip,Next0,S,false,StartOff,Vs);
-	false ->
+	_ ->
 	    S = {X,Y},
 	    %%io:format("Start ~p ~p ~p~n",[(Flag band 1) =:= 0, S, Next]),
 	    Vs = set_vertex(Vs1, move, S, {0,0}),

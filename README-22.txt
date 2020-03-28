@@ -1,3 +1,38 @@
+--- 2.2.6 --------------------------------------------
+
+- Added "/System/Library/Fonts/" to font search path on
+  Mac. Thanks Tkbd. [dgud]
+
+- Improved Collada (.dae) import, thanks 'nigec' for a good/small
+  failing example files. [dgud]
+
+- Added the toggle background option to the AutoUV window. [micheus]
+
+- Context menu on Geometry can get options hidden. Thanks to nigec. [micheus]
+
+- Binding a hotkey used by main menu was not removing it. Thanks yschaeff [micheus]
+
+- Enable horizontal scroll to rotate view, improves laptop usage
+  without mouse.  Can be used with options see:
+  "Preferences/Camera/Wheel Pans and Rotates"
+  and it's options. [dgud]
+
+- Fixed marquee selection drawing on linux on undocked windows. [dgud]
+
+- Fixed transaltion issues with "Edit Area Light" in body menu. [dgud]
+
+- Improved TTF text rendering;
+  - Better error reports for non supported formats
+  - Fixed crash when rendering space character for some fonts
+  - Improved font family name handling, so that more (correct) fonts will be found. [dgud]
+
+- Error exporting .eps/.svg files using diacritical marks. Thanks Hank [micheus]
+
+- Added the Tesselation option to the jscad exporter. [micheus]
+
+- The JSCAD plugin was rewritten to offer more flexibility. Thanks to the
+  user gilboonet for his help. [micheus]
+
 --- 2.2.5 --------------------------------------------
 
 - Added wings_convert script for batch conversion of models. [dgud]

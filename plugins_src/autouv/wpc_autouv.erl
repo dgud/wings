@@ -60,12 +60,16 @@ auv_menu(1,_What) -> {?MODULE, segment};
 auv_menu(2,_) -> {?MODULE, segment_old};
 auv_menu(3,_) -> {?MODULE, force_seg}.
 
+auv_show_menu(label) ->
+    ?__(1,"Show/Hide Background Image");
+auv_show_menu(help) ->
+    ?__(2,"Toggle display of the background texture image");
 auv_show_menu(Action) ->
     Cmd = {show,toggle_background},
     case Action of
 	true ->
-	    Label = ?__(1,"Show/Hide Background Image"),
-	    Help = ?__(2,"Toggle display of the background texture image"),
+	    Label = auv_show_menu(label),
+	    Help = auv_show_menu(help),
 	    wings_menu:update_menu(view, Cmd, {append, 0, Label},Help);
 	false ->
 	    wings_menu:update_menu(view, Cmd, delete)
@@ -469,7 +473,9 @@ command_menu(vertex, X, Y) ->
 	   ] ++ option_menu(),
     wings_menu:popup_menu(X,Y, {auv,vertex}, Menu);
 command_menu(_, X, Y) ->
-    [_|Menu] = option_menu(),
+    Checked = [{crossmark, get({?MODULE,show_background})}],
+    Menu = [{auv_show_menu(label),toggle_background,auv_show_menu(help),
+	     Checked}] ++ option_menu(),
     wings_menu:popup_menu(X,Y, {auv,option}, Menu).
 
 stretch_directions() ->
@@ -716,9 +722,7 @@ handle_event_3({action,Ev}=Act, #st{selmode=AUVSel, bb=#uvstate{st=#st{selmode=G
 	{_, circularise} ->
 	    handle_command(circularise,St);
 	{view,{show,toggle_background}} ->
-	    Old = get({?MODULE,show_background}),
-	    put({?MODULE,show_background},not Old),
-	    wings_wm:dirty();
+	    handle_command(toggle_background,St);
 	{view,aim} ->
 	    St1 = fake_selection(St),
 	    wings_view:command(aim, St1),
@@ -952,6 +956,10 @@ handle_command_1(cut_edges, St0 = #st{selmode=edge,bb=#uvstate{id=Id,st=Geom}}) 
     St2 = displace_cuts(Es, St1),
     St  = update_selected_uvcoords(St2),
     get_event(St);
+handle_command_1(toggle_background, _) ->
+    Old = get({?MODULE,show_background}),
+    put({?MODULE,show_background},not Old),
+    wings_wm:dirty();
 
 handle_command_1(Cmd, #st{selmode=Mode}=St0) ->
     case wings_plugin:command({{auv,Mode},Cmd}, St0) of

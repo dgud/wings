@@ -18,7 +18,7 @@
 -define(SDL_ALL_HOTKEYS,	16#FFFFFFFF).
 
 -record(keyboard,   %% SDL_KeyboardEvent
-	{which,     %% The keyboard device index
+	{which,     %% The window
 	 state,     %% SDL_PRESSED or SDL_RELEASED
 	 scancode,  %% hardware specific scancode
 	 sym,	    %% SDL virtual keysym      see sdl_keyboard.hrl
@@ -26,7 +26,7 @@
 	 unicode}). %% translated character
 
 -record(mousemotion,%% SDL_MouseMotionEvent
-	{which,	  %% The mouse device index
+	{which,	  %% The window
 	 state,	  %% The current button state
 	 mod=0,	  %% Current key modifiers
 	 x, y,	  %% The X/Y coordinates of the mouse
@@ -34,9 +34,16 @@
 	 yrel}).  %% The relative motion in the Y direction
 
 -record(mousebutton,%% SDL_MouseButtonEvent
-	{which,	  %% The mouse device index
+	{which,	  %% The window
 	 button,  %% The mouse button index
 	 state,   %% SDL_PRESSED or SDL_RELEASED
+	 mod=0,	  %% Current key modifiers
+	 x, y}).  %% The X/Y coordinates of the mouse at press time
+
+-record(mousewheel,%% SDL_MouseScrollEvent
+	{which,	  %% The window
+	 dir,     %% hor | ver
+	 wheel=0, %% Number of steps
 	 mod=0,	  %% Current key modifiers
 	 x, y}).  %% The X/Y coordinates of the mouse at press time
 

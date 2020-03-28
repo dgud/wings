@@ -67,11 +67,11 @@
 %% flag makes the checkbox value and the return value of the field to
 %% be the inverted minimized state (the maximized state ;-).
 %%
-%% {oframe,Fields[,Flags]}                      -- Overlay frame
-%%     Flags = [Flag]
-%%     Flag = {title,String}|{style,Style}|{key,Key}|{hook,Hook}|layout
-%%     Style = menu|buttons  -- menu is default
-%%
+%% {oframe, Frames}                      -- Overlay frame
+%%     Frames = [{Title, Fields, Def, Flags}]
+%%     Title = String
+%%     Def = term()  -- Tab index to be focused.
+%%     Flags = [{style,buttons}]
 %%
 %%
 %% Composite fields (consisting of other fields)
@@ -564,6 +564,8 @@ event_handler(preview_exec, #eh{fs=Fields, apply=Fun, owner=Owner}=Eh0) ->
     {replace, fun(Ev) -> event_handler(Ev, Eh) end};
 event_handler(#mousebutton{which=Obj}=Ev, _) ->
     wings_wm:send(wings_wm:wx2win(Obj), {camera,Ev,keep});
+event_handler(#mousewheel{which=Obj}=Ev, _) ->
+    wings_wm:send(wings_wm:wx2win(Obj), {camera,Ev,keep});
 event_handler(#mousemotion{}, _) -> keep;
 event_handler(got_focus, #eh{dialog=Dialog}) ->
     %% wxWidgets MacOSX workaround to keep dialog on top
@@ -951,8 +953,12 @@ build(Ask, {vframe_dialog, Qs, Flags}, Parent, Sizer, []) ->
 		     output= undefined =/= proplists:get_value(key,Flags),
 		     type=dialog_buttons, wx=Create}|In]};
 
-build(Ask, {oframe, Tabs, Def, Flags}, Parent, WinSizer, In0)
-  when Ask =/= false ->
+build(Ask, {oframe, Tabs, _Def, _Flags}, Parent, WinSizer, In0) when Ask==false ->
+    AddPage = fun({_Title, Data}, In) ->
+		    build(Ask, Data, Parent, WinSizer, In)
+	      end,
+    lists:foldl(AddPage, In0, Tabs);
+build(Ask, {oframe, Tabs, Def, Flags}, Parent, WinSizer, In0) ->
     DY  =  wxSystemSettings:getMetric(?wxSYS_SCREEN_Y)*5 div 6, %% don't take entire screen.
     buttons =:= proplists:get_value(style, Flags, buttons) orelse error(Flags),
     NB = wxNotebook:new(Parent, ?wxID_ANY),
@@ -1725,7 +1731,7 @@ paragraph_to_html([C|Text]) when is_list(C) ->
     [paragraph_to_html(C), paragraph_to_html(Text)];
 paragraph_to_html([]) -> [].
 
-table_to_html({table, _, Header, Items}) ->
+ table_to_html({table, _, Header, Items}) ->
     ["<p><b>", Header, "</b></p><table>",
      [table_row_to_html(Row) || Row <- Items],
      "</table>"].

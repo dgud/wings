@@ -161,16 +161,7 @@ have_magnet(_, true) -> activated;
 have_magnet(Ps, _) ->
     proplists:is_defined(magnet, Ps).
 
-mac_fix() ->
-    %% Mac wxWidgets-3.1.3 capture_mouse don't work as expected
-    %% Try to work around it.
-    case os:type() of
-        {unix, darwin} -> true;
-        _ -> false
-    end.
-
 wx_popup_menu_init(Parent,GlobalPos,Names,Menus0) ->
-    mac_fix() andalso wings_wm:grab_focus(),
     Owner = wings_wm:this(),
     {Pid, Entries} = wx_popup_menu(Parent,GlobalPos,Names,Menus0,false,Owner),
     {push, fun(Ev) -> popup_event_handler(Ev, {Parent,Owner,Pid}, Entries) end}.
@@ -188,16 +179,20 @@ wx_popup_menu(Parent,Pos,Names,Menus0,Magnet,Owner) ->
 				end, {[],500}, Entries1),
     Entries = reverse(Entries2),
     MEs0 = [ME#menu{name=undefined} || ME <- Entries],
-    CreateMenu = fun() -> setup_dialog(Parent, MEs0, Magnet, Pos) end,
+    {Overlay, KbdFocus} = make_overlay(Parent, Pos),
+    CreateMenu = fun() -> setup_dialog(Overlay, MEs0, Magnet, Pos) end,
     Env = wx:get_env(),
     Pid = spawn_link(fun() ->
 		       try
 			   wx:set_env(Env),
+                           register(wings_menu_process, self()),
 			   {Frame, Panel, MEs, Cols} = wx:batch(CreateMenu),
+                           wxWindow:setFocus(KbdFocus),
 			   popup_events(Frame, Panel, MEs, Cols, Magnet, undefined, Names, Owner),
-                           wxWindow:releaseMouse(Panel),
                            wxWindow:hide(Frame),
-                           wxFrame:destroy(Frame)
+                           wxFrame:destroy(Frame),
+                           wxFrame:destroy(Overlay),
+                           wxWindow:setFocus(Parent)
 		       catch _:Reason ->
 			       io:format("CRASH ~p ~p~n",[Reason, erlang:get_stacktrace()])
 		       end,
@@ -205,19 +200,51 @@ wx_popup_menu(Parent,Pos,Names,Menus0,Magnet,Owner) ->
 	       end),
     {Pid,Entries}.
 
-setup_dialog(Parent, Entries0, Magnet, {X0,Y0}=ScreenPos) ->
-    X  = X0-20,
-    Y1 = Y0-10,
+make_overlay(Parent, ScreenPos) ->
+    OL = wxFrame:new(),
     Flags = ?wxFRAME_TOOL_WINDOW bor ?wxFRAME_FLOAT_ON_PARENT bor ?wxFRAME_NO_TASKBAR,
-    Frame = wxFrame:new(),
-    wxWindow:setExtraStyle(Frame, ?wxWS_EX_PROCESS_IDLE bor ?wxFRAME_EX_METAL),
-    %% case {os:type(), {?wxMAJOR_VERSION, ?wxMINOR_VERSION}} of
-    %%     {{_, linux}, Ver} when Ver > {3,0} ->
-    %%         wxFrame:setBackgroundStyle(Frame, 3); %% ?wxBG_STYLE_TRANSPARENT
-    %%     _ -> ok
-    %% end,
-    true = wxFrame:create(Frame, Parent, -1, "", [{style, Flags}]),
-    Panel = wxWindow:new(Frame, -1, [{style, ?wxWANTS_CHARS}]),
+    TCol = case {os:type(), {?wxMAJOR_VERSION, ?wxMINOR_VERSION}} of
+               {{_, linux}, Ver} when Ver > {3,0} ->
+                   wxFrame:setBackgroundStyle(OL, 3), %% ?wxBG_STYLE_TRANSPARENT
+                   0;
+               {{_, darwin}, _} ->
+                   13;  %% No events received if completly transparent ??
+               _ ->
+                   1
+           end,
+    DisplayID = wxDisplay:getFromPoint(ScreenPos),
+    Display = wxDisplay:new([{n, DisplayID}]),
+    {DX,DY,DW,DH} = wxDisplay:getClientArea(Display),
+    true = wxFrame:create(OL, Parent, -1, "", [{pos,{DX,DY}},{size, {DW,DH}},{style, Flags}]),
+    wxFrame:setBackgroundColour(OL, {0,0,0,TCol}),
+    catch wxFrame:setTransparent(OL, TCol),
+    Panel = wxWindow:new(OL, -1, [{size, {DW,DH}}, {style, ?wxWANTS_CHARS}]),
+    EvH = fun(#wx{event=#wxKey{keyCode=Key}}, _) ->
+                  if Key =:= ?WXK_ESCAPE -> wings_menu_process ! cancel;
+                     true -> ok
+                  end;
+             (#wx{event=#wxMouse{type=right_up,y=Y, x=X}}, _) ->
+                  wings_menu_process ! {move, wxWindow:clientToScreen(OL,{X,Y})};
+             (_Ev, Obj) ->
+                  wxEvent:skip(Obj),
+                  %% ?dbg("Cancel menu: ~w~n",[_Ev]),
+                  catch wings_menu_process ! cancel
+          end,
+    [wxWindow:connect(Panel, Ev, [{callback, EvH}]) ||
+        Ev <- [left_up, middle_up, right_up, char, char_hook]],
+    wxFrame:show(OL),
+    {OL, Panel}.
+
+setup_dialog(Parent, Entries0, Magnet, {X0,Y0}=ScreenPos) ->
+    X1 = X0-25,
+    Y1 = Y0-15,
+    Top = case os:type() of
+              {_, linux} -> ?wxSTAY_ON_TOP;  %% Hmm needed for some reason
+              _ -> ?wxFRAME_FLOAT_ON_PARENT
+          end,
+    Flags = ?wxFRAME_TOOL_WINDOW bor Top bor ?wxFRAME_NO_TASKBAR,
+    Frame = wxFrame:new(Parent, -1, "", [{style, Flags}]),
+    Panel = wxPanel:new(Frame),
     wxWindow:setFont(Panel, ?GET(system_font_wx)),
     {{R,G,B,A},FG} = {colorB(menu_color),colorB(menu_text)},
     Cols = {{R,G,B,A}, FG},
@@ -235,93 +262,82 @@ setup_dialog(Parent, Entries0, Magnet, {X0,Y0}=ScreenPos) ->
     wxPanel:setSizer(Panel, Main),
     wxSizer:fit(Main, Panel),
     wxWindow:setClientSize(Frame, wxWindow:getSize(Panel)),
-    wxWindow:connect(Frame, show),
-    {_, MaxH} = wx_misc:displaySize(),
-    {_,H} = wxWindow:getSize(Frame),
-    Y = if ((Y1+H) > MaxH) -> max(0, (MaxH-H-5));
-           true -> Y1
-        end,
-    [wxWindow:connect(Panel, Ev, [{skip, false}]) ||
-        Ev <- [motion, left_up, middle_up, right_up]],
-    wxWindow:move(Frame, {X,Y}),
-    wxPanel:connect(Panel, char),
-    wxPanel:connect(Panel, char_hook),
-    catch wxWindow:connect(Panel, mouse_capture_lost), %% Not available in old wx's.
+    wxWindow:move(Frame, fit_menu_on_display(Frame,{X1,Y1})),
     wxFrame:show(Frame),
 
     %% Color active menuitem
     {MX, MY} = wxWindow:screenToClient(Panel, ScreenPos),
-    MEv = #wxMouse{type=motion,x=MX,y=MY,
-                   leftDown=false,middleDown=false,rightDown=false,
-                   controlDown=false,shiftDown=false,altDown=false,metaDown=false,
-                   wheelRotation=0, wheelDelta=0, linesPerAction=0
-                  },
-    self() ! #wx{id=-1, obj=wx:null(), event=MEv},
+    case find_active_panel(Panel, MX, MY) of
+	{false,_} -> ignore;
+	{ActId, ActPanel} ->
+	    self() ! #wx{id=ActId, obj= ActPanel,
+			 event=#wxMouse{type=enter_window,x=0,y=0,
+					leftDown=false,middleDown=false,rightDown=false,
+					controlDown=false,shiftDown=false,altDown=false,metaDown=false,
+					wheelRotation=0, wheelDelta=0, linesPerAction=0}}
+    end,
     {Frame, Panel, Entries, Cols}.
 
 popup_events(Frame, Panel, Entries, Cols, Magnet, Previous, Ns, Owner) ->
     receive
-	#wx{event=#wxMouse{x=X,y=Y,type=motion}} ->
-            Do = fun() ->
-                         case find_active_panel(Panel, X, Y) of
-                             {Id, Obj} when is_number(Id), Obj =/= Previous ->
-                                 wings_status:message(Owner, entry_msg(Id, Entries), ""),
-                                 {BG,FG} = Cols,
-                                 setup_colors(Previous, BG, FG),
-                                 setup_colors(Obj, colorB(menu_hilite),colorB(menu_hilited_text)),
-                                 Obj;
-                             _ ->
-                                 Previous
-                         end
-                 end,
-            Line = wx:batch(Do),
+	#wx{id=Id, obj=Obj,event=#wxMouse{type=enter_window}} ->
+            Set = fun() ->
+                          if Obj =/= Previous ->
+                                  {BG,FG} = Cols,
+                                  setup_colors(Previous, BG, FG),
+                                  setup_colors(Obj, colorB(menu_hilite),colorB(menu_hilited_text)),
+                                  Obj;
+                             true ->
+                                  Previous
+                          end
+                  end,
+	    Line = wx:batch(Set),
+	    wings_status:message(Owner, entry_msg(Id, Entries), ""),
             popup_events(Frame, Panel, Entries, Cols, Magnet, Line, Ns, Owner);
-	#wx{event=Ev=#wxMouse{y=Y, x=X}} ->
-	    What = mouse_button(Ev),
-	    case find_active_panel(Panel, X, Y) of
-		{false, outside} when What =:= right_up ->
-		    Pos = wxWindow:clientToScreen(Frame,{X,Y}),
-                    wxWindow:move(Frame, Pos),
-                    wings_wm:psend(Owner, redraw),
-		    popup_events(Frame, Panel, Entries, Cols, Magnet, Previous, Ns, Owner);
+	#wx{id=Id0, event=Ev=#wxMouse{y=Y, x=X}} ->
+            Id = case Id0 > 0 orelse find_active_panel(Panel, X, Y) of
+		     true -> Id0;
+		     {false, _} = No -> No;
+		     {AId, _} -> AId
+		 end,
+            %% ?dbg("Ev: ~w ~w ~w~n",[Ev, Id0, Id]),
+	    case Id of
 		{false, outside} ->
 		    wings_wm:psend(Owner, cancel);
                 {false, inside} ->
                     popup_events(Frame, Panel, Entries, Cols, Magnet, Previous, Ns, Owner);
-                {PanelId, RowPanel} ->
-                    {PX,_} = wxWindow:getPosition(RowPanel),
-                    Id = get_hit_id(X-PX, RowPanel, PanelId),
+                Active when is_integer(Active) ->
 		    MagnetClick = Magnet orelse
 			magnet_pressed(wings_msg:free_rmb_modifier(), Ev),
-		    wings_wm:psend(Owner, {click, Id, {What, MagnetClick}, Ns})
-	    end;
-	#wx{event=#wxShow{show=true}} ->
-            capture_mouse(Frame, Panel),
-            popup_events(Frame, Panel, Entries, Cols, Magnet, Previous, Ns, Owner);
-	#wx{event=#wxKey{keyCode=Key}} = _Ev ->
-	    if Key =:= ?WXK_ESCAPE ->
-		    wings_wm:psend(Owner, cancel);
-	       true ->
-		    popup_events(Frame, Panel, Entries, Cols, Magnet, Previous, Ns, Owner)
+		    wings_wm:psend(Owner, {click, Id, {mouse_button(Ev), MagnetClick}, Ns})
 	    end;
         cancel ->
             wings_wm:psend(Owner, cancel);
-        #wx{event=#wxMouseCaptureLost{}} ->
-            wings_wm:psend(Owner, cancel);
+        {move, {X,Y}} ->
+            Pos = fit_menu_on_display(Frame,{X-25,Y-15}),
+            wxWindow:move(Frame, Pos),
+            wings_wm:psend(Owner, redraw),
+            popup_events(Frame, Panel, Entries, Cols, Magnet, Previous, Ns, Owner);
 	_Ev ->
-	    ?dbg("Got Ev ~p ~n", [_Ev]),
+	    %% ?dbg("Got Ev ~p ~n", [_Ev]),
 	    popup_events(Frame, Panel, Entries, Cols, Magnet, Previous, Ns, Owner)
     end.
 
-capture_mouse(Frame, Panel) ->
-    wxWindow:disconnect(Frame, show),
-    case os:type() of          %% Capture mouse on GTK must be done on an realized window
-        {unix, linux} -> timer:sleep(150); %% sleep so we ensure that (async) creation is done
-        _ -> ok
-    end,
-    wxWindow:setFocus(Panel),
-    wxWindow:captureMouse(Panel),
-    ok.
+fit_menu_on_display(Frame,{MX,MY} = Pos) ->
+    {WW,WH} = wxWindow:getSize(Frame),
+    DisplayID = wxDisplay:getFromPoint(Pos),
+    Display = wxDisplay:new([{n, DisplayID}]),
+    {DX,DY,DW,DH} = wxDisplay:getClientArea(Display),
+    MaxW = (DX+DW),
+    PX = if (MX+WW) > MaxW -> MaxW-WW-2;
+            true -> MX
+         end,
+    MaxH = (DY+DH),
+    PY = if (MY+WH) > MaxH -> MaxH-WH-2;
+            true -> MY
+         end,
+    wxDisplay:destroy(Display),
+    {PX,PY}.
 
 %% If the mouse is not moved after popping up the menu, the meny entry
 %% is not active, find_active_panel finds the active row.
@@ -356,27 +372,6 @@ find_active_panel_1(Panel, MY) ->
 	    Found
     end.
 
-get_hit_id(MX, Panel, Id0) ->
-    Sizer = wxWindow:getSizer(Panel),
-    Children = wxSizer:getChildren(Sizer),
-    Check = fun(Item) ->
-                    {X, _, W, _} = wxSizerItem:getRect(Item),
-                    if MX < X -> false;
-                       MX >= (X+W) -> false;
-                       true ->
-                            Active = wxSizerItem:getWindow(Item),
-                            case wx:is_null(Active) orelse wxWindow:getId(Active) of
-                                true -> false;
-                                Id when Id < 0 -> false;
-                                Id -> {true, Id}
-                            end
-                    end
-            end,
-    case lists:filtermap(Check, Children) of
-        [] -> Id0;
-        [Id|_] -> Id
-    end.
-
 magnet_pressed(?CTRL_BITS, #wxMouse{controlDown=true}) -> true;
 magnet_pressed(?ALT_BITS, #wxMouse{altDown=true}) -> true;
 magnet_pressed(?META_BITS, #wxMouse{metaDown=true}) -> true;
@@ -403,12 +398,10 @@ mouse_button(#wxMouse{type=What, controlDown = Ctrl, altDown = Alt, metaDown = M
     end.
 
 popup_event_handler(cancel, _, _) ->
-    mac_fix() andalso wings_wm:release_focus(),
     pop;
 popup_event_handler({click, Id, Click, Ns}, {Parent,Owner,_Pid}, Entries0) ->
     case popup_result(lists:keyfind(Id, 2, Entries0), Click, Ns, Owner) of
 	pop ->
-            mac_fix() andalso wings_wm:release_focus(),
             pop;
 	{submenu, Names, Menus, MagnetClick} ->
 	    {_, X0, Y0} = wings_io:get_mouse_state(),
@@ -419,15 +412,8 @@ popup_event_handler({click, Id, Click, Ns}, {Parent,Owner,_Pid}, Entries0) ->
     end;
 popup_event_handler(redraw,_,_) ->
     defer;
-popup_event_handler(#mousemotion{},_,_) ->
-    keep;
 popup_event_handler(#keyboard{sym=?SDLK_ESCAPE}, {_, _, Pid}, _) ->
     Pid ! cancel, %% Keyboard focus fails on mac wxWidgets-3.1.3
-    keep;
-popup_event_handler(lost_focus, {_, _, Pid}, _) ->
-    %% just focus lost
-    %% mac wxWidgets capture mouse outside window does not get mouse click
-    mac_fix() andalso (Pid ! cancel),
     keep;
 popup_event_handler(_Ev,_,_) ->
     %% io:format("Hmm ~p ~n",[_Ev]),
@@ -529,6 +515,7 @@ setup_popup([#menu{type=submenu, wxid=Id, desc=Desc, help=Help0, opts=Ps, hk=HK}
     [wxWindow:setToolTip(Win, wxToolTip:new(TipMsg)) || Win <- Controls],
     wxPanel:setSizerAndFit(Panel, Line),
     wxSizer:add(Sizer, Panel, [{flag, ?wxEXPAND},{proportion, 1}]),
+    menu_connect(Controls, [left_up, middle_up, right_up, enter_window]),
     setup_popup(Es, Sizer, Sz, Cs, Parent, Magnet, [ME#menu{help=CmdMsg}|Acc]);
 setup_popup([#menu{type=menu, wxid=Id, desc=Desc, help=Help, opts=Props, hk=HK}=ME|Es],
 	    Sizer, Sz = {Sz1,Sz2}, Cs, Parent, Magnet, Acc) ->
@@ -548,7 +535,13 @@ setup_popup([#menu{type=menu, wxid=Id, desc=Desc, help=Help, opts=Props, hk=HK}=
     BM = case {OpBox = have_option_box(Props),have_color(Props)} of
 	     {true,_} ->
 		 Bitmap = get_pref_bitmap(),
-		 SBM = wxStaticBitmap:new(Panel, Id+1, Bitmap),
+                 SBM = case os:type() of
+                           {_, darwin} ->
+                               wxBitmapButton:new(Panel, Id+1, Bitmap,
+                                                  [{style,?wxNO_BORDER}]);
+                           _ ->
+                               wxStaticBitmap:new(Panel, Id+1, Bitmap)
+                       end,
 		 wxSizer:add(Line, SBM, [{flag, ?wxALIGN_CENTER}]),
 		 [SBM];
 	     {false, true} ->
@@ -567,12 +560,16 @@ setup_popup([#menu{type=menu, wxid=Id, desc=Desc, help=Help, opts=Props, hk=HK}=
     [wxWindow:setToolTip(Win, wxToolTip:new(TipMsg)) || Win <- [Panel,T1,T2|BM]],
     wxPanel:setSizerAndFit(Panel, Line),
     wxSizer:add(Sizer, Panel, [{flag, ?wxEXPAND}, {proportion, 1}]),
+    menu_connect([Panel,T1,T2|BM], [left_up, middle_up, right_up, enter_window]),
     Win = #{panel=>Panel, label=>T1, hotkey=>T2},
     Pop = ME#menu{wxid=Id, help=CmdMsg, object=Win},
     setup_popup(Es, Sizer, Sz, Cs, Parent, Magnet, [Pop|Acc]);
 setup_popup([#menu{type=opt}=ME|Es], Sizer, Sz, Cs, Parent, Magnet, Acc) ->
     setup_popup(Es, Sizer, Sz, Cs, Parent, Magnet, [ME|Acc]);
 setup_popup([], _, _, _, _, _, Acc) -> lists:reverse(Acc).
+
+menu_connect(Windows, Evs) ->
+    [ [wxWindow:connect(Win, Ev) || Ev <- Evs] || Win <- Windows].
 
 get_pref_bitmap() ->
     case ?GET(small_pref_bm) of

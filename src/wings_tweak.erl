@@ -506,7 +506,7 @@ handle_tweak_drag_event_1(Ev,T) ->
 %%% Mouse Button Events
 %%%
 
-handle_tweak_drag_event_2(#mousebutton{button=B}=Ev, #tweak{st=St}) when B > 3 ->
+handle_tweak_drag_event_2(#mousewheel{}=Ev, #tweak{st=St}) ->
     case wings_camera:event(Ev, St) of
 	next -> keep;
 	Other -> Other

@@ -18,7 +18,6 @@
 -define(NEED_ESDL, 1).
 -include("wings.hrl").
 -import(lists, [foldl/3,mapfoldl/3,reverse/1,sort/1,seq/2]).
--define(STR_LIGHT(A,B,Str), wings_lang:str({wings_light,A,B},Str)).
 
 menu(X, Y, St) ->
     Dir = wings_menu_util:directions(St),
@@ -158,8 +157,8 @@ vertex_color_item(object) ->
 vertex_color_item(_) -> [].
 
 arealight_edit(Id, T) ->
-    [{?STR_LIGHT(menu,16,"Edit Area Light..."),{edit_arealight,Id},
-      ?STR_LIGHT(menu,17,"Edit light properties")}|T].
+    [{?__(16,"Edit Area Light..."),{edit_arealight,Id},
+      ?__(17,"Edit light properties")}|T].
 
 arealight_conv(arealight, T) ->
     [{?__(1,"Area Light to Object"),from_arealight,
