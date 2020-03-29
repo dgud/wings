@@ -14,7 +14,7 @@
 -module(wings_image).
 -export([from_file/1,new/2,new_temp/2,new_hidden/2, create/1,
 	 rename/2,info/1,images/0,
-	 screenshot/2,screenshot/1,viewport_screenshot/1,
+	 screenshot/2,viewport_screenshot/1,
 	 txid/1,bumpid/1, combid/1,
 	 is_normalmap/1,
 	 next_id/0,delete_older/1,delete_from/1,delete/1,
@@ -160,53 +160,45 @@ req(Req, Notify) ->
     Reply.
 
 screenshot(Ask, _) when is_atom(Ask) ->
-    ViewPortOnly = wings_pref:get_value(screenshot_viewport_only, false),
     SaveView = wings_pref:get_value(screenshot_save_current_view, false),
-    Qs = [{?__(2,"Capture viewport only"),ViewPortOnly},
-          {?__(3,"Add current view to Saved Views"),SaveView},
+    Qs = [{?__(3,"Add current view to Saved Views"),SaveView},
           {hframe,[{label,?__(4,"Name")},
 		   {text,?__(1,"Screenshot"),[]}]}],
     wings_dialog:dialog(Ask, ?__(1,"Screenshot"), [{vframe,Qs}],
 			fun(Res) -> {tools,{screenshot,Res}} end);
-screenshot([ViewPortOnly,SaveView,Name], St) ->
-    wings_pref:set_value(screenshot_viewport_only, ViewPortOnly),
+screenshot([SaveView,Name], St) ->
     wings_pref:set_value(screenshot_save_current_view, SaveView),
-    wings_wm:send_after_redraw(geom,{action,{tools,{screenshot,[ViewPortOnly,Name]}}}),
+    wings_wm:send_after_redraw(geom,{action,{tools,{screenshot,[Name]}}}),
     case SaveView of
       true -> wings_view:command({views,{save,[Name]}},St);
       false -> St
     end;
-screenshot([ViewPortOnly,Name], St) ->
-    case ViewPortOnly of
-      true -> viewport_screenshot(Name);
-      false -> screenshot(Name)
-    end,
+screenshot(Name, St) ->
+    viewport_screenshot(Name),
     St.
-
-screenshot(Name) ->
-    {W,H} = wings_wm:top_size(),
-    gl:pixelStorei(?GL_PACK_ALIGNMENT, 1),
-    gl:readBuffer(?GL_FRONT),
-    Mem = wings_io:get_buffer(W*H*3, ?GL_UNSIGNED_BYTE),
-    gl:readPixels(0, 0, W, H, ?GL_RGB, ?GL_UNSIGNED_BYTE, Mem),
-    ImageBin = wings_io:get_bin(Mem),
-    Image = #e3d_image{image=ImageBin,width=W,height=H},
-    Id = new_temp(Name, Image),
-    window(Id).
 
 viewport_screenshot(Name) ->
 %% screenshot of just the viewport scene
-    {X,Y,W0,H0} = wings_wm:viewport(),
+    GeomWin =
+        case wings_wm:actual_focus_window() of
+            undefined -> geom;
+            Win -> Win
+        end,
+    {W0,H0} = wings_wm:win_size(GeomWin),
     Scale = wings_wm:win_scale(),
-    W = round(W0*Scale), H = round(H0*Scale),
-    gl:pixelStorei(?GL_PACK_ALIGNMENT, 1),
-    gl:readBuffer(?GL_FRONT),
-    Mem = wings_io:get_buffer(W*H*3, ?GL_UNSIGNED_BYTE),
-    gl:readPixels(X, Y, W, H, ?GL_RGB, ?GL_UNSIGNED_BYTE, Mem),
-    ImageBin = wings_io:get_bin(Mem),
-    Image = #e3d_image{image=ImageBin,width=W,height=H},
-    Id = new_temp(Name, Image),
-    window(Id).
+    case wings_wm:redraw_geom(GeomWin) of
+        ignore -> ok;
+        _ ->
+            W = round(W0*Scale), H = round(H0*Scale),
+            gl:pixelStorei(?GL_PACK_ALIGNMENT, 1),
+            gl:readBuffer(?GL_FRONT),
+            Mem = wings_io:get_buffer(W*H*3, ?GL_UNSIGNED_BYTE),
+            gl:readPixels(0, 0, W, H, ?GL_RGB, ?GL_UNSIGNED_BYTE, Mem),
+            ImageBin = wings_io:get_bin(Mem),
+            Image = #e3d_image{image=ImageBin,width=W,height=H},
+            Id = new_temp(Name, Image),
+            window(Id)
+    end.
 
 %%%
 %%% Server implementation.
