@@ -431,9 +431,14 @@ get_shape_state(St) ->
 get_shape_state({_,Client}, #st{pst=Pst}=St) ->
     Folds0 = gb_trees:get(?FOLDERS, Pst),
     {Current, Folds1} = Folds0,
-    Folds = [{Folder, State, length(ids_in_folder(Folder, St))}
-             || {Folder, {State, _}} <- Folds1],
     Ids = wings_sel:selected_ids(St),
+    SelIds = sets:from_list(Ids),
+    Folds =
+        lists:foldr(fun({Folder, {State, _}}, Acc) ->
+                        IdsInFolder = ids_in_folder(Folder, St),
+                        Common = sets:intersection(SelIds, sets:from_list(IdsInFolder)),
+                        [{Folder, State, length(IdsInFolder), sets:to_list(Common)=/=[]}|Acc]
+                    end, [], Folds1),
     F = fun(Obj, A) -> [Obj|A] end,
     Shapes = wings_obj:fold(F, [], St),
     #{sel => Ids,
@@ -692,14 +697,18 @@ unsplit_window(Splitter, TC) ->
 update_folders({Curr, Fld0}, TC) ->
     Do = fun() ->
 		 wxTreeCtrl:deleteAllItems(TC),
-		 [{no_folder,_,S0}|Fld] = Fld0,
+		 [{no_folder,_,S0,_}|Fld] = Fld0,
 		 Caption0 = io_lib:format("~ts (~p)",[?__(1, "Objects"), S0]),
 		 Root = wxTreeCtrl:addRoot(TC, Caption0, []),
-
-		 Sorted = lists:sort([{wings_util:cap(F),F,S} || {F,_,S} <- Fld]),
-		 Add = fun({_, Name, Qtd}) ->
+		 Sorted = lists:sort([{wings_util:cap(F),F,S,Hs} || {F,_,S,Hs} <- Fld]),
+		 Add = fun({_, Name, Qtd, HasSel}) ->
 			    Caption = io_lib:format("~ts (~p)",[Name, Qtd]),
-			    {wxTreeCtrl:appendItem(TC, Root, Caption, []), Name}
+                Options =
+                    case HasSel of
+                        true -> [{image, image_idx(sel)},{selectedImage, image_idx(sel)}];
+                        false -> []
+                    end,
+			    {wxTreeCtrl:appendItem(TC, Root, Caption, Options), Name}
 		       end,
 		 Leaves = lists:map(Add, Sorted),
 		 wxTreeCtrl:expand(TC, Root),
