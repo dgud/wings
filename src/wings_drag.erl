@@ -785,11 +785,15 @@ handle_drag_event_2({action,numeric_input}, Drag) ->
     numeric_input(Drag);
 handle_drag_event_2({action,{numeric_preview,Move}}, _) ->
     wings_wm:later({numeric_preview,Move});
-handle_drag_event_2({camera,Ev,NextEv}, #drag{st=St}) ->
+handle_drag_event_2({camera,Ev0,NextEv}, #drag{st=St}) ->
     {_,X,Y} = wings_wm:local_mouse_state(),
-    case wings_camera:event(Ev#mousebutton{x=X,y=Y}, St) of
-      next -> NextEv;
-      Other -> Other
+    Ev = case Ev0 of
+             #mousewheel{} -> Ev0#mousewheel{x=X,y=Y};
+             #mousebutton{} -> Ev0#mousebutton{x=X,y=Y}
+         end,
+    case wings_camera:event(Ev, St) of
+        next -> NextEv;
+        Other -> Other
     end;
 handle_drag_event_2(Event, #drag{st=St}=Drag0) ->
     case wings_hotkey:event(Event,St) of
