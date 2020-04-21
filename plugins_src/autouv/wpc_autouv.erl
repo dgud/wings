@@ -408,8 +408,10 @@ command_menu(body, X, Y) ->
 				  {?__(41,"Project Normal"), project, 
 				   ?__(42,"Project UVs from chart normal")},
 				  {?__(43,"Spherical"), sphere, 
-				   ?__(44,"Spherical mapping")}
-				 ]}, 
+				   ?__(44,"Spherical mapping")},
+				  {?__(95,"Cylindrical"), cyl,
+				   ?__(96,"Cylindrical mapping")}
+				 ]},
 	     ?__(45,"Calculate new UVs with chosen algorithm")}
 	   ] ++ option_menu(),
     wings_menu:popup_menu(X,Y, {auv,body}, Menu);
@@ -469,8 +471,11 @@ command_menu(vertex, X, Y) ->
 	    separator, 
 	    {?__(89,"Unfold"),lsqcm,?__(90,"Unfold the chart (without moving the selected vertices)")},
 	    {?__(91,"SphereMap"),sphere,?__(92,"Create a spherical mapping with "
-	     "selected vertices being North/South pole")}
-	   ] ++ option_menu(),
+	     "selected vertices being North/South pole")},
+	    {?__(93,"Cylindrical Map"),cyl,?__(94,"Create a cylindrical mapping with "
+	     "selected vertices defining the axis")}
+
+		   ] ++ option_menu(),
     wings_menu:popup_menu(X,Y, {auv,vertex}, Menu);
 command_menu(_, X, Y) ->
     Checked = [{crossmark, get({?MODULE,show_background})}],
@@ -833,6 +838,9 @@ handle_command_1(lsqcm, St0) ->
 handle_command_1(sphere, St0) ->
     St = reunfold(sphere,St0),
     get_event(St);
+handle_command_1(cyl, St0) ->
+	St = reunfold(cyl,St0),
+	get_event(St);
 handle_command_1(move, St) ->
     wings_move:setup(free_2d, St);
 handle_command_1({move,{'ASK',Ask}}, St) ->
