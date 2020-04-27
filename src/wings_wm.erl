@@ -454,7 +454,9 @@ grab_focus(Name) ->
 	    %%{_, [_,Where|_]} = erlang:process_info(self(), current_stacktrace),
 	    %%io:format("Grab focus: ~p~n   ~p~n",[Name, Where]),
 	    case get(wm_focus_grab) of
-		undefined -> put(wm_focus_grab, [Name]);
+		undefined ->
+		    update_focus(Name),
+		    put(wm_focus_grab, [Name]);
 		Stack -> put(wm_focus_grab, [Name|Stack])
 	    end;
 	false -> ok
