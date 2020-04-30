@@ -47,7 +47,7 @@
 -export([get_props/1,get_prop/1,get_prop/2,lookup_prop/1,lookup_prop/2,
 	 set_win_props/2, set_prop/2,set_prop/3,erase_prop/1,erase_prop/2,
 	 is_prop_defined/2,
-	 get_dd/0, get_dd/1, set_dd/2
+	 get_dd/0, get_dd/1, set_dd/2, redraw_geom/1
 	]).
 
 -export([get_value/1, set_value/2, delete_value/1]).
@@ -454,7 +454,9 @@ grab_focus(Name) ->
 	    %%{_, [_,Where|_]} = erlang:process_info(self(), current_stacktrace),
 	    %%io:format("Grab focus: ~p~n   ~p~n",[Name, Where]),
 	    case get(wm_focus_grab) of
-		undefined -> put(wm_focus_grab, [Name]);
+		undefined ->
+		    update_focus(Name),
+		    put(wm_focus_grab, [Name]);
 		Stack -> put(wm_focus_grab, [Name|Stack])
 	    end;
 	false -> ok
@@ -505,7 +507,7 @@ win_scale() ->
 
 viewport(Name) ->
     #win{x=X,y=Y0,w=W,h=H} = get_window_data(Name),
-    {_,TopH} = get(wm_top_size),
+    {_,TopH} = wings_wm:top_size(),
     Y = TopH-(Y0+H),
     {X,Y,W,H}.
 
@@ -927,6 +929,15 @@ redraw_win({Name, #win{w=W,h=H,obj=Obj,scale=Scale}}) ->
     case do_dispatch(Name, redraw) =/= deleted andalso DoSwap of
         false -> ok;
         true  -> wxGLCanvas:swapBuffers(Obj)
+    end.
+
+redraw_geom(Name) ->
+    Windows = keysort(2, gb_trees:to_list(get(wm_windows))),
+    case lists:keyfind(Name,1,Windows) of
+        {Name, _} = Win ->
+            redraw_win(Win);
+        _ ->
+            ignore
     end.
 
 use_opengl(undefined) -> false;

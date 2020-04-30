@@ -1,9 +1,13 @@
 --- 2.2.6 --------------------------------------------
 
-- Added "/System/Library/Fonts/" to font search path on
-  Mac. Thanks Tkbd. [dgud]
+- Error exporting .eps/.svg files using diacritical marks. Thanks Hank [micheus]
 
-- Improved Collada (.dae) import, thanks 'nigec' for a good/small
+- The JSCAD plugin was rewritten to offer more flexibility. Thanks to the
+  user gilboonet for his help. [micheus]
+
+- Added the Tessellation option to the jscad exporter. [micheus]
+
+- Improved Collada (.dae) import, thanks 'nigec' for good/small
   failing example files. [dgud]
 
 - Added the toggle background option to the AutoUV window. [micheus]
@@ -19,19 +23,25 @@
 
 - Fixed marquee selection drawing on linux on undocked windows. [dgud]
 
-- Fixed transaltion issues with "Edit Area Light" in body menu. [dgud]
+- Fixed translation issues with "Edit Area Light" in body menu. [dgud]
 
 - Improved TTF text rendering;
   - Better error reports for non supported formats
   - Fixed crash when rendering space character for some fonts
   - Improved font family name handling, so that more (correct) fonts will be found. [dgud]
 
-- Error exporting .eps/.svg files using diacritical marks. Thanks Hank [micheus]
+- Added "/System/Library/Fonts/" to font search path on
+  Mac. Thanks Tkbd. [dgud]
 
-- Added the Tesselation option to the jscad exporter. [micheus]
+- Fixed the screenshot command which was only capturing the main
+  geometry window and cutting it on top. [micheus]
 
-- The JSCAD plugin was rewritten to offer more flexibility. Thanks to the
-  user gilboonet for his help. [micheus]
+- The right message used to show extra information to the user actions
+  was missing with the previous message kept static. Thanks to Sevendy3 [micheus]
+
+- Hexagon in texture shader was broken. Thanks to tkbd [micheus]
+
+- Bad timing could cause the close button to hang forever. [dgud]
 
 --- 2.2.5 --------------------------------------------
 
