@@ -73,11 +73,25 @@ mac_release(BuildRoot, WingsVsn) ->
     copy("InfoPlist.strings", filename:join(Resources, "English.lproj")),
     release_otp(Resources, undefined),
     convert_script(Resources),
-    run("codesign", ["--timestamp", "-s","Developer ID",Root]),
     ok = file:set_cwd(lib_dir(wings)),
+    codesign(Root),
     MakeDmg = filename:join([lib_dir(wings),"macosx","make_dmg"]),
-    run(MakeDmg, ["wings-"++WingsVsn++"-macosx.dmg",Root,"Wings3D "++WingsVsn++".app"]),
+    run(MakeDmg, ["wings-"++WingsVsn++"-macosx.dmg",Root,
+                  "Wings3D "++WingsVsn++".app"]),
     ok.
+
+codesign(Root) ->
+    %% Codesign all executable code in the package with timestamp and
+    %% hardened runtime. This is a prerequisite for notarization.
+    DynLibs = filelib:wildcard(filename:join(Root, "**/*.so")),
+    Bin0 = filelib:wildcard(filename:join(Root, "Contents/Resources/bin/*")),
+    Bin = [F || F <- Bin0, filename:extension(F) =/= ".boot"],
+    WingsConvert = filename:join(Root, "Contents/Resources/wings_convert"),
+    ToSign = [WingsConvert] ++ DynLibs ++ Bin,
+    Entitlements = "macosx/wings3d.entitlements",
+    run("codesign", ["-s","Developer ID",
+                     "--timestamp","--options=runtime",
+                     "--entitlements",Entitlements | ToSign]).
 
 unix_release(BuildRoot, WingsVsn) ->
     UnixDir = filename:join(lib_dir(wings), "unix"),
