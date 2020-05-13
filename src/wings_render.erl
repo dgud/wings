@@ -828,7 +828,7 @@ show_letter(X0, Y0, W, Char, {_,_,Vw,Vh}) ->
     axis_text(X, Y, Char).
 
 axis_text(X, Y, C) ->
-    wings_io:unclipped_text(X, Y, [C]).
+    wings_text:render(X, Y, [C]).
 
 show_scale(W, H) ->
     Scale = ground_grid_scale(),

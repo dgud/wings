@@ -14,7 +14,6 @@
 -module(wings_gl).
 -export([init/1, window/4, attributes/0,
 	 is_ext/1,is_ext/2,
-	 is_restriction/1,
 	 error_string/1]).
 
 %% GLSL exports
@@ -47,7 +46,6 @@
 init(Parent) ->
     GL = window(Parent, undefined, true, false),
     init_extensions(),
-    init_restrictions(),
     GL.
 
 attributes() ->
@@ -238,22 +236,6 @@ version_match({Ma1,Mi1,P1}, {Ma2,Mi2,P2})
   when Ma1 =< Ma2, Mi1 =< Mi2, P1 =< P2 -> true;
 version_match(_,_) ->
     false.
-
-%%%
-%%% OpenGL restrictions (bugs and limitations).
-%%%
-init_restrictions() ->
-    ets:new(wings_gl_restriction, [named_table,public,ordered_set]),
-    case os:type() of
-	{unix,sunos} ->
-	    %% Scissor does not work for clipping text.
-	    ets:insert(wings_gl_restriction, [{broken_scissor}]);
-	_ ->
-	    ok
-    end.
-
-is_restriction(Name) ->
-    ets:member(wings_gl_restriction, Name).
 
 error_string(0) -> no_error;
 error_string(?GL_INVALID_VALUE) -> "GL_INVALID_VALUE";
