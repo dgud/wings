@@ -46,6 +46,7 @@ MODULES= \
 	wpc_rwx \
 	wpc_stl \
 	wpc_svg_path \
+	wpc_thebounty \
 	wpc_wrl \
 	wpc_x \
 	wpc_yafaray
