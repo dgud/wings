@@ -18,7 +18,8 @@
 -export([init/0,delete_dlists/0,
 	 update/2,map/2,fold/2,changed_materials/1,
 	 display_lists/0,
-	 call/1,mirror_matrix/1,draw/3]).
+	 call/2,mirror_matrix/1,draw/4]).
+-export_type([dl/0,real_dl/0,sel_dl/0]).
 
 %%% This module manages Vertex Buffer Objects (VBOs, represented by
 %%% #vab{} records) for all objects in a Geometry or AutoUV window.
@@ -47,6 +48,18 @@
 -include("wings.hrl").
 -import(lists, [reverse/1,foreach/2,foldl/3]).
 
+-type vbo() :: {'vbo',non_neg_integer()}.
+-type draw_fun() :: fun((rs()) -> rs()).
+-type real_dl() :: draw_fun()
+                 | {'call',draw_fun()|'none',vab()|vbo()}
+                 | {'call_in_this_win',_,draw_fun()}
+                 | [real_dl()].
+-type dl() :: 'none' | real_dl().
+-type sel_dl() :: 'none' | vab() | vbo() | draw_fun()
+                | {'call',draw_fun()|'none',vab()|vbo()}.
+
+-type rs() :: map().
+
 -record(du,
 	{dl=[],					%Display list records.
 	 mat=gb_trees:empty(),			%Materials.
@@ -57,9 +70,12 @@
 init() ->
     Dl = case get_dl_data() of
 	     undefined -> [];
-	     #du{dl=Dl0,used=Used} ->
+	     #du{dl=Dl0,used=Used, extra=Extra} ->
 		 ?CHECK_ERROR(),
-		 gl:deleteBuffers(Used),
+                 All = [update_seen_1(DA, []) ||
+                           {_, {_, DA}} <- maps:to_list(Extra)],
+                 delete_buffers(ordsets:from_list(lists:append(All)), ?FUNCTION_NAME),
+		 delete_buffers(Used, ?FUNCTION_NAME),
 		 gl:getError(),			%Clear error.
 		 clear_old_dl(Dl0)
 	 end,
@@ -138,20 +154,28 @@ fold(Fun, Acc) ->
     #du{dl=Dlists} = get_dl_data(),
     foldl(Fun, Acc, Dlists).
 
-%% call(Term)
+%% call(Term, RenderState) -> RenderState.
 %%  Call OpenGL to render the geometry using the VBOs embedded in
 %%  the term.
 
-call(none) -> none;
-call({call,Dl,_}) -> call(Dl);
-call({call_in_this_win,Win,Dl}) ->
+-spec call(dl(), rs()) -> rs().
+
+call(none, State) -> State;
+call({call,Dl,_}, State) ->
+    %%    erlang:display({call, element(2, _Vbo)}),
+    call(Dl, State);
+call({call_in_this_win,Win,Dl}, State) ->
     case wings_wm:this() of
-	Win -> call(Dl);
-	_ -> ok
+	Win -> call(Dl, State);
+	_ -> State
     end;
-call([H|T]) -> call(H), call(T);
-call([]) -> ok;
-call(Draw) when is_function(Draw, 0) -> Draw().
+call([H|T], State0) ->
+    State = call(H, State0),
+    call(T, State);
+call([], State) ->
+    State;
+call(Draw, #{}=State) when is_function(Draw, 1) ->
+    #{}=Draw(State).
 
 %% mirror_matrix(Id)
 %%  Return the mirror matrix for the object having id Id.
@@ -162,7 +186,7 @@ mirror_matrix(#dlo{mirror=Matrix,src_we=#we{id=Id}}, Id) -> Matrix;
 mirror_matrix(_, Acc) -> Acc.
 
 
-%% draw(Category, Key, Update) -> ok.
+%% draw(Category, Key, Update, RS) -> ok.
 %%  Draw a non-object graphic thing by calling:
 %%
 %%    call(Update(Key))
@@ -175,33 +199,34 @@ mirror_matrix(_, Acc) -> Acc.
 %%  The key 'none' is specially handled. It means that nothing
 %%  should be drawn and that Update/1 will not be called.
 
-draw(Category, Key, Update)
+draw(Category, Key, Update, RS)
   when is_atom(Category), is_function(Update, 1) ->
     case get_dl_data() of
 	#du{extra=#{Category:={Key,Drawable}}} ->
-	    call(Drawable);
+	    call(Drawable, RS);
 	#du{extra=#{Category:={_,OldDrawable}}=Extra0}=Du ->
 	    NotUsed = ordsets:from_list(update_seen_1(OldDrawable, [])),
-	    gl:deleteBuffers(NotUsed),
+	    delete_buffers(NotUsed, ?FUNCTION_NAME),
 	    case Key of
 		none ->
 		    Extra = maps:remove(Category, Extra0),
-		    put_dl_data(Du#du{extra=Extra});
+		    put_dl_data(Du#du{extra=Extra}),
+                    RS;
 		_ ->
 		    Drawable = Update(Key),
 		    Extra = Extra0#{Category:={Key,Drawable}},
 		    put_dl_data(Du#du{extra=Extra}),
-		    call(Drawable)
+		    call(Drawable, RS)
 	    end;
 	#du{extra=Extra0}=Du ->
 	    case Key of
 		none ->
-		    ok;
+		    RS;
 		_ ->
 		    Drawable = Update(Key),
 		    Extra = Extra0#{Category=>{Key,Drawable}},
 		    put_dl_data(Du#du{extra=Extra}),
-		    call(Drawable)
+		    call(Drawable, RS)
 	    end
     end.
 
@@ -210,16 +235,17 @@ draw(Category, Key, Update)
 %%%
 
 delete_dlists() ->
-    case erase(wings_wm:get_dd()) of
+    case get_dl_data() of
 	#du{used=Used} ->
-	    gl:deleteBuffers(Used),
+	    delete_buffers(Used, ?FUNCTION_NAME),
+            erase(wings_wm:get_dd()),
 	    gl:getError();			%Clear error.
 	_ ->
 	    ok
     end.
 
 clear_old_dl([#dlo{src_we=We,proxy_data=Pd0,ns=Ns}|T]) ->
-    Pd = wings_proxy:invalidate(Pd0, dl),
+    Pd = wings_proxy:invalidate(Pd0, vab),
     [#dlo{src_we=We,mirror=none,proxy_data=Pd,ns=Ns}|clear_old_dl(T)];
 clear_old_dl([]) -> [].
 
@@ -284,7 +310,7 @@ update_last(Data, Seen, Acc) ->
 	[] ->
 	    ok;
 	[_|_]=NotUsed ->
-	    gl:deleteBuffers(NotUsed)
+	    delete_buffers(NotUsed, ?FUNCTION_NAME)
     end,
     Data.
 
@@ -315,3 +341,8 @@ update_seen_1(Dl, Seen) when is_tuple(Dl), element(1, Dl) =:= sp ->
     %% Proxy DL's
     update_seen_0(tuple_size(Dl), Dl, Seen);
 update_seen_1(_, Seen) -> Seen.
+
+
+delete_buffers(NotUsed, _From) ->
+    %% erlang:display({delete,{?MODULE, _From}, NotUsed}),
+    gl:deleteBuffers(NotUsed).

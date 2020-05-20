@@ -1,0 +1,43 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_bend,
+ [
+  {adv_submenu_clamped,
+   [
+    {1,"Curvado Plástico con Restricción"},
+    {2,"Curvado Pivote con Restricción"},
+    {3,"Curvado TopRad con Restricción"}
+   ]},
+  {adv_submenu_noclamp,
+   [
+    {1,"Curvar Plástico"},
+    {2,"Curvar Pivote"},
+    {3,"Curvar TopRad"}
+   ]},
+  {bend_verts,
+   [
+    {1,"La configuración no da lugar a un curvado"}
+   ]},
+  {menu,
+   [
+    {1,"Curvar"},
+    {2,"Curvar con Restricción"}
+   ]},
+  {submenu_clamp,
+   [
+    {1,"Seleccionar el Punto de Restricción Superior"},
+    {2,"Seleccionar el Punto de Restricción Inferior"}
+   ]},
+  {submenu_items,
+   [
+    {1,"Seleccionar el centro de la barra"},
+    {2,"Seleccionar la parte superior de la barra"},
+    {3,"Seleccionar la normal del curvado"},
+    {4,"Seleccionar el centro de la barra"},
+    {5,"Seleccionar la parte superior de la barra"},
+    {6,"Seleccionar el eje de pivote"},
+    {7,"Seleccionar el punto de pivote"},
+    {8,"Seleccionar el centro de la barra"},
+    {9,"Seleccionar la parte superior de la barra"},
+    {10,"Seleccionar la normal del curvado"}
+   ]}
+ ]}.

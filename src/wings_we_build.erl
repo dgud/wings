@@ -86,7 +86,7 @@ build_and_fix_holes(_, _) ->
 
 build_rest(Es, Fs, Vs, HardEdges) ->
     Htab = vpairs_to_edges(HardEdges, Es),
-    {Vct0,Etab,Ftab0,UvTab} = build_tables(Es),
+    {Vct0,Etab,Ftab0,UvVcTab} = build_tables(Es),
     Ftab = build_faces(Ftab0),
     Vct = array:from_orddict(incident_tab(Vct0)),
     Vpos = number_vertices(Vs, 0, []),
@@ -99,7 +99,7 @@ build_rest(Es, Fs, Vs, HardEdges) ->
 		     wings_util:array_greatest_key(Etab)+1
 	     end,
     We0 = #we{next_id=NextId,es=Etab,fs=Ftab,vc=Vct,vp=Vpos,he=Htab},
-    We = wings_va:set_edge_uvs(UvTab, We0),
+    We = wings_va:set_edge_attrs(UvVcTab, We0),
     assign_materials(Fs, We).
 
 assign_materials([L|_], We) when is_list(L) -> We;
@@ -133,33 +133,38 @@ build_edges(Fs) ->
 build_half_edges(Fs) ->
     build_half_edges(Fs, 0, []).
 
-build_half_edges([{_Material,Vs,Tx}|Fs], Face, Eacc0) ->
-    build_half_edges_1(Vs, Tx, Fs, Face, Eacc0);
-build_half_edges([{_Material,Vs}|Fs], Face, Eacc0) ->
-    build_half_edges_1(Vs, tx_filler(Vs), Fs, Face, Eacc0);
-build_half_edges([Vs|Fs], Face, Eacc0) ->
-    build_half_edges_1(Vs, tx_filler(Vs), Fs, Face, Eacc0);
+build_half_edges([{_Material,Vs,none,Vc}|Fs], Face, Eacc0) ->	% imported with vertex color only
+    build_half_edges_1(Vs, tx_filler(Vs), Vc, Fs, Face, Eacc0);
+build_half_edges([{_Material,Vs,Tx,none}|Fs], Face, Eacc0) ->	% imported with textures only
+    build_half_edges_1(Vs, Tx, tx_filler(Vs), Fs, Face, Eacc0);
+build_half_edges([{_Material,Vs,Tx,Vc}|Fs], Face, Eacc0) ->	% imported with textures and vertex color
+    build_half_edges_1(Vs, Tx, Vc, Fs, Face, Eacc0);
+build_half_edges([{_Material,Vs}|Fs], Face, Eacc0) ->	% imported without textures or vertex color
+    build_half_edges_1(Vs, tx_filler(Vs), tx_filler(Vs), Fs, Face, Eacc0);
+build_half_edges([Vs|Fs], Face, Eacc0) ->	% new primitives
+    build_half_edges_1(Vs, tx_filler(Vs), tx_filler(Vs), Fs, Face, Eacc0);
 build_half_edges([], _Face, HalfEdges) -> HalfEdges.
 
-build_half_edges_1(Vs, UVs, Fs, Face, Acc0) ->
-    Vuvs = zip(Vs, UVs),
+build_half_edges_1(Vs, UVs, VCs, Fs, Face, Acc0) ->
+    UvsVcs = zip(UVs,VCs),
+    Vuvs = zip(Vs, UvsVcs),
     Pairs = pairs(Vuvs),
     Acc = build_face_edges(Pairs, Face, Acc0),
     build_half_edges(Fs, Face+1, Acc).
 
-build_face_edges([{Pred,_}|[{E0,{_UVa,UVb}},{Succ,_}|_]=Es], Face, Acc0) ->
+build_face_edges([{Pred,_}|[{E0,{{_UVa,_VCa},{UVb,VCb}}},{Succ,_}|_]=Es], Face, Acc0) ->
     Acc = case E0 of
 	      {Vs,Ve}=Name when Vs < Ve ->
-		  enter_half_edge(right, Name, Face, Pred, Succ, UVb, Acc0);
+		  enter_half_edge(right, Name, Face, Pred, Succ, {UVb,VCb}, Acc0);
 	      {Vs,Ve} when Ve < Vs ->
 		  Name = {Ve,Vs},
-		  enter_half_edge(left, Name, Face, Pred, Succ, UVb, Acc0)
+		  enter_half_edge(left, Name, Face, Pred, Succ, {UVb,VCb}, Acc0)
 	  end,
     build_face_edges(Es, Face, Acc);
 build_face_edges([_,_], _Face, Acc) -> Acc.
 
-enter_half_edge(Side, Name, Face, Pred, Succ, UV,Tab0) ->
-    Rec = {Face,UV,edge_name(Pred),edge_name(Succ)},
+enter_half_edge(Side, Name, Face, Pred, Succ, UVVC,Tab0) ->
+    Rec = {Face,UVVC,edge_name(Pred),edge_name(Succ)},
     [{Name,{Side,Rec}}|Tab0].
 
 pairs(Vs) ->
@@ -210,10 +215,10 @@ build_tables(Edges) ->
     Emap = make_edge_map(Edges),
     build_tables(Edges, Emap, [], [], [], []).
 
-build_tables([H|T], Emap, Vtab0, Etab0, Ftab0, UvTab0) ->
+build_tables([H|T], Emap, Vtab0, Etab0, Ftab0, UvVcTab0) ->
     {{Vs,Ve},{Edge,{Ldata,Rdata}}} = H,
-    {Lf,LUV,Lpred,Lsucc} = Ldata,
-    {Rf,RUV,Rpred,Rsucc} = Rdata,
+    {Lf,{LUV,LVC},Lpred,Lsucc} = Ldata,
+    {Rf,{RUV,RVC},Rpred,Rsucc} = Rdata,
     Erec = #edge{vs=Vs,ve=Ve,lf=Lf,rf=Rf,
 		 ltpr=edge_num(Lf, Lpred, Emap),
 		 ltsu=edge_num(Lf, Lsucc, Emap),
@@ -222,14 +227,14 @@ build_tables([H|T], Emap, Vtab0, Etab0, Ftab0, UvTab0) ->
     Etab = [{Edge,Erec}|Etab0],
     Ftab = [{Lf,Edge},{Rf,Edge}|Ftab0],
     Vtab = [{Vs,Edge},{Ve,Edge}|Vtab0],
-    UvTab = case {LUV,RUV} of
-		{none,none} -> UvTab0;
-		{_,_} -> [{Edge,LUV,RUV}|UvTab0]
+    UvVcTab = case {LUV,RUV,LVC,RVC} of
+		{none,none,none,none} -> UvVcTab0;
+		{_,_,_,_} -> [{Edge,LUV,RUV,LVC,RVC}|UvVcTab0]
 	    end,
-    build_tables(T, Emap, Vtab, Etab, Ftab, UvTab);
-build_tables([], _Emap, Vtab, Etab0, Ftab, UvTab) ->
+    build_tables(T, Emap, Vtab, Etab, Ftab, UvVcTab);
+build_tables([], _Emap, Vtab, Etab0, Ftab, UvVcTab) ->
     Etab = array:from_orddict(reverse(Etab0)),
-    {Vtab,Etab,Ftab,UvTab}.
+    {Vtab,Etab,Ftab,UvVcTab}.
 
 make_edge_map(Es) ->
     make_edge_map(Es, []).
@@ -381,9 +386,9 @@ elim_vtx_map([], _, Acc) ->
 elim_renum_vs([{Mat,Vs0}|Faces], [{Face,DupVs}|ToDo], Face, VtxMap, Acc) ->
     Vs = elim_renum_vs_1(Vs0, DupVs, VtxMap),
     elim_renum_vs(Faces, ToDo, Face+1, VtxMap, [{Mat,Vs}|Acc]);
-elim_renum_vs([{Mat,Vs0,Tx}|Faces], [{Face,DupVs}|ToDo], Face, VtxMap, Acc) ->
+elim_renum_vs([{Mat,Vs0,Tx,Vc}|Faces], [{Face,DupVs}|ToDo], Face, VtxMap, Acc) ->
     Vs = elim_renum_vs_1(Vs0, DupVs, VtxMap),
-    elim_renum_vs(Faces, ToDo, Face+1, VtxMap, [{Mat,Vs,Tx}|Acc]);
+    elim_renum_vs(Faces, ToDo, Face+1, VtxMap, [{Mat,Vs,Tx,Vc}|Acc]);
 elim_renum_vs([MatVs|Faces], ToDo, Face, VtxMap, Acc) ->
     elim_renum_vs(Faces, ToDo, Face+1, VtxMap, [MatVs|Acc]);
 elim_renum_vs([], [], _, _, Acc) -> reverse(Acc).

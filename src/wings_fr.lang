@@ -888,8 +888,8 @@
    ]},
   {import_image,
    [
-    {1,"Le chargement de « ~s » a échouée : ~s\n"},
-    {2,"The image cannot be loaded.~nFile: « ~s »~n Erreur GLU : ~p - ~s~n"}
+    {1,"Le chargement de « ~ts » a échouée : ~ts\n"},
+    {2,"The image cannot be loaded.~nFile: « ~ts »~n Erreur GLU : ~p - ~s~n"}
    ]},
   {import_ndo,
    [
@@ -1300,12 +1300,12 @@
    ]},
   {info,
    [
-    {1,"Lumière ~s"},
-    {2,": Position ~s ~s ~s"}
+    {1,"Lumière ~ts"},
+    {2,": Position ~s"}
    ]},
   {info_1,
    [
-    {1,". Vise ~s ~s ~s. Direction ~s ~s ~s"},
+    {1,". Vise ~s. Direction ~s"},
     {2,". Angle ~s~c"}
    ]},
   {light_types,
@@ -1821,7 +1821,7 @@
    [
     {1,". Position <~s  ~s  ~s>"},
     {3,". Point médian <~s  ~s  ~s>\Longueur ~s"},
-    {4,". Point médian <~s  ~s  ~s> \nMatériau ~s."}
+    {4,". Point médian <~s  ~s  ~s> \nMatériau ~ts."}
    ]},
   {handle_hilite_event,
    [

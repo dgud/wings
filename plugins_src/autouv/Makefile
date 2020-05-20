@@ -11,16 +11,15 @@
 #     $Id: Makefile,v 1.16 2006/01/17 23:22:01 dgud Exp $
 #
 
+include ../../erl.mk
+
 .SUFFIXES: .erl .jam .beam .yrl .xrl .bin .mib .hrl .sgml .html .ps .3 .1 \
 	.fig .dvi .tex .class .java .pdf .psframe .pscrop
 
 ESRC=.
 WINGS_INTL=../../intl_tools
 EBIN=../../plugins/autouv
-ERLC=erlc
-WINGS_SRC=../../src
-WINGS_EBIN=../../ebin
-WINGS_E3D=../../e3d
+WINGS_TOP=../../..
 
 ifeq ($(TYPE),debug)
 TYPE_FLAGS=-DDEBUG
@@ -45,7 +44,7 @@ TARGET_FILES= $(MODULES:%=$(EBIN)/%.beam)
 # ----------------------------------------------------
 # FLAGS
 # ----------------------------------------------------
-ERL_COMPILE_FLAGS += -Werror -pa $(WINGS_EBIN) -pa $(WINGS_INTL) -I $(WINGS_SRC) -I $(WINGS_E3D) $(TYPE_FLAGS) +debug_info
+ERL_COMPILE_FLAGS += -Werror -pa $(WINGS_INTL) -I $(WINGS_TOP) $(TYPE_FLAGS) +debug_info
 
 # ----------------------------------------------------
 # Targets
@@ -56,17 +55,18 @@ opt debug:
 
 common: $(TARGET_FILES) subdirs
 
-subdirs: 
+subdirs:
 	(cd shaders; $(MAKE))
 
 template: opt
-	erl -pa $(WINGS_INTL) -noinput -run tools generate_template $(EBIN) -run erlang halt
+	$(ERL) -pa $(WINGS_INTL) -noinput -run tools generate_template $(EBIN) -run erlang halt
 
 lang: template
 	cp *.lang $(EBIN)
-	erl -pa $(WINGS_INTL) -noinput -run tools diff_lang_files $(EBIN)
+	$(ERL) -pa $(WINGS_INTL) -noinput -run tools diff_lang_files $(EBIN)
 
 clean:
+	(cd shaders; $(MAKE) clean)
 	rm -f $(TARGET_FILES)
 	rm -f core
 

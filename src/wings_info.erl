@@ -120,7 +120,7 @@ measure_vs([PosA,PosB]) ->
     Dist = e3d_vec:len(PosDiff),
     io_lib:format(?__(2,". Distance ~s  ~s"),
                   [wings_util:nice_float(Dist),
-                   wings_util:nice_abs_vector(PosDiff)]);
+                   wings_util:nice_vector(PosDiff)]);
 measure_vs(_) -> [].
 
 measure_es([{_,PosA,PosB}]) ->
@@ -131,8 +131,8 @@ measure_es([{_,PosA,PosB}]) ->
                       "  ~s",
                   [wings_util:nice_vector(Mid),
                    wings_util:nice_float(Length),
-                   wings_util:nice_abs_vector(PosDiff)]);
-measure_es([{E0,Pos0A,Pos0B},{E1,Pos1A,Pos1B}]) ->
+                   wings_util:nice_vector(PosDiff)]);
+measure_es([{_E0,Pos0A,Pos0B},{_E1,Pos1A,Pos1B}]) ->
     V0 = e3d_vec:sub(Pos0B, Pos0A),
     V1 = e3d_vec:sub(Pos1B, Pos1A),
     RawAngle = e3d_vec:degrees(V0, V1),
@@ -141,9 +141,8 @@ measure_es([{E0,Pos0A,Pos0B},{E1,Pos1A,Pos1B}]) ->
                 {_,Pos1A} -> 180.0 - RawAngle;
                 {_,_} -> RawAngle
             end,
-    Info = io_lib:format(?__(2,". Angle ~s") ++ "~c",
-                         [wings_util:nice_float(Angle),?DEGREE]),
-    enhanced_info(Info, {Pos0A,Pos0B, Pos0A, Pos0B, E0, E1});
+    io_lib:format(?__(2,". Angle ~s") ++ "~c",
+                         [wings_util:nice_float(Angle),?DEGREE]);
 measure_es(_) -> [].
 
 measure_fs([{_,Center,_,Mat,Area}]) ->
@@ -173,7 +172,7 @@ enhanced_info_1(edge, [{{Id0,E0},Pos0A,Pos0B},
     Mid1 = e3d_vec:average(Pos1A, Pos1B),
     MidDiff = e3d_vec:sub(Mid1, Mid0),
     Dist = e3d_vec:len(MidDiff),
-    Diff = abs(Length0 - Length0),
+    Diff = abs(Length0 - Length1),
     io_lib:format(?__(42,"\nDistance ~s")++"  ~s\n"++
                       ?__(43,"Object~s")++" "++?__(41,"Edge~s ~s")++"  "++
                       ?__(43,"Object~s")++" "++?__(41,"Edge~s ~s")++"  "++
@@ -182,7 +181,7 @@ enhanced_info_1(edge, [{{Id0,E0},Pos0A,Pos0B},
                    wings_util:nice_abs_vector(MidDiff),
                    wings_util:stringify(Id0),
                    wings_util:stringify(E0),
-                   wings_util:nice_float(Length1),
+                   wings_util:nice_float(Length0),
                    wings_util:stringify(Id1),
                    wings_util:stringify(E1),
                    wings_util:nice_float(Length1),

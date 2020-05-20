@@ -353,9 +353,10 @@ move_to_folder(Folder, Ids0, St) ->
 rename_folder(OldName, OldName, St) ->
     St;
 rename_folder(OldName, NewName, St0) ->
-    St = create_folder(NewName, St0),
-    Ids = ids_in_folder(OldName, St),
-    move_to_folder(NewName, Ids, St).
+    St1 = create_folder(NewName, St0),
+    Ids = ids_in_folder(OldName, St1),
+    St = move_to_folder(NewName, Ids, St1),
+    delete_folder(OldName, St).
 
 empty_folder(Folder, St) ->
     Ids = ids_in_folder(Folder, St),
@@ -428,15 +429,17 @@ forward_event(Ev, Window, _) ->
 get_shape_state(St) ->
     get_shape_state(wings_wm:this(),St).
 get_shape_state({_,Client}, #st{pst=Pst}=St) ->
-    Folds = gb_trees:get(?FOLDERS, Pst),
-    {Current,_} = Folds,
+    Folds0 = gb_trees:get(?FOLDERS, Pst),
+    {Current, Folds1} = Folds0,
+    Folds = [{Folder, State, length(ids_in_folder(Folder, St))}
+             || {Folder, {State, _}} <- Folds1],
     Ids = wings_sel:selected_ids(St),
     F = fun(Obj, A) -> [Obj|A] end,
     Shapes = wings_obj:fold(F, [], St),
     #{sel => Ids,
       shs => Shapes,
       wire => wings_wm:get_prop(Client, wireframed_objects),
-      folders => Folds,
+      folders => {Current, Folds},
       current => Current
      }.
 
@@ -462,7 +465,8 @@ init([Frame, {W,_}, _Ps, Name, SS]) ->
     wxTreeCtrl:setForegroundColour(TC, FG),
     wxTreeCtrl:assignImageList(TC, load_icons()),
 
-    LCStyle = ?wxLC_REPORT bor ?wxLC_NO_HEADER bor ?wxLC_EDIT_LABELS bor ?wxLC_SINGLE_SEL,
+    LCStyle = ?wxLC_REPORT bor ?wxLC_NO_HEADER bor ?wxLC_EDIT_LABELS
+        bor ?wxLC_SINGLE_SEL bor wings_frame:get_border(),
     LC = wxListCtrl:new(Splitter, [{style, LCStyle}]),
     wxListCtrl:setBackgroundColour(LC, BG),
     wxListCtrl:setForegroundColour(LC, FG),
@@ -688,16 +692,11 @@ unsplit_window(Splitter, TC) ->
 update_folders({Curr, Fld0}, TC) ->
     Do = fun() ->
 		 wxTreeCtrl:deleteAllItems(TC),
-		 %% Img = {image, image_idx(folder)},
-		 Fld = case Fld0 of
-			   [{?NO_FLD,_}|T] -> T;
-			   T -> T
-		       end,
-		 {no_folder,{_,S0}} = lists:keyfind(?NO_FLD, 1, Fld0),
-		 Caption0 = io_lib:format("~ts (~p)",[?__(1, "Objects"), gb_trees:size(S0)]),
+		 [{no_folder,_,S0}|Fld] = Fld0,
+		 Caption0 = io_lib:format("~ts (~p)",[?__(1, "Objects"), S0]),
 		 Root = wxTreeCtrl:addRoot(TC, Caption0, []),
 
-		 Sorted = lists:sort([{wings_util:cap(F),F,gb_trees:size(S)} || {F,{_,S}} <- Fld]),
+		 Sorted = lists:sort([{wings_util:cap(F),F,S} || {F,_,S} <- Fld]),
 		 Add = fun({_, Name, Qtd}) ->
 			    Caption = io_lib:format("~ts (~p)",[Name, Qtd]),
 			    {wxTreeCtrl:appendItem(TC, Root, Caption, []), Name}
@@ -720,10 +719,13 @@ update_folders({Curr, Fld0}, TC) ->
 update_shapes(_Sorted, Prev, Prev, _LC) ->
     Prev;
 update_shapes(Sorted, #{sel:=Sel, wire:=Wire}, _, LC) ->
-    Indx = get_selection(LC),
+    Active = case get_selection(LC) of
+                 none -> none;
+                 PrevIdx -> wxListCtrl:getItemText(LC, PrevIdx)
+             end,
     Update = wxListCtrl:getItemCount(LC) == length(Sorted),
     Update orelse wxListCtrl:deleteAllItems(LC),
-    Add = fun({_, #{id:=Id,name:=Name,perm:=Perm}=Obj}, J) ->
+    Add = fun({_, #{id:=Id,name:=Name,perm:=Perm}=Obj}, {J, ActIndx}) ->
                   Light = maps:is_key(light, Obj),
 		  case Update of
 		      true  ->
@@ -736,11 +738,20 @@ update_shapes(Sorted, #{sel:=Sel, wire:=Wire}, _, LC) ->
 		  wxListCtrl:setItemColumnImage(LC, J, 1, bm_visibilty(Perm)),
 		  wxListCtrl:setItemColumnImage(LC, J, 2, bm_lock(Perm)),
 		  wxListCtrl:setItemColumnImage(LC, J, 3, bm_wire(Id, Wire)),
-		  J+1
+                  Act = case Name =:= Active of
+                            true -> J;
+                            false -> ActIndx
+                        end,
+		  {J+1, Act}
 	  end,
-    wx:foldl(Add, 0, Sorted),
-    Indx =/= none andalso
-	wxListCtrl:setItemState(LC, Indx, 16#FFFF, ?wxLIST_STATE_SELECTED),
+    {_, Indx} = wx:foldl(Add, {0, none}, Sorted),
+    case Indx of
+        none ->
+            ignore;
+        _ ->
+            wxListCtrl:setItemState(LC, Indx, 16#FFFF, ?wxLIST_STATE_SELECTED),
+            wxListCtrl:ensureVisible(LC, Indx)
+    end,
     Sorted.
 
 sort_folder(#{shs:=Shs,current:=Current}) ->
@@ -835,12 +846,14 @@ connect_events(TC, LC) ->
     wxWindow:connect(TC, command_tree_end_label_edit),
     wxWindow:connect(TC, command_tree_sel_changed),
     wxWindow:connect(TC, command_tree_item_menu, [{skip, true}]),
+    wxWindow:connect(TC, char, [callback]),
     %% wxWindow:connect(TC, left_up, [{skip,true}]),
 
     wxWindow:connect(LC, enter_window),
     wxWindow:connect(LC, command_list_begin_drag),
     wxWindow:connect(LC, command_list_end_label_edit),
     wxWindow:connect(LC, size, [{skip, true}]),
+    wxWindow:connect(LC, char, [callback]),
     %% See handle_sync_event below for the following callbacks
     wxWindow:connect(LC, left_up, [callback]),
     wxWindow:connect(LC, right_up, [callback]),
@@ -873,6 +886,33 @@ handle_sync_event(#wx{obj=TC, event=#wxTree{type=command_tree_begin_label_edit, 
 	    end
     end,
     ok;
+handle_sync_event(#wx{obj=Obj,event=#wxKey{type=char, keyCode=KC}}, EvObj,
+		  #state{tc=TC, lc=LC, name=Name, shown=Shown, tree=Tree}) ->
+    ItemParam =
+	case Obj of
+	    TC ->
+		Indx = wxTreeCtrl:getSelection(TC),
+		{_, Folder} = lists:keyfind(Indx, 1, Tree),
+		{"folder", Folder};
+	    LC ->
+		Opts = [{geometry, ?wxLIST_NEXT_ALL}, {state, ?wxLIST_STATE_SELECTED}],
+		Indx = wxListCtrl:getNextItem(LC, -1, Opts),
+		Id =
+		    if Indx >= 0 ->
+			{shape, Id0} = get_id(Indx, Shown),
+			Id0;
+		    true ->
+			Indx
+		    end,
+		{"object", Id}
+	end,
+    case {key_to_op(KC),validate_item_param(ItemParam)} of
+	{Act, {Elm, Param}} when Act =/= ignore ->
+	    Cmd = list_to_atom(Act++"_"++Elm),
+	    wings_wm:psend(Name, {action, {objects, {Cmd, Param}}});
+	_ -> wxEvent:skip(EvObj, [{skip, true}])
+    end,
+    ok;
 handle_sync_event(#wx{obj=LC, event=Event}=Ev, EvObj, #state{lc=LC, tw=TW, self=Pid}) ->
     try
 	{ok, Which, Pos} = event_info(Event, LC),
@@ -889,6 +929,14 @@ handle_sync_event(#wx{obj=LC, event=Event}=Ev, EvObj, #state{lc=LC, tw=TW, self=
 	    %% io:format("~p: ~p ~p~n",[?LINE, _Reason, erlang:get_stacktrace()]),
 	    ok
     end.
+
+key_to_op(?WXK_DELETE) -> "delete";
+key_to_op(?WXK_F2) -> "rename";
+key_to_op(_) -> ignore.
+
+validate_item_param({_, no_folder}) -> ignore;
+validate_item_param({_, -1}) -> ignore;
+validate_item_param({_, _}=ItemParam) -> ItemParam.
 
 event_info(#wxCommand{type=command_left_click}, LC) ->
     #wxMouseState{x=SX,y=SY} = wx_misc:getMouseState(),
@@ -951,22 +999,26 @@ folder_menu(Folder) ->
     [{?__(11,"Move to Folder"),menu_cmd(move_to_folder, Folder),
       ?__(12,"Move selected objects to this folder")},
      {?__(13,"Empty Folder"),menu_cmd(empty_folder, Folder)},
-     {?__(8,"Rename Folder"),menu_cmd(rename_folder, Folder)},
+     {?__(8,"Rename Folder"),menu_cmd(rename_folder, Folder),"",
+      [{hotkey,wings_hotkey:format_hotkey({?SDLK_F2,[]},pretty)}]},
      separator,
      {?__(7,"Create Folder"),menu_cmd(create_folder)},
      {?__(9,"Delete Folder"),menu_cmd(delete_folder, Folder),
-      ?__(10,"Delete folder and its contents")}
+      ?__(10,"Delete folder and its contents"),
+      [{hotkey,wings_hotkey:format_hotkey({?SDLK_DELETE,[]},pretty)}]}
     ].
 
 object_menu(Id) ->
     [{?STR(do_menu,1,"Duplicate"),menu_cmd(duplicate_object, Id),
       ?STR(do_menu,2,"Duplicate selected objects")},
      {?STR(do_menu,3,"Delete"),menu_cmd(delete_object, Id),
-      ?STR(do_menu,4,"Delete selected objects")},
+      ?STR(do_menu,4,"Delete selected objects"),
+      [{hotkey,wings_hotkey:format_hotkey({?SDLK_DELETE,[]},pretty)}]},
      {?STR(do_menu,5,"Rename"),rename_menu(Id),
       {?STR(do_menu,6,"Rename selected objects"),
        ?STR(do_menu,14,"Rename all selected objects"),
-       ?STR(do_menu,15,"Rename objects using Search and Replace")},[]},
+       ?STR(do_menu,15,"Rename objects using Search and Replace")},
+      [{hotkey,wings_hotkey:format_hotkey({?SDLK_F2,[]},pretty)}]},
      separator,
      {?__(7,"Create Folder"),menu_cmd(create_folder)},
      {?__(17,"Remove From Folder"),menu_cmd(remove_from_folder, Id)}].

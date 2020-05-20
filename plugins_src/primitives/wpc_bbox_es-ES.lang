@@ -1,0 +1,15 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_bbox,
+ [
+  {bb_menu,
+   [
+    {1,"Caja Delimitadora..."},
+    {2,"Crear Caja Delimitadora"}
+   ]},
+  {create_bbox,
+   [
+    {1,"Crear Caja Delimitadora"},
+    {2,"Dimensiones de la Caja: "},
+    {3,"Centro de la Caja: "}
+   ]}
+ ]}.

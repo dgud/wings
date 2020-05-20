@@ -21,10 +21,12 @@
 %% Export for plugins (and wings_proxy) that need to draw stuff
 -export([draw_flat_faces/2,draw_smooth_faces/2]).
 
+-export_type([normals/0,split/0]).
+
 -define(NEED_OPENGL, 1).
 -define(NEED_ESDL, 1).
 -include("wings.hrl").
--include("e3d.hrl").
+-include_lib("wings/e3d/e3d.hrl").
 
 -import(lists, [foreach/2,reverse/1,reverse/2,member/2,
 		foldl/3,sort/1,keysort/2]).
@@ -38,6 +40,12 @@
 	 orig_st		      %For materials
 	}).
 
+-type normals() :: 'none'
+                 | array:array(e3d_vec:vector())
+                 | {normals()}.
+
+-opaque split() :: #split{}.
+
 %%%
 %%% Refresh the display lists from the contents of St.
 %%%
@@ -48,7 +56,7 @@ refresh_dlists(St) ->
     invalidate_dlists(St),
     build_dlists(St),
     update_sel_dlist(),
-    wings_develop:gl_error_check("Refresh of display lists").
+    wings_develop:state_check(St, "Refresh of display lists").
 
 invalidate_dlists(#st{selmode=Mode,sel=Sel}=St) ->
     prepare_dlists(St),
@@ -250,6 +258,9 @@ update_needed_2(CommonNeed, St) ->
 update_needed_fun(#dlo{src_we=#we{perm=Perm}=We}=D, _, _, _)
   when ?IS_LIGHT(We), ?IS_VISIBLE(Perm) ->
     D#dlo{needed=[light]};
+update_needed_fun(#dlo{src_we=#we{perm=Perm}=We}=D, _, _, _)
+  when ?IS_AREA_LIGHT(We), ?IS_VISIBLE(Perm) ->
+    D#dlo{needed=[edges,work]};
 update_needed_fun(#dlo{src_we=#we{id=Id,he=Htab,pst=Pst},proxy=Proxy}=D,
 		  Need0, Wins, _) ->
     Need1 = case gb_sets:is_empty(Htab) orelse
@@ -310,8 +321,7 @@ update_fun(D, [], _) -> D.
 
 update_materials(D, St) ->
     We = original_we(D),
-    if ?IS_AREA_LIGHT(We) ->
-	    wings_light:shape_materials(We#we.light, St);
+    if ?IS_AREA_LIGHT(We) -> wings_light:shape_materials(We, St);
        true -> St
     end.
 
@@ -366,15 +376,17 @@ make_edge_dl(Ns) ->
                                            gl:drawArrays(?GL_POLYGON, Start, N),
                                            {N+Start, <<Ss/binary, Start:?UI32>>, <<Ls/binary, N:?UI32>>}
                                    end, {0, <<>>, <<>>}, PsLens),
-                 fun() ->
-                         gl:multiDrawArrays(?GL_POLYGON, Ss, Ls)
+                 fun(RS) ->
+                         gl:multiDrawArrays(?GL_POLYGON, Ss, Ls),
+                         RS
                  end;
              false ->
-                 fun() ->
+                 fun(RS) ->
                          foldl(fun(Length, Start) ->
                                        gl:drawArrays(?GL_POLYGON, Start, Length),
                                        Length+Start
-                               end, 0, PsLens)
+                               end, 0, PsLens),
+                         RS
                  end
          end,
     P = wings_vbo:new(DP, Polys),
@@ -416,8 +428,9 @@ vertices_f32([]) -> <<>>.
 
 vbo_draw_arrays(Type, Data) ->
     N = byte_size(Data) div 12,
-    D = fun() ->
-		gl:drawArrays(Type, 0, N)
+    D = fun(RS) ->
+		gl:drawArrays(Type, 0, N),
+                RS
 	end,
     wings_vbo:new(D, Data).
 
@@ -480,10 +493,10 @@ update_sel(#dlo{}=D) -> D.
 %% Select all faces.
 update_sel_all(#dlo{vab=#vab{face_vs=Vs}=Vab}=D) when Vs =/= none ->
     Count = wings_draw_setup:face_vertex_count(D),
-    F = fun() ->
-		wings_draw_setup:enable_pointers(Vab, []),
+    F = fun(RS0) ->
+		RS = wings_draw_setup:enable_pointers(Vab, [], RS0),
 		gl:drawArrays(?GL_TRIANGLES, 0, Count),
-		wings_draw_setup:disable_pointers(Vab, [])
+                wings_draw_setup:disable_pointers(Vab, RS)
 	end,
     D#dlo{sel={call,F,Vab}};
 update_sel_all(#dlo{src_we=#we{fs=Ftab}}=D) ->
@@ -500,17 +513,17 @@ update_face_sel(Fs0, #dlo{src_we=We,vab=#vab{face_vs=Vs,face_map=Map}=Vab}=D)
                                   {<<Ss/binary, Start:?UI32>>, <<Es/binary, NoElements:?UI32>>}
                           end,
                 {Start,NoElements} = lists:foldl(Collect, {<<>>,<<>>}, lists:reverse(Fs)),
-                fun() ->
-                        wings_draw_setup:enable_pointers(Vab, []),
+                fun(RS0) ->
+                        RS = wings_draw_setup:enable_pointers(Vab, [], RS0),
                         gl:multiDrawArrays(?GL_TRIANGLES, Start, NoElements),
-                        wings_draw_setup:disable_pointers(Vab, [])
+                        wings_draw_setup:disable_pointers(Vab, RS)
                 end;
             false ->
                 SN = [array:get(Face, Map) || Face <- Fs],
-                fun() ->
-                        wings_draw_setup:enable_pointers(Vab, []),
+                fun(RS0) ->
+                        RS = wings_draw_setup:enable_pointers(Vab, [], RS0),
                         [gl:drawArrays(?GL_TRIANGLES, S, N) || {S,N} <- SN],
-                        wings_draw_setup:disable_pointers(Vab, [])
+                        wings_draw_setup:disable_pointers(Vab, RS)
                 end
         end,
     Sel = {call,F,Vab},
@@ -897,36 +910,26 @@ draw_smooth_faces(#vab{mat_map=MatMap}=Vab, #st{mat=Mtab}) ->
 
 draw_mat_faces(Vab, Extra, MatGroups, Mtab) ->
     ActiveColor = wings_draw_setup:has_active_color(Vab),
-    D = fun() ->
-		wings_draw_setup:enable_pointers(Vab, Extra),
-		do_draw_mat_faces(MatGroups, Mtab, ActiveColor),
-		wings_draw_setup:disable_pointers(Vab, Extra)
+    D = fun(RS0) ->
+		RS1 = wings_draw_setup:enable_pointers(Vab, Extra, RS0),
+		RS = do_draw_mat_faces(MatGroups, Mtab, ActiveColor, RS1),
+                wings_draw_setup:disable_pointers(Vab, RS)
 	end,
     {call,D,Vab}.
 
-do_draw_mat_faces(MatGroups, Mtab, ActiveColor) ->
-    %% Setup shader for materials
-    UseSceneLights = wings_pref:get_value(scene_lights) andalso
-	wings_light:any_enabled_lights(),
-    case UseSceneLights of
-	true -> ignore;
-	false ->
-            %% Progs = ?GET(light_shaders),
-            %% Prog = maps:get(wings_pref:get_value(number_of_lights), Progs),
-	    %% put(active_shader, Prog),
-	    ok
-    end,
+do_draw_mat_faces(MatGroups, Mtab, ActiveColor, RS0) ->
     %% Show materials.
-    foreach(
-      fun({Mat,Type,Start,NumElements}) ->
-	      gl:pushAttrib(?GL_TEXTURE_BIT),
-	      DeApply = wings_material:apply_material(Mat, Mtab,
-						      ActiveColor),
+    foldl(
+      fun({{'_area_light_',_}=Light,Type,Start,NumElements}, RS1) ->
+              [Color] = gb_trees:get(Light, Mtab),
+              RS2 = wings_shaders:set_uloc(light_color, Color, RS1),
+              gl:drawArrays(Type, Start, NumElements),
+              RS2;
+         ({Mat,Type,Start,NumElements}, RS1) ->
+	      DeApply = wings_material:apply_material(Mat, Mtab, ActiveColor, RS1),
 	      gl:drawArrays(Type, Start, NumElements),
-	      DeApply(),
-	      gl:popAttrib()
-      end, MatGroups),
-    ok.
+              DeApply()
+      end, RS0, MatGroups).
 
 %%
 %% Draw normals for the selected elements.
@@ -936,9 +939,10 @@ make_normals_dlist(#dlo{normals=none,src_we=We,src_sel={Mode,Elems}}=D) ->
     Normals = make_normals_dlist_1(Mode, Elems, We),
     VectorColor = wings_pref:get_value(normal_vector_color),
     N = byte_size(Normals) div 12,
-    Draw0 = fun() ->
+    Draw0 = fun(RS) ->
 		    gl:color3fv(VectorColor),
-		    gl:drawArrays(?GL_LINES, 0, N)
+		    gl:drawArrays(?GL_LINES, 0, N),
+                    RS
 	    end,
     Draw = wings_vbo:new(Draw0, Normals),
     D#dlo{normals=Draw};

@@ -23,12 +23,21 @@
 /ebin/*.app
 /ebin/*.bundle
 /ebin/*.lang
+/ebin/*.png
 
 # /intl_tools/
 /intl_tools/wings_chars.hrl
 
 # /fonts/
 /fonts/*.wingsfont
+
+# /priv/
+/priv/*
+
+# /c_src/
+/c_src/*.o
+/c_src/*.obj
+/c_src/*.pdb
 
 # /plugins/
 /plugins/*
@@ -38,10 +47,6 @@
 
 # /plugins_src/autouv/
 /plugins_src/autouv/autouv_en.lang
-
-# /plugins_src/accel/
-/plugins_src/accel/*.obj
-/plugins_src/accel/*.pdb
 
 # /plugins_src/fbx/
 /plugins_src/fbx/*.o
@@ -59,6 +64,9 @@
 /macosx/build/*
 /win32/Wings3D.exe
 /win32/wings3d_res.o
+
+# deps
+/_deps/*
 
 # crash dump files
 *.dump

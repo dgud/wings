@@ -96,7 +96,7 @@ tweak_tool(Button, Modifiers) ->
 -record(state, {me, name, shown, mode, menu, prev, cols}).
 
 init([Frame, Name, {Mode, Menus}]) ->
-    Panel = wxPanel:new(Frame, [{style, ?wxBORDER_SIMPLE}]),
+    Panel = wxPanel:new(Frame, [{style, wings_frame:get_border()}]),
     HotKeys = wings_hotkey:matching([tweak]),
     Entries0 = [wings_menu:normalize_menu_wx(Entry, HotKeys, [tweak])
 		|| Entry <- lists:flatten(Menus)],
@@ -116,21 +116,30 @@ init([Frame, Name, {Mode, Menus}]) ->
     wxSizer:add(Main, Sizer, [{proportion, 1}, {border, 5}, {flag, ?wxALL}]),
     wxSizer:addSpacer(Main, 5),
     wxPanel:setSizer(Panel, Main),
-    wxPanel:connect(Panel, enter_window),
+    All = all_children([Panel], []),
+    [wxPanel:connect(C, enter_window) || C <- All],
+    [wxPanel:connect(C, left_up) || C <- All],
     wxSizer:fit(Main, Panel),
     ?GET(top_frame) =:= Frame orelse wxSizer:setSizeHints(Main, Frame),
     {Panel, #state{me=Panel, name=Name, shown=Entries, cols=Cols, mode=Mode, menu=Menus}}.
 
+all_children([Panel|Rest], Acc0) ->
+    Chs = wxWindow:getChildren(Panel),
+    Acc = all_children(Chs, [Panel|Acc0]),
+    all_children(Rest, Acc);
+all_children([], Acc) ->
+    Acc.
+
 handle_event(#wx{id=Id, obj=Obj, event=#wxMouse{type=enter_window}}=Ev,
 	     #state{me=Me, name=Name, shown=Entries, prev=_Prev} = State) ->
     case wings_util:wxequal(Obj, Me) of
-	true ->  wings_status:message(Name, "");
-	false -> wings_status:message(Name, wings_menu:entry_msg(Id, Entries))
+	false when Id > 0 -> wings_status:message(Name, wings_menu:entry_msg(Id, Entries));
+        _ ->  wings_status:message(Name, "")
     end,
     wings_frame ! Ev#wx{userData={win, Me}},
     {noreply, State#state{prev=line}};
 handle_event(#wx{id=Id, event=#wxMouse{}=ME},
-	     #state{name=Name, shown=Entries} = State) ->
+	     #state{name=Name, shown=Entries} = State) when Id > 0 ->
     Cmd = case wings_menu:entry_cmd(Id, Entries) of
 	      {_, {Mode, _}} -> tweak_mode_cmd(Mode, ME);
 	      Command -> Command
@@ -139,7 +148,7 @@ handle_event(#wx{id=Id, event=#wxMouse{}=ME},
     wings_wm:psend(Name, {apply, true, Do}),
     {noreply, State};
 handle_event(#wx{} = _Ev, State) ->
-    %% io:format("~p:~p Got unexpected event ~p~n", [?MODULE,?LINE, Ev]),
+    %% ?dbg("Got unexpected event ~p~n", [_Ev]),
     {noreply, State}.
 
 %%%%%%%%%%%%%%%%%%%%%%

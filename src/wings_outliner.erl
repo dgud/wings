@@ -23,7 +23,7 @@
 -define(NEED_ESDL, 1).
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
--include("e3d_image.hrl").
+-include_lib("wings/e3d/e3d_image.hrl").
 -import(lists, [keydelete/3,reverse/1]).
 
 -dialyzer({nowarn_function, fake_enter_window/2}).
@@ -66,14 +66,18 @@ command({delete_material,Name}, _Ost) ->
     wings_wm:send(geom, {action,{material,{delete,[Name]}}});
 command({rename_material,Name}, _Ost) ->
     wings_wm:send(geom, {action,{material,{rename,[Name]}}});
-command({assign_texture,Type,Id,Name0}, #st{mat=Mtab}) ->
+command({assign_texture,Type,Id,Name0, Format}, #st{mat=Mtab}) ->
     Name = list_to_atom(Name0),
     Mat0 = gb_trees:get(Name, Mtab),
     {Maps0,Mat1} = prop_get_delete(maps, Mat0),
     Maps = [{Type,Id}|keydelete(Type, 1, Maps0)],
     Mat  = [{maps,Maps}|Mat1],
+    ConvertWarning = ?__(10, "Expected a gray scale image, converting"),
     case Type of
 	normal -> wings_image:is_normalmap(Id);
+        metallic  when Format =/= g8 -> wings_u:message(ConvertWarning);
+        roughness when Format =/= g8 -> wings_u:message(ConvertWarning);
+        occlusion when Format =/= g8 -> wings_u:message(ConvertWarning);
 	_ -> ignore
     end,
     wings_wm:send(geom, {action,{material,{update,Name,Mat}}});
@@ -113,8 +117,12 @@ command({create_normal_map,Params}, _) ->
     keep;
 command({export_image,Id}, _) ->
     export_image(Id);
+command({invert_channel, {Ch, Id}}, _) ->
+    invert_image(Ch, Id);
+command({from_channel, {Ch, Id}}, _) ->
+    from_channel(Ch, Id);
 command(Cmd, _) ->
-    io:format(?__(1,"NYI: ~p\n"), [Cmd]),
+    ?dbg(?__(1,"NYI: ~p\n"), [Cmd]),
     keep.
 
 prop_get_delete(Key, List) ->
@@ -127,6 +135,30 @@ duplicate_image(Id) ->
     wings_image:new(Name, Im),
     wings_wm:send(geom, need_save),
     keep.
+
+invert_image(Ch, Id) ->
+    #e3d_image{type=Type, bytes_pp=Bpp, name=Name} = Im = wings_image:info(Id),
+    try e3d_image:invert_channel(Ch, Im) of
+        Inv ->
+            wings_image:new(filename:rootname(Name) ++ " Inv", Inv),
+            wings_wm:send(geom, need_save),
+            keep
+    catch _:_ ->
+            wings_u:error_msg(?__(1, "Cannot invert image type ~s (~w) bytes per pixel"), [Type, Bpp]),
+            keep
+    end.
+
+from_channel(Ch, Id) ->
+    Im = wings_image:info(Id),
+    try e3d_image:channel(Ch, Im) of
+        #e3d_image{name=Name} = Gray ->
+            wings_image:new(Name, Gray),
+            wings_wm:send(geom, need_save),
+            keep
+    catch _:_ ->
+            wings_u:message(?__(1, "Cannot read channel from the image type")),
+            keep
+    end.
 
 delete_image(Id, St) ->
     Used = wings_material:used_images(St),
@@ -182,7 +214,7 @@ refresh_image(Id) ->
     Props = [{filename,Filename},{alignment,1}],
     case wings_image:image_read(Props) of
 	#e3d_image{}=Image ->
-	    wings_image:update(Id, Image),
+	    ok = wings_image:update(Id, Image),
 	    keep;
 	{error,R} ->
 	    Msg = e3d_image:format_error(R),
@@ -317,31 +349,45 @@ init([Frame,  _Ps, Os]) ->
     wxPanel:connect(Panel, drop_files),
     wxSizer:add(Szr, TC, [{proportion,1}, {flag, ?wxEXPAND}]),
     wxPanel:setSizer(Panel, Szr),
-    {Shown,IMap} = update_object(Os, TC, IL, IMap0),
     Msg = wings_msg:button_format(?__(1,"Select"), [],
 				  ?__(2,"Show outliner menu (if selection)"
 				      " or creation menu (if no selection)")),
     wings_status:message(?MODULE, Msg),
-    {Panel, #state{top=Panel, szr=Szr, tc=TC, os=Os, shown=Shown, il=IL, imap=IMap}}.
+    State = update_object(Os, #state{top=Panel, szr=Szr, tc=TC, shown=#{}, il=IL, imap=IMap0}),
+    {Panel, State}.
 
 handle_sync_event(#wx{event=#wxTree{type=command_tree_begin_label_edit, item=Indx}}, From,
 		  #state{shown=Tree}) ->
-    case lists:keyfind(Indx, 1, Tree) of
+    case maps:get(Indx, Tree, undefined) of
 	{_, #{type:=mat, name:="default"}} -> wxTreeEvent:veto(From);
-	false -> wxTreeEvent:veto(From);  % false is returned for the root items: 'Lights', 'Materials', 'Images'
+	undefined -> wxTreeEvent:veto(From);  % returned for the root items: 'Lights', 'Materials', 'Images'
 	_ -> ignore
     end,
     ok;
 handle_sync_event(#wx{event=#wxTree{item=Indx}}, Drag,
 		  #state{tc=TC, shown=Shown}) ->
-    case lists:keyfind(Indx, 1, Shown) of
-	{_, #{type:=image}=Obj} ->
+    case maps:get(Indx, Shown, undefined) of
+	#{type:=image}=Obj ->
 	    wings_io:set_cursor(pointing_hand),
 	    wxTreeEvent:allow(Drag),
 	    wx_object:get_pid(TC) ! {drag, Obj};
 	_ -> ignore %% for now
     end,
-    ok.
+    ok;
+
+handle_sync_event(#wx{event=#wxKey{type=char, keyCode=KC}}, EvObj, #state{tc=TC, shown=Shown}) ->
+    Indx = wxTreeCtrl:getSelection(TC),
+    RowData = maps:get(Indx, Shown, undefined),
+    {Type, Id} = obj_to_type_and_param(RowData),
+    wxEvent:skip(EvObj),
+    case key_to_op(Type, KC) of
+        ignore ->
+            ok;
+        Act ->
+	    Cmd = list_to_atom(Act++"_"++Type),
+	    wings_wm:psend(?MODULE, {action, {?MODULE, {Cmd, Id}}}),
+            ok
+    end.
 
 handle_event(#wx{event=#wxMouse{type=right_up, x=X, y=Y}}, #state{tc=TC} = State) ->
     {Indx, _} = wxTreeCtrl:hitTest(TC, {X,Y}),
@@ -349,8 +395,8 @@ handle_event(#wx{event=#wxMouse{type=right_up, x=X, y=Y}}, #state{tc=TC} = State
     {noreply, State};
 handle_event(#wx{event=#wxTree{type=command_tree_item_menu, item=Indx, pointDrag=Pos}},
 	     #state{shown=Tree, tc=TC} = State) ->
-    case lists:keyfind(Indx, 1, Tree) of
-	false -> ignore;
+    case maps:get(Indx, Tree, undefined) of
+	undefined -> ignore;
 	_ -> make_menus(Indx, wxWindow:clientToScreen(TC, Pos), State)
     end,
     {noreply, State};
@@ -362,39 +408,43 @@ handle_event(#wx{event=#wxTree{type=command_tree_end_label_edit, item=Indx}},
 	     #state{shown=Tree, tc=TC} = State) ->
     NewName = wxTreeCtrl:getItemText(TC, Indx),
     if NewName =/= [] ->
-	case lists:keyfind(Indx, 1, Tree) of
-	    {_, #{type:=mat, name:=Old}} ->
-		wings_wm:psend(geom, {action,{material,{rename, Old, NewName}}});
-	    {_, #{type:=image, id:=Id}} ->
-		Apply = fun(_) ->
-				wings_image:rename(Id, NewName),
-				wings_wm:psend(geom, need_save),
-				keep
-			end,
-		wings_wm:psend(?MODULE, {apply, false, Apply});
-	    {_, #{id:=Id}} ->
-		Apply = fun(St) -> rename_obj(Id, NewName, St), keep end,
-		wings_wm:psend(?MODULE, {apply, false, Apply})
-	end;
-    true ->
-	case lists:keyfind(Indx, 1, Tree) of
-	    {_, #{name:=Old}} ->
-		wxTreeCtrl:setItemText(TC, Indx, Old);
-	    _ ->
-		ignore
-	end
+            case maps:get(Indx, Tree, undefined) of
+                #{type:=mat, name:=Old} ->
+                    wings_wm:psend(geom, {action,{material,{rename, Old, NewName}}});
+                #{type:=image, id:=Id} ->
+                    Apply = fun(_) ->
+                                    wings_image:rename(Id, NewName),
+                                    wings_wm:psend(geom, need_save),
+                                    keep
+                            end,
+                    wings_wm:psend(?MODULE, {apply, false, Apply});
+                #{id:=Id} ->
+                    Apply = fun(St) -> rename_obj(Id, NewName, St), keep end,
+                    wings_wm:psend(?MODULE, {apply, false, Apply})
+            end;
+       true ->
+            case maps:get(Indx, Tree, undefined) of
+                {_, #{name:=Old}} ->
+                    wxTreeCtrl:setItemText(TC, Indx, Old);
+                _ ->
+                    ignore
+            end
     end,
     {noreply, State};
 
 handle_event(#wx{event=#wxTree{type=command_tree_end_drag, item=Indx, pointDrag=Pos0}},
 	     #state{shown=Tree, drag={Drag,_}, tc=TC} = State) ->
     wings_io:set_cursor(arrow),
-    case lists:keyfind(Indx, 1, Tree) of
-	{_, #{type:=mat} = Mat} when Drag =/= undefined ->
+    case maps:get(Indx, Tree, undefined) of
+	#{type:=mat} = Mat when Drag =/= undefined ->
 	    Menu = handle_drop(Drag, Mat),
 	    Pos = wxWindow:clientToScreen(TC, Pos0),
 	    Cmd = fun(_) -> wings_menu:popup_menu(TC, Pos, ?MODULE, Menu) end,
 	    wings_wm:psend(?MODULE, {apply, false, Cmd});
+        undefined when Indx =:= 0 ->
+	    Pos = wxWindow:clientToScreen(TC, Pos0),
+            wings ! {wm, {drop, Pos, Drag}},
+            ignore;
 	_ ->
 	    ignore
     end,
@@ -402,17 +452,17 @@ handle_event(#wx{event=#wxTree{type=command_tree_end_drag, item=Indx, pointDrag=
 
 handle_event(#wx{event=#wxTree{type=command_tree_item_activated, item=Indx}},
 	     #state{shown=Tree, tc=_TC} = State) ->
-    case lists:keyfind(Indx, 1, Tree) of
+    case maps:get(Indx, Tree, undefined) of
         false ->
-            io:format("~p:~p Unknown Item activated ~p~n", [?MODULE,?LINE, Indx]);
-        {_, #{type:=mat, name:=Name}} ->
+            ok;
+        #{type:=mat, name:=Name} ->
             wings_wm:psend(?MODULE, {action, {?MODULE, {edit_material, Name}}});
-        {_, #{type:=image, id:=Id}} ->
+        #{type:=image, id:=Id} ->
             wings_wm:psend(?MODULE, {action, {?MODULE, {show_image, Id}}});
-        {_, #{type:=light, id:=Id}} ->
+        #{type:=light, id:=Id} ->
             wings_wm:psend(?MODULE, {action, {?MODULE, {edit_light, Id}}});
-        {_, What} ->
-            io:format("~p:~p Item activated ~p~n", [?MODULE,?LINE, What])
+        What ->
+            ?dbg("Item activated ~p~n", [What])
     end,
     {noreply, State};
 
@@ -445,10 +495,9 @@ handle_call(_Req, _From, State) ->
     %%io:format("~p:~p Got unexpected call ~p~n", [?MODULE,?LINE, _Req]),
     {reply, ok, State}.
 
-handle_cast({new_state, Os}, #state{tc=TC, il=IL, imap=IMap0} = State) ->
+handle_cast({new_state, Os}, State) ->
     try
-        {Shown,IMap} = update_object(Os, TC, IL, IMap0),
-        {noreply, State#state{os=Os, shown=Shown, imap=IMap}}
+        {noreply, update_object(Os, State)}
     catch _:Reason ->
             io:format("~p:~p: crashed ~P~n",[?MODULE,?LINE,Reason,30]),
             io:format(" at: ~P~n",[Reason,30]),
@@ -461,17 +510,18 @@ handle_cast(_Req, State) ->
     {noreply, State}.
 
 handle_info(parent_changed,
-	    #state{top=Top, szr=Szr, tc=TC0, os=Os, il=IL, imap=IMap} = State) ->
+	    #state{top=Top, szr=Szr, shown=Prev, tc=TC0, os=Os, il=IL} = State) ->
     case os:type() of
 	{win32, _} ->
 	    %% Windows or wxWidgets somehow messes up the icons when reparented,
 	    %% Recreating the tree ctrl solves it
+            Expanded = expanded_items(maps:to_list(Prev), TC0),
+            Selected = selected_item(Prev, TC0),
 	    TC = make_tree(Top, wings_frame:get_colors(), IL),
 	    wxSizer:replace(Szr, TC0, TC),
 	    wxSizer:recalcSizes(Szr),
 	    wxWindow:destroy(TC0),
-	    {Shown,_} = update_object(Os, TC, IL, IMap),
-	    {noreply, State#state{tc=TC, shown=Shown}};
+	    {noreply, update_object(Os, Selected, Expanded, State#state{tc=TC})};
 	_ ->
 	    {noreply, State}
     end;
@@ -496,7 +546,7 @@ fake_enter_window(Ev, Obj) ->
 
 make_tree(Parent, #{bg:=BG, text:=FG}, IL) ->
     TreeStyle = ?wxTR_EDIT_LABELS bor ?wxTR_HIDE_ROOT bor ?wxTR_HAS_BUTTONS
-	bor ?wxTR_LINES_AT_ROOT bor ?wxTR_NO_LINES,
+	bor ?wxTR_LINES_AT_ROOT bor ?wxTR_NO_LINES bor wings_frame:get_border(),
     TC = set_pid(wxTreeCtrl:new(Parent, [{style, TreeStyle}]), self()),
     wxTreeCtrl:setBackgroundColour(TC, BG),
     wxTreeCtrl:setForegroundColour(TC, FG),
@@ -509,6 +559,7 @@ make_tree(Parent, #{bg:=BG, text:=FG}, IL) ->
     wxWindow:connect(TC, command_tree_item_activated, []),
     wxWindow:connect(TC, enter_window, [{userData, {win, Parent}}]),
     wxWindow:connect(TC, motion, [{skip, true}]),
+    wxWindow:connect(TC, char, [callback]),
     case os:type() of
 	{win32, _} ->
 	    wxWindow:connect(TC, command_tree_item_menu, [{skip, false}]),
@@ -534,13 +585,22 @@ scroll_window(Y, TC, {Obj, Prev}) ->
             {Obj, Prev}
     end.
 
-update_object(Os, TC, IL, Imap0) ->
-    Sorted = [{{order(T), wings_util:cap(N)},O} || #{type:=T,name:=N} = O <- Os],
+update_object(Os, #state{tc=TC, shown=Prev}=State) ->
+    Expanded = expanded_items(maps:to_list(Prev), TC),
+    Selected = selected_item(Prev, TC),
+    update_object(Os, Selected, Expanded, State).
+
+update_object(Os, Selected, Expanded, #state{tc=TC, il=IL, imap=Imap0}=State) ->
     wxTreeCtrl:deleteAllItems(TC),
+    Sorted = [{{order(T), wings_util:cap(N)},O} || #{type:=T,name:=N} = O <- Os],
     Root = wxTreeCtrl:addRoot(TC, []),
     Lights = wxTreeCtrl:appendItem(TC, Root, root_name(light)),
+    wxTreeCtrl:setItemBold(TC, Lights),
     Materials = wxTreeCtrl:appendItem(TC, Root, root_name(mat)),
+    wxTreeCtrl:setItemBold(TC, Materials),
     Images = wxTreeCtrl:appendItem(TC, Root, root_name(image)),
+    wxTreeCtrl:setItemBold(TC, Images),
+
     Do = fun({_, #{type:=Type, name:=Name}=O}, {Acc0,Imap00}) ->
 		 {Indx, Imap} = image_index(O, IL, Imap00),
 		 Item =
@@ -554,25 +614,32 @@ update_object(Os, TC, IL, Imap0) ->
                          case maps:get(maps, O, []) of
                              [] -> {Acc, Imap};
                              Maps ->
-                                 add_maps(Maps, TC, Item, Name, IL, Imap, Os, Acc)
+                                 Res = add_maps(Maps, TC, Item, Name, IL, Imap, Os, Acc),
+                                 case lists:member({Type,Name}, Expanded) of
+                                     true -> wxTreeCtrl:expand(TC, Item);
+                                     false -> ignore
+                                 end,
+                                 Res
                          end;
                     true -> {Acc, Imap}
 		 end
-		 %% {Node,_} = lists:keyfind(Curr, 2, All),
-		 %% wxTreeCtrl:selectItem(TC, Node),
-		 %% wxTreeCtrl:ensureVisible(TC, Node),
 	 end,
-    Res = wx:foldl(Do, {[],Imap0}, Sorted),
-    wxTreeCtrl:expand(TC, Lights),
-    wxTreeCtrl:setItemBold(TC, Lights),
-    wxTreeCtrl:expand(TC, Materials),
-    wxTreeCtrl:setItemBold(TC, Materials),
-    wxTreeCtrl:expand(TC, Images),
-    wxTreeCtrl:setItemBold(TC, Images),
-    wxTreeCtrl:selectItem(TC, Lights),
+    {Items, Imap}  = wx:foldl(Do, {[],Imap0}, Sorted),
+    lists:member(ligths, Expanded) andalso wxTreeCtrl:expand(TC, Lights),
+    lists:member(mats, Expanded)   andalso wxTreeCtrl:expand(TC, Materials),
+    lists:member(images, Expanded) andalso wxTreeCtrl:expand(TC, Images),
+
+    SelItem = case find_sel(Selected, Items) of
+                  none -> Lights;
+                  Sel -> Sel
+              end,
     wxTreeCtrl:refresh(TC),
     wxTreeCtrl:update(TC),
-    Res.
+    wxTreeCtrl:selectItem(TC, SelItem),
+    wxTreeCtrl:ensureVisible(TC, SelItem),
+    Shown0 = maps:from_list(Items),
+    Shown = Shown0#{lights=>Lights, mats=>Materials, images=>Images},
+    State#state{imap=Imap, shown=Shown, os=Os}.
 
 add_maps([{MType,Mid}|Rest], TC, Dir, Mat, IL, Imap0, Os,Acc) ->
     case [O || #{type:=image, id:=Id} = O <- Os, Id =:= Mid] of
@@ -615,14 +682,47 @@ image_index(#{type:=mat, color:=Col}, IL, Map) ->
 	    {Indx, Map}
     end.
 
+find_sel({Type,Name}, [{Item, #{type:=Type,name:=Name}}|_]) ->
+    Item;
+find_sel(Sel, [_|Rest]) ->
+    find_sel(Sel, Rest);
+find_sel(_, []) -> none.
+
+selected_item(Prev, TC) ->
+    Item0 = wxTreeCtrl:getSelection(TC),
+    case maps:get(Item0, Prev, none) of
+        #{name:=Name, type:=Type} ->
+            {Type,Name};
+        Else ->
+            Else
+    end.
+
+expanded_items(Items, TC) ->
+    lists:foldl(fun(Item, Acc) -> expanded(Item, TC, Acc) end, [lights, mats, images], Items).
+
+expanded({Item0, Obj0}, TC, Acc) ->
+    {Item, Obj} = case Obj0 of
+                      #{name:=Name, type:=Type} -> {Item0, {Type,Name}};
+                      _ -> {Obj0, Item0}
+                  end,
+    Exp = wxTreeCtrl:isTreeItemIdOk(Item) andalso wxTreeCtrl:isExpanded(TC, Item),
+    case Exp of
+        true -> [Obj|Acc];
+        false -> lists:delete(Obj,Acc)
+    end.
+
 image_maps_index(Type) ->
     case Type of
     	diffuse -> 4;
 	gloss -> 5;
+        metallic -> 5;
+        roughness -> 10;
 	bump -> 6;
 	normal -> 7;
-	material -> 8;
-        _unknown -> 4
+        occlusion -> 8;
+        emission -> 9;
+	material -> 11;
+        _unknown -> 11
     end.
 
 load_icons() ->
@@ -643,9 +743,10 @@ load_icons() ->
 		     small_image,small_image2,perspective, %small_object,
 		     small_light,
 		     small_diffuse,small_gloss,small_bump,small_normal,
+                     small_aocc, small_emission, small_roughness,
 		     material
 		    ]),
-    {IL, #{image=>0, internal_image=>1, object=>2, light=>3, mat=>8}}.
+    {IL, #{image=>0, internal_image=>1, object=>2, light=>3, mat=>11}}.
 
 mat_bitmap(Col) ->
     {_, _, Orig} = lists:keyfind(material, 1, wings_frame:get_icon_images()),
@@ -678,13 +779,13 @@ set_pid({wx_ref, Ref, Type, []}, Pid) when is_pid(Pid) ->
 make_menus(0, Pos, #state{tc=TC}) ->
     wings_wm:psend(?MODULE, {apply, false, fun(_) -> wings_shapes:menu(TC,Pos) end});
 make_menus(Indx, Pos, #state{tc=TC, shown=Tree}) ->
-    case lists:keyfind(Indx, 1, Tree) of
-        {_, Obj} ->
+    case maps:get(Indx, Tree, undefined) of
+        undefined -> %% Material or light or images r-clicked
+            ok;
+        Obj ->
             Menus = do_menu(Obj),
             Cmd = fun(_) -> wings_menu:popup_menu(TC, Pos, ?MODULE, Menus) end,
-            wings_wm:psend(?MODULE, {apply, false, Cmd});
-        false ->  %% Material or light or images r-clicked
-            ok
+            wings_wm:psend(?MODULE, {apply, false, Cmd})
     end.
 
 do_menu(#{type:=mat, name:=Name}) ->
@@ -701,16 +802,16 @@ do_menu(#{type:=mat, name:=Name}) ->
      {?__(7,"Duplicate"),menu_cmd(duplicate_material, Name),
       ?__(8,"Duplicate this material")},
      {?__(9,"Delete"),menu_cmd(delete_material, Name),
-      ?__(10,"Delete this material")},
+      ?__(10,"Delete this material"),[{hotkey,wings_hotkey:format_hotkey({?SDLK_DELETE,[]},pretty)}]},
      {?__(11,"Rename"),menu_cmd(rename_material, Name),
-      ?__(12,"Rename this material")}];
+      ?__(12,"Rename this material"),[{hotkey,wings_hotkey:format_hotkey({?SDLK_F2,[]},pretty)}]}, []];
 do_menu(#{type:=object, id:=Id}) ->
     [{?__(13,"Duplicate"),menu_cmd(duplicate_object, Id),
       ?__(14,"Duplicate this object")},
      {?__(15,"Delete"),menu_cmd(delete_object, Id),
-      ?__(16,"Delete this object")},
+      ?__(16,"Delete this object"),[{hotkey,wings_hotkey:format_hotkey({?SDLK_DELETE,[]},pretty)}]},
      {?__(17,"Rename"),menu_cmd(rename_object, Id),
-      ?__(18,"Rename this object")}];
+      ?__(18,"Rename this object"),[{hotkey,wings_hotkey:format_hotkey({?SDLK_F2,[]},pretty)}]}];
 do_menu(#{type:=light, id:=Id}) ->
     [{?__(19,"Edit Light..."),menu_cmd(edit_light, Id),
       ?__(20,"Edit light properties")},
@@ -718,9 +819,9 @@ do_menu(#{type:=light, id:=Id}) ->
      {?__(21,"Duplicate"),menu_cmd(duplicate_object, Id),
       ?__(22,"Duplicate this light")},
      {?__(23,"Delete"),menu_cmd(delete_object, Id),
-      ?__(24,"Delete this light")},
+      ?__(24,"Delete this light"),[{hotkey,wings_hotkey:format_hotkey({?SDLK_DELETE,[]},pretty)}]},
      {?__(25,"Rename"),menu_cmd(rename_object, Id),
-      ?__(26,"Rename this light")}];
+      ?__(26,"Rename this light"),[{hotkey,wings_hotkey:format_hotkey({?SDLK_F2,[]},pretty)}]}];
 do_menu(#{type:=image, id:=Id, image:=Im}=Map) ->
     image_menu(Id, Im, maps:get(mat, Map, unused)).
 
@@ -738,18 +839,30 @@ image_menu_1(Id, _, Mat) ->
 
 image_menu_2(Id, unused) ->
     [separator,
-     {?__(1,"Delete"),menu_cmd(delete_image, Id), ?__(2,"Delete selected image")}
+     {?__(1,"Delete"),menu_cmd(delete_image, Id),
+      ?__(2,"Delete selected image"),
+      [{hotkey,wings_hotkey:format_hotkey({?SDLK_DELETE,[]},pretty)}]}
      |command_image_menu(Id)];
 image_menu_2(Id, {Mat, Type}) ->
     [separator,
      {?__(3,"Remove Texture"),menu_cmd(remove_texture, {Type, Mat}),
-      ?__(4,"Remove texture from material")}
+      ?__(4,"Remove texture from material"),
+      [{hotkey,wings_hotkey:format_hotkey({?SDLK_DELETE,[]},pretty)}]}
      |command_image_menu(Id)].
 
 command_image_menu(Id) ->
+    Chs = [{?__(121, "Red"),   menu_cmd(r, Id)},
+           {?__(122, "Green"), menu_cmd(g, Id)},
+           {?__(123, "Blue"),  menu_cmd(b, Id)},
+           {?__(124, "Alpha"), menu_cmd(a, Id)}],
     [separator,
      {?__(9,"Create Normal Map"),create_normal_map_fun(Id),
-      {?__(10,"Creates a normal map for the image"),[],?__(11,"Creates a normal map for the image with parameters")},[opt]},
+      {?__(10,"Creates a normal map for the image"),[],
+       ?__(11,"Creates a normal map for the image with parameters")},[opt]},
+     {?__(12,"Create Inverted Image"),
+      {invert_channel, Chs}, ?__(13,"Invert a channel of the image")},
+     {?__(14,"Create Gray Image from channel"),
+      {from_channel, Chs}, ?__(15,"Make a new image from specified channel")},
      separator,
      {?__(1,"Export..."),menu_cmd(export_image, Id),
       ?__(2,"Export the image")},
@@ -757,19 +870,23 @@ command_image_menu(Id) ->
      {?__(3,"Duplicate"),menu_cmd(duplicate_image, Id),
       ?__(4,"Duplicate selected image")},
      {?__(7,"Rename"),menu_cmd(rename_image, Id),
-      ?__(8,"Rename selected image")}
+      ?__(8,"Rename selected image"),[{hotkey,wings_hotkey:format_hotkey({?SDLK_F2,[]},pretty)}]}
     ].
 
-handle_drop(#{type:=image, id:=Id}, #{type:=mat, name:=Name}) ->
+handle_drop(#{type:=image, id:=Id, image:=#e3d_image{type=Format}}, #{type:=mat, name:=Name}) ->
     [{?__(1,"Texture Type"),ignore},
      separator,
-     {?__(2,"Diffuse"),tx_cmd(diffuse, Id, Name)},
-     {?__(3,"Gloss"),tx_cmd(gloss, Id, Name)},
-     {?__(4,"Bump (HeightMap)"),tx_cmd(bump, Id, Name)},
-     {?__(5,"Bump (NormalMap)"),tx_cmd(normal, Id, Name)}].
+     {?__(2,"Base Color"),tx_cmd(diffuse, Id, Name, Format)},
+     {?__(8,"Metallic"),tx_cmd(metallic, Id, Name, Format)},
+     {?__(9,"Roughness"),tx_cmd(roughness, Id, Name, Format)},
+     {?__(6,"Ambient Occlusion"),tx_cmd(occlusion, Id, Name, Format)},
+     {?__(4,"Bump (HeightMap)"),tx_cmd(bump, Id, Name, Format)},
+     {?__(5,"Bump (NormalMap)"),tx_cmd(normal, Id, Name, Format)},
+     {?__(7,"Emission"),tx_cmd(emission, Id, Name, Format)}
+    ].
 
-tx_cmd(Type, Id, Mat) ->
-    {'VALUE',{assign_texture,Type,Id,Mat}}.
+tx_cmd(Type, Id, Mat, Format) ->
+    {'VALUE',{assign_texture,Type,Id,Mat,Format}}.
 
 create_normal_map({ask,Id}) ->
     wings_dialog:dialog(?__(1,"Normalmap"),
@@ -791,7 +908,7 @@ create_normal_map_0(Id, Params) ->
 
 create_normal_map_fun(Id) ->
     fun (1, _) -> button_menu_cmd(create_normal_map, Id);
-	(3, _) ->button_menu_cmd(create_normal_map, {ask,Id});
+	(3, _) -> button_menu_cmd(create_normal_map, {ask,Id});
 	(_,_) -> ignore
     end.
 
@@ -810,3 +927,15 @@ menu_cmd(Cmd, Id) ->
 
 button_menu_cmd(Cmd, Id) ->
     {?MODULE,{Cmd,Id}}.
+
+key_to_op(ignore, _) -> ignore;
+key_to_op("texture", ?WXK_DELETE) -> "remove";
+key_to_op(_, ?WXK_DELETE) -> "delete";
+key_to_op(_, ?WXK_F2) -> "rename";
+key_to_op(_, _) -> ignore.
+
+obj_to_type_and_param(#{type:=mat, name:=Name}) -> {"material", Name};
+obj_to_type_and_param(#{type:=image, mat:={Mat,Type}}) -> {"texture", {Type,Mat}};
+obj_to_type_and_param(#{type:=image, id:=Id}) -> {"image", Id};
+obj_to_type_and_param(#{type:=light, id:=Id}) -> {"object", Id};
+obj_to_type_and_param(_) -> {ignore, ignore}.

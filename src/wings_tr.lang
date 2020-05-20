@@ -816,7 +816,7 @@
    ]},
   {import_image,
    [
-    {1,"\"~s\"'yi yükleme başarısız: ~s\n"}
+    {1,"\"~ts\"'yi yükleme başarısız: ~ts\n"}
    ]},
   {import_ndo,
    [
@@ -1232,12 +1232,12 @@
    ]},
   {info,
    [
-    {1,"Işık ~s"},
-    {2,": Konum ~s ~s ~s"}
+    {1,"Işık ~ts"},
+    {2,": Konum ~s"}
    ]},
   {info_1,
    [
-    {1,". Hedef ~s ~s ~s. Yön ~s ~s ~s"},
+    {1,". Hedef ~s. Yön ~s"},
     {2,". Açı ~s~c"}
    ]},
   {light_types,
@@ -1713,7 +1713,7 @@
    [
     {1,". Konum <~s  ~s  ~s>"},
     {3,". Orta Nokta <~s  ~s  ~s>\nUzunluk ~s"},
-    {4,". Orta Nokta <~s  ~s  ~s> \nMalzeme ~s."}
+    {4,". Orta Nokta <~s  ~s  ~s> \nMalzeme ~ts."}
    ]},
   {handle_hilite_event,
    [

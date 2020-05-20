@@ -13,7 +13,7 @@
 -module(wpc_numeric_camera).
 -export([init/0,menu/2,command/2]).
 -define(NEED_ESDL, 1).
--include("wings.hrl").
+-include_lib("wings/src/wings.hrl").
 
 init() ->
     wings_pref:delete_value(cam_pos_preview),

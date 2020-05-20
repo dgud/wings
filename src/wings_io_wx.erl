@@ -18,7 +18,6 @@
 
 -include("wings.hrl").
 
--ifdef(USE_WX).
 -export([init/0, quit/0, version_info/0,
 	 set_cursor/1,hourglass/0,eyedropper/0,
 	 get_mouse_state/0, is_modkey_pressed/1, is_key_pressed/1,
@@ -31,11 +30,18 @@
 -export([reset_grab/0,grab/1,ungrab/2,is_grabbed/0,warp/3]).
 -export([reset_video_mode_for_gl/2]).
 
--export([make_key_event/1]).
+-export([make_key_event/1, scroll_event/2]).
 
 -import(lists, [flatmap/2,member/2,reverse/1,reverse/2]).
 
 -import(wings_io, [put_state/1, get_state/0]).
+
+
+%% Added in otp-22.2 wx-1.9
+-ifndef(wxMOUSE_WHEEL_VERTICAL).
+-define(wxMOUSE_WHEEL_VERTICAL, 0).
+-define(wxMOUSE_WHEEL_HORIZONTAL, 1).
+-endif.
 
 init() ->
     Cursors = build_cursors(),
@@ -122,11 +128,21 @@ blank(PreDef) ->
     end.
 
 set_cursor(CursorId) ->
-    Cursors = ?GET(cursors),
-    Cursor = proplists:get_value(CursorId, Cursors),
-    wx_misc:setCursor(Cursor),
-    put(active_cursor, CursorId),
-    ok.
+    case get(active_cursor) of
+        CursorId -> ok;
+        _ ->
+            Cursors = ?GET(cursors),
+            Cursor = proplists:get_value(CursorId, Cursors),
+            case os:type() of
+                {win32, _} ->
+                    Frame = ?GET(top_frame),
+                    wxWindow:setCursor(Frame, Cursor);
+                {_, _} ->
+                    wx_misc:setCursor(Cursor)
+            end,
+            put(active_cursor, CursorId),
+            ok
+    end.
 
 get_mouse_state() ->
     wx:batch(fun() ->
@@ -136,16 +152,16 @@ get_mouse_state() ->
 				   middleDown=Middle,
 				   rightDown=Right %% bool()
 				  } = MS,
-		     {gui_state([{Left,   ?SDL_BUTTON_LMASK},
-				 {Middle, ?SDL_BUTTON_MMASK},
-				 {Right,  ?SDL_BUTTON_RMASK}], 0), X, Y}
+		     {make_state([{Left,   ?SDL_BUTTON_LMASK},
+                                  {Middle, ?SDL_BUTTON_MMASK},
+                                  {Right,  ?SDL_BUTTON_RMASK}], 0), X, Y}
 	     end).
 
-gui_state([{true,What}|Rest],Acc) ->
-    gui_state(Rest, What bor Acc);
-gui_state([_|Rest],Acc) ->
-    gui_state(Rest,Acc);
-gui_state([],Acc) -> Acc.
+make_state([{true,What}|Rest],Acc) ->
+    make_state(Rest, What bor Acc);
+make_state([_|Rest],Acc) ->
+    make_state(Rest,Acc);
+make_state([],Acc) -> Acc.
 
 is_modkey_pressed(Key) when (Key band ?KMOD_LCTRL) > 0 ->
     wx_misc:getKeyState(?WXK_CONTROL);
@@ -296,7 +312,7 @@ rec_events(Eq0, Prev, Wait) ->
 	    wxe_master ! {wxe_driver, error, Msg},
             rec_events(Eq0, Prev, Wait);
 	External ->
-	    q_in(External, q_in(Prev, Eq0))
+	    rec_events(q_in(External, q_in(Prev, Eq0)), undefined, 0)
     after Wait ->
             q_in(Prev, Eq0)
     end.
@@ -310,6 +326,8 @@ read_events_q(Eq0) ->
 		#io{key_up=true} -> {wx_translate(Ev), Eq};
 		_ -> read_events_q(Eq)
 	    end;
+        {{value,#mousewheel{}=Ev}, Eq} ->
+            filter_scroll(Ev, Eq);
         {{value,Ev}, Eq} ->
             filter_resize(Ev, Eq);
         {empty, Eq} ->
@@ -338,10 +356,18 @@ filter_resize(#wx{event=#wxPaint{}}=Ev0, Eq0) ->
 	    filter_resize(Ev, Eq);
 	_ ->
 	    {wx_translate(Ev0), Eq0}
-
     end;
 filter_resize(Event, Eq) ->
     {wx_translate(Event), Eq}.
+
+filter_scroll(#mousewheel{dir=Dir, wheel=N0, which=Obj, mod=Mods}=Ev0, Eq0) ->
+    %% io:format("~w ~p ~n",[process_info(self(), message_queue_len), queue:to_list(Eq0)]),
+    case queue:out(Eq0) of
+        {{value, #mousewheel{dir=Dir, wheel=N, which=Obj, mod=Mods} = New}, Eq} ->
+            filter_scroll(New#mousewheel{wheel=N0+N}, Eq);
+        _ ->
+            {wx_translate(Ev0), Eq0}
+    end.
 
 wx_translate(Event) ->
     R = wx_translate_1(Event),
@@ -374,7 +400,7 @@ sdl_mouse(M=#wx{obj=Obj,
 	    Mouse = [{Left,   ?SDL_BUTTON_LMASK},
 		     {Middle, ?SDL_BUTTON_MMASK},
 		     {Right,  ?SDL_BUTTON_RMASK}],
-	    MouseState = gui_state(Mouse, 0),
+	    MouseState = make_state(Mouse, 0),
 	    #mousemotion{which=Obj, state=MouseState, mod=ModState,
 			 x=X,y=Y, xrel=0, yrel=0};
 	left_down ->
@@ -400,15 +426,36 @@ sdl_mouse(M=#wx{obj=Obj,
 			 which=Obj, mod=ModState, x=X,y=Y};
 
 	mousewheel ->
-	    Butt = case Wheel > 0 of
-		       true -> ?SDL_BUTTON_X1;
-		       false -> ?SDL_BUTTON_X2
-		   end,
-	    #mousebutton{button=Butt, state=?SDL_RELEASED,
-			 which=Obj, mod=ModState, x=X,y=Y};
+	    N = case Wheel > 0 of
+                    true -> 1;
+                    false -> -1
+                end,
+	    #mousewheel{dir=ver, wheel=N,
+                        which=Obj, mod=ModState, x=X,y=Y};
 	enter_window -> M;
 	leave_window -> M
     end.
+
+%% Callback see wings_gl.erl
+scroll_event(#wx{obj=Obj, event=Ev}, EvObj) ->
+    #wxMouse{x=X,y=Y,wheelRotation=Wheel,
+             controlDown = Ctrl, shiftDown = Shift,
+             altDown = Alt,      metaDown = Meta
+            } = Ev,
+    ModState = translate_modifiers(Shift, Ctrl, Alt, Meta),
+    Dir = case wxMouseEvent:getWheelAxis(EvObj) of
+              ?wxMOUSE_WHEEL_VERTICAL ->
+                  ver;
+              ?wxMOUSE_WHEEL_HORIZONTAL ->
+                  hor
+          end,
+    N = case Wheel > 0 of
+            true -> 1;
+            false -> -1
+        end,
+    %% io:format("Scroll ~w ~w~n", [Dir,N]),
+    wings ! #mousewheel{dir=Dir, wheel=N, which=Obj, mod=ModState, x=X,y=Y},
+    ok.
 
 sdl_key(#wx{obj=Obj, event=#wxKey{type=Type,controlDown = Ctrl, shiftDown = Shift,
 				  altDown = Alt, metaDown = Meta,
@@ -444,7 +491,7 @@ translate_modifiers(Shift, Ctrl, Alt, Meta) ->
 	       _ ->
 		   [{Ctrl,?KMOD_CTRL},{Meta,?KMOD_META}|Mods0]
 	   end,
-    gui_state(Mods, 0).
+    make_state(Mods, 0).
 
 lower(?KMOD_SHIFT, Char) -> Char;
 lower(_, Char) ->
@@ -457,7 +504,7 @@ make_key_event({Key, Mods}) ->
 	     (shift) -> {true, ?KMOD_SHIFT};
 	     (command) -> {true, ?KMOD_META}
 	  end,
-    ModState = gui_state([Map(Mod) || Mod <- Mods], 0),
+    ModState = make_state([Map(Mod) || Mod <- Mods], 0),
     Uni = case wx_key_map(sdl_key_map(Key)) of
               undefined -> Key;
               _Other -> 0
@@ -574,4 +621,3 @@ sdl_key_map(?SDLK_RSUPER) -> ?WXK_WINDOWS_RIGHT;
 
 sdl_key_map(Key) -> Key.
 
--endif.

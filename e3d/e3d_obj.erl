@@ -410,7 +410,13 @@ skip_blanks(S) -> S.
 
 read_open(Name) ->
     case file:open(Name, [binary,read,raw]) of
-	{ok,Fd} -> {ok,{Fd,<<>>}};
+	{ok,Fd} ->
+	    {ok,Bin} = file:read(Fd,4),
+	    %% provisionally remove the BOM mark if present. The code needs to be
+	    %% rewritten to manage unicode files
+	    {_,Bytes} = unicode:bom_to_encoding(Bin),
+	    file:position(Fd,Bytes),
+	    {ok,{Fd,<<>>}};
 	{error,_}=Error -> Error
     end.
 
@@ -450,11 +456,11 @@ export(File, #e3d_file{objs=Objs,mat=Mat,creator=Creator}, Flags) ->
 	{ok,F} ->
 	    label(F, Creator),
 	    case proplists:get_bool(dot_slash_mtllib, Flags) of
-		false -> io:format(F, "mtllib ~s\r\n", [MtlLib]);
-		true -> io:format(F, "mtllib ./~s\r\n", [MtlLib])
+		false -> format(F, "mtllib ~ts\r\n", [MtlLib]);
+		true -> format(F, "mtllib ./~ts\r\n", [MtlLib])
 	    end,
 	    foldl(fun(#e3d_object{name=Name}=Obj, {Vbase,UVbase,Nbase}) ->
-			  io:format(F, "o ~s\r\n", [Name]),
+			  format(F, "o ~ts\r\n", [Name]),
 			  export_object(F, Obj, Flags, Vbase, UVbase, Nbase)
 		  end, {1,1,1}, Objs),
 	    ok = file:close(F)
@@ -471,15 +477,15 @@ export_object(F, #e3d_object{name=Name,obj=Mesh0}, Flags,
     #e3d_mesh{vs=Vs,tx=Tx,ns=Ns} = Mesh,
     mesh_info(F, Mesh),
     foreach(fun({X,Y,Z}) ->
-		    io:format(F, "v ~s ~s ~s\r\n",
+		    format(F, "v ~s ~s ~s\r\n",
 			      [fmtf(X),fmtf(Y),fmtf(Z)])
 	    end, Vs),
     foreach(fun({U,V}) ->
-		    io:format(F, "vt ~s ~s\r\n",
+		    format(F, "vt ~s ~s\r\n",
 			      [fmtf(U),fmtf(V)])
 	    end, Tx),
     foreach(fun({X,Y,Z}) ->
-		    io:format(F, "vn ~s ~s ~s\r\n",
+		    format(F, "vn ~s ~s ~s\r\n",
 			      [fmtf(X),fmtf(Y),fmtf(Z)])
 	    end, Ns),
     object_group(F, Name, Flags),
@@ -499,7 +505,7 @@ fmtf(F) ->
 object_group(F, Name, Flags) ->
     case proplists:get_bool(group_per_material, Flags) of
 	true -> ok;
-	false -> io:format(F, "g ~s\r\n", [Name])
+	false -> format(F, "g ~ts\r\n", [Name])
     end.
 
 group_smooth_groups(#e3d_mesh{fs=Fs}, false) ->
@@ -511,12 +517,12 @@ face_mat(F, Name, {Ms,SgFs0}, Flags, Vbase, UVbase, Nbase) ->
     mat_group(F, Name, Ms, Flags),
     io:put_chars(F, "usemtl"),
     foldl(fun(M, Prefix) ->
-		  io:format(F, "~c~s", [Prefix,atom_to_list(M)])
+		  format(F, "~c~ts", [Prefix,atom_to_list(M)])
 	  end, $\s, Ms),
     eol(F),
     SgFs = rel2fam(SgFs0),
     foreach(fun({SG,Faces}) ->
-		    io:format(F, "s ~w", [SG]),
+		    format(F, "s ~w", [SG]),
 		    eol(F),
 		    foreach(fun(Face) ->
 				    face(F, Face, Vbase, UVbase, Nbase)
@@ -526,9 +532,9 @@ face_mat(F, Name, {Ms,SgFs0}, Flags, Vbase, UVbase, Nbase) ->
 mat_group(F, Name, Ms, Flags) ->
     case proplists:get_bool(group_per_material, Flags) of
 	true ->
-	    io:format(F, "g ~s", [Name]),
+	    format(F, "g ~ts", [Name]),
 	    foreach(fun(M) ->
-			    io:format(F, "_~s", [atom_to_list(M)])
+			    format(F, "_~ts", [atom_to_list(M)])
 		    end, Ms),
 	    eol(F);
 	false -> ok
@@ -566,10 +572,10 @@ material(F, Root, {Name,Mat}) ->
     OpenGL = proplists:get_value(opengl, Mat),
     {_,_,_,Opacity} = proplists:get_value(diffuse, OpenGL),
     Shininess = proplists:get_value(shininess, OpenGL),
-    io:format(F, "newmtl ~s\r\n", [atom_to_list(Name)]),
-    io:format(F, "Ns ~p\r\n", [Shininess*100]),
-    io:format(F, "d ~p\r\n", [Opacity]),
-    io:format(F, "illum 2\r\n", []),
+    format(F, "newmtl ~ts\r\n", [atom_to_list(Name)]),
+    format(F, "Ns ~w\r\n", [Shininess*100]),
+    format(F, "d ~w\r\n", [Opacity]),
+    format(F, "illum 2\r\n", []),
     mat_color(F, "Kd", diffuse, OpenGL),
     mat_color(F, "Ka", ambient, OpenGL),
     mat_color(F, "Ks", specular, OpenGL),
@@ -580,7 +586,7 @@ material(F, Root, {Name,Mat}) ->
 
 mat_color(F, Label, Key, Mat) ->
     {R,G,B,_} = proplists:get_value(Key, Mat),
-    io:format(F, "~s ~p ~p ~p\r\n", [Label,R,G,B]).
+    format(F, "~ts ~p ~p ~p\r\n", [Label,R,G,B]).
 
 export_maps(F, [{diffuse,Map}|T], Base) ->
     export_map(F, "Kd", Map, Base),
@@ -602,17 +608,17 @@ export_map(_, _, none, _) -> ok;
 export_map(F, Label0, #e3d_image{filename=none,name=ImageName}=Image, Root) ->
     Label = "map_" ++ Label0,
     MapFile = filename:join(filename:dirname(Root), ImageName ++ ".tga"),
-    io:format(F, "~s ~s\r\n", [Label,filename:basename(MapFile)]),
+    format(F, "~ts ~ts\r\n", [Label,filename:basename(MapFile)]),
     ok = e3d_image:save(Image, MapFile);
 export_map(F, Label0, #e3d_image{filename=Filename}, _Root) ->
     Label = "map_" ++ Label0,
-    io:format(F, "~s ~s\r\n", [Label,filename:basename(Filename)]).
+    format(F, "~ts ~ts\r\n", [Label,filename:basename(Filename)]).
 
 label(F, Creator) ->
-    io:format(F, "# Exported from ~s\r\n", [Creator]).
+    format(F, "# Exported from ~ts\r\n", [Creator]).
 
 mesh_info(F, #e3d_mesh{vs=Vs,fs=Fs}) ->
-    io:format(F, "#~w vertices, ~w faces\r\n", [length(Vs),length(Fs)]).
+    format(F, "#~w vertices, ~w faces\r\n", [length(Vs),length(Fs)]).
 
 eol(F) ->
     io:put_chars(F, "\r\n").
@@ -623,3 +629,7 @@ eol(F) ->
 
 rel2fam(R) ->
     sofs:to_external(sofs:relation_to_family(sofs:relation(R))).
+
+format(Fd, Format, Args) ->
+    Str = io_lib:format(Format, Args),
+    file:write(Fd, unicode:characters_to_binary(Str)).

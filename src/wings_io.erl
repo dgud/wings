@@ -28,7 +28,6 @@
 	 batch/1, foreach/2,
 	 lock/1, unlock/2, lock/2, lock/3,
 
-	 unclipped_text/3,
 	 draw_bitmap/1,
 	 set_color/1]).
 
@@ -229,10 +228,10 @@ info(X, Y, Info) ->
 		  set_color(Color),
 		  N = info_lines(Info),
 		  {W,_} = wings_wm:win_size(),
-		  gl:recti(X, Y, W, Y + N*?LINE_HEIGHT + 2)
+		  gl:recti(X, Y, W, Y + N*?LINE_HEIGHT + 6)
 	  end),
     set_color(wings_pref:get_value(info_color)),
-    text_at(X + 4, Y + ?CHAR_HEIGHT, Info).
+    wings_text:render(X + 5, Y + ?CHAR_HEIGHT+3, Info).
 
 info_lines(Info) ->
     info_lines_1(Info, 1).
@@ -255,22 +254,6 @@ blend(Color, Draw) ->
 
 set_color({_,_,_}=RGB) -> gl:color3fv(RGB);
 set_color({_,_,_,_}=RGBA) -> gl:color4fv(RGBA).
-
-text_at(X, Y, S) ->
-    case wings_gl:is_restriction(broken_scissor) of
-	true ->
-%% Scissor cannot clip text, but slows down text drawing.
-	    unclipped_text(X, Y, S);
-	false ->
-	    {Vx,Vy,W,H} = wings_wm:viewport(),
-	    gl:scissor(Vx, Vy, W, H),
-	    gl:enable(?GL_SCISSOR_TEST),
-	    unclipped_text(X, Y, S),
-	    gl:disable(?GL_SCISSOR_TEST)
-    end.
-
-unclipped_text(X, Y, S) ->
-    wings_text:render(X, Y, S).
 
 draw_bitmap({A,B,C,D,E,F,Bitmap}) ->
     gl:bitmap(A, B, C, D, E, F, Bitmap).

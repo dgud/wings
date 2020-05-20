@@ -19,7 +19,7 @@
 -export([triangulate_face/2,triangulate_face/3,
 	 triangulate_face_with_holes/3]).
 -export([quadrangulate_face/2,quadrangulate_face_with_holes/3]).
--export([slit_hard_edges/1,slit_hard_edges/2]).
+-export([hard_edges_from_normals/1,slit_hard_edges/1,slit_hard_edges/2]).
 -export([face_areas/1,face_areas/2]).
 
 -include("e3d.hrl").
@@ -89,13 +89,76 @@ make_polygons(Mesh) -> Mesh.
 %% merge_vertices(Mesh0) -> Mesh
 %%  Combine vertices that have exactly the same position,
 %%  then renumber the mesh.
-merge_vertices(#e3d_mesh{fs=Fs0,vs=Vs0}=Mesh) ->
+merge_vertices(#e3d_mesh{fs=Fs0,vs=Vs0, he=He0}=Mesh) ->
     R = sofs:relation(append_index(Vs0), [{pos,old_vertex}]),
     S = sofs:range(sofs:relation_to_family(R)),
     CR = sofs:canonical_relation(S),
     Map = gb_trees:from_orddict(sofs:to_external(CR)),
     Fs = map_faces(Fs0, Map),
-    renumber(Mesh#e3d_mesh{fs=Fs}).
+    MV = fun({A,B}) ->
+                 [NewA|_] = gb_trees:get(A, Map),
+                 [NewB|_] = gb_trees:get(B, Map),
+                 case NewA < NewB of
+                     true -> {NewA,NewB};
+                     false -> {NewB,NewA}
+                 end
+         end,
+    He = [MV(Edge) || Edge <- He0],
+    renumber(Mesh#e3d_mesh{fs=Fs, he=He}).
+
+%% hard_edges_from_normals(Mesh0) -> Mesh
+%%  Estimates restrictivly hard edges from normals if no hard_edges are available
+%%  and vertex normals are available.
+hard_edges_from_normals(#e3d_mesh{fs=Ftab,vs=Vtab,he=[],ns=[_|_]=Ntab0}=Mesh) ->
+    FN = face_normals(Ftab, list_to_tuple(Vtab)),
+    Ntab = array:from_list([e3d_vec:norm(N) || N <- Ntab0]),
+    {_,He0} = foldl(fun(#e3d_face{vs=Vs, ns=VNs}, {N, Acc}) ->
+                            {N+1, add_hard_edges(Vs, VNs, {Vs,VNs},
+                                                 Ntab, gb_trees:get(N,FN), Acc)}
+                    end, {0, []}, Ftab),
+    %% Cannot use sofs:relation_to_family because family is a set!!
+    He = filter_edges(lists:sort(He0), []),
+    Mesh#e3d_mesh{he=He};
+%% He already set or no normals available
+hard_edges_from_normals(Mesh) ->
+    Mesh.
+
+filter_edges([{Edge,N1},{Edge,N2}|Rest], Acc) ->
+    case is_equal_v(N1,N2) of
+        true -> filter_edges(Rest, Acc);
+        false -> filter_edges(Rest, [Edge|Acc])
+    end;
+filter_edges([{Edge,_}|Rest], Acc) ->
+    filter_edges(Rest, [Edge|Acc]);
+filter_edges([], Acc) ->
+    Acc.
+
+add_hard_edges([V1|[V2|_]=Vs], [N1|[N2|_]=Ns], First, Ntab, FaceN, Acc) ->
+    case is_equal_v(array:get(N1,Ntab),FaceN) andalso
+         is_equal_v(array:get(N2,Ntab),FaceN)
+    of
+        true ->
+            Edge = {vn_edge_name(V1,V2),FaceN},
+            add_hard_edges(Vs, Ns, First, Ntab, FaceN, [Edge|Acc]);
+        false ->
+            add_hard_edges(Vs, Ns, First, Ntab, FaceN, Acc)
+    end;
+add_hard_edges([V1], [N1], {[V2|_],[N2|_]}, Ntab, FaceN, Acc) ->
+    case is_equal_v(array:get(N1,Ntab),FaceN) andalso
+        is_equal_v(array:get(N2,Ntab),FaceN)
+    of
+        true ->
+            Edge = {vn_edge_name(V1,V2),FaceN},
+            [Edge|Acc];
+        false ->
+            Acc
+    end;
+add_hard_edges(_, _, _, _, _, Acc) ->
+    %% Ignore if face is missing some normals
+    Acc.
+
+is_equal_v(N,N) -> true;
+is_equal_v(N1,N2) -> e3d_vec:dist_sqr(N1,N2) < 0.00001.
 
 %%%
 %%% Mesh triangulation.
@@ -657,7 +720,7 @@ renumber_hard_edges([], _, Acc) -> reverse(Acc).
 
 map_vtx(V0, {map,Low,N}) ->
     case V0-Low of
-	V when V < N -> V;
+	V when V < N, V >= 0 -> V;
 	_ -> none
     end;
 map_vtx(V0, Map) ->

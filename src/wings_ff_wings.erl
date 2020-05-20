@@ -12,10 +12,10 @@
 %%
 
 -module(wings_ff_wings).
--export([import/2,merge/2,export/2]).
+-export([import/2,merge/2,export/3]).
 
 -include("wings.hrl").
--include("e3d_image.hrl").
+-include_lib("wings/e3d/e3d_image.hrl").
 -import(lists, [sort/1,reverse/1,foldl/3,any/2,keymember/3,keyfind/3]).
 
 -define(WINGS_HEADER, "#!WINGS-1.0\r\n\032\04").
@@ -1231,19 +1231,19 @@ validate_holes(#we{fs=Ftab,holes=Holes0}=We) ->
 %%% Save a Wings file (in version 2).
 %%%
 
-export(Name, St0) ->
+export(Name, OnlySel, St0) ->
     wings_pb:start( ?__(1,"saving")),
     wings_pb:update(0.01, ?__(2,"lights")),
     Lights = wings_light:export_bc(St0),
     Materials = case wings_pref:get_value(save_unused_materials) of
-        true -> 
-            #st{mat=Mat} = St0,
-            gb_trees:to_list(Mat);
-        false -> 
-            wings_material:used_materials(St0)
-    end,
-    #st{shapes=Shs0,views={CurrentView,_}} = St = 
-    remove_lights(St0),
+                    true ->
+                        #st{mat=Mat} = St0,
+                        gb_trees:to_list(Mat);
+                    false ->
+                        wings_material:used_materials(St0)
+                end,
+    #st{shapes=Shs0,views={CurrentView,_}} = St =
+        remove_lights(St0),
     Sel0 = collect_sel(St),
     wings_pb:update(0.65, ?__(3,"renumbering")),
     Shs1 = [{Id,show_mirror_face(We)} ||
@@ -1257,8 +1257,17 @@ export(Name, St0) ->
 		 [_|_] -> [{lights,Lights}|Props0]
 	     end,
     Props2 = case export_images() of
-		[] -> Props1;
-		Images -> [{images,Images}|Props1]
+                 [] -> Props1;
+                 Images ->
+                     case OnlySel of
+                         true ->
+                             case used_images(Images, Materials) of
+                                 [] -> Props1;
+                                 Imgs -> [{images,Imgs}|Props1]
+                             end;
+                         false ->
+                             [{images,Images}|Props1]
+                     end
 	     end,
     Props3 = case wings_view:export_views(St) of
 		 [] -> Props2;
@@ -1294,7 +1303,7 @@ collect_sel(#st{selmode=Mode,sel=Sel0,ssels=Ssels}=St) ->
 
 collect_sel_groups([{{Mode,Name},Sel}|Gs], St, Acc0) ->
     Acc = [{Id,{Mode,gb_sets:to_list(Elems),{selection_group,Name}}} ||
-	      {Id,Elems} <- wings_sel:valid_sel(Sel, Mode, St)] ++ Acc0,
+	      {Id,Elems} <- wings_sel:valid_sel_groups(Sel, Mode, St)] ++ Acc0,
     collect_sel_groups(Gs, St, Acc);
 collect_sel_groups([], _, Acc) -> Acc.
 
@@ -1315,6 +1324,22 @@ renumber([{_,We0}|Shs], Sel, NewId, WeAcc, RootAcc) ->
     renumber(Shs, Sel, NewId+1, [{Hidden,We}|WeAcc], RootAcc);
 renumber([], [], _NewId, WeAcc, RootAcc) ->
     {WeAcc,RootAcc}.
+
+used_images(Images, Materials) ->
+    UsedImgs =
+        lists:foldl(fun({_,MtlProp}, Acc) ->
+                            case proplists:get_value(maps,MtlProp,[]) of
+                                [] -> Acc;
+                                Map ->
+                                    lists:foldl(fun({_Type,Id}, Acc0) ->
+                                                        gb_sets:add(Id,Acc0)
+                                                end, Acc, Map)
+                            end
+                    end, gb_sets:new(), Materials),
+    case gb_sets:to_list(UsedImgs) of
+        [] -> [];
+        Imgs -> [{K,proplists:get_value(K,Images)} || K <- Imgs]
+    end.
 
 export_props(Sel0) ->
     Sel1 = sofs:family(Sel0, [{id,[{mode,list,key}]}]),

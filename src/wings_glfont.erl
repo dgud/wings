@@ -30,8 +30,6 @@
 	 render/2,
 	 render_to_binary/2, render_to_binary/3]).
 
--compile(export_all).
-
 -include_lib("wx/include/wx.hrl").
 -include_lib("wx/include/gl.hrl").
 
@@ -77,11 +75,9 @@ load_font(WxFont, Options) ->
 
 %% @spec(font_info()) -> {integer(), integer()}.
 %% @desc Returns the size of a string (in scale 1.0).
-text_size(#font{wx=Font}, String) ->
-    MDC  = memory_dc(Font),
-    Size = wxDC:getTextExtent(MDC, String),
-    wxMemoryDC:destroy(MDC),
-    Size.
+text_size(#font{glyphs=Gs, height=H}, String) ->
+    {W, Rows} = calc_size(String, Gs, 0, 1),
+    {W, Rows*H}.
 
 %% @spec(font_info()) -> integer().
 %% @desc Returns the height of characters and rows.
@@ -104,7 +100,7 @@ tex_id(#font{tex=TexId}) ->
 render(#font{} = GLFont, String) when is_list(String) ->
     render_text(GLFont, String);
 render(#font{}, {_, _, <<>>}) -> ok;
-render(#font{tex=TexId, height=H}, {X,Y, Bin0}) ->
+render(#font{tex=TexId, height=H}, {X,Y, _, Bin0}) ->
     Size = byte_size(Bin0),
     Bin = <<_:2/unit:32, TxBin/bytes>> =
 	if Size < ?BIN_XTRA -> <<Bin0/bytes, 0:(?BIN_XTRA*8)>>;
@@ -145,8 +141,8 @@ render_to_binary(#font{glyphs=Gs, height=H, ih=IH, iw=IW}, String) ->
 %%     gl:enableClientState(?GL_TEXTURE_COORD_ARRAY),</br>
 %%     gl:drawArrays(?GL_QUADS, 0, (byte_size(Bin)-?BIN_XTRA) div 16),</br>
 render_to_binary(#font{glyphs=Gs, height=H, ih=IH, iw=IW},
-		 String, Data = {X,Y,D})
-  when is_integer(X), is_integer(Y), is_binary(D) ->
+		 String, Data = {X,Y,XS,D})
+  when is_integer(X), is_integer(Y), is_integer(XS), is_binary(D) ->
     render_text3(String, Gs, IH, IW, H, Data).
 
 %%--------------------------------------------------------------------
@@ -157,9 +153,9 @@ gen_glfont(Font, Options) ->
     {NoChars, Chars0} = all_chars(Ranges0),
     {W, H, Chars} = get_char_info(Chars0, Font),
     {TW,TH0} = calc_tex_size(NoChars, W, H),
-    {UsedHeight, {Bin, HaveAlpha, Glyphs0}} = make_glyphs(Font,Chars,H,TW,TH0),
+    {UsedHeight, {Bin, Glyphs0}} = make_glyphs(Font,Chars,H,TW,TH0),
     TH = tex_size(Options, UsedHeight),
-    TexId = gen_texture(TW,TH,Bin,HaveAlpha,Options),
+    TexId = gen_texture(TW,TH,Bin,Options),
     %% debug(TW,TH,Bin),
     Glyphs = recalc_glyphs(Glyphs0, TH0, TH),
 
@@ -228,9 +224,9 @@ make_glyphs(Font,Chars,H, TW,TH) ->
 %% Minimize texture space, use greyscale images
 greyscale(BinData, false, Glyphs) ->  %% Alpha use gray scale value
     Bin = << <<255:8, A:8>> || <<A:8,_:8,_:8>> <= BinData>>,
-    {Bin, true, Glyphs};
+    {Bin, Glyphs};
 greyscale(BinData, Alpha, Glyphs) ->
-    {greyscale2(BinData, Alpha, <<>>), true, Glyphs}.
+    {greyscale2(BinData, Alpha, <<>>), Glyphs}.
 
 greyscale2(<<R:8,_:8,_:8, Cs/bytes>>, <<A:8, As/bytes>>, Acc) ->
     greyscale2(Cs, As, <<Acc/bytes, R:8, A:8>>);
@@ -265,23 +261,23 @@ make_glyph(DC, {Width, CharH, Char}, X0, Y0, Height, TW, TH, Acc0) ->
     end.
 
 
-gen_texture(TW,TH,Bin,HaveAlpha,Options) ->
+gen_texture(TW,TH,Bin,Options) ->
     [TexId] = gl:genTextures(1),
     gl:bindTexture(?GL_TEXTURE_2D, TexId),
 
     %% gl:pixelStorei(?GL_UNPACK_ALIGNMENT, 1),
     Mode = proplists:get_value(tex_mode, Options, ?GL_MODULATE),
-    gl:texEnvf(?GL_TEXTURE_ENV, ?GL_TEXTURE_ENV_MODE, Mode),
+    gl:texEnvi(?GL_TEXTURE_ENV, ?GL_TEXTURE_ENV_MODE, Mode),
 
     MinF = proplists:get_value(tex_min, Options, ?GL_LINEAR),
-    gl:texParameterf(?GL_TEXTURE_2D,?GL_TEXTURE_MIN_FILTER,MinF),
+    gl:texParameteri(?GL_TEXTURE_2D,?GL_TEXTURE_MIN_FILTER, MinF),
     MagF = proplists:get_value(tex_mag, Options, ?GL_LINEAR),
-    gl:texParameterf(?GL_TEXTURE_2D,?GL_TEXTURE_MAG_FILTER,MagF),
+    gl:texParameteri(?GL_TEXTURE_2D,?GL_TEXTURE_MAG_FILTER,MagF),
 
     WS = proplists:get_value(tex_wrap_s, Options, ?GL_CLAMP),
-    gl:texParameterf(?GL_TEXTURE_2D,?GL_TEXTURE_WRAP_S, WS),
+    gl:texParameteri(?GL_TEXTURE_2D,?GL_TEXTURE_WRAP_S, WS),
     WT = proplists:get_value(tex_wrap_t, Options, ?GL_CLAMP),
-    gl:texParameterf(?GL_TEXTURE_2D,?GL_TEXTURE_WRAP_T, WT),
+    gl:texParameteri(?GL_TEXTURE_2D,?GL_TEXTURE_WRAP_T, WT),
 
     GEN_MM = proplists:get_value(tex_gen_mipmap, Options, ?GL_FALSE),
     gl:texParameteri(?GL_TEXTURE_2D, ?GL_GENERATE_MIPMAP, GEN_MM),
@@ -291,16 +287,9 @@ gen_texture(TW,TH,Bin,HaveAlpha,Options) ->
     end,
 
     %% io:format("HaveAlpha ~p ~n",[HaveAlpha]),
-    case HaveAlpha of
-	true ->
-	    gl:texImage2D(?GL_TEXTURE_2D, 0, ?GL_LUMINANCE8_ALPHA8,
-			  TW, TH,  0, ?GL_LUMINANCE_ALPHA,
-			  ?GL_UNSIGNED_BYTE, Bin);
-	false ->
-	    gl:texImage2D(?GL_TEXTURE_2D, 0, ?GL_LUMINANCE8,
-			  TW, TH,  0, ?GL_LUMINANCE,
-			  ?GL_UNSIGNED_BYTE, Bin)
-    end,
+    gl:texImage2D(?GL_TEXTURE_2D, 0, ?GL_LUMINANCE8_ALPHA8,
+                  TW, TH,  0, ?GL_LUMINANCE_ALPHA,
+                  ?GL_UNSIGNED_BYTE, Bin),
     gl:bindTexture(?GL_TEXTURE_2D, 0),
     TexId.
 
@@ -311,16 +300,15 @@ memory_dc(Font) ->
     MDC.
 
 render_text(Font=#font{glyphs=Gs, height=H, ih=IH, iw=IW}, String) ->
-    Res = render_text3(String, Gs, IH, IW, H, {0,0, <<>>}),
+    Res = render_text3(String, Gs, IH, IW, H, {0,0,0, <<>>}),
     render(Font, Res).
 
-render_text3([$\n|String], Gs, IH, IW, H, Data0) ->
+render_text3([$\n|String], Gs, IH, IW, H, {_,H0,XS,Bin}) ->
     %% New line
-    {_,H0,Bin} = Data0,
-    render_text3(String, Gs, IH, IW, H, {0, H0+H, Bin});
+    render_text3(String, Gs, IH, IW, H, {XS,H0+H,XS,Bin});
 render_text3([$\t|String], Gs, IH, IW, H, Data0) ->
     %% Tab
-    Space = array:get(32, Gs),
+    [{_,Space}] = ets:lookup(Gs, 32),
     Data  = lists:foldl(fun(_, Data) ->
 				render_glyph(Space,IW,IH,Data)
 			end, Data0, "        "),
@@ -338,15 +326,15 @@ render_text3([Other|String], Gs, IH, IW, H, Data0) ->
     render_text3(String, Gs, IH, IW, H, Data);
 render_text3(Bin, Gs, IH, IW, H, Data) when is_binary(Bin) ->
     render_text3(unicode:characters_to_list(Bin), Gs, IH, IW, H, Data);
-render_text3([], _Gs, _IH, _IW, _H, {W,H0,Bin}) ->
-    {W, H0, Bin}.
+render_text3([], _Gs, _IH, _IW, _H, Res) ->
+    Res.
 
-render_glyph(#glyph{u=U,v=V,w=W,h=H},IW,IH, {X0,Y0,Bin}) ->
+render_glyph(#glyph{u=U,v=V,w=W,h=H},IW,IH, {X0,Y0,XS,Bin}) ->
     X1 = X0 + W,
     UD = U + W*IW,
     VD = V + H*IH,
     YH = Y0 - H,
-    {X1,Y0,
+    {X1,Y0,XS,
      <<Bin/binary,         %% wxImage: 0,0 is upper left turn each
        X0:?F32,Y0:?F32, U:?F32, VD:?F32, % Vertex lower left, UV-coord up-left
        X1:?F32,Y0:?F32, UD:?F32,VD:?F32, % Vertex lower right,UV-coord up-right
@@ -354,6 +342,26 @@ render_glyph(#glyph{u=U,v=V,w=W,h=H},IW,IH, {X0,Y0,Bin}) ->
        X0:?F32,YH:?F32, U:?F32,  V:?F32  % Vertex upper left, UV-coord down-left
      >>
     }.
+
+calc_size([$\n|String], Gs, W, R) -> %% New line
+    calc_size(String, Gs, W, R+1);
+calc_size([$\t|String], Gs, W, R) -> %% Tab
+    [{_,#glyph{w=CW}}] = ets:lookup(Gs, 32),
+    calc_size(String, Gs, W+8*CW, R);
+calc_size([Char|String], Gs, W, R) when is_integer(Char) ->
+    case ets:lookup(Gs, Char) of
+	[{_, #glyph{w=CW}}] ->
+            calc_size(String, Gs, W+CW, R);
+	[] -> %% Should we render something strange here
+	    calc_size(String, Gs, W, R)
+    end;
+calc_size([Other|String], Gs, W0, R0) ->
+    {W,R} = calc_size(Other, Gs, W0, R0),
+    calc_size(String, Gs, W, R);
+calc_size(Bin, Gs, W, R) when is_binary(Bin) ->
+    calc_size(unicode:characters_to_list(Bin), Gs, W,R);
+calc_size([], _Gs, W, R) ->
+    {W, R}.
 
 %% Calculate texture size
 
@@ -390,14 +398,6 @@ calc_tex_size(X, Y, No, CW, CH, Prev = {BestArea,Dec}, BestCoord)
 calc_tex_size(_, _, _, _, _, _, BestCoord) ->
     BestCoord.
 
-floor(T,N) ->
-    X = T div N,
-    if (T rem N) =:= 0 ->
-	    X;
-       true ->
-	    X+1
-    end.
-
 tsize(X0) ->
     Pow = trunc(log2(X0)),
     case (1 bsl Pow) of
@@ -408,24 +408,19 @@ tsize(X0) ->
 log2(X) ->
     math:log(X) / math:log(2).
 
-check_pow2(NoX, W, Pow2) when NoX * W > Pow2 ->
-    check_pow2(NoX, W, Pow2*2);
-check_pow2(NoX, W, Pow2) ->
-    {trunc((Pow2 - NoX*W)/W), Pow2}.
-
-debug(W,H, Bin0) ->
-    Bin = << <<G:8, G:8, G:8>> || <<_:8, G:8>> <= Bin0>>,
-    Image = wxImage:new(W,H,Bin),
-    Title = io_lib:format("DEBUG ~px~p", [W,H]),
-    Frame = wxFrame:new(wx:null(), ?wxID_ANY, Title, [{size, {W+40, H+40}}]),
-    Panel = wxPanel:new(Frame),
-    Paint = fun(_,_) ->
-		    DC=wxPaintDC:new(Panel),
-		    Bmp = wxBitmap:new(Image),
-		    wxDC:drawBitmap(DC, Bmp, {0,0}),
-		    wxPaintDC:destroy(DC),
-		    wxBitmap:destroy(Bmp)
-	    end,
-    %% wxImage:destroy(Image),
-    wxFrame:connect(Panel, paint, [{callback, Paint}]),
-    wxFrame:show(Frame).
+%% debug(W,H, Bin0) ->
+%%     Bin = << <<G:8, G:8, G:8>> || <<_:8, G:8>> <= Bin0>>,
+%%     Image = wxImage:new(W,H,Bin),
+%%     Title = io_lib:format("DEBUG ~px~p", [W,H]),
+%%     Frame = wxFrame:new(wx:null(), ?wxID_ANY, Title, [{size, {W+40, H+40}}]),
+%%     Panel = wxPanel:new(Frame),
+%%     Paint = fun(_,_) ->
+%% 		    DC=wxPaintDC:new(Panel),
+%% 		    Bmp = wxBitmap:new(Image),
+%% 		    wxDC:drawBitmap(DC, Bmp, {0,0}),
+%% 		    wxPaintDC:destroy(DC),
+%% 		    wxBitmap:destroy(Bmp)
+%% 	    end,
+%%     %% wxImage:destroy(Image),
+%%     wxFrame:connect(Panel, paint, [{callback, Paint}]),
+%%     wxFrame:show(Frame).

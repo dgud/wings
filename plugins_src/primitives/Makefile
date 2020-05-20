@@ -10,6 +10,7 @@
 #
 #     $Id: Makefile,v 1.14 2006/08/02 22:44:40 antoneos Exp $
 #
+include ../../erl.mk
 
 .SUFFIXES: .erl .jam .beam .yrl .xrl .bin .mib .hrl .sgml .html .ps .3 .1 \
 	.fig .dvi .tex .class .java .pdf .psframe .pscrop
@@ -17,8 +18,7 @@
 ESRC=.
 WINGS_INTL=../../intl_tools
 EBIN=../../plugins/primitives
-ERLC=erlc
-WINGS_SRC=../../src
+WINGS_TOP=../../..
 WINGS_E3D=../../e3d
 
 ifeq ($(TYPE),debug)
@@ -44,8 +44,7 @@ TARGET_FILES= $(MODULES:%=$(EBIN)/%.beam)
 # ----------------------------------------------------
 # FLAGS
 # ----------------------------------------------------
-ERL_COMPILE_FLAGS += -Werror -I $(WINGS_SRC) -I $(WINGS_E3D) \
-  $(TYPE_FLAGS) -pa $(WINGS_INTL) -I $(WINGS_INTL) +debug_info
+ERL_COMPILE_FLAGS += -Werror -I $(WINGS_TOP) $(TYPE_FLAGS) -pa $(WINGS_INTL) +debug_info
 
 # ----------------------------------------------------
 # Targets
@@ -55,11 +54,11 @@ opt debug:
 	$(MAKE) TYPE=$@ common
 
 template: opt
-	erl -pa $(WINGS_INTL) -noinput -run tools generate_template_files $(EBIN)
+	$(ERL) -pa $(WINGS_INTL) -noinput -run tools generate_template_files $(EBIN)
 
 lang: template
 	cp *.lang $(EBIN)
-	erl -pa $(WINGS_INTL) -noinput -run tools diff_lang_files $(EBIN)
+	$(ERL) -pa $(WINGS_INTL) -noinput -run tools diff_lang_files $(EBIN)
 
 common: $(TARGET_FILES)
 

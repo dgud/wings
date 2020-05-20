@@ -17,9 +17,11 @@
 	 tweak_info_line/0,tweak_magnet_help/0,statusbar/0]).
 
 -export([toggle_draw/1,point_center/3]).
--export([update_dlist/3,draw/4,get_data/3]).
+-export([update_dlist/3,draw/5,get_data/3]).
 
 -export([tweak_keys/0, menu/0, tweak_magnet_menu/0, constraints_menu/0]).  %% For wings_tweak_win only
+
+-export_type([drag/0]).
 
 -define(NEED_OPENGL, 1).
 -define(NEED_ESDL, 1).
@@ -28,7 +30,7 @@
 -define(R_ALT, 308).
 
 -include("wings.hrl").
--include("e3d.hrl").
+-include_lib("wings/e3d/e3d.hrl").
 
 -import(lists,[member/2,foldl/3]).
 
@@ -43,8 +45,10 @@
 	 mag_rad,   % magnet influence radius
 	 id,        % {Id,Elem} mouse was over when tweak began
 	 sym,       % current magnet radius adjustment hotkey
-	 ox,oy,     % original X,Y
-	 cx,cy,     % current X,Y
+         ox,oy,     % orignal X,Y
+	 x,y,       % current X,Y
+	 cx,cy,     % Calculated X,Y
+         warp,      % true or size limits
 	 clk=none,  % click selection/deselection
 	 st}).      % wings st record (working)
 
@@ -62,6 +66,7 @@
 	 vs,        % [{V,Pos,Distance,Influence}]
 	 vtab=[]}). % [{V,Pos}] (latest)
 
+-type drag() :: #drag{}.
 
 %%%
 %%% Set Default Tweak prefs
@@ -166,8 +171,12 @@ tweak_event_handler(#mousebutton{button=B,x=X,y=Y,mod=Mod,state=?SDL_PRESSED}, S
 	    case orddict:find({B,{Ctrl,Shift,Alt}}, TweakKeys) of
 		{ok, Mode} ->
 		    {Mag,MagType,MagR} = wings_pref:get_value(tweak_magnet),
-		    T = #tweak{mode=Mode,ox=X,oy=Y,magnet=Mag,mag_type=MagType,
-			       mag_rad=MagR,st=St},
+                    Warp = case wings_pref:get_value(no_warp, false) of
+                               false -> true;
+                               true -> wings_wm:win_size()
+                           end,
+		    T = #tweak{mode=Mode,warp=Warp,ox=X,oy=Y,x=X,y=Y,
+                               magnet=Mag,mag_type=MagType,mag_rad=MagR,st=St},
 		    handle_tweak_event_1(T);
 		error -> next
 	    end;
@@ -242,7 +251,7 @@ tweak_event_handler(_,_) ->
 %%% Start Tweak
 %%%
 
-handle_tweak_event_1(#tweak{ox=X,oy=Y, st=#st{sel=Sel}=St0}=T) ->
+handle_tweak_event_1(#tweak{x=X,y=Y, st=#st{sel=Sel}=St0}=T) ->
     case wings_pick:do_pick(X,Y,St0) of
 	{add, What, St} when Sel =:= [] ->
 	    from_element_point(X,Y,St0),
@@ -278,7 +287,7 @@ handle_initial_event(redraw, What, St, T) ->
     wings:redraw(St),
     initiate_tweak_handler(What, St, T);
 handle_initial_event(#mousebutton{button=1,state=?SDL_RELEASED}, What, #st{shapes=Shs,sel=Sel0}=St0,
-		     #tweak{id={Action,{Id,[Elem]}},clk=none,ox=X,oy=Y}=T) ->
+		     #tweak{id={Action,{Id,[Elem]}},clk=none,x=X,y=Y}=T) ->
     case wings_io:is_grabbed() of
 	false -> ok;
 	true -> wings_io:ungrab(X,Y)
@@ -310,7 +319,7 @@ handle_initial_event(#mousebutton{button=1,state=?SDL_RELEASED}, What, #st{shape
     wings_wm:dirty(),
     initiate_tweak_handler(What, St, T#tweak{clk={one,os:timestamp()}});
 handle_initial_event(#mousebutton{button=1,x=X0,y=Y0,state=?SDL_PRESSED}=Ev,
-		     _What, St, #tweak{clk={one,Clk},ox=X,oy=Y,st=TweakSt}) ->
+		     _What, St, #tweak{clk={one,Clk},x=X,y=Y,st=TweakSt}) ->
     case timer:now_diff(os:timestamp(),Clk) < wings_pref:get_value(tweak_click_speed) of
 	true ->
 	    wings_pick:paint_pick(X0, Y0, TweakSt);
@@ -325,13 +334,13 @@ handle_initial_event({new_state,St}, _, _, _) ->
     wings_wm:later({new_state,St}),
     pop;
 handle_initial_event(#mousemotion{x=X,y=Y}=Ev, What, St,
-		     #tweak{ox=OX,oy=OY,cx=CX,cy=CY,clk=Clk}=T) ->
+		     #tweak{x=OX,y=OY,cx=CX,cy=CY,clk=Clk}=T0) ->
     DX = X-OX, %since last move X
     DY = Y-OY, %since last move Y
     DxOrg = DX+CX, %total X
     DyOrg = DY+CY, %total Y
     Total = math:sqrt(DxOrg * DxOrg + DyOrg * DyOrg),
-    wings_io:warp(OX,OY),
+    T = mouse_warp(X,Y,T0),
     case Total > 3 of
 	true when Clk =:= none ->
 	    enter_tweak_handler(Ev, What, St, T);
@@ -345,7 +354,7 @@ handle_initial_event(Ev, _, St, #tweak{clk={one,_}}) ->
     wings_wm:send_after_redraw(geom,Ev),
     wings_wm:later({new_state,St}),
     pop;
-handle_initial_event(#keyboard{sym=Sym,mod=Mod}=Ev, What, St, #tweak{ox=X,oy=Y}=T)
+handle_initial_event(#keyboard{sym=Sym,mod=Mod}=Ev, What, St, #tweak{x=X,y=Y}=T)
   when Mod band (?ALT_BITS bor ?SHIFT_BITS bor ?CTRL_BITS) =:= 0 ->
     %% Activate Tweak Camera
     case wings_camera:tweak_camera_event(Sym, X, Y, St) of
@@ -382,7 +391,7 @@ enter_tweak_handler(Ev, What, St, #tweak{id={Action,_},st=#st{sel=Sel}=St0}=T) -
 	  end,
     begin_drag(What, St1, T),
     do_tweak_0(0, 0, 0, 0, {move,screen}),
-    handle_tweak_drag_event_0(Ev,T).
+    {replace,fun(Event) -> handle_tweak_drag_event_0(Event, T) end, Ev}.
 
 %%%
 %%% Tweak Event Handlers
@@ -419,7 +428,7 @@ handle_tweak_drag_event_0(#mousemotion{}=Ev, #tweak{mode={TwkMode,_}}=T0) ->
     %% Tweak Modes that can be modified by xyz constraints
     handle_tweak_drag_event_0(Ev, T0#tweak{mode=TwkMode});
 handle_tweak_drag_event_0(#mousemotion{x=X,y=Y},
-			  #tweak{mode=TweakMode,ox=OX,oy=OY,cx=CX,cy=CY}=T0) ->
+			  #tweak{mode=TweakMode,x=OX,y=OY,cx=CX,cy=CY}=T0) ->
     Mode =
 	case TweakMode of
 	    move -> actual_mode(TweakMode);
@@ -432,9 +441,9 @@ handle_tweak_drag_event_0(#mousemotion{x=X,y=Y},
     DY = Y-OY, %since last move Y
     DxOrg = DX+CX, %total X
     DyOrg = DY+CY, %total Y
-    wings_io:warp(OX,OY),
+    T1 = mouse_warp(X,Y,T0),
     do_tweak_0(DX,DY,DxOrg,DyOrg,Mode),
-    T = T0#tweak{mode=Mode,cx=DxOrg,cy=DyOrg},
+    T = T1#tweak{mode=Mode,cx=DxOrg,cy=DyOrg},
     update_tweak_handler(T);
 
 %%%
@@ -456,7 +465,7 @@ handle_tweak_drag_event_0(#keyboard{sym=Sym,state=?SDL_RELEASED},T) ->
 	    update_tweak_handler(T);
 	false -> keep
     end;
-handle_tweak_drag_event_0(#keyboard{sym=Sym,mod=Mod}=Ev, #tweak{ox=OX,oy=OY,st=St}=T)
+handle_tweak_drag_event_0(#keyboard{sym=Sym,mod=Mod}=Ev, #tweak{x=OX,y=OY,st=St}=T)
   when Mod band (?ALT_BITS bor ?SHIFT_BITS bor ?CTRL_BITS) =:= 0 ->
     %% Activate Tweak Camera
     case wings_camera:tweak_camera_event(Sym, OX, OY, St) of
@@ -497,7 +506,7 @@ handle_tweak_drag_event_1(Ev,T) ->
 %%% Mouse Button Events
 %%%
 
-handle_tweak_drag_event_2(#mousebutton{button=B}=Ev, #tweak{st=St}) when B > 3 ->
+handle_tweak_drag_event_2(#mousewheel{}=Ev, #tweak{st=St}) ->
     case wings_camera:event(Ev, St) of
 	next -> keep;
 	Other -> Other
@@ -538,7 +547,7 @@ magnet_handler_setup({Id,Elem,_}=What, X, Y, St, T0) ->
     wings_io:grab(),
     begin_magnet_adjustment(What, St),
     tweak_magnet_radius_help(true),
-    T = T0#tweak{id=IdElem,ox=X,oy=Y,cx=0,cy=0},
+    T = T0#tweak{id=IdElem,ox=X,oy=Y,x=X,y=Y,cx=0,cy=0},
     {seq,push,update_magnet_handler(T)}.
 
 %%%
@@ -559,10 +568,10 @@ handle_magnet_event(redraw, #tweak{st=St}=T) ->
     update_magnet_handler(T);
 handle_magnet_event({new_state,St}, T) ->
     end_magnet_event(T#tweak{st=St});
-handle_magnet_event(#mousemotion{x=X},#tweak{ox=OX, oy=OY}=T0) ->
+handle_magnet_event(#mousemotion{x=X,y=Y},#tweak{x=OX}=T0) ->
     DX = X-OX, %since last move X
-    wings_io:warp(OX,OY),
-    T = adjust_magnet_radius(DX,T0),
+    T1 = mouse_warp(X,Y,T0),
+    T = adjust_magnet_radius(DX,T1),
     update_magnet_handler(T);
 %% If something is pressed during magnet radius adjustment, save changes
 %% and begin new event.
@@ -586,15 +595,15 @@ handle_magnet_event(Ev,T) ->
 
 tweak_drag_mag_adjust(#tweak{st=#st{selmode=body}}) -> keep;
 tweak_drag_mag_adjust(#tweak{magnet=false}) -> keep;
-tweak_drag_mag_adjust(#tweak{mode=Mode, cx=CX, cy=CY, ox=OX, oy=OY}=T0) ->
+tweak_drag_mag_adjust(#tweak{mode=Mode,cx=CX,cy=CY,x=OX,y=OY}=T0) ->
     {_,X,Y} = wings_wm:local_mouse_state(),
     DX = X-OX, %since last move X
     DY = Y-OY, %since last move Y
     DxOrg = DX+CX, %total X
     DyOrg = DY+CY, %total Y
-    wings_io:warp(OX,OY),
+    T1 = mouse_warp(X, Y, T0),
     do_tweak_0(DX,DY,DxOrg,DyOrg,Mode),
-    T = T0#tweak{cx=DxOrg,cy=DyOrg},
+    T = T1#tweak{cx=DxOrg,cy=DyOrg},
     update_in_drag_radius_handler(T).
 
 update_in_drag_radius_handler(T) ->
@@ -615,10 +624,10 @@ handle_in_drag_magnet_ev(redraw, #tweak{magnet=Mag,st=St}=T) ->
     tweak_magnet_radius_help(Mag),
     draw_magnet(T),
     in_drag_radius_no_redraw(T);
-handle_in_drag_magnet_ev(#mousemotion{x=X},#tweak{ox=OX, oy=OY}=T0) ->
+handle_in_drag_magnet_ev(#mousemotion{x=X, y=Y},#tweak{x=OX}=T0) ->
     DX = X-OX, %since last move X
-    wings_io:warp(OX,OY),
-    T = in_drag_adjust_magnet_radius(DX,T0),
+    T1 = mouse_warp(X,Y,T0),
+    T = in_drag_adjust_magnet_radius(DX,T1),
     update_in_drag_radius_handler(T);
 handle_in_drag_magnet_ev(#keyboard{sym=Sym,state=?SDL_RELEASED}, #tweak{sym=Sym}=T) ->
     end_in_drag_mag_event(redraw,T);
@@ -645,11 +654,21 @@ end_magnet_event(Ev,#tweak{id=Id}=T) ->
     wings_wm:later(Ev),
     pop.
 
-
 %%%
 %%% End of event handlers
 %%%
 
+mouse_warp(_X,_Y,#tweak{warp=true, x=OX,y=OY}=T) ->
+    wings_io:warp(OX,OY),
+    T;
+mouse_warp(X,Y,#tweak{warp={W,H}}=T)
+  when X < 10 orelse Y < 10 orelse X > (W-10) orelse Y > (H-10) ->
+    %% Warp at the window edges
+    Cx = W div 2, Cy = H div 2,
+    wings_io:warp(Cx, Cy),
+    T#tweak{x=Cx,y=Cy};
+mouse_warp(X,Y, T) ->
+    T#tweak{x=X,y=Y}.
 
 redraw(St) ->
     Render =
@@ -1605,7 +1624,7 @@ is_tweak_combo(#tweak{mode=Mode,st=St0}=T) ->
 			      end, St0),
             do_tweak_0(0, 0, 0, 0, {move,screen}),
 	    {X,Y} = wings_wm:screen2local({X0,Y0}),
-            update_tweak_handler(T#tweak{mode=NewMode,st=St,ox=X,oy=Y,cx=0,cy=0});
+            update_tweak_handler(T#tweak{mode=NewMode,st=St,ox=X,oy=Y,x=X,y=Y,cx=0,cy=0});
         _ -> keep
     end.
 
@@ -2423,7 +2442,7 @@ edge_fun(EdList, ClBin, Vtab) ->
     gl:bufferData(?GL_ARRAY_BUFFER, byte_size(ClBin), ClBin, ?GL_STATIC_DRAW),
     gl:bindBuffer(?GL_ARRAY_BUFFER, 0),
     N = byte_size(EdBin) div 12,
-    D = fun() ->
+    D = fun(RS) ->
 		gl:depthFunc(?GL_LEQUAL),
 		gl:bindBuffer(?GL_ARRAY_BUFFER, VboEs),
 		gl:vertexPointer(3, ?GL_FLOAT, 0, 0),
@@ -2435,7 +2454,8 @@ edge_fun(EdList, ClBin, Vtab) ->
 		gl:drawArrays(?GL_LINES, 0, N),
 		gl:disableClientState(?GL_VERTEX_ARRAY),
 		gl:disableClientState(?GL_COLOR_ARRAY),
-		gl:depthFunc(?GL_LESS)
+		gl:depthFunc(?GL_LESS),
+                RS
 	end,
     {call,D,[{vbo,VboEs},{vbo,VboCl}]}.
 
@@ -2463,10 +2483,10 @@ get_data(update_dlist, Data, Acc) ->  % for draw lists
     end.
 
 %% It'll use the list prepared by 'update_dlist' function and then draw it (only for plain draw)
-draw(plain, EdgeList, _D, SelMode) ->
+draw(plain, EdgeList, _D, SelMode, RS) ->
     gl:lineWidth(edge_width(SelMode)),
-    wings_dl:call(EdgeList);
-draw(_,_,_,_) -> ok.
+    wings_dl:call(EdgeList, RS);
+draw(_,_,_,_, RS) -> RS.
 
 edge_width(edge) -> wings_pref:get_value(edge_width);
 edge_width(_) -> 1.

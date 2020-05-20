@@ -1,0 +1,50 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_plane_cut,
+ [
+  {axis_menu,
+   [
+    {1,"Cortar en partes iguales a lo largo del eje ~s"},
+    {2," y Dividir en Bucle el resultado"},
+    {3,"Cortar el objeto alrededor del eje ~s"},
+    {4,"Cortar objetos o caras alrededor del eje ~s en cada vértice seleccionado"},
+    {5,"Cortar caras alrededor del eje ~s"},
+    {6,"Cortar la selección en partes iguales a lo largo del eje ~s"}
+   ]},
+  {check_selection,
+   [
+    {1,"Nada seleccionado"}
+   ]},
+  {menu_heading,
+   [
+    {1,"Plano de Corte"},
+    {2,"Cortar"}
+   ]},
+  {object_menu,
+   [
+    {1,"Cortar objetos en partes iguales a lo largo del eje predeterminado"},
+    {2,"Seleccionar eje y Dividir en Bucle el resultado"},
+    {3,"Elige eje"},
+    {4,"Cortar alrededor del eje predeterminado"},
+    {5,"Seleccionar un plano y Dividir en Bucle el resultado"},
+    {6,"Elige plano"}
+   ]},
+  {plane_cut_menu,
+   [
+    {1,"Cortar alrededor del eje predeterminado"},
+    {2,"Cortar la selección en partes iguales; Seleccionar plano"},
+    {3,"Elige plano"},
+    {4,"Cortar alrededor del eje predeterminado en cada vértice seleccionado"}
+   ]},
+  {planecut_error,
+   [
+    {1,"Esto está tomando demasiado tiempo.\nInténtalo de nuevo con una selección más pequeña."}
+   ]},
+  {secondary_sel_ask,
+   [
+    {2,"Selecciona los objetos o caras a cortar"}
+   ]},
+  {slices_dialog,
+   [
+    {1,"Cortar en Partes Iguales"}
+   ]}
+ ]}.

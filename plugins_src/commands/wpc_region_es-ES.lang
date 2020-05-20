@@ -1,0 +1,19 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_region,
+ [
+  {menu,
+   [
+    {1,"Región"},
+    {2,"Mover la región a lo largo de la normal de su bucle de aristas."},
+    {3,"Región"},
+    {4,"Escalar la región desde el plano de su bucle de aristas."},
+    {5,"Región"},
+    {6,"Rotar la región alrededor de la normal de su bucle de aristas."},
+    {7,"Región"},
+    {8,"Aplanar la región a la normal de su bucle de aristas."}
+   ]},
+  {region_error,
+   [
+    {1,"Cada región debe tener exactamente un bucle de aristas."}
+   ]}
+ ]}.

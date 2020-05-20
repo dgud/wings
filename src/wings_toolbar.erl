@@ -74,6 +74,7 @@ button_sh_filter(_, false) -> false;
 button_sh_filter(vertex, true) -> true;
 button_sh_filter(edge, true) -> true;
 button_sh_filter(face, true) -> true;
+button_sh_filter(body, true) -> true;
 button_sh_filter(_, _) -> false.
 
 init(Frame, Icons) ->
@@ -90,6 +91,7 @@ init(Frame, Icons) ->
     %% wxToolBar:connect(TB, comand_tool_rclicked, [{skip, true}]),
     %% wxToolBar:connect(TB, comand_tool_enter, [{skip, true}]),
     wxToolBar:realize(TB),
+    wxToolBar:show(TB, [{show, wings_pref:get_value(show_toolbar)}]),
     State = #{me=>TB, mode=>vertex, sh=>true, restr=>none, bs=>Bs, active=>geom, wins=>#{}},
     update({selmode, geom, face, true}, State).
 

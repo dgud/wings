@@ -10,6 +10,7 @@
 #
 #     $Id: Makefile,v 1.21 2006/06/29 19:57:58 giniu Exp $
 #
+include ../../erl.mk
 
 .SUFFIXES: .erl .jam .beam .yrl .xrl .bin .mib .hrl .sgml .html .ps .3 .1 \
 	.fig .dvi .tex .class .java .pdf .psframe .pscrop
@@ -17,9 +18,7 @@
 ESRC=.
 WINGS_INTL=../../intl_tools
 EBIN=../../plugins/commands
-ERLC=erlc
-WINGS_SRC=../../src
-WINGS_EBIN=../../ebin
+WINGS_TOP=../../..
 WINGS_E3D=../../e3d
 
 ifeq ($(TYPE),debug)
@@ -47,6 +46,7 @@ MODULES= \
 	wpc_grid_snap \
 	wpc_intersect_edge \
 	wpc_intersect_vertex \
+	wpc_isometric_view \
 	wpc_magnet_mask \
 	wpc_move_planar \
 	wpc_numeric_camera \
@@ -68,9 +68,7 @@ TARGET_FILES= $(MODULES:%=$(EBIN)/%.beam)
 # ----------------------------------------------------
 # FLAGS
 # ----------------------------------------------------
-ERL_COMPILE_FLAGS += -Werror -pa $(WINGS_EBIN) -I $(WINGS_SRC) \
-   -I $(WINGS_E3D) $(TYPE_FLAGS) \
-  +debug_info -pa $(WINGS_INTL) -I $(WINGS_INTL)
+ERL_COMPILE_FLAGS += -pa $(WINGS_INTL) -Werror -I $(WINGS_TOP) $(TYPE_FLAGS) +debug_info
 
 # ----------------------------------------------------
 # Targets
@@ -80,11 +78,11 @@ opt debug:
 	$(MAKE) TYPE=$@ common
 
 template: opt
-	erl -pa $(WINGS_INTL) -noinput -run tools generate_template_files $(EBIN)
+	$(ERL) -pa $(WINGS_INTL) -noinput -run tools generate_template_files $(EBIN)
 
 lang: template
 	cp *.lang $(EBIN)
-	erl -pa $(WINGS_INTL) -noinput -run tools diff_lang_files $(EBIN)
+	$(ERL) -pa $(WINGS_INTL) -noinput -run tools diff_lang_files $(EBIN)
 
 common: $(TARGET_FILES)
 

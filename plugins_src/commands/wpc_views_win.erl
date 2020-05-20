@@ -16,10 +16,12 @@
 -export([window/1,window/5]).
 
 -export([init/1,
-	 handle_call/3, handle_cast/2, handle_event/2, handle_info/2,
-	 code_change/3, terminate/2
+	 handle_call/3, handle_cast/2,
+	 handle_event/2, handle_sync_event/3,
+	 handle_info/2, code_change/3, terminate/2
 	]).
 
+-define(NEED_ESDL, true).
 -define(WIN_NAME, {plugin,saved_views}).
 -include_lib("wings/src/wings.hrl").
 
@@ -111,12 +113,12 @@ forward_event({apply, ReturnSt, Fun}, Window, St0) ->
 	false ->
 	    Fun(St0)
     end;
-forward_event({action,{sel_groups,Cmd}}, _Window, #st{views={_,Views0}}=St0) ->
+forward_event({action,{view_win,Cmd}}, _Window, #st{views={_,Views0}}=St0) ->
     case Cmd of
         {save,Geom} -> %% New
             wings_wm:send(Geom, {action, {view, {views, {save,true}}}});
         {rename,_} ->
-            wings_wm:send(geom, {action, {view, {views, rename}}});
+            wings_wm:send(geom, {action, {view, {views, Cmd}}});
         {replace,Idx} ->
             {_,Legend} = element(Idx, Views0),
             View = current(),
@@ -148,7 +150,8 @@ init([Frame, _Ps, VS]) ->
     Panel = wxPanel:new(Frame),
     wxPanel:setFont(Panel, ?GET(system_font_wx)),
     Szr = wxBoxSizer:new(?wxVERTICAL),
-    Style = ?wxLC_REPORT bor ?wxLC_NO_HEADER bor ?wxLC_EDIT_LABELS bor ?wxLC_SINGLE_SEL,
+    Style = ?wxLC_REPORT bor ?wxLC_NO_HEADER bor ?wxLC_EDIT_LABELS bor
+        ?wxLC_SINGLE_SEL bor wings_frame:get_border(),
     LC = wxListCtrl:new(Panel, [{style, Style}]),
     wxListCtrl:setBackgroundColour(LC, BG),
     wxListCtrl:setForegroundColour(LC, FG),
@@ -166,20 +169,33 @@ init([Frame, _Ps, VS]) ->
     wxWindow:connect(LC, command_list_item_selected, [{callback, IgnoreForPopup}]),
     wxWindow:connect(LC, command_list_item_activated),
     wxWindow:connect(LC, enter_window, [{userData, {win, Panel}}]),
-    case os:type() of
-	{win32,nt} ->
-	    %% list_item_right_click does not work outside of items
-	    %% on windows use this instead
-	    wxWindow:connect(LC, command_right_click);
-	_ ->
-	    wxWindow:connect(LC, command_list_item_right_click),
-	    ok
+    wxWindow:connect(LC, right_up),
+    case os:type() of %% Mouse right_up does not arrive on items in windows
+	{win32,nt} -> wxWindow:connect(LC, command_list_item_right_click);
+	_ -> ok
     end,
     wxWindow:connect(LC, command_list_end_label_edit),
     wxWindow:connect(LC, command_list_begin_drag),
     wxWindow:connect(LC, left_up, [{skip, true}]),
     wxWindow:connect(LC, size, [{skip, true}]),
+    wxWindow:connect(LC, char, [callback]),
     {Panel, #state{lc=LC, views=VS}}.
+
+handle_sync_event(#wx{obj=LC,event=#wxKey{type=char, keyCode=KC}}, EvObj, #state{lc=LC}) ->
+    Indx = wxListCtrl:getNextItem(LC, -1, [{geometry, ?wxLIST_NEXT_ALL}, {state, ?wxLIST_STATE_SELECTED}]),
+    case {key_to_op(KC), validate_param(Indx)} of
+	{Act,Param} when Act =/= ignore andalso Param =/=ignore ->
+	    wings_wm:psend(?WIN_NAME, {action, {view_win, {Act, Param+1}}});
+	_ -> wxEvent:skip(EvObj, [{skip, true}])
+    end,
+    ok.
+
+key_to_op(?WXK_DELETE) -> delete;
+key_to_op(?WXK_F2) -> rename;
+key_to_op(_) -> ignore.
+
+validate_param(-1) -> ignore;
+validate_param(Param) -> Param.
 
 handle_event(#wx{event=#wxList{type=command_list_end_label_edit, itemIndex=Indx}},
 	     #state{views={Curr, Views}, lc=LC} = State) ->
@@ -215,7 +231,7 @@ handle_event(#wx{event=#wxList{type=command_list_item_selected, itemIndex=Indx}}
     Indx >= 0 andalso wings_wm:psend(geom_focused(), {action, {view, {views, {jump,Indx+1}}}}),
     {noreply, State#state{views={Indx+1, Vs}}};
 
-handle_event(#wx{event=#wxCommand{type=command_right_click}}, State) ->
+handle_event(#wx{event=#wxMouse{type=right_up}}, State) ->
     invoke_menu(State),
     {noreply, State};
 handle_event(#wx{event=#wxList{type=command_list_item_right_click}}, State) ->
@@ -337,7 +353,7 @@ insert_to_list(Indx, Here, _Drop, Item, []) ->
 invoke_menu(#state{views=Views, lc=LC}) ->
     Menus = get_menus(get_selection(LC), Views),
     Pos = wx_misc:getMousePosition(),
-    Cmd = fun(_) -> wings_menu:popup_menu(LC, Pos, sel_groups, Menus) end,
+    Cmd = fun(_) -> wings_menu:popup_menu(LC, Pos, view_win, Menus) end,
     wings_wm:psend(?WIN_NAME, {apply, false, Cmd}).
 
 get_menus(_, {_, {}}) ->
@@ -355,10 +371,12 @@ views_menu(delete_all) ->
 views_menu({Idx, Legend}) ->
     [{?__(3,"Replace "),menu_cmd(replace,Idx),
       ?__(4,"Replaces \"")++Legend++"\"["++integer_to_list(Idx)++"]\" settings with the current viewing ones"},
-     {?__(5,"Rename..."), menu_cmd(rename,none),
-      ?__(6,"Rename \"")++Legend++"\"["++integer_to_list(Idx)++"]\""},
-     {?__(7,"Delete"), menu_cmd(delete,none),
-      ?__(8,"Delete \"")++Legend++"\"["++integer_to_list(Idx)++"]\""}].
+     {?__(5,"Rename..."), menu_cmd(rename,Idx),
+      ?__(6,"Rename \"")++Legend++"\"["++integer_to_list(Idx)++"]\"",
+      [{hotkey,wings_hotkey:format_hotkey({?SDLK_F2,[]},pretty)}]},
+     {?__(7,"Delete"), menu_cmd(delete,Idx),
+      ?__(8,"Delete \"")++Legend++"\"["++integer_to_list(Idx)++"]\"",
+      [{hotkey,wings_hotkey:format_hotkey({?SDLK_DELETE,[]},pretty)}]}].
 
 menu_cmd(Cmd, Id) ->
     {'VALUE',{Cmd,Id}}.

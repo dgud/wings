@@ -45,12 +45,10 @@
 	]).
 
 %% Commands from other processes
--export([get_state/0]).
--export([handle_external/2]).
 -export([format_error/1]).
 
 -include("wings.hrl").
--include("e3d.hrl").
+-include_lib("wings/e3d/e3d.hrl").
 
 -import(lists, [reverse/1,foldl/3,foreach/2]).
 
@@ -110,8 +108,23 @@ bind_virtual(Key, Mods, Command) ->
 
 %% returns: St
 import(#e3d_file{}=E3dFile, St) ->
-    wings_import:import(E3dFile, St).
+    wings_import:import(E3dFile, St);
+import(Files, St0) when is_list(Files) ->
+    Imps = importers(),
+    Import = fun(File, St) ->
+                     case maps:get(filename:extension(File), Imps, undefined) of
+                         undefined ->
+                             wings_u:message(?__(2, "Unknown file format: ")++File),
+                             St;
+                         Fun when is_function(Fun) ->
+                             do_import(Fun, File, St)
+                     end
+             end,
+    lists:foldl(Import, St0, Files).
 
+%% Dummy to return props (file extensions) and fun()
+import(Props, Importer, fetch_props) ->
+    {Props, Importer};
 %% Does not return.
 import(Props, Importer, St0) ->
     Cont = fun(Name) ->
@@ -138,6 +151,30 @@ do_import(Importer, Name, St0) ->
 import_filename(Ps, Cont) ->
     wings_file:import_filename(Ps, Cont).
 
+importers() ->
+    Ms = ?GET(wings_plugins),
+    Imps = [{M, M:menu({file,import}, [])} || M <- Ms],
+    Add = fun({Props, Fun}, Acc) ->
+                  case proplists:get_value(ext, Props) of
+                      [_|_] = Ext ->
+                          [{Ext, Fun}|Acc];
+                      undefined ->
+                          case proplists:get_value(extensions, Props) of
+                              undefined -> Acc;
+                              Exts0 ->
+                                  [{Ext, Fun} || {Ext, _} <- Exts0] ++ Acc
+                          end
+                  end
+          end,
+    Props = fun({_, []}, Acc) -> Acc;
+               ({M, [{_, Shortname}]}, Acc) ->
+                    Add(M:command({file, {import, Shortname}}, fetch_props),Acc);
+               ({M, [{_, Shortname, [option]}]}, Acc) ->
+                    Cmd = M:command({file, {import, {Shortname, return}}},fetch_props),
+                    Add(M:command(Cmd, fetch_props),Acc)
+            end,
+    maps:from_list(lists:foldl(Props, [], Imps)).
+
 %% export([Property], ExporterFun, St)
 %%  
 %%  Recognized values for Property:
@@ -156,14 +193,13 @@ export(Ps, Exporter, St) ->
 	   end,
     export_filename(Ps, St, Cont).
 
-export_selected(Props, Exporter, #st{selmode=Mode}=St)
-  when Mode == body; Mode == face ->
-    Shs0 = wings_sel:fold(
-	     fun(Elems, #we{id=Id}=We, A) ->
-		     [{Id,export_sel_set_holes(Mode, Elems, We)}|A]
-	     end, [], St),
-    Shs = gb_trees:from_orddict(reverse(Shs0)),
-    export(Props, Exporter, St#st{shapes=Shs});
+export_selected(Props, Exporter, #st{selmode=Mode}=St0)
+  when Mode =:= body; Mode =:= face ->
+    F = fun(Items, We) -> export_sel_set_holes(Mode, Items, We) end,
+    St1 = wings_sel:map(F, St0),
+    Unselected = wings_sel:unselected_ids(St1),
+    St = foldl(fun wings_obj:delete/2, St1, Unselected),
+    export(Props, Exporter, St);
 export_selected(_, _, _) -> error_msg(?__(1,"Select objects or faces.")).
 
 export_sel_set_holes(body, _, We) -> We;
@@ -581,24 +617,6 @@ quadrangulate(Faces, We) ->
 
 popup_console() ->
     wings_console:popup_window().
-
-%%% 
-%%% External commands
-%%%
-
-get_state() ->
-    wings ! {external, {get_state, self()}},
-    receive {state,St} -> St end.
-
-handle_external({get_state,Pid},#st{shapes=Sh,file=File,
-				    selmode=SelMode,sel=Sel,
-				    mat=Mat,pal=Pal}) ->
-    %% Copy only relevant information
-    Pid ! {state,#st{shapes=Sh,file=File,
-		     selmode=SelMode,sel=Sel,
-		     mat=Mat,pal=Pal}};
-handle_external(_, _St) ->
-    ignore.
 
 %% Return version string.
 version() ->

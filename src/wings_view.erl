@@ -32,7 +32,7 @@ menu() ->
      [{?__(1,"Ground Plane"),show_groundplane,?__(2,"Show the ground plane"),
        crossmark(show_groundplane)},
       {?__(3,"Axes"),show_axes,?__(4,"Show the coordinate axes"),crossmark(show_axes)},
-      {?__(78,"Image Plane"),show_cam_imageplane,?__(79,"Show the camera image plane"),crossmark(show_cam_imageplane)},
+      {?__(78,"Camera Image Plane"),show_cam_imageplane,?__(79,"Show the camera image plane"),crossmark(show_cam_imageplane)},
       {?__(48,"Show Info Text"),show_info_text,
        ?__(49,"Show an informational text at the top of this Geometry window"),
        crossmark(show_info_text)},
@@ -170,6 +170,7 @@ command(Option={show,What}, St) ->
 	What =:= show_normals ->
 	    Prev andalso wings_dl:map(fun(D, _) -> D#dlo{normals=none} end, []);
 	What =:= filter_texture ->
+            wings_image:filter_images(not Prev),
 	    wings_dl:map(fun(#dlo{proxy_data=PD}=D, _) ->
 				 %% We only need to invalidate display lists.
 				 D#dlo{work=none,smooth=none,
@@ -658,20 +659,23 @@ auto_rotate(St) ->
 
 auto_rotate_event({action, Cmd={view, rotate_left}}, Tim) ->
     auto_rotate_event_1(Cmd, Tim);
-auto_rotate_event(Event, #tim{timer=Timer,st=St}=Tim) ->
+auto_rotate_event(Event, #tim{st=St, timer=Timer}=Tim) ->
     case wings_camera:event(Event, St) of
 	next -> auto_rotate_event_1(Event, Tim);
 	Other ->
-	    wings_io:cancel_timer(Timer),
-	    {seq,fun(Ev) ->
+            wings_io:cancel_timer(Timer),
+            Do = fun(Ev) ->
 			 auto_rotate_help(),
 			 wings_io:putback_event(Ev),
-			 set_auto_rotate_timer(Tim)
-		 end,Other}
+                         set_auto_rotate_timer(Tim#tim{frames=301})
+		 end,
+	    {seq, Do, Other}
     end.
 
 auto_rotate_event_1(redraw, Tim) ->
-    auto_rotate_redraw(Tim),
+    wings_io:batch(fun() -> auto_rotate_redraw(Tim),
+                            wxWindow:getSize(?GET(top_frame))
+                   end),
     keep;
 auto_rotate_event_1(#mousemotion{}, _) -> keep;
 auto_rotate_event_1(got_focus, _) -> keep;
@@ -787,7 +791,9 @@ init() ->
     wings_pref:set_default(show_normal_maps, true),
     wings_pref:set_default(filter_texture, true),
     wings_pref:set_default(frame_disregards_mirror, false),
-    wings_pref:set_default(scene_lights, false).
+    wings_pref:set_default(scene_lights, false),
+    Lights0 = wings_pref:get_value(number_of_lights),
+    update_menu(toggle_light(Lights0)).
 
 initial_properties() ->
     [{workmode,true},
@@ -881,9 +887,14 @@ modelview(IncludeLights) ->
     {UseSceneLights, TMM}.
 
 %% Calculate the location of the viewer in 3D space.
-%% (The (0,0,0) point multiplied by the inverse model transformation matrix.)
+%% (The (0,0,0) point multiplied by the inverse view transformation matrix.)
 eye_point() ->
-    e3d_mat:mul_point(view_matrix(current()), {0.0,0.0,0.0}).
+    InvTrans = view_matrix(current()),
+    EP = e3d_mat:mul_point(InvTrans, {0.0,0.0,0.0}),
+    %% LP = {0.0,0.5,0.0},
+    %% io:format("EP ~p + ~p = ~p~n", [EP, LP, e3d_vec:add(EP, LP)]),
+    %% io:format("EP ~p~n", [e3d_mat:mul_point(InvTrans, LP)]),
+    EP.
 
 view_matrix(#view{origin=Origin,distance=Dist,azimuth=Az,elevation=El,
 		 pan_x=PanX, pan_y=PanY}) ->
@@ -996,9 +1007,9 @@ frame(St0) ->
 frame_1(none) -> ok;
 frame_1([A,B]) ->
     C = e3d_vec:average(A, B),
+    #view{fov=Fov, hither=Hither} = View = current(),
     R = e3d_vec:len(e3d_vec:sub(A, B)) / 2,
-    #view{fov=Fov} = View = current(),
-    Dist = R/math:tan(Fov*math:pi()/2/180),
+    Dist = max(R/math:tan(Fov*math:pi()/2/180),Hither),
     set_current(View#view{origin=e3d_vec:neg(C),
 			  distance=Dist,pan_x=0.0,pan_y=0.0}).
 
@@ -1047,6 +1058,8 @@ views({jump,J}, #st{views={CurrentView,Views}}=St) ->
     views_jump(J, St, CurrentView, Views);
 views({move,J}, #st{views={CurrentView,Views}}=St) ->
     views_move(J, St, CurrentView, Views);
+views({rename,Idx}, #st{views={_,Views}}=St) ->
+    views(rename, St#st{views={Idx,Views}});
 views(rename, #st{views={CurrentView,Views}}=St) ->
     J = view_index(CurrentView, tuple_size(Views)),
     {View,Legend} = element(J, Views),
@@ -1091,7 +1104,8 @@ views_jump(J, St, CurrentView, Views) ->
 	{J,J} ->
 	    {View,_} = element(J, Views),
 	    set_current(View),
-	    wings_wm:dirty();
+	    wings_wm:dirty(),
+	    St;
 	{J,_} ->
 	    {View,_} = element(J, Views),
 	    set_current(View),
@@ -1128,17 +1142,21 @@ toggle_lights() ->
         false -> ok;
         true -> toggle_option(scene_lights)
     end,
-
     Lights0 = wings_pref:get_value(number_of_lights),
+    update_menu(Lights0),
+    wings_pref:set_value(number_of_lights, toggle_light(Lights0)).
+
+toggle_light(Lights0) ->
+    1 + (2 + Lights0) rem 2.
+
+update_menu(Lights0) ->
     wings_menu:update_menu(view, toggle_lights,
 			   one_of(Lights0 == 1,
 				  ?__(2,"Use Camera Light"),
 				  ?__(1,"Use Hemisphere Light")),
 			   one_of(Lights0 == 1,
 				  ?__(4,"Use a camera work light"),
-				  ?__(3,"Use a simple sky light simulation"))),
-    Lights = 1 + (2 + Lights0) rem 2,
-    wings_pref:set_value(number_of_lights, Lights).
+				  ?__(3,"Use a simple sky light simulation"))).
 
 along(x) -> along(x, -90.0, 0.0);
 along(y) -> along(y, 0.0, 90.0);

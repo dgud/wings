@@ -14,9 +14,9 @@
 -module(wings_plugin).
 -export([init/0,menu/2,dialog/2,dialog_result/2,command/2,call_ui/1]).
 -export([install/1]).
--export([draw/3,check_plugins/2,get_win_data/1,restore_window/6]).
+-export([draw/4,check_plugins/2,get_win_data/1,restore_window/6]).
 -include("wings.hrl").
--include("e3d.hrl").
+-include_lib("wings/e3d/e3d.hrl").
 -import(lists, [sort/1,reverse/1,member/2]).
 
 %%%
@@ -43,6 +43,14 @@ init() ->
     ets:new(wings_seen_plugins, [named_table,public,ordered_set]),
     ?SET(wings_plugins, []),
     put(wings_ui, def_ui_plugin()),
+
+    %% Activate user installed plugins
+    case try_dir(plugin_dir()) of
+	none -> ok;
+	UserPluginDir -> init_dir(UserPluginDir)
+    end,
+
+    %% Activate plugins contained in wings distribution
     case try_dir(wings_util:lib_dir(wings), "plugins") of
 	none -> ok;
 	PluginDir -> init_dir(PluginDir)
@@ -77,7 +85,7 @@ dialog(Dialog, Ps) when is_list(Ps) ->
 
 dialog_1(Dialog, Ps, [M|Tail]) ->
     case catch M:dialog(Dialog, Ps) of
-	{'EXIT',{undef,_}} ->
+	{'EXIT',{undef,[{M,dialog, _, _}|_]}} ->
 	    dialog_1(Dialog, Ps, Tail);
 	{'EXIT',Reason} ->
 	    io:format("~w:dialog/2: crashed: ~P\n", [M,Reason,20]),
@@ -190,12 +198,13 @@ def_ui_plugin() ->
 	    aborted
     end.
 
-try_dir(Base, Dir0) ->
-    Dir = filename:join(Base, Dir0),
+try_dir(Dir) ->
     case filelib:is_dir(Dir) of
 	true -> Dir;
 	false -> none
     end.
+try_dir(Base, Dir0) ->
+    try_dir(filename:join(Base, Dir0)).
 
 list_dir(Dir) ->
     list_dir([Dir], []).
@@ -259,6 +268,7 @@ check_result(_M, {save_state,#st{}}=SS, _) -> SS;
 check_result(_M, {push,_}=Push, _) -> Push;
 check_result(_M, {seq,_,_}=Seq, _) -> Seq;
 check_result(_M, keep, _) -> keep;
+check_result(_M, ok, _) -> keep; %% Exporters have always returned ok
 check_result(M, Other, St) ->
     io:format("~w:command/3: bad return value: ~P\n", [M,Other,20]),
     St.
@@ -271,12 +281,18 @@ object_name(Prefix, #st{onext=Oid}) ->
 %%%
 
 install(Name) ->
-    case install_file_type(Name) of
-	beam -> install_beam(Name);
-	tar -> install_tar(Name)
-    end,
-    init_dir(plugin_dir()),
-    wings_u:message(?__(1,"The plug-in was successfully installed.")).
+    {Type,Dest} = case install_file_type(Name) of
+		      beam -> install_beam(Name);
+		      tar -> install_tar(Name)
+		  end,
+    io:format("Installed ~w to ~ts~n",[Type, Dest]),
+    case Type of
+        plugin ->
+            init_dir(plugin_dir()),
+            wings_u:message(?__(1,"The plug-in was successfully installed."));
+        patch ->
+            wings_u:message(?__(2,"The patch was successfully installed, please restart wings."))
+    end.
 
 install_file_type(Name) ->
     case filename:extension(Name) of
@@ -294,29 +310,42 @@ install_file_type(Name) ->
     end.
 
 install_beam(Name) ->
-    case is_plugin(Name) of
-	true ->
-	    PluginDir = plugin_dir(),
-	    DestBase = filename:rootname(filename:basename(Name), ".gz"),
-	    Dest = filename:join(PluginDir, DestBase),
-	    case file:copy(Name, Dest) of
-		{ok,_} -> ok;
-		{error,Reason} ->
- 		 wings_u:error_msg(?__(1,"Install of \"~s\" failed: ~p"),
-			       [filename:basename(Name),
-				file:format_error(Reason)])
-	    end;
-	false ->
-	    wings_u:error_msg(?__(2,"File \"~s\" is not a Wings plug-in module"),
-			  [filename:basename(Name)])
+    {Patch,Dir} = case is_plugin(Name) of
+                      true -> {false, plugin_dir()};
+                      false -> {true, wings_start:patch_dir()}  %% Assume patch
+                  end,
+    DestBase = filename:rootname(filename:basename(Name), ".gz"),
+    Dest = filename:join(Dir, DestBase),
+    ok = filelib:ensure_dir(Dest),
+    case file:copy(Name, Dest) of
+        {ok,_} ->
+            if Patch ->
+                    wings_start:enable_patches(),
+                    {patch, Dest};
+               true ->
+                    {plugin, Dest}
+            end;
+        {error,Reason} ->
+            wings_u:error_msg(?__(1,"Install of \"~s\" failed: ~p"),
+                              [filename:basename(Name),
+                               file:format_error(Reason)])
     end.
 
+erl_tar() -> %% Fool dialyzer the spec is wrong for erl_tar:table() in 20.0-20.2
+    list_to_atom("erl_tar"). 
+
 install_tar(Name) ->
-    {ok,Files} = erl_tar:table(Name, [compressed]),
-    install_verify_files(Files, Name),
-    case erl_tar:extract(Name, [compressed,{cwd,plugin_dir()}]) of
+    {ok,Files} = (erl_tar()):table(Name, [compressed]),
+    Type = install_verify_files(Files, Name),
+    Dest = case Type of
+		plugin -> plugin_dir();
+		patch -> wings_start:patch_dir()
+	    end,
+    case erl_tar:extract(Name, [compressed,{cwd,Dest}]) of
+	ok when Type =:= patch ->
+	    wings_start:enable_patches();
 	ok -> ok;
-	{error, {_File, Reason}} -> 
+	{error, {_File, Reason}} ->
 	    wings_u:error_msg(?__(1,"Install of \"~s\" failed: ~p"),
 			      [filename:basename(Name),
 			       file:format_error(Reason)]);
@@ -324,19 +353,32 @@ install_tar(Name) ->
 	    wings_u:error_msg(?__(1,"Install of \"~s\" failed: ~p"),
 			      [filename:basename(Name),
 			       file:format_error(Reason)])
-    end.
+    end,
+    {Type,Dest}.
 
-install_verify_files(["/"++_|_], Name) ->
+install_verify_files(Fs, Name) when is_list(Name) ->
+    install_verify_files(Fs, Name, undefined).
+
+install_verify_files(["/"++_|_], Name, _) ->
     wings_u:error_msg(?__(1,"File \"~s\" contains a file with an absolute path"),
 		  [filename:basename(Name)]);
-install_verify_files([F|Fs], Name) ->
+install_verify_files([F|Fs], Name, Content) ->
     case is_plugin(F) of
-	false -> install_verify_files(Fs, Name);
-	true -> ok
+	true ->
+	    %% plugin has priority, so we don't need to keep checking the other files
+	    plugin;
+	false ->
+	    case filename:extension(F) of
+		".beam" -> install_verify_files(Fs, Name, patch);
+		_ -> install_verify_files(Fs, Name, Content)
+	    end
     end;
-install_verify_files([], Name) ->
-    wings_u:error_msg(?__(2,"File \"~s\" does not contain any Wings plug-in modules"),
-		  [filename:basename(Name)]).
+install_verify_files([], Name, undefined)->
+    wings_u:error_msg(?__(2,"File \"~s\" does not contain any Wings patch or plug-in modules"),
+		      [filename:basename(Name)]);
+install_verify_files([], _, Type) ->
+    Type.
+
 
 is_plugin(Name) ->
     case filename:basename(Name) of
@@ -345,11 +387,8 @@ is_plugin(Name) ->
     end.
 
 plugin_dir() ->
-    case try_dir(wings_util:lib_dir(wings), "plugins") of
-	none -> wings_u:error_msg(?__(1,"No \"plugins\" directory found"));
-	PluginDir -> PluginDir
-    end.
-    
+    filename:join([wings_u:basedir(user_data), ?WINGS_VERSION, "plugins"]).
+
 %%%
 %%% Plug-in manager.
 %%%
@@ -653,14 +692,14 @@ plugin_default_menu() ->
 % which relate to the view style of the model and determine if the Plugin should
 % be drawn in that view mode. Other restrictions can be stated from within the
 % Plugin itself. See wpc_magnet_mask.erl as an example.
-draw(Flag, #dlo{plugins=Pdl}=D, Selmode) ->
-    draw_1(Flag, Pdl, D, Selmode).
+draw(Flag, #dlo{plugins=Pdl}=D, Selmode, RS) ->
+    draw_1(Flag, Pdl, D, Selmode, RS).
 
-draw_1(Flag, [{Plugin,List}|Pdl], D, Selmode) ->
-    Plugin:draw(Flag, List, D, Selmode),
-    draw_1(Flag, Pdl, D, Selmode);
+draw_1(Flag, [{Plugin,List}|Pdl], D, Selmode, RS0) ->
+    RS = Plugin:draw(Flag, List, D, Selmode, RS0),
+    draw_1(Flag, Pdl, D, Selmode, RS);
 
-draw_1(_, [], _, _) -> ok.
+draw_1(_, [], _, _, RS) -> RS.
 
 % PstTree -> { PluginName , PluginValue }
 % PluginValue is a gb_tree.

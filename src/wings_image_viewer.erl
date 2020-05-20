@@ -28,9 +28,9 @@
 
 new(WinName, Image) -> new(WinName, Image, []).
 
-new(WinName, E3d=#e3d_image{name=Name}, Opts) ->
+new(WinName, E3d=#e3d_image{name=Name, type=Type}, Opts) ->
     new(WinName, wings_image:e3d_to_wxImage(E3d),
-	[{name,Name}, destroy_after|Opts]);
+	[{name,Name}, {type,Type}, destroy_after|Opts]);
 new(WinName, Filename, Opts) when is_list(Filename) ->
     BlockWxMsgs = wxLogNull:new(),
     Img = wxImage:new(Filename),
@@ -40,9 +40,10 @@ new(WinName, Filename, Opts) when is_list(Filename) ->
 new(WinName, Image, Opts) ->
     wxImage = wx:getObjectType(Image), %% Assert
     Name = proplists:get_value(name, Opts, ""),
+    Type = proplists:get_value(type, Opts, ""),
     H0 = wxImage:getHeight(Image),
     W0 = wxImage:getWidth(Image),
-    Title = lists:flatten(io_lib:format(?__(1,"Image: ~ts [~wx~w]"),[Name,W0,H0])),
+    Title = lists:flatten(io_lib:format(?__(1,"Image: ~ts [~wx~w] ~s"),[Name,W0,H0,Type])),
     Size = {size,{min(800,max(200,W0+100)), min(600,max(150,H0+100))}},
     {Frame,Ps} = wings_frame:make_win(Title, [Size]),
     Window = wings_sup:window(undefined, ?MODULE, [Frame, WinName, Image, Opts]),

@@ -1,0 +1,88 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_sculpt,
+ [
+  {constraint_info,
+   [
+    {1,"Predeterminado"},
+    {2,"Radial de ~s"},
+    {3,"Nada"},
+    {4,"Restricción: ~s"}
+   ]},
+  {constraints_menu,
+   [
+    {1,"Restringir el movimiento al eje ~s."},
+    {3,"Eje Predeterminado"},
+    {4,"Predeterminado"},
+    {5,"Radial de ~s"},
+    {6,"Radial del Eje Predeterminado"},
+    {7,"Restringir el movimiento a la radial del eje ~s."},
+    {8,"Eliminar Restricciones"}
+   ]},
+  {exit_string,
+   [
+    {1,"Exit"}
+   ]},
+  {help,
+   [
+    {1,"L: Esculpir"},
+    {2,"[Alt]+R: Menú Esculpir"},
+    {3,"Magnetismo: ~s"},
+    {4,"Alt+Drag: Ajustar Radio"},
+    {5,"Alt+Rueda(+[Mayús]): "},
+    {6,"Ajustar Fuerza"},
+    {7,"Fuerza: ~p"},
+    {8,"Radio: ~s"},
+    {9,"Nada (Magnetismo desactivado)"},
+    {10,"Modo Esculpir"},
+    {11,"Mantener [Ctrl]: Empujar"},
+    {12,"Mantener [Ctrl]: Inflar"},
+    {13,"Mantener [Mayús]: Suavizar"}
+   ]},
+  {magtype,
+   [
+    {1,"Campana"},
+    {2,"Cúpula"},
+    {3,"Lineal"},
+    {4,"Punta"},
+    {5,"Absoluto"}
+   ]},
+  {mode,
+   [
+    {1,"Empujar"},
+    {2,"Estirar"},
+    {3,"Pellizcar"},
+    {4,"Suavizar"},
+    {5,"Inflar"}
+   ]},
+  {prefs,
+   [
+    {1,"Fuerza"},
+    {3,"Confinar Esculpir al objeto inicial"},
+    {4,"Mostrar Influencia del Magnetismo"},
+    {10,"Preferencias de Esculpir"}
+   ]},
+  {sculpt_heading,
+   [
+    {1,"Esculpir"},
+    {2,"Entra en el modo Esculpir"}
+   ]},
+  {sculpt_menu,
+   [
+    {1,"Magnetismo On/Off"},
+    {2,"Máscara de Magnetismo On/Off"},
+    {3,"Preferencias"},
+    {4,"Activar la herramienta de Esculpir Estirar/Empujar"},
+    {5,"Activar la herramienta de Esculpir Pellizcar/Inflar"},
+    {6,"Activar el pincel de Suavizado"},
+    {7,"Activar el Magnetismo en Cúpula"},
+    {8,"Activar el Magnetismo Absoluto"},
+    {9,"Activar el Magnetismo Lineal"},
+    {10,"Activar el Magnetismo en Punta"},
+    {11,"Activar el Magnetismo en Campana"},
+    {12,"Activar/Desactivar el Magnetismo"},
+    {13,"Activar/Desactivar la Máscara de Magnetismo. Las opciones de Máscara se encuentran en el menú Herramientas."},
+    {14,"Preferencias del modo Esculpir"},
+    {15,"Salir del modo Esculpir"},
+    {16,"Restricciones de Eje"}
+   ]}
+ ]}.

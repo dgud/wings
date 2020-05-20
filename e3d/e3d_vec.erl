@@ -15,32 +15,40 @@
 
 -export([zero/0,is_zero/1,add/1,add/2,add_prod/3,sub/1,sub/2,lerp/3,
 	 norm_sub/2,mul/2,divide/2,neg/1,dot/2,cross/2,
-	 len/1,dist/2,dist_sqr/2,
+	 len/1,len_sqr/1,dist/2,dist_sqr/2,
 	 norm/1,norm/3,normal/3,normal/1,average/1,average/2,average/4,
 	 bounding_box/1,area/3,degrees/2,
-   plane/1,plane/2,plane/3,
-   plane_side/2,plane_dist/2]).
+         plane/1,plane/2,plane/3,
+         plane_side/2,plane_dist/2,
+         line_dist/3, line_dist_sqr/3, line_line_intersect/4,
+         project_2d/2, largest_dir/1
+        ]).
 
--export_type([vector/0]).
+-export_type([vector/0, point/0]).
+-export([format/1]).
 
 -include("e3d.hrl").
 
 -compile(inline).
 -compile({inline_size,24}).
 
--type vector() :: e3d_vector().
+%% 3D vector or location.
+-type vector() :: {float(),float(),float()}.
+-type point()  :: {float(),float(),float()}.
 
--spec zero() -> e3d_vector().
-    
+-type plane() :: {vector(), float()}.
+
+-spec zero() -> vector().
+
 zero() ->
     {0.0,0.0,0.0}.
 
--spec is_zero(e3d_vector()) -> boolean().
+-spec is_zero(vector()) -> boolean().
      
 is_zero({0.0,0.0,0.0}) -> true;
 is_zero(_) -> false.
 
--spec add(e3d_vector(), e3d_vector()) -> e3d_vector().
+-spec add(vector(), vector()) -> vector().
 
 add({V10,V11,V12}, {V20,V21,V22}) when is_float(V10), is_float(V11), is_float(V12) ->
     {V10+V20,V11+V21,V12+V22}.
@@ -48,17 +56,17 @@ add({V10,V11,V12}, {V20,V21,V22}) when is_float(V10), is_float(V11), is_float(V1
 add_prod({V10,V11,V12}, {V20,V21,V22}, S) when is_float(S) ->
     {S*V20+V10,S*V21+V11,S*V22+V12}.
 
--spec add([e3d_vector()]) -> e3d_vector().
+-spec add([vector()]) -> vector().
 
 add([{V10,V11,V12}|T]) ->
     add(T, V10, V11, V12).
 
--spec sub(e3d_vector(), e3d_vector()) -> e3d_vector().
+-spec sub(vector(), vector()) -> vector().
 
 sub({V10,V11,V12}, {V20,V21,V22}) ->
     {V10-V20,V11-V21,V12-V22}.
 
--spec norm_sub(e3d_vector(), e3d_vector()) -> e3d_vector().
+-spec norm_sub(vector(), vector()) -> vector().
 
 norm_sub({V10,V11,V12}, {V20,V21,V22})
   when is_float(V10), is_float(V11), is_float(V12) ->
@@ -68,51 +76,56 @@ norm_sub({V10,V11,V12}, {V20,V21,V22})
     SqrLen = Nx*Nx + Ny*Ny + Nz*Nz,
     norm(SqrLen, Nx, Ny, Nz).
 
--spec sub([e3d_vector()]) -> e3d_vector().
+-spec sub([vector()]) -> vector().
 
 sub([{V10,V11,V12}|T]) ->
     sub(V10, V11, V12, T).
 
--spec mul(e3d_vector(), S::float()) -> e3d_vector().
+-spec mul(vector(), S::float()) -> vector().
 
 mul({V10,V11,V12}, S) when is_float(S) ->
     {V10*S,V11*S,V12*S}.
 
--spec divide(e3d_vector(), S::float()) -> e3d_vector().
+-spec divide(vector(), S::float()) -> vector().
 
 divide({V10,V11,V12}, S) ->
     InvS = 1/S,
     {V10*InvS,V11*InvS,V12*InvS}.
 
--spec neg(e3d_vector()) -> e3d_vector().
+-spec neg(vector()) -> vector().
 
 neg({X,Y,Z}) -> {-X,-Y,-Z}.
 
--spec dot(e3d_vector(), e3d_vector()) -> float().
+-spec dot(vector(), vector()) -> float().
 
 dot({V10,V11,V12}, {V20,V21,V22}) when is_float(V10), is_float(V11), is_float(V12) ->
     V10*V20 + V11*V21 + V12*V22.
 
--spec cross(e3d_vector(), e3d_vector()) -> e3d_vector().
+-spec cross(vector(), vector()) -> vector().
 
 cross({V10,V11,V12}, {V20,V21,V22})
   when is_float(V10), is_float(V11), is_float(V12),
        is_float(V20), is_float(V21), is_float(V22) ->
     {V11*V22-V12*V21,V12*V20-V10*V22,V10*V21-V11*V20}.
 
--spec len(e3d_vector()) -> float().
+-spec len(vector()) -> float().
 
 len({X,Y,Z}) when is_float(X), is_float(Y), is_float(Z) ->
     math:sqrt(X*X+Y*Y+Z*Z).
 
--spec lerp(e3d_vector(), e3d_vector(), float()) -> e3d_vector().
+-spec len_sqr(vector()) -> float().
+
+len_sqr({X,Y,Z}) when is_float(X), is_float(Y), is_float(Z) ->
+    X*X+Y*Y+Z*Z.
+
+-spec lerp(vector(), vector(), float()) -> vector().
 
 lerp({V10,V11,V12}, {V20,V21,V22}, T)
   when is_float(V10), is_float(V11), is_float(V12),
        is_float(V20), is_float(V21), is_float(V22) ->
     {V10+(V20-V10)*T, V11+(V21-V11)*T, V12+(V22-V12)*T}.
 
--spec dist(e3d_vector(), e3d_vector()) -> float().
+-spec dist(vector(), vector()) -> float().
 
 dist({V10,V11,V12}, {V20,V21,V22}) when is_float(V10), is_float(V11), is_float(V12),
 					is_float(V20), is_float(V21), is_float(V22) ->
@@ -121,7 +134,7 @@ dist({V10,V11,V12}, {V20,V21,V22}) when is_float(V10), is_float(V11), is_float(V
     Z = V12-V22,
     math:sqrt(X*X+Y*Y+Z*Z).
 
--spec dist_sqr(e3d_vector(), e3d_vector()) -> float().
+-spec dist_sqr(vector(), vector()) -> float().
 
 dist_sqr({V10,V11,V12}, {V20,V21,V22})
   when is_float(V10), is_float(V11), is_float(V12) ->
@@ -130,17 +143,17 @@ dist_sqr({V10,V11,V12}, {V20,V21,V22})
     Z = V12-V22,
     X*X+Y*Y+Z*Z.
 
--spec norm(e3d_vector()) -> e3d_vector().
+-spec norm(vector()) -> vector().
 
 norm({V1,V2,V3}) ->
     norm(V1, V2, V3).
 
--spec norm(X::float(), Y::float(), Z::float()) -> e3d_vector().
+-spec norm(X::float(), Y::float(), Z::float()) -> vector().
 
 norm(V1, V2, V3) when is_float(V1), is_float(V2), is_float(V3) ->
     norm(V1*V1+V2*V2+V3*V3, V1, V2, V3).
 
--spec normal(e3d_vector(), e3d_vector(), e3d_vector()) -> e3d_vector().
+-spec normal(vector(), vector(), vector()) -> vector().
 
 normal({V10,V11,V12}, {V20,V21,V22}, {V30,V31,V32})
   when is_float(V10), is_float(V11), is_float(V12),
@@ -164,7 +177,7 @@ normal({V10,V11,V12}, {V20,V21,V22}, {V30,V31,V32})
 %% normal([{X,Y,Z}]) ->
 %%  Calculate the averaged normal for the polygon using Newell's method.
 
--spec normal([e3d_vector()]) -> e3d_vector().
+-spec normal([vector()]) -> vector().
 
 normal([{Ax,Ay,Az},{Bx,By,Bz},{Cx,Cy,Cz}])
   when is_float(Ax), is_float(Ay), is_float(Az),
@@ -215,7 +228,7 @@ normal_1([{Ax,Ay,Az}|[{Bx,By,Bz}|_]=T], First, Sx0, Sy0, Sz0)
 %% average([{X,Y,Z}]) -> {Ax,Ay,Az}
 %%  Average the given list of points.
 
--spec average([e3d_vector()]) -> e3d_vector().
+-spec average([vector()]) -> vector().
 
 average([{V10,V11,V12},B]) ->
     {V20,V21,V22} = B,
@@ -234,7 +247,7 @@ average([{V10,V11,V12},B]) ->
 average([{V10,V11,V12}|T]=All) ->
     average(T, V10, V11, V12, length(All)).
 
--spec average(e3d_vector(), e3d_vector()) -> e3d_vector().
+-spec average(vector(), vector()) -> vector().
 
 average({V10,V11,V12}, {V20,V21,V22}) ->
     V0 = if
@@ -250,7 +263,7 @@ average({V10,V11,V12}, {V20,V21,V22}) ->
 	is_float(V12) -> {V0,V1,0.5*(V12+V22)}
     end.
 
--spec average(e3d_vector(), e3d_vector(), e3d_vector(), e3d_vector()) -> e3d_vector().
+-spec average(vector(), vector(), vector(), vector()) -> vector().
 
 average({V10,V11,V12}, {V20,V21,V22}, {V30,V31,V32}, {V40,V41,V42})
     when is_float(V10), is_float(V11), is_float(V12) ->
@@ -258,7 +271,7 @@ average({V10,V11,V12}, {V20,V21,V22}, {V30,V31,V32}, {V40,V41,V42})
     {L*(V10+V20+V30+V40),L*(V11+V21+V31+V41),L*(V12+V22+V32+V42)}.
 
 
--spec area(e3d_vector(), e3d_vector(), e3d_vector()) -> float().
+-spec area(vector(), vector(), vector()) -> float().
 
 area({V10,V11,V12}, {V20,V21,V22}, {V30,V31,V32})
   when is_float(V10), is_float(V11), is_float(V12),
@@ -277,37 +290,107 @@ area({V10,V11,V12}, {V20,V21,V22}, {V30,V31,V32})
 
 %% Calculate plane coefficients from point {CX,CY,CZ} and normal {A,B,C}
 %% Use reference of  : http://mathworld.wolfram.com/Plane.html
--spec plane(Center::e3d_vector(), Normal::e3d_vector()) -> e3d_plane().
+-spec plane(Center::vector(), Normal::vector()) -> plane().
 plane({CX,CY,CZ}, {A,B,C})
   when is_float(CX), is_float(CY), is_float(CZ),
        is_float(A),  is_float(A),  is_float(A) ->
     D = -A*CX-B*CY-C*CZ,
     {{A,B,C},D}.
 
--spec plane(e3d_point(),e3d_point(),e3d_point()) -> e3d_plane().
+-spec plane(point(),point(),point()) -> plane().
 plane(P1, P2, P3) ->
     plane(average([P1,P2,P3]), normal(P1,P2,P3)).
 
--spec plane([e3d_point()]) -> e3d_plane().
+-spec plane([point()]) -> plane().
 plane(Polygon) ->
     plane(average(Polygon), normal(Polygon)).
 
 %% Helper function used to sort points according to which side of a plane they are on.
+-spec plane_side(point(), plane()) -> -1|1.
 plane_side({X,Y,Z},{{A,B,C},D}) ->
     Temp=A*X+B*Y+C*Z+D,
     if  Temp < 0.0000 -> -1;  true -> 1 end.
 
 %% Using Coeff to calculate signed distance from point to plane.
+-spec plane_dist(point(), plane()) -> float().
 plane_dist({X,Y,Z},{{A,B,C},D}) ->
     (A*X+B*Y+C*Z+D)/math:sqrt(A*A+B*B+C*C).
 
+%% Dist from point P to line (A,B)
+-spec line_dist(point(), point(), point()) -> float().
+line_dist(P,A,B) ->
+    math:sqrt(line_dist_sqr(P,A,B)).
+
+-spec line_dist_sqr(point(), point(), point()) -> float().
+line_dist_sqr(P,A,B) ->
+    AB = sub(B, A),
+    AP = sub(P, A),
+    case dot(AP, AB) =< 0.0 of
+        true  -> len_sqr(AP);
+        false ->
+            BP = sub(B,P),
+            case dot(BP, AB) =< 0.0 of
+                true  -> len_sqr(BP);
+                false -> len_sqr(cross(AB,AP)) / len_sqr(AB)
+            end
+    end.
+
+%%   Calculate the line segment PaPb that is the shortest route between
+%%   two lines P1P2 and P3P4. Calculate also the values of mua and mub where
+%%      Pa = P1 + mua (P2 - P1)
+%%      Pb = P3 + mub (P4 - P3)
+%%   Return FALSE if no solution exists.
+%% (from http://paulbourke.net/geometry/pointlineplane/)
+-define(EPS, 0.000001).
+-spec line_line_intersect(point(),point(),point(),point()) ->
+                                 false | {point(), point(), float(), float()}.
+line_line_intersect(P1,P2,P3,P4) ->
+    P13 = sub(P1,P3),
+    {X1,Y1,Z1} = P43 = sub(P4,P3),
+    {X0,Y0,Z0} = P21 = sub(P2,P1),
+
+    if X1 < ?EPS, Y1 < ?EPS, Z1 < ?EPS -> false;  %% Point intersect?
+       X0 < ?EPS, Y0 < ?EPS, Z0 < ?EPS -> false;
+       true ->
+            D1343 = dot(P13, P43),
+            D4321 = dot(P43, P21),
+            D1321 = dot(P13, P21),
+            D4343 = dot(P43, P43),
+            D2121 = dot(P21, P21),
+            Denom = D2121 * D4343 - D4321 * D4321,
+            if Denom < ?EPS -> false;
+               true ->
+                    Numer = D1343 * D4321 - D1321 * D4343,
+                    Mua = Numer / Denom,
+                    Mub = (D1343 + D4321 * Mua) / D4343,
+                    {add_prod(P1,P21,Mua),
+                     add_prod(P3,P43,Mub),
+                     Mua, Mub}
+            end
+    end.
+
+-spec project_2d(point(), x|y|z) -> point().
+project_2d({_X,Y,Z}, x) -> %% Project onto plane YZ
+    {Y,Z, 0.0};
+project_2d({X,_Y,Z}, y) -> %% Project onto plane XZ
+    {X,Z, 0.0};
+project_2d({X,Y,_Z}, z) -> %% Project onto plane XY
+    {X,Y, 0.0}.
+
+-spec largest_dir(point()) -> x|y|z.
+largest_dir({X,Y,Z}) ->
+    AX=abs(X), AY=abs(Y), AZ=abs(Z),
+    if AY < AZ, AX < AZ -> z;
+       AX < AY -> y;
+       true -> x
+    end.
 
 %% Should be removed and calls should be changed to e3d_bv instead.
--spec bounding_box([e3d_vector()]) -> [e3d_vector()].
+-spec bounding_box([vector()]) -> [vector()].
 bounding_box(List) when is_list(List) ->
     tuple_to_list(e3d_bv:box(List)).
 
--spec degrees(e3d_vector(), e3d_vector()) -> float().
+-spec degrees(vector(), vector()) -> float().
     
 degrees(V0, V1) ->
     Dot = e3d_vec:dot(V0,V1),
@@ -323,6 +406,11 @@ degrees(V0, V1) ->
             true -> RawCos
           end,
     math:acos(Cos) * (180.0 / math:pi()).
+
+
+-spec format(point()) -> io_lib:chars().
+format({A,B,C}) ->
+    io_lib:format("{~.3f,~.3f,~.3f}",[A,B,C]).
 
 %%%
 %%% Internal functions.

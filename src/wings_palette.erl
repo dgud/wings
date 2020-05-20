@@ -195,11 +195,8 @@ scan_color(face, Faces, We) ->
 scan_materials([Mat|Ms], Cols) ->
     Opengl = proplists:get_value(opengl, Mat),
     Diff   = proplists:get_value(diffuse, Opengl),
-    Amb    = proplists:get_value(ambient, Opengl),
-    Spec   = proplists:get_value(specular, Opengl),
     Emis   = proplists:get_value(emission, Opengl),
-    scan_materials(Ms, [color(Diff),color(Amb),color(Spec),
-			color(Emis)|Cols]);
+    scan_materials(Ms, [color(Diff),color(Emis)|Cols]);
 scan_materials([], Cols) -> Cols.
 
 add_cols([none|R], Acc) ->
@@ -263,7 +260,9 @@ init([Frame, {W,_}, _Ps, Cols0]) ->
 	wxWindow:destroy(Tmp),
 	{ColsW,ColsH} = calc_size(Cols0,W,BW,false),
 	%% io:format("Init Size ~p => ~p~n",[BSz, {ColsW, ColsH}]),
-	Win = wxScrolledWindow:new(Frame),
+	Win = wxScrolledWindow:new(Frame, [{style, wings_frame:get_border()}]),
+        #{bg:=BG} = wings_frame:get_colors(),
+        wxPanel:setBackgroundColour(Win, BG),
 	Sz = wxGridSizer:new(ColsW, [{vgap, ?BORD},{hgap, ?BORD}]),
 	Cols = add_empty(Cols0,ColsW,ColsH),
 	manage_bitmaps(Win, Sz, Cols, [], Empty),
@@ -526,9 +525,13 @@ make_button(Parent, Id, FloatCol, Empty) ->
 		       none -> {false, Empty};
 		       _ -> {true, make_bitmap(FloatCol)}
 		   end,
-    Static = case os:type() of
-		 {win32, _} -> wxBitmapButton:new(Parent, Id, BM, [{style, ?wxBORDER_NONE}]);
-		 {_, _}     -> wxStaticBitmap:new(Parent, Id, BM)
+    Static = case {os:type(), {?wxMAJOR_VERSION, ?wxMINOR_VERSION}} of
+		 {{win32, _},_} ->
+                     wxBitmapButton:new(Parent, Id, BM, [{style, ?wxBORDER_NONE}]);
+                 {{_,darwin},Ver} when Ver > {3,0} ->
+                     wxBitmapButton:new(Parent, Id, BM, [{style, ?wxBORDER_NONE}]);
+		 {_, _}     ->
+                     wxStaticBitmap:new(Parent, Id, BM)
 	     end,
     Delete andalso wxBitmap:destroy(BM),
     [wxWindow:connect(Static, Ev, [{skip, false}]) ||
@@ -557,9 +560,13 @@ setColor(Id, Color, _, Parent) ->
 setBitmap(Id, Bitmap, Parent) ->
     Win = wxWindow:findWindow(Parent, Id),
     wx:is_null(Win) andalso error({no_such_id, Id}),
-    case os:type() of
-	{win32, _} -> wxBitmapButton:setBitmapLabel(wx:typeCast(Win, wxBitmapButton), Bitmap);
-	{_, _}     -> wxStaticBitmap:setBitmap(wx:typeCast(Win, wxStaticBitmap), Bitmap)
+    case  {os:type(), {?wxMAJOR_VERSION, ?wxMINOR_VERSION}} of
+	{{win32, _},_} ->
+            wxBitmapButton:setBitmapLabel(wx:typeCast(Win, wxBitmapButton), Bitmap);
+        {{_,darwin}, Ver} when Ver > {3,0} ->
+            wxBitmapButton:setBitmapLabel(wx:typeCast(Win, wxBitmapButton), Bitmap);
+	{_, _}     ->
+            wxStaticBitmap:setBitmap(wx:typeCast(Win, wxStaticBitmap), Bitmap)
     end.
 
 make_bitmap(Col0) ->

@@ -15,7 +15,7 @@
 
 -module(wpc_plane_cut).
 -export([init/0,menu/2,command/2, plane_cut/3]).
--include("wings.hrl").
+-include_lib("wings/src/wings.hrl").
 
 
 -import(lists, [foldl/3,usort/1,reverse/1]).
@@ -751,7 +751,7 @@ loop_cut_partition(Faces0, Edges, We, Acc) ->
       true -> Acc;
       false ->
         {AFace,Faces1} = gb_sets:take_smallest(Faces0),
-        Reachable = wings_edge:reachable_faces(AFace, Edges, We),
+        Reachable = wings_edge:reachable_faces([AFace], Edges, We),
         Faces = gb_sets:difference(Faces1, Reachable),
         loop_cut_partition(Faces, Edges, We, [Reachable|Acc])
     end.

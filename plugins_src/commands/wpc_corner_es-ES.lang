@@ -1,0 +1,17 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_corner,
+ [
+  {corner,
+   [
+    {1,"Sólo puedes añadir esquinas a las aristas que tengan una cara de\n3 lados en un extremo y una cara de 5 lados en el otro."}
+   ]},
+  {corner_error,
+   [
+    {1,"Lo siento, esa selección va más allá del alcance de esta herramienta."}
+   ]},
+  {corner_menu,
+   [
+    {1,"Esquina"},
+    {2,"Hace esquinas de los Anillos de Aristas que estén tapados por una cara de 3 y 5 lados"}
+   ]}
+ ]}.

@@ -16,8 +16,8 @@
 -export([triangulate/1,triangulate/2,quadrangulate/1,quadrangulate/2]).
 -export([is_good_triangulation/5]).
 
--include_lib("wings.hrl").
--include_lib("e3d.hrl").
+-include("wings.hrl").
+-include_lib("wings/e3d/e3d.hrl").
 -import(lists, [reverse/1]).
 
 submenu() ->

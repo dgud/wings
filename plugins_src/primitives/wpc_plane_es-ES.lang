@@ -1,0 +1,27 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_plane,
+ [
+  {make_plane,
+   [
+    {1,"Opciones de Plano"}
+   ]},
+  {plane_dialog,
+   [
+    {1,"Resolución"},
+    {2,"Tamaño"},
+    {3,"Espesor"},
+    {4,"Normal"},
+    {5,"Aterronado"},
+    {6,"Ondulado"},
+    {7,"Sombrero"},
+    {8,"Tipo de Plano"},
+    {9,"Ondas"},
+    {10,"Altura"},
+    {11,"Decaimiento"}
+   ]},
+  {plane_menu,
+   [
+    {1,"Varios Planos"},
+    {7,"Crear un Plano"}
+   ]}
+ ]}.

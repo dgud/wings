@@ -1994,15 +1994,15 @@
    [
     % "Light ~ts"
     {1,"라이트 ~ts"},
-    % ": Pos ~ts ~ts ~ts"
-    {2,": Pos ~ts ~ts ~ts"}
+    % ": Pos ~s"
+    {2,": Pos ~s"}
    ]},
   {info_1,
    [
-    % ". Aim ~ts ~ts ~ts. Dir ~ts ~ts ~ts"
-    {1,". Aim ~ts ~ts ~ts. Dir ~ts ~ts ~ts"},
-    % ". Angle ~ts~c"
-    {2,". 각도 ~ts~c"}
+    % ". Aim ~s. Dir ~s"
+    {1,". Aim ~s. Dir ~s"},
+    % ". Angle ~s~c"
+    {2,". 각도 ~s~c"}
    ]},
   {light_types,
    [

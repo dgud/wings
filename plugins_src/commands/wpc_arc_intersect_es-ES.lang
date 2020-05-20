@@ -1,0 +1,35 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_arc_intersect,
+ [
+  {arc_intersect_menu,
+   [
+    {1,"Rotar a Destino"},
+    {2,"Rotar alrededor del centro especificado desde el punto A hasta el punto B"},
+    {3,"Rotar Punto a Plano"},
+    {4,"Rotar alrededor del centro especificado en un ángulo definido por un Vector A y un Vector B"}
+   ]},
+  {arc_intersect_mode_help,
+   [
+    {1,"[1] "}
+   ]},
+  {flip_help,
+   [
+    {1,"  [5] "}
+   ]},
+  {flip_help_1,
+   [
+    {1,"Voltear Angulo"},
+    {2,"Volver a Voltear"}
+   ]},
+  {selection_ask,
+   [
+    {1,"Seleccionar el eje de rotación"},
+    {2,"Seleccionar el centro de rotación"},
+    {3,"Seleccionar Punto A"},
+    {4,"Seleccionar Punto B"},
+    {5,"Seleccionar Vector A"},
+    {6,"Seleccionar Vector B"},
+    {7,"Seleccionar Punto"},
+    {8,"Seleccionar Plano"}
+   ]}
+ ]}.

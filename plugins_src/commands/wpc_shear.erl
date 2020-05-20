@@ -12,7 +12,7 @@
 
 -module(wpc_shear).
 -export([init/0,menu/2,command/2]).
--include("wings.hrl").
+-include_lib("wings/src/wings.hrl").
 
 init() ->
     true.

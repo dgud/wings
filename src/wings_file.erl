@@ -14,15 +14,15 @@
 -module(wings_file).
 -export([init/0,init_autosave/0,menu/0,command/2]).
 -export([import_filename/2,export_filename/2,export_filename/3]).
--export([unsaved_filename/0,autosave_filename/1]).
+-export([unsaved_filename/0,del_unsaved_file/0,autosave_filename/1]).
 -export([file_filters/1]).
 
 -include("wings.hrl").
--include("e3d.hrl").
--include("e3d_image.hrl").
+-include_lib("wings/e3d/e3d.hrl").
+-include_lib("wings/e3d/e3d_image.hrl").
 -include_lib("kernel/include/file.hrl").
 
--import(lists, [reverse/1,keymember/3,foreach/2]).
+-import(lists, [foldl/3,foreach/2,keymember/3,reverse/1]).
 -import(filename, [dirname/1]).
 
 -define(WINGS, ".wings").
@@ -165,8 +165,8 @@ menu() ->
      separator,
      {?__(23,"Render"),{render,[]}},
      separator,
-     {?__(24,"Install Plug-In"),install_plugin,
-      ?__(27,"Install a plug-in")},
+     {?__(24,"Install Plug-In or Patch"),install_plugin,
+      ?__(27,"Install a plug-in or a wings patch file")},
      separator,
      {?__(31,"Save Preference Subset..."),save_pref,
       ?__(32,"Save a preference subset from your current settings")},
@@ -231,6 +231,8 @@ command(import_image, _St) ->
     import_image();
 command({import_image,Name}, _) ->
     import_image(Name);
+command({import_files, Fs}, St) ->
+    {save_state, wpa:import(Fs, St)};
 command({export,ndo}, St) ->
     String = case os:type() of
         {win32,_} -> "Export";
@@ -245,12 +247,9 @@ command({export_selected,ndo}, St) ->
     export_ndo(export_selected, String, St);
 command({export,{ndo,Filename}}, St) ->
     do_export_ndo(Filename, St);
-command({export_selected,{ndo,Filename}}, St) ->
-    Shs0 = wings_sel:fold(fun(_, #we{id=Id}=We, A) ->
-				  [{Id,We}|A]
-			  end, [], St),
-    Shs = gb_trees:from_orddict(reverse(Shs0)),
-    do_export_ndo(Filename, St#st{shapes=Shs});
+command({export_selected,{ndo,Filename}}, St0) ->
+    St = delete_unselected(St0),
+    do_export_ndo(Filename, St);
 command(install_plugin, _St) ->
     install_plugin();
 command({install_plugin,Filename}, _St) ->
@@ -303,6 +302,7 @@ confirmed_new(#st{file=File}=St) ->
 new(#st{saved=true}=St0) ->
     St1 = clean_st(St0#st{file=undefined}),
     %% clean_st/1 will remove all saved view, but will not reset the view. For a new project we should reset it.
+    wings_frame:reinit_layout(),
     wings_view:reset(),
     St2 = clean_images(wings_undo:init(St1)),
     St = wings_obj:create_folder_system(St2),
@@ -315,7 +315,7 @@ new(#st{}=St0) ->		      %File is not saved or autosaved.
 			  fun() -> {file,confirmed_new} end).
 
 open(#st{saved=Saved}=St) ->
-    case Saved orelse wings_obj:num_objects(St) =:= 0 of
+    case Saved =:= true orelse wings_obj:num_objects(St) =:= 0 of
         true ->
             confirmed_open_dialog();
         false ->
@@ -348,6 +348,7 @@ confirmed_open(Name, St0) ->
 		  %%   Name: Original name of file to be opened.
 		  %%   File: Either original file or the autosave file
 		  St1 = clean_st(St0#st{file=undefined}),
+		  wings_frame:reinit_layout(),
 		  St2 = wings_obj:create_folder_system(wings_undo:init(St1)),
 		  case ?SLOW(wings_ff_wings:import(File, St2)) of
 		      #st{}=St3 ->
@@ -364,7 +365,7 @@ confirmed_open(Name, St0) ->
     use_autosave(Name, Fun).
 
 named_open(Name, #st{saved=Saved}=St) ->
-    case Saved orelse wings_obj:num_objects(St) =:= 0 of
+    case Saved =:= true orelse wings_obj:num_objects(St) =:= 0 of
         true ->
             confirmed_open(Name, St);
         false ->
@@ -435,7 +436,7 @@ save_now(Next, #st{file=Name0}=St) ->
     end,
     file:rename(Name, Backup),
     file:delete(autosave_filename(Name)),
-    case ?SLOW(wings_ff_wings:export(Name, St)) of
+    case ?SLOW(wings_ff_wings:export(Name, false, St)) of
 	ok ->
 	    set_cwd(dirname(Name)),
 	    add_recent(Name),
@@ -471,11 +472,9 @@ save_selected(St) ->
     Cont = fun(Name) -> {file,{save_selected,Name}} end,
     export_filename(Ps, St, Cont).
 
-save_selected(Name, #st{shapes=Shs0,sel=Sel}=St0) ->
-    Shs = [Sh || {Id,_}=Sh <- gb_trees:to_list(Shs0),
-		 keymember(Id, 1, Sel)],
-    St = St0#st{shapes=gb_trees:from_orddict(Shs)},
-    case ?SLOW(wings_ff_wings:export(Name, St)) of
+save_selected(Name, St0) ->
+    St = delete_unselected(St0),
+    case ?SLOW(wings_ff_wings:export(Name, true, St)) of
 	ok -> keep;
 	{error,Reason} -> wings_u:error_msg(Reason)
     end.
@@ -547,7 +546,10 @@ use_autosave_1(#file_info{mtime=SaveTime0}, File, Body) ->
 	{ok,#file_info{mtime=AutoInfo0}} ->
 	    SaveTime = calendar:datetime_to_gregorian_seconds(SaveTime0),
 	    AutoTime = calendar:datetime_to_gregorian_seconds(AutoInfo0),
+            FastStart = wings:is_fast_start(),
 	    if
+                FastStart -> %% Ignore autosave
+                    Body(File);
 		AutoTime > SaveTime ->
 		    Msg = ?__(1,"An autosaved file with a later time stamp exists;"
                               " do you want to load the autosaved file instead?"),
@@ -615,7 +617,8 @@ autosave(#st{file=Name}=St) ->
     %% Fix this later
     View = wings_wm:get_prop(geom, current_view),
     wings_view:set_current(View),
-    case ?SLOW(wings_ff_wings:export(Auto, St)) of
+    filelib:ensure_dir(Auto),
+    case ?SLOW(wings_ff_wings:export(Auto, false, St)) of
 	ok ->
 	    wings_u:caption(St#st{saved=auto});
 	{error,Reason} ->
@@ -723,15 +726,19 @@ import_image(Name) ->
     case wings_image:from_file(Name) of
 	Im when is_integer(Im) ->
 	    keep;
-	{error,Error} ->
-		case Error of
-		100902 -> % GLU_OUT_OF_MEMORY
-			wings_u:error_msg(?__(2,"The image cannot be loaded.~nFile: \"~ts\"~n GLU Error: ~p - ~s~n"),
-				  	[Name,Error, glu:errorString(Error)]);
-		_ ->
-			wings_u:error_msg(?__(1,"Failed to load \"~ts\": ~s\n"),
-				  	[Name,file:format_error(Error)])
-		end
+	{error,100902=Error} ->  % GLU_OUT_OF_MEMORY
+            wings_u:error_msg(?__(2,"The image cannot be loaded.~nFile: "
+                                  "\"~ts\"~n GLU Error: ~p - ~s~n"),
+                              [Name, Error, glu:errorString(Error)]);
+        {error,Error} ->
+            case file:format_error(Error) of
+                "unknown" ++ _ ->
+                    wings_u:error_msg(?__(1,"Failed to load") ++ " \"~ts\": ~p\n",
+                                      [Name,Error]);
+                ErrStr ->
+                    wings_u:error_msg(?__(1,"Failed to load") ++ " \"~ts\": ~s\n",
+                                      [Name,ErrStr])
+            end
     end.
 
 %%
@@ -823,9 +830,13 @@ clean_st(St) ->
 				sel=[],ssels=Empty,saved=Limit}).
 
 clean_images(#st{saved=Limit}=St) when is_integer(Limit) ->
-    wings_dl:map(fun(D, _) -> D#dlo{proxy_data=none} end, []),
+    wings_dl:map(fun(D, _) -> D#dlo{proxy_data=none, proxy=false} end, []),
     wings_image:delete_older(Limit),
     St#st{saved=false}.
 
 clean_new_images(#st{saved=Limit}) when is_integer(Limit) ->
     wings_image:delete_from(Limit).
+
+delete_unselected(St) ->
+    Unselected = wings_sel:unselected_ids(St),
+    foldl(fun wings_obj:delete/2, St, Unselected).

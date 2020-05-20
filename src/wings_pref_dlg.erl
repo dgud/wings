@@ -437,6 +437,7 @@ language_name("cs") -> [268,"esk",253]; %Czech
 language_name("en") -> "English";
 language_name("de") -> "Deutsch";
 language_name("es") -> ["Espa",241,"ol"];
+language_name("es-ES") -> ["Espa",241,"ol"];
 language_name("fi") -> "Suomi";
 language_name("fr") -> ["Fran",231,"ais"];
 language_name("hu") -> "Hungarian";
@@ -462,10 +463,9 @@ misc_prefs() ->
     AutoFun = fun(_, Enable, Store) ->
 		      wings_dialog:enable(autosave_time, Enable, Store)
 	      end,
-    OpenCL = case wings_cl:is_available() of
-		 true -> [{info,?__(40,"A value of 0 will use the standard implementation, " 
-				    "a larger value takes more memory "
-				    "(experimental feature requires good OpenCL drivers)")}];
+    OpenCL = case wings_cl:is_available(false) of
+		 true -> [{info,?__(40,"A value of 0 will use the standard implementation, "
+				    "a larger value takes more memory ")}];
 		 false ->
 		     [disable,{info,?__(41,"OpenCL drivers is required ")}]
 	     end,
@@ -503,7 +503,10 @@ misc_prefs() ->
 	 workaround([
 		     {jumpy_camera,
 		      ?__(19,"Camera moves and interactive commands are jumpy"),
-		      ?__(20,"Problem occurs on Mac OS X 10.3 (Panther)")},
+		      ?__(20,"Decreases large jumps in mouse coordinate changes")},
+                     {no_warp,
+                      ?__(31,"Camera moves and interactive commands not working"),
+		      ?__(32,"Minimize mouse moves programatically")},
 		     {ungrab_bug,
 		      ?__(26,"Camera moves steals focus"),
 		      ?__(27,"Problem occurs on linux")}
@@ -522,7 +525,6 @@ misc_prefs() ->
 	    [{?__(28,"Maximum menu height in pixels"),max_menu_height,
 	     [{info,?__(29,"Menus are clipped and continue in 'More...' submenu.")
 	       ++" "++?__(30,"Less than 1 sets menu clipping to auto.")}]}]}]}]}
-       
      ]}.
 
 workaround(L) ->
@@ -578,6 +580,7 @@ smart_set_value_1(Key, Val, St) ->
 			    "effect the next time Wings 3D is started."),
 		    wings_u:message(Str);
                 show_toolbar ->
+                    delayed_set_value(Key, OldVal, Val),
                     wings_frame:show_toolbar(Val);
 		extended_toolbar ->
 		    delayed_set_value(Key, OldVal, Val),

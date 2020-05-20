@@ -15,8 +15,8 @@
 -export([export/4,save_images/3,make_mesh/2]).
 
 -include("wings.hrl").
--include("e3d.hrl").
--include("e3d_image.hrl").
+-include_lib("wings/e3d/e3d.hrl").
+-include_lib("wings/e3d/e3d_image.hrl").
 -import(lists, [foldl/3,keydelete/3,reverse/1,last/1]).
 
 export(Exporter, Name, Ps, St) ->

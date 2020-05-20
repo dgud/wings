@@ -60,6 +60,21 @@ auv_menu(1,_What) -> {?MODULE, segment};
 auv_menu(2,_) -> {?MODULE, segment_old};
 auv_menu(3,_) -> {?MODULE, force_seg}.
 
+auv_show_menu(label) ->
+    ?__(1,"Show/Hide Background Image");
+auv_show_menu(help) ->
+    ?__(2,"Toggle display of the background texture image");
+auv_show_menu(Action) ->
+    Cmd = {show,toggle_background},
+    case Action of
+	true ->
+	    Label = auv_show_menu(label),
+	    Help = auv_show_menu(help),
+	    wings_menu:update_menu(view, Cmd, {append, 0, Label},Help);
+	false ->
+	    wings_menu:update_menu(view, Cmd, delete)
+    end.
+
 command({body,{?MODULE, Op}} , St) ->
     start_uvmap(Op, St);
 command({face,{?MODULE, Op}} , St) ->
@@ -133,7 +148,8 @@ create_window(Action, Name, Id, #st{shapes=Shs}=St) ->
     Canvas = wings_gl:window(Frame, Context, true, true),
     Props = [{display_data,Name}|wings_view:initial_properties()++Ps],
     wings_wm:toplevel(Name, Canvas, Props, Op),
-    wings_wm:send(Name, {init,{Action,We}}).
+    wings_wm:send(Name, {init,{Action,We}}),
+    Frame.
 
 auv_event({init,Op}, St) ->
     wings:init_opengl(St),
@@ -190,7 +206,14 @@ init_show_maps(Charts0, Fs, #we{name=WeName,id=Id}, GeomSt0) ->
 	    wings_wm:send(EditWin, {add_faces,Fs,GeomSt}),
 	    wings_wm:send(geom, {new_state,GeomSt});
 	false ->
-	    create_window({edit,Fs}, EditWin, Id, GeomSt),
+	    %% we are going to ensure to open the AutoUV window in the same
+	    %% display as the segment window was, since it can be in another
+	    %% than the one in which the main window is.
+	    SegWin = wings_wm:this_win(),
+	    {X0,Y0} = wxWindow:getPosition(SegWin),
+	    Pos = wxWindow:clientToScreen(SegWin,X0,Y0),
+	    Win = create_window({edit,Fs}, EditWin, Id, GeomSt),
+	    wxWindow:move(Win,Pos),
 	    wings_wm:send(geom, {new_state,GeomSt})
     end,
     GeomSt.
@@ -342,25 +365,13 @@ bg_img_id() ->
 	[ImId] -> ImId;
 	_ -> wings_image:new("auvBG",bg_image())
     end.
-  
-change_texture_id(NewId, MatName, GeomSt0=#st{mat=Materials}) -> 
-    case gb_trees:lookup(MatName, Materials) of
-	none -> 
-	    GeomSt0;
-	{value,Mat0} ->
-	    Maps0 = proplists:get_value(maps, Mat0, []),
-	    Maps = lists:keyreplace(diffuse,1,Maps0,{diffuse,NewId}),
-	    Mat  = lists:keyreplace(maps,1,Mat0,{maps,Maps}),
-	    GeomSt0#st{mat=gb_trees:update(MatName,Mat,Materials)}
-    end.
-    
 
 %%%% Menus.
 
 command_menu(body, X, Y) ->
     Menu = [{?__(2,"Move"), {move, move_directions(false)},
 	     ?__(3,"Move selected charts")},
-	    {?__(4,"Scale"), {scale, scale_directions(false) ++ 
+	    {?__(4,"Scale"), {scale, scale_directions(false) ++
 			      [separator] ++ stretch_directions() ++
 			      [separator,
 			       {?__(411,"Normalize Sizes"), normalize,
@@ -462,7 +473,9 @@ command_menu(vertex, X, Y) ->
 	   ] ++ option_menu(),
     wings_menu:popup_menu(X,Y, {auv,vertex}, Menu);
 command_menu(_, X, Y) ->
-    [_|Menu] = option_menu(),
+    Checked = [{crossmark, get({?MODULE,show_background})}],
+    Menu = [{auv_show_menu(label),toggle_background,auv_show_menu(help),
+	     Checked}] ++ option_menu(),
     wings_menu:popup_menu(X,Y, {auv,option}, Menu).
 
 stretch_directions() ->
@@ -603,7 +616,7 @@ handle_event_3(#mousebutton{button=?SDL_BUTTON_RIGHT}=Ev,
 		   end,
 	    command_menu(Mode, X, Y)
     end;
-handle_event_3({drop,_,DropData}, St) ->
+handle_event_3({drop,DropData}, St) ->
     handle_drop(DropData, St);
 handle_event_3({action,{{auv,_},create_texture}},_St) ->
     auv_texture:draw_options();
@@ -614,24 +627,24 @@ handle_event_3({action,{auv,{draw_options,Opt}}}, #st{bb=Uvs}=St) ->
     Tx = ?SLOW(auv_texture:get_texture(St, Opt)),
     case MatName0 of 
 	none -> 
-	    wings_image:update(Image, Tx),
+	    ok = wings_image:update(Image, Tx),
 	    put({?MODULE,show_background}, true),
 	    get_event(St);
 	_ ->
 	    TexName = case get_texture(MatName0, St) of
 			  false -> atom_to_list(MatName0);
 			  Old  -> 
-			      OldE3d = wings_image:info(Old), 
+			      OldE3d = wings_image:info(Old),
 			      case OldE3d#e3d_image.name of
 				  "auvBG" -> atom_to_list(MatName0);
 				  Other -> Other
 			      end
 		      end,
-	    {GeomSt,MatName} = 
-		update_texture(Tx#e3d_image{name=TexName}, 
-			       MatName0, GeomSt0),
+	    {GeomSt,MatName} = update_texture(Tx#e3d_image{name=TexName},
+                                              MatName0, GeomSt0),
+            ImId = get_texture(MatName, GeomSt),
 	    wings_wm:send(geom, {new_state,GeomSt}),
-	    get_event(St#st{bb=Uvs#uvstate{st=GeomSt,matname=MatName}})
+	    get_event(St#st{bb=Uvs#uvstate{bg_img=ImId, st=GeomSt,matname=MatName}})
     end;
 %% Others
 handle_event_3({vec_command,Command,_St}, _) when is_function(Command, 0) ->
@@ -654,10 +667,38 @@ handle_event_3({action,{auv,Cmd}}, St) ->
 handle_event_3({action,{select,show_all}}, #st{bb=#uvstate{st=GeomSt,id=Id}}) ->
     wings_wm:send({autouv,Id}, {add_faces,object,GeomSt}),
     keep;
+handle_event_3({action,{select,oriented_faces}}, St0) ->
+    Connected = wings_pref:get_value(similar_normals_connected,false),
+    {Save,Angle} = case wings_pref:get_value(similar_normals_angle,{false,1.0E-3}) of
+		       {true,A} -> {true,A};
+		       {false,_} -> {false,1.0E-3}
+		   end,
+    handle_event_3({action,{select,{oriented_faces,[Angle,Connected,Save]}}}, St0);
+handle_event_3({action,{select,similar_area}}, St0) ->
+    handle_event_3({action,{select,{similar_area,[0.001]}}}, St0);
+handle_event_3({action,{select,similar_material}}, St0) ->
+    Connected = wings_pref:get_value(similar_materials_connected, false),
+    Mode = wings_pref:get_value(similar_materials, material),
+    handle_event_3({action,{select,{similar_material,[Connected,Mode]}}}, St0);
+handle_event_3({action,{select,{ssels,sel_groups_win}}}, _) ->
+    keep;
+handle_event_3({action,{select,deselect_previous}=Command}, St0) ->
+    case wpc_deselect_previous:command(Command, St0) of
+	{save_state,St} -> ok;
+	_ -> St = St0
+    end,
+    new_state(St);
 handle_event_3({action,{select,Command}}, St0) ->
     case wings_sel_cmd:command(Command, St0) of
 	{save_state,St} -> ok;
-	#st{}=St -> ok
+	#st{}=St -> ok;
+	_ ->
+	    %% That's avoid crash if any select option has a input dialog when
+	    %% usually the returned value returned at the first time is 'keep'.
+	    %% Also, for commands with preview dialog, the new state will not
+	    %% be properly updated since somehow the local St seems to be messed
+	    %% in {current_state,geom_display_lists,GeomSt} event handle
+	    St = St0
     end,
     new_state(St);
 handle_event_3({action,{edit,repeat}}, St) ->
@@ -666,11 +707,6 @@ handle_event_3({action,{edit,repeat_args}}, St) ->
     repeat(args, St);
 handle_event_3({action,{edit,repeat_drag}}, St) ->
     repeat(drag, St);
-handle_event_3({action,{view,toggle_background}}, _) ->
-    Old = get({?MODULE,show_background}),
-    put({?MODULE,show_background},not Old),
-    wings_wm:dirty();
-
 handle_event_3({action,Ev}=Act, #st{selmode=AUVSel, bb=#uvstate{st=#st{selmode=GSel}}}=St) ->
     case Ev of  %% Keyboard shortcuts end up here (I believe)
 	{_, {move,_}} ->
@@ -685,6 +721,8 @@ handle_event_3({action,Ev}=Act, #st{selmode=AUVSel, bb=#uvstate{st=#st{selmode=G
 	    handle_command(slide,St);
 	{_, circularise} ->
 	    handle_command(circularise,St);
+	{view,{show,toggle_background}} ->
+	    handle_command(toggle_background,St);
 	{view,aim} ->
 	    St1 = fake_selection(St),
 	    wings_view:command(aim, St1),
@@ -727,7 +765,11 @@ handle_event_3(got_focus, _) ->
     Msg3 = wings_msg:button_format([], [], ?__(2,"Show menu")),
     Message = wings_msg:join([Msg1,Msg2,Msg3]),
     wings_wm:message(Message, ""),
+    auv_show_menu(true),
     wings_wm:dirty();
+handle_event_3(lost_focus, _) ->
+    auv_show_menu(false),
+    keep;
 handle_event_3(_Event, _) ->
     %% io:format("MissEvent ~P~n", [_Event, 20]),
     keep.
@@ -767,7 +809,7 @@ new_state(#st{bb=#uvstate{}=Uvs}=St0) ->
     St = update_selected_uvcoords(St1),
     get_event(St).
 
-handle_command(Cmd, St0) ->    
+handle_command(Cmd, St0) ->
     case handle_command_1(Cmd,remember_command(Cmd,St0)) of
 	Drag = {drag, _} -> do_drag(Drag);
 	Result -> Result
@@ -914,6 +956,10 @@ handle_command_1(cut_edges, St0 = #st{selmode=edge,bb=#uvstate{id=Id,st=Geom}}) 
     St2 = displace_cuts(Es, St1),
     St  = update_selected_uvcoords(St2),
     get_event(St);
+handle_command_1(toggle_background, _) ->
+    Old = get({?MODULE,show_background}),
+    put({?MODULE,show_background},not Old),
+    wings_wm:dirty();
 
 handle_command_1(Cmd, #st{selmode=Mode}=St0) ->
     case wings_plugin:command({{auv,Mode},Cmd}, St0) of
@@ -1385,19 +1431,11 @@ drag_filter({image,_,_}) ->
     {yes,?__(1,"Drop: Change the texture image")};
 drag_filter(_) -> no.
 
-handle_drop({image,Id,_Im}, #st{bb=Uvs0}=St) ->
-    #uvstate{st=GeomSt0,matname=MatName} = Uvs0,
-    case MatName of 
-	none -> 
-	    Uvs = Uvs0#uvstate{bg_img=Id},
-	    get_event(St#st{bb=Uvs});
-	_ ->
-	    GeomSt = change_texture_id(Id,MatName,GeomSt0),
-	    wings_wm:send(geom, {new_state,GeomSt}),
-	    Uvs = Uvs0#uvstate{st=GeomSt,matname=MatName},
-	    get_event(St#st{bb=Uvs})
-    end;
+handle_drop(#{type:=image,id:=Id}, #st{bb=Uvs0}=St) ->
+    Uvs = Uvs0#uvstate{bg_img=Id},
+    get_event(St#st{bb=Uvs});
 handle_drop(_DropData, _) ->
+    ?dbg("Ignore ~P~n",[_DropData,30]),
     keep.
 
 %% is_power_of_two(X) ->
@@ -1417,11 +1455,23 @@ new_geom_state(GeomSt, AuvSt0) ->
     end.
 
 update_geom_state(#st{mat=Mat,shapes=Shs}=GeomSt, AuvSt0) ->
-    case new_geom_state_1(Shs, AuvSt0#st{mat=Mat}) of
+    case new_geom_state_0(Shs, Mat, AuvSt0) of
 	{AuvSt1,ForceRefresh0} ->
 	    {AuvSt,ForceRefresh1} = update_selection(GeomSt, AuvSt1),
 	    {AuvSt,ForceRefresh0 or ForceRefresh1};
 	Other -> Other  %% delete
+    end.
+
+new_geom_state_0(Shs, Mat, #st{bb=#uvstate{matname=none}}=AuvSt) ->
+    new_geom_state_1(Shs, AuvSt#st{mat=Mat});
+new_geom_state_0(Shs, Mtab0, #st{bb=#uvstate{matname=MatName}=BB, mat=Mtab1}=AuvSt) ->
+    case {get_texture(MatName, Mtab0), get_texture(MatName, Mtab1)} of
+        {Same,Same} ->
+            new_geom_state_1(Shs, AuvSt#st{mat=Mtab0});
+        {New, _} when New =/= false ->
+            new_geom_state_1(Shs, AuvSt#st{mat=Mtab0, bb=BB#uvstate{bg_img=New}});
+        _ ->
+            new_geom_state_1(Shs, AuvSt#st{mat=Mtab0})
     end.
 
 new_geom_state_1(Shs, #st{bb=#uvstate{id=Id,st=#st{shapes=Orig}}}=AuvSt) ->
@@ -1858,7 +1908,7 @@ update_and_scale_chart(Vs0,We0) ->
 %%% Draw routines.
 %%%
 
-draw_background(#st{bb=#uvstate{matname=MatName,st=St,bg_img=Image}}) ->
+draw_background(#st{bb=#uvstate{bg_img=Image}}) ->
     gl:pushAttrib(?GL_ALL_ATTRIB_BITS),
     wings_view:load_matrices(false),
 
@@ -1870,7 +1920,7 @@ draw_background(#st{bb=#uvstate{matname=MatName,st=St,bg_img=Image}}) ->
     gl:translatef(0.0, 0.0, -0.5),
     Bin = << <<V:?F32,20.0:?F32, V:?F32,-20:?F32, 20.0:?F32,V:?F32, -20.0:?F32,V:?F32>>
              || V <- lists:seq(-20,20) >>,
-    wings_vbo:draw(fun() -> gl:drawArrays(?GL_LINES, 0, 4*(20+20+1)) end, Bin, [vertex2d]),
+    wings_vbo:draw(fun(_) -> gl:drawArrays(?GL_LINES, 0, 4*(20+20+1)) end, Bin, [vertex2d]),
     gl:lineWidth(3.0),
     gl:color3f(0.0, 0.0, 1.0),
     gl:recti(0, 0, 1, 1),
@@ -1881,11 +1931,7 @@ draw_background(#st{bb=#uvstate{matname=MatName,st=St,bg_img=Image}}) ->
     case get({?MODULE,show_background}) of
 	false -> ok;
 	_ ->
-	    Tx = case get_texture(MatName,St) of
-		     false -> wings_image:txid(Image);
-		     DiffId -> wings_image:txid(DiffId)
-		 end,
-            case Tx of
+            case wings_image:txid(Image) of
                 none -> ignore; %% Avoid crash if TexImage is deleted
                 Tx ->
                     gl:enable(?GL_TEXTURE_2D),
@@ -1894,7 +1940,7 @@ draw_background(#st{bb=#uvstate{matname=MatName,st=St,bg_img=Image}}) ->
     end,
     Q = [{0.0, 0.0},{0.0, 0.0, -0.99999}, {1.0, 0.0},{1.0, 0.0, -0.99999},
          {1.0, 1.0},{1.0, 1.0, -0.99999}, {0.0, 1.0},{0.0, 1.0, -0.99999}],
-    wings_vbo:draw(fun() -> gl:drawArrays(?GL_QUADS, 0, 4) end, Q, [uv, vertex]),
+    wings_vbo:draw(fun(_) -> gl:drawArrays(?GL_QUADS, 0, 4) end, Q, [uv, vertex]),
 
     gl:disable(?GL_TEXTURE_2D),
 

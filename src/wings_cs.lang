@@ -770,7 +770,7 @@
    ]},
   {import_image,
    [
-    {1,"Nahrávání selhalo \"~s\": ~s\n"}
+    {1,"Nahrávání selhalo \"~ts\": ~ts\n"}
    ]},
   {import_ndo,
    [
@@ -1177,12 +1177,12 @@
    ]},
   {info,
    [
-    {1,"Světlo ~s"},
-    {2,": Pozice ~s ~s ~s"}
+    {1,"Světlo ~ts"},
+    {2,": Pozice ~s"}
    ]},
   {info_1,
    [
-    {1,". Aim ~s ~s ~s. Dir ~s ~s ~s"},
+    {1,". Aim ~s. Dir ~s"},
     {2,". Úhel ~s~c"}
    ]},
   {light_types,

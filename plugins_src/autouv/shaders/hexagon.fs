@@ -55,8 +55,8 @@ vec4 hexagon1(in float d)
 {
   float k = d;
   float ik = (1.0-k);
-  kcolor = colorHex;
-  kbkcolor = colorThick;
+  kcolor = vec4(vec3(colorHex.rgb)*k,colorHex.a*k);
+  kbkcolor = vec4(vec3(colorThick.rgb)*ik,colorThick.a*ik);
   return vec4(kbkcolor+kcolor);
 }
 
@@ -64,8 +64,8 @@ vec4 hexagon2(in float d)
 {
   float k = min(d,1.0);
   float ik = (1.0-k);
-  kcolor = colorHex;
-  kbkcolor = colorThick;
+  kcolor = colorHex*k;
+  kbkcolor = colorThick*ik;
   if (k >= 1.0) {
     return kcolor;
   } else if (ik >= 0.90) {

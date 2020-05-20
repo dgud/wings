@@ -19,8 +19,6 @@
 %%%  done my own solution but if an adaptiv solution shall be implemented
 %%%  check out the paper above.
 %%%  
-%%%  wings_cc_ref: contains an erlang reference implementation which
-%%%                can be debugged. Keep it up to date.
 %%%
 
 -module(wings_cc).
@@ -630,9 +628,9 @@ attrs(plain) ->
     {plain, 0}.
 
 cl_setup() ->
-    case get({?MODULE, cl}) of 
-	undefined -> 
-	    try 
+    case get({?MODULE, cl}) of
+	undefined ->
+	    try
 		cl_setup_1()
 	    catch _:Reason ->
 		    io:format("CL setup error: ~p ~p~n",[Reason, erlang:get_stacktrace()]),
@@ -644,8 +642,14 @@ cl_setup() ->
     end.
 
 cl_setup_1() ->
-    CL0 = wings_cl:compile("cc_subdiv.cl", wings_cl:setup()),
-    CL = #cls{cl=CL0},
+    CL1 = case ?GET(opencl) of
+              undefined ->
+                  wings_cl:compile("cc_subdiv.cl", wings_cl:setup());
+              CL0 ->
+                  wings_cl:compile("cc_subdiv.cl", CL0)
+          end,
+    ?SET(opencl, CL1),
+    CL = #cls{cl=CL1},
     put({?MODULE, cl}, CL),
     CL.
 

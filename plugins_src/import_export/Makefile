@@ -11,16 +11,16 @@
 #     $Id: Makefile,v 1.25 2006/09/06 22:52:18 antoneos Exp $
 #
 
+include ../../erl.mk
+
 .SUFFIXES: .erl .jam .beam .yrl .xrl .bin .mib .hrl .sgml .html .ps .3 .1 \
 	.fig .dvi .tex .class .java .pdf .psframe .pscrop
 
 ESRC=.
 WINGS_INTL=../../intl_tools
 EBIN=../../plugins/import_export
-ERLC=erlc
-WINGS_SRC=../../src
-WINGS_EBIN=../../ebin
 WINGS_E3D=../../e3d
+WINGS_TOP=../../..
 
 ifeq ($(TYPE),debug)
 TYPE_FLAGS=-DDEBUG
@@ -34,10 +34,13 @@ MODULES= \
 	wpc_bzw \
 	wpc_collada \
 	collada_import \
+	wpc_gltf \
 	wpc_hlines \
+	wpc_jscad \
 	wpc_kerky \
 	wpc_lwo \
 	wpc_obj \
+	wpc_ply \
 	wpc_pov \
 	wpc_ps \
 	wpc_rwx \
@@ -52,9 +55,8 @@ TARGET_FILES= $(MODULES:%=$(EBIN)/%.beam)
 # ----------------------------------------------------
 # FLAGS
 # ----------------------------------------------------
-ERL_COMPILE_FLAGS += -Werror \
-  -pa $(WINGS_EBIN) -pa $(WINGS_INTL) -I $(WINGS_INTL) \
-  -I $(WINGS_SRC) -I $(WINGS_E3D) $(TYPE_FLAGS) +debug_info
+ERL_COMPILE_FLAGS += -Werror -pa $(WINGS_INTL) \
+  -I $(WINGS_TOP) $(TYPE_FLAGS) +debug_info
 
 # ----------------------------------------------------
 # Targets
@@ -64,11 +66,11 @@ opt debug:
 	$(MAKE) TYPE=$@ common
 
 template: opt
-	erl -pa $(WINGS_INTL) -noinput -run tools generate_template_files $(EBIN)
+	$(ERL) -pa $(WINGS_INTL) -noinput -run tools generate_template_files $(EBIN)
 
 lang: template
 	cp *.lang $(EBIN)
-	erl -pa $(WINGS_INTL) -noinput -run tools diff_lang_files $(EBIN)
+	$(ERL) -pa $(WINGS_INTL) -noinput -run tools diff_lang_files $(EBIN)
 
 common: $(TARGET_FILES)
 

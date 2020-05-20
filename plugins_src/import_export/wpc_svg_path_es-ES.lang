@@ -1,0 +1,28 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_svg_path,
+ [
+  {command,
+   [
+    {1,"Opciones de importación de Trayectos .svg"},
+    {2,"Número de bisecciones de arista"},
+    {3,"(Para obtener mejores resultados al importar desde Inkscape,\nconvertir todos los objetos a Trayectos y guardar como archivo .svg plano)"},
+    {4,"Archivo .svg"}
+   ]},
+  {make_svg,
+   [
+    {1,"La importación de Trayectos de Inkscape .svg ha fallado"},
+    {2,"Error interno de importación de Trayectos de Inkscape .svg"}
+   ]},
+  {parse_chars,
+   [
+    {1,"No hay trayectos cerrados."}
+   ]},
+  {parse_path,
+   [
+    {3,"No se pudo procesar este archivo."}
+   ]},
+  {try_import_svg,
+   [
+    {1,"No es un archivo .svg"}
+   ]}
+ ]}.

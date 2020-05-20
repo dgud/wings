@@ -1,0 +1,15 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_flow_connect,
+ [
+  {flow_connect,
+   [
+    {1,"Conectar Flujo"},
+    {2,"Conectar las aristas con respecto a la geometría circundante"},
+    {3,"Conectar Flujo y mover las aristas a su lugar"}
+   ]},
+  {help,
+   [
+    {1,"Mover en la dirección de las normales de cara"},
+    {2,"Mover en la dirección del flujo de geometría"}
+   ]}
+ ]}.

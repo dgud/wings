@@ -18,10 +18,11 @@
 
 %% Useful functions.
 -export([mirror_faces/2,set_color/2,force_bridge/5,
-	 extrude_faces/1,extrude_region/1,extract_region/1,shell_extrude/1]).
+	 extrude_faces/1,extrude_region/1,extract_region/1,shell_extrude/1,
 	 % not currently used outside this module (but could be)
 	 % extract_faces/1
-
+         subdiv/2
+         ]).
 -include("wings.hrl").
 -import(lists, [foldl/3,reverse/1,sort/1,keyfind/3,member/2]).
 
@@ -1360,7 +1361,9 @@ put_on_check_selection(Id, St) ->
         [{1,_}] ->
             {none,""};
         [_|_] ->
-            {none,?__(2,"Select only one element.")}
+            {none,?__(2,"Select only one element.")};
+        [] ->
+            {none,?__(3,"One destination element must be selected.")}
     end.
 
 put_on([{Axis,Target}], St0) ->

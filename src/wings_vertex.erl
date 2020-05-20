@@ -624,6 +624,8 @@ try_connect_1(Va, Vb, Face, We0) ->
 %%  and the left side of the new edge will belong to the new face.
 %%
 force_connect(Vstart, Vend, Face, #we{es=Etab0,fs=Ftab0}=We0) ->
+    All = wings_face:vertices_ccw(Face, We0),
+    true = lists:member(Vstart, All) andalso lists:member(Vend, All),
     {NewFace,We1} = wings_we:new_ids(1, We0),
     NewEdge = NewFace,
     NeRec0 = #edge{vs=Vstart,ve=Vend,lf=NewFace,rf=Face},

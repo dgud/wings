@@ -11,7 +11,7 @@
 
 -module(wpc_stl).
 -export([init/0, menu/2, command/2]).
--include("e3d.hrl").
+-include_lib("wings/e3d/e3d.hrl").
 
 init() ->
     true.
@@ -114,20 +114,48 @@ raw_triangles_to_bin(RawTriangles) ->
 %%% ================================
 stl_import(Name) ->
     case file:read_file(Name) of
+    {ok,<<"solid", Bin/binary>>} ->
+	print_boxed("FileName: " ++ Name),
+	{Vs,Fs} = read_stl_ascii(Bin),
+	Res = import(Vs,Fs),
+	Res;
     {ok,Bin} ->
 	print_boxed("FileName: " ++ Name),
-	Res = import(Bin),
+	{Vs,Fs} = read_stl(Bin),
+	Res = import(Vs,Fs),
 	Res;
     {error,Reason} ->
 	{error,file:format_error(Reason)}
     end.
 
-import(Data) ->
-    {Vs,Fs} = read_stl(Data),
+import(Vs,Fs) ->
     Efs = faces_to_e3dfaces(Fs),
     Mesh = #e3d_mesh{type=polygon,vs=Vs,fs=Efs},
     Obj = #e3d_object{name="STL object",obj=Mesh},
     {ok, #e3d_file{objs=[Obj]}}.
+
+read_stl_ascii(Data) ->
+    RawTriangles = case re:run(Data, "facet normal\\s+\\S+\\s+\\S+\\s+\\S+\\s+"
+				     "outer loop\\s+"
+				     "vertex\\s+(\\S+)\\s+(\\S+)\\s+(\\S+)\\s+"
+				     "vertex\\s+(\\S+)\\s+(\\S+)\\s+(\\S+)\\s+"
+				     "vertex\\s+(\\S+)\\s+(\\S+)\\s+(\\S+)\\s+"
+				     "endloop\\s+"
+				     "endfacet",
+			       [global,{capture,all_but_first,list}]) of
+			{match, Triangles} ->
+			    lists:map(fun([X1,Y1,Z1,X2,Y2,Z2,X3,Y3,Z3]) ->
+					    [{str2float(X1), str2float(Y1), str2float(Z1)},
+					     {str2float(X2), str2float(Y2), str2float(Z2)},
+					     {str2float(X3), str2float(Y3), str2float(Z3)}]
+				      end, Triangles);
+			_ ->
+			    []
+		   end,
+    e3d_util:raw_to_indexed(RawTriangles).
+
+str2float(Str) ->
+    wings_util:string_to_float(Str).
 
 read_stl(Data) ->
     <<Header:80/binary, NumFs:32/little, Rest/binary>> = Data,

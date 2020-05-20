@@ -446,6 +446,8 @@ tri_sphere(Opts) when is_map(Opts) ->
     CCW    = maps:get(ccw, Opts, true),
     Scale  = maps:get(scale, Opts, 1),
     Normal = maps:get(normals, Opts, false),
+    UV     = maps:get(uvs, Opts, false),
+    Tg     = maps:get(tgs, Opts, false),
     %% Do the work
     Tris   = subd_tris(1, Subd, ?octahedron),
     case Binary of
@@ -455,14 +457,26 @@ tri_sphere(Opts) when is_map(Opts) ->
 		    Scale =:= 1 -> [BinTris];
 		    true -> [list_to_bin(Tris, CCW, 1)]
 		 end,
-	    {size(BinTris) div (9*4), BinTris, Ns};
+	    UVs = if not UV -> [];
+		      true -> list_to_bin(prepare_uvs(Tris), CCW, 1)
+		  end,
+	    Tgs = if not Tg -> [];
+		      true -> list_to_bin(prepare_tgs(Tris), CCW, 1)
+		  end,
+	    {size(BinTris) div (9*4), BinTris, Ns, UVs, Tgs};
 	false ->
 	    Scaled = convert_list(Tris, CCW, Scale),
 	    Ns = if not Normal -> [];
 		    Scale =:= 1 -> Scaled;
 		    true -> convert_list(Tris, CCW, 1)
 		 end,
-	    {length(Tris), Scaled, Ns}
+	    UVs = if not UV -> [];
+		      true -> convert_list(prepare_uvs(Tris), CCW, 1)
+		  end,
+	    Tgs = if not Tg -> [];
+		      true -> convert_list(prepare_tgs(Tris), CCW, 1)
+		  end,
+	    {length(Tris), Scaled, Ns, UVs, Tgs}
     end.
 
 subd_tris(Level, MaxLevel, Sphere0) when Level < MaxLevel ->
@@ -495,35 +509,67 @@ subd_tris([],Acc) ->
 midpoint({X1,Y1,Z1}, {X2,Y2,Z2}) ->
     {(X1+X2)*0.5, (Y1+Y2)*0.5, (Z1+Z2)*0.5}.
 
-%%%%%%%%%%%%%% Converters %%%%%%%%%%%
-list_to_bin(Tris, true, 1) ->
-    << <<(X1):?F32,(Y1):?F32,(Z1):?F32,
-	(X2):?F32,(Y2):?F32,(Z2):?F32,
-	(X3):?F32,(Y3):?F32,(Z3):?F32>>
-     || {{X1,Y1,Z1},{X2,Y2,Z2},{X3,Y3,Z3}} <- Tris >>;
-list_to_bin(Tris, false, 1) ->
-    << <<(X1):?F32,(Y1):?F32,(Z1):?F32,
-	(X2):?F32,(Y2):?F32,(Z2):?F32,
-	(X3):?F32,(Y3):?F32,(Z3):?F32>>
-     || {{X1,Y1,Z1},{X3,Y3,Z3},{X2,Y2,Z2}} <- Tris >>;
-list_to_bin(Tris, true, Size) ->
-    << <<(X1*Size):?F32,(Y1*Size):?F32,(Z1*Size):?F32,
-	(X2*Size):?F32,(Y2*Size):?F32,(Z2*Size):?F32,
-	(X3*Size):?F32,(Y3*Size):?F32,(Z3*Size):?F32>>
-     || {{X1,Y1,Z1},{X2,Y2,Z2},{X3,Y3,Z3}} <- Tris >>;
-list_to_bin(Tris, false, Size) ->
-    << <<(X1*Size):?F32,(Y1*Size):?F32,(Z1*Size):?F32,
-	(X2*Size):?F32,(Y2*Size):?F32,(Z2*Size):?F32,
-	(X3*Size):?F32,(Y3*Size):?F32,(Z3*Size):?F32>>
-     || {{X1,Y1,Z1},{X3,Y3,Z3},{X2,Y2,Z2}} <- Tris >>.
+%%%%%%%%%%%%%% Compute tangents for tri_sphere %%%%%%%%%%%
+prepare_tgs(Tris) ->
+    lists:foldr(fun({A,B,C}, Acc) ->
+		    [{calc_tg(A),calc_tg(B),calc_tg(C)}|Acc]
+		end, [], Tris).
 
-convert_list(List, true, 1) ->
-    [V || {V1,V2,V3} <- List, V <- [V1,V2,V3]];
-convert_list(List, false, 1) ->
-    [V || {V1,V2,V3} <- List, V <- [V1,V3,V2]];
-convert_list(List, true, Size) ->
-    [{(X*Size),(Y*Size),(Z*Size)} ||
-        {V1,V2,V3} <- List, {X,Y,Z} <- [V1,V2,V3]];
-convert_list(List, false, Size) ->
-    [{(X*Size),(Y*Size),(Z*Size)} ||
-        {V1,V2,V3} <- List, {X,Y,Z} <- [V1,V3,V2]].
+calc_tg(?YPLUS) -> {0.0,0.0,-1.0,-1.0};
+calc_tg(?YMIN) -> {0.0,0.0,-1.0,-1.0};
+calc_tg(N) ->
+    Bi = e3d_vec:cross(N,{0.0,1.0,0.0}),
+    T = {X,Y,Z} = e3d_vec:norm(e3d_vec:cross(N, Bi)),
+    case e3d_vec:dot(e3d_vec:cross(N, T), Bi) < 0.0 of
+        true -> {X,Y,Z,1.0};
+        false -> {X,Y,Z,-1.0}
+    end.
+
+%%%%%%%%%%%%%% Compute the UVs for tri_sphere %%%%%%%%%%%
+prepare_uvs(Tris) ->
+    lists:foldr(fun({A,B,C}, Acc) ->
+		    {UA1,VA} = calc_uv(A),
+		    {UB1,VB} = calc_uv(B),
+		    {UC1,VC} = calc_uv(C),
+		    UA0 = close_uv_loop(UA1,UB1,UC1),
+		    UB0 = close_uv_loop(UB1,UC1,UA1),
+		    UC0 = close_uv_loop(UC1,UA1,UB1),
+		    UA = fix_top_issue(A, UA0, UB0, UC0),
+		    UB = fix_top_issue(B, UB0, UC0, UA0),
+		    UC = fix_top_issue(C, UC0, UA0, UB0),
+		    [{{UA,VA},{UB,VB},{UC,VC}}|Acc]
+		end, [], Tris).
+
+calc_uv({X,Y,Z}) ->
+    U = 0.5 + math:atan2(X, Z) / (2 * math:pi()),
+    V = 0.5 + math:asin(Y) / math:pi(),
+    {U,V}.
+
+fix_top_issue(V, _, UB, UC) when V=:=?YPLUS; V=:=?YMIN -> (UB+UC)/2.0;
+fix_top_issue(_, UA, _, _) -> UA.
+
+close_uv_loop(1.0, UVuB, UVuC) when (UVuB < 0.5); (UVuC < 0.5) -> 0.0;
+close_uv_loop(UVuA, _, _) -> UVuA.
+
+%%%%%%%%%%%%%% Converters %%%%%%%%%%%
+list_to_bin([{{_,_},_,_}|_]=Tris, CCW, Scale) ->
+    << <<(U):?F32,(V):?F32>> || Fs <- Tris, {U,V} <- conv_tuple_bin(Fs,CCW,Scale) >>;
+list_to_bin(Tris, CCW, Scale) ->
+    << <<(X):?F32,(Y):?F32,(Z):?F32>> || Fs <- Tris, {X,Y,Z} <- conv_tuple_bin(Fs,CCW,Scale) >>.
+
+conv_tuple_bin({_,_}=Fs, CCW, _) ->
+    [V || V <- conv_tuple_list(Fs,CCW)];
+conv_tuple_bin(Fs, CCW, Size) ->
+    [scale(V, Size) || V <- conv_tuple_list(Fs,CCW)].
+
+convert_list(List, CCW, 1) ->
+    [V || Fs <- List, V <- conv_tuple_list(Fs,CCW)];
+convert_list(List, CCW, Size) ->
+    [scale(V, Size) || Fs <- List, V <- conv_tuple_list(Fs,CCW)].
+
+conv_tuple_list({U,V}, _) -> [U,V];
+conv_tuple_list({V1,V2,V3}, true) -> [V1,V2,V3];
+conv_tuple_list({V1,V2,V3}, false) -> [V1,V3,V2].
+
+scale({X,Y,Z},Size) -> {(X*Size),(Y*Size),(Z*Size)};
+scale({_,_}=UV,_) -> UV.

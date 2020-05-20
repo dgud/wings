@@ -17,8 +17,7 @@
 	 wx/0,wxe/0,wxu/1,wxu/3,wxunref/0,wxundef/0,wxcs/0,
 	 wxc/1,wxq/1,
 	 dialyze/0,dialyze/1,
-	 wldiff/1,
-	 lm/0,mm/0]).
+	 wldiff/1]).
 -export([diana/0]).
 
 -import(lists, [foldl/3,foreach/2,flatmap/2]).
@@ -237,40 +236,6 @@ wldiff_1([F|Fs]) ->
     wldiff_1(Fs);
 wldiff_1([]) -> ok.
 
-%%%
-%%% Load or show modified modules. (Thanks to Vladimir Sekissov.)
-%%%
-%%% FIXME: lm() and mm() will be included in OTP 20. This code can
-%%% be removed when Wings will require OTP 20 or higher.
-%%%
-
-lm() ->
-    [c:l(M) || M <- mm()].
-
-mm() ->
-    modified_modules().
-
-modified_modules() ->
-    [M || {M,_} <- code:all_loaded(), module_modified(M)].
-
-module_modified(Module) ->
-    case code:is_loaded(Module) of
-	{file,[_|_]} ->
-	    case code:which(Module) of
-                non_existing ->
-		    false;
-                Path ->
-		    MD5 = erlang:get_module_info(Module, md5),
-		    case beam_lib:md5(Path) of
-			{ok,{_Mod,FileMD5}} ->
-			    MD5 =/= FileMD5;
-			_ ->
-			    false
-		    end
-	    end;
-	_ ->
-	    false
-    end.
 
 %%%
 %%% Internal functions.

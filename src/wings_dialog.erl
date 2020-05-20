@@ -33,7 +33,7 @@
 %%-compile(export_all).
 
 -record(in, {key, type, def, wx, wx_ext=[], validator, data, hook, output=true}).
--record(eh, {fs, apply, prev_parent, owner, type, pid, dialog}).
+-record(eh, {fs, apply, prev_parent, owner, type, pid, dialog, timer}).
 
 %%
 %% Syntax of Qs.
@@ -67,11 +67,11 @@
 %% flag makes the checkbox value and the return value of the field to
 %% be the inverted minimized state (the maximized state ;-).
 %%
-%% {oframe,Fields[,Flags]}                      -- Overlay frame
-%%     Flags = [Flag]
-%%     Flag = {title,String}|{style,Style}|{key,Key}|{hook,Hook}|layout
-%%     Style = menu|buttons  -- menu is default
-%%
+%% {oframe, Frames}                      -- Overlay frame
+%%     Frames = [{Title, Fields, Def, Flags}]
+%%     Title = String
+%%     Def = term()  -- Tab index to be focused.
+%%     Flags = [{style,buttons}]
 %%
 %%
 %% Composite fields (consisting of other fields)
@@ -209,7 +209,7 @@ init() ->
 info(Title, Info, Options) ->
     Parent = proplists:get_value(parent, Options, get_dialog_parent()),
     Flags  = [{size, {500, 400}}, {style, ?wxCAPTION bor ?wxRESIZE_BORDER bor ?wxCLOSE_BOX}],
-    Frame  = wxMiniFrame:new(Parent, ?wxID_ANY, Title, Flags),
+    Frame  = wxFrame:new(Parent, ?wxID_ANY, Title, Flags),
     Panel  = wxHtmlWindow:new(Frame, []),
     Sizer  = wxBoxSizer:new(?wxVERTICAL),
     Html = text_to_html(Info),
@@ -251,7 +251,7 @@ dialog(Ask, Title, Qs0, Fun, HelpFun) ->
     {PreviewCmd, Qs} = preview_cmd(Qs0),
     dialog_1(Ask, Title, PreviewCmd, Qs, Fun, HelpFun).
 dialog_1(Ask, Title, PreviewCmd, Qs0, Fun) when is_list(Qs0) ->
-    Qs = {vframe_dialog, Qs0, [{buttons, [ok, cancel]}]},
+    Qs = {vframe_dialog, Qs0, [{buttons, [ok, cancel]}, {position, mouse}]},
     dialog_1(Ask, Title, PreviewCmd, Qs, Fun);
 dialog_1(Ask, Title, PreviewCmd, Qs, Fun) when not is_list(Qs) ->
     case element(1,Qs) of
@@ -259,11 +259,16 @@ dialog_1(Ask, Title, PreviewCmd, Qs, Fun) when not is_list(Qs) ->
 	drag_preview_cmd -> error(Qs);
 	_Assert -> ok
     end,
-    {Dialog, Fields} = build_dialog(Ask andalso PreviewCmd, Title, Qs),
+    BuildDialog = case Ask of
+                      true -> PreviewCmd;
+                      false -> false;
+                      return -> false
+                  end,
+    {Dialog, Fields} = build_dialog(BuildDialog, Title, Qs),
     %% io:format("Enter Dialog ~p ~p ~p~n",[Ask,PreviewCmd, Fields]),
     enter_dialog(Ask, PreviewCmd, Dialog, Fields, Fun).
 dialog_1(Ask, Title, PreviewCmd, Qs0, Fun, HelpFun) when is_list(Qs0) ->
-    Qs = {vframe_dialog, Qs0, [{buttons, [ok, cancel]},{help, HelpFun}]},
+    Qs = {vframe_dialog, Qs0, [{buttons, [ok, cancel]},{help, HelpFun}, {position, mouse}]},
     dialog_1(Ask, Title, PreviewCmd, Qs, Fun).
 
 
@@ -342,14 +347,22 @@ set_value_impl(#in{wx=Ctrl, type=text}, Val, _) ->
     wxTextCtrl:changeValue(Ctrl, to_str(Val));
 set_value_impl(#in{wx=Ctrl, type=slider, data={_, ToSlider}}, Val, _) ->
     wxSlider:setValue(Ctrl, ToSlider(Val));
-set_value_impl(#in{wx=Ctrl, type=col_slider}, Val, _) ->
-    ww_color_slider:setColor(Ctrl, Val);
-set_value_impl(#in{wx=Ctrl, type=color, wx_ext=Ext}, Val, _) ->
+set_value_impl(#in{wx=Ctrl, type=col_slider}=In, Val, Store) ->
+    ww_color_slider:setColor(Ctrl, Val),
+    true = ets:insert(Store, In#in{data=Val});
+set_value_impl(#in{wx=Ctrl, type=color, wx_ext=Ext}=In, Val, Store) ->
     case Ext of
-	[Slider] -> ww_color_slider:setColor(Slider, Val);
+	[Slider] ->
+            ww_color_slider:setColor(Slider, Val);
 	_ -> ignore
     end,
-    ww_color_ctrl:setColor(Ctrl, Val);
+    ww_color_ctrl:setColor(Ctrl, Val),
+    true = ets:insert(Store, In#in{data=Val});
+set_value_impl(In=#in{type=image, wx=SBMap}, Val, Store) ->
+    Bitmap = image_to_bitmap(Val),
+    wxStaticBitmap:setBitmap(SBMap,Bitmap),
+    wxBitmap:destroy(Bitmap),
+    true = ets:insert(Store, In#in{data=Val});
 set_value_impl(In=#in{type=button}, Val, Store) ->
     true = ets:insert(Store, In#in{data=Val});
 set_value_impl(In=#in{type=value}, Val, Store) ->
@@ -424,7 +437,9 @@ reset_dialog_parent(Dialog) ->
     case Stack of
 	[Next|_] ->
 	    wxDialog:raise(Next);
-	[] -> ok
+	[] ->
+            wxGLCanvas:setCurrent(?GET(gl_canvas)),
+            ok
     end,
     ?SET(dialog_parent, Stack).
 
@@ -432,8 +447,14 @@ enter_dialog(false, _, _, Fields, Fun) -> % No dialog return def values
     Values = get_output(default, Fields),
     true = ets:delete(element(1, Fields)),
     return_result(Fun, Values, wings_wm:this());
+enter_dialog(return, _, _, Fields, Fun) -> % No dialog return def values
+    Values = get_output(default, Fields),
+    true = ets:delete(element(1, Fields)),
+    return_result(fun(R) -> {return, Fun(R)} end, Values, wings_wm:this());
 enter_dialog(true, no_preview, Dialog, Fields, Fun) -> %% No preview cmd / modal dialog
     set_dialog_parent(Dialog),
+    %% wx bug (mac modal) workaround fixed in 21.3?
+    os:type() == {unix,darwin} andalso timer:sleep(200),
     case wxDialog:showModal(Dialog) of
 	?wxID_CANCEL ->
 	    reset_dialog_parent(Dialog),
@@ -486,8 +507,15 @@ notify_event_handler_cb(false, _) -> fun(_,_) -> ignore end;
 notify_event_handler_cb(no_preview, _) -> fun(_,_) -> ignore end;
 notify_event_handler_cb(_, Msg) -> fun(_,_) -> wings_wm:psend(send_once, dialog_blanket, Msg) end.
 
+close(Pid) ->
+    Ref = erlang:monitor(process, Pid),
+    Pid ! closed,
+    receive {'DOWN',Ref,process,_,_} -> ok end.
+
 event_handler(#wx{id=?wxID_CANCEL},
-	      #eh{apply=Fun, owner=Owner, type=Preview, pid=Pid}) ->
+	      #eh{apply=Fun, owner=Owner, type=Preview, pid=Pid}=Eh0) ->
+    reset_timer(Eh0),
+    wings_wm:release_focus(),
     case Preview of
 	preview ->
 	    #st{}=St = Fun(cancel),
@@ -495,32 +523,48 @@ event_handler(#wx{id=?wxID_CANCEL},
 	drag_preview ->
 	    wings_wm:send(Owner, cancel)
     end,
-    Pid ! closed,
+    close(Pid),
     delete;
 event_handler(#wx{id=Result}=_Ev,
-	      #eh{fs=Fields, apply=Fun, owner=Owner, pid=Pid}) ->
+	      #eh{fs=Fields, apply=Fun, owner=Owner, pid=Pid} = Eh0) ->
     %%io:format("Ev closing ~p~n  ~p~n",[_Ev, Fields]),
+    reset_timer(Eh0),
+    wings_wm:release_focus(),
     Values = get_output(Result, Fields),
-    return_result(Fun, Values, Owner),
-    Pid ! closed,
+    close(Pid),
+    try return_result(Fun, Values, Owner)
+    catch throw:{command_error,_} = Error ->
+	    wings_wm:send(Owner, Error);
+          _:Reason ->
+            io:format("Dialog preview crashed: ~p~n~p~n",[Reason, erlang:get_stacktrace()])
+    end,
     delete;
-event_handler(preview, #eh{fs=Fields, apply=Fun, owner=Owner}) ->
+event_handler(preview, Eh0) ->
+    Eh = reset_timer(Eh0),
+    New = wings_wm:set_timer(150, preview_exec),
+    {replace, fun(Ev) -> event_handler(Ev, Eh#eh{timer=New}) end};
+event_handler(preview_exec, #eh{fs=Fields, apply=Fun, owner=Owner}=Eh0) ->
+    Eh = reset_timer(Eh0),
     Values = get_output(preview, Fields),
-    case Fun({dialog_preview,Values}) of
+    try Fun({dialog_preview,Values}) of
 	{preview,#st{}=St0,#st{}=St} ->
 	    wings_wm:send_after_redraw(Owner, {update_state,St}),
 	    wings_wm:send(Owner, {current_state,St0});
 	{preview,Action,#st{}=St}->
 	    wings_wm:send_once_after_redraw(Owner, {action,Action}),
-	    wings_wm:send(Owner, {current_state,St}),
-	    keep;
+	    wings_wm:send(Owner, {current_state,St});
 	Action = {numeric_preview, _} ->
 	    wings_wm:send(Owner, {action,Action});
 	Action when is_tuple(Action); is_atom(Action) ->
 	    %%io:format("~p:~p: ~p~n",[?MODULE,?LINE,{preview,[Owner,{action,Action}]}]),
 	    wings_wm:send(Owner, {action,Action})
-    end;
+    catch _:Reason ->
+            io:format("Dialog preview crashed: ~p~n~p~n",[Reason, erlang:get_stacktrace()])
+    end,
+    {replace, fun(Ev) -> event_handler(Ev, Eh) end};
 event_handler(#mousebutton{which=Obj}=Ev, _) ->
+    wings_wm:send(wings_wm:wx2win(Obj), {camera,Ev,keep});
+event_handler(#mousewheel{which=Obj}=Ev, _) ->
     wings_wm:send(wings_wm:wx2win(Obj), {camera,Ev,keep});
 event_handler(#mousemotion{}, _) -> keep;
 event_handler(got_focus, #eh{dialog=Dialog}) ->
@@ -530,6 +574,12 @@ event_handler(got_focus, #eh{dialog=Dialog}) ->
 event_handler(_Ev, _) ->
     %% io:format("unhandled Ev ~p~n",[_Ev]),
     keep.
+
+reset_timer(#eh{timer=undefined} = Eh) ->
+    Eh;
+reset_timer(#eh{timer=Timer}=Eh) ->
+    wings_wm:cancel_timer(Timer),
+    Eh#eh{timer=undefined}.
 
 get_output(Result, {Table, Order}) ->
     Get = fun(Key, Acc) ->
@@ -557,12 +607,12 @@ get_curr_value(#in{type=dirpicker, wx=Ctrl}) ->
     wxDirPickerCtrl:getPath(Ctrl);
 get_curr_value(#in{type=fontpicker, wx=Ctrl}) ->
     wxFontPickerCtrl:getSelectedFont(Ctrl);
-get_curr_value(#in{type=color, wx=Ctrl}) ->
-    ww_color_ctrl:getColor(Ctrl);
+get_curr_value(#in{type=color, data=Data}) ->
+    Data;
 get_curr_value(#in{type=slider, wx=Ctrl, data={Convert,_}}) ->
     Convert(wxSlider:getValue(Ctrl));
-get_curr_value(#in{type=col_slider, wx=Ctrl}) ->
-    ww_color_slider:getColor(Ctrl);
+get_curr_value(#in{type=col_slider, data=Val}) ->
+    Val;
 get_curr_value(#in{type=choice, wx=Ctrl}) ->
     wxChoice:getClientData(Ctrl,wxChoice:getSelection(Ctrl));
 get_curr_value(#in{type=text, def=Def, wx=Ctrl, validator=Validate}) ->
@@ -594,6 +644,25 @@ setup_hooks({Table, Keys}) ->
     _ = [setup_hook(hd(ets:lookup(Table, Key)), Table) || Key <- Keys],
     ok.
 
+setup_hook(#in{key=Key, wx=Ctrl, type=color, wx_ext=Ext, hook=UserHook}, Fields) ->
+    CB = fun({col_changed, Col}) ->
+                 set_value(Key, Col, Fields),
+		 UserHook =/= undefined andalso UserHook(Key, Col, Fields)
+	 end,
+    ww_color_ctrl:connect(Ctrl, col_changed, [{callback, CB}]),
+    case Ext of
+	[Slider] -> ww_color_slider:connect(Slider, col_changed, [{callback, CB}]);
+	_ -> ignore
+    end,
+    ok;
+setup_hook(#in{key=Key, wx=Ctrl, type=col_slider, hook=UserHook}, Fields) ->
+    CB = fun({col_changed, Col}) ->
+                 set_value(Key, Col, Fields),
+                 UserHook =/= undefined andalso UserHook(Key, Col, Fields)
+         end,
+    ww_color_slider:connect(Ctrl, col_changed, [{callback, CB}]),
+    ok;
+%% The following only need callbacks if they contain user hooks
 setup_hook(#in{hook=undefined}, _) -> ok;
 setup_hook(#in{key=Key, wx=Ctrl, type=checkbox, hook=UserHook}, Fields) ->
     %% Setup callback
@@ -656,23 +725,6 @@ setup_hook(#in{key=Key, wx=Ctrl, type=button, hook=UserHook}, Fields) ->
 					 UserHook(Key, button_pressed, Fields)
 				 end}]),
     ok;
-
-setup_hook(#in{key=Key, wx=Ctrl, type=color, wx_ext=Ext, hook=UserHook}, Fields) ->
-    CB = fun({col_changed, Col}) ->
-		 UserHook(Key, Col, Fields)
-	 end,
-    ww_color_ctrl:connect(Ctrl, col_changed, [{callback, CB}]),
-    case Ext of
-	[Slider] -> ww_color_slider:connect(Slider, col_changed, [{callback, CB}]);
-	_ -> ignore
-    end,
-    ok;
-setup_hook(#in{key=Key, wx=Ctrl, type=col_slider, hook=UserHook}, Fields) ->
-    ww_color_slider:connect(Ctrl, col_changed,
-			    [{callback, fun({col_changed, Col}) ->
-						UserHook(Key, Col, Fields)
-					end}]),
-    ok;
 setup_hook(#in{key=Key, wx=Ctrl, type=slider, hook=UserHook, data={FromSlider,_}}, Fields) ->
     wxSlider:connect(Ctrl, scroll_thumbtrack,
 		     [{callback, fun(#wx{event=#wxScroll{commandInt=Val}}, _) ->
@@ -714,27 +766,28 @@ setup_hook(#in{key=Key, wx=Ctrl, type=table, hook=UserHook}, Fields) ->
 
 %% Kind of special
 setup_hook(#in{wx=Canvas, type=custom_gl, hook=CustomRedraw}, Fields) ->
-    Env = wx:get_env(),
     Custom = fun() ->
-		     wxGLCanvas:setCurrent(Canvas),
-		     CustomRedraw(Canvas, Fields),
-		     wxGLCanvas:swapBuffers(Canvas)
+                     try
+                         wxGLCanvas:setCurrent(Canvas),
+                         CustomRedraw(Canvas, Fields),
+                         wxGLCanvas:swapBuffers(Canvas)
+                     catch _:Reason ->
+                             io:format("GL Custom callback crashed ~p~n~p~n",
+                                       [Reason, erlang:get_stacktrace()])
+                     end
 	     end,
     Redraw = fun(#wx{}, _) ->
-		     case os:type() of
-			 {win32, _} ->
-			     DC = wxPaintDC:new(Canvas),
-			     wxPaintDC:destroy(DC);
-			 _ -> ok
-		     end,
-		     spawn(fun() ->
-				   wx:set_env(Env),
-				   wx:batch(Custom)
-			   end),
+		     DC = case os:type() of
+                              {win32, _} -> wxPaintDC:new(Canvas);
+                              _ -> false
+                     end,
+                     wx:batch(Custom),
+                     DC =/= false andalso wxPaintDC:destroy(DC),
 		     ok
 	     end,
     wxWindow:connect(Canvas, paint, [{callback, Redraw}]),
-    wxWindow:connect(Canvas, erase_background, [{callback, fun(_,_) -> ok end}]), %% WIN32 only?
+    element(1,os:type()) =:= win32 andalso
+        wxWindow:connect(Canvas, erase_background, [{callback, fun(_,_) -> ok end}]),
     ok;
 
 setup_hook(_What, _) ->
@@ -767,7 +820,7 @@ label_col({Label,Def}) -> {Label, {text,Def}};
 label_col({Label,Def,Flags}) -> {Label, {text,Def, Flags}}.
 
 build_dialog(false, _Title, Qs) ->
-    {DialogData,_} = build(false, Qs, undefined, undefined),
+    {_,DialogData,_} = build(false, Qs, undefined, undefined),
     {undefined, DialogData};
 build_dialog(AskType, Title, Qs) ->
     wx:batch(fun() ->
@@ -784,7 +837,7 @@ build_dialog(AskType, Title, Qs) ->
 		     Top    = wxBoxSizer:new(?wxVERTICAL),
 		     Sizer  = wxBoxSizer:new(?wxVERTICAL),
 		     try build(AskType, Qs, Panel, Sizer) of
-			 {DialogData, Fs} ->
+			 {Location, DialogData, Fs} ->
 			     set_keyboard_focus(Dialog, Fs),
 			     wxWindow:setSizer(Panel, Sizer),
 			     wxSizer:add(Top, Panel, [{proportion, 1},
@@ -792,6 +845,7 @@ build_dialog(AskType, Title, Qs) ->
 						      {border, 5}]),
 			     setup_buttons(Dialog, Top, DialogData),
 			     wxWindow:setSizerAndFit(Dialog, Top),
+                             set_position(Location, Dialog),
 			     setup_hooks(DialogData),
 			     {Dialog, DialogData}
 		     catch Class:Reason ->
@@ -823,18 +877,40 @@ set_keyboard_focus(Dialog, Fields) ->
 	    ok
     end.
 
+set_position(mouse, Dialog) ->
+    {Xm,Ym} = wx_misc:getMousePosition(),
+    {Wd, Hd} = wxWindow:getSize(Dialog),
+    Ws = wxSystemSettings:getMetric(?wxSYS_SCREEN_X),
+    Hs = wxSystemSettings:getMetric(?wxSYS_SCREEN_Y),
+    {XWw, YWw} = wxWindow:getScreenPosition(?GET(top_frame)),
+    if (Xm+Wd) < Ws, (Ym+Hd) < Hs ->
+            wxWindow:move(Dialog, max(Xm-100, min(0,XWw)), max(Ym-50, min(0,YWw)));
+       (Xm+Wd) < Ws ->
+            wxWindow:move(Dialog, max(Xm-100, min(0,XWw)), max(Hs-Hd-50, min(0,YWw)));
+       (Ym+Hd) < Hs ->
+            wxWindow:move(Dialog, max(Ws-Wd-100, min(0,XWw)), max(Ym-50, min(0,YWw)));
+       true ->
+            io:format("~p ~p~n",[{Xm,Wd,Ws},{Ym,Hd,Hs}]),
+            ok
+    end;
+set_position(center, Dialog) ->
+    wxTopLevelWindow:centerOnScreen(Dialog);
+set_position(_, _Dialog) ->
+    ok.
+
 build(Ask, Qs, Parent, Sizer) ->
-    Fields = build(Ask, Qs, Parent, Sizer, []),
+    {Location,Fields} = build(Ask, Qs, Parent, Sizer, []),
     {Fs, _} = lists:mapfoldl(fun(In=#in{key=undefined},N) -> {In#in{key=N}, N+1};
 				(In=#in{}, N) -> {In, N+1}
 			     end, 1, lists:reverse(Fields)),
     Table = ets:new(?MODULE, [{keypos, #in.key}, public]),
     true = ets:insert(Table, Fs),
-    {{Table, [Key || #in{key=Key} <- Fs]}, Fs}.
+    {Location, {Table, [Key || #in{key=Key} <- Fs]}, Fs}.
 
 
 build(Ask, {vframe_dialog, Qs, Flags}, Parent, Sizer, []) ->
     Def = proplists:get_value(value, Flags, ?wxID_OK),
+    Location = proplists:get_value(position, Flags, {-1,-1}),
     Buttons = proplists:get_value(buttons, Flags, [ok, cancel]),
     HelpFun = proplists:get_value(help, Flags, undefined),
     ButtMask = lists:foldl(fun(ok, Butts)     -> ?wxOK bor Butts;
@@ -873,12 +949,16 @@ build(Ask, {vframe_dialog, Qs, Flags}, Parent, Sizer, []) ->
 		     Ok
 	     end,
     In = build(Ask, {vframe, Qs, [{proportion,1}]}, Parent, Sizer, []),
-    [#in{key=proplists:get_value(key,Flags), def=Def,
-	 output= undefined =/= proplists:get_value(key,Flags),
-	 type=dialog_buttons, wx=Create}|In];
+    {Location, [#in{key=proplists:get_value(key,Flags), def=Def,
+		     output= undefined =/= proplists:get_value(key,Flags),
+		     type=dialog_buttons, wx=Create}|In]};
 
-build(Ask, {oframe, Tabs, Def, Flags}, Parent, WinSizer, In0)
-  when Ask =/= false ->
+build(Ask, {oframe, Tabs, _Def, _Flags}, Parent, WinSizer, In0) when Ask==false ->
+    AddPage = fun({_Title, Data}, In) ->
+		    build(Ask, Data, Parent, WinSizer, In)
+	      end,
+    lists:foldl(AddPage, In0, Tabs);
+build(Ask, {oframe, Tabs, Def, Flags}, Parent, WinSizer, In0) ->
     DY  =  wxSystemSettings:getMetric(?wxSYS_SCREEN_Y)*5 div 6, %% don't take entire screen.
     buttons =:= proplists:get_value(style, Flags, buttons) orelse error(Flags),
     NB = wxNotebook:new(Parent, ?wxID_ANY),
@@ -974,8 +1054,7 @@ build(Ask, {label_column, Rows, Flags}, Parent, Sizer, In) ->
 		   (separator) ->
 			separator
 		end,
-    build(Ask, {vframe, lists:map(Translate, Rows), Flags},
-	  Parent, Sizer, In);
+    build(Ask, {vframe, lists:map(Translate, Rows), Flags}, Parent, Sizer, In);
 
 build(Ask, panel, _Parent, Sizer, In)
   when Ask =/= false ->
@@ -1038,7 +1117,7 @@ build(Ask, {slider, {color, Def, Flags}}, Parent, Sizer, In) ->
 		     end,
     [#in{key=proplists:get_value(key,Flags), def=Def,
 	 hook=proplists:get_value(hook, Flags),
-	 type=color, wx=Ctrl, wx_ext=CtrlExt}|In];
+	 type=color, wx=Ctrl, wx_ext=CtrlExt, data=Def}|In];
 
 
 build(Ask, {slider, Flags}, Parent, Sizer, In) ->
@@ -1060,7 +1139,7 @@ build(Ask, {slider, Flags}, Parent, Sizer, In) ->
 	Color ->
 	    true = lists:member(Color, [rgb, red, green, blue, hue, sat, val]), %% Assert
 	    Type = col_slider,
-	    Data = undefined,
+            Data = Def,
 	    Create = fun() ->
 			     Ctrl = ww_color_slider:new(Parent, ?wxID_ANY, Def, [{color, Color}]),
 			     tooltip(Ctrl, Flags),
@@ -1069,8 +1148,8 @@ build(Ask, {slider, Flags}, Parent, Sizer, In) ->
 		     end
     end,
     [#in{key=proplists:get_value(key,Flags), def=Def, data=Data,
-	 hook=proplists:get_value(hook, Flags),
-	 type=Type, wx=create(Ask,Create)}|In];
+         hook=proplists:get_value(hook, Flags),
+         type=Type, wx=create(Ask,Create)}|In];
 
 build(Ask, {color, Def, Flags}, Parent, Sizer, In) ->
     Create = fun() ->
@@ -1085,7 +1164,7 @@ build(Ask, {color, Def, Flags}, Parent, Sizer, In) ->
 		     add_sizer(button, Sizer, Ctrl, Flags),
 		     Ctrl
 	     end,
-    [#in{key=proplists:get_value(key,Flags), def=Def,
+    [#in{key=proplists:get_value(key,Flags), def=Def, data=Def,
 	 hook=proplists:get_value(hook, Flags),
 	 type=color, wx=create(Ask,Create)}|In];
 
@@ -1260,6 +1339,17 @@ build(Ask, {image, ImageOrFile}, Parent, Sizer, In) ->
     create(Ask, Create),
     In;
 
+build(Ask, {image, ImageOrFile, Flags}, Parent, Sizer, In) ->
+    Create = fun() ->
+		Bitmap = image_to_bitmap(ImageOrFile),
+		SBMap = wxStaticBitmap:new(Parent, ?wxID_ANY, Bitmap),
+		add_sizer(image, Sizer, SBMap, []),
+		wxBitmap:destroy(Bitmap),
+		SBMap
+	     end,
+    [#in{key=proplists:get_value(key,Flags), def=ImageOrFile, hook=proplists:get_value(hook, Flags),
+	 type=image, wx=create(Ask,Create)}|In];
+
 build(Ask, {help, Title, Fun}, Parent, Sizer, In) ->
     Display = fun(_,_) ->
 		      info(Title, Fun(), [{parent, Parent}])
@@ -1278,8 +1368,9 @@ build(Ask, {custom_gl, CW, CH, Fun}, Parent, Sizer, In) ->
 build(Ask, {custom_gl, CW, CH, Fun, Flags}, Parent, Sizer, In) ->
     Context = wxGLCanvas:getContext(?GET(gl_canvas)),
     Create = fun() ->
-		     Ps = [{size, {CW,CH}},wings_gl:attributes()],
+		     Ps = [wings_gl:attributes(),{style, ?wxFULL_REPAINT_ON_RESIZE}],
 		     Canvas = wxGLCanvas:new(Parent, Context, Ps),
+                     wxGLCanvas:setMinSize(Canvas, {CW,CH}),
 		     add_sizer(custom, Sizer, Canvas, Flags),
 		     Canvas
 	     end,
@@ -1467,8 +1558,8 @@ create_slider(Ask, Def, Flags, {MaxSize,Validator}, Parent, TopSizer) when is_nu
     Text = wxTextCtrl:new(Parent, ?wxID_ANY, [{value, to_str(Def)}]),
     {CharWidth,_,_,_} = wxWindow:getTextExtent(Text, "W"),
     wxTextCtrl:setMaxSize(Text, {MaxSize*CharWidth, -1}),
-    wxSizer:add(Sizer, Slider, [{proportion,2}, {flag, ?wxEXPAND}]),
-    wxSizer:add(Sizer, Text,   [{proportion,1}]),
+    wxSizer:add(Sizer, Slider, [{proportion,1}, {flag, ?wxEXPAND}]),
+    wxSizer:add(Sizer, Text,   [{proportion,0}]),
     add_sizer(slider, TopSizer, Sizer, Flags),
     tooltip(Slider, Flags),
     tooltip(Text, Flags),
@@ -1534,34 +1625,36 @@ add_sizer(What, Sizer, Ctrl, Opts) ->
     Proportion = proplists:get_value(proportion, Opts, Proportion0),
     Border = proplists:get_value(border, Opts, Border0),
     Flags  = proplists:get_value(flag, Opts, Flags0),
-    wxSizer:add(Sizer, Ctrl,
-		[{proportion, Proportion},{border, Border},{flag, Flags}]).
+    wxSizer:add(Sizer, Ctrl, [{proportion, Proportion},{border, Border},{flag, Flags}]).
 
-sizer_flags(label, ?wxHORIZONTAL)     -> {0, 2, ?wxRIGHT bor ?wxALIGN_CENTER_VERTICAL};
-sizer_flags(label, ?wxVERTICAL)       -> {1, 2, ?wxRIGHT bor ?wxALIGN_CENTER_VERTICAL};
-sizer_flags(separator, ?wxHORIZONTAL) -> {1, 5, ?wxALL bor ?wxALIGN_CENTER_VERTICAL};
-sizer_flags(separator, ?wxVERTICAL)   -> {0, 5, ?wxALL bor ?wxEXPAND};
-sizer_flags(text, ?wxHORIZONTAL)      -> {1, 2, ?wxRIGHT bor ?wxALIGN_CENTER_VERTICAL};
-sizer_flags(slider, ?wxHORIZONTAL)    -> {2, 0, ?wxALIGN_CENTER_VERTICAL};
-sizer_flags(slider, ?wxVERTICAL)      -> {0, 0, ?wxEXPAND};
-sizer_flags(button, _)                -> {0, 0, ?wxALIGN_CENTER_VERTICAL};
-sizer_flags(image, _)                 -> {0, 5, ?wxALL bor ?wxALIGN_CENTER_VERTICAL};
-sizer_flags(choice, _)                -> {0, 0, ?wxALIGN_CENTER_VERTICAL};
-sizer_flags(checkbox, ?wxVERTICAL)    -> {0, 3, ?wxTOP bor ?wxBOTTOM bor ?wxALIGN_CENTER_VERTICAL};
-sizer_flags(checkbox, ?wxHORIZONTAL)  -> {0, 2, ?wxRIGHT bor ?wxALIGN_CENTER_VERTICAL};
-sizer_flags(table,  _)                -> {4, 0, ?wxEXPAND};
-sizer_flags({radiobox, Dir}, Dir)     -> {5, 0, ?wxEXPAND bor ?wxALIGN_CENTER_VERTICAL};
-sizer_flags({radiobox, _}, _)         -> {1, 0, ?wxEXPAND bor ?wxALIGN_CENTER_VERTICAL};
-sizer_flags({box, Dir}, Dir)          -> {0, 2, ?wxALL bor ?wxEXPAND bor ?wxALIGN_CENTER_VERTICAL};
-sizer_flags({box, _}, _)              -> {0, 2, ?wxALL bor ?wxEXPAND bor ?wxALIGN_CENTER_VERTICAL};
-sizer_flags(fontpicker, ?wxHORIZONTAL)    -> {2, 2, ?wxRIGHT};
-sizer_flags(fontpicker, ?wxVERTICAL)      -> {0, 2, ?wxRIGHT bor ?wxEXPAND};
-sizer_flags(filepicker, ?wxHORIZONTAL)    -> {2, 2, ?wxRIGHT};
-sizer_flags(filepicker, ?wxVERTICAL)      -> {0, 2, ?wxRIGHT bor ?wxEXPAND};
-sizer_flags(custom, _)                -> {0, 5, ?wxALL};
-sizer_flags(panel, _)                 -> {0, 0, ?wxALL bor ?wxEXPAND bor ?wxALIGN_CENTER_VERTICAL}; %?wxEXPAND};
-sizer_flags(_, ?wxHORIZONTAL)         -> {1, 0, ?wxALIGN_CENTER_VERTICAL};
-sizer_flags(_, ?wxVERTICAL)           -> {0, 0, ?wxEXPAND}.
+sizer_flags(label, ?wxHORIZONTAL)      -> {0, 2, ?wxRIGHT bor ?wxALIGN_CENTER_VERTICAL};
+sizer_flags(label, ?wxVERTICAL)        -> {1, 2, ?wxRIGHT };
+sizer_flags(separator, ?wxHORIZONTAL)  -> {1, 5, ?wxALL bor ?wxALIGN_CENTER_VERTICAL};
+sizer_flags(separator, ?wxVERTICAL)    -> {0, 5, ?wxALL bor ?wxEXPAND};
+sizer_flags(text, ?wxHORIZONTAL)       -> {1, 2, ?wxRIGHT bor ?wxALIGN_CENTER_VERTICAL};
+sizer_flags(slider, ?wxHORIZONTAL)     -> {2, 0, ?wxALIGN_CENTER_VERTICAL};
+sizer_flags(slider, ?wxVERTICAL)       -> {0, 0, ?wxEXPAND};
+sizer_flags(button, Dir)               -> {0, 0, center_v(Dir)};
+sizer_flags(image, _Dir)               -> {0, 5, ?wxALL bor ?wxEXPAND};
+sizer_flags(choice, Dir)               -> {0, 0, center_v(Dir)};
+sizer_flags(checkbox, ?wxVERTICAL)     -> {0, 3, ?wxTOP bor ?wxBOTTOM };
+sizer_flags(checkbox, ?wxHORIZONTAL)   -> {0, 2, ?wxRIGHT bor ?wxALIGN_CENTER_VERTICAL};
+sizer_flags(table,  _)                 -> {4, 0, ?wxEXPAND};
+sizer_flags({radiobox, Dir}, Dir)      -> {5, 0, ?wxEXPAND};
+sizer_flags({radiobox, _}, _Dir)       -> {1, 0, ?wxEXPAND};
+sizer_flags({box, Dir}, Dir)           -> {0, 2, ?wxALL bor ?wxEXPAND};
+sizer_flags({box, _}, _Dir)            -> {0, 2, ?wxALL bor ?wxEXPAND};
+sizer_flags(fontpicker, ?wxHORIZONTAL) -> {2, 2, ?wxRIGHT};
+sizer_flags(fontpicker, ?wxVERTICAL)   -> {0, 2, ?wxRIGHT bor ?wxEXPAND};
+sizer_flags(filepicker, ?wxHORIZONTAL) -> {2, 2, ?wxRIGHT};
+sizer_flags(filepicker, ?wxVERTICAL)   -> {0, 2, ?wxRIGHT bor ?wxEXPAND};
+sizer_flags(custom, _)                 -> {0, 5, ?wxALL};
+sizer_flags(panel, _Dir)               -> {0, 0, ?wxALL bor ?wxEXPAND};
+sizer_flags(_, ?wxHORIZONTAL)          -> {1, 0, ?wxALIGN_CENTER_VERTICAL};
+sizer_flags(_, ?wxVERTICAL)            -> {0, 0, ?wxEXPAND}.
+
+center_v(?wxHORIZONTAL) -> ?wxALIGN_CENTER_VERTICAL;
+center_v(?wxVERTICAL) -> 0.
 
 create(false, _) -> undefined;
 create(_, Fun) -> Fun().
@@ -1638,7 +1731,7 @@ paragraph_to_html([C|Text]) when is_list(C) ->
     [paragraph_to_html(C), paragraph_to_html(Text)];
 paragraph_to_html([]) -> [].
 
-table_to_html({table, _, Header, Items}) ->
+ table_to_html({table, _, Header, Items}) ->
     ["<p><b>", Header, "</b></p><table>",
      [table_row_to_html(Row) || Row <- Items],
      "</table>"].
@@ -1682,19 +1775,20 @@ integer_validator(Flags) ->
     end.
 
 float_validator(Flags) ->
+    MaxDigits = proplists:get_value(digits, Flags, 10),
     case proplists:get_value(range, Flags) of
-	undefined -> {10,accept_all_fun(float)};
-	{'-infinity',infinity} -> {10,accept_all_fun(float)};
+	undefined -> {MaxDigits,accept_all_fun(float)};
+	{'-infinity',infinity} -> {MaxDigits,accept_all_fun(float)};
 	{Min,infinity} when is_float(Min) ->
-	    {10,float_range(Min, infinity)};
+	    {MaxDigits,float_range(Min, infinity)};
 	{'-infinity',Max} when is_float(Max) ->
-	    {10,float_range('-infinity', Max)};
+	    {MaxDigits,float_range('-infinity', Max)};
 	{Min,Max,Default} when is_float(Min), is_float(Max), is_float(Default),
 			       Min =< Default, Default =< Max ->
-	    Digits = min(trunc(math:log(Max-Min+1)/math:log(10))+8, 10),
+	    Digits = min(trunc(math:log(Max-Min+1)/math:log(10))+8, MaxDigits),
 	    {Digits,float_range(Min, Max, Default)};
 	{Min,Max} when is_float(Min), is_float(Max), Min =< Max ->
-	    Digits = min(trunc(math:log(Max-Min+1)/math:log(10))+8, 10),
+	    Digits = min(trunc(math:log(Max-Min+1)/math:log(10))+8, MaxDigits),
 	    {Digits,float_range(Min, Max)}
     end.
 
@@ -1891,6 +1985,9 @@ fix_expr([], Acc)   -> lists:reverse(Acc, ".");
 fix_expr([$.],Acc) -> lists:reverse(Acc, ".");
 fix_expr([$.|T], [X|_]=Acc) when X >= $0, X =< $9 ->
     fix_expr(T, [$.|Acc]);
+%% Translate float 2,4 to erlangish 2.4
+fix_expr([$, |[Y|_]=T], [X|_]=Acc) when X >= $0, X =< $9, Y >= $0, Y =< $9 ->
+    fix_expr(T, [$.|Acc]);
 fix_expr([$.|T], Acc)  ->
     fix_expr(T, [$.,$0|Acc]);
 %% Some math simplifications.
@@ -1931,9 +2028,7 @@ text_wheel_move(Def, Value, #wxMouse{wheelRotation=Count,wheelDelta=Delta}=EvMou
 		Increment = round(Incr),
 		integer_to_list(CurValue +round((Count/Delta)*Increment));
 	    _ ->
-		CurValue = try list_to_float(Value)
-			   catch _:_ -> float(list_to_integer(Value))
-			   end,
+		CurValue = wings_util:string_to_float(Value),
 		Increment = Incr,
 		float_to_list(CurValue +((Count/Delta)*Increment))
 	end

@@ -11,12 +11,13 @@
 #     $Id$
 #
 
+include ../erl.mk
+
 .SUFFIXES: .erl .jam .beam .yrl .xrl .bin .mib .hrl .sgml .html .ps .3 .1 \
 	.fig .dvi .tex .class .java .pdf .psframe .pscrop
 
 ESRC=.
 EBIN=../ebin
-ERLC=erlc
 
 ifeq ($(TYPE),debug)
 TYPE_FLAGS=-DDEBUG +debug_info
@@ -35,13 +36,13 @@ MODULES= \
 	e3d_util \
 	e3d_vec \
 	e3d_q \
-	e3d_qbvh \
 	e3d_bv \
+	e3d_bvh \
 	e3d_kd3 \
-	orig_kd3 \
 	e3d__tri_quad \
 	e3d__meshclean \
 	e3d__bmp \
+	e3d__dds \
 	e3d__tga \
 	e3d__png \
 	e3d__tif \

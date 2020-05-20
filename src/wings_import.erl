@@ -14,7 +14,7 @@
 -module(wings_import).
 -export([import/2,import_mesh/2]).
 
--include("e3d.hrl").
+-include_lib("wings/e3d/e3d.hrl").
 -include("wings.hrl").
 -import(lists, [reverse/1,foldl/3,sort/1]).
 
@@ -68,8 +68,10 @@ store_object(Name, We, St) ->
 
 import_object(#e3d_object{name=_Name,obj=Mesh0}) ->
     %%io:format("\n~s:\n", [_Name]),
-    Mesh1 = e3d_mesh:clean_faces(Mesh0),
-    Mesh = e3d_mesh:transform(Mesh1),
+    Mesh1 = e3d_mesh:merge_vertices(Mesh0),
+    Mesh2 = e3d_mesh:clean_faces(Mesh1),
+    Mesh3 = e3d_mesh:transform(Mesh2),
+    Mesh  = e3d_mesh:hard_edges_from_normals(Mesh3),
     import_mesh(material, Mesh).
 
 -define(P(N), {N,fun N/2}).
@@ -149,11 +151,12 @@ run([{_Name,F}|Fs], ObjType, Mesh0) ->
     %%io:format("~p\n", [_Name]),
     try F(ObjType, Mesh0) of
 	#we{}=We -> We;
-	#e3d_mesh{}=Mesh -> run(Fs, ObjType, Mesh)
+	#e3d_mesh{}=Mesh -> run(Fs, ObjType, Mesh);
+        error -> run(Fs, ObjType, Mesh0)
     catch
 	_:_R ->
-	    _Stack = erlang:get_stacktrace(),
-	    %%io:format("~p failed: ~P\n", [Name,_R,10]),
+	    %%_Stack = erlang:get_stacktrace(),
+	    %%io:format("~p failed: ~P\n", [_Name,_R,10]),
 	    %%io:format(" ~P\n", [_Stack,20]),
 	    run(Fs, ObjType, Mesh0)
     end.

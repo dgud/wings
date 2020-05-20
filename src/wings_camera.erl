@@ -29,7 +29,8 @@
 -record(camera,
 	{x,y,					%Current mouse position.
 	 ox,oy,					%Original mouse position.
-	 xt=0,yt=0				%Last warp length.
+	 xt=0,yt=0,				%Last warp length.
+         w,h                                    %Win size
 	}).
 
 -record(state, {st, func}).
@@ -59,7 +60,7 @@ prefs() ->
     CamRotSpeed = wings_pref:get_value(cam_rotation_speed, 25),
     PanSpeed0 = wings_pref:get_value(pan_speed, 25),
     ArrowPanSpeed = wings_pref:get_value(pan_speed_arrow_keys, 50),
-    WheelAdds = wings_pref:get_value(wheel_adds,false),
+    WheelAdds = wings_pref:get_value(wheel_adds,true),
     WhScrollInfo = wings_pref:get_value(wh_scroll_info,true),
     WhPanSpd = wings_pref:get_value(wh_pan_spd, 50),
     WhRotate = wings_pref:get_value(wh_rot_spd, 7.5),
@@ -105,7 +106,7 @@ prefs() ->
 	    {label,"%"}]}
 	 ],[{title,?__(9,"Scroll Wheel")}]},
 	{vframe,
-	 [{?__(11,"Wheel Pans & Rotates"),WheelAdds,[{key,wheel_adds}, {hook, AddHook}]},
+	 [{?__(11,"Wheel Pans and Rotates"),WheelAdds,[{key,wheel_adds}, {hook, AddHook}]},
 	  {?__(17,"Show Info Line Help String"),WhScrollInfo,[{key,wh_scroll_info}]},
 	  {vframe,
 	   [{hframe,
@@ -188,7 +189,7 @@ scroll_help() ->
 event(Ev, St=#st{}) -> 
     event(Ev,St,none).
 %% Scroll wheel camera events
-event(#mousebutton{button=B}=Ev, _St, _Redraw) when B=:=4; B=:=5 ->
+event(#mousewheel{}=Ev, _St, _Redraw) ->
     generic_event(Ev,_St,_Redraw);
 % Camera mode specific events
 event(Ev, St, Redraw) ->
@@ -208,7 +209,7 @@ event(Ev, St, Redraw) ->
 %%%
 
 tweak_camera_event(Sym, X, Y, St) when Sym =:= $c; Sym =:= $s; Sym =:= $d ->
-    Camera = #camera{x=X,y=Y,ox=X,oy=Y},
+    Camera = start_camera(X,Y),
     {seq,push,get_tweak_cam_event(Sym, Camera, St)};
 tweak_camera_event(Sym, _, _, _) ->
     arrow_key_pan(Sym).
@@ -263,7 +264,7 @@ quit_tweak_cam() ->
 
 blender(#mousebutton{button=2,state=?SDL_PRESSED,x=X,y=Y,mod=Mod}, Redraw)
   when Mod band ?ALT_BITS =:= 0 ->
-    Camera = #camera{x=X,y=Y,ox=X,oy=Y},
+    Camera = start_camera(X,Y),
     grab(),
     message(blender_help()),
     {seq,push,get_blender_event(Camera, Redraw)};
@@ -305,7 +306,7 @@ blender_help() ->
 
 nendo(#mousebutton{button=2,x=X,y=Y,mod=Mod,state=?SDL_RELEASED}, Redraw)
   when Mod band ?CTRL_BITS =:= 0 ->
-    Camera = #camera{x=X,y=Y,ox=X,oy=Y},
+    Camera = start_camera(X,Y),
     grab(),
     MoveTumbles = allow_rotation(),
     nendo_message(MoveTumbles),
@@ -374,7 +375,7 @@ nendo_message(false) ->
 
 mirai(#mousebutton{button=2,x=X,y=Y,mod=Mod,state=?SDL_RELEASED}, Redraw)
   when Mod band ?CTRL_BITS =:= 0 ->
-    Camera = #camera{x=X,y=Y,ox=X,oy=Y},
+    Camera = start_camera(X,Y),
     grab(),
     MoveTumbles = allow_rotation(),
     mirai_message(MoveTumbles),
@@ -644,7 +645,7 @@ sketchup_help() ->
 
 wings_cam(#mousebutton{button=2,x=X,y=Y,mod=Mod,state=?SDL_RELEASED}, Redraw)
   when Mod band (?CTRL_BITS bor ?SHIFT_BITS bor ?ALT_BITS) =:= 0 ->
-    Camera = #camera{x=X,y=Y,ox=X,oy=Y},
+    Camera = start_camera(X,Y),
     grab(),
     wings_cam_message(),
     View = wings_view:current(),
@@ -697,50 +698,40 @@ generic_event(redraw, _Camera, #state{func=Redraw}) when is_function(Redraw) ->
     Redraw(),
     keep;
 
-generic_event(#mousebutton{button=4,mod=Mod,state=?SDL_RELEASED}, _Camera, _Redraw)
-  when Mod band ?SHIFT_BITS =/= 0 andalso Mod band ?ALT_BITS =/= 0 ->
-    whrotate(0.5,0.0);
-generic_event(#mousebutton{button=5,mod=Mod,state=?SDL_RELEASED}, _Camera, _Redraw)
-  when Mod band ?SHIFT_BITS =/= 0 andalso Mod band ?ALT_BITS =/= 0 ->
-    whrotate(-0.5,0.0);
-generic_event(#mousebutton{button=4,mod=Mod,state=?SDL_RELEASED}, _Camera, _Redraw)
-  when Mod band ?SHIFT_BITS =/= 0 ->
-    whrotate(0.0,0.5);
-generic_event(#mousebutton{button=5,mod=Mod,state=?SDL_RELEASED}, _Camera, _Redraw)
-  when Mod band ?SHIFT_BITS =/= 0 ->
-    whrotate(0.0,-0.5);
-
-generic_event(#mousebutton{button=4,mod=Mod,state=?SDL_RELEASED}, _Camera, _Redraw)
-  when Mod band ?CTRL_BITS =/= 0 andalso Mod band ?ALT_BITS =/= 0 ->
-    whpan(0.05,0.0);
-generic_event(#mousebutton{button=5,mod=Mod,state=?SDL_RELEASED}, _Camera, _Redraw)
-  when Mod band ?CTRL_BITS =/= 0 andalso Mod band ?ALT_BITS =/= 0 ->
-    whpan(-0.05,0.0);
-generic_event(#mousebutton{button=4,mod=Mod,state=?SDL_RELEASED}, _Camera, _Redraw)
-  when Mod band ?CTRL_BITS =/= 0 ->
-    whpan(0.0,0.05);
-generic_event(#mousebutton{button=5,mod=Mod,state=?SDL_RELEASED}, _Camera, _Redraw)
-  when Mod band ?CTRL_BITS =/= 0 ->
-    whpan(0.0,-0.05);
-
-generic_event(#mousebutton{button=4,mod=Mod,state=?SDL_RELEASED}, _Camera, _Redraw)
-  when Mod band ?ALT_BITS =/= 0 ->
-    zoom_step_alt(-1);
-generic_event(#mousebutton{button=4,state=?SDL_RELEASED}, #st{}=St, none) ->
-%% Matching 'none' stops zoom aim from being activated during a drag sequence.
-%% Zoom aim warps the mouse to the screen's centre, and this can cause a crash
-%% in since drag events also depend on cursor position.
-    aim_zoom(-1, St);
-generic_event(#mousebutton{button=4,state=?SDL_RELEASED}, _Camera, _Redraw) ->
-    zoom_step(-1);
-generic_event(#mousebutton{button=5,mod=Mod,state=?SDL_RELEASED}, _Camera, _Redraw)
-  when Mod band ?ALT_BITS =/= 0 ->
-    zoom_step_alt(1);
-generic_event(#mousebutton{button=5,state=?SDL_RELEASED}, _, none) ->
-%% Matching 'none' stops zoom aim from being activated during a drag sequence
-    zoom_step(1);
-generic_event(#mousebutton{button=5,state=?SDL_RELEASED}, _Camera, _Redraw) ->
-    zoom_step(1);
+generic_event(#mousewheel{dir=ver, wheel=N, mod=Mod}, Camera, Redraw) ->
+    %% ?dbg("Wheel: ~w  shift: ~p   alt ~p   ctrl: ~p~n",
+    %%      [N,Mod band ?SHIFT_BITS =/= 0,Mod band ?ALT_BITS =/= 0, Mod band ?CTRL_BITS =/= 0]),
+    if Mod band ?SHIFT_BITS =/= 0 andalso Mod band ?ALT_BITS =/= 0 ->
+            whrotate(N/2.0,0.0);
+       Mod band ?SHIFT_BITS =/= 0 ->
+            whrotate(0.0,N/2.0);
+       Mod band ?CTRL_BITS =/= 0 andalso Mod band ?ALT_BITS =/= 0 ->
+            whpan(N/20.0,0.0);
+       Mod band ?CTRL_BITS =/= 0 ->
+            whpan(0.0,N/20.0);
+       Mod band ?ALT_BITS =/= 0 ->
+            zoom_step_alt(-N);
+       is_record(Camera, st), Redraw =:= none ->
+            %% Matching 'none' stops zoom aim from being activated during a drag sequence.
+            %% Zoom aim warps the mouse to the screen's centre, and this can cause a crash
+            %% in since drag events also depend on cursor position.
+            aim_zoom(-N, Camera);
+       true ->
+            zoom_step(-N)
+    end;
+generic_event(#mousewheel{dir=hor, wheel=N, mod=Mod}, _Camera, _Redraw) ->
+    %% ?dbg("Wheel: ~w  shift: ~p   alt ~p   ctrl: ~p~n",
+    %%      [N,Mod band ?SHIFT_BITS =/= 0,Mod band ?ALT_BITS =/= 0, Mod band ?CTRL_BITS =/= 0]),
+    if
+        Mod band ?CTRL_BITS =/= 0 andalso Mod band ?ALT_BITS =/= 0 ->
+            whpan(0.0,N/20.0);
+        Mod band ?CTRL_BITS =/= 0 ->
+            whpan(N/20.0,0.0);
+        Mod band ?ALT_BITS =/= 0 ->
+            whrotate(0.0,N/2.0);
+        true ->  %% rotate X wether SHIFT is pressed or not
+            do_whrotate(N/2.0,0.0)
+    end;
 generic_event(grab_lost, Camera, _Redraw) ->
     stop_camera(Camera);
 generic_event(_, _, _) -> keep.
@@ -769,7 +760,6 @@ aim_zoom(Dir, St0) ->
         zoom_step(Dir)
     end.
 
-
 rotate(Dx, Dy) ->
     Speed = wings_pref:get_value(cam_rotation_speed,25)/25,
     case allow_rotation() of
@@ -789,17 +779,24 @@ whrotate(Dx, Dy) ->
       true ->
         case wings_pref:get_value(wheel_adds, true) of
           false -> keep;
-          true ->
-             wings_wm:dirty(),
-             View0= wings_view:current(),
-             #view{azimuth=Az0,elevation=El0} = View0,
-             S = 2 * wings_pref:get_value(wh_rot_spd),
-             Az = Az0 + Dx*S,
-             El = El0 + Dy*S,
-             View = View0#view{azimuth=Az,elevation=El,along_axis=none},
-             wings_view:set_current(View),
-             keep
+          true -> do_whrotate(Dx,Dy)
         end
+    end.
+
+do_whrotate(Dx,Dy) ->
+    case allow_rotation() of
+	false ->
+            keep;
+        true ->
+            wings_wm:dirty(),
+            View0= wings_view:current(),
+            #view{azimuth=Az0,elevation=El0} = View0,
+            S = 2 * wings_pref:get_value(wh_rot_spd),
+            Az = Az0 + Dx*S,
+            El = El0 + Dy*S,
+            View = View0#view{azimuth=Az,elevation=El,along_axis=none},
+            wings_view:set_current(View),
+            keep
     end.
 
 zoom_step_alt(Dir) ->
@@ -881,6 +878,10 @@ whpan(Dx0, Dy0) ->
 dist_factor(Dist) ->
     max(abs(Dist), 0.2).
 
+start_camera(X,Y) ->
+    {0,0,W,H} = wings_wm:viewport(),
+    #camera{x=X,y=Y,ox=X,oy=Y,w=W,h=H}.
+
 stop_camera(#camera{ox=Ox,oy=Oy}) ->
     wings_wm:release_focus(),
     case wings_io:ungrab(Ox, Oy) of
@@ -893,17 +894,39 @@ stop_camera(#camera{ox=Ox,oy=Oy}) ->
     pop.
 
 camera_mouse_range(X1, Y1, #camera{x=OX,y=OY, xt=Xt0, yt=Yt0}=Camera) ->
-%%    io:format("Camera Mouse Range ~p ~p~n", [{X0,Y0}, {OX,OY,Xt0,Yt0}]),
+    %% ?dbg("Camera ~w ~w~n", [X1,Y1]),
     XD0 = (X1 - OX),
     YD0 = (Y1 - OY),
     {XD,YD} = wings_pref:lowpass(XD0 + Xt0, YD0 + Yt0),
-
     if
 	XD0 =:= 0, YD0 =:= 0 ->
-	    {0.0,0.0,Camera#camera{xt=0,yt=0}};
+            case wings_pref:get_value(no_warp, false) of
+                false ->
+                    {0.0,0.0,Camera#camera{xt=0,yt=0}};
+                _ ->
+                    #camera{w=W, h=H} = Camera,
+                    Cx = W div 2, Cy = H div 2,
+                    wings_io:warp(Cx, Cy),
+                    {0.0,0.0,Camera#camera{xt=0,yt=0,x=Cx,y=Cy}}
+            end;
 	true ->
-	    wings_io:warp(OX, OY),
-	    {XD/?CAMDIV, YD/?CAMDIV, Camera#camera{xt=XD0, yt=YD0}}
+            case wings_pref:get_value(no_warp, false) of
+                false ->
+                    wings_io:warp(OX, OY),
+                    {XD/?CAMDIV, YD/?CAMDIV, Camera#camera{xt=XD0, yt=YD0}};
+                true ->
+                    %% Warp as few times as possible
+                    #camera{w=W, h=H} = Camera,
+                    case X1 < 10 orelse Y1 < 10 orelse X1 > (W-10) orelse Y1 > (H-10) of
+                        true ->
+                            #camera{w=W, h=H} = Camera,
+                            Cx = W div 2, Cy = H div 2,
+                            wings_io:warp(Cx, Cy),
+                            {XD/?CAMDIV, YD/?CAMDIV, Camera#camera{xt=XD0,yt=YD0,x=Cx,y=Cy}};
+                        false ->
+                            {XD/?CAMDIV, YD/?CAMDIV, Camera#camera{xt=XD0,yt=YD0,x=X1,y=Y1}}
+                    end
+            end
     end.
 
 view_hotkey(Ev, Camera, #state{st=St}) ->

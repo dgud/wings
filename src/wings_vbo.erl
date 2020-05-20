@@ -42,7 +42,7 @@ draw(Draw0, Data, Layout) ->
     gl:bindBuffer(?GL_ARRAY_BUFFER, Vbo),
     gl:bufferData(?GL_ARRAY_BUFFER, byte_size(Data), Data, ?GL_STATIC_DRAW),
     Draw = parse_layout(Layout, Vbo, Draw0),
-    Draw(),
+    _ = Draw(#{}),
     gl:deleteBuffers(Buffers),
     ok.
 
@@ -52,21 +52,23 @@ delete({call,_D,{vbo,Vbo}}) ->
     gl:deleteBuffers([Vbo]).
 
 parse_layout([vertex], Vbo, Draw) ->
-    fun() ->
+    fun(RS0) ->
 	    gl:bindBuffer(?GL_ARRAY_BUFFER, Vbo),
 	    gl:vertexPointer(3, ?GL_FLOAT, 0, 0),
 	    gl:enableClientState(?GL_VERTEX_ARRAY),
+	    RS = Draw(RS0),
 	    gl:bindBuffer(?GL_ARRAY_BUFFER, 0),
-	    Draw(),
-	    gl:disableClientState(?GL_VERTEX_ARRAY)
+	    gl:disableClientState(?GL_VERTEX_ARRAY),
+            RS
     end;
 parse_layout({predefined, Bufs}, Vbo, dynamic) ->
-    fun(Draw) ->
+    fun(Draw, RS0) ->
 	    gl:bindBuffer(?GL_ARRAY_BUFFER, Vbo),
 	    enable_buffers(Bufs),
-	    Draw(),
+	    RS = Draw(RS0),
 	    gl:bindBuffer(?GL_ARRAY_BUFFER, 0),
-	    disable_buffers(Bufs)
+	    disable_buffers(Bufs),
+            RS
     end;
 parse_layout(Layout, Vbo, Draw) ->
     Stride = case Layout of
@@ -74,12 +76,13 @@ parse_layout(Layout, Vbo, Draw) ->
 		 _ -> lists:sum([fsize(L) || L <- Layout])
 	     end,
     Bufs = parse_layout_1(Layout, Stride, 0),
-    fun() ->
+    fun(RS0) ->
 	    gl:bindBuffer(?GL_ARRAY_BUFFER, Vbo),
 	    enable_buffers(Bufs),
-	    Draw(),
+	    RS = Draw(RS0),
 	    gl:bindBuffer(?GL_ARRAY_BUFFER, 0),
-	    disable_buffers(Bufs)
+	    disable_buffers(Bufs),
+            RS
     end.
 
 parse_layout_1([Type|T], Stride, Addr) ->
@@ -95,6 +98,8 @@ make_bin([{A,B}|T], [Two|L], Layout, Bin)
     make_bin(T, L, Layout, <<Bin/binary, A:?F32,B:?F32>>);
 make_bin([{A,B,C}|T], [_|L], Layout, Bin) ->
     make_bin(T, L, Layout, <<Bin/binary, A:?F32,B:?F32,C:?F32>>);
+make_bin([{A,B,C,D}|T], [_|L], Layout, Bin) ->
+    make_bin(T, L, Layout, <<Bin/binary, A:?F32,B:?F32,C:?F32,D:?F32>>);
 make_bin([], [], _, Bin) ->
     Bin;
 make_bin(T, [], Layout, Bin) ->
@@ -103,6 +108,7 @@ make_bin(T, [], Layout, Bin) ->
 fsize(vertex) -> 3*4;
 fsize(vertex2d) -> 2*4;
 fsize(normal) -> 3*4;
+fsize(tangent) -> 4*4;
 fsize(color) -> 3*4;
 fsize(uv) -> 2*4;
 fsize({tex,_,Size}) -> Size*4.
@@ -111,10 +117,16 @@ type(vertex) -> ?GL_VERTEX_ARRAY;
 type(vertex2d) -> ?GL_VERTEX_ARRAY;
 type(color) -> ?GL_COLOR_ARRAY;
 type(normal) -> ?GL_NORMAL_ARRAY;
+
 type(uv) -> ?GL_TEXTURE_COORD_ARRAY;
 type({tex,Which,_}) ->
     gl:clientActiveTexture(?GL_TEXTURE0+Which),
     ?GL_TEXTURE_COORD_ARRAY.
+
+enable(tangent) ->
+    gl:enableVertexAttribArray(?TANGENT_ATTR);
+enable(Type) ->
+    gl:enableClientState(type(Type)).
 
 enable_buffers([{Type,Stride,Addr}|T]) ->
     case Type of
@@ -123,17 +135,25 @@ enable_buffers([{Type,Stride,Addr}|T]) ->
         normal -> gl:normalPointer(?GL_FLOAT, Stride, Addr);
         uv     -> gl:texCoordPointer(2, ?GL_FLOAT, Stride, Addr);
         vertex2d -> gl:vertexPointer(2, ?GL_FLOAT, Stride, Addr);
+        tangent -> gl:vertexAttribPointer(?TANGENT_ATTR, 4, ?GL_FLOAT,
+                                          ?GL_FALSE, Stride, Addr);
         {tex,Which,Size} ->
             gl:clientActiveTexture(?GL_TEXTURE0+Which),
             gl:texCoordPointer(Size, ?GL_FLOAT, Stride, Addr),
             gl:clientActiveTexture(?GL_TEXTURE0)
     end,
-    gl:enableClientState(type(Type)),
+    enable(Type),
     enable_buffers(T);
 enable_buffers([]) -> ok.
 
+disable(tangent) ->
+    gl:disableVertexAttribArray(?TANGENT_ATTR);
+disable(Type) ->
+    gl:disableClientState(type(Type)).
+
 disable_buffers([{Type,_,_}|T]) ->
-    gl:disableClientState(type(Type)),
-    gl:clientActiveTexture(?GL_TEXTURE0),
+    disable(Type),
     disable_buffers(T);
-disable_buffers([]) -> ok.
+disable_buffers([]) ->
+    gl:clientActiveTexture(?GL_TEXTURE0),
+    ok.

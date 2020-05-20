@@ -15,12 +15,12 @@
 
 -export([clear/1,reset/1,set/2,set/3,
 	 conditional_reset/1,
-         selected_ids/1,
+         selected_ids/1,unselected_ids/1,
 	 map/2,map_obj/2,
          map_update_sel/2,map_update_sel/3,
 	 update_sel/2,update_sel/3,update_sel_all/2,
          fold_obj/3,fold/3,dfold/4,mapfold/3,
-	 new_sel/3,make/3,valid_sel/1,valid_sel/3,
+	 new_sel/3,make/3,valid_sel/1,valid_sel/3,valid_sel_groups/3,
          clone/2,clone/3,combine/2,combine/3,merge/2,
 	 center/1,center_vs/1,
 	 bbox_center/1,bounding_box/1,
@@ -33,7 +33,7 @@
               edge_set/0,face_set/0,item_id/0,item_set/0,vertex_set/0]).
 
 -include("wings.hrl").
--include("e3d.hrl").
+-include_lib("wings/e3d/e3d.hrl").
 
 -import(lists, [foldl/3,reverse/1,reverse/2,sort/1,keydelete/3,keymember/3]).
 
@@ -99,6 +99,17 @@ set(Mode, Sel, St) ->
 
 selected_ids(#st{sel=Sel}) ->
     [Id || {Id,_} <- Sel].
+
+%%
+%% Return the Ids for all selected objects.
+%%
+
+-spec unselected_ids(#st{}) -> [non_neg_integer()].
+
+unselected_ids(#st{sel=Sel,shapes=Shs}) ->
+    SelIds = [Id || {Id,_} <- Sel],
+    AllIds = gb_trees:keys(Shs),
+    ordsets:subtract(AllIds, SelIds).
 
 %%%
 %%% Map over the selection, modifying the selected #we{}
@@ -381,7 +392,7 @@ merge(F, St) when is_function(F, 1) ->
 %%% Calculate the center for all selected objects.
 %%%
 
--spec center(#st{}) -> e3d_vector().
+-spec center(#st{}) -> e3d_vec:vector().
 
 center(#st{selmode=Mode}=St) ->
     MF = fun(Items, We) ->
@@ -397,7 +408,7 @@ center(#st{selmode=Mode}=St) ->
 %%% Calculate the center for all selected vertices.
 %%%
 
--spec center_vs(#st{}) -> e3d_vector().
+-spec center_vs(#st{}) -> e3d_vec:vector().
 
 center_vs(#st{selmode=Mode}=St) ->
     MF = fun(Items, We) ->
@@ -412,7 +423,7 @@ center_vs(#st{selmode=Mode}=St) ->
 
 %% Calculate center of bounding box.
 
--spec bbox_center(#st{}) -> e3d_vector().
+-spec bbox_center(#st{}) -> e3d_vec:vector().
 
 bbox_center(St) ->
     BBox = bounding_box(St),
@@ -422,7 +433,7 @@ bbox_center(St) ->
 %%% Calculate the bounding-box for the selection.
 %%%
 
--spec bounding_box(#st{}) -> [e3d_vector()] | 'none'.
+-spec bounding_box(#st{}) -> [e3d_vec:vector()] | 'none'.
 
 bounding_box(#st{selmode=Mode}=St) ->
     MF = fun(Items, We) ->
@@ -503,6 +514,26 @@ valid_sel(Sel0, Mode, #st{shapes=Shapes}) ->
 			    end
 		    end
 	    end, [], Sel0),
+    reverse(Sel).
+
+-spec valid_sel_groups(SelIn, Mode, #st{}) -> SelOut when
+    Mode :: mode(),
+    SelIn :: [{item_id(),item_set()}],
+    SelOut :: [{item_id(),item_set()}].
+
+valid_sel_groups(Sel0, Mode, #st{shapes=Shapes}) ->	% allow wings to save any selection groups
+    Sel = foldl(
+	fun({Id,Items0}, A) ->
+	    case gb_trees:lookup(Id, Shapes) of
+		none -> A;
+		{value,We} ->
+		    Items = validate_items(Items0, Mode, We),
+		    case gb_sets:is_empty(Items) of
+			false -> [{Id,Items}|A];
+			true -> A
+		    end
+	    end
+	end, [], Sel0),
     reverse(Sel).
 
 -spec select_object(obj_id(), #st{}) -> #st{}.
@@ -693,7 +724,11 @@ comb_merge(MF, #st{shapes=Shs0,selmode=Mode,sel=[{Id,_}|_]=Sel0}=St) ->
     Sel2 = sofs:domain(Sel1),
     {Wes0,Shs2} = sofs:partition(1, Shs1, Sel2),
     Wes = sofs:to_external(sofs:range(Wes0)),
-    {We,Items} = MF(Wes, Sel0, Mode),
+    {We0,Items} = MF(Wes, Sel0, Mode),
+    We = case lists:usort([wings_obj:get_folder(We) || We <- Wes]) of
+             [Folder] -> wings_obj:set_folder(Folder, We0);
+             _ -> We0 %% From different folders add to root folder
+         end,
     Shs = gb_trees:from_orddict(sort([{Id,We}|sofs:to_external(Shs2)])),
     Sel = case gb_sets:is_empty(Items) of
               true -> [];

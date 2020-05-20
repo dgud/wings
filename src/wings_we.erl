@@ -14,8 +14,7 @@
 %%
 
 -module(wings_we).
--export([map/2, 
-	 build/2,rebuild/1,fast_rebuild/1,
+-export([build/2,rebuild/1,fast_rebuild/1,
 	 new_wrap_range/3,id/2,bump_id/1,
 	 new_id/1,new_ids/2,
 	 invert_normals/1,
@@ -40,7 +39,7 @@
 -export_type([perm/0]).
 
 -include("wings.hrl").
--include("e3d.hrl").
+-include_lib("wings/e3d/e3d.hrl").
 -import(lists, [foreach/2,foldl/3,sort/1,keysort/2,reverse/1,zip/2,partition/2]).
 
 %% Permissions:
@@ -56,19 +55,19 @@
 %%% API.
 %%%
 
-%% Apply fun on all we's.
-map(Fun, St = #st{shapes=Shs0}) ->
-    Objs0 = lists:map(Fun, gb_trees:values(Shs0)),
-    Shs = gb_trees:from_orddict([{We#we.id, We} || We <- Objs0]),
-    St#st{shapes=Shs}.
-
 %% build() -> We'
 %% Create a we from faces and vertices or a mesh.
-build(Mode, #e3d_mesh{fs=Fs0,vs=Vs,tx=Tx,he=He}) when is_atom(Mode) ->
-    Fs = translate_faces(Fs0, list_to_tuple(Tx), []),
+build(Mode, #e3d_mesh{fs=Fs0,vs=Vs,vc=Vc0,tx=Tx,he=He}) when is_atom(Mode) ->
+    Vc = supress_alpha(Vc0),
+    Fs = translate_faces(Fs0, list_to_tuple(Vc), list_to_tuple(Tx), []),
     wings_we_build:we(Fs, Vs, He);
 build(Fs, Vs) ->
     wings_we_build:we(Fs, Vs, []).
+
+%% This should be temporary until we get Wings3D handle the alpha channel for vertex's color.
+%% files like .ply and .glTF are sharing this information
+supress_alpha([]) -> [];
+supress_alpha(VCs) -> [wings_color:rgba_to_rgb(Color) || Color <- VCs].
 
 %% rebuild(We) -> We'
 %%  Rebuild any missing 'vc' and 'fs' tables. Also remove any
@@ -324,7 +323,7 @@ mirror_flatten(OldWe, #we{mirror=Face,vp=Vtab0}=We) ->
 %%  projects points to the mirror plane. Otherwise return
 %%  'identity'.
 %%
--spec mirror_projection(#we{}) -> e3d_matrix().
+-spec mirror_projection(#we{}) -> e3d_mat:matrix().
 mirror_projection(#we{mirror=none}) ->
     identity;
 mirror_projection(#we{mirror=Face}=We) ->
@@ -543,16 +542,23 @@ show_faces_1(Faces, #we{es=Etab0}=We0) ->
 %%% Build Winged-Edges.
 %%%
 
-translate_faces([#e3d_face{vs=Vs,tx=Tx0,mat=Mat0}|Fs], Txs, Acc) ->
+translate_faces([#e3d_face{vs=Vs,vc=Vc0,tx=Tx0,mat=Mat0}|Fs], Vcs, Txs, Acc) ->
     Mat = translate_mat(Mat0),
-    FaceData = case Tx0 of
-		   [] -> {Mat,Vs};
-		   Tx1 ->
-		       Tx = [element(Tx+1, Txs) || Tx <- Tx1],
-		       {Mat,Vs,Tx}
+    FaceData = case {Tx0,Vc0} of
+		   {[],[]} -> {Mat,Vs};
+		   {Tx1,Vc1} ->
+		       Tx = if Tx1 =/= [] ->
+				[element(Tx+1, Txs) || Tx <- Tx1];
+			    true -> none
+			    end,
+		       Vc = if Vc1 =/= [] ->
+				[element(Vc+1, Vcs) || Vc <- Vc1];
+			    true -> none
+			    end,
+			   {Mat,Vs,Tx,Vc}
 	       end,
-    translate_faces(Fs, Txs, [FaceData|Acc]);
-translate_faces([], _, Acc) -> reverse(Acc).
+    translate_faces(Fs, Vcs, Txs, [FaceData|Acc]);
+translate_faces([], _, _, Acc) -> reverse(Acc).
 
 translate_mat([]) -> default;
 translate_mat([Mat]) -> Mat;
@@ -709,14 +715,11 @@ do_renumber(#we{vp=Vtab0,es=Etab0,fs=Ftab0,
 
     Pst_Elements = wings_plugin:check_plugins(save,Pst0),
     Pst = foldl(fun
-        ({_,{Plugin,{vs,VsSet}}}, Pst1) ->
-            Vs = gb_sets:to_list(VsSet),
+        ({_,{Plugin,{vs,Vs}}}, Pst1) ->
             renum_elements_in_pst(vs,Plugin,Vs,Vmap,Pst1);
-        ({_,{Plugin,{es,EsSet}}}, Pst1) ->
-            Es = gb_sets:to_list(EsSet),
+        ({_,{Plugin,{es,Es}}}, Pst1) ->
             renum_elements_in_pst(es,Plugin,Es,Emap,Pst1);
-        ({_,{Plugin,{fs,FsSet}}}, Pst1) ->
-            Fs = gb_sets:to_list(FsSet),
+        ({_,{Plugin,{fs,Fs}}}, Pst1) ->
             renum_elements_in_pst(fs,Plugin,Fs,Fmap,Pst1);
         ({remove,Plugin}, Pst1) ->
             gb_trees:delete(Plugin,Pst1)
@@ -792,15 +795,25 @@ renum_hard_edge(Edge0, Emap, New) ->
 
 % Checks plugins which store elements in the Pst that need to be renumbered
 % before saving and returns the new Pst.
-renum_elements_in_pst(Key,Plugin,Elements,Map,Pst0) ->
-    Renumbered = foldl(fun(Elem, New) ->
-      case gb_trees:lookup(Elem,Map) of
-          none -> New;
-          {_,NewNum} -> [NewNum|New]
-      end
-    end, [], Elements),
+renum_elements_in_pst(Key,Plugin,Elements0,Map,Pst0) ->
+    NewElems = case is_list(Elements0) of
+                   false ->
+                       Elements = gb_sets:to_list(Elements0),
+                       Renumbered = foldl(fun(Elem, New) ->
+                                                  case gb_trees:lookup(Elem,Map) of
+                                                      none -> New;
+                                                      {_,NewNum} -> [NewNum|New]
+                                                  end
+                                          end, [], Elements),
+                       gb_sets:from_list(Renumbered);
+                   true ->
+                       foldl(fun(PstElem, Acc) ->
+                                     Elem = Plugin:renumber(get_elem, PstElem),
+                                     Res = gb_trees:lookup(Elem,Map),
+                                     [Plugin:renumber(set_elem, PstElem, Res) | Acc]
+                             end, [], Elements0)
+               end,
     Data = gb_trees:get(Plugin,Pst0),
-    NewElems = gb_sets:from_list(Renumbered),
     NewData = gb_trees:update(Key,NewElems,Data),
     Pst = gb_trees:update(Plugin,NewData,Pst0),
     Pst.
@@ -831,7 +844,12 @@ separate_1(#we{es=Etab0}=We, Smallest0, Acc) ->
 	    {Edge,Smallest} = smallest(Smallest0, Etab0),
 	    Ws = gb_sets:singleton(Edge),
 	    {EtabLeft,NewEtab} = separate(Ws, Etab0, array:new()),
-	    NewWe = copy_dependents(We#we{es=NewEtab}),
+	    NewWe0 = copy_dependents(We#we{es=NewEtab}),
+	    NewWe =
+		case wings_we:all_hidden(NewWe0) of
+		    true -> show_faces(NewWe0#we{perm=?PERM_HIDDEN_BIT});  %Hide entire object.
+		    false -> NewWe0
+		end,
 	    separate_1(We#we{es=EtabLeft}, Smallest, [NewWe|Acc])
     end.
 

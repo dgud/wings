@@ -18,12 +18,12 @@
 
 -import(lists, [foldl/3,reverse/1,splitwith/2,map/2]).
 
--include("e3d.hrl").
--include("wings_intl.hrl").
+-include_lib("wings/e3d/e3d.hrl").
+-include_lib("wings/intl_tools/wings_intl.hrl").
 
 -define(SCALEFAC, 0.01). % amount to scale coords by
 
--record(cedge,% polyarea and cedge records must match definitions in wpc_tt.erl
+-record(cedge,% polyarea and cedge records must match definitions in wpc_ai.erl
     {vs,cp1=nil,cp2=nil,ve}).	%all are {x,y} pairs
 
 -record(path,
@@ -83,9 +83,9 @@ try_import_svg(Name, Nsubsteps) ->
         Objs = parse_bin_svg(Rest),
         Closedpaths = [ P || P <- Objs, P#path.close =:= true ],
         Cntrs = getcontours(Closedpaths),
-        Pas = wpc_tt:findpolyareas(Cntrs),
-        Pas1 = wpc_tt:subdivide_pas(Pas,Nsubsteps),
-        {Vs0,Fs,HEs} = wpc_tt:polyareas_to_faces(Pas1),
+        Pas = wpc_ai:findpolyareas(Cntrs),
+        Pas1 = wpc_ai:subdivide_pas(Pas,Nsubsteps),
+        {Vs0,Fs,HEs} = wpc_ai:polyareas_to_faces(Pas1),
         Center = e3d_vec:average(e3d_vec:bounding_box(Vs0)),
         Vec = e3d_vec:sub(e3d_vec:zero(),Center),
         Vs = reverse(center_object(Vec,Vs0)),
@@ -205,17 +205,7 @@ parse_path(_, _, _) ->
     wings_u:error_msg(?__(3,"Couldn't process this file.")).
 
 string_to_float(String) ->
-    case catch list_to_float(String) of
-      {'EXIT',_} ->
-        case catch float(list_to_integer(String)) of
-          {'EXIT',_} ->
-            % convert "5e-5" to 5.0e-5 (for example)
-            {A,B} = splitwith(fun(E) -> E =/= $e end, String),
-            list_to_float(A++".0"++B);
-          Float -> Float
-        end;
-      Float -> Float
-    end.
+    wings_util:string_to_float(String).
 
 getcontours(Ps) ->
     map(fun getcedges/1, Ps).

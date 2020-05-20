@@ -74,7 +74,7 @@ latin1_file_to_unicode(PrefFile) ->
 get_dir() ->
     PFile = case get_value(pref_directory) of
 		undefined -> 
-		    File = get_pref_directory("backup_prefs.txt"),
+		    File = get_pref_directory("backup_prefs.pref"),
 		    set_value(pref_directory,File),
 		    File;
 		File -> File
@@ -201,7 +201,7 @@ old_pref_file([]) ->
 
 
 pref_dirs() ->
-    Dir = filename:basedir(user_config, "Wings3D"),
+    Dir = wings_u:basedir(user_config),
     Old = case os:type() of
               {win32,_} -> win32_pref();
               {unix,darwin} -> mac_pref();
@@ -330,7 +330,6 @@ defaults() ->
     wings_theme:native_theme()++
     [
      %% Put any non-constant preferences here.
-     {jumpy_camera,os:type() =:= {unix,darwin}},
 
      %% Advanced menus are always turned on now.
      %% The default must still be false for compatibility
@@ -371,6 +370,8 @@ defaults() ->
      {polygon_offset_r,1.0},
      {multisample, true},
      {ungrab_bug, false},
+     {no_warp, false},
+     {jumpy_camera, false},
 
      %% Advanced features.
      {default_commands,false},

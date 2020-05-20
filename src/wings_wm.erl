@@ -1,3 +1,4 @@
+
 %%
 %%  wings_wm.erl --
 %%
@@ -29,7 +30,7 @@
 
 %% Window information.
 -export([top_size/0,
-	 viewport/0, viewport/1,
+	 viewport/0, viewport/1, win_scale/0,
 	 win_size/0, win_size/1,
 	 win_rect/0, win_rect/1,
 	 win_ul/0, win_ul/1, win_ur/1,win_ll/1,win_lr/1,win_z/1
@@ -42,14 +43,11 @@
 %% Setting the information bar message.
 -export([message/1,message/2,message_right/1]).
 
-%% Drag & Drop support.
--export([drag/3,drag/4,allow_drag/1]).
-
 %% Window property mangagement.
 -export([get_props/1,get_prop/1,get_prop/2,lookup_prop/1,lookup_prop/2,
 	 set_win_props/2, set_prop/2,set_prop/3,erase_prop/1,erase_prop/2,
 	 is_prop_defined/2,
-	 get_dd/0, get_dd/1, set_dd/2
+	 get_dd/0, get_dd/1, set_dd/2, redraw_geom/1
 	]).
 
 -export([get_value/1, set_value/2, delete_value/1]).
@@ -69,7 +67,8 @@
 	 stk,					%Event handler stack.
 	 links=[],			        %Windows linked to this one.
 	 dd=none, 				%Display data cache
-	 obj                                    %wx window
+	 obj,                                   %wx window
+         scale=1                                %HighDpi scale factor
 	}).
 
 -record(se,					%Stack entry record.
@@ -130,9 +129,10 @@ new(Name, Obj, Op) when element(1, Obj) =:= wx_ref ->
     new_props(Name, [{font,system_font}]),
     Z = highest_z(),
     {W,H} = wxWindow:getClientSize(Obj),
-    %% io:format("~p:~p: ~p ~p~n",[?MODULE, ?LINE, Name, Obj]),
+    Scale = wxWindow:getContentScaleFactor(Obj),
+    %% io:format("~p:~p: ~p ~p ~p~n",[?MODULE, ?LINE, Name, Obj, Scale]),
     use_opengl(Obj) andalso init_opengl(Name, Obj),
-    Win = #win{x=0,y=0,z=Z,w=W,h=H,name=Name,stk=Stk,obj=Obj},
+    Win = #win{x=0,y=0,z=Z,w=W,h=H,name=Name,stk=Stk,obj=Obj, scale=Scale},
     put(wm_windows, gb_trees:insert(Name, Win, get(wm_windows))),
     put(Obj, Name),
     dirty().
@@ -236,7 +236,10 @@ new_resolve_z(highest) ->
 new_resolve_z(Z) when is_integer(Z), Z >= 0-> Z.
 
 delete(Name) ->
-    wings_frame:close(wxwindow(Name)),
+    case wxwindow(Name) of
+        undefined -> ignore;
+        Win -> wings_frame:close(Win)
+    end,
     Windows = delete_windows(Name, get(wm_windows)),
     put(wm_windows, Windows),
     case is_window(grabbed_focus_window()) of
@@ -256,6 +259,12 @@ delete_windows(Name, W0) ->
 	none ->
 	    W0;
 	{value,#win{obj=Obj, links=Links}} ->
+            case get(current_gl) of
+                Obj ->
+                    erase(current_gl),
+                    wxGLCanvas:setCurrent(wxwindow(geom));
+                _ -> ignore
+            end,
 	    erase(Obj),
 	    delete_props(Name),
 	    This = this(),
@@ -340,6 +349,7 @@ is_geom() ->
     case this() of
       geom -> true;
       {geom,_} -> true;
+      {plugin, {_, geom}} -> true;
       _ -> false
     end.
 
@@ -444,7 +454,9 @@ grab_focus(Name) ->
 	    %%{_, [_,Where|_]} = erlang:process_info(self(), current_stacktrace),
 	    %%io:format("Grab focus: ~p~n   ~p~n",[Name, Where]),
 	    case get(wm_focus_grab) of
-		undefined -> put(wm_focus_grab, [Name]);
+		undefined ->
+		    update_focus(Name),
+		    put(wm_focus_grab, [Name]);
 		Stack -> put(wm_focus_grab, [Name|Stack])
 	    end;
 	false -> ok
@@ -489,9 +501,13 @@ cancel_timer(Ref) ->
 viewport() ->
     get(wm_viewport).
 
+win_scale() ->
+    #win{scale=Scale} = get_window_data(this()),
+    Scale.
+
 viewport(Name) ->
     #win{x=X,y=Y0,w=W,h=H} = get_window_data(Name),
-    {_,TopH} = get(wm_top_size),
+    {_,TopH} = wings_wm:top_size(),
     Y = TopH-(Y0+H),
     {X,Y,W,H}.
 
@@ -565,12 +581,29 @@ get_value(Key) ->
     end.
 
 set_value(Key,Val) ->
-    put(Key, Val),
+    case cache_key(Key) of
+        true ->
+            %% (self() =:= whereis(wings)) orelse
+            %%     io:format("Cached value (~p) updated from wrong process~n",[Key]),
+            put(Key, Val);
+        false -> ok
+    end,
     wings_pref:set_value({temp, Key}, Val).
 
 delete_value(Key) ->
     erase(Key),
     wings_pref:delete_value({temp, Key}).
+
+
+cache_key(cursors) -> true;
+cache_key(wings_plugins) -> true;
+cache_key(gl_canvas) -> true;
+cache_key(top_frame) -> true;
+cache_key(light_shaders) -> true;
+cache_key(system_font) -> true;
+cache_key({geom, _}) -> true;  %% Only set by wings_wm?
+cache_key({_, props}) -> true;  %% Only set by wings_wm?
+cache_key(_) -> false.
 
 new_props(Win, Props0) ->
     Props = gb_trees:from_orddict(Props0),
@@ -688,6 +721,9 @@ dispatch_event(#mousemotion{which=Obj}=Event) ->
 dispatch_event(#mousebutton{which=Obj}=Event) ->
     Win = update_focus(wx2win(Obj)),
     do_dispatch(Win, Event);
+dispatch_event(#mousewheel{which=Obj}=Event) ->
+    Win = update_focus(wx2win(Obj)),
+    do_dispatch(Win, Event);
 dispatch_event(#keyboard{which=Obj}=Event) ->
     case get_focus_window() of
 	{grabbed, Grab} ->
@@ -707,6 +743,12 @@ dispatch_event(#wx{event=#wxActivate{active=Active}}) ->
 	    dirty(),
             true;
 	false ->
+            case get_focus_window() of
+                {grabbed, Grab} ->
+                    do_dispatch(Grab, lost_focus);
+                _ ->
+                    ignore
+            end,
 	    update_focus(none),
 	    true
     end;
@@ -723,6 +765,31 @@ dispatch_event(#wx{obj=Obj, event=#wxSize{size={W,H}}}) ->
 	false ->
 	    true
     end;
+dispatch_event(#wx{obj=Obj, event=#wxFocus{type=kill_focus, win=New}}) ->
+    case {get_focus_window(), wx2win(Obj)} of
+        {undefined, _} -> ok;
+        {Win, Win} ->
+            update_focus(none);
+        {{grabbed, Win}, Win} ->
+            case wx:equal(New, wxwindow(Win)) of
+                true -> %% For some reason wxWidgets sends focus lost
+                    ok; %% to the already focused window, just ignore
+                false ->
+                    ?dbg("Grabbed focus lost: ~p ~p~n", [Obj, Win]),
+                    do_dispatch(Win, lost_focus),
+                    update_focus(none)
+            end;
+        {{grabbed, OtherWin}, Win} ->
+            case OtherWin of
+                dialog_blanket -> ignore;
+                _ ->
+                    ?dbg("Grabbed focus lost old?: ~p ~p ~p~n", [OtherWin, Win, New])
+            end,
+            ok;
+        {_OldFocus, _CurrentFocus} ->
+            ok
+    end,
+    true;
 dispatch_event(quit) ->
     foreach(fun(Name) -> send(Name, quit) end, gb_trees:keys(get(wm_windows))),
     true;
@@ -810,14 +877,12 @@ update_focus(Active) ->
 		    Active
 	    end;
 	Win ->
-	    do_dispatch(Active, got_focus),
 	    Win
     end.
 
 do_dispatch(Active, Ev) ->
     case lookup_window_data(Active) of
 	none ->
-	    io:format("~p:~p: Dropped Event ~p: ~p~n",[?MODULE,?LINE, Active, Ev]),
 	    false;
 	Win0 ->
 	    case send_event(Win0, Ev) of
@@ -842,7 +907,7 @@ redraw_all() ->
     wings_io:set_cursor(get(wm_cursor)),
     event_loop().
 
-redraw_win({Name, #win{w=W,h=H,obj=Obj}}) ->
+redraw_win({Name, #win{w=W,h=H,obj=Obj,scale=Scale}}) ->
     DoSwap = case use_opengl(Obj) of
 		 true ->
                      case get(current_gl) of
@@ -851,7 +916,7 @@ redraw_win({Name, #win{w=W,h=H,obj=Obj}}) ->
                              wxGLCanvas:setCurrent(Obj),
                              put(current_gl, Obj)
                      end,
-		     gl:viewport(0,0,W,H),
+		     gl:viewport(0,0,round(W*Scale),round(H*Scale)),
 		     gl:clear(?GL_COLOR_BUFFER_BIT bor ?GL_DEPTH_BUFFER_BIT),
 		     true;
 		 false ->
@@ -864,6 +929,15 @@ redraw_win({Name, #win{w=W,h=H,obj=Obj}}) ->
     case do_dispatch(Name, redraw) =/= deleted andalso DoSwap of
         false -> ok;
         true  -> wxGLCanvas:swapBuffers(Obj)
+    end.
+
+redraw_geom(Name) ->
+    Windows = keysort(2, gb_trees:to_list(get(wm_windows))),
+    case lists:keyfind(Name,1,Windows) of
+        {Name, _} = Win ->
+            redraw_win(Win);
+        _ ->
+            ignore
     end.
 
 use_opengl(undefined) -> false;
@@ -967,10 +1041,12 @@ handle_event(State, Event, Stk) ->
 	exit:{crash_logged, _}=Reason ->
 	    exit(Reason);
 	exit:Exit ->
+            erase(wm_focus_grab),
 	    [#se{h=CrashHandler}] = pop_all_but_one(Stk),
 	    handle_response(CrashHandler({crash,Exit}), Event,
 			    default_stack(this()));
 	error:Reason ->
+            erase(wm_focus_grab),
 	    [#se{h=CrashHandler}] = pop_all_but_one(Stk),
 	    handle_response(CrashHandler({crash,Reason}), Event,
 			    default_stack(this()))
@@ -997,6 +1073,9 @@ handle_response(Res, Event, Stk0) ->
 	{replace,Top,Continue} when is_function(Top), is_function(Continue) ->
 	    Stk = replace_handler(Top, Stk0),
 	    handle_event(Continue, dummy_event, Stk);
+        {replace,Top,Ev} when is_function(Top) ->
+	    Stk = replace_handler(Top, Stk0),
+	    handle_event(hd(Stk), Ev, Stk);
 	{pop_handler,_}=PopH -> replace_handler(PopH, Stk0);
 	Top when is_function(Top) -> replace_handler(Top, Stk0)
     end.
@@ -1090,7 +1169,15 @@ wm_event({message_right,Name,Right0}) ->
 	    dirty()
     end;
 wm_event({callback,Cb}) ->
-    Cb().
+    Cb();
+wm_event({drop, GlobalPos, Drop}) ->
+    case window_below(GlobalPos) of
+        none ->
+            ok;
+        Win ->
+            send(Win, {drop, Drop}),
+            ok
+    end.
 
 %%%
 %%% Finding the active geom window, wings_wm only handles focus of geom windows
@@ -1102,8 +1189,6 @@ find_active() ->
  	Focus -> Focus
     end.
 
-window_below(X,Y) ->
-    window_below({X,Y}).
 window_below(Pos) ->
     Win0 = wx_misc:findWindowAtPoint(Pos),
     case wx:is_null(Win0) of
@@ -1133,125 +1218,16 @@ geom_below(Pos) ->
 	true -> none;
 	false ->
             All = windows(),
-            Geoms0 = [geom|[Geom|| {Win,_}=Geom <- All,
-                                   Win =:= geom orelse Win =:= autouv]],
+            Filter = fun(geom) -> true;
+                        ({geom,_}) -> true;
+                        ({autouv,_}) -> true;
+                        ({plugin, {_, geom}}) -> true;
+                        (_) -> false
+                     end,
+            Geoms0 = lists:filter(Filter, All),
             Geoms = [get_window_data(Name) || Name <- Geoms0],
             find_window(Geoms, Geoms, Win0)
     end.
-
-%%%
-%%% Drag and drop support.
-%%%
--record(drag,
-	{data,					%Drop data.
-	 bstate,				%State of mouse buttons.
-	 redraw,				%Redraw function.
-	 over=none,				%We are over this window.
-	 drop_ok=false				%Drop is OK on this window.
-	}).
-
-allow_drag(false) -> allow_drag_1(arrow);
-allow_drag(true) -> allow_drag_1(pointing_hand).
-
-allow_drag_1(Cursor) ->
-    case get(wm_cursor) of
-	Cursor -> ok;
-	_ ->
-	    put(wm_cursor, Cursor),
-	    wings_io:set_cursor(Cursor)
-    end.
-
-drag(Ev, Rect, DropData) ->
-    Redraw = fun() ->
-		     gl:pushAttrib(?GL_POLYGON_BIT bor ?GL_LINE_BIT),
-		     gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_LINE),
-		     gl:lineStipple(2, 2#0101010101010101),
-		     gl:enable(?GL_LINE_STIPPLE),
-		     gl:color3b(0, 0, 0),
-		     {W,H} = wings_wm:win_size(),
-		     gl:rectf(0.5, 0.5, W-1, H-1),
-		     gl:popAttrib()
-	     end,
-    drag(Ev, Rect, Redraw, DropData).
-
-drag(#mousemotion{x=X,y=Y,state=State}, Rect, Redraw, DropData) ->
-    drag_1(X, Y, State, Rect, Redraw, DropData);
-drag(#mousebutton{x=X,y=Y,button=B}, Rect, Redraw, DropData) ->
-    State = 1 bsl (B-1),
-    drag_1(X, Y, State, Rect, Redraw, DropData).
-
-drag_1(X1, Y1, State, {W,H}, Redraw, DropData) ->
-    X = X1 - W div 2,
-    Y = Y1 - H div 2,
-    Drag = #drag{data=DropData,bstate=State,redraw=Redraw},
-    Op = {seq,push,get_drag_event(Drag)},
-    Name = dragger,
-    new(Name, {X,Y,highest}, {W,H}, Op),
-    grab_focus(Name),
-    dirty(),
-    keep.
-
-get_drag_event(Drag) ->
-    {replace,fun(Ev) -> drag_event(Ev, Drag) end}.
-		     
-drag_event(redraw, #drag{redraw=Redraw}) ->
-    wings_io:ortho_setup(),
-    Redraw(),
-    keep;
-drag_event(#mousemotion{x=X0,y=Y0}, #drag{over=Over0}=Drag0) ->
-    {W,H} = wings_wm:win_size(),
-    offset(dragger, X0 - W div 2, Y0 - H div 2),
-    {X,Y} = local2screen({X0, Y0}),
-    hide(dragger),
-    Over = window_below(X, Y),
-    show(dragger),
-    case Over of
-	Over0 -> keep;
-	_ ->
-	    Drag = Drag0#drag{over=Over},
-	    drag_filter(Drag)
-    end;
-drag_event(#mousebutton{button=B,state=?SDL_RELEASED},
-	   #drag{bstate=State,data=DropData,drop_ok=DropOK}) ->
-    if
-	((1 bsl (B-1)) band State) =/= 0 ->
-	    case DropOK of
-		false -> ok;
-		true ->
-		    {X,Y,W,H} = wings_wm:win_rect(dragger),
-		    Ev = {drop,{X + W div 2,Y + H div 2},DropData},
-		    wings_io:putback_event(Ev)
-	    end,
-	    put(wm_cursor, arrow),
-	    delete;
-	true -> keep
-    end;
-drag_event(_, _) -> keep.
-
-drag_filter(#drag{over=none}=Drag) ->
-    stop_cursor(Drag);
-drag_filter(#drag{over=Win,data=DropData}=Drag) ->
-    case lookup_prop(Win, drag_filter) of
-	{value,Fun} when is_function(Fun) ->
-	    case Fun(DropData) of
-		yes ->
-		    message(""),
-		    put(wm_cursor, closed_hand),
-		    get_drag_event(Drag#drag{drop_ok=true});
-		{yes,Message} ->
-		    message(Message),
-		    put(wm_cursor, closed_hand),
-		    get_drag_event(Drag#drag{drop_ok=true});
-		no ->
-		    stop_cursor(Drag)
-	    end;
-	none -> stop_cursor(Drag)
-    end.
-
-stop_cursor(Drag) ->
-    put(wm_cursor, stop),
-    message(""),
-    get_drag_event(Drag#drag{drop_ok=false}).
 
 %%%
 %%% Utility functions.

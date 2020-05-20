@@ -61,6 +61,10 @@ menu(X, Y, St) ->
 	    {?__(18,"Separate"),separate,
 	     ?__(19,"Separate a combined objects into its components")},
 	    separator,
+	    {?__(200, "Boolean *TEST*"),
+             {bool, [{?__(201,"Union"),     add, ?__(202, "Add parts from intersecting objects")},
+                     {?__(203,"Intersect"), isect, ?__(204, "Make objects from the intersecting parts")},
+                     {?__(205,"Difference"), sub, ?__(206, "Subtract objects from secondary selection")}]}},
 	    {?__(20,"Weld"),weld,
 	     ?__(21,"Merge pair of faces that are nearly coincident"),
 	     [option]},
@@ -139,13 +143,22 @@ mode_dependent(St) ->
             (_, _) -> mixed
          end,
     Kind = wings_sel:dfold(MF, RF, [], St),
-    Tail = vertex_color_item(Kind),
+    Tail0 = vertex_color_item(Kind),
+    Tail =
+	case wings_sel:selected_ids(St) of
+	    [Id] -> arealight_edit(Id, Tail0);
+	    _ -> Tail0
+	end,
     arealight_conv(Kind, Tail).
 
 vertex_color_item(object) ->
     [{?__(1,"Vertex Color"),vertex_color,
       ?__(3,"Apply vertex colors to selected objects")}];
 vertex_color_item(_) -> [].
+
+arealight_edit(Id, T) ->
+    [{?__(16,"Edit Area Light..."),{edit_arealight,Id},
+      ?__(17,"Edit light properties")}|T].
 
 arealight_conv(arealight, T) ->
     [{?__(1,"Area Light to Object"),from_arealight,
@@ -166,7 +179,7 @@ command(invert, St) ->
 command(duplicate, St) ->
     {save_state,duplicate(none, St)};
 command({duplicate,Dir}, St) ->
-    save_state,duplicate(Dir, St);
+    duplicate(Dir, St);
 command({duplicate_object,Ids}, St) ->
     {save_state,duplicate_object(Ids, St)};
 command(delete, St) ->
@@ -213,6 +226,8 @@ command(to_arealight, St) ->
     to_arealight(St);
 command(from_arealight, St) ->
     from_arealight(St);
+command({edit_arealight,Id}, St) ->
+    wings_light:command({edit,Id},St);
 command({vertex_attributes,materials_to_colors}, St) ->
     {save_state,materials_to_colors(St)};
 command({vertex_attributes,colors_to_materials}, St) ->
@@ -223,6 +238,14 @@ command({vertex_attributes,remove_uv_coordinates}, St) ->
     {save_state,va_remove(uv, St)};
 command({vertex_attributes,remove_all_attributes}, St) ->
     {save_state,va_remove(all, St)};
+command({bool,add}, St0) ->
+    St1 = ?SLOW(wings_sel:valid_sel(wings_bool:add(St0))),
+    {save_state, wings_obj:recreate_folder_system(St1)};
+command({bool,isect}, St0) ->
+    St1 = ?SLOW(wings_sel:valid_sel(wings_bool:isect(St0))),
+    {save_state, wings_obj:recreate_folder_system(St1)};
+command({bool,sub}, St0) ->
+    wings_bool:sub(St0);
 command({weld,Ask}, St) ->
     ?SLOW(weld(Ask, St));
 command(vertex_color, St) ->
@@ -476,18 +499,12 @@ duplicate(Dir, St0) ->
 %%% Duplicate called from the Outliner or Object window.
 %%%
 
-duplicate_object(Objects0, St) ->
-    Objects = gb_sets:from_list(Objects0),
-    CF = fun(Items, #we{id=Id}=We) ->
-                 New = case gb_sets:is_element(Id, Objects) of
-                           true ->
-                               [{We,gb_sets:empty(),copy}];
-                           false ->
-                               []
-                       end,
-                 {We,Items,New}
+duplicate_object(Objects0, St0) ->
+    St = wings_sel:set(body, [{Id, gb_sets:singleton(0)} || Id <- Objects0], St0),
+    CF = fun(Items, #we{id=_Id}=We) ->
+                 {We,Items,[{We,gb_sets:empty(),copy}]}
          end,
-    wings_sel:clone(CF, St).
+    wings_sel:clone(CF, body, St).
 
 %%%
 %%% The Delete command.

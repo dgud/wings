@@ -1,0 +1,28 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_geodome,
+ [
+  {dialog,
+   [
+    {1,"Resolución"},
+    {2,"Frecuencia (Subdivisión Corte-Arista)"},
+    {3,"Profundidad (Subdivisión Recursiva)"},
+    {4,"Algoritmo/Método de Subdivisión"},
+    {5,"Icosaedro"},
+    {6,"Octaedro"},
+    {7,"Tetraedro"},
+    {8,"Tipo de Base"},
+    {9,"Sí"},
+    {10,"No"},
+    {11,"Esferizar"},
+    {12,"Generar Semi-Domo"}
+   ]},
+  {geodome_menu,
+   [
+    {1,"GeoDomo"}
+   ]},
+  {make_geodome,
+   [
+    {1,"Opciones de Domo Geodésico"},
+    {2,":GeoDomo"}
+   ]}
+ ]}.

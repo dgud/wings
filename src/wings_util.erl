@@ -26,6 +26,7 @@
 	 mapsfind/3,
 	 wxequal/2, wxset_pid/2, min_wx/1,
 	 nice_float/1,nice_vector/1,nice_abs_vector/1,
+         string_to_float/1,
 	 unique_name/2,
 	 is_name_masked/2,
 	 lib_dir/1,
@@ -35,7 +36,7 @@
 -define(NEED_OPENGL, 1).
 -define(NEED_ESDL, 1).
 -include("wings.hrl").
--include("e3d.hrl").
+-include_lib("wings/e3d/e3d.hrl").
 
 -import(lists, [foldl/3,reverse/1,member/2,last/1]).
 
@@ -189,12 +190,12 @@ array_is_empty(Array) ->
 array_entries(Array) ->
     array:sparse_foldl(fun(_, _, N) -> N + 1 end, 0, Array).
 
--spec nice_abs_vector(e3d_vector()) -> iolist().
+-spec nice_abs_vector(e3d_vec:vector()) -> iolist().
 
 nice_abs_vector({X,Y,Z}) ->
     nice_vector({abs(X),abs(Y),abs(Z)}).
 
--spec nice_vector(e3d_vector()) -> iolist().
+-spec nice_vector(e3d_vec:vector()) -> iolist().
 
 nice_vector({X,Y,Z}) ->
     ["<",
@@ -212,6 +213,30 @@ simplify_float(F) ->
 simplify_float_1("0."++_=F) -> F;
 simplify_float_1("0"++F) -> simplify_float_1(F);
 simplify_float_1(F) -> F.
+
+
+string_to_float(Str) ->
+    try list_to_float(Str)
+    catch _:_ -> make_float2(Str)
+    end.
+
+make_float2(Str) ->
+    try float(list_to_integer(Str))
+    catch _:_ -> make_float3(Str)
+    end.
+
+make_float3(Str0) ->
+    Str = lists:flatten(string:tokens(Str0, "\t\s\n")),
+    try list_to_float(Str)
+    catch _:_ -> make_float4(Str) end.
+
+make_float4(Str) ->
+    WithDot = case string:tokens(Str, "eE") of
+		  [Pre,Post] -> Pre ++ ".0e" ++ Post;
+		  [Other] -> Other ++ ".0";
+		  Other -> Other
+	      end,
+    list_to_float(WithDot).
 
 %%
 %% Finds the first map containing Key:=Value
@@ -286,7 +311,7 @@ profile_start(fprof) ->
     ok;
 profile_start(eprof) ->
     eprof:start(),
-    profiling = eprof:start_profiling([self()]),
+    profiling = eprof:start_profiling([whereis(wings), self(), whereis(wings_image)]),
     ok.
 
 profile_stop(fprof) ->

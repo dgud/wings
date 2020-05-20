@@ -66,8 +66,9 @@ remove_chars([], Max, Acc) ->
 % Functions for meshes stored in indexed format (verts/faces lists)
 %
 indexed_to_raw(Verts, Faces) -> % replace indices with values
+    VertexArray = array:from_list(Verts),
     Make_Raw_Face = fun(Face) ->
-			[lists:nth(Index+1, Verts) || Index <- Face]
+			[array:get(Index, VertexArray) || Index <- Face]
 		    end,
     lists:map(Make_Raw_Face, Faces).
 

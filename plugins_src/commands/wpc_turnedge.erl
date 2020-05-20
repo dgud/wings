@@ -16,7 +16,7 @@
 
 -export([init/0,menu/2,command/2]).
 
--include_lib("wings.hrl").
+-include_lib("wings/src/wings.hrl").
 -import(lists, [foldl/3]).
 
 -define(MENU_ENTRY(Key), {command_name(Key),Key,command_help(Key)}).

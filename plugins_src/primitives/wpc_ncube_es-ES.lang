@@ -1,0 +1,34 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_ncube,
+ [
+  {cube_str,
+   [
+    {1,"Cubo"}
+   ]},
+  {make_ncube,
+   [
+    {1,"Opciones de Cubo"}
+   ]},
+  {make_ngon,
+   [
+    {1,"Opciones N-Gon"},
+    {2,"N-Gon"}
+   ]},
+  {menu,
+   [
+    {1,"Crear un Cubo"},
+    {2,"N-Gon"}
+   ]},
+  {ncube_dialog,
+   [
+    {1,"Número de Cortes"},
+    {2,"Sí"},
+    {3,"No"},
+    {4,"Esferizar"}
+   ]},
+  {ngon_dialog,
+   [
+    {3,"Número de Vértices"},
+    {4,"Radio"}
+   ]}
+ ]}.

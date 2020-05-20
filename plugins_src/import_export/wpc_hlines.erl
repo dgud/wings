@@ -78,7 +78,7 @@
 -define(DEF_SVG_ART_LINE_TYPE, 1 ).
 
 -define(DEF_FILL_SHADE_TYPE, 0 ).
--define(DEF_LIGHT_POS, {-480,-512,500,0.00095} ).
+-define(DEF_LIGHT_POS, {-480,-512,500,0.00096} ).
 
 -define(DEF_OUTL_COLOR, {0.0, 0.0, 0.0, 1.0}).
 -define(DEF_HARD_COLOR, {0.0, 0.0, 0.0, 1.0}).
@@ -100,6 +100,11 @@
 
 
 init() ->
+    %% that force the wrong preferences stored before the fix to be updated
+    case get_pref( light_pos, ?DEF_LIGHT_POS) of
+	[] -> wpa:pref_delete(?MODULE, light_pos);
+	_ -> ignore
+    end,
     true.
 
 menu({file, export}, Menu) ->
@@ -568,7 +573,7 @@ do_export(Props, File_name, #e3d_file{objs=Objs, mat=Mats}) ->
 						?__(1,"reading objects") ++ " " ++
 						    integer_to_list(round(Percent * 100.0)) ++ "%"),
 				wings_pb:pause(),
-				io:format(?__(2,"Reading object ~B of") ++" ~B \"~s\"...",
+				io:format(?__(2,"Reading object ~B of") ++" ~B \"~ts\"...",
 					  [Obj_count, Objs_total, Name]),
 
 				#e3d_mesh{vs=MVCs, fs=MFs, he=MHEs}=Mesh,
@@ -1095,6 +1100,7 @@ materials([{Name, Props} | T], Mats_dict) ->
     OpenGL = proplists:get_value(opengl, Props),
     Is_transparent = foldl(fun(_, true) -> true;
 			      ({emission,_}, _) -> false;
+			      ({ambient,_}, _) -> false;
 			      ({_,{_,_,_,1.0}}, _) -> false;
 			      ({_,{_,_,_,_}}, _) -> true;
 			      (_, _) -> false
@@ -2118,7 +2124,7 @@ define_fill_type() ->
 
 %% Light_positon            Name {Lx, Ly, Lz, Illuminence Factor}
 define_light_pos() ->
-    [ 
+    [
       { ?__(1,"Up to Down") , {-480,-512, 500,0.00096} },
       { ?__(2,"Down to Up") , {-480, 512, 500,0.00096} },
       { ?__(3,"Down to Up2"), {   1, 512, 256,0.00108} },
@@ -2736,7 +2742,7 @@ tree__get(Key, {_Next_key, GBtree} = _Tree) -> gb_trees:get(Key, GBtree).
 
 tree__next_key({Next_key, _GBtree} = _Tree) -> Next_key.
 
-						%tree__from_list(Values) when is_list(Values) ->
+%% tree__from_list(Values) when is_list(Values) ->
 %%    tree__insert(Values, tree__empty()).
 
 %% tree__to_list({_Next_key, GBtree} = _Tree) -> gb_trees:values(GBtree).
@@ -2746,7 +2752,7 @@ tree__next_key({Next_key, _GBtree} = _Tree) -> Next_key.
 %%    GBtree_acc = gb_trees:insert(Key, Fun(Value), GBtree_acc0),
 %%    tree__do_map(Fun, gb_trees:next(GBtree_iter0), GBtree_acc).
 
-						%tree__map(Fun, {Next_key, GBtree} = _Tree) ->
+%% tree__map(Fun, {Next_key, GBtree} = _Tree) ->
 %%    Iter = gb_trees:iterator(GBtree),
 %%    {Next_key, tree__do_map(Fun, gb_trees:next(Iter), gb_trees:empty())}.
 

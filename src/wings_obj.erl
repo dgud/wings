@@ -16,7 +16,7 @@
          delete/2,dfold/4,get/2,fold/3,map/2,num_objects/1,
          put/2,update/3,we_map/2,with_we/3,
          hide/2,unhide/2,lock/2,unlock/2,
-         create_folder_system/1,recreate_folder_system/1]).
+         create_folder_system/1,recreate_folder_system/1, get_folder/1, set_folder/2]).
 
 -export_type([obj/0]).
 
@@ -190,7 +190,7 @@ unhide(Ids0, #st{selmode=Mode,shapes=Shs0,sel=Sel0}=St) ->
     Ids = gb_sets:from_list(Ids0),
     Wes0 = gb_trees:values(Shs0),
     Wes1 = [We || #we{id=Id}=We <- Wes0, gb_sets:is_member(Id, Ids)],
-    Sel = unhide_update_sel(Wes1, Mode, Sel0),
+    Sel = lists:sort(unhide_update_sel(Wes1, Mode, Sel0)),
     Wes = [unhide_we(We) || We <- Wes1],
     Shs = update_wes(Wes, Shs0),
     St#st{sel=Sel,shapes=Shs}.
@@ -198,13 +198,14 @@ unhide(Ids0, #st{selmode=Mode,shapes=Shs0,sel=Sel0}=St) ->
 -spec lock(Ids, #st{}) -> #st{} when
       Ids :: [id()].
 
-lock(Ids0, #st{shapes=Shs0}=St) ->
+lock(Ids0, #st{shapes=Shs0,sel=Sel0}=St) ->
     Ids = gb_sets:from_list(Ids0),
     Wes0 = gb_trees:values(Shs0),
     Wes1 = [We || #we{id=Id}=We <- Wes0, gb_sets:is_member(Id, Ids)],
     Wes = [lock_we(We) || We <- Wes1],
     Shs = update_wes(Wes, Shs0),
-    St#st{shapes=Shs}.
+    Sel = [Item || {Id,_}=Item <- Sel0, not gb_sets:is_member(Id, Ids)],
+    St#st{shapes=Shs,sel=Sel}.
 
 -spec unlock(Ids, #st{}) -> #st{} when
       Ids :: [id()].
@@ -268,7 +269,7 @@ we_from_obj(Obj, #we{name=Name0,perm=Perm0,pst=Pst0,light=Light0}=We) ->
                       Folder0 ->
                           Pst0;
                       _ ->
-                          gb_trees:update(?FOLDERS, Folder, Pst0)
+                          gb_trees:enter(?FOLDERS, Folder, Pst0)
                   end,
             We#we{name=Name,perm=Perm,pst=Pst,light=Light}
     end.
@@ -292,11 +293,20 @@ obj_from_we(#we{id=Id,name=Name,perm=Perm,pst=Pst,light=Light}) ->
         _ -> M#{light => Light}
     end.
 
+get_folder(#we{pst=Pst}) ->
+    get_folder(Pst);
 get_folder(Pst) ->
     case gb_trees:lookup(?FOLDERS, Pst) of
         {value,[_|_]=Folder} -> Folder;
         _ -> ?NO_FLD
     end.
+
+set_folder(Folder, #we{pst=Pst}=We) ->
+    We#we{pst=set_folder(Folder, Pst)};
+set_folder(?NO_FLD, Pst0) ->
+    gb_trees:delete_any(?FOLDERS, Pst0);
+set_folder(Folder, Pst0) ->
+    gb_trees:enter(?FOLDERS, Folder, Pst0).
 
 get_current_folder(#st{pst=Pst}) ->
     {Current,_} = gb_trees:get(?FOLDERS, Pst),

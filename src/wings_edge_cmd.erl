@@ -16,6 +16,7 @@
 %% Commands.
 -export([menu/3,command/2]).
 -export([hardness/2,set_color/2]).
+-export([loop_cut_partition/2]).
 
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
@@ -288,7 +289,7 @@ cut_pick_marker([I], D, Edge, We0, Start, Dir, Char) ->
     {X,Y,Z} = Pos = e3d_vec:add_prod(Start, Dir, I),
     {MM,PM,ViewPort} = wings_u:get_matrices(0, original),
     {Sx,Sy,_} = wings_gl:project(X, Y, Z, MM, PM, ViewPort),
-    Draw = fun() ->
+    Draw = fun(Ds) ->
 		   gl:pushAttrib(?GL_ALL_ATTRIB_BITS),
 		   gl:color3f(1.0, 0.0, 0.0),
 		   gl:shadeModel(?GL_FLAT),
@@ -306,7 +307,8 @@ cut_pick_marker([I], D, Edge, We0, Start, Dir, Char) ->
 		   gl:popMatrix(),
 		   gl:matrixMode(?GL_PROJECTION),
 		   gl:popMatrix(),
-		   gl:popAttrib()
+		   gl:popAttrib(),
+                   Ds
 	   end,
     {We,_} = wings_edge:fast_cut(Edge, Pos, We0),
     D#dlo{hilite={edge, {call_in_this_win,wings_wm:this(),Draw}},src_we=We};
@@ -643,8 +645,7 @@ loop_cut(St) ->
     wings_sel:clone(fun loop_cut/2, body, St).
 
 loop_cut(Edges, #we{id=Id,fs=Ftab}=We0) ->
-    AdjFaces = wings_face:from_edges(Edges, We0),
-    case loop_cut_partition(AdjFaces, Edges, We0, []) of
+    case loop_cut_partition(Edges, We0) of
 	[_] ->
 	    wings_u:error_msg(?__(1,"Edge loop doesn't divide object #~p "
                                   "into two (or more) parts."),
@@ -675,6 +676,12 @@ loop_cut_make_copies([P|Parts], We0) ->
     We = wings_dissolve:complement(P, We0),
     [{We,Sel,cut}|loop_cut_make_copies(Parts, We0)];
 loop_cut_make_copies([], _) -> [].
+
+-spec loop_cut_partition(Edges, #we{}) -> [wings_sel:face_set()] when
+      Edges ::  wings_sel:edge_set() | [wings_sel:edge_num()].
+loop_cut_partition(Edges, We) ->
+    AdjFaces = wings_face:from_edges(Edges, We),
+    loop_cut_partition(AdjFaces, Edges, We, []).
 
 loop_cut_partition(Faces0, Edges, We, Acc) ->
     case gb_sets:is_empty(Faces0) of

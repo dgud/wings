@@ -47,8 +47,6 @@ native_theme() ->
 		 {hard_edge_color,{1.0,0.5,0.0}},
 		 {info_background_color,{0.38,0.38,0.38,0.5}},
 		 {info_color,{1.0,1.0,1.0}},
-		 {info_line_bg,{0.33131360000000004,0.4,0.0}},
-		 {info_line_text,{1.0,1.0,1.0}},
 		 {masked_vertex_color,{0.5,1.0,0.0,0.8}},
 		 {material_default, {0.7898538076923077,0.8133333333333334,0.6940444444444445}},
 		 {neg_x_color,{0.8,0.8,0.8}},
@@ -66,7 +64,7 @@ native_theme() ->
 		 {y_color,{0.37210077142857145,0.82,0.0}},
 		 {z_color,{0.0,0.3,0.8}}],
     UserIF = [{background_color, appworkspace},
-	      {dialog_color, desktop},
+	      {dialog_color, c3dface},
 	      {dialog_disabled, graytext},
 	      {dialog_text, windowtext},
 	      {menu_bar_bg,  menubar},
@@ -75,14 +73,20 @@ native_theme() ->
 	      {menu_hilite, menuhilight},
 	      {menu_hilited_text,highlighttext},
 	      {menu_text, menutext},
-	      {outliner_geograph_bg, menu},
+              %% Need to differ from c3dface if no borders is drawn
+              %% Since the splitter seems to be drawn with c3dface color
+              %% and can't be set to another color (in erlang)
+	      {outliner_geograph_bg, c3dshadow},
 	      {outliner_geograph_disabled, graytext},
 	      {outliner_geograph_hl,      highlight},
 	      {outliner_geograph_hl_text, highlighttext},
 	      {outliner_geograph_text, windowtext},
+	      {info_line_bg,c3dface},
+	      {info_line_text,windowtext},
 	      {title_active_color, activecaption},
 	      {title_passive_color,inactivecaption},
-	      {title_text_color,   captiontext}
+	      {title_text_color,   captiontext},
+              {title_passive_text_color, inactivecaptiontext}
 	     ],
     OS = element(2, os:type()),
     Version = os:version(),
@@ -109,20 +113,38 @@ native({What, MenuText}, linux, _)
 	       {_, _, V} when V > 0.5 -> {0.0,0.0,0.0};
 	       _ -> {1.0,1.0,1.0}
 	   end};
-native({What=menu_hilite, menuhilight}, darwin, Ver) ->
-    native({What, highlight}, darwin, Ver);
-native({What, activecaption}, darwin, Ver) ->
-    native({What, btnhighlight}, darwin, Ver);
-native({What=outliner_geograph_bg, Suggestion}, _, _) ->
-    {What, wings_color:rgb4fv(wxSystemSettings:getColour(wx_id(Suggestion)))};
-native({What=menu_color, Suggestion}, nt, _) ->
-    {What, wings_color:rgb4fv(wxSystemSettings:getColour(wx_id(Suggestion)))};
+native({What=menu_color, menu}, darwin, Ver) ->
+    native({What, c3dface}, darwin, Ver);
+native({What=outliner_geograph_bg, c3dshadow}, darwin, Ver) ->
+    native({What, c3dface}, darwin, Ver);
+native({What=title_active_color, activecaption}, darwin, _Ver) ->
+    {What, e3d_vec:mul(default(c3dface), 1.07)};
+native({What=title_passive_color, inactivecaption}, darwin, _Ver) ->
+    {What, e3d_vec:mul(default(c3dface), 0.92)};
+native({What=title_active_color, activecaption}, linux, _Ver) ->
+    {What, e3d_vec:mul(default(c3dface), 1.07)};
+native({What=title_passive_color, inactivecaption}, linux, _Ver) ->
+    {What, e3d_vec:mul(default(inactivecaption), 0.92)};
 native({What, Suggestion}, _, _) ->
+    %% ?dbg("Color ~p ~p ~p => ~p~n",
+    %%      [What, Suggestion, wxSystemSettings:getColour(wx_id(Suggestion)),
+    %%       default(Suggestion)]),
     {What, default(Suggestion)}.
 
 default(Suggestion) ->
-    wings_color:rgb3fv(wxSystemSettings:getColour(wx_id(Suggestion))).
+    rgb3fv(wxSystemSettings:getColour(wx_id(Suggestion))).
 
+rgb3fv({R,G,B,A0}) ->
+    %% Mac delivers some colors as alpha only
+    case (A0 < 250) andalso (R+G+B < 180) of
+        true ->
+            %% Hack to lighten black colors with alpha
+            A = (255-A0)/255,
+            {A*(200-R)/255,A*(200-G)/255,A*(200-B)/255};
+        false ->
+            A = A0/255,
+            {A*R/255,A*G/255,A*B/255}
+    end.
 %%%
 %%% Legacy Colors - Classic Green Theme
 %%%
@@ -162,9 +184,10 @@ legacy_colors() ->
      {title_active_color,{0.41,0.55,0.41,1.0}},
      {title_passive_color,{0.325,0.4,0.325,1.0}},
      {title_text_color,{1.0,1.0,1.0}},
+     {title_passive_text_color,{0.7,0.7,0.7}},
      {menu_bar_bg,{0.52,0.52,0.52}},
      {menubar_text,{0.0,0.0,0.0}},
-     {info_line_bg,{0.52,0.52,0.52}},
+     {info_line_bg,{0.72,0.72,0.72}},
      {info_line_text,{1.0,1.0,1.0}},
 
      %% Console
@@ -199,7 +222,7 @@ grey_blue_theme() ->
      {hard_edge_color,{1.0,0.5,0.0}},
      {info_background_color,{0.3,0.2999996923080079,0.2999996923080079,0.5}},
      {info_color,{1.0,1.0,1.0}},
-     {info_line_bg,{0.11200000000000002,0.3932173913043481,0.7}},
+     {info_line_bg,{0.3,0.2999996923080079,0.2999996923080079,0.5}},
      {info_line_text,{1.0,1.0,1.0}},
      {masked_vertex_color,{0.5,1.0,0.0,0.8}},
      {material_default,{0.8200000000000001,0.9049993849536925,1.0}},
@@ -229,6 +252,7 @@ grey_blue_theme() ->
      {title_passive_color,
          {0.5270222222222222,0.5873069411419368,0.6533333333333333,0.9}},
      {title_text_color,{1.0,1.0,1.0}},
+     {title_passive_text_color,{0.7,0.7,0.7}},
      {tweak_magnet_color,{0.0,0.0,1.0,0.06}},
      {tweak_vector_color,{1.0,0.5,0.0}},
      {unselected_hlite,
@@ -287,6 +311,7 @@ olive_theme() ->
      {title_active_color,{0.647059,0.7137254901960784,0.3254901960784314,1.0}},
      {title_passive_color,{0.4141418073872209,0.5,0.0,1.0}},
      {title_text_color,{1.0,1.0,1.0}},
+     {title_passive_text_color,{0.7,0.7,0.7}},
      {tweak_magnet_color,{0.0,0.0,1.0,0.06}},
      {tweak_vector_color,{1.0,0.5,0.0}},
      {unselected_hlite,{0.0,0.65,0.0}},
@@ -346,6 +371,7 @@ dark_blue_theme() ->
      {title_active_color,{0.07,0.4,0.7,0.9}},
      {title_passive_color,{0.05,0.27,0.5,0.9}},
      {title_text_color,{1.0,1.0,1.0}},
+     {title_passive_text_color,{0.7,0.7,0.7}},
      {tweak_magnet_color,{0.0,0.0,1.0,0.06}},
      {tweak_vector_color,{1.0,0.5,0.0}},
      {unselected_hlite,{0.0,0.65,0.0}},

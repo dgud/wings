@@ -1,0 +1,33 @@
+%%
+%%  wpc_camouflage.auv --
+%%
+%%     Config file for camouflage shaders
+%%
+%%  Copyright (c) 2015 Micheus
+%%
+%%  See the file "license.terms" for information on usage and redistribution
+%%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+%%
+%%     $Id: wpc_camouflage.auv,v 1.0 2015/12/02 21:40:0 micheus Exp $
+%%
+
+%%  Everything behind a '%' is a comment
+
+{name, "Camouflage"}.               % The name in the shader selector
+{vertex_shader, "standard.vs"}.     % Vertex shader used
+{fragment_shader, "camouflage.fs"}. % Fragment shader used
+{auv, auv_bbpos3d}.                 % Use bounding box for positions
+%% Uses these uniforms:
+%% {uniform, Type, VarID in shader, DefaultValue, StringInGUI}
+{uniform, menu, "type", "Checker", [{"Checker",0},{"Dots",1},{"Pixelated",2}]}.
+{uniform, color, "color1", {0.24,0.3,0.01,1.0}, "Color 1"}.
+{uniform, color, "color2", {0.0022,0.0778,0.1066,1.0}, "Color 2"}.
+{uniform, bool, "exchange", false, "Exchange colors"}.
+{uniform, {slider,0.0,200.0}, "bright", 80.0, "Bright (%)"}.
+{uniform, {slider,0.0,500.0}, "frequency", 20.0, "Frequency"}.
+{uniform, {slider,-360.0,360.0}, "rotx", 0.0, "Rotate X"}.
+{uniform, {slider,-360.0,360.0}, "roty", 0.0, "Rotate Y"}.
+{uniform, {slider,-360.0,360.0}, "rotz", 0.0, "Rotate Z"}.
+{uniform, menu, "mixmode", "Add", [{"Add",0},{"Mask",1}]}.
+{uniform, bool, "invmask", false, "Invert Mask"}.
+

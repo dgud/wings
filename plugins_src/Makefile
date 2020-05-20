@@ -11,13 +11,15 @@
 #     $Id: Makefile,v 1.20 2006/01/19 22:30:47 giniu Exp $
 #
 
+include ../erl.mk
+
 .SUFFIXES: .erl .jam .beam .yrl .xrl .bin .mib .hrl .sgml .html .ps .3 .1 \
 	.fig .dvi .tex .class .java .pdf .psframe .pscrop
 
 ESRC=.
 WINGS_INTL=../intl_tools
 EBIN=../plugins/default
-ERLC=erlc
+WINGS_TOP=../..
 
 ifeq ($(TYPE),debug)
 TYPE_FLAGS=-DDEBUG
@@ -33,7 +35,7 @@ TARGET_FILES= $(MODULES:%=$(EBIN)/%.beam)
 # ----------------------------------------------------
 # FLAGS
 # ----------------------------------------------------
-ERL_COMPILE_FLAGS += -Werror $(TYPE_FLAGS) +debug_info -pa $(WINGS_INTL) -I $(WINGS_INTL)
+ERL_COMPILE_FLAGS += -Werror $(TYPE_FLAGS) +debug_info -pa $(WINGS_INTL) -I $(WINGS_TOP)
 
 # ----------------------------------------------------
 # Targets
@@ -45,18 +47,17 @@ opt debug:
 common: $(TARGET_FILES) subdirs
 
 subdirs:
-	(cd accel; $(MAKE))
 	(cd import_export; $(MAKE))
 	(cd primitives; $(MAKE))
 	(cd commands; $(MAKE))
 	(cd autouv; $(MAKE))
 
 template: opt
-	erl -pa $(WINGS_INTL) -noinput -run tools generate_template_files $(EBIN)
+	$(ERL) -pa $(WINGS_INTL) -noinput -run tools generate_template_files $(EBIN)
 
 lang: subdirs_lang template
 	cp *.lang $(EBIN)
-	erl -pa $(WINGS_INTL) -noinput -run tools diff_lang_files $(EBIN)
+	$(ERL) -pa $(WINGS_INTL) -noinput -run tools diff_lang_files $(EBIN)
 
 subdirs_lang:
 	(cd import_export; $(MAKE) lang)
@@ -69,7 +70,6 @@ clean: subdirs_clean
 	rm -f core
 
 subdirs_clean:
-	(cd accel; $(MAKE) clean)
 	(cd import_export; $(MAKE) clean)
 	(cd primitives; $(MAKE) clean)
 	(cd commands; $(MAKE) clean)

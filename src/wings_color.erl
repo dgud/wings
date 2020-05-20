@@ -15,7 +15,7 @@
 -export([init/0,choose/1,choose/2,choose/3,
 	 share/1,store/1,average/1,average/2,mix/3,white/0,
 	 rgb_to_hsv/1,rgb_to_hsv/3,hsv_to_rgb/1,hsv_to_rgb/3,
-	 rgb3bv/1, rgb4bv/1, rgb3fv/1, rgb4fv/1,
+	 rgba_to_rgb/1, rgb3bv/1, rgb4bv/1, rgb3fv/1, rgb4fv/1,
 	 def_palette/0
 	]).
 
@@ -203,6 +203,9 @@ hsv_to_rgb(H, S, V) ->
 	    {B,R,G} = convert_hsv(H-240.0,V,Min),
 	    {R,G,B}
     end.
+
+rgba_to_rgb({R,G,B,_}) -> {R,G,B};
+rgba_to_rgb({_,_,_}=RGB) -> RGB.
 
 convert_hsv(H,V,Min) when H =< 60.0 ->
     Mean = Min + H*(V-Min)/(120.0-H),

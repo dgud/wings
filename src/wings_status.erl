@@ -13,10 +13,12 @@
 
 -export([start_link/0,
          active/1, message/2, message/3, message_right/2,
-         get_statusbar/0]).
+         get_statusbar/0, update_theme/0]).
 
 -export([init/1, handle_info/2, terminate/2, code_change/3, handle_call/3,
 	 handle_event/2, handle_cast/2]).
+
+-compile([{nowarn_deprecated_function, {erlang,get_stacktrace,0}}]).
 
 -include_lib("wx/include/wx.hrl").
 -record(state, {sb,
@@ -31,24 +33,31 @@ start_link() ->
     {ok, wx_object:get_pid(Status)}.
 
 message(Win, Str) ->
-    wx_object:cast(?MODULE, {message, Win, Str, undefined}).
+    catch wx_object:cast(?MODULE, {message, Win, Str, undefined}).
 
 message(Win, Left, Right) ->
-    wx_object:cast(?MODULE, {message, Win, Left, Right}).
+    catch wx_object:cast(?MODULE, {message, Win, Left, Right}).
 
 message_right(Win, Right) ->
-    wx_object:cast(?MODULE, {message, Win, undefined, Right}).
+    catch wx_object:cast(?MODULE, {message, Win, undefined, Right}).
 
 active(Win) ->
-    wx_object:cast(?MODULE, {active, Win}).
+    catch wx_object:cast(?MODULE, {active, Win}).
 
 get_statusbar() ->
     wx_object:call(?MODULE, get_statusbar).
+
+update_theme() ->
+    wx_object:call(?MODULE, update_theme).
 
 init([Frame]) ->
     try
 	SB0 = wxStatusBar:new(Frame),
         SB = wx_object:set_pid(SB0, self()),
+	SBG = wings_color:rgb4bv(wings_pref:get_value(info_line_bg)),
+	SFG = wings_color:rgb4bv(wings_pref:get_value(info_line_text)),
+	wxStatusBar:setBackgroundColour(SB, SBG),
+	wxStatusBar:setForegroundColour(SB, SFG),
 	wxStatusBar:setFieldsCount(SB, 2),
 	wxStatusBar:setStatusWidths(SB, [-1, 500]),
 	wxStatusBar:setStatusStyles(SB, [?wxSB_FLAT, ?wxSB_NORMAL]),
@@ -74,6 +83,13 @@ handle_cast({message, Win, Left, Right}, #state{sb=SB, prev=Prev, msgs=GB0}=Stat
 handle_cast({active, Win}, #state{sb=SB, prev=Prev, msgs=GB}=State) ->
     {noreply, State#state{prev=update_status(gb_trees:lookup(Win, GB), Prev, SB)}}.
 
+handle_call(update_theme, _From, #state{sb=SB}=State) ->
+    SBG = wings_color:rgb4bv(wings_pref:get_value(info_line_bg)),
+    SFG = wings_color:rgb4bv(wings_pref:get_value(info_line_text)),
+    wxStatusBar:setBackgroundColour(SB, SBG),
+    wxStatusBar:setForegroundColour(SB, SFG),
+    wxStatusBar:refresh(SB),
+    {reply, keep, State};
 handle_call(get_statusbar, _From, #state{sb=SB}=State) ->
     {reply, SB, State};
 handle_call(_Call, _From, State) ->

@@ -373,7 +373,7 @@ disable(all, Bool, Store) ->
     catch _:_ -> ignore end;
 disable(What, Bool, Store) ->
     try
-	wings_dialog:enable(depend(What), Bool, Store)
+	wings_dialog:enable(depend(What), not Bool, Store)
     catch _:_ -> ignore end.
 
 depend(lx) -> x;
@@ -467,11 +467,11 @@ do_move_3(Vs, We0, Origin, DuOrg, DupRT,
      if
          Du > 1 ->
              if DupRT ->
-                     do_move_2(Vs, We0, Origin, DuOrg, DupRT,
+                     do_move_3(Vs, We0, Origin, DuOrg, DupRT,
                                [CommonCenter,Pos,Wo,Align,
                                 Flatten,Du-1]);
                 true ->
-                     do_move_2(Vs, We0, Origin, DuOrg, DupRT,
+                     do_move_3(Vs, We0, Origin, DuOrg, DupRT,
                                [CommonCenter,e3d_vec:add(Origin, D),Wo,
                                 Align,Flatten,Du-1])
              end;

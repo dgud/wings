@@ -7,85 +7,38 @@
 
 #version 120
 
-uniform int UseDiffuseMap;
-uniform int UseNormalMap;
+#include "lib_base.glsl"
+#include "lib_normal.glsl"
+#include "lib_envlight.glsl"
+#include "lib_material.glsl"
 
-uniform sampler2D DiffuseMap;
-uniform sampler2D NormalMap;
-
-varying vec3 normal;
-varying vec3 ecPosition;
-varying vec4 color;
-varying vec4 tangent;
-
-const vec3 l0_diff = vec3(0.7,0.7,0.7);
-const vec3 l0_spec = vec3(0.2,0.2,0.2);
-const vec3 l0_amb  = vec3(0.0,0.0,0.0);
-const vec3 l0_pos  = vec3(0.110,0.0,0.994);
-
-const vec3 lg_amb  = vec3(0.1,0.1,0.1);
-
-vec3 get_normal() {
-    vec3 T = tangent.xyz;
-    if(UseNormalMap == 0 || dot(T,T) < 0.1)
-	return normalize(normal); // No normal-map or Tangents
-    //return normalize(tangent.xyz);
-    // Calc Bumped normal
-    vec3 N = normalize(normal);
-    T = normalize(T);
-    T = normalize(T - dot(T, N) * N);
-    vec3 B = cross(T, N) * tangent.w;
-    vec3 BumpMapNormal = texture2D(NormalMap, gl_TexCoord[0].xy).xyz;
-    BumpMapNormal = 2.0 * BumpMapNormal - vec3(1.0, 1.0, 1.0);
-    vec3 NewNormal;
-    mat3 TBN = mat3(T, B, N);
-    NewNormal = TBN * BumpMapNormal;
-    NewNormal = normalize(NewNormal);
-    return NewNormal;
-}
-
-vec4 get_diffuse() {
-    if(UseDiffuseMap > 0) return texture2D(DiffuseMap, gl_TexCoord[0].xy);
-    else return vec4(1.0, 1.0, 1.0, 1.0);
-}
+varying vec3 ws_position;
+uniform vec3 ws_eyepoint;
+uniform vec3 ws_lightpos;
 
 void main(void)
 {
-    float costheta;
-    float pf;
-    vec3 amb  = vec3(0.0,0.0,0.0);
-    vec3 diff = vec3(0.0,0.0,0.0);
-    vec3 spec = vec3(0.0,0.0,0.0);
-    vec3 emi  = vec3(0.0,0.0,0.0);
-    vec3 normal = get_normal();
-    vec4 difftex = get_diffuse();
-    vec3 lightVec0 = normalize(l0_pos);
+    vec4 baseColor = get_basecolor();
+    vec3 n = get_normal();
+    vec3 v = normalize(ws_eyepoint-ws_position);  // point to camera
+    vec3 l = normalize(ws_lightpos-ws_position);  // point to ligth
+    PBRInfo pbr = calc_views(n, v, vec3(0.0));
+    pbr = calc_material(pbr);
 
-    // Amb
-    amb = vec3(gl_FrontMaterial.ambient) * lg_amb;
-    // Diffuse
-    costheta = clamp(dot(normal, lightVec0), 0, 1);
-    diff = color.rgb*costheta*l0_diff;
+    // Calculate the shading terms for the microfacet specular shading model
+    vec3  F = specularReflection(pbr);
+    float G = geometricOcclusion(pbr);
+    float D = microfacetDistribution(pbr);
 
-    // Specular
-    if(costheta == 0.0) {
-        pf = 0.0;
-    } else {
-        vec3 halfDir = normalize(lightVec0-ecPosition);
-        float nDotVP = clamp(dot(normal, halfDir), 0, 1);
-        pf = min(pow(nDotVP, gl_FrontMaterial.shininess), 10000.0);
-        spec = vec3(gl_FrontMaterial.specular) * l0_spec * pf;
-    }
-    // Emission
-    emi = vec3(gl_FrontMaterial.emission);
-
-    // Two sided lighting (calc only diffuse)
-    if(!gl_FrontFacing) {
-        costheta = clamp(dot(-normal, lightVec0), 0, 1);
-        diff += color.rgb*costheta*l0_diff;
-    }
-    diff = clamp(emi+diff+amb, vec3(0.0), vec3(1.0));
-    gl_FragColor = vec4(diff*difftex.rgb+spec, difftex.a*color.a);
+    // Calculation of analytical lighting contribution
+    vec3 diffuseContrib = (1.0 - max(max(F.r, F.g), F.b)) * diffuse(pbr);
+    vec3 specContrib = F * G * D / (4.0 * pbr.NdotL * pbr.NdotV);
+    // Obtain final intensity as reflectance (BRDF) scaled by the energy of the light (cosine law)
+    vec3 frag_color = pbr.NdotL * (diffuseContrib + specContrib);
+    frag_color += 0.6*background_ligthting(pbr, n, normalize(reflect(v, n)));
+    frag_color = mix(frag_color, frag_color * pbr.occlusion, 0.7);
+    frag_color += get_emission();
+    gl_FragColor = vec4(pow(frag_color, vec3(1.0/2.2)), baseColor.a); // Should be 2.2
 }
 
 

@@ -12,7 +12,7 @@
 %%
 
 -module(wings).
--export([start/0,start_link/1, init/1]).
+-export([start/0, start_link/1, init/1, is_fast_start/0]).
 -export([redraw/1,redraw/2,init_opengl/1,command/2]).
 -export([mode_restriction/1,clear_mode_restriction/0,get_mode_restriction/0]).
 -export([ask/3]).
@@ -53,11 +53,12 @@ init(Env) ->
     process_flag(trap_exit, true),
     register(wings, self()),
     erlang:system_flag(backtrace_depth, 25),
+    Args = application:get_env(wings, args),
     wx:set_env(Env),
 
     wings_pref:init(),
     wings_hotkey:set_default(),
-    wings_pref:load(),
+    is_fast_start(Args) orelse wings_pref:load(),
     wings_lang:init(),
     wings_plugin:init(),
     wings_sel_cmd:init(),
@@ -66,13 +67,14 @@ init(Env) ->
     %% Ack that we are done, need to create top window now
     proc_lib:init_ack(self()),
     Frame = receive {frame_created, Window} -> Window end,
+    is_fast_start(Args) andalso wxTopLevelWindow:iconize(Frame),
     GeomGL = wings_gl:init(Frame),
     wx_object:get_pid(Frame) ! opengl_initialized,
     %% Wait for other mandatory processes to become initialized
     receive supervisor_initialization_done -> ok end,
-    init_part2(Frame, GeomGL).
+    init_part2(Args, Frame, GeomGL).
 
-init_part2(Frame, GeomGL) ->
+init_part2(Args, Frame, GeomGL) ->
     St0 = new_st(),
     St1 = wings_sel:reset(St0),
     St2 = wings_undo:init(St1),
@@ -82,6 +84,7 @@ init_part2(Frame, GeomGL) ->
     %% and before the others that use gl functions
     wings_text:init(),
     wings_wm:init(Frame),
+    wings_develop:init(),
     check_requirements(),
 
     wings_color:init(),
@@ -89,18 +92,19 @@ init_part2(Frame, GeomGL) ->
 
     wings_camera:init(),
     wings_vec:init(),
+    wings_shaders:init(),
+    wings_light:init(),
 
     wings_view:init(),
     wings_u:caption(St),
-    wings_file:init_autosave(),
     wings_dialog:init(),
     wings_job:init(),
-    wings_develop:init(),
     wings_tweak:init(),
 
-    open_file(),
+    is_fast_start(Args) orelse open_file(Args),
     make_geom_window(GeomGL, St),
-    restore_windows(St),
+    is_fast_start(Args) orelse wings_file:init_autosave(),
+    is_fast_start(Args) orelse restore_windows(St),
     case catch wings_wm:enter_event_loop() of
 	{'EXIT',shutdown} ->
 	    wings_io:quit(),
@@ -209,12 +213,25 @@ free_viewer_num(N) ->
 	true -> free_viewer_num(N+1)
     end.
 
-open_file() ->
+open_file(Args) ->
     USFile = wings_file:autosave_filename(wings_file:unsaved_filename()),
-    Recovered = filelib:is_file(USFile),
-    wings_pref:set_value(file_recovered, Recovered),
+    case filelib:is_file(USFile) of
+	true ->
+	    wings_u:yes_no(?__(1,"Wings3D has detected an unsaved file.") ++"\n" ++
+			   ?__(2,"Would you like to recover it?"),
+			   fun() ->
+			       wings_pref:set_value(file_recovered, true),
+			       wings_wm:send_after_redraw(geom, {open_file,USFile})
+			   end,
+			   fun() ->
+			       wings_file:del_unsaved_file(),
+			       open_file_start(Args)
+			   end);
+	_ -> open_file_start(Args)
+    end.
 
-    File1 = case application:get_env(wings, args) of
+open_file_start(Args) ->
+    File1 = case Args of
                 undefined -> none;
                 {ok, File0} ->
                     case filelib:is_regular(File0) of
@@ -229,10 +246,7 @@ open_file() ->
 	       [F|_] -> F;
 	       [] -> File1
 	   end,
-    if Recovered ->
-	    wings_u:message(?__(1,"Wings3D has recovered an unsaved file.")),
-	    wings_wm:send_after_redraw(geom, {open_file,USFile});
-       File =:= none ->
+    if File =:= none ->
 	    timer:sleep(200), %% For splash screen :-)
 	    ignore;
        true ->
@@ -240,10 +254,17 @@ open_file() ->
 	    wings_wm:send_after_redraw(geom, {open_file,File})
     end.
 
+is_fast_start() ->
+    is_fast_start(application:get_env(wings, args)).
+
+is_fast_start({ok, script_usage}) -> true;
+is_fast_start(_) -> false.
+
 init_opengl(St) ->
     wings_render:init(),
     wings_dl:init(),
     wings_draw:refresh_dlists(St),
+    wings_light:init_opengl(),
     keep.
 
 redraw(St) ->
@@ -254,7 +275,6 @@ redraw(Info, St) ->
 	fun() ->
 		wings_wm:clear_background(),
 		wings_render:render(St),
-		call_post_hook(St),
 		TweakInfo = wings_tweak:statusbar(),
 		case Info =/= [] andalso wings_wm:get_prop(show_info_text) of
 		    true when TweakInfo =:= [] ->
@@ -269,12 +289,6 @@ redraw(Info, St) ->
 		wings_tweak:tweak_keys_info()
 	end,
     wings_io:batch(Render).
-
-call_post_hook(St) ->
-    case wings_wm:lookup_prop(postdraw_hook) of
-    none -> ok;
-    {value,{_Id,Fun}} -> Fun(St)
-    end.
 
 register_postdraw_hook(Window, Id, Fun) ->
     case wings_wm:lookup_prop(Window, postdraw_hook) of
@@ -408,6 +422,7 @@ handle_event_3({vec_command,Command,St}, _) when is_function(Command) ->
     command_response(Command(), none, St);
 handle_event_3(#mousebutton{}, _St) -> keep;
 handle_event_3(#mousemotion{}, _St) -> keep;
+%handle_event_3(#mousewheel{}, _St) -> keep;
 handle_event_3(init_opengl, St) ->
     init_opengl(St),
     main_loop_noredraw(St);
@@ -468,12 +483,8 @@ handle_event_3({external,not_possible_to_save_prefs}, _St) ->
     wings_help:not_possible_to_save_prefs();
 handle_event_3({external, win32_start_maximized}, _St) ->
     keep;
-handle_event_3({external, Fun}, St)
-  when is_function(Fun) ->
+handle_event_3({external, Fun}, St) when is_function(Fun) ->
     Fun(St);
-handle_event_3({external,Op}, St) ->
-    wpa:handle_external(Op,St),
-    keep;
 handle_event_3(#wx{event=#wxDropFiles{files=Fs0}}, St0) ->
     Send = fun(Op) -> wings ! {action, {file, Op}} end,
     ImgFms = wings_image:image_formats(),
@@ -487,25 +498,29 @@ handle_event_3(#wx{event=#wxDropFiles{files=Fs0}}, St0) ->
               (File, false) -> Send({merge, File}), false
            end,
     lists:foldl(Open, DoOpen, Objects),
-    case Fs2 of
-        [] -> keep;
-        [File] -> wings_u:error_msg(?__(1,"Unknown file format: ~s"), [filename:basename(File)]);
-        [_|_]  -> wings_u:error_msg(?__(2,"Unknown file formats"))
-    end;
+    Send({import_files, Fs2}),
+    keep;
 handle_event_3(ignore, _St) ->
     keep;
 handle_event_3({system,_,_}, _St) ->
     %% observer or other system message
     keep;
+handle_event_3({command_error, Error}, _St) ->
+    wings_u:error_msg(Error),
+    keep;
 handle_event_3({adv_menu_abort, Ev}, _St) ->
     This = wings_wm:actual_focus_window(),
     wings_wm:send(This,Ev);
-handle_event_3({camera,Ev,NextEv}, St) ->
+handle_event_3({camera,Ev0,NextEv}, St) ->
     %% used by preview dialogs in (blanket event)
     {_,X,Y} = wings_wm:local_mouse_state(),
-    case wings_camera:event(Ev#mousebutton{x=X,y=Y}, St) of
-      next -> NextEv;
-      Other -> Other
+    Ev = case Ev0 of
+             #mousewheel{} -> Ev0#mousewheel{x=X,y=Y};
+             #mousebutton{} -> Ev0#mousebutton{x=X,y=Y}
+         end,
+    case wings_camera:event(Ev, St) of
+        next -> NextEv;
+        Other -> Other
     end.
 
 handle_popup_event(Ev, Xglobal, Yglobal, St0) ->
@@ -526,7 +541,7 @@ handle_popup_event(Ev, Xglobal, Yglobal, St0) ->
 
 filter_format(File, Formats) ->
     Ext = filename:extension(File),
-    lists:keymember(Ext, 1, Formats).
+    lists:keymember(string:lowercase(Ext), 1, Formats).
 
 info_line() ->
     case wings_pref:get_value(tweak_active) of
@@ -680,9 +695,16 @@ command_response({replace,_,_}=Replace, _, _) ->
 command_response(keep, _, _) ->
     keep;
 command_response(quit, _, _) ->
-    save_windows(),
-    wings_pref:finish(),
-    exit(shutdown).
+    case is_fast_start() of
+        true  ->
+            ignore;
+        false ->
+            save_windows(),
+            wings_pref:finish()
+    end,
+    erlang:process_flag(trap_exit, false),
+    sys:terminate(wings_sup, shutdown),  %% async
+    receive hang_until_killed -> ok end.
 
 remember_command({C,_}=Cmd, St) when C =:= vertex; C =:= edge;
                      C =:= face; C =:= body ->
@@ -714,7 +736,7 @@ repeatable(Mode, Cmd) ->
     
     %% No more commands are safe in body mode.
     {_,_} when Mode == body -> no;
-    {_,{flatten,_}=C} when Mode == vertex; Mode == face -> {Mode,C};
+    {_,{flatten,_}=C} when Mode == vertex; Mode == face; Mode == edge -> {Mode,C};
     {_,dissolve} when Mode == vertex -> no;
     {_,dissolve=C} -> {Mode,C};
     {_,bevel=C} -> {Mode,C};
@@ -800,6 +822,7 @@ command_1({edit,{preferences,Pref}}, St) ->
 command_1({edit,{theme,Theme}}, St) ->
     wings_pref:pref({load,Theme,St}),
     wings_frame:update_theme(),
+    wings_status:update_theme(),
     keep;
 
 %% Select menu.
@@ -1203,8 +1226,13 @@ drop_command(cancel_drop, St) -> St.
 %%%
 
 save_windows() ->
-    TopSize = wxWindow:getSize(?GET(top_frame)),
-    wings_pref:set_value(window_size, TopSize),
+    Frame = ?GET(top_frame),
+    case wxTopLevelWindow:isMaximized(Frame) of
+	false ->
+	    TopSize = wxWindow:getSize(?GET(top_frame)),
+	    wings_pref:set_value(window_size, TopSize);
+	true -> ignore
+    end,
     {Contained, Free} = wings_frame:export_layout(),
     wings_pref:set_value(saved_windows2, {Contained, Free}).
 
@@ -1235,7 +1263,6 @@ get_mode_restriction() ->
 
 %%%% Get Objects Info and display in a table, one row per object.
 object_info(St) ->
-    #st{shapes=Shapes} = St,
     HRow = {
       ?__(1,"#"),
       ?__(2,"Name"),
@@ -1245,10 +1272,15 @@ object_info(St) ->
       ?__(6,"Edges"),
       ?__(7,"Faces"),
       ?__(8,"Verts") },
-    case gb_trees:is_empty(Shapes) of
-        true -> wings_u:error_msg(?__(9,"No objects in scene"));
-        false ->
-            Rows = [get_object_info(Id, Shapes) || Id <- gb_trees:keys(Shapes)],
+    MF = fun(#{id:=Id,name:=Name},#we{}=We) ->
+                 get_object_info(Id, Name, We)
+         end,
+    RF = fun(Obj, Acc) -> [Obj|Acc] end,
+    case wings_obj:dfold(MF, RF, [], St) of
+        [] ->
+            wings_u:error_msg(?__(9,"No objects in scene"));
+        [_|_]=Rows0 ->
+            Rows = lists:sort(Rows0),
 	    Header = list_to_tuple([{H,H}|| H <- tuple_to_list(HRow)]),
             ColumnWidthList = column_widths([Header|Rows]),
             Qs = [{table,[HRow|Rows],
@@ -1258,42 +1290,38 @@ object_info(St) ->
             wings_dialog:dialog(?__(10,"Scene Info: "), Qs, Ask)
     end.
 
+get_object_info(Id, Name, #we{es=Etab,fs=Ftab,vp=VPos}=We) ->
+    Area      =  wings_we:surface_area(We),
+    Volume    =  wings_we:volume(We),
+    Perimeter =  wings_we:perimeter(We),
+    NEdge   = wings_util:array_entries(Etab),
+    NFace   = gb_trees:size(Ftab),
+    NVertex =  wings_util:array_entries(VPos),
+    Info = [Id,Name,Area,Perimeter,Volume,NEdge,NFace,NVertex],
+    list_to_tuple([{X,to_string(X)} || X <- Info]).
 
-get_object_info(Id, Shapes) ->
-    #we{id=Id,name=Name,es=Etab0,fs=Ftab0,vp=VPos0} = We0 = gb_trees:get(Id, Shapes),
-    Area      =  wings_we:surface_area(We0),
-    Volume    =  wings_we:volume(We0),
-    Perimeter =  wings_we:perimeter(We0),
-    ToString = fun(Item) ->
-		       case Item of
-			   Item when is_float(Item) ->
-			       lists:flatten(io_lib:format("~.4f", [Item]));
-			   Item when is_integer(Item) ->
-			       integer_to_list(Item);
-			   Item when is_list(Item) ->
-			       Item
-		       end
-	       end,
-    NEdge   = wings_util:array_entries(Etab0),
-    NFace   = gb_trees:size(Ftab0),
-    NVertex =  wings_util:array_entries(VPos0),
-    list_to_tuple([{X,ToString(X)}||X<-[Id,Name,Area,Perimeter,Volume,NEdge,NFace,NVertex]]).
+to_string(Item) ->
+    case Item of
+        Item when is_float(Item) ->
+            lists:flatten(io_lib:format("~.4f", [Item]));
+        Item when is_integer(Item) ->
+            integer_to_list(Item);
+        Item when is_list(Item) ->
+            Item
+    end.
 
-
-
-%% get maximal column widths needed to display each column in characters.
+%% Get maximal column widths needed to display each column in characters.
 column_widths(Rows) ->
     [Row|_] = Rows,
-    NCols = size(Row),
-    MyAcc = fun(Col,Acc) ->
-		    Temp = [ begin
-				 {_,A} = element(Col,RowTuple),
-				 length(A)
-			     end || RowTuple <- Rows],
-		    Mx = lists:max(Temp), % add a bit of padding
-		    [Mx|Acc]
-	    end,
-    lists:foldr(MyAcc,[], lists:seq(1,NCols)).
+    NCols = tuple_size(Row),
+    F = fun(Col) ->
+                L = [begin
+                         {_,A} = element(Col, RowTuple),
+                         length(A)
+                     end || RowTuple <- Rows],
+                lists:max(L)
+        end,
+    [F(Col) || Col <- lists:seq(1, NCols)].
 %%%%
 
 highlight_aim_setup(St0) ->

@@ -30,7 +30,7 @@
 	 handle_call/3, handle_cast/2, handle_event/2,
 	 handle_info/2, code_change/3, terminate/2]).
 
--record(s, {reply,name,w,h,opacity=0.5,sx=1.0,sy=1.0,tx=0.0,ty=0.0,r=0.0}).
+-record(s, {active=false,reply,name,w,h,opacity=0.5,sx=1.0,sy=1.0,tx=0.0,ty=0.0,r=0.0,tiled=1}).
 
 init() -> true.
 
@@ -43,11 +43,11 @@ snap_win_menu() ->
      ?__(2,"Shows the snap image window")}.
 
 proportional_scale() ->
-    [{?__(1,"...to Current X"),proportional_x,
+    [{?__(1,"...to Current X"),{auv_snap_prop,proportional_x},
       ?__(2,"Scale image's Y value to be proportional to it's current X value")},
-     {?__(3,"...to Current Y"),proportional_y,
+     {?__(3,"...to Current Y"),{auv_snap_prop,proportional_y},
       ?__(4,"Scale image's X value to be proportional to it's current Y value")},
-     {?__(5,"Actual Size"),actual_size,
+     {?__(5,"Actual Size"),{auv_snap_prop,actual_size},
       ?__(6,"Reset image to its actual size")}].
 
 snap_menu(scale) ->
@@ -55,7 +55,7 @@ snap_menu(scale) ->
      {?__(3,"Vertical"),{auv_snap_scale,y},?__(4,"Scale the background image vertically")},
      {?__(5,"Free"),{auv_snap_scale,free},?__(6,"Scale the background image freely")},
      {?__(7,"Uniform"),{auv_snap_scale,uniform},?__(8,"Scale the background image uniformly")},
-     {?__(32,"Proportional"),{auv_snap_prop,proportional_scale()},?__(33,"Make image scale proportional")}];
+     {?__(32,"Proportional"),{auv_snap_scale,proportional_scale()},?__(33,"Make image scale proportional")}];
 snap_menu(move) ->
     [{?__(1,"Horizontal"),{auv_snap_move,x},?__(10,"Move the background image horizontally")},
      {?__(3,"Vertical"),{auv_snap_move,y}, ?__(12,"Move the background image vertically")},
@@ -81,6 +81,8 @@ command({snap_image,cancel}, St) ->
     cancel(St);
 command({snap_image,{opacity,Opacity}}, St) ->
     opacity(Opacity, St);
+command({snap_image,{tiled,Active}}, St) ->
+    tiled(Active, St);
 command({snap_image,apply}, St) ->
     snap(St);
 command({_,{auv_snap_scale,Op}}, St) ->
@@ -91,11 +93,14 @@ command({_,{auv_snap_fit,Op}}, St) ->
     fit(Op,St);
 command({snap_image,{rotate,Rotate}}, St) ->
     rotate(Rotate, St);
-command(_, _) ->
+command(_Op, _) ->
     next.
 
 active() ->
-    get(?MODULE) =/= undefined.
+    case get(?MODULE) of
+	undefined -> false;
+	#s{active=Active} -> Active
+    end.
 
 start(St0) ->
     #s{reply=ImgId} = get(?MODULE),
@@ -105,13 +110,20 @@ start(St0) ->
     St0.
 
 start(#{reply:=ImgId,name:=Name,w:=W,h:=H}, St) ->
-    cancel(),
-    put(?MODULE, #s{reply=ImgId,name=Name,w=W,h=H}),
+    State =
+	case get(?MODULE) of
+	    undefined -> #s{active=true,reply=ImgId,name=Name,w=W,h=H};
+	    State0 -> State0#s{active=true,reply=ImgId,name=Name,w=W,h=H}
+	end,
+    put(?MODULE, State),
     start(St).
 
 cancel() ->
-    wings:unregister_postdraw_hook(geom, ?MODULE),
-    erase(?MODULE).
+    case get(?MODULE) of
+	undefined -> ignore;
+	State -> put(?MODULE, State#s{active=false})
+    end,
+    wings:unregister_postdraw_hook(geom, ?MODULE).
 
 cancel(St) ->
     cancel(),
@@ -201,6 +213,12 @@ opacity(Opacity, St) ->
     put(?MODULE, State#s{opacity=Opacity}),
     St.
 
+tiled(Active, St) ->
+    State=get(?MODULE),
+    wings_pref:set_value(snap_tiled, Active),
+    put(?MODULE, State#s{tiled=Active}),
+    St.
+
 draw_image(Image,_St) ->
     gl:pushAttrib(?GL_ALL_ATTRIB_BITS),
     gl:matrixMode(?GL_PROJECTION),
@@ -217,9 +235,18 @@ draw_image(Image,_St) ->
     gl:blendFunc(?GL_SRC_ALPHA, ?GL_ONE_MINUS_SRC_ALPHA),
     gl:enable(?GL_TEXTURE_2D),
     gl:bindTexture(?GL_TEXTURE_2D, Image),
+
+    #s{w=IW,h=IH,sx=Sx,sy=Sy,tx=Tx,ty=Ty,r=Rot,opacity=Opa,tiled=Tiled} = get(?MODULE),
+    if Tiled =:= 0 ->
+	gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_S, ?GL_CLAMP_TO_BORDER),
+	gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_T, ?GL_CLAMP_TO_BORDER);
+    true ->
+	gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_S, ?GL_REPEAT),
+	gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_T, ?GL_REPEAT)
+    end,
+
     gl:texEnvi(?GL_TEXTURE_ENV, ?GL_TEXTURE_ENV_MODE, ?GL_MODULATE),
 
-    #s{w=IW,h=IH,sx=Sx,sy=Sy,tx=Tx,ty=Ty,r=Rot,opacity=Opa} = get(?MODULE),
     gl:color4f(1.0, 1.0, 1.0, Opa),   %%Semitransparant
     {_,_,W,H} = wings_wm:viewport(),
     {Xs,Ys,Xe,Ye} = {0.0,0.0,1.0,1.0},
@@ -238,7 +265,7 @@ draw_image(Image,_St) ->
 	   plot_uv({Tx/2,Ty/2},{Sx*Xrange,Sy*Yrange},Center,Rot),
 	   plot_uv({Tx/2,Ty/2},{-Sx*Xrange,Sy*Yrange},Center,Rot)],
     List = zip(UVs, Vs),
-    wings_vbo:draw(fun() -> gl:drawArrays(?GL_QUADS, 0, 4) end, List, [uv, vertex2d]),
+    wings_vbo:draw(fun(_) -> gl:drawArrays(?GL_QUADS, 0, 4) end, List, [uv, vertex2d]),
     gl:popAttrib().
 
 zip([V|Vs], [UV|UVs]) ->
@@ -262,14 +289,13 @@ calc_uv_fun() ->
     {MM,PM,{_,_,W,H}=Viewport} = wings_u:get_matrices(0, original),
     #s{w=IW,h=IH,sx=Sx,sy=Sy,tx=Tx,ty=Ty,r=Rot} = get(?MODULE),
     {Xs,Ys} = scale(W, H, IW, IH),
-
     %% In the fun, do the calculations that are specific
     %% for each vertex.
     fun({X,Y,Z}) ->
             {S,T,_} = wings_gl:project(X, Y, Z, MM, PM, Viewport),
             Center = 0.5,
             {XA0,YA0}={Tx/2+(S/W*Xs*Sx+Center-Sx*Xs/2),Ty/2+(T/H*Sy*Ys+Center-Sy*Ys/2)},
-            {XA,YA}=rotate(Rot,{XA0-Center,YA0-Center}),
+            {XA,YA}=rotate_uv(Rot,{XA0-Center,YA0-Center}),
             {Center+XA,Center+YA}
     end.
 
@@ -432,7 +458,7 @@ forward_event(_, _Window, _St) ->
     keep.
 
 get_state(?WIN_NAME) ->
-    {wings_pref:get_value(snap_opacity, 0.5)}.
+    {wings_pref:get_value(snap_opacity, 0.5),wings_pref:get_value(snap_tiled, 1)}.
 
 snap_label(image) ->
     ?__(1, "Select Image");
@@ -451,7 +477,9 @@ snap_label(move) ->
 snap_label(scale) ->
     ?__(8, "Scale");
 snap_label(fit) ->
-    ?__(9, "Fit").
+    ?__(9, "Fit");
+snap_label(tiled) ->
+    ?__(10, "Tiled Image").
 
 mod_choices() ->
     [snap_label(move) ++ " ...",
@@ -476,7 +504,9 @@ snap_tooltip(move) ->
 snap_tooltip(scale) ->
     ?__(8, "Scale the background image");
 snap_tooltip(fit) ->
-    ?__(9, "Fit image to the dimensions of the viewport").
+    ?__(9, "Fit image to the dimensions of the viewport");
+snap_tooltip(tiled) ->
+    ?__(10, "Draws the image repeatedly ").
 
 append_value(Op=opacity, Val) ->
     snap_label(Op) ++ " (" ++ to_str(Val) ++ "%)";
@@ -492,9 +522,9 @@ to_str(Val) ->
 
 -record(state, {me, name, shown, state, cols, ctrls}).
 
-init([Frame, Name, {OpaVal}=State]) ->
+init([Frame, Name, {OpaVal,Tiled}=State]) ->
     #{bg:=BG, text:=_FG} = Cols = wings_frame:get_colors(),
-    Panel = wxPanel:new(Frame, [{style, ?wxNO_BORDER}, {size,{200,300}}]),
+    Panel = wxPanel:new(Frame, [{style, wings_frame:get_border()}, {size,{200,300}}]),
     wxPanel:setFont(Panel, ?GET(system_font_wx)),
     wxWindow:setBackgroundColour(Panel, BG),
     Main = wxBoxSizer:new(?wxVERTICAL),
@@ -506,35 +536,46 @@ init([Frame, Name, {OpaVal}=State]) ->
     setup_image_list(ImgLst),
     BAct = wxToggleButton:new(Panel, ?wxID_ANY, snap_label(activate)),
     wxWindow:setToolTip(BAct, wxToolTip:new(snap_tooltip(activate))),
-    CtrlBox = wxPanel:new(Panel, [{style, ?wxNO_BORDER}]),
+    CtrlBox = wxPanel:new(Panel),
     wxWindow:setBackgroundColour(CtrlBox, BG),
     %% layout settings for the first level controls
     Szr1 = wxBoxSizer:new(?wxVERTICAL),
-    wxSizer:add(Szr1, ImgLst, [{flag, ?wxEXPAND}]),
-    wxSizer:add(Szr1, BAct, [{flag, ?wxEXPAND}]),
-    wxSizer:add(Szr1, CtrlBox, [{proportion, 1}, {border, 2}, {flag, ?wxEXPAND}]),
+    ExpandBorder = [{border, 3}, {flag, ?wxEXPAND bor  ?wxLEFT bor ?wxRIGHT}],
+    wxSizer:addSpacer(Szr1, 3),
+    wxSizer:add(Szr1, ImgLst, [{border, 7}, {flag, ?wxEXPAND bor ?wxLEFT bor ?wxRIGHT}]),
+    wxSizer:addSpacer(Szr1, 3),
+    wxSizer:add(Szr1, BAct,   [{border, 6}, {flag, ?wxEXPAND bor ?wxLEFT bor ?wxRIGHT}]),
+    wxSizer:addSpacer(Szr1, 3),
+    wxSizer:add(Szr1, CtrlBox, [{proportion, 1}|ExpandBorder]),
 
     %% second level (Panel content): Snap Image, Opacity, Rotation
     BSnap = wxButton:new(CtrlBox, ?wxID_ANY, [{label,snap_label(snap)}]),
     wxWindow:setToolTip(BSnap, wxToolTip:new(snap_tooltip(snap))),
+    TileChk = wxCheckBox:new(CtrlBox, ?wxID_ANY, snap_label(tiled)),
+    wxCheckBox:setValue(TileChk,Tiled=:=1),
+    wxWindow:setToolTip(TileChk, wxToolTip:new(snap_tooltip(tiled))),
     OpaLbl = wxStaticText:new(CtrlBox, ?wxID_ANY, append_value(opacity,OpaVal*100.0)),
     Opa = wxSlider:new(CtrlBox, ?wxID_ANY, round(OpaVal*100.0), 0, 100),
     wxWindow:setToolTip(Opa, wxToolTip:new(snap_tooltip(opacity))),
     RotLbl = wxStaticText:new(CtrlBox, ?wxID_ANY, append_value(rotate,0.0)),
     Rot = wxSlider:new(CtrlBox, ?wxID_ANY, 0, -360, 360),
     wxWindow:setToolTip(Rot, wxToolTip:new(snap_tooltip(rotate))),
-    ModLbx = wxListBox:new(CtrlBox, ?wxID_ANY, [{style, ?wxLB_SINGLE}, {choices, mod_choices()}]),
+    ModLbx = wxListBox:new(CtrlBox, ?wxID_ANY,
+                           [{style, ?wxLB_SINGLE bor ?wxBORDER_NONE},
+                            {choices, mod_choices()}]),
     wxWindow:setBackgroundColour(ModLbx, BG),
     %% layout settings for the second level controls
     Szr2 = wxBoxSizer:new(?wxVERTICAL),
-    wxSizer:add(Szr2, BSnap, [{proportion, 0}, {border, 2}, {flag, ?wxEXPAND}]),
+    wxSizer:add(Szr2, BSnap, [{proportion, 0}|ExpandBorder]),
     wxSizer:addSpacer(Szr2, 3),
-    wxSizer:add(Szr2, OpaLbl, [{proportion, 0}, {border, 2}, {flag, ?wxEXPAND}]),
-    wxSizer:add(Szr2, Opa, [{proportion, 0}, {border, 2}, {flag, ?wxEXPAND}]),
-    wxSizer:add(Szr2, RotLbl, [{proportion, 0}, {border, 2}, {flag, ?wxEXPAND}]),
-    wxSizer:add(Szr2, Rot, [{proportion, 0}, {border, 2}, {flag, ?wxEXPAND}]),
+    wxSizer:add(Szr2, TileChk, [{proportion, 0}|ExpandBorder]),
     wxSizer:addSpacer(Szr2, 3),
-    wxSizer:add(Szr2, ModLbx, [{proportion, 1}, {border, 2}, {flag, ?wxEXPAND}]),
+    wxSizer:add(Szr2, OpaLbl, [{proportion, 0}|ExpandBorder]),
+    wxSizer:add(Szr2, Opa, [{proportion, 0}|ExpandBorder]),
+    wxSizer:add(Szr2, RotLbl, [{proportion, 0}|ExpandBorder]),
+    wxSizer:add(Szr2, Rot, [{proportion, 0}|ExpandBorder]),
+    wxSizer:addSpacer(Szr2, 3),
+    wxSizer:add(Szr2, ModLbx, [{proportion, 1}|ExpandBorder]),
     wxPanel:setSizer(CtrlBox, Szr2),
 
     wxSizer:add(Main, Szr1, [{proportion, 1}, {flag, ?wxEXPAND}]),
@@ -553,6 +594,7 @@ init([Frame, Name, {OpaVal}=State]) ->
     wxListBox:connect(ModLbx, left_up),
     wxListBox:connect(ModLbx, motion),
     wxListBox:connect(ModLbx, leave_window),
+    wxCheckBox:connect(TileChk, command_checkbox_clicked),
     wxSlider:connect(Opa,command_slider_updated),
     wxSlider:connect(Rot,command_slider_updated),
 
@@ -568,7 +610,7 @@ init([Frame, Name, {OpaVal}=State]) ->
     Entries = [],
     {Panel, #state{me=Panel, name=Name, shown=Entries, cols=Cols, state=State,
 		   ctrls=#{imglst=>ImgLst,actbtn=>BAct,ctrlbox=>CtrlBox,sldopa=>Opa,
-			   sldrot=>Rot,opalbl=>OpaLbl,rotlbl=>RotLbl}}}.
+			   sldrot=>Rot,opalbl=>OpaLbl,rotlbl=>RotLbl,tilechk=>TileChk}}}.
 
 setup_image_list(Ctrl) ->
     Images = find_images(),
@@ -653,6 +695,10 @@ handle_event(#wx{event=#wxCommand{type=command_togglebutton_clicked}, obj=Btn},
 handle_event(#wx{event=#wxCommand{type=command_button_clicked}}, State) ->
     wings_wm:psend(geom, {action,{snap_image,apply}}),
     {noreply, State};
+handle_event(#wx{event=#wxCommand{type=command_checkbox_clicked, commandInt=Val}, obj=_Obj}, State) ->
+    wings_wm:psend(geom, {action,{snap_image,{tiled,Val}}}),
+    {noreply, State};
+
 handle_event(#wx{event=#wxCommand{type=command_slider_updated, commandInt=Val}, obj=Obj},
 	     #state{ctrls=#{sldopa:=Opa,sldrot:=Rot,opalbl:=OpaLbl,rotlbl:=RotLbl}}=State) ->
     case Obj of
@@ -754,6 +800,7 @@ code_change(_From, _To, State) ->
     State.
 
 terminate(_Reason, #state{name=Name}) ->
+    erase(?MODULE),
     wings_wm:psend(geom, {action,{snap_image,cancel}}),
     wings ! {wm, {delete, Name}},
     normal.

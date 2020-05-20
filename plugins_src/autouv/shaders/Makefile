@@ -38,8 +38,8 @@ FILES = standard.vs \
 	lava.fs \
 	wpc_caustics.auv \
 	caustics.fs \
-	wpc_camuflage.auv \
-	camuflage.fs \
+	wpc_camouflage.auv \
+	camouflage.fs \
 	README-shaders.txt
 
 

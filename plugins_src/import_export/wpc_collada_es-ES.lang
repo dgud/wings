@@ -1,0 +1,12 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_collada,
+ [
+  {do_export,
+   [
+    {1,"Opciones de exportación Collada"}
+   ]},
+  {props,
+   [
+    {1,"Archivo Collada"}
+   ]}
+ ]}.

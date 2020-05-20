@@ -27,7 +27,8 @@
 	  geoms = [],                   % Collada geometry nodes
 	  objnames = [],                % list of object names
 	  matl_defs = gb_trees:empty(), % defined materials
-	  visualscenenodes = []         % list of visualscenenodes
+          visualscenenodes = [],        % list of visualscenenodes
+          dir                           % File(s) Directory
 	 }
        ).
 
@@ -84,12 +85,10 @@ do_export(Attr, _Op, Exporter, _St) when is_list(Attr) ->
     SubDivs = proplists:get_value(subdivisions, Attr, 0),
     Uvs = proplists:get_bool(include_uvs, Attr),
     Units = proplists:get_value(units, Attr),
-    %% If smoothing groups are not wanted, we'll turn off
-    %% export of hard edges. That will create only one smoothing group.
-    HardEdges = proplists:get_bool(include_normals, Attr),
-    Ps = [{include_uvs,Uvs},{units,Units},{include_hard_edges,HardEdges},
+    Ps = [{include_uvs,Uvs},{units,Units},{include_hard_edges,true},
 	  {subdivisions,SubDivs}|props()],
-    Exporter(Ps, export_fun(Attr)).
+    Exporter(Ps, export_fun(Attr)),
+    keep.
 
 export_fun(Attr) ->
     fun(Filename, Contents) ->
@@ -105,7 +104,7 @@ export_1(Filename, Contents0, Attr) ->
     Contents2 = export_transform(Contents1, Attr),
     %% Export is a record of data collected while iterating over geometry
     %% and materials.
-    ExportState0 = #c_exp{},
+    ExportState0 = #c_exp{dir = filename:dirname(Filename)},
     #e3d_file{objs=Objs,mat=Mat} = Contents2,
     ExportState1 = foldl(fun (O, S) ->
 				 make_geometry(O, S, Mat)
@@ -129,7 +128,7 @@ export_1(Filename, Contents0, Attr) ->
     Collada = #xmlElement{name='COLLADA',content=ColladaNodes,
 			  attributes=ColladaAtts},
     FileContents = xmerl:export_simple(["\n",Collada],xmerl_xml),
-    ok = file:write_file(Filename, [FileContents]).
+    ok = file:write_file(Filename, unicode:characters_to_binary(FileContents)).
 
 make_library_materials(#c_exp{matl_defs=MatlDefs}) ->
     Matls = map(fun (Matl) ->
@@ -264,7 +263,7 @@ use_material(Name, MatDefs, #c_exp{matl_defs=ExpMatlDefs}=ExportState) ->
 
 define_material(_, undefined, ExportState) -> 
     ExportState;
-define_material(Name, ThisMat, #c_exp{matl_defs=ExpMatlDefs}=ExportState) ->
+define_material(Name, ThisMat, #c_exp{matl_defs=ExpMatlDefs, dir=Dir}=ExportState) ->
     OpenGLMat = lookup(opengl, ThisMat),
     {Ar,Ag,Ab,O} = lookup(ambient, OpenGLMat),
     {Dr,Dg,Db,_} = lookup(diffuse, OpenGLMat),
@@ -280,10 +279,14 @@ define_material(Name, ThisMat, #c_exp{matl_defs=ExpMatlDefs}=ExportState) ->
     ColladaMatl1 = case keyfind(maps, 1, ThisMat) of
 	{maps,Maps} ->
 	    case keyfind(diffuse, 1, Maps) of
-		{diffuse,#e3d_image{filename=DiffFilename,name=DiffName}} ->
-		    FileId = filename_to_id(DiffFilename),
+		{diffuse,#e3d_image{filename=DiffFile,name=DiffName}} ->
+		    FileId = filename_to_id(DiffFile),
 		    DiffSampler2D = make_mat_sampler2D(FileId),
 		    DiffSurface = make_mat_surface(FileId),
+                    DiffFilename = case string:prefix(DiffFile, Dir) of
+                                       nomatch -> DiffFile;
+                                       [_|DFile] -> DFile
+                                   end,
 		    DiffTx = {texture,[{texcoord,"CHANNEL1"},
 				       {texture,FileId ++ "-sampler"}],[]},
 		    ColladaMatl0#c_matl{txname=DiffName,

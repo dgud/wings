@@ -16,11 +16,13 @@
 -export([window/1,window/5]).
 
 -export([init/1,
-	 handle_call/3, handle_cast/2, handle_event/2, handle_info/2,
-	 code_change/3, terminate/2
+	 handle_call/3, handle_cast/2,
+	 handle_event/2, handle_sync_event/3,
+	 handle_info/2, code_change/3, terminate/2
 	]).
 
 -define(WIN_NAME, {plugin, sel_groups}).
+-define(NEED_ESDL, true).
 -include_lib("wings/src/wings.hrl").
 
 %%%
@@ -173,7 +175,7 @@ init([Frame, _Ps, SS]) ->
     Panel = wxPanel:new(Frame),
     wxPanel:setFont(Panel, ?GET(system_font_wx)),
     Szr = wxBoxSizer:new(?wxVERTICAL),
-    Style = ?wxLC_REPORT bor ?wxLC_NO_HEADER bor ?wxLC_EDIT_LABELS bor ?wxLC_SINGLE_SEL,
+    Style = ?wxLC_REPORT bor ?wxLC_NO_HEADER bor ?wxLC_EDIT_LABELS bor ?wxLC_SINGLE_SEL bor wings_frame:get_border(),
     LC = wxListCtrl:new(Panel, [{style, Style}]),
     wxListCtrl:setBackgroundColour(LC, BG),
     wxListCtrl:setForegroundColour(LC, FG),
@@ -194,17 +196,32 @@ init([Frame, _Ps, SS]) ->
     wxWindow:connect(LC, command_list_item_selected, [{callback, IgnoreForPopup}]),
     wxWindow:connect(LC, command_list_item_activated),
     wxWindow:connect(LC, right_up),
-    case os:type() of
-	{win32,nt} ->
-	    %% Mouse right_up does not arrive on items in windows
-            wxWindow:connect(LC, command_list_item_right_click);
-	_ ->
-	    ok
+    case os:type() of %% Mouse right_up does not arrive on items in windows
+	{win32,nt} -> wxWindow:connect(LC, command_list_item_right_click);
+	_ -> ok
     end,
     wxWindow:connect(LC, command_list_end_label_edit),
     wxWindow:connect(LC, size, [{skip, true}]),
     wxWindow:connect(LC, enter_window, [{userData,{win,Panel}}]),
+    wxWindow:connect(LC, char, [callback]),
     {Panel, #state{lc=LC, shown=Shown, ss=SS, sel=none}}.
+
+handle_sync_event(#wx{obj=LC,event=#wxKey{type=char, keyCode=KC}}, EvObj, #state{lc=LC, shown=Shown}) ->
+    Indx = wxListCtrl:getNextItem(LC, -1, [{geometry, ?wxLIST_NEXT_ALL}, {state, ?wxLIST_STATE_SELECTED}]),
+    case {key_to_op(KC), validate_param(Indx)} of
+	{Act,Param0} when Act =/= ignore andalso Param0 =/=ignore ->
+	    Param = array:get(Param0, Shown),
+	    wings_wm:psend(?WIN_NAME, {action, {sel_groups, {Act, Param}}});
+	_ -> wxEvent:skip(EvObj, [{skip, true}])
+    end,
+    ok.
+
+key_to_op(?WXK_DELETE) -> delete_group;
+key_to_op(?WXK_F2) -> rename_group;
+key_to_op(_) -> ignore.
+
+validate_param(-1) -> ignore;
+validate_param(Param) -> Param.
 
 handle_event(#wx{event=#wxList{type=command_list_item_activated, itemIndex=Indx}},
  	     #state{shown=Shown} = State) ->
@@ -408,8 +425,10 @@ group_ins_menu() ->
 	[{?__(1,"New Group..."),menu_cmd(new_group,0),?__(2,"Create a new selection group")}].
 group_del_menu(none) -> [];
 group_del_menu({_,SrcName}=SrcId) ->
-	[{?__(20,"Rename"), menu_cmd(rename_group,SrcId), ?__(21,"Rename group \"")++SrcName++"\""},
-	 {?__(3,"Delete Group"), menu_cmd(delete_group,SrcId), ?__(4,"Delete group \"")++SrcName++"\""},
+	[{?__(20,"Rename"), menu_cmd(rename_group,SrcId),
+	  ?__(21,"Rename group \"")++SrcName++"\"", [{hotkey,wings_hotkey:format_hotkey({?SDLK_F2,[]},pretty)}]},
+	 {?__(3,"Delete Group"), menu_cmd(delete_group,SrcId),
+	  ?__(4,"Delete group \"")++SrcName++"\"", [{hotkey,wings_hotkey:format_hotkey({?SDLK_DELETE,[]},pretty)}]},
 	 separator,
 	 {?__(22,"Delete All"), menu_cmd(delete_groups,all), ?__(23,"Delete all groups")},
 	 {?__(24,"Remove Invalid Groups"), menu_cmd(delete_groups,invalid), ?__(25,"Removes all invalid groups")}].

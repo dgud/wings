@@ -15,10 +15,10 @@
 	.fig .dvi .tex .class .java .pdf .psframe .pscrop
 
 include ../vsn.mk
+include ../erl.mk
 
 ESRC=.
 EBIN=.
-ERLC=erlc
 
 ifeq ($(TYPE),debug)
 TYPE_FLAGS=-DDEBUG +debug_info
@@ -59,4 +59,4 @@ $(EBIN)/%.beam: $(ESRC)/%.erl
 	$(ERLC) $(ERL_FLAGS) $(ERL_COMPILE_FLAGS) -o$(EBIN) $<
 
 $(GEN_HEADER): gen_char_hrl $(LANG_FILES)
-	escript gen_char_hrl
+	$(ESCRIPT) gen_char_hrl

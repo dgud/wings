@@ -261,14 +261,18 @@ make_vmad_uv2(IndexedFaces, UVcoords) ->
 	#e3d_face{tx=FaceUVs,vs=FaceVerts} = E3dFace,
 	FaceIdxs = lists:duplicate(length(FaceVerts), FaceIdx),
 	RawFaceUvs = [lists:nth(Index+1, UVcoords) || Index <- FaceUVs],
-	FaceVertsB = [<<I:16>> || I <- FaceVerts],
-	FaceIdxsB  = [<<I:16>> || I <- FaceIdxs],
 	RawFaceUvsB = [<<U:32/float, V:32/float>> || {U,V} <- RawFaceUvs],
-	Line = zip_lists_3(FaceVertsB, FaceIdxsB, RawFaceUvsB),
-	list_to_binary(Line)
-	end,
+	case RawFaceUvs of
+	    [] -> [];
+	    _ ->
+		FaceVertsB = [<<I:16>> || I <- FaceVerts],
+		FaceIdxsB  = [<<I:16>> || I <- FaceIdxs],
+		Line = zip_lists_3(FaceVertsB, FaceIdxsB, RawFaceUvsB),
+		list_to_binary(Line)
+	end
+    end,
     Vmads = lists:map(FaceToBinary, IndexedFaces),
-    Vmads.
+    lists:flatten(Vmads).
 
 make_auth(Creator) ->
     Comment = make_nstring("----> Exported from: " ++ Creator ++ " <----"),
@@ -383,7 +387,7 @@ read_chunk(Data, Chunks) ->
     <<ChunkId:4/binary, ChunkSize:32, Rest/binary>> = Data,
     <<ChunkData:ChunkSize/binary, Rest2/binary>> = Rest,
     ChunkSize = size(ChunkData),
-    io:fwrite("Chunk: ~s, Size: ~p\n", [binary_to_list(ChunkId), ChunkSize]),
+    %% io:fwrite("Chunk: ~s, Size: ~p\n", [binary_to_list(ChunkId), ChunkSize]),
     case ChunkId of
 	<<"TAGS">> ->
 	    Tags = read_tags(ChunkData),
@@ -494,25 +498,24 @@ lwo_import(Name) ->
 %%% ============
 %%% === Misc ===
 %%% ============
-pp(Item) ->
-    io:fwrite("       ~p\n", [Item]).
+pp(_Item) ->
+%%    io:fwrite("       ~p\n", [_Item]),
+    ok.
 
-ps(Item) ->
-    io:fwrite("~s\n", [Item]).
+ps(_Item) ->
+%%    io:fwrite("~s\n", [_Item]),
+    ok.
 
-print_boxed(Item) ->
-    if
-%% 	integer(Item) -> String = integer_to_list(Item);
-%%	float(Item) ->	 String = float_to_list(Item);
-	is_atom(Item) -> String = atom_to_list(Item);
-%%	tuple(Item) ->	 String = lists:concat(tuple_to_list(Item));
-%%	binary(Item) ->  String = binary_to_list(Item);
-	is_list(Item) -> String = Item
-    end,
-    NumChars = length(String),
-    io:fwrite("+-~s-+\n", [lists:duplicate(NumChars, "-")]),
-    io:fwrite("| ~s |\n", [String]),
-    io:fwrite("+-~s-+\n", [lists:duplicate(NumChars, "-")]).
+print_boxed(_Item) -> ok.
+%% print_boxed(Item) ->
+%%     if
+%% 	is_atom(Item) -> String = atom_to_list(Item);
+%% 	is_list(Item) -> String = Item
+%%     end,
+%%     NumChars = length(String),
+%%     io:fwrite("+-~s-+\n", [lists:duplicate(NumChars, "-")]),
+%%     io:fwrite("| ~s |\n", [String]),
+%%     io:fwrite("+-~s-+\n", [lists:duplicate(NumChars, "-")]).
 
 add_indices(List) ->
     ListLen = length(List),

@@ -4,32 +4,22 @@ Wings3D
 Wings3D is an advanced sub-division modeller inspired by the Nendo
 and Mirai modellers from Izware.
 
-
 Wings on the net
 ----------------
 
 http://www.wings3d.com
 
-http://nendowingsmirai.yuku.com
-
-
 If you need help
 ----------------
 
-The Wings users at 
-
-http://nendowingsmirai.yuku.com/
-
-are generally helpful. There is also thread there for
+The Wings users at forum are generally helpful. There is also thread there for
 posting bug reports.
-
 
 System Requirements for Running Wings
 -------------------------------------
 
 A working OpenGL driver. There will never be a version
 of Wings for DirectX.
-
 
 How to build Wings 3D
 ---------------------

@@ -1,0 +1,18 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_move_planar,
+ [
+  {axis_menu_string,
+   [
+    {1,"Restringir todo el movimiento al plano definido por ~s"}
+   ]},
+  {move_planar_menu,
+   [
+    {1,"Planar"},
+    {2,"Restringir el movimiento al plano por defecto"},
+    {3,"Elige el plano"}
+   ]},
+  {selection_ask,
+   [
+    {1,"Elige el plano al que se restringirá todo el movimiento"}
+   ]}
+ ]}.

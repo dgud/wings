@@ -1,0 +1,54 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_shear,
+ [
+  {glide_plane_menu,
+   [
+    {1,"Superficie del Plano de Deslizamiento orientada al eje ~s.(Paralelo al cual el movimiento de los vértices está restringido)"},
+    {2,"Escoge el Vector de Cizallamiento y el Origen.(Punto de Medición calculado automáticamente)"},
+    {3,"Escoge el Vector de Cizallamiento, el Origin, y el Punto de Medición"}
+   ]},
+  {radial_menu,
+   [
+    {3,"Restringir el movimiento de los vértices al Vector de Cizallamiento ~s a través de su Plano de Deslizamiento individual, orientado a ~s"},
+    {4,".(El origen y el punto de medición se calculan automáticamente)"},
+    {5,"Escoge el Origen y el Punto de Medición"}
+   ]},
+  {selection_ask,
+   [
+    {1,"Selecciona el Plano de Deslizamiento"},
+    {2," (plano al cual todos los vértices se mueven paralelos)"},
+    {3,"Selecciona el Origen (punto que define el Plano de Deslizamiento estacionario)"},
+    {4,"Selecciona el Vector de Cizallamiento"},
+    {5," (los vértices de dirección se moverán a través de sus Planos de Deslizamiento individuales)"},
+    {6,"Selecciona el Punto de Medición"},
+    {7," (punto según el cual se medirá el movimiento a través del Plano de Deslizamiento)"},
+    {8,"Reselecciona el Vector de Cizallamiento"},
+    {9,". No puede ser perpendicular al Plano de Deslizamiento especificado"},
+    {10,"Reselecciona el Punto de Medición"},
+    {11,". Debe estar en un Plano de Deslizamiento único al Origen especificado."},
+    {12,"Reselecciona el Plano de Deslizamiento"},
+    {13,". No puede ser paralelo al Vector de Cizallamiento especificado"}
+   ]},
+  {shear,
+   [
+    {1,"Cizallar"},
+    {2,"Cizallar XYZ"},
+    {3,"Escoge el Plano de Deslizamiento paralelo al cual el movimiento será restringido, el Vector de Cizallamiento, el Origen que define el Plano de Deslizamiento estacionario y el Punto de Medición para la distancia"}
+   ]},
+  {shear_anchor_help,
+   [
+    {1,"Anclar Origen"},
+    {2,"Liberar Origen"}
+   ]},
+  {shear_dir_help,
+   [
+    {1,"Asimétrico"},
+    {2,"Simétrico"}
+   ]},
+  {shear_mode_help,
+   [
+    {1,"Relativo"},
+    {2,"Ángulo"},
+    {3,"Absoluto"}
+   ]}
+ ]}.

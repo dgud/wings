@@ -16,10 +16,12 @@
 -export([do_pick/3,raw_pick/3]).
 -export([paint_pick/3]).
 
+-export_type([tri_map/0]).
+
 -define(NEED_OPENGL, 1).
 -define(NEED_ESDL, 1).
 -include("wings.hrl").
--include("e3d.hrl").
+-include_lib("wings/e3d/e3d.hrl").
 
 -import(lists, [foreach/2,reverse/2,sort/1,usort/1,map/2,min/1,
 		keyfind/3,member/2,keysort/2]).
@@ -45,6 +47,8 @@
 	 filter,                                %Filter fun, allow hl? true/false
 	 prev=none				%Previous hit ({Id,Item}).
 	}).
+
+-type tri_map() :: [{wings_face:face_num(),wings_draw_setup:face_tris()}].
 
 event(Ev, St) ->
     event(Ev, St, St).
@@ -115,20 +119,22 @@ handle_hilite_event(redraw,#hl{redraw=#st{sel=[]}=St,prev=Prev}=Hl) when is_tupl
     Info = case Where of
       original ->
         case SelMode of
-          body ->
-            wings_util:format("~s #~p", [?__(3,"Object"),Obj]);
-          _Other ->
-            enhanced_hl_info(wings_util:format("~s #~p, ~s #~p",
-               [?__(3,"Object"),Obj,Mode,Elem]),Hl)
+            body ->
+                wings_util:format("~ts #~p", [?__(3,"Object"),Obj]);
+            _Other ->
+                Str = wings_util:format("~ts #~p, ~ts #~p",
+                                        [?__(3,"Object"),Obj,Mode,Elem]),
+                enhanced_hl_info(Str,Hl)
         end;
       mirror ->
         case SelMode of
           body ->
-            wings_util:format("~s #~p ~s", [?__(3,"Object"),
-              Obj,?__(2,"(in mirror)")]);
+                wings_util:format("~ts #~p ~ts",
+                                  [?__(3,"Object"), Obj,?__(2,"(in mirror)")]);
           _Other ->
-            enhanced_hl_info(wings_util:format("~s #~p, ~s #~p ~s",
-            [?__(3,"Object"),Obj,Mode,Elem,?__(2,"(in mirror)")]),Hl)
+                Str = wings_util:format("~ts #~p, ~ts #~p ~ts",
+                                        [?__(3,"Object"),Obj,Mode,Elem,?__(2,"(in mirror)")]),
+                enhanced_hl_info(Str,Hl)
         end
       end,
     wings:redraw(Info, St),
@@ -250,15 +256,15 @@ insert_hilite_dl_1(#dlo{open=Open,src_we=#we{id=Id}=We}=D,
     DrawExtra = Extra(We),
     HiliteColor = hilite_color(Hit, St),
     DrawHilite = hilite_draw_sel_fun(Mode, Item, D),
-    Draw0 = [fun() -> gl:color3fv(HiliteColor) end,
+    Draw0 = [fun(RS) -> gl:color3fv(HiliteColor), RS end,
 	     DrawHilite,DrawExtra],
     ShowBack = wings_pref:get_value(show_backfaces),
     SelBack = wings_wm:lookup_prop(select_backface) =:= {value,true},
     Draw = if
 	       SelBack; ShowBack andalso Open ->
-		   [fun() -> gl:disable(?GL_CULL_FACE) end,
+		   [fun(RS) -> gl:disable(?GL_CULL_FACE), RS end,
 		    Draw0,
-		    fun() -> gl:enable(?GL_CULL_FACE) end];
+		    fun(RS) -> gl:enable(?GL_CULL_FACE),RS end];
 	       true ->
 		   Draw0
 	   end,
@@ -317,51 +323,54 @@ draw_tweak_vector_fun(Center, Normal) ->
     Color = wings_pref:get_value(tweak_vector_color),
     Point = e3d_vec:add_prod(Center, Normal, Length),
     Data = [Center,Point],
-    D = fun() ->
+    D = fun(RS) ->
 		gl:lineWidth(Width),
 		gl:pointSize(Width+2),
 		gl:color3fv(Color),
 		gl:drawArrays(?GL_LINES, 0, 2),
-		gl:drawArrays(?GL_POINTS, 1, 1)
+		gl:drawArrays(?GL_POINTS, 1, 1),
+                RS
 	end,
     wings_vbo:new(D, Data).
 
 hilite_draw_sel_fun(vertex, V, #dlo{src_we=#we{vp=Vtab}}) ->
     PointSize = wings_pref:get_value(selected_vertex_size),
     Data = [array:get(V, Vtab)],
-    D = fun() ->
+    D = fun(RS) ->
 		gl:pointSize(PointSize),
-		gl:drawArrays(?GL_POINTS, 0, 1)
+		gl:drawArrays(?GL_POINTS, 0, 1),
+                RS
 	end,
     wings_vbo:new(D, Data);
 hilite_draw_sel_fun(edge, Edge, #dlo{src_we=#we{es=Etab,vp=Vtab}}) ->
     #edge{vs=Va,ve=Vb} = array:get(Edge, Etab),
     LineWidth = wings_pref:get_value(selected_edge_width),
     Data = [array:get(Va, Vtab),array:get(Vb, Vtab)],
-    D = fun() ->
+    D = fun(RS) ->
 		gl:lineWidth(LineWidth),
-		gl:drawArrays(?GL_LINES, 0, 2)
+		gl:drawArrays(?GL_LINES, 0, 2),
+                RS
 	end,
     wings_vbo:new(D, Data);
 hilite_draw_sel_fun(face, Face, #dlo{vab=#vab{face_map=Map}=Vab}) ->
     {Start,NoElements} = array:get(Face, Map),
-    fun() ->
+    fun(RS0) ->
 	    gl:enable(?GL_POLYGON_STIPPLE),
 	    gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_FILL),
-	    wings_draw_setup:enable_pointers(Vab, []),
+	    RS = wings_draw_setup:enable_pointers(Vab, [], RS0),
 	    gl:drawArrays(?GL_TRIANGLES, Start, NoElements),
-	    wings_draw_setup:disable_pointers(Vab, []),
-	    gl:disable(?GL_POLYGON_STIPPLE)
+	    gl:disable(?GL_POLYGON_STIPPLE),
+            wings_draw_setup:disable_pointers(Vab, RS)
     end;
 hilite_draw_sel_fun(body, _, #dlo{vab=#vab{}=Vab}=D) ->
-    fun() ->
+    fun(RS0) ->
 	    gl:enable(?GL_POLYGON_STIPPLE),
 	    gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_FILL),
-	    wings_draw_setup:enable_pointers(Vab, []),
+	    RS = wings_draw_setup:enable_pointers(Vab, [], RS0),
 	    Count = wings_draw_setup:face_vertex_count(D),
 	    gl:drawArrays(?GL_TRIANGLES, 0, Count),
-	    wings_draw_setup:disable_pointers(Vab, []),
-	    gl:disable(?GL_POLYGON_STIPPLE)
+	    gl:disable(?GL_POLYGON_STIPPLE),
+            wings_draw_setup:disable_pointers(Vab, RS)
     end.
 
 enhanced_hl_info(Base,#hl{redraw=#st{sel=[],shapes=Shs},prev=Prev}) when is_tuple(Prev) ->
@@ -386,20 +395,19 @@ enhanced_hl_info(Base,#hl{redraw=#st{sel=[],shapes=Shs},prev=Prev}) when is_tupl
         Length = e3d_vec:dist({Xa,Ya,Za}, {Xb,Yb,Zb}),
         {X,Y,Z} = e3d_vec:average({Xa,Ya,Za}, {Xb,Yb,Zb}),
         [Base|io_lib:format(?__(3,". Midpoint <~s  ~s  ~s>\nLength ~s") ++
-                            "  <~s  ~s  ~s>", %++ "\nVa = ~p\nVb = ~p",
+                            "  <~s  ~s  ~s>",
                             [wings_util:nice_float(X),
                              wings_util:nice_float(Y),
                              wings_util:nice_float(Z),
                              wings_util:nice_float(Length),
-                             wings_util:nice_float(abs(Xb - Xa)),
-                             wings_util:nice_float(abs(Yb - Ya)),
-                             wings_util:nice_float(abs(Zb - Za))])];
-                             % Va,Vb])];
+                             wings_util:nice_float(Xb - Xa),
+                             wings_util:nice_float(Yb - Ya),
+                             wings_util:nice_float(Zb - Za)])];
       face ->
         {X,Y,Z} = wings_face:center(Elem, We),
         Area = area_info(Elem, We),
         Mat = wings_facemat:face(Elem, We),
-        [Base|io_lib:format(?__(4,". Midpoint <~s  ~s  ~s> \nMaterial ~s.")
+        [Base|io_lib:format(?__(4,". Midpoint <~s  ~s  ~s> \nMaterial ~ts.")
                             ++ Area,
                             [wings_util:nice_float(X),
                              wings_util:nice_float(Y),
@@ -660,9 +668,9 @@ raw_pick(X0, Y0, St) ->
     case wings_wm:lookup_prop(select_backface) of
 	{value,true} ->
 	    %% Only in AutoUV windows.
-	    wpc_pick:cull(false);
+	    wings_pick_nif:cull(false);
 	_ ->
-	    wpc_pick:cull(true)
+	    wings_pick_nif:cull(true)
     end,
     case dlo_pick(St, true, Ms) of
 	[] -> none;
@@ -670,7 +678,7 @@ raw_pick(X0, Y0, St) ->
     end.
 
 set_pick_matrix(X, Y, Xs, Ys, W, H) ->
-    Pick = wpc_pick:pick_matrix(X, Y, Xs, Ys, {0,0,W,H}),
+    Pick = wings_pick_nif:pick_matrix(X, Y, Xs, Ys, {0,0,W,H}),
     ProjMatrix = wings_view:projection(Pick),
     {_, ModelMatrix} = wings_view:modelview(),
     set_pick_matrix_1(e3d_transform:matrix(ProjMatrix),
@@ -683,7 +691,7 @@ set_pick_matrix({PM, MM}, PostModel) ->
     set_pick_matrix_1(PM, e3d_mat:mul(MM, PostModel)).
 
 set_pick_matrix_1(ProjMatrix, ModelMatrix) ->
-    wpc_pick:matrix(ModelMatrix, ProjMatrix),
+    wings_pick_nif:matrix(ModelMatrix, ProjMatrix),
     {ProjMatrix, ModelMatrix}.
 
 %% update_selection({Mode,MM,{Id,Item}}, St0) ->
@@ -868,10 +876,10 @@ pick_all(DrawFaces, X, Y0, W, H, St) ->
     Ms = set_pick_matrix(X, Y, W, H, Ww, Wh),
     case DrawFaces of
 	true ->
-	    wpc_pick:cull(true),
+	    wings_pick_nif:cull(true),
 	    {dlo_pick(St, false, Ms),St};
 	false ->
-	    wpc_pick:cull(false),
+	    wings_pick_nif:cull(false),
 	    {marquee_pick(St, Ms),St}
     end.
 
@@ -880,7 +888,7 @@ marquee_pick(#st{selmode=edge}, Ms) ->
 		      Vis = gb_sets:from_ordset(wings_we:visible(We)),
 		      EsPos = visible_edges(array:sparse_to_orddict(Etab),
 					    Vtab, Vis, []),
-		      case wpc_pick:edges(EsPos) of
+		      case wings_pick_nif:edges(EsPos) of
 			  [] ->
 			      Acc;
 			  Picked -> [{Id,E} || E <- Picked] ++ Acc
@@ -896,7 +904,7 @@ marquee_pick(#st{selmode=vertex}, Ms) ->
 				      Vs = wings_we:visible_vs(We),
 				      [{V,array:get(V, Vtab)} || V <- Vs]
 			      end,
-		      case wpc_pick:vertices(VsPos) of
+		      case wings_pick_nif:vertices(VsPos) of
 			  [] ->
 			      Acc;
 			  Picked ->
@@ -930,9 +938,9 @@ setup_pick_context_fun(#dlo{mirror=none,src_we=We}, PickFun, _, Acc) ->
 setup_pick_context_fun(#dlo{mirror=Mirror,src_we=We}, PickFun, Ms, Acc0) ->
     Acc1 = PickFun(We, Acc0),
     set_pick_matrix(Ms, Mirror),
-    wpc_pick:front_face(cw),
+    wings_pick_nif:front_face(cw),
     Acc = PickFun(We, Acc1),
-    wpc_pick:front_face(ccw),
+    wings_pick_nif:front_face(ccw),
     set_pick_matrix(Ms),
     Acc.
 
@@ -962,35 +970,36 @@ do_dlo_pick(D=#dlo{vab=#vab{face_vs=none}}, St, OneHit, Ms, Acc) ->
     do_dlo_pick(wings_draw_setup:work(D, St), St, OneHit, Ms, Acc);
 do_dlo_pick(#dlo{mirror=none,src_we=#we{id=Id}=We}=D, _, OneHit, _Ms, Acc)
   when ?IS_AREA_LIGHT(We) ->
-    wpc_pick:cull(false),
+    Cull = wings_pick_nif:culling(),
+    wings_pick_nif:cull(false),
     Res = do_dlo_pick_0(Id, D, OneHit, Acc),
-    wpc_pick:cull(true),
+    wings_pick_nif:cull(Cull),
     Res;
 do_dlo_pick(#dlo{mirror=none,open=Open,src_we=#we{id=Id}}=D, _, OneHit, _Ms, Acc) ->
     case wings_pref:get_value(show_backfaces) of
-        true when Open -> wpc_pick:front_face(cw);
-        _ -> wpc_pick:front_face(ccw)
+        true when Open -> wings_pick_nif:front_face(cw);
+        _ -> wings_pick_nif:front_face(ccw)
     end,
     do_dlo_pick_0(Id, D, OneHit, Acc);
 do_dlo_pick(#dlo{mirror=Matrix,open=Open,src_we=#we{id=Id}}=D0, _, OneHit, Ms, Acc0) ->
     case wings_pref:get_value(show_backfaces) of
         true when Open ->
-            wpc_pick:front_face(cw),
+            wings_pick_nif:front_face(cw),
             {D1,Acc1} = do_dlo_pick_0(Id, D0, OneHit, Acc0);
         _ ->
             {D1,Acc1} = do_dlo_pick_0(Id, D0, OneHit, Acc0),
-            wpc_pick:front_face(cw)
+            wings_pick_nif:front_face(cw)
     end,
     set_pick_matrix(Ms, Matrix),
     {D,Acc} = do_dlo_pick_0(-Id, D1, OneHit, Acc1),
-    wpc_pick:front_face(ccw),
+    wings_pick_nif:front_face(ccw),
     set_pick_matrix(Ms),
     {D,Acc}.
 
 do_dlo_pick_0(Id, #dlo{vab=#vab{data=VsBin,face_vs={Stride,_},face_map=Map0}}=D0,
 	      OneHit, Acc0) ->
     Vs = {Stride,VsBin},
-    case wpc_pick:faces(Vs, OneHit) of
+    case wings_pick_nif:faces(Vs,OneHit) of
 	[] ->
 	    %% No hit.
 	    {D0,Acc0};

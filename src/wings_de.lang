@@ -917,8 +917,8 @@
    ]},
   {import_image,
    [
-    {1,"Laden fehlgeschlagen \"~s\": ~s\n"},
-    {2,"The image cannot be loaded.~nFile: \"~s\"~n GLU Error: ~p - ~s~n"}
+    {1,"Laden fehlgeschlagen \"~ts\": ~ts\n"},
+    {2,"The image cannot be loaded.~nFile: \"~ts\"~n GLU Error: ~p - ~s~n"}
    ]},
   {import_ndo,
    [
@@ -1326,13 +1326,13 @@
    ]},
   {info,
    [
-    {1,"Lichtquelle ~s:"},
-    {2,"\nPos. ~s ~s ~s"}
+    {1,"Lichtquelle ~ts"},
+    {2,": Pos. ~s"}
    ]},
   {info_1,
    [
-    {1,"\nAusrichten ~s ~s ~s\nRichtung ~s ~s ~s"},
-    {2,"\nWinkel ~s~c"}
+    {1,". Ausrichten ~s. Richtung ~s"},
+    {2,". Winkel ~s~c"}
    ]},
   {light_types,
    [
@@ -1796,7 +1796,7 @@
    [
     {1,". Position <~s  ~s  ~s>"},
     {3,". Mittelpunkt <~s  ~s  ~s>\nLänge ~s"},
-    {4,". Mittelpunkt <~s  ~s  ~s> \nMaterial ~s."}
+    {4,". Mittelpunkt <~s  ~s  ~s> \nMaterial ~ts."}
    ]},
   {handle_hilite_event,
    [

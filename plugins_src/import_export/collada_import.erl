@@ -13,8 +13,27 @@
 -module(collada_import).
 -export([import/1]).
 -include_lib("wings/e3d/e3d.hrl").
-%% Sigh using local function in state machine
--compile(export_all).
+-include_lib("wings/src/wings.hrl").
+%% Local exports callbacks
+-export([ignored/4, asset/3, lib_geom/4, mesh/4, source/4,
+         param/4, vertices/4, make_polys/1, polys/4,
+         lib_material/4, lib_images/4, effects/4,
+         scene/3, lib_scenes/4, node/4, matrix/4, instance_geom/4,
+         common_mat/4, common_newparam/4, surface/4,
+         sampler2D/4, sloppy_color/3, chars/3,
+         pop/1, replace/2, to_floats/1, make_float/1,
+         to_ints/1, to_tuple/2, to_tuple2/1, to_tuple3/1,
+         to_tuple4/1, to_tuple5/1,
+         pack_source/1, make_mesh/1, pick_source/2, pick_src_1/2,
+         pick_mesh/2, pick_mesh_1/2, mesh_type/2,
+         polygon_type/1, polygon_type_1/2,
+         make_faces/2, sort_inputs/2, remove_duplicates/1,
+         pick_faces/5, pick_tristrips/5, pick_polygons/4,
+         pick_polygon/3, pick_verts/4, pick_vert/4,
+         add_vert_info/3, rev_face/2, rev_face/1
+        ]).
+
+-compile([{nowarn_deprecated_function, {erlang,get_stacktrace,0}}]).
 
 -record(mat,
         {refs=#{},
@@ -32,19 +51,27 @@
              val %% Temporary return value
             }).
 
-%% -define(TEST, true).
+%%-define(TEST, true).
+-ifdef(TEST).
+-export([test/0]).
+-endif.
 
 import(File) ->
     EF = {event_fun, fun top/3},
     ES = {event_state, #es{}},
-    io:format("Import: ~p~n",[File]),
+    %% ?dbg("Import: ~p~n",[File]),
     case xmerl_sax_parser:file(File, [EF,ES]) of
         {ok, Es, <<>>} ->
-	    E3dFile = make_file(Es),
-	    {ok, E3dFile#e3d_file{dir=filename:dirname(File)}};
+            try
+                E3dFile = make_file(Es),
+                {ok, E3dFile#e3d_file{dir=filename:dirname(File)}}
+            catch _:Reason ->
+                    io:format("ERROR: ~P in ~p~n", [Reason, 20, erlang:get_stacktrace()]),
+                    {error, ?__(1, "unknown/unhandled format, see log window")}
+            end;
         {Error, {_,_,Line}, Reason, _ET, _St} ->
             io:format("~s:~p: ERROR: ~p:~p~n", [File, Line, Error, Reason]),
-            {Error, Reason}
+            {error, ?__(1, "unknown/unhandled format, see log window")}
     end.
 
 
@@ -158,6 +185,8 @@ mesh(_Data, Es, {startElement, _, "tristrips", _, As}, _) ->
     push({polys, attrs(As, make_polys(tristrips))}, Es);
 mesh(_Data, Es, {startElement, _, "polygons", _, As}, _) ->
     push({polys, attrs(As, make_polys(polygons))}, Es);
+mesh(_Data, Es, {startElement, _, "lines"=What, _, _}, _) ->
+    push({ignored, What}, Es);
 mesh(Data, Es, {endElement, _, "mesh",_}, _Loc) ->
     pop(Es#es{val=Data});
 mesh(#{polys:=Ps, vertices:=Vs}=Data, #es{val=Vals} = Es, {endElement, _, _, _}, _) ->
@@ -192,9 +221,10 @@ source(Data, Es, {startElement, _, "IDREF_array", _, _As}, _) ->
 source(#{type:=Type}=Data, #es{val=List}=Es, {endElement, _, _, _}, _) ->
     Vals = case Type of
 	       float -> to_floats(List);
-	       int -> [to_ints(Entry) || Entry <- List]
+	       int -> [to_ints(Entry) || Entry <- List];
+               name -> List
 	   end,
-    replace(Data#{array=>Vals}, Es).
+    replace(Data#{array=>Vals}, Es#es{val=undefined}).
 
 param(Data, #es{val=Vs}=Es, {startElement, _, "param", _, As}, _) ->
     replace(Data, Es#es{val=[attrs(As)|Vs]});
@@ -219,11 +249,11 @@ polys(_Data, Es, {endElement, _, "input", _}, _) ->
 polys(_Data, Es, {startElement, _, "vcount", _, _}, _) ->
     push(chars, Es);
 polys(Data, #es{val=List}=Es, {endElement, _, "vcount", _}, _) ->
-    replace(Data#{vcount=>to_ints(List)}, Es);
+    replace(Data#{vcount=>to_ints(List)}, Es#es{val=undefined});
 polys(_Data, Es, {startElement, _, "p", _, _}, _) ->
     push(chars, Es);
 polys(#{p:=P}=Data, #es{val=List}=Es, {endElement, _, "p", _}, _) ->
-    replace(Data#{p:=[to_ints(List)|P]}, Es);
+    replace(Data#{p:=[to_ints(List)|P]}, Es#es{val=undefined});
 polys(#{input:=In,p:=P}=Data0, Es, {endElement, _, _, _}=Ev, Loc) ->
     Data = Data0#{input:=lists:reverse(In), p:=lists:reverse(P)},
     invoke(pop(Es#es{val=Data}), Ev, Loc).
@@ -284,7 +314,7 @@ effects(_Data, Es, {endElement, _, _, _}, _) ->
 %%%%%%%%%%%%%%%%%%%%%%%%
 scene(#es{scenes=Ss}=Es, {startElement, _, "instance_visual_scene", _, As}, _) ->
     #{url:=[$#|SceneId]} = attrs(As),
-    {_, Scene} = lists:keyfind(SceneId,1,Ss), 
+    {_, Scene} = lists:keyfind(SceneId,1,Ss),
     Es#es{scene=Scene};
 scene(Es, {endElement, _, "instance_visual_scene", _}, _) ->
     Es;
@@ -294,38 +324,68 @@ scene(Es, {endElement, _, "scene", _}, _) ->
 lib_scenes(new, Es, {startElement, _, "visual_scene", _, As}, _) ->
     replace(attrs(As, #{nodes=>[]}), Es);
 lib_scenes(_, Es, {startElement, _, "node", _, As}, _) ->
-    push({node, attrs(As, #{matrix=>[], geom=>[], mats=>#{}})}, Es);
+    push({node, attrs(As, #{matrix=>[], geom=>[], sub_nodes=>[]})}, Es);
 lib_scenes(#{nodes:=Ns}=Data, #es{val=Val}=Es, {endElement, _, "node", _}, _) ->
-    case maps:get(geom, Val) of
+    %% ?dbg("Geom: ~p~n",[Val]),
+    case [N || #{geom:=G} = N <- Val, G =/= []] of
 	[] -> Es;
-	_ -> replace(Data#{nodes:=[Val|Ns]},Es)
+	New -> replace(Data#{nodes:=New++Ns}, Es#es{val=undefined})
     end;
 lib_scenes(#{id:=Id}=Data, #es{scenes=Ss}=Es, {endElement, _, "visual_scene", _}, _) ->
     replace(new, Es#es{scenes=[{Id, Data}|Ss]});
 lib_scenes(new, Es, {endElement, _, "library_visual_scenes", _}, _) ->
     pop(Es).
 
+node(_Data, Es, {startElement, _, "instance_geometry", _, As}, _) ->
+    #{url:=Url} = attrs(As),
+    push({instance_geom, #{geom=>Url, mats=>#{}}}, Es);
+node(#{geom:=Gs}=Data, #es{val=Val}=Es, end_instance_geom, _) ->
+    replace(Data#{geom=>[Val|Gs]}, Es#es{val=undefined});
+node(#{sub_nodes:=Ns}=Data, Es0, {endElement, _, "node", _}=Ev, Loc) ->
+    %% ?dbg("End Node: ~p ~p~n",[Es0, Data]),
+    case pop(Es0) of
+        #es{state=[{node,_}|_]} = Es ->
+            %% Recursive, flatten the nodes to a list
+            %% wings can not handle groups..
+            invoke(Es#es{val=Data}, sub_node, Loc);
+        Es ->
+            invoke(Es#es{val=[Data|Ns]}, Ev, Loc)
+    end;
+node(_, Es, {endElement, _, _, _}, _) ->
+    Es;
+node(#{matrix:=M}=_Data, Es, {startElement, _, "node", _, As}, _) ->
+    push({node, attrs(As, #{matrix=>M, geom=>[], sub_nodes=>[]})}, Es);
+%% Matrix
+node(#{sub_nodes:=Ns}=Data, #es{val=Val}=Es, sub_node, _Loc) ->
+    replace(Data#{sub_nodes := [Val|Ns]}, Es#es{val=undefined});
 node(#{matrix:=M}, Es, {startElement, _, "translate", _, _}, _) ->
     push(chars, push({matrix, {translate, M}}, Es));
 node(#{matrix:=M}, Es, {startElement, _, "rotate", _, _As}, _) ->
     push(chars, push({matrix, {rotate, M}}, Es));
 node(#{matrix:=M}, Es, {startElement, _, "scale", _, _As}, _) ->
     push(chars, push({matrix, {scale, M}}, Es));
+node(#{matrix:=M}, Es, {startElement, _, "matrix", _, _As}, _) ->
+    push(chars, push({matrix, {matrix, M}}, Es));
 node(Data, #es{val=Val}=Es, end_matrix, _) ->
-    replace(Data#{matrix:=lists:reverse(Val)}, Es);
-node(#{geom:=Urls}=Data, Es, {startElement, _, "instance_geometry", _, As}, _) ->
-    #{url:=Url} = attrs(As),
-    replace(Data#{geom=>[Url|Urls]}, Es);
-node(#{mats:=Mats}=Data, Es, {startElement, _, "instance_material", _, As}, _) ->
+    replace(Data#{matrix:=lists:reverse(Val)}, Es#es{val=undefined});
+node(_, Es, {startElement, _, What, _, _}, _Loc) ->
+    %% Ignore camera and lights for now
+    %% ?dbg("~p ignored: ~p @ ~p~n",[?FUNCTION_NAME, What, _Loc]),
+    push({ignored, What}, Es).
+
+instance_geom(_Data, Es, {startElement, _, "technique_common", _, _As}, _) -> Es;
+instance_geom(_Data, Es, {startElement, _, "bind_material", _, _As}, _) -> Es;
+instance_geom(#{mats:=Mats}=Data, Es, {startElement, _, "instance_material", _, As}, _) ->
     #{symbol:=Key, target:=Target} = attrs(As),
     replace(Data#{mats:=Mats#{Key=>Target}}, Es);
-node(Data, Es, {endElement, _, "node", _}=Ev, Loc) ->
-    invoke(pop(Es#es{val=Data}), Ev, Loc);
-node(_, Es, {endElement, _, _, _}, _) ->
+instance_geom(Data, Es, {endElement, _, "instance_geometry", _}, Loc) ->
+    invoke(pop(Es#es{val=Data}), end_instance_geom, Loc);
+instance_geom(_, Es, {endElement, _, _, _}, _) ->
     Es;
- node(_, Es, _, _) ->
-    %% Ignore camera and lights for now
-    Es.
+instance_geom(_, Es, {startElement, _, What, _, _}, _Loc) ->
+    %% Can't handle multiple uv-coords...
+    %%?dbg("~p: ignored: ~p @ ~p~n",[?FUNCTION_NAME, What, _Loc]),
+    push({ignored, What}, Es).
 
 matrix({Type,Data}, #es{val=Val}=Es, {endElement, _, _, _}, Loc) ->
     Floats = to_floats(Val),
@@ -347,8 +407,8 @@ common_newparam(Data, Es, {startElement, _, "surface", _, As}, _) ->
     push({surface, attrs(As, Data)}, Es);
 common_newparam(Data, Es, {startElement, _, "sampler2D", _, As}, _) ->
     push({sampler2D, attrs(As, Data)}, Es);
-common_newparam(_Data, #es{val=Val}=Es, {endElement, _, "newparam", _}=Ev, Loc) ->
-    invoke(pop(Es#es{val=Val}), Ev, Loc);
+common_newparam(_Data, Es, {endElement, _, "newparam", _}=Ev, Loc) ->
+    invoke(pop(Es), Ev, Loc);
 common_newparam(_Data, Es, {endElement, _, _, _}, _) ->
     Es.
 
@@ -389,7 +449,18 @@ sloppy_color(#es{val=List}=Es, {endElement, _, What, _}, _) ->
     end.
 
 chars(Es, {characters, List}, _) ->
-    pop(Es#es{val=List}).
+    pop(Es#es{val=List});
+chars(#es{state=[_,{source, #{type:=Prev}=Data}|_]}=Es, {endElement, _, Type, _}=Ev, Where) ->
+    case Prev of
+        float when Type =:= "float_array" -> ?MODULE:source(Data, pop(Es#es{val=[]}), Ev, Where);
+        int   when Type =:= "int_array"   -> ?MODULE:source(Data, pop(Es#es{val=[]}), Ev, Where);
+        bool  when Type =:= "bool_array"  -> ?MODULE:source(Data, pop(Es#es{val=[]}), Ev, Where);
+        name  when Type =:= "Name_array"  -> ?MODULE:source(Data, pop(Es#es{val=[]}), Ev, Where);
+        idref when Type =:= "IDREF_array" -> ?MODULE:source(Data, pop(Es#es{val=[]}), Ev, Where);
+        _ ->
+            unhandled(Es, Ev, Where),
+            Es
+    end.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 unhandled(#es{state=[]}, Ev, {_,File,Line}) ->
@@ -453,34 +524,16 @@ replace(Data,#es{state=[{State,_Data}|Stack]}=Es) -> Es#es{state=[{State,Data}|S
 to_floats(List) ->
     [make_float(Str) || Str <- string:tokens(List, " \n\t")].
 
-make_float(Str) ->
-    try list_to_float(Str)
-    catch _:_ -> make_float2(Str)
-    end.
-make_float2(Str) ->
-    try float(list_to_integer(Str))
-    catch _:_ -> make_float3(Str)
-    end.
-
-make_float3(Str0) ->
-    Str = lists:flatten(string:tokens(Str0, "\t\s\n")),
-    try list_to_float(Str)
-    catch _:_ -> make_float4(Str, Str0) end.
-
-make_float4(Str, Orig) ->
-    WithDot = case string:tokens(Str, "e") of
-		  [Pre,Post] -> Pre ++ ".0e" ++ Post;
-		  [Other] -> Other ++ ".0";
-		  Other -> Other
-	      end,
-    try list_to_float(WithDot)
+make_float(Orig) ->
+    try wings_util:string_to_float(Orig)
     catch _:badarg ->
-	    io:format("Bad float: ~p ~p ~p~n",[Orig, Str, WithDot]),
 	    throw({fatal_error, {bad_float, Orig}})
     end.
 
 to_ints(List) ->
     [list_to_integer(Str) || Str <- string:tokens(List, " ")].
+
+to_tuple(1, List) -> List;
 
 to_tuple(2, List) -> to_tuple2(List);
 to_tuple(3, List) -> to_tuple3(List);
@@ -504,7 +557,7 @@ pack_source(#{accessor:=#{offset:=0, stride:=Stride}, array:=List}=Source) ->
     Source#{array:=to_tuple(Stride, List)}.
 
 make_mesh(#{id:=Id, polys:=Polys}=Geom) ->
-    %% io:format("~p~n",[Geom]),
+    %% ?dbg("~p~n",[Geom]),
     {Type,Mesh0} = lists:foldl(fun pick_mesh/2, {undefined, #e3d_mesh{}}, Polys),
     Mesh1 = pick_source(Mesh0#e3d_mesh{type=Type}, Geom),
     {Id,Mesh1}.
@@ -729,6 +782,7 @@ make_maps_1(ImageRef, Def, Imgs) ->
 	#{"init_from":=FileRef} ->
 	    make_maps_1(FileRef, Def, Imgs)
     end.
+
 make_file(#es{materials=Mat, scene=#{nodes:=Nodes}, mesh=Mesh0}) ->
     MatList0 = make_materials(Mat),
     MatMap = maps:from_list(MatList0),
@@ -736,25 +790,49 @@ make_file(#es{materials=Mat, scene=#{nodes:=Nodes}, mesh=Mesh0}) ->
     MeshL = build_meshes(Nodes, MeshMap, MatMap, []),
     #e3d_file{objs=MeshL, mat=maps:values(MatMap)}.
 
-build_meshes([#{id:=NodeId, geom:=[Gs], mats:=Mats0, matrix:=MatrixInfo}=Node|Ns],
+build_meshes([#{geom:=Gs, matrix:=MatrixInfo}=Node|Ns],
 	     MeshMap, MatMap, Acc) ->
-    [$#|GsId] = Gs,
-    Name = maps:get(name, Node, NodeId),
-    #{GsId:=#e3d_mesh{fs=Fs0}=Mesh} = MeshMap,
-    Mats = maps:map(fun(_K,[$#|Ref]) ->
-			    {MId,_} = maps:get(Ref, MatMap, {default, ignore}),
-			    MId
-		    end, Mats0),
-    Translate = fun(#e3d_face{mat=[default]}=F) ->
-			F;
-		   (#e3d_face{mat=[MId]}=F) ->
-			F#e3d_face{mat=[maps:get(MId, Mats)]}
-		end,
-    Fs = [Translate(F) || F <- Fs0],
+    AddGeomFs = fun(#{geom:=[$#|GsId], mats:=Mats0}, Mesh0) ->
+                        #{GsId:=#e3d_mesh{fs=Fs0}=Mesh1} = MeshMap,
+                        Mats = maps:map(fun(_K,[$#|Ref]) ->
+                                                {MId,_} = maps:get(Ref, MatMap, {default, ignore}),
+                                                MId
+                                        end, Mats0),
+                        Translate = fun(#e3d_face{mat=[default]}=F) ->
+                                            F;
+                                       (#e3d_face{mat=[MId]}=F) ->
+                                            F#e3d_face{mat=[maps:get(MId, Mats)]}
+                                    end,
+                        Fs = [Translate(F) || F <- Fs0],
+                        merge_mesh(Mesh1#e3d_mesh{fs=Fs}, Mesh0)
+                end,
+    Mesh = lists:foldl(AddGeomFs, undefined, Gs),
+    Name = maps:get(name, Node, "unknown"),
     Matrix = lists:foldl(fun make_matrix/2, e3d_mat:identity(), MatrixInfo),
-    Obj = #e3d_object{name=Name, obj=Mesh#e3d_mesh{fs=Fs, matrix=Matrix}},
+    Obj = #e3d_object{name=Name, obj=Mesh#e3d_mesh{matrix=Matrix}},
     build_meshes(Ns, MeshMap, MatMap, [Obj|Acc]);
 build_meshes([], _, _, Acc) -> Acc.
+
+merge_mesh(Mesh, undefined) ->
+    Mesh;
+merge_mesh(#e3d_mesh{type=Ty1, vs=Vs1, vc=Vc1, tx=Tx1, ns=Ns1, fs=Fs1},
+           #e3d_mesh{type=Ty0, vs=Vs0, vc=Vc0, tx=Tx0, ns=Ns0, fs=Fs0}) ->
+    Vs = Vs0++Vs1,
+    Vc = Vc0++Vc1,
+    Tx = Tx0++Tx1,
+    Ns = Ns0++Ns1,
+    Fs = renumber_face(Fs1,length(Vs0),length(Vc0),length(Tx0),length(Ns0), Fs0),
+    #e3d_mesh{type=mesh_type(Ty0,Ty1),
+              vs=Vs, vc=Vc, tx=Tx, ns=Ns, fs=Fs}.
+
+renumber_face([#e3d_face{vs=Vs0, vc=Vc0, tx=Tx0, ns=Ns0}=F0|Fs], NVs, NVc, NTx, NNs, Acc) ->
+    F = F0#e3d_face{vs = [Id+NVs || Id <- Vs0],
+                    vc = [Id+NVc || Id <- Vc0],
+                    tx = [Id+NTx || Id <- Tx0],
+                    ns = [Id+NNs || Id <- Ns0]},
+    renumber_face(Fs, NVs, NVc, NTx, NNs, [F|Acc]);
+renumber_face([], _NVs, _NVc, _NTx, _NNs, Acc) ->
+    Acc.
 
 make_matrix({rotate, [_,_,_,0.0]}, M) ->
     M;
@@ -768,14 +846,17 @@ make_matrix({translate, [X,Y,Z]}, M) ->
 make_matrix({scale, [1.0,1.0,1.0]}, M) ->
     M;
 make_matrix({scale, [X,Y,Z]}, M) ->
-    e3d_mat:mul(e3d_mat:scale(X,Y,Z), M).
+    e3d_mat:mul(e3d_mat:scale(X,Y,Z), M);
+make_matrix({matrix, Vs}, M) ->
+    MT = list_to_tuple(Vs),
+    e3d_mat:mul(e3d_mat:transpose(MT), M).
 
 
 -ifdef(TEST).
 test() ->
     Dir = case os:type() of
-	      {unix, darwin} -> "/Users/dgud/Dropbox/src/Collada";
-	      {win32, _} -> "c:/Users/familjen/Dropbox/src/Collada";
+	      {unix, darwin} -> "/Users/dgud/Dropbox/src/Collada/examples";
+	      {win32, _} -> "c:/Users/familjen/Dropbox/src/Collada/examples";
 	      _ -> "foo"
 	  end,
     Files = [
@@ -806,11 +887,15 @@ test() ->
              ,"teapot_instancenodes.DAE"
              ,"teapots.DAE"
 	     ,"wings.dae"
+             %% From Sketchup
+             ,"cube.dae"
+             ,"box_group.dae"
+             ,"grouped_objects.dae"
+             ,"exploded_group.dae"
 	    ],
     Imports = [import(filename:join(Dir, File)) || File <- Files],
     %% [io:format("~P~n",[Scene,20]) || Scene <- Imports],
-    io:format("~p~n",[hd(Imports)%%    , 20]),
-		      ]),
+    io:format("~P~n",[hd(Imports), 20]),
     ok.
 -endif.
 

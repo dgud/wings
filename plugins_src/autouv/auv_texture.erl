@@ -315,6 +315,7 @@ render_image(Geom0, Passes, #opt{texsz={TexW,TexH}}, Reqs) ->
     gl:pushAttrib(?GL_ALL_ATTRIB_BITS),
 
     Current = wings_wm:viewport(),
+    Scale = wings_wm:win_scale(),
     UsingFbo = setup_fbo(TexW,TexH),
     {W0,H0} = if not UsingFbo ->
                       wings_wm:top_size();
@@ -325,7 +326,7 @@ render_image(Geom0, Passes, #opt{texsz={TexW,TexH}}, Reqs) ->
     {W,Wd} = calc_texsize(W0, TexW),
     {H,Hd} = calc_texsize(H0, TexH),
 %%    io:format("Get texture sz ~p ~p ~n", [{W,Wd},{H,Hd}]),
-    set_viewport({0,0,W,H}),
+    set_viewport({0,0,W,H}, 1),
     Geom = make_vbo(Geom0, Reqs),
     try
         Do = fun(Pass) ->
@@ -354,7 +355,7 @@ render_image(Geom0, Passes, #opt{texsz={TexW,TexH}}, Reqs) ->
             #sh_conf{fbo_d=DeleteMe} -> DeleteMe()
         end,
         wings_vbo:delete(Geom#ts.vbo),
-        set_viewport(Current),
+        set_viewport(Current, Scale),
         gl:readBuffer(?GL_BACK),
         gl:popAttrib(),
         gl:blendEquationSeparate(?GL_FUNC_ADD, ?GL_FUNC_ADD),
@@ -412,7 +413,7 @@ draw_texture_square() ->
                    1.0:?F32,0.0:?F32, 1.0:?F32,0.0:?F32,
                    1.0:?F32,1.0:?F32, 1.0:?F32,1.0:?F32,
                    0.0:?F32,1.0:?F32, 0.0:?F32,1.0:?F32>>,
-    wings_vbo:draw(fun() -> gl:drawArrays(?GL_QUADS, 0, 4) end, VertexUvQ, [vertex2d, uv]).
+    wings_vbo:draw(fun(_) -> gl:drawArrays(?GL_QUADS, 0, 4) end, VertexUvQ, [vertex2d, uv]).
 
 fill_bg_tex(#sh_conf{fbo_w=Prev}) ->
     gl:drawBuffer(?GL_COLOR_ATTACHMENT1_EXT),
@@ -529,9 +530,9 @@ gen_tx_sizes(Sz, Acc) ->
     Str = lists:flatten([Str0|SzStr]),
     gen_tx_sizes(Sz div 2, [{Str,Sz}|Acc]).
 
-set_viewport({X,Y,W,H}=Viewport) ->
+set_viewport({X,Y,W,H}=Viewport, Scale) ->
     put(wm_viewport, Viewport),
-    gl:viewport(X, Y, W, H).
+    gl:viewport(X, Y, round(W*Scale), round(H*Scale)).
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -903,8 +904,8 @@ pass({auv_faces,[_]},_) ->
 	    R = fun(#fs{vs=Vs}) ->
 			wings_gl:drawElements(?GL_TRIANGLES,length(Vs),?GL_UNSIGNED_INT,Vs)
 		end,
-	    All = fun() -> foreach(fun(#chart{fs=Fs}) -> foreach(R, Fs) end, Charts) end,
-            EnableVbo(All)
+	    All = fun(_) -> foreach(fun(#chart{fs=Fs}) -> foreach(R, Fs) end, Charts) end,
+            EnableVbo(All, #{})
     end;
 pass({auv_faces, _},Sh) ->
     pass({auv_faces,?OPT_FACES},Sh);
@@ -951,7 +952,7 @@ shader_pass({value,#sh{id=Id, args=Args, tex_units=TexUnits}},
                                          end,
                                      foreach(R,Fas)
                              end,
-                        EnableVbo(fun() -> foreach(DC, Charts) end)
+                        EnableVbo(fun(_) -> foreach(DC, Charts) end, #{})
                 end
             catch throw:What ->
                     io:format("AUV: ERROR ~s ~n",[What]);
@@ -987,10 +988,10 @@ send_texture([],_) -> false.
 
 
 shader_uniforms([{uniform,color,Name,_,_}|As],[Val|Opts],Conf) ->
-    wings_gl:set_uloc(Conf#sh_conf.prog,Name,Val),
+    wings_gl:set_uloc(Conf#sh_conf.prog, Name,Val),
     shader_uniforms(As,Opts,Conf);
 shader_uniforms([{uniform,float,Name,_,_}|As],[Val|Opts],Conf) ->
-    wings_gl:set_uloc(Conf#sh_conf.prog,Name, Val),
+    wings_gl:set_uloc(Conf#sh_conf.prog, Name, Val),
     shader_uniforms(As,Opts,Conf);
 shader_uniforms([{uniform,menu,Name,_,_}|As],[Vals|Opts],Conf) 
   when is_list(Vals) ->

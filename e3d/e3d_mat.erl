@@ -21,10 +21,28 @@
 	 project_to_plane/1,
 	 transpose/1,invert/1,
 	 add/2,mul/1,mul/2,mul_point/2,mul_vector/2,eigenv3/1]).
+-export_type([compact_matrix/0,matrix/0]).
+
 -compile(inline).
 -include("e3d.hrl").
 
--spec identity() -> e3d_compact_matrix().
+%% Compact 4x4 matrix representation.
+-type compact_matrix() ::
+      {float(),float(),float(),
+       float(),float(),float(),
+       float(),float(),float(),
+       float(),float(),float()}.
+
+%% General 4x4 matrix represention.
+-type matrix() :: 'identity' | compact_matrix() |
+  {float(),float(),float(),float(),
+   float(),float(),float(),float(),
+   float(),float(),float(),float(),
+   float(),float(),float(),float()}.
+
+-type e3d_vector() :: e3d_vec:vector().
+
+-spec identity() -> compact_matrix().
 
 -define(EPSILON, 1.0e-06).
     
@@ -36,16 +54,16 @@ identity() ->
      Zero,Zero,One,
      Zero,Zero,Zero}.
 
--spec is_identity(e3d_matrix()) -> boolean().
+-spec is_identity(matrix()) -> boolean().
 
 is_identity(identity) -> true;
 is_identity({1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0}) -> true;
 is_identity({1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,
-	     0.0,0.0,0.0,0.1}) -> true;
+	     0.0,0.0,0.0,1.0}) -> true;
 is_identity({_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_}) -> false;
 is_identity({_,_,_,_,_,_,_,_,_,_,_,_}) -> false.
 
--spec compress(e3d_matrix()) -> e3d_compact_matrix().
+-spec compress(matrix()) -> compact_matrix().
 
 compress(identity=I) -> I;
 compress({A,B,C,Z1,D,E,F,Z2,G,H,I,Z3,Tx,Ty,Tz,One}) ->
@@ -58,7 +76,7 @@ compress(Mat)
   when tuple_size(Mat) =:= 12 -> 
     Mat.
 
--spec expand(e3d_matrix()) -> e3d_matrix().
+-spec expand(matrix()) -> matrix().
     
 expand(identity) ->
     {1.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,1.0};
@@ -66,11 +84,11 @@ expand({_A,_B,_C,_,_D,_E,_F,_,_G,_H,_I,_,_Tx,_Ty,_Tz,_}=Mat) -> Mat;
 expand({A,B,C,D,E,F,G,H,I,Tx,Ty,Tz}) ->
     {A,B,C,0.0,D,E,F,0.0,G,H,I,0.0,Tx,Ty,Tz,1.0}.
 
--spec translate(e3d_vector()) -> e3d_compact_matrix().
+-spec translate(e3d_vector()) -> compact_matrix().
 
 translate({X,Y,Z}) -> translate(X, Y, Z).
 
--spec translate(X::float(), Y::float(), Z::float()) -> e3d_compact_matrix().
+-spec translate(X::float(), Y::float(), Z::float()) -> compact_matrix().
 
 translate(Tx, Ty, Tz) ->
     Zero = 0.0,
@@ -80,7 +98,7 @@ translate(Tx, Ty, Tz) ->
      Zero,Zero,One,
      Tx,Ty,Tz}.
 
--spec scale({float(),float(),float()} | float()) -> e3d_compact_matrix().
+-spec scale({float(),float(),float()} | float()) -> compact_matrix().
 
 scale({X,Y,Z}) -> scale(X, Y, Z);
 scale(Sc) when is_float(Sc) -> scale(Sc, Sc, Sc).
@@ -92,7 +110,7 @@ scale(Sx, Sy, Sz) ->
      Zero,Zero,Sz,
      Zero,Zero,Zero}.
 
--spec rotate(Angle::number(), Vector::e3d_vector()) -> e3d_compact_matrix().
+-spec rotate(Angle::number(), Vector::e3d_vector()) -> compact_matrix().
 
 rotate(A0, {X,Y,Z}) when is_float(X), is_float(Y), is_float(Z) ->
     A = A0*(math:pi()/180),
@@ -125,12 +143,12 @@ rotate(A0, {X,Y,Z}) when is_float(X), is_float(Y), is_float(Z) ->
 %% My = e3d_mat:rotate(Ry * Rad2deg, {0.0, 1.0, 0.0}),
 %% Mz = e3d_mat:rotate(Rz * Rad2deg, {0.0, 0.0, 1.0}),
 %% Rot = e3d_mat:mul(Mz, e3d_mat:mul(My,Mx)),
--spec rotate_from_euler_rad(Vector::e3d_vector()) -> e3d_compact_matrix().
+-spec rotate_from_euler_rad(Vector::e3d_vector()) -> compact_matrix().
 rotate_from_euler_rad({X,Y,Z}) ->
     rotate_from_euler_rad(X,Y,Z).
 
--spec rotate_from_euler_rad(X::number(), Y::number(), Z::number()) -> 
-				   e3d_compact_matrix().
+-spec rotate_from_euler_rad(X::number(), Y::number(), Z::number()) ->
+				   compact_matrix().
 rotate_from_euler_rad(Rx,Ry,Rz) ->
     Cz = math:cos(Rz), Sz = math:sin(Rz),
     Cy = math:cos(Ry), Sy = math:sin(Ry),
@@ -145,7 +163,7 @@ rotate_from_euler_rad(Rx,Ry,Rz) ->
 
 %% Project to plane perpendicular to vector Vec.
 
--spec project_to_plane(Vector::e3d_vector()) -> e3d_compact_matrix().
+-spec project_to_plane(Vector::e3d_vector()) -> compact_matrix().
 
 project_to_plane(Vec) ->
     %%       T
@@ -164,12 +182,12 @@ project_to_plane(Vec) ->
 	     0.0,0.0,0.0}
     end.
 
--spec rotate_to_z(Vector::e3d_vector()) -> e3d_compact_matrix().
+-spec rotate_to_z(Vector::e3d_vector()) -> compact_matrix().
 
 rotate_to_z(Vec) ->
     {Vx,Vy,Vz} = V =
 	case e3d_vec:norm(Vec) of
-	    {Wx,Wy,Wz}=W when abs(Wx) < abs(Wy), abs(Wx) < abs(Wz) ->
+	    {Wx,Wy,Wz}=W when abs(Wx) =< abs(Wy), abs(Wx) < abs(Wz) ->
 		e3d_vec:norm(0.0, Wz, -Wy);
 	    {Wx,Wy,Wz}=W when abs(Wy) < abs(Wz) ->
 		e3d_vec:norm(Wz, 0.0, -Wx);
@@ -182,7 +200,7 @@ rotate_to_z(Vec) ->
      Uz,Vz,Wz,
      0.0,0.0,0.0}.
 
--spec rotate_s_to_t(S::e3d_vector(), T::e3d_vector()) -> e3d_compact_matrix().
+-spec rotate_s_to_t(S::e3d_vector(), T::e3d_vector()) -> compact_matrix().
 
 rotate_s_to_t(S, T) ->
     %% Tomas Moller/Eric Haines: Real-Time Rendering (ISBN 1-56881-101-2).
@@ -195,7 +213,7 @@ rotate_s_to_t(S, T) ->
 	    rotate_s_to_t_1(V, E)
     end.
 
--spec transpose(e3d_matrix()) -> e3d_matrix().
+-spec transpose(matrix()) -> matrix().
 
 transpose(identity=I) -> I;
 transpose({M1,M2,M3,M4,M5,M6,M7,M8,M9,0.0=Z,0.0,0.0}) ->
@@ -210,7 +228,7 @@ transpose({A,B,C,WX,D,E,F,WY,G,H,I,WZ,Tx,Ty,Tz,WW}) ->
      WX,WY,WZ,WW}.
 
 
--spec add(M::e3d_matrix(), N::e3d_matrix()) -> e3d_matrix().
+-spec add(M::matrix(), N::matrix()) -> matrix().
 add({B_a,B_b,B_c,B_d,B_e,B_f,B_g,B_h,B_i,B_tx,B_ty,B_tz},
       {A_a,A_b,A_c,A_d,A_e,A_f,A_g,A_h,A_i,A_tx,A_ty,A_tz})
   when is_float(A_a), is_float(A_b), is_float(A_c), is_float(A_d), is_float(A_e),
@@ -242,11 +260,11 @@ add(M1,M2) when tuple_size(M1) =:= 12; tuple_size(M2) =:= 12 ->
     add(e3d_mat:expand(M1), e3d_mat:expand(M2)).
 
 
--spec mul(M::e3d_matrix(), N::e3d_matrix()) ->
-		 e3d_matrix();
-	 (M::e3d_matrix(), number()) ->
-		 e3d_matrix();
-	 (M::e3d_matrix(), {float(),float(),float(),float()}) ->
+-spec mul(M::matrix(), N::matrix()) ->
+		 matrix();
+	 (M::matrix(), number()) ->
+		 matrix();
+	 (M::matrix(), {float(),float(),float(),float()}) ->
 		 {float(),float(),float(),float()}.
 mul(M, identity) -> M;
 mul(identity, M) when not is_number(M) -> M;
@@ -340,13 +358,13 @@ mul(M1,M2)
 %%--------------------------------------------------------------
 %% mul([Rx,Ry,Rz]) = mul([mul(Ry,Rx),Rz])
 %%--------------------------------------------------------------
--spec mul([e3d_matrix]) -> e3d_matrix().
+-spec mul([matrix]) -> matrix().
 mul([A, B | T ]) -> mul([mul(B,A) | T]);
 mul([A]) -> A.
 
 
--spec mul_point(Matrix::e3d_matrix(), Point::e3d_vector()) -> e3d_vector().
-    
+-spec mul_point(Matrix::matrix(), Point::e3d_vector()) -> e3d_vector().
+
 mul_point(identity, P) -> P;
 mul_point({A,B,C,D,E,F,G,H,I,Tx,Ty,Tz}, {X,Y,Z})
   when is_float(A), is_float(B), is_float(C), is_float(D), is_float(E),
@@ -380,7 +398,7 @@ mul_point({A,B,C,WX,D,E,F,WY,G,H,I,WZ,Tx,Ty,Tz,WW}, {X,Y,Z})
 		  (X*C + Y*F + Z*I + Tz)/W)
     end.
 
--spec mul_vector(Matrix::e3d_matrix(), Vector::e3d_vector()) -> e3d_vector().
+-spec mul_vector(Matrix::matrix(), Vector::e3d_vector()) -> e3d_vector().
 
 mul_vector(identity, Vec) -> Vec;
 mul_vector({A,B,C,D,E,F,G,H,I,Tx,Ty,Tz}, {X,Y,Z})
@@ -402,7 +420,7 @@ mul_vector({A,B,C,_,D,E,F,_,G,H,I,_,Tx,Ty,Tz,_}, {X,Y,Z})
 %% @doc  Calculates the determinant
 %% @end
 %%--------------------------------------------------------------------
--spec determinant(e3d_matrix()) -> float().
+-spec determinant(matrix()) -> float().
 determinant(identity) -> 1.0;
 determinant(Mat) 
   when tuple_size(Mat) =:= 12 ->
@@ -422,7 +440,7 @@ determinant({M0,M1,M2,M3,M4,M5,M6,M7,M8,M9,M10,M11,M12,M13,M14,M15}) ->
 %% @doc  Calculates the inverse matrix
 %% @end
 %%--------------------------------------------------------------------
--spec invert(e3d_matrix()) -> e3d_matrix().
+-spec invert(matrix()) -> matrix().
 invert(identity) -> identity;
 invert(Mat) 
   when tuple_size(Mat) =:= 12 ->

@@ -805,7 +805,7 @@
    ]},
   {import_image,
    [
-    {1,"Załadowanie \"~s\" nie powiodło: ~s\n"}
+    {1,"Załadowanie \"~ts\" nie powiodło: ~ts\n"}
    ]},
   {import_ndo,
    [
@@ -1216,12 +1216,12 @@
    ]},
   {info,
    [
-    {1,"Światło ~s"},
-    {2,": Pozycja ~s ~s ~s"}
+    {1,"Światło ~ts"},
+    {2,": Pozycja ~s"}
    ]},
   {info_1,
    [
-    {1,". Cel ~s ~s ~s. Kierunek ~s ~s ~s"},
+    {1,". Cel ~s. Kierunek ~s"},
     {2,". Kąt ~s~c"}
    ]},
   {light_types,

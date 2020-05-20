@@ -14,7 +14,6 @@
 -module(wings_gl).
 -export([init/1, window/4, attributes/0,
 	 is_ext/1,is_ext/2,
-	 is_restriction/1,
 	 error_string/1]).
 
 %% GLSL exports
@@ -45,24 +44,32 @@
 -endif.
 
 init(Parent) ->
-    GL = window(Parent, undefined, true, true),
-    wx_object:cast(Parent, {init_menus, Parent}),
+    GL = window(Parent, undefined, true, false),
     init_extensions(),
-    init_restrictions(),
     GL.
 
 attributes() ->
+    SB = case os:type() of
+             {unix, Os} when Os =/= darwin ->
+                 %% Sample buffers does not currently work on Wayland
+                 case os:getenv("XDG_SESSION_TYPE") of
+                     "x11" -> [?WX_GL_SAMPLE_BUFFERS,1, ?WX_GL_SAMPLES,4];
+                     "X11" -> [?WX_GL_SAMPLE_BUFFERS,1, ?WX_GL_SAMPLES,4];
+                     _ -> []
+                 end;
+             _ ->
+                 [?WX_GL_SAMPLE_BUFFERS,1, ?WX_GL_SAMPLES,4]
+         end,
     {attribList,
      [?WX_GL_RGBA,
       ?WX_GL_MIN_RED,8,?WX_GL_MIN_GREEN,8,?WX_GL_MIN_BLUE,8,
-      ?WX_GL_DEPTH_SIZE, 24, ?WX_GL_STENCIL_SIZE, 8,
-      ?WX_GL_DOUBLEBUFFER,
-      ?WX_GL_SAMPLE_BUFFERS,1,
-      ?WX_GL_SAMPLES, 4,
-      0]}.
+      ?WX_GL_DEPTH_SIZE, 24,
+      ?WX_GL_DOUBLEBUFFER] ++
+         SB ++ [0]
+    }.
 
 window(Parent, Context, Connect, Show) ->
-    Style = ?wxFULL_REPAINT_ON_RESIZE bor ?wxWANTS_CHARS,
+    Style = ?wxFULL_REPAINT_ON_RESIZE bor ?wxWANTS_CHARS bor wings_frame:get_border(),
     Flags = [attributes(), {style, Style}],
     GL = case Context of
 	     undefined ->
@@ -79,10 +86,11 @@ window(Parent, Context, Connect, Show) ->
 	    wxFrame:show(Parent),
 	    receive #wx{event=#wxShow{}} -> ok end;
 	false ->
+            timer:sleep(200), %% Let wx realize the window on gtk
 	    ok
     end,
-    wxGLCanvas:setCurrent(GL),
     wxWindow:disconnect(Parent, show),
+    wxGLCanvas:setCurrent(GL),
     GL.
 
 %% Event handling for OpenGL windows
@@ -132,10 +140,21 @@ setup_std_events(Canvas) ->
     wxWindow:connect(Canvas, left_dclick),
     wxWindow:connect(Canvas, right_up),
     wxWindow:connect(Canvas, right_down),
-    wxWindow:connect(Canvas, mousewheel),
+    case code:is_loaded(wxMouseEvent) of
+        false -> code:load_file(wxMouseEvent);
+        _ -> ok
+    end,
+    case erlang:function_exported(wxMouseEvent, getWheelAxis, 1) of
+        true ->
+            wxWindow:connect(Canvas, mousewheel,
+                             [{callback, fun wings_io_wx:scroll_event/2}]);
+        false ->
+            wxWindow:connect(Canvas, mousewheel)
+    end,
     %% wxWindow:connect(Canvas, char_hook, []),
     wxWindow:connect(Canvas, key_down, [{callback, fun key_callback_win32/2}]),
     wxWindow:connect(Canvas, key_up), %% Normally suppressed
+    wxWindow:connect(Canvas, kill_focus, [{skip, true}]),
     wxWindow:connect(Canvas, char).
 
 key_callback_win32(Ev = #wx{event=Key=#wxKey{rawFlags=Raw}},Obj) ->
@@ -218,22 +237,6 @@ version_match({Ma1,Mi1,P1}, {Ma2,Mi2,P2})
 version_match(_,_) ->
     false.
 
-%%%
-%%% OpenGL restrictions (bugs and limitations).
-%%%
-init_restrictions() ->
-    ets:new(wings_gl_restriction, [named_table,public,ordered_set]),
-    case os:type() of
-	{unix,sunos} ->
-	    %% Scissor does not work for clipping text.
-	    ets:insert(wings_gl_restriction, [{broken_scissor}]);
-	_ ->
-	    ok
-    end.
-
-is_restriction(Name) ->
-    ets:member(wings_gl_restriction, Name).
-
 error_string(0) -> no_error;
 error_string(?GL_INVALID_VALUE) -> "GL_INVALID_VALUE";
 error_string(?GL_INVALID_ENUM) -> "GL_INVALID_ENUM";
@@ -265,10 +268,8 @@ check_error(_Mod, _Line) ->
 %%% Shader compilation
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%% Use ARB functions until Mac OsX have been upgraded to opengl 2.0
-
 support_shaders() ->
-    is_ext(['GL_ARB_fragment_shader', 'GL_ARB_vertex_shader']). 
+    true. %% Required in 2.0
 
 use_prog(Prog) when is_integer(Prog) ->
     gl:useProgram(Prog).
@@ -285,7 +286,7 @@ uloc(Prog, What) ->
 
 set_uloc(#{}=Map, Var, Val) ->
     case maps:get(Var,Map, undefined) of
-        undefined ->
+        undefined -> %io:format("~p: NO ~p~n~p~n",[?LINE,Var, Map]),
             ok;
         Pos ->
             set_uloc(Pos, Val)
@@ -305,74 +306,58 @@ set_uloc(Pos, {A,B}) when is_float(A),is_float(B) ->
 set_uloc(Pos, {A,B,C}) when is_float(A),is_float(B),is_float(C) ->
     gl:uniform3f(Pos,A,B,C);
 set_uloc(Pos, {A,B,C,D}) when is_float(A),is_float(B),is_float(C) ->
-    gl:uniform4f(Pos,A,B,C,D).
+    gl:uniform4f(Pos,A,B,C,D);
+set_uloc(Pos, [{A,B,C}|_]=L) when is_float(A),is_float(B),is_float(C) ->
+    gl:uniform3fv(Pos,L);
+set_uloc(Pos, [{A,B,C,_}|_]=L) when is_float(A),is_float(B),is_float(C) ->
+    gl:uniform4fv(Pos,L);
+set_uloc(Pos, Mat) when tuple_size(Mat) =:= 9 ->
+    gl:uniformMatrix3fv(Pos, 0, [Mat]);
+set_uloc(Pos, Mat) when tuple_size(Mat) =:= 16 ->
+    gl:uniformMatrix4fv(Pos, 0, [Mat]);
+set_uloc(Pos, Mat) when tuple_size(Mat) =:= 12 ->
+    gl:uniformMatrix3x4fv(Pos, 1, [Mat]).
 
-compile(vertex, Bin) when is_binary(Bin) ->
-    compile2(?GL_VERTEX_SHADER, "Vertex", Bin);
-compile(fragment, Bin) when is_binary(Bin) ->
-    compile2(?GL_FRAGMENT_SHADER, "Fragment", Bin).
-
-compile2(Type,Str,Src) ->
-    Handle = gl:createShaderObjectARB(Type),
-    ok = shaderSource(Handle, [Src]),
+compile(Type, Src) when is_binary(Src) ->
+    Handle = gl:createShader(glType(Type)),
+    ok = gl:shaderSource(Handle, [Src]),
     ok = gl:compileShader(Handle),
-    check_status(Handle,Str, ?GL_OBJECT_COMPILE_STATUS_ARB),
-    Handle.
+    case gl:getShaderiv(Handle, ?GL_COMPILE_STATUS) of
+        ?GL_TRUE  -> Handle;
+        ?GL_FALSE ->
+            BufSize = gl:getShaderiv(Handle, ?GL_INFO_LOG_LENGTH),
+            ErrorStr = gl:getShaderInfoLog(Handle, BufSize),
+            io:format("Error: in ~p shader~n: ~s~n",[Type, ErrorStr]),
+            gl:deleteShader(Handle),
+            throw({Type, "Compilation failed"})
+    end.
+
+glType(vertex) -> ?GL_VERTEX_SHADER;
+glType(fragment) -> ?GL_FRAGMENT_SHADER.
 
 link_prog(Objs) ->
     link_prog(Objs, []).
 link_prog(Objs, Attribs) when is_list(Objs) ->
-    Prog = gl:createProgramObjectARB(),
-    [gl:attachObjectARB(Prog,ObjCode) || ObjCode <- Objs],
+    Prog = gl:createProgram(),
+    [gl:attachShader(Prog,ObjCode) || ObjCode <- Objs],
     [gl:deleteShader(ObjCode) || ObjCode <- Objs],
     %% Must be bound before link (if any)
     [gl:bindAttribLocation(Prog, Idx, AttribName) || {Idx, AttribName} <- Attribs],
     gl:linkProgram(Prog),
-    check_status(Prog,"Link result", ?GL_OBJECT_LINK_STATUS_ARB),
-    Prog.
-
-check_status(Handle,Str, What) ->
-    case gl:getObjectParameterivARB(Handle, What) of
-	1 ->
-	    %% printInfo(Handle,Str), %% Check status even if ok
-	    Handle;
-	_E ->
-	    printInfo(Handle,Str),
-	    throw("Compilation failed")
-    end.
-
-printInfo(ShaderObj,Str) ->
-    Len = gl:getObjectParameterivARB(ShaderObj, ?GL_OBJECT_INFO_LOG_LENGTH_ARB),
-    case Len > 0 of
-	true ->
-	    case catch gl:getInfoLogARB(ShaderObj, Len) of
-		{_, []} -> 
-		    ok;
-		{_, InfoStr} ->
-		    io:format("Info: ~s:~n ~s ~n", [Str,InfoStr]),
-		    case string:str(InfoStr, "oftware") of
-			0 -> ok;
-			_ -> throw("Shader disabled would run in Software mode")
-		    end;
-		[] -> ok;
-		InfoStr when is_list(InfoStr) ->
-		    io:format("Info: ~s:~n ~s ~n", [Str,InfoStr]),
-		    case string:str(InfoStr, "oftware") of
-			0 -> ok;
-			_ -> throw("Shader disabled would run in Software mode")
-		    end;
-		Error ->
-		    io:format("Internal error PrintInfo crashed with ~p ~n", 
-			      [Error])
-	    end;
-	false ->
-	    ok
+    case gl:getProgramiv(Prog, ?GL_LINK_STATUS) of
+        ?GL_TRUE  -> Prog;
+        ?GL_FALSE ->
+            BufSize = gl:getProgramiv(Prog, ?GL_INFO_LOG_LENGTH),
+            ErrorStr = gl:getProgramInfoLog(Prog, BufSize),
+            io:format("Error: in program linking~n: ~s~n",[ErrorStr]),
+            gl:deleteProgram(Prog),
+            throw({link, "Linking failed"})
     end.
 
 %%%%%%%%%%%%%  Framebuffer object %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 have_fbo() ->
-    is_ext('GL_EXT_framebuffer_object').
+    is_ext('GL_ARB_framebuffer_object') orelse is_ext('GL_EXT_framebuffer_object').
 
 %% Size = {W,H}
 %% What = {BufferType, Options}
@@ -385,7 +370,7 @@ setup_fbo(Size, What) ->
 
 setup_fbo_1(Size, Types) ->
     [FB] = gl:genFramebuffers(1),
-    gl:bindFramebuffer(?GL_FRAMEBUFFER_EXT, FB),
+    gl:bindFramebuffer(?GL_FRAMEBUFFER, FB),
     {Bfs,_} = lists:foldl(fun(What, {Acc, ColCount}) ->
 				  case setup_fbo_2(What, Size, ColCount) of
 				      {color, _} = Res ->
@@ -522,9 +507,6 @@ deleteRenderbuffers(List) ->
 
 deleteFramebuffers(List) ->
     gl:deleteFramebuffers(List).
-
-shaderSource(Handle, Src) ->
-    gl:shaderSource(Handle, Src).
 
 %% This is a bug in wx it should take a list as argument
 drawElements(O,L,T = ?GL_UNSIGNED_INT,What) when is_list(What) ->

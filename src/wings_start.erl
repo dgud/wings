@@ -13,7 +13,7 @@
 
 -module(wings_start).
 -export([start/0,start/1,start_halt/0,start_halt/1]).
--export([get_patches/0,enable_patches/0,disable_patches/0]).
+-export([get_patches/0,enable_patches/0,disable_patches/0, patch_dir/0]).
 
 -include("wings.hrl").
 
@@ -36,6 +36,11 @@ start_halt(Args) ->
     common_start(fun() -> application:start(wings) end).
 
 common_start(Start) ->
+    %% Limit error logger output in crash (OTP-20)
+    application:set_env(kernel, error_logger_format_depth, 50),
+    %% Re-read error_logger_format_depth set above
+    error_logger:tty(false),
+    error_logger:tty(true),
     case get_patches() of
 	none -> ok;
 	{disabled,_} -> ok;
@@ -70,8 +75,8 @@ disable_patches() ->
     file:delete(Name).
 
 patch_dir() ->
-    Dir = filename:basedir(user_data, "Wings3D"),
-    filename:join([Dir, "patches", ?WINGS_VERSION]).
+    Dir = wings_u:basedir(user_data),
+    filename:join([Dir, ?WINGS_VERSION, "patches"]).
 
 
 

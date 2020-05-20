@@ -415,7 +415,7 @@ select_all(#st{selmode=Mode}=St) ->
 %%%
 
 inverse(#st{selmode=body}=St) ->
-    Inverse = unselected_ids(St),
+    Inverse = wings_sel:unselected_ids(St),
     wings_sel:make(fun(_, #we{id=Id}) ->
                            member(Id, Inverse)
                    end, body, St);
@@ -450,11 +450,11 @@ hide_selected(St) ->
     wings_obj:hide(Selected, St).
 
 hide_unselected(St) ->
-    Unselected = unselected_ids(St),
+    Unselected = wings_sel:unselected_ids(St),
     wings_obj:hide(Unselected, St).
 
 lock_unselected(St) ->
-    Unselected = unselected_ids(St),
+    Unselected = wings_sel:unselected_ids(St),
     wings_obj:lock(Unselected, St).
 
 %%%
@@ -826,7 +826,7 @@ short_edges(Ask, St) when is_atom(Ask) ->
     Title = ?__(2,"Select Short Edges"),
     Cmd = {select,by,short_edges},
     wings_dialog:dialog_preview(Cmd, Ask, Title, Qs, St);
-short_edges([Tolerance], #st{sel=[]}=St0) ->
+short_edges([Tolerance], St0) ->
     St = intersect_sel_items(fun(Edge, We) ->
 				     is_short_edge(Tolerance, Edge, We)
 			     end, edge, St0),
@@ -952,8 +952,11 @@ ask(Qs, Fun, St) ->
     wings_dialog:ask(?__(1,"Select By Id"), {preview,Qs},
     fun
         ({dialog_preview,Res}) ->
-            Sel = Fun(Res),
-            {preview,St,sel_by_id(Sel, St)};
+            try
+                Sel = Fun(Res),
+                {preview,St,sel_by_id(Sel, St)}
+            catch throw:_ -> {preview,St,St}
+            end;
         (cancel) -> St;
         (Res) ->
             Sel = Fun(Res),
@@ -1585,9 +1588,3 @@ intersect_sel_items(F, Mode, St0) when is_function(F, 2) ->
 	#st{} ->
 	    wings_sel:update_sel(FF, Mode, St)
     end.
-
-unselected_ids(St) ->
-    FF = fun(#{id:=Id}, A) -> [Id|A] end,
-    AllIds = ordsets:from_list(wings_obj:fold(FF, [], St)),
-    SelIds = ordsets:from_list(wings_sel:selected_ids(St)),
-    ordsets:subtract(AllIds, SelIds).

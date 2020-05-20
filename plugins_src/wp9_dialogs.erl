@@ -73,6 +73,8 @@ read_image(Prop) ->
     case string:to_lower(filename:extension(Name)) of
         ".tga" ->
             e3d_image:load(Name, Prop);
+        ".dds" ->
+            e3d_image:load(Name, Prop);
         _ ->
             BlockWxMsgs = wxLogNull:new(),
             case wxImage:loadFile(Image=wxImage:new(), Name) of
@@ -83,16 +85,26 @@ read_image(Prop) ->
                     e3d_image:fix_outtype(Name, E3d, Prop);
                 false ->
                     wxLogNull:destroy(BlockWxMsgs),
-                    {error, ignore}
+                    case filelib:is_regular(Name) of
+                        true -> {error, unsupported_format};
+                        false -> {error, enoent}
+                    end
             end
     end.
 
 write_image(Prop) ->
     Name  = proplists:get_value(filename, Prop),
     Image = proplists:get_value(image, Prop),
-    case wxImage:saveFile(Wx = wings_image:e3d_to_wxImage(Image), Name) of
-        true -> wxImage:destroy(Wx), ok;
-        false -> wxImage:destroy(Wx), {error, ignore}
+    case string:to_lower(filename:extension(Name)) of
+        ".tga" ->
+            e3d_image:save(Image, Name, Prop);
+        ".dds" ->
+            e3d_image:save(Image, Name, Prop);
+        _Ext ->
+            case wxImage:saveFile(Wx = wings_image:e3d_to_wxImage(Image), Name) of
+                true -> wxImage:destroy(Wx), ok;
+                false -> wxImage:destroy(Wx), {error, unknown}
+            end
     end.
 
 image_formats(Fs0) ->
@@ -101,7 +113,8 @@ image_formats(Fs0) ->
            {".jpg",?__(5, "JPEG File")},
            {".png",?__(3,"PNG File")},
            {".tif",?__(2,"Tiff Bitmap")},
-           {".tga",?__(4,"Targa File")}
+           {".tga",?__(4,"Targa File")},
+           {".dds",?__(7,"Direct Draw File")}
            |Fs0],
     Fs2 = sofs:relation(Fs1),
     Fs3 = sofs:relation_to_family(Fs2),
