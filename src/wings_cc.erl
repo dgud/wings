@@ -632,8 +632,8 @@ cl_setup() ->
 	undefined ->
 	    try
 		cl_setup_1()
-	    catch _:Reason ->
-		    io:format("CL setup error: ~p ~p~n",[Reason, erlang:get_stacktrace()]),
+	    catch _:Reason:ST ->
+		    io:format("CL setup error: ~p ~p~n",[Reason, ST]),
 		    wings_pref:set_value(proxy_opencl_level, 0),
 		    wings_u:error_msg(?__(1, "Could not setup OpenCL, disabling proxy smooth."))
 	    end;
@@ -840,8 +840,8 @@ cl_vs(Str, N, Vs, Count, CL, Wait0) ->
 		    V+1
 	    end,
 	lists:foldl(W, 0, [D || <<D:?VERTEX_SZ/binary>> <= VsBin])
-    catch E:R ->
-	    io:format("Failed ~p:~p ~p~n",[E,R,erlang:get_stacktrace()])
+    catch E:R:ST ->
+	    io:format("Failed ~p:~p ~p~n",[E,R,ST])
     after 
 	file:close(F)
     end.
@@ -858,8 +858,8 @@ cl_es(Str, N, Es, Count, CL, Wait0) ->
 		    E+1
 	    end,
 	lists:foldl(W, 0, [D || <<D:?EDGE_SZ/binary>> <= EsBin])
-    catch E:R ->
-	    io:format("Failed ~p:~p ~p~n",[E,R,erlang:get_stacktrace()])
+    catch E:R:ST ->
+	    io:format("Failed ~p:~p ~p~n",[E,R,ST])
     after 
 	file:close(F)
     end.
@@ -877,8 +877,8 @@ cl_face(Str, N, Vs, Count, CL, Wait0) ->
 		    V+1
 	    end,
 	lists:foldl(W, 0, [D || <<D:?FACE_SZ/binary>> <= FsBin])
-    catch E:R ->
-	    io:format("Failed ~p:~p ~p~n",[E,R,erlang:get_stacktrace()])
+    catch E:R:ST ->
+	    io:format("Failed ~p:~p ~p~n",[E,R,ST])
     after 
 	file:close(FD)	
     end.

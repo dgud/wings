@@ -378,9 +378,6 @@ merge_components([C|Cs], Ftab0) ->
 	Ftab -> merge_components(Cs, Ftab)
     catch
 	error:_R ->
-	    %%Stk = erlang:get_stacktrace(),
-	    %%io:format("\n~p\n", [_R]),
-	    %%io:format("~p\n", [Stk]),
 	    merge_components(Cs, Ftab0)
     end;
 merge_components([], Ftab) -> Ftab.

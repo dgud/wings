@@ -57,8 +57,6 @@
               timezone/0, utc_offset_seconds/0, stack_item/0
              ]).
 
--compile([{nowarn_deprecated_function, {erlang,get_stacktrace,0}}]).
-
 %%--------------------------------------------------------------------------------
 %% Types & Macros
 %%--------------------------------------------------------------------------------
@@ -295,8 +293,8 @@ decode(Json, Options) ->
         {ok, Value, _} = try_decode(Json, Options),
         Value
     catch
-        error:{badmatch, {error, {Reason, [StackItem]}}} ->
-            erlang:raise(error, Reason, [StackItem | erlang:get_stacktrace()])
+        error:{badmatch, {error, {Reason, [StackItem]}}}:ST ->
+            erlang:raise(error, Reason, [StackItem | ST])
     end.
 
 %% @equiv try_decode(Json, [])
@@ -344,8 +342,8 @@ encode(JsonValue, Options) ->
         {ok, Binary} = try_encode(JsonValue, Options),
         Binary
     catch
-        error:{badmatch, {error, {Reason, [StackItem]}}} ->
-            erlang:raise(error, Reason, [StackItem | erlang:get_stacktrace()])
+        error:{badmatch, {error, {Reason, [StackItem]}}}:ST ->
+            erlang:raise(error, Reason, [StackItem | ST])
     end.
 
 %% @equiv try_encode(JsonValue, [])

@@ -1124,9 +1124,9 @@ cl_setup(Recompile) ->
             case wings_cl:is_available(true) of
                 true ->
                     try cl_setup_1()
-                    catch _:Reason ->
+                    catch _:Reason:ST ->
                             io:format("CL setup error: ~p ~p~n",
-                                      [Reason, erlang:get_stacktrace()]),
+                                      [Reason, ST]),
                             {error, no_openCL}
                     end;
                 false -> {error, no_openCL}
@@ -1136,9 +1136,9 @@ cl_setup(Recompile) ->
                 CL = wings_cl:compile("img_lib.cl", CL0),
                 ?SET(opencl, CL),
                 CL
-            catch _:Reason ->
+            catch _:Reason:ST ->
                     io:format("CL compile error: ~p ~p~n",
-                              [Reason, erlang:get_stacktrace()]),
+                              [Reason, ST]),
                     CL0
             end;
         CL ->

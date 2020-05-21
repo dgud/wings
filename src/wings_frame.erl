@@ -346,8 +346,8 @@ init(_Opts) ->
         wings ! {frame_created, Frame},
         receive opengl_initialized -> ok end,
 	{Frame, #state{toolbar=Toolbar, images=IconImgs, windows=Wins, overlay=Overlay}}
-    catch _:Reason ->
-	    io:format("CRASH: ~p ~p ~p~n",[?MODULE, Reason, erlang:get_stacktrace()])
+    catch _:Reason:ST ->
+	    io:format("CRASH: ~p ~p ~p~n",[?MODULE, Reason, ST])
     end.
 
 make_splash(Canvas, Imgs) ->
@@ -1307,8 +1307,8 @@ tree_to_list(#win{name=Name}, _, Acc) ->
 check_tree(#split{} = T, Orig) ->
     try
 	true = tree_consistent(T)
-    catch _:Reason ->
-	    io:format("Failed ~p ~p~n", [Reason, erlang:get_stacktrace()]),
+    catch _:Reason:ST ->
+	    io:format("Failed ~p ~p~n", [Reason, ST]),
 	    io:format("Orig ~p~nNew ~p~n",[Orig, T])
     end;
 check_tree(T, Orig) ->

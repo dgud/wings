@@ -2,7 +2,6 @@
 %% -*- erlang -*-
 
 -mode(compile).
--compile([{nowarn_deprecated_function, {erlang,get_stacktrace,0}}]).
 
 main([]) ->
     try
@@ -48,8 +47,8 @@ main([]) ->
 	file:close(Fd),
 	%[analyze(Res, Size) || Size <- lists:seq(5, 55, 5)],
 	halt(0)
-    catch _:Reason ->
-	    io:format("Error: ~p in ~p~n",[Reason, erlang:get_stacktrace()]),
+    catch _:Reason:Stk ->
+	    io:format("Error: ~p in ~p~n",[Reason, Stk]),
 	    halt(128)
     end.
 

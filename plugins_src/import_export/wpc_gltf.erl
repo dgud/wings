@@ -955,8 +955,8 @@ split_tx(OrigFileName, Dir0) ->
         RoughFile = filename:join(Dir, File++"_rough" ++ Ext),
         wings_image:image_write([{filename, RoughFile}, {image, Roughness}]),
         {MetFile, RoughFile}
-    catch _:Reason ->
-            ?dbg("Internal error: ~p ~p~n", [Reason, erlang:get_stacktrace()]),
+    catch _:Reason:ST ->
+            ?dbg("Internal error: ~p ~p~n", [Reason, ST]),
             {none, none}
     end.
 

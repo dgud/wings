@@ -17,7 +17,6 @@
 
 %%-compile(export_all). %% testing
 -compile(inline).
--compile([{nowarn_deprecated_function, {erlang,get_stacktrace,0}}]).
 
 -include("e3d_image.hrl").
 
@@ -68,12 +67,10 @@ load(FileName, _Opts) ->
     Z = zlib:open(),  
     try load1(FileName,_Opts,Z)
     catch 
-	throw:Reason ->
-	    ST = erlang:get_stacktrace(),
+	throw:Reason:ST ->
 	    io:format("~n~p: Bad File: ~p ~P~n",[?MODULE,Reason,ST,30]),
 	    {error, {?MODULE,Reason}};
-        error:Reason ->
-	    ST = erlang:get_stacktrace(),
+        error:Reason:ST ->
 	    io:format("~n~p: Internal Error: ~P ~P~n",[?MODULE,Reason,30,ST,30]),
 	    {error, {?MODULE,Reason}}
     after 
@@ -108,12 +105,10 @@ save(Img, File, Type, Options) ->
 	    _ -> file:write_file(File, Binary)
 	end
     catch 
-	throw:Reason ->
-	    ST = erlang:get_stacktrace(),
+	throw:Reason:ST ->
 	    io:format("~n~p: Bad File: ~p ~P~n",[?MODULE,Reason,ST,30]),
 	    {error, {?MODULE,Reason}};
-	  error:Reason ->
-	    ST = erlang:get_stacktrace(),
+	  error:Reason:ST ->
 	    io:format("~n~p: Internal Error: ~P ~P~n",[?MODULE,Reason,30,ST,30]),
 	    {error, {?MODULE,Reason}}
     after 

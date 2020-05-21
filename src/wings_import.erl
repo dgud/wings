@@ -154,8 +154,7 @@ run([{_Name,F}|Fs], ObjType, Mesh0) ->
 	#e3d_mesh{}=Mesh -> run(Fs, ObjType, Mesh);
         error -> run(Fs, ObjType, Mesh0)
     catch
-	_:_R ->
-	    %%_Stack = erlang:get_stacktrace(),
+	_:_R:_Stack ->
 	    %%io:format("~p failed: ~P\n", [_Name,_R,10]),
 	    %%io:format(" ~P\n", [_Stack,20]),
 	    run(Fs, ObjType, Mesh0)

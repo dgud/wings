@@ -158,8 +158,8 @@ option_dialog(Id, Fields, Renderers, Shaders) ->
 			   ignore
 		   end,
 	wings_dialog:dialog(StrName,options(Name,Opts,Shaders),SetValue)
-    catch _:Crash ->
-	    io:format("EXIT: ~p ~p~n",[Crash, erlang:get_stacktrace()])
+    catch _:Crash:ST ->
+	    io:format("EXIT: ~p ~p~n",[Crash, ST])
     end.
 
 options(auv_background, [auv_background, {type_sel,Type},{Image,_},Color],_) ->
@@ -346,8 +346,7 @@ render_image(Geom0, Passes, #opt{texsz={TexW,TexH}}, Reqs) ->
 		#e3d_image{image=ImageBin,width=TexW,height=TexH,
 			   type=r8g8b8a8,bytes_pp=4}
 	end
-    catch _:What ->
-	    Where = erlang:get_stacktrace(),
+    catch _:What:Where ->
 	    exit({What,Where})
     after
 	case UsingFbo of
@@ -956,8 +955,7 @@ shader_pass({value,#sh{id=Id, args=Args, tex_units=TexUnits}},
                 end
             catch throw:What ->
                     io:format("AUV: ERROR ~s ~n",[What]);
-		_:What ->
-		    Stack = erlang:get_stacktrace(),
+		_:What:Stack ->
 		    io:format("AUV: Internal ERROR ~p:~n~p ~n",[What,Stack])
 	    after
                 wings_gl:use_prog(0),
@@ -1193,8 +1191,7 @@ compile_shader(Id, {value,#sh{name=Name,vs=VsF,fs=FsF}}, Acc) ->
     catch throw:What ->
 	    io:format("AUV: Error ~p ~s ~n",[Name, What]),
 	    Acc;
-	_:Err ->
-	    Stack = erlang:get_stacktrace(),
+	_:Err:Stack ->
 	    io:format("AUV: Internal Error ~s in~n ~p~n",[Err,Stack]),
 	    Acc
     end;

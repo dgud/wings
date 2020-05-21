@@ -18,8 +18,6 @@
 -export([init/1, handle_info/2, terminate/2, code_change/3, handle_call/3,
 	 handle_event/2, handle_cast/2]).
 
--compile([{nowarn_deprecated_function, {erlang,get_stacktrace,0}}]).
-
 -include_lib("wx/include/wx.hrl").
 -record(state, {sb,
 		frame,
@@ -64,8 +62,8 @@ init([Frame]) ->
 	wxFrame:setStatusBar(Frame, SB),
 	wxFrame:setStatusBarPane(Frame, 0),
 	{SB, #state{sb=SB, frame=Frame}}
-    catch _:Reason ->
-	    io:format("Error ~p ~p ~n",[Reason, erlang:get_stacktrace()]),
+    catch _:Reason:ST ->
+	    io:format("Error ~p ~p ~n",[Reason, ST]),
 	    {error, Reason}
     end.
 

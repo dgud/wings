@@ -33,7 +33,6 @@
          add_vert_info/3, rev_face/2, rev_face/1
         ]).
 
--compile([{nowarn_deprecated_function, {erlang,get_stacktrace,0}}]).
 
 -record(mat,
         {refs=#{},
@@ -65,8 +64,8 @@ import(File) ->
             try
                 E3dFile = make_file(Es),
                 {ok, E3dFile#e3d_file{dir=filename:dirname(File)}}
-            catch _:Reason ->
-                    io:format("ERROR: ~P in ~p~n", [Reason, 20, erlang:get_stacktrace()]),
+            catch _:Reason:ST ->
+                    io:format("ERROR: ~P in ~p~n", [Reason, 20, ST]),
                     {error, ?__(1, "unknown/unhandled format, see log window")}
             end;
         {Error, {_,_,Line}, Reason, _ET, _St} ->
@@ -498,8 +497,8 @@ invoke(#es{state=[Top|_]}=Es, Ev, Loc) ->
 		?MODULE:State(Es, Ev, Loc)
 	end
     catch
-        error:function_clause=Reason ->
-	    case erlang:get_stacktrace() of
+        error:function_clause=Reason:ST ->
+	    case ST of
 		[{?MODULE,Func, _,_}|_] when Func =:= Top ->
 		    unhandled(Es, Ev, Loc),
 		    Es;
@@ -507,12 +506,12 @@ invoke(#es{state=[Top|_]}=Es, Ev, Loc) ->
 		    unhandled(Es, Ev, Loc),
 		    Es;
 		_ ->
-		    io:format("~p:~n ~P~n", [Reason, erlang:get_stacktrace(), 20]),
+		    io:format("~p:~n ~P~n", [Reason, ST, 20]),
 		    io:format("Last: ~P~n~P~n",[Ev,5,Es,10]),
 		    throw({fatal_error, parser_error})
 	    end;
-        error:Reason ->
-	    io:format("~p:~n ~P~n", [Reason, erlang:get_stacktrace(), 20]),
+        error:Reason:ST ->
+	    io:format("~p:~n ~P~n", [Reason, ST, 20]),
 	    io:format("Last: ~P~n~P~n",[Ev,5,Es,10]),
 	    throw({fatal_error, parser_error})
     end.

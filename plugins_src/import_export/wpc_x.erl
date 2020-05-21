@@ -16,7 +16,6 @@
 %% Thanks KayosIII (Danni Aaron Coy) who wrote the export of UV coordinates 
 %%
 -export([init/0, menu/2, command/2]).
--compile([{nowarn_deprecated_function, {erlang,get_stacktrace,0}}]).
 
 -import(lists, [foreach/2, foldl/3, map/2]).
 
@@ -98,8 +97,8 @@ export(File_name, Export0, Attr) ->
 		      io:put_chars(F, "}"),
 		      ok
 	      end, [], Objs)
-    catch _:Err ->
-	    io:format(?__(1,"DirectX Error: ~P in ~p~n"), [Err,30, erlang:get_stacktrace()])
+    catch _:Err:ST ->
+	    io:format(?__(1,"DirectX Error: ~P in ~p~n"), [Err,30,ST])
     end,
     ok = file:close(F).
 

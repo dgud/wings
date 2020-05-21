@@ -277,8 +277,8 @@ init([Frame, {W,_}, _Ps, Cols0]) ->
 	wings_status:message(palette, help()),
 	{Win, #state{self=self(), win=Win, sz=Sz,
 		     cols=Cols, bsz=BSz, empty=Empty}}
-    catch _:Reason ->
-	    io:format("CRASH: ~p ~p ~p~n",[?MODULE, Reason, erlang:get_stacktrace()]),
+    catch _:Reason:ST ->
+	    io:format("CRASH: ~p ~p ~p~n",[?MODULE, Reason, ST]),
             error(Reason)
     end.
 

@@ -15,7 +15,7 @@ The following software is needed:
 
 - WSL or (Msys2 or WSL) for make and bash scripts
 
-- Erlang/Otp 22.1 or later. http://www.erlang.org
+- Erlang/Otp 23.0 or later. http://www.erlang.org
   Include the vcredist packaged with Erlang, in your installation.
   (It is easiest to download the pre-built binaries for Windows.)
 

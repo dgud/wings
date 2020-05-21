@@ -9,7 +9,6 @@
 %%
 
 -mode(compile).
--compile([{nowarn_deprecated_function, {erlang,get_stacktrace,0}}]).
 
 %% If moved outside of wings directory modify
 -define(WINGS_DIR, "c:/src/wings/ebin").
@@ -256,9 +255,9 @@ import_file(File, Opts) ->
 	_:{command_error,Message} ->
 	    io:format("**** Import Failed: ~s On file: ~p~n~n", [Message, File]),
 	    quit(1);
-	_:Reason ->
+	_:Reason:Stk ->
 	    io:format("**** Import crashed: ~p On file: ~p~n~n", [Reason, File]),
-	    io:format("Debug info: ~p~n~n",[erlang:get_stacktrace()]),
+	    io:format("Debug info: ~p~n~n",[Stk]),
 	    quit(1)
     end.
 
@@ -307,9 +306,9 @@ export_file(File, Opts=#opts{dir=Dir, out_module=F=#format{ext_type=Ext}}) ->
 	_:{command_error,Message} ->
 	    io:format("**** Export Failed: ~s On file: ~p~n~n", [Message, File]),
 	    quit(1);
-	_:Reason ->
+	_:Reason:ST ->
 	    io:format("**** Export crashed: ~p On file: ~p~n~n", [Reason, FileName]),
-	    io:format("Debug info: ~p~n~n",[erlang:get_stacktrace()]),
+	    io:format("Debug info: ~p~n~n",[ST]),
 	    quit(1)
     end.
 

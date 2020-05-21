@@ -226,8 +226,8 @@ init_cl() ->
 
 	#{cl=>CL, bvh=>Bvh, q=>Queue, wgsz=>64}
     catch
-	_Error:Reason ->
-	    io:format("Error ~p ~p~n", [Reason, erlang:get_stacktrace()]),
+	_Error:Reason:ST ->
+	    io:format("Error ~p ~p~n", [Reason, ST]),
 	    exit(error)
     %% after
 	%% io:format("CL ~p~n",[CL]),

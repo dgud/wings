@@ -264,8 +264,8 @@ connect_cut(VS0, VE0, #we{}=We0) when is_integer(VS0), is_integer(VE0) ->
 	      end,
 	{We2,Vs1} = lists:foldl(Cut, {We0, []}, CutEs),
 	connect_vs(Vs1, We2, [])
-    catch _:_Reason ->
-	    %% io:format("~p: ~p~n", [Reason, erlang:get_stacktrace()]),
+    catch _:_Reason:_ST ->
+	    %% io:format("~p: ~p~n", [Reason, _ST]),
 	    wings_u:error_msg(?__(1, "Could not connect vertices."))
     end.
 

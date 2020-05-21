@@ -1040,15 +1040,15 @@ handle_event(State, Event, Stk) ->
 	    exit(shutdown);
 	exit:{crash_logged, _}=Reason ->
 	    exit(Reason);
-	exit:Exit ->
+	exit:Exit:StackTrace ->
             erase(wm_focus_grab),
 	    [#se{h=CrashHandler}] = pop_all_but_one(Stk),
-	    handle_response(CrashHandler({crash,Exit}), Event,
+	    handle_response(CrashHandler({crash,{Exit,stack,StackTrace}}), Event,
 			    default_stack(this()));
-	error:Reason ->
+	error:Reason:StackTrace ->
             erase(wm_focus_grab),
 	    [#se{h=CrashHandler}] = pop_all_but_one(Stk),
-	    handle_response(CrashHandler({crash,Reason}), Event,
+	    handle_response(CrashHandler({crash,{Reason,stack,StackTrace}}), Event,
 			    default_stack(this()))
     end.
 

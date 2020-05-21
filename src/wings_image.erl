@@ -559,8 +559,8 @@ make_normal_mipmaps(#e3d_image{width=W, height=H} = NormalMap0) ->
             catch _:{badmatch, {error,_}} ->
                     ?dbg("Failed to allocate gfx memory ~n",[]),
                     NormalMap0;
-                  _:Reason ->
-                    ?dbg("CL calc crashed ~P ~P~n",[Reason, 30, erlang:get_stacktrace(),20]),
+                  _:Reason:ST ->
+                    ?dbg("CL calc crashed ~P ~P~n",[Reason, 30, ST,20]),
                     NormalMap0
             end;
         false ->

@@ -370,9 +370,9 @@ load_map(MapName, Dir) ->
 	none -> none;
 	Im when is_integer(Im) -> Im
     catch
-	error:R ->
+	error:R:ST ->
 	    io:format("~p\n", [R]),
-	    io:format("~P\n", [erlang:get_stacktrace(),20]),
+	    io:format("~P\n", [ST,20]),
 	    none
     end.
 

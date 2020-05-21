@@ -924,9 +924,9 @@ handle_sync_event(#wx{obj=LC, event=Event}=Ev, EvObj, #state{lc=LC, tw=TW, self=
 	    #wxMouse{} -> wxEvent:skip(EvObj);
 	    _ -> ok
 	end
-    catch _:_Reason ->
+    catch _:_Reason:_ST ->
 	    %% Happens when we close the window ignore
-	    %% io:format("~p: ~p ~p~n",[?LINE, _Reason, erlang:get_stacktrace()]),
+	    %% io:format("~p: ~p ~p~n",[?LINE, _Reason, _ST]),
 	    ok
     end.
 

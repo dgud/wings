@@ -44,9 +44,9 @@ export(Exporter, Name, Ps, St) ->
 	{error,Reason} ->
 	    wings_u:error_msg(Reason)
     catch
-	error:Reason ->
+	error:Reason:ST ->
 	    Msg = ?__(4,"Exporter crashed"),
-	    io:format(Msg++": ~P\n\n~P\n", [Reason,20,erlang:get_stacktrace(),20]),
+	    io:format(Msg++": ~P\n\n~P\n", [Reason,20,ST,20]),
 	    wings_u:error_msg(Msg++?__(5," see log window for details"))
     after
 	wings_pb:done()
