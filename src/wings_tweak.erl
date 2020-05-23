@@ -315,7 +315,7 @@ handle_initial_event(#mousebutton{button=1,state=?SDL_RELEASED}, What, #st{shape
 			 St0#st{sel=Sel}
 		 end
 	 end,
-    wings_wm:send({object,wings_wm:this()}, {current_state,St}),
+    wings_wm:current_state(St),
     wings_wm:dirty(),
     initiate_tweak_handler(What, St, T#tweak{clk={one,os:timestamp()}});
 handle_initial_event(#mousebutton{button=1,x=X0,y=Y0,state=?SDL_PRESSED}=Ev,
