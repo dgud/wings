@@ -11,7 +11,6 @@
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
 -mode(compile).
--compile([{nowarn_deprecated_function, {erlang,get_stacktrace,0}}]).
 
 -include_lib("kernel/include/file.hrl").
 
@@ -29,8 +28,7 @@ main(_) ->
 	throw:{fatal,Reason} ->
 	    io:put_chars(Reason),
 	    init:stop(1);
-	Class:Error ->
-	    Stk = erlang:get_stacktrace(),
+	Class:Error:Stk ->
 	    io:format("~p:~p in ~p\n", [Class,Error,Stk]),
 	    init:stop(2)
     end.

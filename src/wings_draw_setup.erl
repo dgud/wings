@@ -23,7 +23,7 @@
 -export([create_vab/4,create_tangent_vab/5,
 	 add_ts/5,add_tangents/3]).
 
--export_type([face_map/0,face_tris/0]).
+-export_type([face_map/0,face_tris/0,plan/0]).
 
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
@@ -33,6 +33,12 @@
 
 -type face_tris() :: {non_neg_integer(),non_neg_integer()}.
 -type face_map() :: array:array(face_tris()) | [face_tris()].
+
+-type material_name() :: atom().
+-type plan_type() :: 'color' | 'color_uv' | 'color_uv_tangent'
+                   | 'plain' | 'uv' | 'uv_tangent'.
+-type plan() :: {plan_type(),[{material_name(),
+                               [{wings_face:face_num(),wings_edge:edge_num()}]}]}.
 
 %%%
 %%% we(We, [Option], St) -> #vab{} See wings.hrl
@@ -217,6 +223,8 @@ smooth(D=#dlo{vab=#vab{face_sn=none}}, _St, _) ->
 smooth(D, _, _) -> D.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+-spec flat_faces(plan(), #dlo{}) -> #dlo{}.
 
 flat_faces({plain,MatFaces}, D) ->
     plain_flat_faces(MatFaces, D, 0, <<>>, [], []);
@@ -911,6 +919,9 @@ cross_axis(N = {NX,NY,NZ}) ->
 %%%
 %%% Collect information about faces.
 %%%
+
+-spec prepare([{_,_}], #dlo{}|#we{}, #st{}) -> plan().
+
 prepare(Ftab, Dlo, St) ->
     prepare(Ftab, Dlo, St, undefined).
 

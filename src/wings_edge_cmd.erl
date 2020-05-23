@@ -678,7 +678,7 @@ loop_cut_make_copies([P|Parts], We0) ->
 loop_cut_make_copies([], _) -> [].
 
 -spec loop_cut_partition(Edges, #we{}) -> [wings_sel:face_set()] when
-      Edges ::  wings_sel:edge_set() | [wings_sel:edge_num()].
+      Edges ::  wings_sel:edge_set() | [wings_edge:edge_num()].
 loop_cut_partition(Edges, We) ->
     AdjFaces = wings_face:from_edges(Edges, We),
     loop_cut_partition(AdjFaces, Edges, We, []).

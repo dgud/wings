@@ -78,8 +78,7 @@ win_crash(Window, Reason) ->
     LogName = crash_log(Window, Reason),
     wings_wm:send(geom, {crash_in_other_window,LogName}).
 
-crash_log(WinName, Reason) ->
-    StackTrace = erlang:get_stacktrace(),
+crash_log(WinName, {Reason, stack, StackTrace}) ->
     crash_log(WinName, Reason, StackTrace).
 
 crash_log(WinName, Reason, StackTrace) ->

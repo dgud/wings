@@ -13,7 +13,6 @@
 
 -module(wings_cl).
 -include_lib("cl/include/cl.hrl").
--compile([{nowarn_deprecated_function, {erlang,get_stacktrace,0}}]).
 -include_lib("wings/e3d/e3d_image.hrl").
 
 -export([is_available/1, setup/0, stop/1, working/0,
@@ -333,9 +332,9 @@ read_img(CLImg, W, H, 4=Bpp, Wait, #cli{q=Q}) ->
 set_args_1(Name, K, Args) ->
     try clu:apply_kernel_args(K, Args) of
 	ok -> ok
-    catch error:Reason ->
+    catch error:Reason:ST ->
 	    io:format("Bad args ~p: ~p~n",[Name, Args]),
-	    erlang:raise(error,Reason, erlang:get_stacktrace())
+	    erlang:raise(error,Reason, ST)
     end.
 
 enqueue_kernel(No, Wait, Q, #kernel{id=K, wg=WG0}) ->

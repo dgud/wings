@@ -535,8 +535,8 @@ event_handler(#wx{id=Result}=_Ev,
     try return_result(Fun, Values, Owner)
     catch throw:{command_error,_} = Error ->
 	    wings_wm:send(Owner, Error);
-          _:Reason ->
-            io:format("Dialog preview crashed: ~p~n~p~n",[Reason, erlang:get_stacktrace()])
+          _:Reason:ST ->
+            io:format("Dialog preview crashed: ~p~n~p~n",[Reason, ST])
     end,
     delete;
 event_handler(preview, Eh0) ->
@@ -558,8 +558,8 @@ event_handler(preview_exec, #eh{fs=Fields, apply=Fun, owner=Owner}=Eh0) ->
 	Action when is_tuple(Action); is_atom(Action) ->
 	    %%io:format("~p:~p: ~p~n",[?MODULE,?LINE,{preview,[Owner,{action,Action}]}]),
 	    wings_wm:send(Owner, {action,Action})
-    catch _:Reason ->
-            io:format("Dialog preview crashed: ~p~n~p~n",[Reason, erlang:get_stacktrace()])
+    catch _:Reason:ST ->
+            io:format("Dialog preview crashed: ~p~n~p~n",[Reason, ST])
     end,
     {replace, fun(Ev) -> event_handler(Ev, Eh) end};
 event_handler(#mousebutton{which=Obj}=Ev, _) ->
@@ -771,9 +771,9 @@ setup_hook(#in{wx=Canvas, type=custom_gl, hook=CustomRedraw}, Fields) ->
                          wxGLCanvas:setCurrent(Canvas),
                          CustomRedraw(Canvas, Fields),
                          wxGLCanvas:swapBuffers(Canvas)
-                     catch _:Reason ->
+                     catch _:Reason:ST ->
                              io:format("GL Custom callback crashed ~p~n~p~n",
-                                       [Reason, erlang:get_stacktrace()])
+                                       [Reason, ST])
                      end
 	     end,
     Redraw = fun(#wx{}, _) ->
@@ -848,11 +848,11 @@ build_dialog(AskType, Title, Qs) ->
                              set_position(Location, Dialog),
 			     setup_hooks(DialogData),
 			     {Dialog, DialogData}
-		     catch Class:Reason ->
+		     catch Class:Reason:ST ->
 			     %% Try to clean up
 			     reset_dialog_parent(Dialog),
 			     wxDialog:destroy(Dialog),
-			     erlang:raise(Class, Reason, erlang:get_stacktrace())
+			     erlang:raise(Class, Reason, ST)
 		     end
 	     end).
 

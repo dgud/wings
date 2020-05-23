@@ -29,7 +29,6 @@
 -endif.
 
 -include_lib("wx/include/wx.hrl").
--compile([{nowarn_deprecated_function, {erlang,get_stacktrace,0}}]).
 
 -define(WINGS_VERSION, ?wings_version).
 
@@ -86,7 +85,7 @@
 
 -define(SLOW(Cmd), begin wings_io:hourglass(), Cmd end).
 -define(TC(Cmd), wings_util:tc(fun() -> Cmd end, ?MODULE, ?LINE)).
--define(WHERE,   try 1=2 catch _:_ -> erlang:get_stacktrace() end).
+-define(WHERE,   try 1=2 catch _:_:ST -> ST end).
 
 -ifdef(DEBUG).
 -define(ASSERT(E), case E of

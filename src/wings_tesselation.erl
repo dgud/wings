@@ -162,9 +162,9 @@ triangulate_quad(F, Vs, TriV0, FsSet0, #we{vp=Vtab}=We0) ->
 	{Fs1++Fs2,FsSet,TriV,We}
     catch throw:_Problematic ->
 	    {[],FsSet0,TriV0, doface_1(F,4, Vs, We0, false)};
-	Type:Err ->
+	Type:Err:ST ->
 	    io:format("~p:~p: ~p ~p ~p~n", 
-		      [?MODULE,?LINE, Type, Err, erlang:get_stacktrace()])
+		      [?MODULE,?LINE, Type, Err, ST])
     end.
 
 get_pref_faces(V,Fs0,We) ->

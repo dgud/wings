@@ -230,10 +230,6 @@ draw(Category, Key, Update, RS)
 	    end
     end.
 
-%%%
-%%% Local functions.
-%%%
-
 delete_dlists() ->
     case get_dl_data() of
 	#du{used=Used} ->
@@ -243,6 +239,10 @@ delete_dlists() ->
 	_ ->
 	    ok
     end.
+
+%%%
+%%% Local functions.
+%%%
 
 clear_old_dl([#dlo{src_we=We,proxy_data=Pd0,ns=Ns}|T]) ->
     Pd = wings_proxy:invalidate(Pd0, vab),

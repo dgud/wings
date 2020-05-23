@@ -88,6 +88,11 @@ log_error(Off, {Reason, [_|_]=Stacktrace}, St) ->
     LogName = wings_u:crash_log(Who, Reason, Stacktrace),
     catch wings_wm:psend(geom, {crash_in_other_window,LogName}),
     {ok, St#{error=>Pid}};
+log_error(Off, {Reason, stack, Stacktrace}, St) ->
+    {Pid, Who} = who(Off),
+    LogName = wings_u:crash_log(Who, Reason, Stacktrace),
+    catch wings_wm:psend(geom, {crash_in_other_window,LogName}),
+    {ok, St#{error=>Pid}};
 log_error(Off, Reason, St) ->
     {Pid, Who} = who(Off),
     LogName = wings_u:crash_log(Who, Reason, []),

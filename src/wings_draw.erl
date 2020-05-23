@@ -13,7 +13,6 @@
 
 -module(wings_draw).
 -export([refresh_dlists/1,
-	 invalidate_dlists/1,
 	 update_sel_dlist/0,
 	 changed_we/2, update_normals/1,
 	 split/3,original_we/1,update_dynamic/2,join/1,abort_split/1]).
@@ -32,12 +31,12 @@
 		foldl/3,sort/1,keysort/2]).
 
 -record(split,
-	{static_vs,
-	 dyn_vs,
-	 dyn_plan,		      %Plan for drawing dynamic faces.
-	 orig_ns,
-	 orig_we,
-	 orig_st		      %For materials
+	{static_vs :: [{wings_vertex:vertex_num(),e3d_vec:point()}],
+	 dyn_vs=none :: 'none' | [wings_vertex:vertex_num()],
+	 dyn_plan :: wings_draw_setup:plan(), %Plan for drawing dynamic faces.
+	 orig_ns :: 'none' | array:array(e3d_vec:vector()),
+	 orig_we :: #we{},
+	 orig_st :: #st{}                       %For materials
 	}).
 
 -type normals() :: 'none'

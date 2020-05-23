@@ -25,8 +25,8 @@
 %% the problems I have had with making this, sigh.
 -define(DBG_TRY(Do,WE1,WE2),
         try Do
-        catch error:__R ->
-                ?dbg("ERROR: ~w:~n ~P~n", [__R, erlang:get_stacktrace(), 20]),
+        catch error:__R:ST ->
+                ?dbg("ERROR: ~w:~n ~P~n", [__R, ST, 20]),
                 #{we=>WE1,delete=>none, el=>[], sel_es=>[], error=>WE2};
               exit:_ ->
                 #{we=>WE1,delete=>none, el=>[], sel_es=>[], error=>WE2};

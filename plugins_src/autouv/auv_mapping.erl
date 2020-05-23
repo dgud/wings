@@ -78,10 +78,10 @@ map_chart_1(Type, Chart, Loop, Options, We) ->
 	    {error,?__(1,"Numeric problem, probably a bad face with an empty area.")};
 	throw:What ->
 	    {error,lists:flatten(What)};
-	_:Reason ->
+	_:Reason:ST ->
 	    Msg = io_lib:format(?__(2,"Internal error:")++" ~P", [Reason,10]),
 	    io:format("~p:~p "++?__(3,"Error")++" ~p~n  ~p ~n",
-		      [?MODULE,?LINE,Reason,erlang:get_stacktrace()]),
+		      [?MODULE,?LINE,Reason,ST]),
 	    {error,lists:flatten(Msg)}
     end.
 
@@ -714,8 +714,7 @@ lsq(L, Lpuv, Method0) when is_record(L,lsq), is_list(Lpuv), is_atom(Method0) ->
 	     end,
     try lsq_int(L, Lpuv, Method)
     catch
-	error:badarg ->
-	    ST = erlang:get_stacktrace(),
+	error:badarg:ST ->
 	    error(badarg, {[L,Lpuv,Method],ST})
     end;
 lsq(L, Lpuv, Method) ->

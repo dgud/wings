@@ -10,7 +10,6 @@
 %%
 
 -module(e3d__dds).
--compile([{nowarn_deprecated_function, {erlang,get_stacktrace,0}}]).
 
 -export([load/2, save/3]).
 -export([format_error/1]).
@@ -39,8 +38,8 @@ save(#e3d_image{type=InType}=Image0, FileName, _Opts) ->
         IoData = save_1(Image),
         file:write_file(FileName, IoData)
     catch throw:Error -> {error, Error};
-          _:Error ->
-            io:format("~p ~p ~p~n", [?MODULE, Error, erlang:get_stacktrace()]),
+          _:Error:ST ->
+            io:format("~p ~p ~p~n", [?MODULE, Error, ST]),
             {error, internal_error}
     end.
 
