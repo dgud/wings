@@ -192,7 +192,7 @@ lsqcm(Fs, Pinned, _Loop, We) ->
 
 
 %%  Map border edges to circle positions
--spec loop_to_circle({TotDist::float(), BEs::#be{}}) -> {[integer()], [{float(),float()}]}.
+-spec loop_to_circle({TotDist::float(), [BEs::#be{}]}) -> {[integer()], [{float(),float()}]}.
 loop_to_circle({TotDist, BEs}) ->
     loop_to_circle(BEs, 0.0, TotDist, [], []).
 

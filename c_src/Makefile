@@ -47,7 +47,7 @@ ERL_INC = "$(ERL_DIR)/usr/include"
 WORDSIZE := $(shell $(ERL) -noinput -eval 'io:format("~w~n", [erlang:system_info(wordsize)*8]),init:stop()')
 
 UNIVERSAL_FLAGS =
-COMMON_CFLAGS = -Wall -g
+COMMON_CFLAGS = -g
 
 ifeq ($(UseMCL),true)
  OUT = -Fe:
@@ -62,9 +62,8 @@ else
  OUT_OBJ = -o
  OBJ = o
  CFLAGS += $(COMMON_CFLAGS) -O3
- CXXFLAGS += -Wno-int-in-bool-context -Wno-sign-compare \
-		-Wno-unused-local-typedefs -Wno-misleading-indentation \
-		-Wno-deprecated-declarations -Wno-unknown-pragmas
+ CXXFLAGS += -Wno-deprecated-declarations -Wno-unknown-pragmas -Wno-switch
+
  ifdef USEMINGWGCC
   SO_EXT = dll
   LIBS = -mdll
@@ -74,6 +73,7 @@ else
   ifeq ($(OS),Darwin)
     CFLAGS = $(UNIVERSAL_FLAGS) $(COMMON_CFLAGS) -O3
     LIBS = $(UNIVERSAL_FLAGS) -bundle -flat_namespace -undefined suppress
+    CXXFLAGS += -std=c++14
   else
     LIBS = -shared -fpic
     CXX_LD = -lstdc++
@@ -106,7 +106,7 @@ $(LIBDIR)/libigl.$(SO_EXT): libigl.cpp
 
 $(LIBDIR)/%.$(SO_EXT): %.c
 	install -d $(LIBDIR)
-	$(GCC) $(CFLAGS) -I$(ERL_INC) $(OUT) $@ $< $(LIBS)
+	$(GCC) $(CFLAGS) -Wall -I$(ERL_INC) $(OUT) $@ $< $(LIBS)
 
 clean:
 	rm -f $(TARGET_FILES) vc*.pdb *.$(OBJ)
