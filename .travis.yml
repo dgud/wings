@@ -3,7 +3,7 @@ language: erlang
 otp_release:
   - 22.2
 
-dist: trusty
+dist: bionic
 sudo: false
 
 #notifications:
@@ -12,9 +12,10 @@ sudo: false
 #addons:
 #  apt:
 #    packages:
+#    - libgl1-mesa-dev
+#    - libglu1-mesa-dev
 #    - fglrx
-#    - opencl-headers
-
+#    - opencl-headersbi
 before_script:
   - set -e
   - git clone --depth 1 --branch cl-1.2.3 https://github.com/tonyrog/cl.git

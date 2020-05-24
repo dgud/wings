@@ -68,18 +68,15 @@ else
  ifdef USEMINGWGCC
   SO_EXT = dll
   LIBS = -mdll
-  GL_LIBS += -lopengl32 -lglu32
  else
   SO_EXT = so
   DEF_CC = $(CC)
   ifeq ($(OS),Darwin)
     CFLAGS = $(UNIVERSAL_FLAGS) $(COMMON_CFLAGS) -O3
     LIBS = $(UNIVERSAL_FLAGS) -bundle -flat_namespace -undefined suppress
-    GL_LIBS =
   else
     LIBS = -shared -fpic
     CXX_LD = -lstdc++
-    GL_LIBS += -L/usr/local/lib -lGLU -lGL
   endif
  endif
 endif
@@ -109,7 +106,7 @@ $(LIBDIR)/libigl.$(SO_EXT): libigl.cpp
 
 $(LIBDIR)/%.$(SO_EXT): %.c
 	install -d $(LIBDIR)
-	$(GCC) $(CFLAGS) -I$(ERL_INC) $(OUT) $@ $< $(LIBS) $(GL_LIBS)
+	$(GCC) $(CFLAGS) -I$(ERL_INC) $(OUT) $@ $< $(LIBS)
 
 clean:
 	rm -f $(TARGET_FILES) vc*.pdb *.$(OBJ)
