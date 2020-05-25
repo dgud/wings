@@ -1109,18 +1109,18 @@ material_dialog(_Name, Mat) ->
                         {"Dispersion Power", {slider, {text,DispersionPower,[range(dispersion_power),key(dispersion_power)]}}}
                     ],[{margin,false}]},
                     {"Fake Shadows",FakeShadows,[key(fake_shadows)]}
-                ],[key(pnl_dsp),{show,false},{margin,false}]},
+                ],[key(pnl_dsp),{margin,false}]},
                 %% 17th row
                 {hframe, [
                     {"Oren-Nayar",OrenNayar,[key(oren_nayar),{hook,Hook_Enable}]},
                     {label_column,[
                         {"Sigma", {text,OrenNayar_Sigma,[range(oren_nayar_sigma),key(oren_nayar_sigma)]}}
                     ],[key(pnl_sigma_shiny),{margin,false}]}
-                ],[key(pnl_on),{show,false},{margin,false}]},
+                ],[key(pnl_on),{margin,false}]},
                 %% 18th row
                 {hframe, [
                     {"Fresnel Effect",TIR,[key(tir)]}
-                ],[key(pnl_fe),{show,false},{margin,false}]},
+                ],[key(pnl_fe),{margin,false}]},
                 %% 19th row
                 {label_column, [
                     {"Color", {slider, {color,Lightmat_Color,[key(lightmat_color)]}}},
