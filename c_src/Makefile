@@ -56,7 +56,7 @@ ifeq ($(UseMCL),true)
  SO_EXT = dll
  LIBS = -LD
  CFLAGS += -nologo -Zi -Ox /FS /MP -D__WIN32__
- CXXFLAGS += /EHsc
+ CXXFLAGS += $(CFLAGS) /EHsc
 else
  OUT = -o
  OUT_OBJ = -o
@@ -73,10 +73,11 @@ else
   ifeq ($(OS),Darwin)
     CFLAGS = $(UNIVERSAL_FLAGS) $(COMMON_CFLAGS) -O3
     LIBS = $(UNIVERSAL_FLAGS) -bundle -flat_namespace -undefined suppress
-    CXXFLAGS += -std=c++14
+    CXXFLAGS += $(CFLAGS) -std=c++14
   else
     LIBS = -shared -fpic
     CXX_LD = -lstdc++
+    CXXFLAGS += $(CFLAGS)
   endif
  endif
 endif
@@ -87,26 +88,25 @@ endif
 
 IGL_INCLUDE = -I../_deps/eigen -I../_deps/libigl/include
 
-DRV = $(LIBDIR)/wings_pick_nif.$(SO_EXT)
-
-# libigl can only supports 64b
+# libigl only supports 64bits systems
 ifeq (x"${WORDSIZE}",x"64")
-    DRV += $(LIBDIR)/libigl.$(SO_EXT)
+    DRV = $(LIBDIR)/libigl.$(SO_EXT) $(LIBDIR)/wings_pick_nif.$(SO_EXT)
 else
     $(info 32bits build ignoring libigl not supported)
+    DRV = $(LIBDIR)/wings_pick_nif.$(SO_EXT)
 endif
 
 TARGET_FILES=$(DRV)
 
-all: $(TARGET_FILES)
+opt debug: $(TARGET_FILES)
 
 $(LIBDIR)/libigl.$(SO_EXT): libigl.cpp
 	install -d $(LIBDIR)
-	$(GCC) $(CFLAGS) $(CXXFLAGS) $(IGL_OPTS) -I$(ERL_INC) $(IGL_INCLUDE) $(OUT)$@ $< $(LIBS) $(CXX_LD)
+	$(GCC) $(CXXFLAGS) $(IGL_OPTS) -I$(ERL_INC) $(IGL_INCLUDE) $(OUT)$@ $< $(LIBS) $(CXX_LD)
 
 $(LIBDIR)/%.$(SO_EXT): %.c
 	install -d $(LIBDIR)
-	$(GCC) $(CFLAGS) -Wall -I$(ERL_INC) $(OUT) $@ $< $(LIBS)
+	$(GCC) $(CFLAGS) -I$(ERL_INC) $(OUT) $@ $< $(LIBS)
 
 clean:
 	rm -f $(TARGET_FILES) vc*.pdb *.$(OBJ)

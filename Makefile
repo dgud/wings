@@ -9,60 +9,35 @@
 #  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 #
 
-# Check if OpenCL package is needed
-
 include erl.mk
 
+# Check if OpenCL package is as external dependency
 CL_PATH = $(shell $(ERL) -noshell -eval 'erlang:display(code:which(cl))' -s erlang halt)
 ifneq (,$(findstring non_existing, $(CL_PATH)))
 DEPS=cl
-CL_VER=cl-1.2.4
 endif
 
-IGL_VER=master
-EIGEN_VER=3.3.7
-# see libigl/cmake/LibiglDownloadExternal.cmake for eigen version
 DEPS += libigl eigen
+SUBDIRS=c_src intl_tools src e3d plugins_src icons
 
-.PHONY: all debug clean lang
+#
+# Normal build targets
+#
+opt debug clean:
+	$(MAKE) TYPE=$@ common
 
-all: $(DEPS)
-	(cd intl_tools; $(MAKE))
-	(cd src; $(MAKE))
-	(cd e3d; $(MAKE))
-	(cd c_src; $(MAKE))
-	(cd plugins_src; $(MAKE))
-	(cd icons; $(MAKE))
-	@cat _deps/build_log 2> /dev/null || true
+common: $(SUBDIRS) deps_result
 
-debug: $(DEPS)
-	(cd intl_tools; $(MAKE) debug)
-	(cd src; $(MAKE) debug)
-	(cd e3d; $(MAKE) debug)
-	(cd c_src; $(MAKE) debug)
-	(cd plugins_src; $(MAKE) debug)
-	(cd icons; $(MAKE) debug)
-	@cat _deps/build_log 2> /dev/null || true
+.PHONY: opt debug clean $(SUBDIRS) deps_result
 
-clean:
-	(cd intl_tools; $(MAKE) clean)
-	(cd src; $(MAKE) clean)
-	(cd e3d; $(MAKE) clean)
-	(cd c_src; $(MAKE) clean)
-	(cd plugins_src; $(MAKE) clean)
-	(cd icons; $(MAKE) clean)
-
-lang: all
-	(cd intl_tools; $(MAKE))
-	(cd src; $(MAKE) lang)
-	(cd plugins_src; $(MAKE) lang)
-	$(ESCRIPT) tools/verify_language_files .
+$(SUBDIRS):
+	$(MAKE) --directory=$@ $(TYPE)
 
 #
 # Build installer for Windows.
 #
 .PHONY: win32
-win32: all lang
+win32: opt lang
 	(cd win32; $(MAKE))
 	escript tools/release
 
@@ -70,15 +45,23 @@ win32: all lang
 # Build a package for MacOS X.
 #
 .PHONY: macosx
-macosx: all lang
+macosx: opt lang
 	escript tools/release
 
 #
 # Build package for Unix.
 #
 .PHONY: unix
-unix: all lang
+unix: opt lang
 	escript tools/release
+
+#
+# Generate language files
+#
+lang: intl_tools src plugins_src
+	(cd src; $(MAKE) lang)
+	(cd plugins_src; $(MAKE) lang)
+	$(ESCRIPT) tools/verify_language_files .
 
 #
 # Build the source distribution.
@@ -101,26 +84,48 @@ dist:
 	@rm -r $(WINGS_TARNAME)
 	bzip2 -f -9 $(WINGS_TARNAME).tar
 
-#
-#  Dependencies
-#
 
-# cl (erl wrapper library) not in path try to download and build it
+
+#
+# Build helper
+#  Makes it possible to see 'OpenCL' build problems
+deps_result: $(SUBDIRS)
+	@cat _deps/build_log 2> /dev/null || true
+
+
+# Internal dependencies
+#   Some not needed, added to disable parallel builds of erlang dirs
+#   which causes performance loss if an erlang build server is used
+c_src: $(DEPS)
+src: intl_tools e3d
+plugins_src: intl_tools src
+icons: e3d plugins_src
+lang: opt
+
+#
+#  External Dependencies
+#
 
 CL_REPO = https://github.com/tonyrog/cl.git
 IGL_REPO = https://github.com/dgud/libigl.git
 EIGEN_REPO = https://github.com/eigenteam/eigen-git-mirror.git
 
+CL_VER=cl-1.2.4
+IGL_VER=master
+EIGEN_VER=3.3.7
+# see libigl/cmake/LibiglDownloadExternal.cmake for eigen version
+
 GIT_FLAGS = -c advice.detachedHead=false clone --depth 1
 
 .PHONY: cl igl eigen
+
+# cl (erl wrapper library) not in path try to download and build it
 cl: _deps/cl
 	@(cd _deps/cl; rebar3 compile > ../build_log 2>&1 && rm ../build_log) \
 	  || echo ***Warning*** OpenCL not useable >> _deps/build_log
 
 _deps/cl:
 	git $(GIT_FLAGS) -b $(CL_VER) $(CL_REPO) _deps/cl
-
 
 # libigl have many useful function
 libigl: _deps/libigl
