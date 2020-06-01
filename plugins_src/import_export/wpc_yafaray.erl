@@ -1,11 +1,12 @@
 %%
 %%  wpc_yafaray.erl
 %%
-%%     YafaRay Plugin User Interface.
+%%     YafaRay Plugin User Interface, for YafaRay Core v3.1.0
 %%
 %%  Copyright (c) 2003-2008 Raimo Niskanen
 %%                2013-2015 Code Convertion from Yafray to YafaRay by Bernard Oortman (Wings3d user oort)
 %%                2015 Micheus (porting to use wx dialogs)
+%%                2016 David Bluecame (adaptation for YafaRay Core v3.1.0)
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -18,10 +19,9 @@
 %% Debug exports
 %% -export([now_diff_1/1]).
 
--include_lib("kernel/include/file.hrl").
+-include_lib("wings/src/wings.hrl").
 -include_lib("wings/e3d/e3d.hrl").
 -include_lib("wings/e3d/e3d_image.hrl").
--include_lib("wings/src/wings.hrl").
 
 -import(lists, [reverse/1,reverse/2,sort/1,keydelete/3,
                 foreach/2,foldl/3,foldr/3]).
@@ -39,22 +39,36 @@ key(Key) -> {key,?KEY(Key)}.
 %%% Default values
 -define(DEF_DIALOGS, auto).
 -define(DEF_RENDERER, "yafaray-xml").
--define(DEF_PLUGINS_PATH, "c:/yafaray/bin/plugins").
 -define(DEF_OPTIONS, "").
+-define(DEF_RENDER_PASSES_ENABLE, false).
+-define(DEF_RENDER_PASSES, 10).
+-define(DEF_COMPUTER_NODE, 0).
 -define(DEF_THREADS_AUTO, true).
 -define(DEF_THREADS_NUMBER, 1).
 -define(DEF_SUBDIVISIONS, 0).
 -define(DEF_KEEP_XML, false).
--define(DEF_SAVE_ALPHA, false).
+-define(DEF_SAVE_ALPHA, true).
 -define(DEF_GAMMA, 2.2).
--define(DEF_EXPOSURE, 1.4).
--define(DEF_RENDER_FORMAT, tga).
+-define(DEF_RENDER_FORMAT, png).
 -define(DEF_EXR_FLAG_COMPRESSION, compression_zip).
+-define(DEF_TILE_SIZE, 32).
+-define(DEF_TILE_ORDER, centre).
+-define(DEF_IMG_AUTOSAVE_TYPE, none).
+-define(DEF_IMG_AUTOSAVE_PASSES, 1).
+-define(DEF_IMG_AUTOSAVE_SECONDS, 300.0).
+-define(DEF_IMG_DENOISE_ENABLE, false).
+-define(DEF_IMG_DENOISE_MIX, 0.8).
+-define(DEF_IMG_DENOISE_H_LUM, 5).
+-define(DEF_IMG_DENOISE_H_CHROM, 5).
+-define(DEF_FILM_PROCESSING, none).
+-define(DEF_FILM_BINARY_FORMAT, true).
+-define(DEF_FILM_AUTOSAVE_TYPE, none).
+-define(DEF_FILM_AUTOSAVE_PASSES, 1).
+-define(DEF_FILM_AUTOSAVE_SECONDS, 300.0).
 
 %% Shader
 -define(DEF_SHADER_TYPE, shinydiffuse).
 -define(DEF_TIR, false).
--define(DEF_GLASS_IR_DEPTH, 3).
 -define(DEF_IOR, 1.4).
 -define(DEF_MIN_REFLE, 0.0).
 -define(DEF_OBJECT_TYPE, mesh).
@@ -82,18 +96,12 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_USE_HARDNESS, false).
 -define(DEF_AUTOSMOOTH, true).
 -define(DEF_AUTOSMOOTH_ANGLE, 60.0).
--define(DEF_SSS_ABSORPTION_COLOR, {0.649,0.706,0.655}).
--define(DEF_SCATTER_COLOR, {0.599,0.680,0.511}).
--define(DEF_SSS_SPECULAR_COLOR, {1.0,1.0,1.0}).
 -define(DEF_ABSORPTION_DIST, 3.0).
 -define(DEF_DISPERSION_POWER, 0.0).
--define(DEF_DISPERSION_SAMPLES, 10).
--define(DEF_DISPERSION_JITTER, false).
 -define(DEF_FAKE_SHADOWS, false).
 -define(DEF_TRANSPARENCY, 0.0).
 -define(DEF_TRANSMIT_FILTER, 0.5).
 -define(DEF_TRANSLUCENCY, 0.0).
--define(DEF_SSS_TRANSLUCENCY, 1.0).
 -define(DEF_SIGMAS_FACTOR, 1.0).
 -define(DEF_DIFFUSE_REFLECT, 0.2).
 -define(DEF_SPECULAR_REFLECT, 0.0).
@@ -150,11 +158,6 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_VOLINTEGR_ADAPTIVE, true).
 -define(DEF_VOLINTEGR_OPTIMIZE, true).
 -define(DEF_VOLINTEGR_STEPSIZE, 0.2).
--define(DEF_USE_SSS, false).
--define(DEF_SSS_PHOTONS, 1000).
--define(DEF_SSS_DEPTH, 15.0).
--define(DEF_SSS_SCALE, 2.0).
--define(DEF_SSS_SINGLESCATTER_SAMPLES, 32.0).
 -define(DEF_USE_CAUSTICS, false).
 -define(DEF_CAUSTIC_PHOTONS, 900000).
 -define(DEF_CAUSTIC_DEPTH, 10).
@@ -164,20 +167,17 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_AO_DISTANCE, 5.0).
 -define(DEF_AO_SAMPLES, 32.0).
 -define(DEF_AO_COLOR, {1.0,1.0,1.0}).
--define(DEF_AA_PASSES, 3).
--define(DEF_AA_MINSAMPLES, 1).
--define(DEF_AA_PIXELWIDTH, 1.5).
--define(DEF_AA_THRESHOLD, 0.02).
--define(DEF_AA_JITTERFIRST, true).
--define(DEF_CLAMP_RGB, true).
--define(DEF_AA_FILTER_TYPE, box).
 -define(DEF_TRANSPARENT_SHADOWS, false).
+-define(DEF_BACKGROUND_TRANSP, false).
 -define(DEF_BACKGROUND_TRANSP_REFRACT, false).
 -define(DEF_SHADOW_DEPTH, 2).
--define(DEF_RAYDEPTH, 12).
--define(DEF_BIAS, 0.001).
--define(DEF_WIDTH, 200).
--define(DEF_HEIGHT, 200).
+-define(DEF_RAYDEPTH, 4).
+-define(DEF_SHADOW_BIAS_AUTO, true).
+-define(DEF_SHADOW_BIAS, 0.0005).
+-define(DEF_RAY_MINDIST_AUTO, true).
+-define(DEF_RAY_MINDIST, 0.00005).
+-define(DEF_WIDTH, 640).
+-define(DEF_HEIGHT, 480).
 -define(DEF_LENS_TYPE, perspective).
 -define(DEF_LENS_ORTHO_SCALE, 7.0).
 -define(DEF_LENS_ANGULAR_CIRCULAR, true).
@@ -269,6 +269,7 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_AMBIENT_CAUSTICPHOTONS, false).
 -define(DEF_BACKGROUND_ROTATION, 0.0).
 -define(DEF_SAMPLES, 128).
+-define(DEF_SMARTIBL_BLUR, 0.0).
 
 %% Pathlight
 -define(DEF_PATHLIGHT_MODE, undefined).
@@ -286,6 +287,7 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_GLOBALPHOTONLIGHT_SEARCH, 200).
 
 %% Modulator
+-define(MAX_MODULATORS, 5).
 -define(DEF_MOD_ENABLED, true).
 -define(DEF_MOD_MODE, mix).
 -define(DEF_MOD_SIZE, 1.0).
@@ -332,6 +334,48 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_MOD_ALPHA_INTENSITY, off).
 -define(DEF_TEXTURE_TYPE, diffusetexture).
 
+%% Render Passes
+-define(DEF_RENDER_PASS, disabled).
+-define(DEF_PASS_MASK_MAT_INDEX, 0).
+-define(DEF_PASS_MASK_INVERT, false).
+-define(DEF_PASS_MASK_ONLY, false).
+
+%% Logging and Parameters Badge
+-define(DEF_LOG_SAVE_TXT, false).
+-define(DEF_LOG_SAVE_HTML, false).
+-define(DEF_LOG_VERBOSITY_CONSOLE, info).
+-define(DEF_LOG_VERBOSITY_TXT_HTML, info).
+-define(DEF_BADGE_POSITION, none).
+-define(DEF_BADGE_TITLE, "").
+-define(DEF_BADGE_AUTHOR, "").
+-define(DEF_BADGE_CONTACT, "").
+-define(DEF_BADGE_COMMENTS, "").
+-define(DEF_BADGE_CUSTOM_ICON_PATH, "").
+-define(DEF_BADGE_DRAW_RENDER_SETTINGS, true).
+-define(DEF_BADGE_DRAW_AA_NOISE_SETTINGS, true).
+-define(DEF_BADGE_FONT_PATH, "").
+-define(DEF_BADGE_FONT_SIZE_FACTOR, 1.0).
+
+%% AA and Noise Control Parameters
+-define(DEF_AA_PASSES, 3).
+-define(DEF_AA_MINSAMPLES, 1).
+-define(DEF_AA_INCSAMPLES, 1).
+-define(DEF_AA_PIXELWIDTH, 1.5).
+-define(DEF_AA_THRESHOLD, 0.05).
+-define(DEF_AA_FILTER_TYPE, gauss).
+-define(DEF_AA_NOISE_RESAMPLED_FLOOR, 0.0).
+-define(DEF_AA_NOISE_SAMPLE_MULTIPLIER_FACTOR, 1.0).
+-define(DEF_AA_NOISE_LIGHT_SAMPLE_MULTIPLIER_FACTOR, 1.0).
+-define(DEF_AA_NOISE_INDIRECT_SAMPLE_MULTIPLIER_FACTOR, 1.0).
+-define(DEF_AA_NOISE_DETECT_COLOR_NOISE, false).
+-define(DEF_AA_NOISE_DARK_DETECTION_TYPE, none).
+-define(DEF_AA_NOISE_DARK_THRESHOLD_FACTOR, 0.9).
+-define(DEF_AA_NOISE_VARIANCE_EDGE_SIZE, 10).
+-define(DEF_AA_NOISE_VARIANCE_PIXELS, 0).
+-define(DEF_AA_NOISE_CLAMP_SAMPLES, 0.0).
+-define(DEF_AA_NOISE_CLAMP_INDIRECT, 0.0).
+
+
 range(T) -> {range,range_1(T)}.
 
 %% Material ranges
@@ -352,7 +396,6 @@ range_1(meshlight_power)        -> {0.0,10000.0};
 range_1(meshlight_samples)      -> {0,512};
 range_1(autosmooth_angle)       -> {0.0,180.0};
 range_1(ior)                    -> {0.0,3.0};
-range_1(glass_ir_depth)         -> {0,32};
 range_1(min_refle)              -> {0.0,1.0};
 range_1(size)                   -> {0.0,infinity};
 range_1(modulation)             -> {-5.0,5.0};
@@ -376,11 +419,9 @@ range_1(noise_depth)		-> {0,infinity};
 range_1(noise_size)		-> {0.0,infinity};
 range_1(absorption_dist)	-> {0.1,100.0};
 range_1(dispersion_power)	-> {0.0,1.0};
-range_1(dispersion_samples)	-> {1,512};
 range_1(transparency)           -> {0.0,1.0};
 range_1(transmit_filter)        -> {0.0,1.0};
 range_1(translucency)           -> {0.0,1.0};
-range_1(sss_translucency)	-> {0.0,1.0};
 range_1(sigmas_factor)          -> {1.0,10.0};
 range_1(diffuse_reflect)        -> {0.0,1.0};
 range_1(specular_reflect)       -> {0.0,1.0};
@@ -396,10 +437,10 @@ range_1(oren_nayar_sigma)	-> {0.0,1.0};
 
 %% Light ranges
 range_1(power)                  -> {0.0,infinity};
-range_1(bias)                   -> {0.0,1.0};
+range_1(shadow_bias)            -> {0.0,1.0};
+range_1(ray_mindist)            -> {0.0,1.0};
 range_1(res)                    -> {0,infinity};
 range_1(radius)                 -> {0,infinity};
-range_1(blur)                   -> {0.0,1.0};
 range_1(samples)                -> {1,infinity};
 range_1(spot_ies_samples)       -> {1,512};
 range_1(glow_intensity)         -> {0.0,1.0};
@@ -430,8 +471,10 @@ range_1(sky_background_power)   -> {0.0,infinity};
 range_1(sky_background_samples) -> {0,infinity};
 range_1(darksky_altitude)	-> {0.0,infinity};
 range_1(sun_real_power)		-> {0.0,infinity};
+range_1(smartibl_blur)	-> {0.0,0.75};
 
 %% Render ranges
+range_1(tile_size)              -> {1,256};
 range_1(pm_diffuse_photons)     -> {1,100000000};
 range_1(pm_bounces)             -> {0,50};
 range_1(pm_search)              -> {1,10000};
@@ -453,10 +496,6 @@ range_1(sppm_search)		-> {1,10000};
 range_1(sppm_radius)		-> {0.0,100.0};
 range_1(sppm_times)		-> {0.0,20.0};
 range_1(sppm_passes)		-> {0,infinity};
-range_1(sss_photons)            -> {0,infinity};
-range_1(sss_depth)              -> {1.0,50.0};
-range_1(sss_scale)              -> {0.0,100.0};
-range_1(sss_singlescatter_samples)      -> {0.0,50.0};
 range_1(caustic_photons)        -> {0,infinity};
 range_1(caustic_depth)          -> {0,infinity};
 range_1(caustic_mix)            -> {0,infinity};
@@ -466,19 +505,43 @@ range_1(ao_samples)             -> {1.0,128.0};
 range_1(volintegr_stepsize)     -> {0.0,100.0};
 range_1(subdivisions)		-> {0,10};
 range_1(threads_number)         -> {1,100};
-range_1(aa_pixelwidth)          -> {1.0,2.0};
-range_1(aa_passes)              -> {0,infinity};
-range_1(aa_threshold)           -> {0.0,1.0};
-range_1(aa_minsamples)          -> {1,infinity};
 range_1(gamma)                  -> {0.0,infinity};
-range_1(exposure)               -> {0.0,infinity};
 range_1(pixels)                 -> {1,infinity};
 range_1(lens_ortho_scale)       -> {0.0,100.0};
 range_1(lens_angular_max_angle) -> {0.0,360.0};
 range_1(lens_angular_angle)     -> {0.0,360.0};
 range_1(aperture)               -> {0.0,infinity};
 range_1(bokeh_rotation)         -> {-180.0,180.0};
-range_1(dof_distance)           -> {0.0,250.0}.
+range_1(dof_distance)           -> {0.0,250.0};
+range_1(pass_mask_mat_index)    -> {0,infinity};
+range_1(img_autosave_passes)    -> {1,infinity};
+range_1(img_autosave_seconds)   -> {3.0,infinity};
+range_1(img_denoise_mix)        -> {0.0,1.0};
+range_1(img_denoise_h_lum)      -> {2,40};
+range_1(img_denoise_h_chrom)    -> {2,40};
+range_1(film_autosave_passes)   -> {1,infinity};
+range_1(film_autosave_seconds)  -> {3.0,infinity};
+range_1(render_passes)          -> {1,32};
+range_1(computer_node)          -> {0,1000};
+
+%% AA and Noise Control Parameters
+range_1(aa_pixelwidth)          -> {1.0,2.0};
+range_1(aa_passes)              -> {0,infinity};
+range_1(aa_threshold)           -> {0.0,1.0};
+range_1(aa_minsamples)          -> {1,infinity};
+range_1(aa_incsamples)          -> {1,infinity};
+range_1(aa_noise_resampled_floor) -> {0.0,100.0};
+range_1(aa_noise_sample_multiplier_factor) -> {0.0,4.0};
+range_1(aa_noise_light_sample_multiplier_factor) -> {0.0,4.0};
+range_1(aa_noise_indirect_sample_multiplier_factor) -> {0.0,4.0};
+range_1(aa_noise_dark_threshold_factor) -> {0.0,1.0};
+range_1(aa_noise_variance_edge_size) -> {4,20};
+range_1(aa_noise_variance_pixels) -> {0,10};
+range_1(aa_noise_clamp_samples) -> {0.0,infinity};
+range_1(aa_noise_clamp_indirect) -> {0.0,infinity};
+
+%% Log/Badge Parameters
+range_1(badge_font_size_factor) -> {0.0,4.0}.
 
 %% used to fix old data that now can be out of range and crash Wings3d
 fit_range(Value,Id) ->
@@ -731,10 +794,8 @@ material_dialog(_Name, Mat) ->
     AbsorptionColor = proplists:get_value(absorption_color, YafaRay, DefAbsorptionColor),
     AbsorptionDist = proplists:get_value(absorption_dist, YafaRay, ?DEF_ABSORPTION_DIST),
     DispersionPower = proplists:get_value(dispersion_power, YafaRay, ?DEF_DISPERSION_POWER),
-    DispersionSamples = proplists:get_value(dispersion_samples, YafaRay, ?DEF_DISPERSION_SAMPLES),
     FakeShadows = proplists:get_value(fake_shadows, YafaRay, ?DEF_FAKE_SHADOWS),
     Roughness = proplists:get_value(roughness, YafaRay, ?DEF_ROUGHNESS),
-    Glass_IR_Depth = proplists:get_value(glass_ir_depth, YafaRay, ?DEF_GLASS_IR_DEPTH),
 
     %% Shiny Diffuse Properties
     %% Transmit Filter also for Glass and Rough Glass
@@ -743,14 +804,6 @@ material_dialog(_Name, Mat) ->
     Translucency = proplists:get_value(translucency, YafaRay, ?DEF_TRANSLUCENCY),
     SpecularReflect = proplists:get_value(specular_reflect, YafaRay, ?DEF_SPECULAR_REFLECT),
     Emit = proplists:get_value(emit, YafaRay, ?DEF_EMIT),
-
-    %% Translucency (SSS) Properties
-    %%
-    SSS_AbsorptionColor = proplists:get_value(sss_absorption_color, YafaRay, ?DEF_SSS_ABSORPTION_COLOR),
-    ScatterColor = proplists:get_value(scatter_color, YafaRay, ?DEF_SCATTER_COLOR),
-    SigmaSfactor = proplists:get_value(sigmas_factor, YafaRay, ?DEF_SIGMAS_FACTOR),
-    SSS_Translucency = proplists:get_value(sss_translucency, YafaRay, ?DEF_SSS_TRANSLUCENCY),
-    SSS_Specular_Color = proplists:get_value(sss_specular_color, YafaRay, ?DEF_SSS_SPECULAR_COLOR),
 
     %% Shiny Diffuse, Glossy, Coated Glossy Properties
     %%
@@ -784,9 +837,7 @@ material_dialog(_Name, Mat) ->
             ?KEY(autosmooth) ->
                 wings_dialog:enable(?KEY(pnl_autosmooth), Value =/= ?DEF_OREN_NAYAR, Store);
             ?KEY(anisotropic) ->
-                wings_dialog:enable(?KEY(pnl_exp_coated), Value =/= ?DEF_ANISOTROPIC, Store);
-            ?KEY(dispersion_power) ->
-                wings_dialog:enable(?KEY(pnl_dsp_sam), Value > 0.0, Store)
+                wings_dialog:enable(?KEY(pnl_exp_coated), Value =/= ?DEF_ANISOTROPIC, Store)
         end
     end,
     Hook_Show =
@@ -808,8 +859,6 @@ material_dialog(_Name, Mat) ->
                 ?KEY(shader_type) ->
                     %% IOR
                     wings_dialog:show(?KEY(pnl_ior), not is_member(Value, [glossy,lightmat,blend_mat]), Store),
-                    %% Internal Reflection
-                    wings_dialog:show(?KEY(pnl_ir), Value =:= glass, Store),
                     %% Glossy Color
                     Gc = is_member(Value, [glossy,coatedglossy,translucent]),
                     Rl = is_member(Value, [glass,rough_glass]),
@@ -831,13 +880,11 @@ material_dialog(_Name, Mat) ->
                     wings_dialog:show(?KEY(pnl_sc), Value =:= translucent, Store),
                     %% Absorption Color & Absorption Distance
                     wings_dialog:show(?KEY(pnl_abs_reg), is_member(Value, [glass,rough_glass]), Store),
-                    wings_dialog:show(?KEY(pnl_abs_sss), Value =:= translucent, Store),
                     wings_dialog:show(?KEY(pnl_abs), is_member(Value, [glass,rough_glass,translucent]), Store),
                     %% Transmit Filter
                     wings_dialog:show(?KEY(pnl_tf), is_member(Value, [shinydiffuse,glass,rough_glass]), Store),
                     %% Translucency
                     wings_dialog:show(?KEY(pnl_transl), Value =:= shinydiffuse, Store),
-                    wings_dialog:show(?KEY(pnl_transl_sss), Value =:= translucent, Store),
                     %% Scatter Color & SigmaS Factor
                     wings_dialog:show(?KEY(pnl_sct), Value =:= translucent, Store),
                     %% Diffuse Reflection
@@ -925,6 +972,7 @@ material_dialog(_Name, Mat) ->
                                 {?__(132,"Density"), {text,Volume_Density,[range(volume_density),key(volume_density)]}}
                             ], [key(pnl_noise_volume),{margin,false}]},
                             %% End Noise Volume - ONLY
+                            % FIXME: This is not really good, volume Min/Max coordinates should be automatically calculated based on the object bounds, not entered manually by the user. This is counter-intuitive.
                             {label_column, [
                                 {?__(133,"Min/Max X"), {text,Volume_Minmax_X,[range(volume_minmax_x),key(volume_minmax_x)]}},
                                 {?__(134,"Min/Max Y"), {text,Volume_Minmax_Y,[range(volume_minmax_y),key(volume_minmax_y)]}},
@@ -976,10 +1024,6 @@ material_dialog(_Name, Mat) ->
                 {label_column, [
                     {"IOR", {slider, {text,IOR,[range(ior),key(ior)]}}}
                 ],[key(pnl_ior),{margin,false}]},
-                %% 2nd row
-                {label_column, [
-                    {"Internal Reflection", {slider, {text,Glass_IR_Depth,[range(glass_ir_depth),key(glass_ir_depth)]}}}
-                ],[key(pnl_ir),{show,false},{margin,false}]},
                 %% 3rd row
                 {hframe, [
                     {hframe, [
@@ -1011,15 +1055,8 @@ material_dialog(_Name, Mat) ->
                 {label_column, [
                     {"Transparency", {slider, {text,Transparency,[range(transparency),key(transparency)]}}}
                 ],[key(pnl_transp),{show,false},{margin,false}]},
-                %% 6th row
-                {label_column, [
-                    {"Specular Color", {slider, {color,SSS_Specular_Color, [key(sss_specular_color)]}}}
-                ],[key(pnl_sc),{margin,false}]},
                 %% 7th row
                 {vframe, [
-                    {label_column, [
-                        {"Absorption Color", {slider, {color,SSS_AbsorptionColor,[key(sss_absorption_color)]}}}
-                    ],[key(pnl_abs_sss),{margin,false},{show,false}]},
                     {label_column, [
                         {"Absorption Color", {slider, {color,AbsorptionColor,[key(absorption_color)]}}}
                     ],[key(pnl_abs_reg),{margin,false}]},
@@ -1035,14 +1072,6 @@ material_dialog(_Name, Mat) ->
                 {label_column, [
                     {"Translucency", {slider, {text,Translucency,[range(translucency),key(translucency)]}}}
                 ],[key(pnl_transl),{margin,false},{show,false}]},
-                {label_column, [
-                    {"Translucency", {slider, {text,SSS_Translucency,[range(sss_translucency),key(sss_translucency)]}}}
-                ],[key(pnl_transl_sss),{margin,false}]},
-                %% 10th row
-                {label_column, [
-                    {"Scatter Color", {slider, {color,ScatterColor,[key(scatter_color)]}}},
-                    {"SigmaS Factor", {slider, {text,SigmaSfactor,[range(sigmas_factor),key(sigmas_factor)]}}}
-                ],[key(pnl_sct),{margin,false}]},
                 %% 11th row
                 {label_column, [
                     {"Diffuse Reflection", {slider, {text,DiffuseReflect,[range(diffuse_reflect),key(diffuse_reflect)]}}}
@@ -1077,24 +1106,21 @@ material_dialog(_Name, Mat) ->
                 %% 16th row
                 {vframe, [
                     {label_column, [
-                        {"Dispersion Power", {slider, {text,DispersionPower,[range(dispersion_power),key(dispersion_power),{hook,Hook_Enable}]}}}
+                        {"Dispersion Power", {slider, {text,DispersionPower,[range(dispersion_power),key(dispersion_power)]}}}
                     ],[{margin,false}]},
-                    {label_column, [
-                        {"Dispersion Samples", {slider, {text, DispersionSamples,[range(dispersion_samples),key(dispersion_samples)]}}}
-                    ],[key(pnl_dsp_sam),{margin,false}]},
                     {"Fake Shadows",FakeShadows,[key(fake_shadows)]}
-                ],[key(pnl_dsp),{show,false},{margin,false}]},
+                ],[key(pnl_dsp),{margin,false}]},
                 %% 17th row
                 {hframe, [
                     {"Oren-Nayar",OrenNayar,[key(oren_nayar),{hook,Hook_Enable}]},
                     {label_column,[
                         {"Sigma", {text,OrenNayar_Sigma,[range(oren_nayar_sigma),key(oren_nayar_sigma)]}}
                     ],[key(pnl_sigma_shiny),{margin,false}]}
-                ],[key(pnl_on),{show,false},{margin,false}]},
+                ],[key(pnl_on),{margin,false}]},
                 %% 18th row
                 {hframe, [
                     {"Fresnel Effect",TIR,[key(tir)]}
-                ],[key(pnl_fe),{show,false},{margin,false}]},
+                ],[key(pnl_fe),{margin,false}]},
                 %% 19th row
                 {label_column, [
                     {"Color", {slider, {color,Lightmat_Color,[key(lightmat_color)]}}},
@@ -1164,31 +1190,18 @@ def_modulators([_|Maps]) ->
     def_modulators(Maps).
 
 
-material_result(_Name, Mat0, Res0) ->
-    %% take the Material settings
-    {Ps1,Res1} = split_list(Res0,
-        fun
-            ({{?TAG,enabled,1},_}) -> true;   % look for the first modulator
-            (_) -> false
-        end),
-    Ps2 = [{Key,Val} || {?KEY(Key),Val} <- Ps1],
-    %% take the Modulators settings
-    {Ps3,Res2} = modulator_result(Ps2, Res1),
-    %% take the Object Parameters settings
-    {Ps4,Res} = split_list(Res2,
-        fun
-            ({result,_}) -> true;   % look for the end of the list
-            (_) -> false
-        end),
-    Ps = [{Key,Val} || {?KEY(Key),Val} <- Ps4] ++Ps3,
-    Mat = [?KEY(Ps)|keydelete(?TAG, 1, Mat0)],
-    {Mat,Res}.
+material_result(_Name, Mat0, Res) ->
+    %% Rip out all yafaray material properties
+    {Found0, Remaining} = rip_all(?TAG, Res),
+    {Mod, Mat} = process_modulator(Found0),
+    NewMat = [{?TAG, Mat++Mod} | lists:keydelete(?TAG, 1, Mat0)],
+    {NewMat, Remaining}.
 
 modulator_dialogs(Modulators0, Maps) ->
     ModCount = length(Modulators0),
     Modulators =
-        if (ModCount < 5) ->
-            Modulators0 ++ modulator_add(5-ModCount);
+        if (ModCount < ?MAX_MODULATORS) ->
+            Modulators0 ++ modulator_add(?MAX_MODULATORS-ModCount);
         true -> Modulators0
         end,
     [{oframe, modulator_dialogs(Modulators, Maps, 1), 1, [{style, buttons}]}].
@@ -1246,7 +1259,7 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
 
     Hook_Enable = fun(Key, Value, Store) ->
         case Key of
-            {?TAG,enabled,M} ->
+            {?TAG,{M,enabled}} ->
                 wings_dialog:enable(?KEY({pnl_mode,M}), Value =:= true, Store),
                 wings_dialog:enable(?KEY({pnl_mod,M}), Value =:= true, Store);
             _ -> ok
@@ -1255,7 +1268,7 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
 
     Hook_Show = fun(Key, Value, Store) ->
         case Key of
-            {?TAG,type,M} ->
+            {?TAG,{M,type}} ->
                 wings_dialog:show(?KEY({pnl_image,M}), Value =:= image, Store),
                 wings_dialog:show(?KEY({pnl_base1,M}), is_member(Value,[clouds,marble,wood,musgrave,distorted_noise]), Store),
                 wings_dialog:show(?KEY({pnl_base2,M}), is_member(Value,[clouds,marble,wood]), Store),
@@ -1273,7 +1286,7 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
     ModFrame =
         {vframe, [
             {hframe, [
-                {?__(5,"Enabled"),Enabled,[{key,{?TAG,enabled,M}},{hook,Hook_Enable}]},
+                {?__(5,"Enabled"),Enabled,[key({M,enabled}),{hook,Hook_Enable}]},
                 panel,
                 {hframe, [
                     {menu,[
@@ -1286,7 +1299,7 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                         {?__(112,"Difference"),dif},
                         {?__(113,"Darken"),dar},
                         {?__(114,"Lighten"),lig}
-                    ],Mode,[]},
+                    ],Mode,[key({M,mode})]},
                     panel,
                     {menu,[
                         {?__(115,"Alpha Off"),off},
@@ -1295,10 +1308,10 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                         {?__(118,"Alpha Translucency"),translucency},
                         {?__(119,"Specularity"),specularity},
                         {?__(120,"Stencil"),stencil}
-                    ],AlphaIntensity,[]},
+                    ],AlphaIntensity,[key({M,alpha_intensity})]},
                     panel,
                     {menu,[
-                        {?__(121,"Diffuse (Shiny Diffuse, Glossy, SSS)"),diffusetexture},
+                        {?__(121,"Diffuse (Shiny Diffuse, Glossy)"),diffusetexture},
                         {?__(122,"Mirror Color (Shiny Diffuse, Glass)"),mirrorcolortexture},
                         {?__(123,"Mirror (Shiny Diffuse)"),mirrortexture},
                         {?__(124,"Glossy (Glossy)"),glossytexture},
@@ -1306,19 +1319,19 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                         {?__(126,"Transparency (Shiny Diffuse)"),transparencytexture},
                         {?__(127,"Translucency (Shiny Diffuse)"),translucencytexture},
                         {?__(128,"Bump (All)"),bumptexture}
-                    ],TextureType,[]}
+                    ],TextureType,[key({M,texture_type})]}
                 ],[key({pnl_mode,M}),{margin,false},{hook,Hook_Show}]}
             ]},
             {vframe, [
                 {hframe,[
                     {hframe,[
-                        {label,?__(10,"Size X")},{text,SizeX,[range(size)]}
+                        {label,?__(10,"Size X")},{text,SizeX,[key({M,size_x}), range(size)]}
                     ]},
                     {hframe,[
-                        {label,?__(11,"Y")},{text,SizeY,[range(size)]}
+                        {label,?__(11,"Y")},{text,SizeY,[key({M,size_y}), range(size)]}
                     ]},
                     {hframe,[
-                        {label,?__(12,"Z")},{text,SizeZ,[range(size)]}
+                        {label,?__(12,"Z")},{text,SizeZ,[key({M,size_z}), range(size)]}
                     ]}
                 ],[{margin,false}]},
                 {hframe,[
@@ -1328,9 +1341,9 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                         {label,?__(17,"Normal")}
                     ]},
                     {vframe,[
-                        {slider,{text,fit_range(Diffuse,modulation),[range(modulation)]}},
-                        {slider,{text,fit_range(Shininess,modulation),[range(modulation)]}},
-                        {slider,{text,fit_range(Normal,modulation),[range(modulation)]}}
+                        {slider,{text,fit_range(Diffuse,modulation),[key({M,diffuse}), range(modulation)]}},
+                        {slider,{text,fit_range(Shininess,modulation),[key({M,shininess}), range(modulation)]}},
+                        {slider,{text,fit_range(Normal,modulation),[key({M,normal}), range(modulation)]}}
                     ]}
                 ],[{margin,false}]},
                 {menu, MapsItems++[
@@ -1341,19 +1354,19 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                     {?__(46,"Voronoi"),voronoi},
                     {?__(62,"Musgrave"),musgrave},
                     {?__(82,"Distorted Noise"),distorted_noise}
-                ],Type,[{key,{?TAG,type,M}}, {hook,Hook_Show}]},
+                ],Type,[key({M,type}), {hook,Hook_Show}]},
                 {vframe, [
                     {hframe, [
                         {label,?__(22,"Filename")},
-                        {button,{text,Filename,[{width,35},{props,BrowseProps}]}}
+                        {button,{text,Filename,[key({M,filename}), {width,35},{props,BrowseProps}]}}
                     ],[key({pnl_image,M}), {show,false}]},
                     %% Clouds,Marble,Wood Specific Procedurals Line 1
                     {hframe, [
-                        {label,?__(23,"Texture")},{color,Color1},
+                        {label,?__(23,"Texture")},{color,Color1, [key({M,color1})]},
                         panel,
-                        {label,?__(24,"Base")},{color,Color2},
+                        {label,?__(24,"Base")},{color,Color2, [key({M,color2})]},
                         panel,
-                        {?__(25,"Hard Noise"),Hard},
+                        {?__(25,"Hard Noise"),Hard, [key({M,hard})]},
                         %% Start Noise Basis Select
                         {menu,[{?__(36,"Blender-Basis"),blender},
                             {?__(37,"Cellnoise"),cellnoise},
@@ -1365,7 +1378,7 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                             {?__(43,"Voronoi F3"),voronoi_f3},
                             {?__(44,"Voronoi F4"),voronoi_f4},
                             {?__(45,"Voronoi F1F2"),voronoi_f2f1}],
-                            NoiseBasis,[]}
+                            NoiseBasis,[key({M,noise_basis})]}
                         %% End Noise Basis Select
                     ],[key({pnl_base1,M})]},
 
@@ -1373,11 +1386,11 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                     {hframe, [
                         {hframe, [
                             {label,?__(26,"Noise Size")},
-                            {text,NoiseSize,[range(noise_size)]}
+                            {text,NoiseSize,[key({M,noise_size}), range(noise_size)]}
                         ]},
                         {hframe, [
                             {label,?__(27,"Noise Depth")},
-                            {text,Depth,[range(noise_depth)]}
+                            {text,Depth,[key({M,depth}), range(noise_depth)]}
                         ]}
                     ],[key({pnl_base2,M}),{margin,false},{show,false}]},
 
@@ -1385,7 +1398,7 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                     {hframe, [
                         {hframe, [
                             {label,?__(28,"Sharpness")},
-                            {text,Sharpness,[range(sharpness)]}
+                            {text,Sharpness,[key({M,sharpness}), range(sharpness)]}
                         ],[key({pnl_sharpness,M})]},
                         %],[hook(open, [member,{?TAG,type,M},marble])]},
 
@@ -1393,14 +1406,14 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                         {hframe, [
                             {hframe, [
                                 {label,?__(29,"Turbulence")},
-                                {text,Turbulence,[range(turbulence)]}
+                                {text,Turbulence,[key({M,turbulence}), range(turbulence)]}
                             ]},
                             %% Start Shape Select
                             {menu,[
                                 {?__(30,"sin"),"sin"},
                                 {?__(31,"saw"),saw},
                                 {?__(32,"tri"),tri}
-                            ],Shape,[]}
+                            ],Shape,[key({M,shape})]}
                             %% End Shape Select
                         ],[key({pnl_turb,M}),{margin,false}]},
 
@@ -1410,7 +1423,7 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                             {menu,[
                                 {?__(33,"Rings"),rings},
                                 {?__(34,"Bands"),bands}
-                            ],WoodType,[]}
+                            ],WoodType,[key({M,wood_type})]}
                             %% End Wood Type Select
                         ],[key({pnl_wood,M})]}
                     ],[key({pnl_base3,M}),{margin,false},{show,false}]},
@@ -1425,7 +1438,7 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                                 {?__(48,"Color"),col1},
                                 {?__(49,"Color+Outline"),col2},
                                 {?__(50,"Color+Outline+Intensity"),col3}
-                            ],CellType,[]},
+                            ],CellType,[key({M,cell_type})]},
                             %% End Voronoi Cell Type Select
                             panel,
                             %% Start Voronoi Cell Shape Select
@@ -1434,7 +1447,7 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                                    {?__(53,"Manhattan"),manhattan},
                                    {?__(54,"Chebychev"),chebychev},
                                    {?__(55,"Minkovsky"),minkovsky}],
-                                CellShape,[]}
+                                CellShape,[key({M,cell_shape})]}
                             %% End Voronoi Cell Shape Select
                         ],[{margin,false}]},
                         %% End Voronoi Line 1
@@ -1443,11 +1456,11 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                         {hframe, [
                             {hframe, [
                                 {label,?__(56,"Cell Size")},
-                                {text,CellSize,[range(cell_size)]}
+                                {text,CellSize,[key({M,cell_size}), range(cell_size)]}
                             ]},
                             {hframe, [
                                 {label,?__(57,"Intensity")},
-                                {text,Intensity,[range(intensity)]}
+                                {text,Intensity,[key({M,intensity}), range(intensity)]}
                             ]}
                         ],[{margin,false}]},
                         %% End Voronoi Line 2
@@ -1456,19 +1469,19 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                         {hframe, [
                             {hframe, [
                                 {label,?__(58,"W1")},
-                                {text,CellWeight1,[range(cell_weight1)]}
+                                {text,CellWeight1,[key({M,cell_weight1}), range(cell_weight1)]}
                             ]},
                             {hframe, [
                                 {label,?__(59,"W2")},
-                                {text,CellWeight2,[range(cell_weight2)]}
+                                {text,CellWeight2,[key({M,cell_weight2}), range(cell_weight2)]}
                             ]},
                             {hframe, [
                                 {label,?__(60,"W3")},
-                                {text,CellWeight3,[range(cell_weight3)]}
+                                {text,CellWeight3,[key({M,cell_weight3}), range(cell_weight3)]}
                             ]},
                             {hframe, [
                                 {label,?__(61,"W4")},
-                                {text,CellWeight4,[range(cell_weight4)]}
+                                {text,CellWeight4,[key({M,cell_weight4}), range(cell_weight4)]}
                             ]}
                         ],[{margin,false}]}
                         %% End Voronoi Line 3
@@ -1483,15 +1496,15 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                                 {?__(64,"Ridged"),ridgedmf},
                                 {?__(65,"Hybrid"),hybridmf},
                                 {?__(66,"FBM"),fBm}
-                            ],MusgraveType,[]},
+                            ],MusgraveType,[key({M,musgrave_type})]},
                             panel,
                             {hframe,[
                                 {label,?__(77,"Noise Size")},
-                                {text,MusgraveNoiseSize,[range(musgrave_noisesize)]}
+                                {text,MusgraveNoiseSize,[key({M,musgrave_noisesize}), range(musgrave_noisesize)]}
                             ]},
                             {hframe,[
                                 {label,?__(78,"Intensity")},
-                                {text,MusgraveIntensity,[range(musgrave_intensity)]}
+                                {text,MusgraveIntensity,[key({M,musgrave_intensity}), range(musgrave_intensity)]}
                             ]}
                         ],[{margin,false}]},
                         %% End Musgrave Line 1
@@ -1500,15 +1513,15 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                         {hframe, [
                             {hframe, [
                                 {label,?__(79,"Contrast (H)")},
-                                {text,MusgraveContrast,[range(musgrave_contrast)]}
+                                {text,MusgraveContrast,[key({M,musgrave_contrast}), range(musgrave_contrast)]}
                             ]},
                             {hframe, [
                                 {label,?__(80,"Lacunarity")},
-                                {text,MusgraveLacunarity,[range(musgrave_lacunarity)]}
+                                {text,MusgraveLacunarity,[key({M,musgrave_lacunarity}), range(musgrave_lacunarity)]}
                             ]},
                             {hframe, [
                                 {label,?__(81,"Octaves")},
-                                {text,MusgraveOctaves,[range(musgrave_octaves)]}
+                                {text,MusgraveOctaves,[key({M,musgrave_octaves}), range(musgrave_octaves)]}
                             ]}
                         ],[{margin,false}]}
                         %% End Musgrave Line 2
@@ -1529,10 +1542,10 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                                 {?__(94,"Voronoi F3"),voronoi_f3},
                                 {?__(95,"Voronoi F4"),voronoi_f4},
                                 {?__(96,"Voronoi F1F2"),voronoi_f2f1}
-                            ],DistortionType,[]},
+                            ],DistortionType,[key({M,distotion_type})]},
                             %% End Distorted Noise Type Select
-                            {label,?__(107,"Noise Size")},{text,DistortionNoiseSize,[range(distortion_noisesize)]},
-                            {label,?__(108,"Distortion")},{text,DistortionIntensity,[range(distortion_intensity)]}
+                            {label,?__(107,"Noise Size")},{text,DistortionNoiseSize,[key({M,distortion_noisesize}), range(distortion_noisesize)]},
+                            {label,?__(108,"Distortion")},{text,DistortionIntensity,[key({M,distortion_intensity}), range(distortion_intensity)]}
                         ],[{margin,false}]}
                     ],[key({pnl_dist_noise,M}),{show,false}]}
                 ],[key({pnl_type,M})]}
@@ -1572,69 +1585,20 @@ mod_legend(Enabled, Mode, Type) when is_list(Mode), is_list(Type) ->
     end++Mode++", "++Type++")".
 
 
-modulator_result(Ps, [{{?TAG,enabled,_},_}|_]=Res) ->
-    modulator_result(Ps, Res, 1, []);
-modulator_result(Ps, Res) ->
-    exit({invalid_tag,{?MODULE,?LINE,[Ps, Res]}}).
+process_modulator(Ps) ->
+    {Modulators,Remaning} =
+        lists:foldr(fun(Id, {Mod0,Ps0})->
+            {Mod1, Ps1} = modulator_result_find(Ps0, Id, {[],[]}),
+            {[{modulator, lists:sort(Mod1)}]++Mod0,Ps1}
+        end, {[],Ps}, lists:seq(1,?MAX_MODULATORS)),
+    {[{modulators, Modulators}], Remaning}.
 
-modulator_result(Ps, [], _, Modulators) ->  % Should not happen
-    {[{modulators,reverse(Modulators)}|Ps], []};
-modulator_result(Ps, [{{?TAG,autosmooth},_}|_]=Res, _, Modulators) ->
-    {[{modulators,reverse(Modulators)}|Ps], Res};
-modulator_result(Ps, Res0, M, Modulators) ->
-    {Modulator,Res} = modulator(Res0, M),
-    modulator_result(Ps, Res, M+1, [Modulator|Modulators]).
+modulator_result_find([], _, Acc) -> Acc;
+modulator_result_find([{{Id,Field},Value}|Ps], Id, {Mod, Remaining}) ->
+    modulator_result_find(Ps, Id, {Mod ++[{Field,Value}], Remaining});
+modulator_result_find([Item|Ps], Id, {Mod, Remaining}) ->
+    modulator_result_find(Ps, Id, {Mod, Remaining ++ [Item]}).
 
-
-%%% Increase split_list # +1 per line if add Modulator to Dialog
-modulator(Res0, M) ->
-    {Res1,Res} = split_list(Res0,
-        fun (A) ->
-            Next = M+1,
-            case A of
-                {{?TAG,enabled,Next},_} -> true;    % The end block is the next start one
-                {{?TAG,autosmooth},_} -> true;      % The last block was already read
-                _ -> false
-            end
-        end),
-    EnabledTag = {?TAG,enabled,M},
-    TypeTag = {?TAG,type,M},
-    {EnabledTag,Enabled} = lists:keyfind(EnabledTag, 1, Res1),
-    {TypeTag,Type} = lists:keyfind(TypeTag, 1, Res1),
-    Res2 = lists:keydelete(EnabledTag, 1, lists:keydelete(TypeTag, 1, Res1)),
-    [Mode,AlphaIntensity,TextureType,SizeX,SizeY,SizeZ,
-     Diffuse,Shininess,Normal,
-     Filename,
-     Color1,Color2,Hard,NoiseBasis,NoiseSize,Depth,
-     Sharpness,Turbulence,Shape,
-     WoodType,CellType,CellShape,CellSize,Intensity,CellWeight1,CellWeight2,CellWeight3,CellWeight4,
-     MusgraveType,MusgraveNoiseSize,MusgraveIntensity,MusgraveContrast,
-     MusgraveLacunarity,MusgraveOctaves,DistortionType,
-     DistortionNoiseSize,DistortionIntensity] =
-        case Res2 of
-            [Minimized|Rest] when is_boolean(Minimized) -> Rest;  % for keep compatibility with previous W3D version
-            Rest -> Rest
-        end,
-    Ps = [{enabled,Enabled},{mode,Mode},{alpha_intensity,AlphaIntensity},
-          {texture_type,TextureType},
-          {size_x,SizeX},{size_y,SizeY},{size_z,SizeZ},
-          {diffuse,Diffuse},
-          {shininess,Shininess},{normal,Normal},
-          {type,Type},
-          {filename,Filename},{color1,Color1},{color2,Color2},{hard,Hard},
-          {noise_basis,NoiseBasis},{noise_size,NoiseSize},{depth,Depth},
-          {sharpness,Sharpness},{turbulence,Turbulence},{shape,Shape},
-          {wood_type,WoodType},{cell_type,CellType},{cell_shape,CellShape},
-          {cell_size,CellSize},{intensity,Intensity},{cell_weight1,CellWeight1},
-          {cell_weight2,CellWeight2},{cell_weight3,CellWeight3},{cell_weight4,CellWeight4},
-          {musgrave_type,MusgraveType},
-          {musgrave_noisesize,MusgraveNoiseSize},{musgrave_intensity,MusgraveIntensity},
-          {musgrave_contrast,MusgraveContrast},{musgrave_lacunarity,MusgraveLacunarity},
-          {musgrave_octaves,MusgraveOctaves},{distortion_type,DistortionType},
-          {distortion_noisesize,DistortionNoiseSize},
-          {distortion_intensity,DistortionIntensity}
-         ],
-    {{modulator,Ps},Res}.
 
 %%% Creates new Modulator
 modulator_add(M) ->
@@ -1705,9 +1669,9 @@ light_dialog(Name, Ps) ->
     Power = proplists:get_value(power, YafaRay, DefPower),
     PowerStr =
         [{hframe, [
-            {hframe, [
-                {label,?__(1,"Power")},
-                {text,Power,[range(power),key(power)]}
+            {label_column, [
+                {?__(1,"Power"),
+                {text,Power,[key(power),range(power),key(power)]}}
             ]},
             panel,
             help_button({light_dialog,Type})
@@ -1734,14 +1698,14 @@ light_dialog(_Name, point, Ps) ->
             {?__(5,"Spherelight"),spherelight}
         ],Type,[key(type),{hook,Hook_Show}]},
         {hframe, [
-            {hframe, [
-                {label,?__(15,"Radius")},
-                {text,ArealightRadius,[range(arealight_radius),key(arealight_radius)]}
+            {label_column, [
+                {?__(15,"Radius"),
+                {text,ArealightRadius,[key(arealight_radius), range(arealight_radius)]}}
             ]},
             panel,
-            {hframe, [
-                {label,?__(17,"Samples")},
-                {text,ArealightSamples,[range(samples),key(arealight_samples)]}
+            {label_column, [
+                {?__(17,"Samples"),
+                {text,ArealightSamples,[key(arealight_samples), range(samples)]}}
             ]}
         ],[key(pnl_sphere),{margin,false}]}
     ];
@@ -1782,27 +1746,31 @@ light_dialog(_Name, spot, Ps) ->
             {?__(30,"IES"),spot_ies}
         ],Type,[key(type),{hook,Hook_Show}]},
         {vframe, [
-            {hframe, [
-                {label,?__(100,"Filename")},
-                {button,{text,SpotIESFilename,[key(spot_ies_filename),{width,35},{props,BrowsePropsIES}]}}
+            {label_column, [
+                {?__(100,"Filename"),
+                {button,{text,SpotIESFilename,[key(spot_ies_filename),{width,35},{props,BrowsePropsIES}]}}}
             ],[key(pnl_ies)]},
             {vframe, [
                 {hframe, [
-                    {label,?__(101,"Blend")},
-                    {text,SpotBlend,[key(spot_blend),range(spot_blend)]},
+                    {label_column, [
+			{?__(101,"Blend"),
+                    	{text,SpotBlend,[key(spot_blend),range(spot_blend)]}}
+		    ]},
                     panel,
-                    {?__(97,"Photon Only"),SpotPhotonOnly,[key(spot_photon_only)]},
-                    panel
-                ],[key(pnl_spt_photon)]},
+                    {?__(97,"Photon Only"),SpotPhotonOnly,[key(spot_photon_only)]}
+                ],[key(pnl_spt_photon),{margin,false}]},
                 {hframe, [
                     {?__(38,"Soft Shadows"),SpotSoftShadows,[key(spot_soft_shadows),{hook,Hook_Enabled}]},
                     panel,
-                    {label,?__(35,"Samples")},
-                    {text,SpotIESSamples,[range(spot_ies_samples),key(spot_ies_samples)]},
+                    {label_column, [
+			{?__(35,"Samples"),
+                    	{text,SpotIESSamples,[range(spot_ies_samples),key(spot_ies_samples)]}}]},
                     panel,
-                    {label,?__(102,"Fuzzyness")},
-                    {text,SpotFuzzyness,[range(spot_fuzzyness),key(spot_fuzzyness)]}
-                ]}
+                    {label_column, [
+			{?__(102,"Fuzzyness"),
+                    	{text,SpotFuzzyness,[range(spot_fuzzyness),key(spot_fuzzyness)]}}
+		    ]}
+		], [{margin,false}]}
             ],[{margin,false}]}
         ],[key(pnl_spot_light),[{margin,false}]]}
     ];
@@ -1869,14 +1837,14 @@ light_dialog(_Name, infinite, Ps) ->
                 ],Type,[key(type),{hook,Hook_Show}]},
                 %% Sunlight Settings Start
                 {hframe, [
-                    {hframe, [
-                        {label,?__(114,"Samples")++" "},
-                        {text,SunSamples,[key(sun_samples),range(sun_samples)]}
+                    {label_column, [
+                        {?__(114,"Samples")++" ",
+                        {text,SunSamples,[key(sun_samples),range(sun_samples)]}}
                     ]},
                     panel,
-                    {hframe, [
-                        {label,?__(115,"Angle")++" "},
-                        {text,SunAngle,[key(sun_angle),range(sun_angle)]}
+                    {label_column, [
+                        {?__(115,"Angle")++" ",
+                        {text,SunAngle,[key(sun_angle),range(sun_angle)]}}
                     ]}
                 ],[key(pnl_sunlight), {margin,false}]},
                 %% Sunlight Settings End
@@ -1886,9 +1854,9 @@ light_dialog(_Name, infinite, Ps) ->
                     {?__(112,"Infinite"),InfiniteTrue,[key(infinite_true),{hook,Hook_Enabled}]},
                     panel,
                     %% Directional Semi-infinite Radius
-                    {hframe, [
-                        {label,?__(113,"Semi-infinite Radius")},
-                        {text,InfiniteRadius,[range(infinite_radius),key(infinite_radius)]}
+                    {label_column, [
+                        {?__(113,"Semi-infinite Radius"),
+                        {text,InfiniteRadius,[key(infinite_radius), range(infinite_radius)]}}
                     ],[key(pnl_inf_radius), {margin,false}]}
                 ],[key(pnl_directional),{show,false}]}
                 %% End Directional Semi-infinite Radius
@@ -1904,7 +1872,7 @@ light_dialog(_Name, infinite, Ps) ->
                 {vframe, [
                     {hframe, [
                         {label_column, [
-                            {?__(47,"Turbidity"),{text,Turbidity,[range(turbidity),key(turbidity)]}},
+                            {?__(47,"Turbidity"),{text,Turbidity,[key(turbidity),range(turbidity)]}},
                             {"a: "++?__(48,"Horizon Brightness"),{text,A_var,[key(a_var)]}},
                             {"b: "++?__(49,"Horizon Spread"),{text,B_var,[key(b_var)]}}
                         ],[{margin,false}]},
@@ -1926,9 +1894,9 @@ light_dialog(_Name, infinite, Ps) ->
                     {hframe,[
                         {?__(120,"Real Sun"),SunReal,[key(sun_real),{hook,Hook_Enabled}]},
                         panel,
-                        {hframe,[
-                            {label,?__(121,"Sun Power")},
-                            {text,SunRealPower,[range(sun_real_power),key(sun_real_power)]}
+                        {label_column,[
+                            {?__(121,"Sun Power"),
+                            {text,SunRealPower,[range(sun_real_power),key(sun_real_power)]}}
                         ],[key(pnl_sun_real),{margin,false}]}
                     ]},
 
@@ -1939,10 +1907,10 @@ light_dialog(_Name, infinite, Ps) ->
                             panel,
                             {hframe, [
                                 {label,?__(117,"Power")},
-                                {text,SkyBackgroundPower,[range(sky_background_power),key(sky_background_power)]},
+                                {text,SkyBackgroundPower,[key(sky_background_power),range(sky_background_power)]},
                                 panel,
                                 {label,?__(118,"Samples")},
-                                {text,SkyBackgroundSamples,[range(sky_background_samples),key(sky_background_samples)]}
+                                {text,SkyBackgroundSamples,[key(sky_background_samples),range(sky_background_samples)]}
                             ], [key(pnl_bkg_power),{margin,false}]}
                         ]},
                         {hframe, [
@@ -1984,7 +1952,8 @@ light_dialog(_Name, ambient, Ps) ->
     %%
     Type = proplists:get_value(type, Ps, ?DEF_AMBIENT_TYPE),
     Samples = proplists:get_value(samples, Ps, ?DEF_SAMPLES),
-
+    Smartibl_blur = proplists:get_value(smartibl_blur, Ps, ?DEF_SMARTIBL_BLUR),
+    
     Hook_Enabled =
         fun(Key, Value, Store) ->
             case Key of
@@ -2012,15 +1981,15 @@ light_dialog(_Name, ambient, Ps) ->
         %% Backgrounds
         {vframe, [
             {value,Type,[key(type)]},
-            {hframe, [
-                {label,?__(91,"Background Light/Environment")++" "},
+            {label_column, [
+                {?__(91,"Background Light/Environment")++" ",
                 {menu, [
                     {?__(79,"HDRI"),'HDRI'},
                     {?__(80,"Image"),image},
                     {?__(81,"Constant"),constant},
                     {?__(105,"Gradient"),gradientback},
                     {?__(82,"None"), undefined}
-                ], Bg, [key(background),{hook,Hook_Show}]}
+                ], Bg, [key(background),{hook,Hook_Show}]}}
             ]},
 
             {vframe, [
@@ -2041,22 +2010,26 @@ light_dialog(_Name, ambient, Ps) ->
                                 ],[key(pnl_img_hdri),{margin,false}]}
                             ],[{margin,false}]}},
                         {?__(108,"Rotation"),
-                                {text,BgRotation,[range(background_rotation),key(background_rotation)]}}
+                                {text,BgRotation,[key(background_rotation),range(background_rotation)]}}
                     ],[{margin,false}]}
                 ],[key(pnl_file),{margin,false}]},
                 %% Constant Background
-                {hframe, [
-                    {label,?__(90,"Color")},
-                    {color,BgColor,[key(background_color)]}
+                {label_column, [
+                    {?__(90,"Color"),
+                    {color,BgColor,[key(background_color)]}}
                 ],[key(pnl_const),{show,false}]},
                 %% Gradient Background
                 {hframe,[
-                    {label,?__(106,"Horizon Color")},
-                    {color,HorizonColor,[key(horizon_color)]},
-                    panel,
-                    {label,?__(107,"Zenith Color")},
-                    {color,ZenithColor,[key(zenith_color)]}
-                ],[key(pnl_gradient),{show,false}]},
+                    {label_column, [
+			{?__(106,"Horizon Color"),
+                    	{color,HorizonColor,[key(horizon_color)]}}
+		    ]},
+		    panel,
+                    {label_column, [
+			{?__(107,"Zenith Color"),
+                    	{color,ZenithColor,[key(zenith_color)]}}
+		    ]}
+                ],[key(pnl_gradient),{show,false},{margin,false}]},
                 %% Common parameters
                 {vframe,[
                     {hframe,[
@@ -2065,8 +2038,14 @@ light_dialog(_Name, ambient, Ps) ->
                         ]},
                         panel,
                         {hframe,[
-                            {label,?__(60,"Samples")},
-                            {text,Samples,[range(samples),key(samples)]}
+                            {label_column, [
+			     	{?__(60,"Samples"),
+                            	{text,Samples,[key(samples),range(samples)]}}
+			    ]},
+                            {label_column, [
+				{?__(126,"SmartIBL blur"),
+                            	{text,Smartibl_blur,[key(smartibl_blur),range(smartibl_blur)]}}
+			    ]}
                         ],[key(pnl_enlight_samples),{margin,false}]}
                     ],[{margin,false}]},
                     {hframe, [
@@ -2084,7 +2063,8 @@ light_dialog(_Name, area, Ps) ->
 
     [
         {label_column,[
-            {?__(93,"Samples"), {text,ArealightSamples,[range(samples),key(arealight_samples)]}}
+	    {?__(93,"Samples"),
+	    {text,ArealightSamples,[key(arealight_samples),range(samples)]}}
         ]}
     ];
 
@@ -2092,47 +2072,29 @@ light_dialog(_Name, _Type, _Ps) ->
 %%    erlang:display({?MODULE,?LINE,{_Name,_Type,_Ps}}),
     [].
 
-light_result(_Name, Ps0, [{?KEY(power),Power}|Res0]) ->
-    {LightPs0,Res1} = light_result(Res0),
-    LightPs = [{Key,Val} || {?KEY(Key),Val} <- LightPs0],
-    Ps = [{?TAG,[{power,Power}|LightPs]}
-          |keydelete(?TAG, 1, Ps0)],
-    {Ps,Res1}.
-
-%%% Point
-light_result([{?KEY(type),pointlight}|_]=Ps) ->
-    split_list(Ps, 3);
-light_result([{?KEY(type),spherelight}|_]=Ps) ->
-    split_list(Ps, 3);
-%%% Spot
-light_result([{?KEY(type),spotlight}|_]=Ps) ->
-    split_list(Ps, 7);
-light_result([{?KEY(type),spot_ies}|_]=Ps) ->
-    split_list(Ps, 7);
-%%% Infinite
-light_result([{?KEY(type),sunlight}|_]=Ps) ->
-    split_list(Ps, 21);
-light_result([{?KEY(type),directional}|_]=Ps) ->
-    split_list(Ps, 21);
-%%% Area
-light_result([{?KEY(arealight_samples),_}|_]=Ps) ->
-    split_list(Ps, 1);
-%%% Ambient
-light_result([{?KEY(background),_}|_]=Ps) ->
-    split_list(Ps, 10);
-light_result([{?KEY(type),hemilight}|_]=Ps) ->
-    split_list(Ps, 13);
-light_result(Ps) ->
-%%    erlang:display({?MODULE,?LINE,Ps}),
-    {[],Ps}.
-
+light_result(_Name, Light, Res) ->
+    {Found, Remaining} = rip_all(?TAG, Res),
+    NewLight = [{?TAG, Found} | lists:keydelete(?TAG, 1, Light)],
+    {NewLight, Remaining}.
 
 pref_dialog(St) ->
-    [{dialogs,Dialogs},{renderer,Renderer},{pluginspath,PluginsPath},
-     {options,Options},{shader_type,ShaderType}] = get_user_prefs([{dialogs,?DEF_DIALOGS},{renderer,?DEF_RENDERER},
-                                                                   {pluginspath,?DEF_PLUGINS_PATH},
-                                                                   {options,?DEF_OPTIONS},{shader_type,?DEF_SHADER_TYPE}]),
-
+    [{dialogs,Dialogs},{renderer,Renderer},
+     {options,Options},{shader_type,ShaderType},
+     {render_passes_enable,PassesEnable},
+     {render_passes,RenderPasses},
+     {computer_node,ComputerNode}]
+     = get_user_prefs([{dialogs,?DEF_DIALOGS},{renderer,?DEF_RENDERER},
+                                                     {options,?DEF_OPTIONS},{shader_type,?DEF_SHADER_TYPE},
+                                                     {render_passes_enable,?DEF_RENDER_PASSES_ENABLE},
+                                                     {render_passes,?DEF_RENDER_PASSES},
+                                                     {computer_node,?DEF_COMPUTER_NODE}]),
+    Hook_Enable = fun(Key, Value, Store) ->
+        case Key of
+            render_passes_enable ->
+                wings_dialog:enable(render_passes, Value =:= true, Store);
+            _ -> ok
+        end
+    end,
     Dialog = [
         {vframe, [
             {hframe, [
@@ -2146,9 +2108,14 @@ pref_dialog(St) ->
             ]},
             {label_column, [
                 {?__(4,"Executable"),{button,{text,Renderer,[{key,renderer},{width,35},wings_job:browse_props()]}}},
-                {?__(7,"Yafaray Plugins Path"),{button,{text,PluginsPath,[{key,pluginspath},{width,35},{props,[{dialog_type,dir_dialog}]}]}}},
                 {?__(5,"Options"),{text,Options,[{key,options}]}},
-                {?__(8,"Default Shader"),{menu,menu_shader(), ShaderType, [{key,shader_type}]}}
+                {?__(8,"Default Shader"),{menu,menu_shader(), ShaderType, [{key,shader_type}]}},
+                {?__(10,"Computer Node"),{text, ComputerNode,[{key,computer_node}]}}
+            ]},
+            {hframe,[
+                {?__(9,"Render Passes Enable"), PassesEnable, [{key,render_passes_enable},{hook,Hook_Enable}]},
+                panel,
+                {slider, {text, RenderPasses,[{key,render_passes},range(render_passes)]}}
             ]}
         ], [{title,""}]}],
     wpa:dialog(?__(6,"YafaRay Options"), Dialog, fun (Attr) -> pref_result(Attr,St) end).
@@ -2174,10 +2141,17 @@ export_dialog(Op, Title) ->
 
 %% Export Render Options Dialog Settings
 export_prefs() ->
+    {_,Max} = range_1(render_passes),
+    RenderPass =
+        lists:foldl(fun(N, Acc) ->
+                         Acc++[{render_pass_id(N),?DEF_RENDER_PASS}]
+                     end, [], lists:seq(1,Max)),
     [{subdivisions,?DEF_SUBDIVISIONS},
         {keep_xml,?DEF_KEEP_XML},
         {threads_number,?DEF_THREADS_NUMBER},
         {threads_auto,?DEF_THREADS_AUTO},
+        {tile_size,?DEF_TILE_SIZE},
+        {tile_order,?DEF_TILE_ORDER},
         {lighting_method,?DEF_LIGHTING_METHOD},
         {use_caustics,?DEF_USE_CAUSTICS},
         {caustic_photons,?DEF_CAUSTIC_PHOTONS},
@@ -2217,15 +2191,12 @@ export_prefs() ->
         {volintegr_adaptive,?DEF_VOLINTEGR_ADAPTIVE},
         {volintegr_optimize,?DEF_VOLINTEGR_OPTIMIZE},
         {volintegr_stepsize,?DEF_VOLINTEGR_STEPSIZE},
-        {use_sss,?DEF_USE_SSS},
-        {sss_photons,?DEF_SSS_PHOTONS},
-        {sss_depth,?DEF_SSS_DEPTH},
-        {sss_scale,?DEF_SSS_SCALE},
-        {sss_singlescatter_samples,?DEF_SSS_SINGLESCATTER_SAMPLES},
         {raydepth,?DEF_RAYDEPTH},
         {gamma,?DEF_GAMMA},
-        {bias,?DEF_BIAS},
-        {exposure,?DEF_EXPOSURE},
+        {shadow_bias_auto,?DEF_SHADOW_BIAS_AUTO},
+        {shadow_bias,?DEF_SHADOW_BIAS},
+        {ray_mindist_auto,?DEF_RAY_MINDIST_AUTO},
+        {ray_mindist,?DEF_RAY_MINDIST},
         {transparent_shadows,?DEF_TRANSPARENT_SHADOWS},
         {shadow_depth,?DEF_SHADOW_DEPTH},
         {render_format,?DEF_RENDER_FORMAT},
@@ -2234,13 +2205,24 @@ export_prefs() ->
         {exr_flag_compression,?DEF_EXR_FLAG_COMPRESSION},
         {aa_passes,?DEF_AA_PASSES},
         {aa_minsamples,?DEF_AA_MINSAMPLES},
-        {aa_jitterfirst,?DEF_AA_JITTERFIRST},
+        {aa_incsamples,?DEF_AA_INCSAMPLES},
         {aa_threshold,?DEF_AA_THRESHOLD},
         {aa_pixelwidth,?DEF_AA_PIXELWIDTH},
-        {clamp_rgb,?DEF_CLAMP_RGB},
         {aa_filter_type,?DEF_AA_FILTER_TYPE},
+        {aa_noise_resampled_floor,?DEF_AA_NOISE_RESAMPLED_FLOOR},
+        {aa_noise_sample_multiplier_factor,?DEF_AA_NOISE_SAMPLE_MULTIPLIER_FACTOR},
+        {aa_noise_light_sample_multiplier_factor,?DEF_AA_NOISE_LIGHT_SAMPLE_MULTIPLIER_FACTOR},
+        {aa_noise_indirect_sample_multiplier_factor,?DEF_AA_NOISE_INDIRECT_SAMPLE_MULTIPLIER_FACTOR},
+        {aa_noise_detect_color_noise,?DEF_AA_NOISE_DETECT_COLOR_NOISE},
+        {aa_noise_dark_detection_type,?DEF_AA_NOISE_DARK_DETECTION_TYPE},
+        {aa_noise_dark_threshold_factor,?DEF_AA_NOISE_DARK_THRESHOLD_FACTOR},
+        {aa_noise_variance_edge_size,?DEF_AA_NOISE_VARIANCE_EDGE_SIZE},
+        {aa_noise_variance_pixels,?DEF_AA_NOISE_VARIANCE_PIXELS},
+        {aa_noise_clamp_samples,?DEF_AA_NOISE_CLAMP_SAMPLES},
+        {aa_noise_clamp_indirect,?DEF_AA_NOISE_CLAMP_INDIRECT},       
         {background_color,?DEF_BACKGROUND_COLOR},
         {save_alpha,?DEF_SAVE_ALPHA},
+        {background_transp,?DEF_BACKGROUND_TRANSP},
         {background_transp_refract,?DEF_BACKGROUND_TRANSP_REFRACT},
         {lens_type,?DEF_LENS_TYPE},
         {lens_ortho_scale,?DEF_LENS_ORTHO_SCALE},
@@ -2256,7 +2238,34 @@ export_prefs() ->
         {aperture,?DEF_APERTURE},
         {bokeh_bias,?DEF_BOKEH_BIAS},
         {bokeh_rotation,?DEF_BOKEH_ROTATION},
-        {dof_distance,?DEF_DOF_DISTANCE}].
+        {dof_distance,?DEF_DOF_DISTANCE},
+        {img_autosave_type,?DEF_IMG_AUTOSAVE_TYPE},
+        {img_autosave_passes,?DEF_IMG_AUTOSAVE_PASSES},
+        {img_autosave_seconds,?DEF_IMG_AUTOSAVE_SECONDS},
+        {img_denoise_enable,?DEF_IMG_DENOISE_ENABLE},
+        {img_denoise_mix,?DEF_IMG_DENOISE_MIX},
+        {img_denoise_h_lum,?DEF_IMG_DENOISE_H_LUM},
+        {img_denoise_h_chrom,?DEF_IMG_DENOISE_H_CHROM},
+        {film_processing,?DEF_FILM_PROCESSING},
+        {film_binary_format,?DEF_FILM_BINARY_FORMAT},
+        {film_autosave_type,?DEF_FILM_AUTOSAVE_TYPE},
+        {film_autosave_passes,?DEF_FILM_AUTOSAVE_PASSES},
+        {film_autosave_seconds,?DEF_FILM_AUTOSAVE_SECONDS},
+        {log_save_txt,?DEF_LOG_SAVE_TXT},
+        {log_save_html,?DEF_LOG_SAVE_HTML},
+        {log_verbosity_console,?DEF_LOG_VERBOSITY_CONSOLE},
+        {log_verbosity_txt_html,?DEF_LOG_VERBOSITY_TXT_HTML},
+        {badge_position,?DEF_BADGE_POSITION},
+        {badge_title,?DEF_BADGE_TITLE},
+        {badge_author,?DEF_BADGE_AUTHOR},
+        {badge_contact,?DEF_BADGE_CONTACT},
+        {badge_comments,?DEF_BADGE_COMMENTS},
+        {badge_custom_icon_path,?DEF_BADGE_CUSTOM_ICON_PATH},
+        {badge_draw_render_settings,?DEF_BADGE_DRAW_RENDER_SETTINGS},
+        {badge_draw_aa_noise_settings,?DEF_BADGE_DRAW_AA_NOISE_SETTINGS},
+        {badge_font_path,?DEF_BADGE_FONT_PATH},
+        {badge_font_size_factor,?DEF_BADGE_FONT_SIZE_FACTOR}
+        ] ++ RenderPass.
 
 f_stop_str(Value) when is_float(Value) ->
     %% we must use the same number of decimals used in the aperture edit box
@@ -2287,6 +2296,9 @@ export_dialog_qs(Op, Attr) ->
                         {"32", 1 / 1024},
                         {?__(47, "pinhole"), 0.0}]],
     {ApertureIdx,_} = f_stop_find(f_stop_str(Aperture),ApertureList),
+    ImageFormats = images_format(),
+    BrowseProps = [{dialog_type,open_dialog}, {extensions,ImageFormats}],
+    FontProps = [{dialog_type,open_dialog}, {extensions,[{".ttf","True Type Fonts"}]}],
 
     Hook_Enable = fun(Key, Value, Store) ->
         case Key of
@@ -2298,8 +2310,6 @@ export_dialog_qs(Op, Attr) ->
                 wings_dialog:enable(?KEY(pnl_use_ao), Value =:= true, Store);
             pm_use_fg ->
                 wings_dialog:enable(?KEY(pnl_use_fg), Value =:= true, Store);
-            use_sss ->
-                wings_dialog:enable(?KEY(pnl_sss_opt), Value =:= true, Store);
             transparent_shadows ->
                 wings_dialog:enable(?KEY(pnl_transp_shadow), Value =:= true, Store);
             render_format ->
@@ -2355,9 +2365,6 @@ export_dialog_qs(Op, Attr) ->
                 %% Path Tracing - GI
                 wings_dialog:show(?KEY(pnl_pt3), Value =:= pathtracing, Store),
 
-                wings_dialog:enable(?KEY(pnl_sss), is_member(Value,[directlighting,photonmapping,pathtracing]), Store),
-                wings_dialog:enable(?KEY(pnl_sss_opt), wings_dialog:get_value(use_sss, Store) =:= true, Store),
-
                 wings_dialog:update(?KEY(pnl_light), Store);
             volintegr_type ->
                 wings_dialog:enable(?KEY(pnl_volumetric), Value =:= singlescatterintegrator, Store);
@@ -2365,6 +2372,21 @@ export_dialog_qs(Op, Attr) ->
                 wings_dialog:show(?KEY(pnl_lens_scale), Value =:= orthographic, Store),
                 wings_dialog:show(?KEY(pnl_lens_angle), Value =:= angular, Store),
                 wings_dialog:update(?KEY(pnl_camera), Store);
+            shadow_bias_auto ->
+                wings_dialog:show(?KEY(pnl_shadow_bias), Value =:= false, Store);
+            ray_mindist_auto ->
+                wings_dialog:show(?KEY(pnl_ray_mindist), Value =:= false, Store);
+            img_autosave_type ->
+                wings_dialog:show(?KEY(pnl_img_autosave_seconds), Value =:= 'time-interval', Store),
+                wings_dialog:show(?KEY(pnl_img_autosave_passes), Value =:= 'pass-interval', Store);
+            img_denoise_enable ->
+                wings_dialog:show(?KEY(pnl_img_denoise), Value =:= 'true', Store);
+            film_processing ->
+                wings_dialog:show(?KEY(pnl_film_binary_format), Value =/= none, Store),
+                wings_dialog:show(?KEY(pnl_film_save_options), Value =/= none, Store);
+            film_autosave_type ->
+                wings_dialog:show(?KEY(pnl_film_autosave_seconds), Value =:= 'time-interval', Store),
+                wings_dialog:show(?KEY(pnl_film_autosave_passes), Value =:= 'pass-interval', Store);
             _ -> ok
         end
     end,
@@ -2402,17 +2424,13 @@ export_dialog_qs(Op, Attr) ->
                                                     [{key,threads_auto},{hook,Hook_Enable}]}
                         ]}
                     ],[{margin,false}]}
-                ],[{title, ?__(3, "Pre-rendering")},{margin,false}]},
+                ],[{title, ?__(3, "Pre-rendering")},{margin,true}]},
 
                 %% Render group
                 {hframe, [
                     {label_column, [
-                        {?__(4, "Raydepth"),{text, get_pref(raydepth,Attr), [range(raydepth),{key,raydepth}]}},
+                        {?__(4, "Ray depth"),{text, get_pref(raydepth,Attr), [range(raydepth),{key,raydepth}]}},
                         {?__(5, "Gamma"),{text, get_pref(gamma,Attr), [range(gamma),{key,gamma}]}}
-                    ]},
-                    {label_column, [
-                        {?__(6, "Bias"),{text, get_pref(bias,Attr), [range(bias),{key,bias}]}},
-                        {?__(7, "Exposure"),{text, get_pref(exposure,Attr), [range(exposure),{key,exposure}]}}
                     ]},
                     {vframe, [
                         {vframe, [
@@ -2422,23 +2440,34 @@ export_dialog_qs(Op, Attr) ->
                             ], get_pref(transparent_shadows,Attr), [{key,transparent_shadows},{hook,Hook_Enable}]}
                         ]},
                         {hframe, [
-                            {label, ?__(135, "Depth")},
+                            {label, ?__(135, "Shadow depth")},
                             {text, get_pref(shadow_depth,Attr), [range(shadow_depth),{key,shadow_depth}]}
                         ], [key(pnl_transp_shadow), {enabled,false},{margin,false}]}
+                    ]},
+                    {vframe, [
+                        {hframe, [
+                            {label, ?__(216, "Tile size ")},
+                            {text, get_pref(tile_size,Attr), [range(tile_size),{key,tile_size}]},
+                            {menu, [
+                                {?__(217, "Centre"), centre},
+                                {?__(218, "Random"), random},
+                                {?__(219, "Linear"), linear}
+                            ], get_pref(tile_order,Attr), [{key,tile_order}]}
+                        ], [{margin,false}]}
                     ]}
-                ],[{title, ?__(8, "Render")},{margin,false}]},
+                ],[{title, ?__(8, "Render")},{margin,true}]},
 
                 %% Output group
                 {hframe, [
-                    {hframe, [
-                        {label, ?__(13, "Output")++" "},
-                        {menu, [
-                            {Ext ++ " (" ++ Desc ++ ")", Format}
-                            || {Format, Ext, Desc} <- wings_job:render_formats(),
-                            (Format == tga) or (Format == tif) or (Format == png) or
-                            (Format == hdr) or (Format == exr)
-                        ], get_pref(render_format,Attr), [{key,render_format},{hook,Hook_Enable}]}
-                    ]},
+		    {label_column, [
+			{?__(13, "Output")++" ", {
+			    menu, [
+				{Ext ++ " (" ++ Desc ++ ")", Format}
+				|| {Format, Ext, Desc} <- wings_job:render_formats(),
+				(Format == tga) or (Format == tif) or (Format == png) or
+				(Format == hdr) or (Format == exr)
+			    ], get_pref(render_format,Attr), [{key,render_format},{hook,Hook_Enable}]}
+			}]},
                     panel,
                     {hframe, [
                         {?__(9, "Float"), get_pref(exr_flag_float,Attr), [{key,exr_flag_float}]},
@@ -2456,43 +2485,6 @@ export_dialog_qs(Op, Attr) ->
                     ], [key(pnl_exr_option),{enabled,false},{margin,false}]}
                 ],[{margin,false}]},
 
-                %% Antialising group
-                {hframe, [
-                    {vframe, [
-                        {hframe, [
-                            {label, ?__(165, "Method")++" "},
-                            {menu, [
-                                {?__(136, "Box Filter"), box},
-                                {?__(137, "Gaussian Filter"), gauss},
-                                {?__(138, "Mitchell-Netravali Filter"), mitchell},
-                                {?__(139, "Lanczos Filter"), lanczos}
-                            ], get_pref(aa_filter_type,Attr), [{key,aa_filter_type}]},
-                            panel,
-                            {hframe, [
-                                {?__(16, "Jitter First"), get_pref(aa_jitterfirst,Attr),[{key,aa_jitterfirst}]}
-                            ]},
-                            panel,
-                            {hframe, [
-                                {?__(19, "Clamp RGB"), get_pref(clamp_rgb,Attr),[{key,clamp_rgb}]}
-                            ]}
-                        ],[{margin,false}]},
-                        {hframe, [
-                            {label_column, [
-                                {?__(14, "Passes"),{text, get_pref(aa_passes,Attr),
-                                                        [range(aa_passes),{key,aa_passes}]}},
-                                {?__(15, "Min Samples"),{text, get_pref(aa_minsamples,Attr),
-                                                        [range(aa_minsamples),{key,aa_minsamples}]}}
-                            ]},
-                            {label_column, [
-                                {?__(17, "Threshold"),{text, get_pref(aa_threshold,Attr),
-                                    [range(aa_threshold),{key,aa_threshold}]}},
-                                {?__(18, "Pixelwidth"),{text, get_pref(aa_pixelwidth,Attr),
-                                    [range(aa_pixelwidth),{key,aa_pixelwidth}]}}
-                            ]}
-                        ],[{margin,false}]}
-                    ],[{margin,false}]}
-                ],[{title, ?__(20, "Anti-Aliasing")},{margin,false}]},
-
                 {hframe, [
                     {label, ?__(21, "Color")++" "},
                     {color, get_pref(background_color,Attr), [{key,background_color}]},
@@ -2505,8 +2497,74 @@ export_dialog_qs(Op, Attr) ->
                     ], get_pref(save_alpha,Attr), [{key,save_alpha}]},
                     panel,
                     {?__(159, "Transp Refraction"),get_pref(background_transp_refract,Attr),
-                                                    [{key,background_transp_refract}]}
-                ],[{title, ?__(26, "Background")},{margin,false}]}
+                        [{key,background_transp_refract}]},
+                    panel,
+                    {?__(161, "Transp Background"),get_pref(background_transp,Attr),
+                        [{key,background_transp}]}
+                ],[{title, ?__(26, "Background")},{margin,true}]},
+
+                %% Image Autosaving group
+                {hframe, [
+                    {label, ?__(221, "Autosave interval")++" "},
+                    {menu, [
+                        {"Passes interval", 'pass-interval'},
+                        {"Time interval", 'time-interval'},
+                        {"Disabled", none}
+                    ], get_pref(img_autosave_type,Attr), [{key,img_autosave_type},{hook,Hook_Show}]},
+                    {hframe, [
+                        panel,
+                        {label, ?__(222, "Interval (s)")}, {text, get_pref(img_autosave_seconds,Attr), [range(img_autosave_seconds),{key,img_autosave_seconds}]}
+                    ],[key(pnl_img_autosave_seconds),{margin,true}]},
+                    {hframe, [
+                        panel,
+                        {label, ?__(223, "Interval (passes)")}, {text, get_pref(img_autosave_passes,Attr), [range(img_autosave_passes),{key,img_autosave_passes}]}
+                    ],[key(pnl_img_autosave_passes),{margin,true}]}
+                ],[{title, ?__(220, "Output Image AutoSave options. Too small intervals can cause slowdowns/hangs")},{margin,true}]},
+
+                %% Image Denoise group
+                {hframe, [
+                    {?__(232, "Image Output DeNoise"),get_pref(img_denoise_enable,Attr), [{key,img_denoise_enable},{hook,Hook_Show}]},
+                    {hframe, [
+                        panel,
+                        {label, ?__(233, "Denoise Mix")++" "}, {text, get_pref(img_denoise_mix,Attr), [range(img_denoise_mix),{key,img_denoise_mix}]},
+                        panel,
+                        {label, ?__(234, "Denoise hLum")++" "}, {text, get_pref(img_denoise_h_lum,Attr), [range(img_denoise_h_lum),{key,img_denoise_h_lum}]},
+                        panel,
+                        {label, ?__(235, "Denoise hChrom")++" "}, {text, get_pref(img_denoise_h_chrom,Attr), [range(img_denoise_h_chrom),{key,img_denoise_h_chrom}]}
+                    ],[key(pnl_img_denoise),{margin,true}]}
+                ],[{title, ?__(231, "Output Image de-noise options")},{margin,true}]},
+
+
+                %% Internal Film Processing/Autosaving group
+                {vframe, [
+                    {hframe, [
+                        {label, ?__(226, "Film processing type")++" "},
+                            {menu, [
+                                {"Load and Save", 'load-save'},
+                                {"Save", save},
+                                {"Disabled", none}
+                            ], get_pref(film_processing,Attr), [{key,film_processing},{hook,Hook_Show}]},
+                        {hframe, [
+                            {?__(227, "Film binary format"),get_pref(film_binary_format,Attr), [{key,film_binary_format}]}
+                        ],[key(pnl_film_binary_format),{margin,true}]}
+                    ]},
+                    {hframe, [
+                        {label, ?__(228, "Film Autosave interval")++" "},
+                        {menu, [
+                            {"Passes interval", 'pass-interval'},
+                            {"Time interval", 'time-interval'},
+                            {"Disabled", none}
+                        ], get_pref(film_autosave_type,Attr), [{key,film_autosave_type},{hook,Hook_Show}]},
+                        {hframe, [
+                            panel,
+                            {label, ?__(229, "Interval (s)")}, {text, get_pref(film_autosave_seconds,Attr), [range(film_autosave_seconds),{key,film_autosave_seconds}]}
+                        ],[key(pnl_film_autosave_seconds),{margin,true}]},
+                        {hframe, [
+                            panel,
+                            {label, ?__(230, "Interval (passes)")}, {text, get_pref(film_autosave_passes,Attr), [range(film_autosave_passes),{key,film_autosave_passes}]}
+                        ],[key(pnl_film_autosave_passes),{margin,true}]}
+                    ],[key(pnl_film_save_options),{margin,true}]}
+                ],[{title, ?__(224, "Internal Film Processing/AutoSave options. Too small intervals can cause slowdowns/hangs")},{margin,true}]}
 
 %%                 % TO DO: we need changes to wings_dialog code in order to enable this kind of use for buttons
 %%                 {hframe, [
@@ -2514,6 +2572,89 @@ export_dialog_qs(Op, Attr) ->
 %%                     {button, ?__(57, "Load"), load, [{info, ?__(58, "Load from user preferences")},{hook,ButtonsHook}]},
 %%                     {button, ?__(59, "Reset"), reset, [{info, ?__(60, "Reset to default values")},{hook,ButtonsHook}]}
 %%                 ]}
+            ]}
+        },
+
+    %% AA and Noise Control group
+    Noise_AA_Control =
+        {?__(189, "Noise/AA Control"),
+            {vframe, [
+                {hframe, [
+                    {vframe, [
+                        {hframe, [
+                            {label, ?__(165, "Method ")},
+                            {menu, [
+                                {?__(136, "Box Filter"), box},
+                                {?__(137, "Gaussian Filter"), gauss},
+                                {?__(138, "Mitchell-Netravali Filter"), mitchell},
+                                {?__(139, "Lanczos Filter"), lanczos}
+                            ], get_pref(aa_filter_type,Attr), [{key,aa_filter_type}]}
+                        ],[{margin,true}]},
+                        {hframe, [
+                            {label_column, [
+                                {?__(15, "Min Samples "),{text, get_pref(aa_minsamples,Attr),
+                                                        [range(aa_minsamples),{key,aa_minsamples}]}},
+                                {?__(14, "AA Passes "),{text, get_pref(aa_passes,Attr),
+                                                        [range(aa_passes),{key,aa_passes}]}},
+                                {?__(190, "Additional Samples "),{text, get_pref(aa_incsamples,Attr),
+                                                        [range(aa_incsamples),{key,aa_incsamples}]}}
+                            ]},
+                            {label_column, [
+                                {?__(17, "AA Threshold "),{text, get_pref(aa_threshold,Attr),
+                                    [range(aa_threshold),{key,aa_threshold}]}},
+                                {?__(18, "Pixelwidth "),{text, get_pref(aa_pixelwidth,Attr),
+                                    [range(aa_pixelwidth),{key,aa_pixelwidth}]}}
+                            ]}
+                        ],[{margin,false}]}
+                    ],[{title, ?__(191, "Basic controls")},{margin,true}]},
+                    {vframe, [
+			{label_column, [
+			    {?__(193, "AA Dark thresh. compensation "),{
+				menu, [
+				    {?__(194, "None"), none},
+				    {?__(195, "Linear"), linear},
+				    {?__(196, "Curve"), curve}
+				], get_pref(aa_noise_dark_detection_type,Attr), [{key,aa_noise_dark_detection_type}]}},
+			    {?__(197, "AA Dark thr.factor "),{text, get_pref(aa_noise_dark_threshold_factor,Attr),
+						    [range(aa_noise_dark_threshold_factor),{key,aa_noise_dark_threshold_factor}]}},
+			    {?__(198, "AA Resampled Floor (% image) "),{text, get_pref(aa_noise_resampled_floor,Attr),
+						    [range(aa_noise_resampled_floor),{key,aa_noise_resampled_floor}]}}
+			]},
+		    	{hframe, [
+			    {?__(199, "Detect Color Noise "), get_pref(aa_noise_detect_color_noise,Attr), [{key,aa_noise_detect_color_noise}]}
+                        ],[{margin,true}]}
+                    ],[{title, ?__(192, "Additional controls")},{margin,true}]}
+                ],[{margin,false}]},
+                
+                {hframe, [
+                    {vframe, [
+                        {hframe, [
+                            {label_column, [
+                                {?__(200, "Variance Window "),{text, get_pref(aa_noise_variance_edge_size,Attr), [range(aa_noise_variance_edge_size),{key,aa_noise_variance_edge_size}]}},
+                                {?__(201, "Variance Pixels "),{text, get_pref(aa_noise_variance_pixels,Attr), [range(aa_noise_variance_pixels),{key,aa_noise_variance_pixels}]}}
+                            ]}
+                        ],[{margin,false}]}
+                    ],[{title, ?__(202, "Optional Variance noise detection (pixels = 0 disables it)")},{margin,true}]},
+                    {vframe, [
+                        {hframe, [
+                            {label_column, [
+                                {?__(203, "Clamp all samples "),{text, get_pref(aa_noise_clamp_samples,Attr), [range(aa_noise_clamp_samples),{key,aa_noise_clamp_samples}]}},
+                                {?__(204, "Clamp indirect samples "),{text, get_pref(aa_noise_clamp_indirect,Attr), [range(aa_noise_clamp_indirect),{key,aa_noise_clamp_indirect}]}}
+                            ]}
+                        ],[{margin,false}]}
+                    ],[{title, ?__(205, "Clamping for noise reduction (0.0 disables clamp)")},{margin,true}]}
+                ],[{margin,false}]},
+                {hframe, [
+                    {vframe, [
+                        {hframe, [
+                            {label_column, [
+                                {?__(206, "Samples multiplier factor "),{text, get_pref(aa_noise_sample_multiplier_factor,Attr), [range(aa_noise_sample_multiplier_factor),{key,aa_noise_sample_multiplier_factor}]}},
+                                {?__(207, "Light samples multiplier factor "),{text, get_pref(aa_noise_light_sample_multiplier_factor,Attr), [range(aa_noise_light_sample_multiplier_factor),{key,aa_noise_light_sample_multiplier_factor}]}},
+                                {?__(208, "Indirect samples multiplier factor "),{text, get_pref(aa_noise_indirect_sample_multiplier_factor,Attr), [range(aa_noise_indirect_sample_multiplier_factor),{key,aa_noise_indirect_sample_multiplier_factor}]}}
+                            ]}
+                        ],[{margin,false}]}
+                    ],[{title, ?__(209, "Sampling factor Pass multipliers")},{margin,true}]}
+                ],[{margin,false}]}
             ]}
         },
 
@@ -2626,25 +2767,7 @@ export_dialog_qs(Op, Attr) ->
                                 {?__(152, "Path Samples"),{text, get_pref(pt_samples,Attr), [{key,pt_samples},range(pt_samples)]}}
                             ], [key(pnl_pt3)]}
                         ], [{margin,false}]}
-                    ],[key(pnl_light)]},
-
-                    {vframe, [
-                        {vframe, [
-                            {hframe,[
-                                {?__(76, "Enabled"), get_pref(use_sss,Attr), [{key,use_sss},{hook,Hook_Enable}]}
-                            ]},
-                            {hframe, [
-                                {label_column, [
-                                    {?__(77, "Photons"),{text, get_pref(sss_photons,Attr), [{key,sss_photons},range(sss_photons)]}},
-                                    {?__(78, "Depth"),{text, get_pref(sss_depth,Attr), [{key,sss_depth},range(sss_depth)]}}
-                                ]},
-                                {label_column, [
-                                    {?__(79, "Scale"),{text, get_pref(sss_scale,Attr), [{key,sss_scale},range(sss_scale)]}},
-                                    {?__(80, "SingleScatter Samples"),{text, get_pref(sss_singlescatter_samples,Attr), [{key,sss_singlescatter_samples},range(sss_singlescatter_samples)]}}
-                                ]}
-                            ],[key(pnl_sss_opt), {margin,false}]}
-                        ],[{title, ?__(74, "SubSurface Scattering")},{margin,false}]}
-                    ],[key(pnl_sss)]}
+                    ],[key(pnl_light)]}
                 ],[{title, ""}]},
 
                 %% Volumetrics group
@@ -2664,7 +2787,7 @@ export_dialog_qs(Op, Attr) ->
                         {?__(92, "Optimize"), get_pref(volintegr_optimize,Attr),[{key,volintegr_optimize}]}
                     ], [key(pnl_volumetric)]}
                 ],[{title, ?__(88, "Volumetrics")}]}
-            ],[{margin,false}]}
+            ],[{margin,true}]}
         },
 
 
@@ -2755,15 +2878,197 @@ export_dialog_qs(Op, Attr) ->
                         ]}
                     ],[key(pnl_dof_sliders),{margin,false}]}
                 ],[key(pnl_camera)]}
-            ],[{title,""}]}
+            ],[{title,""}, {margin,true}]}
+        },
+
+    Logging_Badge =
+        {?__(168, "Logging/Badge"),
+            {vframe, [
+                {hframe, [
+                    {label, ?__(170, "Badge position ")},
+                    {menu, [
+                        {?__(171, "Top"), top},
+                        {?__(172, "Bottom"), bottom},
+                        {?__(173, "None"), none}
+                    ], get_pref(badge_position,Attr), [{key,badge_position}]},
+                    panel,
+                    {?__(174, "Draw Render Settings "), get_pref(badge_draw_render_settings,Attr),[{key,badge_draw_render_settings}]},
+                    panel,
+                    {?__(175, "Draw AA/Noise Settings "), get_pref(badge_draw_aa_noise_settings,Attr),[{key,badge_draw_aa_noise_settings}]}
+                ]},
+                {hframe, [
+                    {label, ?__(180, "Console Verbosity ")},
+                    {menu, verbosity_menu(), get_pref(log_verbosity_console,Attr), [{key,log_verbosity_console}]},
+                    panel,
+                    {label, ?__(181, "Log TXT/HTML Verbosity ")},
+                    {menu, verbosity_menu(), get_pref(log_verbosity_txt_html,Attr), [{key,log_verbosity_txt_html}]}
+                ]},
+                {hframe, [
+                    {?__(182, "Save TXT log "), get_pref(log_save_txt,Attr), [{key,log_save_txt}]},
+                    panel,
+                    {?__(183, "Save HTML log "), get_pref(log_save_html,Attr), [{key,log_save_html}]}
+                ]},
+                panel,
+                {label_column, [
+                    {?__(184, "Title "), {text, get_pref(badge_title,Attr), [{key,badge_title}]}},
+                    {?__(185, "Author "), {text, get_pref(badge_author,Attr), [{key,badge_author}]}},
+                    {?__(186, "Contact info "), {text, get_pref(badge_contact,Attr), [{key,badge_contact}]}},
+                    {?__(187, "Comments "), {text, get_pref(badge_comments,Attr), [{key,badge_comments}]}},
+                    {?__(188, "Custom icon path "), {button,{text, get_pref(badge_custom_icon_path,Attr),
+                                                             [{key,badge_custom_icon_path}, {props,BrowseProps}]}}},
+                    {?__(240, "Font size factor"), {text, get_pref(badge_font_size_factor,Attr), [range(badge_font_size_factor), {key,badge_font_size_factor}]}},
+                    {?__(241, "Custom font path "), {button,{text, get_pref(badge_font_path,Attr),
+                                                             [{key,badge_font_path}, {props,FontProps}]}}}
+                ]}
+            ],[{title,""}, {margin,true}]}
+        },
+
+    RenderPasses = build_render_pass_frame(?__(167, "Render Passes"), Attr),
+
+    Advanced =
+        {?__(213, "Advanced"),
+            {vframe, [
+                {hframe, [
+                    {?__(210, "Automatic Shadow Bias"), get_pref(shadow_bias_auto,Attr), [{key,shadow_bias_auto},{hook,Hook_Show}]},
+                    {hframe, [
+			panel,
+                        {label, ?__(6, "Shadow Bias")}, {text, get_pref(shadow_bias,Attr), [range(shadow_bias),{key,shadow_bias}]}
+                    ],[key(pnl_shadow_bias),{margin,false}]}
+                ]},
+                {hframe, [
+                    {?__(211, "Automatic Min Ray Distance"), get_pref(ray_mindist_auto,Attr), [{key,ray_mindist_auto},{hook,Hook_Show}]},
+                    {hframe, [
+			panel,
+                        {label, ?__(212, "Min Ray Distance")}, {text, get_pref(ray_mindist,Attr), [range(ray_mindist),{key,ray_mindist}]}
+                    ],[key(pnl_ray_mindist),{margin,false}]}
+                ]}
+            ]}
         },
 
     [
         {oframe, [
             GeneralOpt,
+            Noise_AA_Control,
             Lighting,
-            Camera
+            Camera,
+            Logging_Badge] ++
+            RenderPasses ++ [
+            Advanced
         ], 1, [{style, buttons}]}
+    ].
+
+verbosity_menu() ->
+    [
+        {?__(1,"Debug"),'debug'},
+        {?__(2,"Verbose"),'verbose'},
+        {?__(3,"Info"),'info'},
+        {?__(4,"Params"),'params'},
+        {?__(5,"Warning"),'warning'},
+        {?__(6,"Error"),'error'},
+        {?__(7,"Mute (silent)"),'mute'}
+    ].
+
+render_pass_id(N) when is_integer(N) ->
+    list_to_atom("render_pass"++integer_to_list(N)).
+
+build_render_pass_frame(Label, Attr) ->
+    [{render_passes_enable,PassesEnable},
+     {render_passes,MaxRenderPasses}] = get_user_prefs([{render_passes_enable,?DEF_RENDER_PASSES_ENABLE},
+                                                        {render_passes,?DEF_RENDER_PASSES}]),
+
+    {_,Max} = range_1(render_passes),
+    UsedPasses =
+        lists:foldl(fun(N, Acc) ->
+            Id = render_pass_id(N),
+            case get_pref(Id, Attr) of
+                ?DEF_RENDER_PASS -> Acc;
+                _ -> N
+            end
+        end,0, lists:seq(1,Max)),
+    Passes =
+        case {PassesEnable,(UsedPasses =/= 0)} of
+            {fase,true} -> UsedPasses;
+            {true,true} -> max(MaxRenderPasses, UsedPasses);
+            {true,false} -> MaxRenderPasses;
+            _ -> 0
+        end,
+    if (Passes =/= 0) ->
+        [{Label, {hframe, render_pass_frame(Attr,Passes),[{title,""}]}}];
+    true -> []
+    end.
+
+render_pass_frame(Attr, Passes) ->
+    ItemCol = max(1,Passes/2),
+    PassLabel = ?__(1,"Pass"),
+    {Col1,Col2} =
+        lists:foldl(fun(N, {Acc1, Acc2}) ->
+            Id = render_pass_id(N),
+            Value = get_pref(Id, Attr),
+            if N=<ItemCol ->
+                {Acc1++[{PassLabel ++ io_lib:format("~w", [N]),
+                    {menu, render_pass_menu(), Value ,[{key,Id}]}}], Acc2};
+            true ->
+                {Acc1, Acc2++[{PassLabel ++ io_lib:format("~w", [N]),
+                    {menu, render_pass_menu(), Value ,[{key,Id}]}}]}
+            end
+        end, {[],[]}, lists:seq(1,Passes)),
+    [{vframe, [{label_column, Col1}]}, {vframe, [{label_column, Col2}]}].
+
+render_pass_menu() ->
+    [
+        {?__(1,"Disabled"),'disabled'},
+        {?__(2,"Basic: Combined image"),'combined'},
+        {?__(3,"Basic: Diffuse"),'diffuse'},
+        {?__(4,"Basic: Diffuse (no shadows)"),'diffuse-noshadow'},
+        {?__(5,"Basic: Shadow"),'shadow'},
+        {?__(6,"Basic: Environment"),'env'},
+        {?__(7,"Basic: Indirect"),'indirect'},
+        {?__(8,"Basic: Emit"),'emit'},
+        {?__(9,"Basic: Reflection"),'reflect'},
+        {?__(10,"Basic: Refraction"),'refract'},
+        {?__(11,"Basic: Mist"),'mist'},
+        {?__(12,"Z-Depth (absolute)"),'z-depth-abs'},
+        {?__(13,"Z-Depth (normalized)"),'z-depth-norm'},
+        {?__(14,"Ambient Occlusion (color)"),'ao'},
+        {?__(15,"Ambient Occlusion (clay)"),'ao-clay'},
+        {?__(16,"Index-Object (auto)"),'obj-index-auto'},
+        {?__(17,"Index-Material (auto)"),'mat-index-auto'},
+        {?__(18,"Index-Material (absolute)"),'mat-index-abs'},
+        {?__(19,"Index-Material (normalized)"),'mat-index-norm'},
+        {?__(21,"Index-Material Mask"),'mat-index-mask'},
+        {?__(22,"Index-Material Mask Shadow"),'mat-index-mask-shadow'},
+        {?__(23,"Index-Material Mask All (Object+Shadow)"),'mat-index-mask-all'},
+        {?__(24,"Adv: Reflection"),'adv-reflect'},
+        {?__(25,"Adv: Refraction"),'adv-refract'},
+        {?__(26,"Adv: Indirect"),'adv-indirect'},
+        {?__(27,"Adv: Photon Radiance map"),'adv-radiance'},
+        {?__(28,"Adv: Diffuse Indirect"),'adv-diffuse-indirect'},
+        {?__(29,"Adv: Diffuse color"),'adv-diffuse-color'},
+        {?__(30,"Adv: Glossy"),'adv-glossy'},
+        {?__(31,"Adv: Glossy Indirect"),'adv-glossy-indirect'},
+        {?__(32,"Adv: Glossy color"),'adv-glossy-color'},
+        {?__(33,"Adv: Transmissive"),'adv-trans'},
+        {?__(34,"Adv: Trans.Indirect"),'adv-trans-indirect'},
+        {?__(35,"Adv: Trans.color"),'adv-trans-color'},
+        {?__(36,"Adv: SubSurface"),'adv-subsurface'},
+        {?__(37,"Adv: SubSurf.Indirect"),'adv-subsurface-indirect'},
+        {?__(38,"Adv: SubSurf.color"),'adv-subsurface-color'},
+        {?__(39,"Adv: Surface Integration"),'adv-surface-integration'},
+        {?__(40,"Adv: Volume Integration"),'adv-volume-integration'},
+        {?__(41,"Adv: Volume Transmittance"),'adv-volume-transmittance'},
+        {?__(42,"Debug: AA sample count"),'debug-aa-samples'},
+        {?__(43,"Debug: UV"),'debug-uv'},
+        {?__(44,"Debug: dSdV"),'debug-dsdv'},
+        {?__(45,"Debug: dSdU"),'debug-dsdu'},
+        {?__(46,"Debug: dPdV"),'debug-dpdv'},
+        {?__(47,"Debug: dPdU"),'debug-dpdu'},
+        {?__(48,"Debug: NV"),'debug-nv'},
+        {?__(49,"Debug: NU"),'debug-nu'},
+        {?__(50,"Debug: Normals (geometric)"),'debug-normal-geom'},
+        {?__(51,"Debug: Normals (smooth)"),'debug-normal-smooth'},
+        {?__(52,"Debug: LE Light Dirac"),'debug-light-estimation-light-dirac'},
+        {?__(53,"Debug: LE Light Sampling"),'debug-light-estimation-light-sampling'},
+        {?__(54,"Debug: LE Mat Sampling"),'debug-light-estimation-mat-sampling'}
     ].
 
 %%% TO DO: this implementation depends on wings_dialog changes for button operation
@@ -2908,7 +3213,10 @@ export(Attr, Filename, #e3d_file{objs=Objs,mat=Mats,creator=Creator}) ->
     println(F),
     export_camera(F, CameraName, Attr),
     println(F),
-    export_render(F, CameraName, BgName, filename:basename(RenderFile), Attr),
+    export_render(F, CameraName, BgName, Attr),
+    %%
+    println(F),
+    export_logging_badge(F, Attr),
     %%
     println(F),
     println(F, "</scene>"),
@@ -2916,8 +3224,6 @@ export(Attr, Filename, #e3d_file{objs=Objs,mat=Mats,creator=Creator}) ->
     %%
     [{options,Options}] =
         get_user_prefs([{options,?DEF_OPTIONS}]),
-    [{pluginspath,PluginsPath}] =
-        get_user_prefs([{pluginspath,?DEF_PLUGINS_PATH}]),
     case {get_var(renderer),Render} of
         {_,false} ->
             wings_job:export_done(ExportTS),
@@ -2930,6 +3236,8 @@ export(Attr, Filename, #e3d_file{objs=Objs,mat=Mats,creator=Creator}) ->
         {_,true} when ExportFile == RenderFile ->
             export_file_is_render_file;
         {Renderer,true} ->
+            LogVerbosityConsole = proplists:get_value(log_verbosity_console, Attr),
+            LogVerbosityTxtHtml = proplists:get_value(log_verbosity_txt_html, Attr),
             SaveAlpha = proplists:get_value(save_alpha, Attr),
             AlphaChannel =  case SaveAlpha of
                                 false -> "";
@@ -2954,7 +3262,7 @@ export(Attr, Filename, #e3d_file{objs=Objs,mat=Mats,creator=Creator}) ->
                 end,
             file:delete(RenderFile),
             set_var(rendering, true),
-            wings_job:render(ExportTS, Renderer,"-pp "++wings_job:quote(PluginsPath)++" "++AlphaChannel++"-f "++format(RenderFormat)++" "++ArgStr++" "++wings_job:quote(filename:rootname(Filename))++" ", PortOpts, Handler)
+            wings_job:render(ExportTS, Renderer,"-ccd"++" "++AlphaChannel++"-f "++format(RenderFormat)++" "++"-vl "++format(LogVerbosityConsole)++" "++"-lvl "++format(LogVerbosityTxtHtml)++" "++ArgStr++" "++wings_job:quote(filename:rootname(Filename))++" ", PortOpts, Handler)
     end.
 
 warn_multiple_backgrounds([]) ->
@@ -2991,9 +3299,6 @@ export_shader(F, Name, Mat, ExportDir) ->
             export_glossy_shader(F, Name, Mat, ExportDir, YafaRay);
         coatedglossy ->
             export_coatedglossy_shader(F, Name, Mat, ExportDir, YafaRay);
-
-        translucent ->
-            export_translucent_shader(F, Name, Mat, ExportDir, YafaRay);
 
         glass ->
             export_glass_shader(F, Name, Mat, ExportDir, YafaRay);
@@ -3070,17 +3375,6 @@ export_shinydiffuse_shader(F, Name, Mat, ExportDir, YafaRay) ->
             export_rgb(F, absorption, {-math:log(max(AbsR, ?NONZERO))/AbsD,
                                        -math:log(max(AbsG, ?NONZERO))/AbsD,
                                        -math:log(max(AbsB, ?NONZERO))/AbsD})
-    end,
-    DispersionPower = proplists:get_value(dispersion_power, YafaRay, ?DEF_DISPERSION_POWER),
-    case DispersionPower of
-        0.0 -> ok;
-        _   ->
-            DispersionSamples = proplists:get_value(dispersion_samples, YafaRay, ?DEF_DISPERSION_SAMPLES),
-            DispersionJitter = proplists:get_value(dispersion_jitter, YafaRay, ?DEF_DISPERSION_JITTER),
-            println(F, "       "
-                    "        <dispersion_samples ival=\"~w\"/>~n"
-                    "        <dispersion_jitter bval=\"~s\"/>",
-                    [DispersionSamples,format(DispersionJitter)])
     end,
 
     case OrenNayar of
@@ -3176,23 +3470,6 @@ export_glossy_shader(F, Name, Mat, ExportDir, YafaRay) ->
             export_rgb(F, absorption, {-math:log(max(AbsR, ?NONZERO))/AbsD,
                                        -math:log(max(AbsG, ?NONZERO))/AbsD,
                                        -math:log(max(AbsB, ?NONZERO))/AbsD})
-    end,
-    DispersionPower =
-        proplists:get_value(dispersion_power, YafaRay, ?DEF_DISPERSION_POWER),
-    case DispersionPower of
-        0.0 -> ok;
-        _   ->
-            DispersionSamples =
-                proplists:get_value(dispersion_samples, YafaRay,
-                                    ?DEF_DISPERSION_SAMPLES),
-            DispersionJitter =
-                proplists:get_value(dispersion_jitter, YafaRay,
-                                    ?DEF_DISPERSION_JITTER),
-            println(F, "       "
-                    "        <dispersion_samples ival=\"~w\"/>~n"
-                    "        <dispersion_jitter bval=\"~s\"/>",
-                    [DispersionSamples,
-                     format(DispersionJitter)])
     end,
 
     case OrenNayar of
@@ -3297,23 +3574,6 @@ export_coatedglossy_shader(F, Name, Mat, ExportDir, YafaRay) ->
                                        -math:log(max(AbsG, ?NONZERO))/AbsD,
                                        -math:log(max(AbsB, ?NONZERO))/AbsD})
     end,
-    DispersionPower =
-        proplists:get_value(dispersion_power, YafaRay, ?DEF_DISPERSION_POWER),
-    case DispersionPower of
-        0.0 -> ok;
-        _   ->
-            DispersionSamples =
-                proplists:get_value(dispersion_samples, YafaRay,
-                                    ?DEF_DISPERSION_SAMPLES),
-            DispersionJitter =
-                proplists:get_value(dispersion_jitter, YafaRay,
-                                    ?DEF_DISPERSION_JITTER),
-            println(F, "       "
-                    "        <dispersion_samples ival=\"~w\"/>~n"
-                    "        <dispersion_jitter bval=\"~s\"/>",
-                    [DispersionSamples,
-                     format(DispersionJitter)])
-    end,
 
     case OrenNayar of
         false -> ok;
@@ -3336,130 +3596,6 @@ export_coatedglossy_shader(F, Name, Mat, ExportDir, YafaRay) ->
             "        <exp_v fval=\"~.10f\"/>~n"
             "        <exponent fval=\"~.10f\"/>~n",
             [IOR,DiffuseReflect,GlossyReflect,Anisotropic,Anisotropic_U,Anisotropic_V,Exponent]),
-    foldl(fun ({modulator,Ps}=M, N) when is_list(Ps) ->
-                  case export_modulator(F, [Name,$_,format(N)],
-                                        Maps, M, Opacity) of
-                      off -> N+1;
-                      ok ->
-                          println(F),
-                          N+1
-                  end;
-              (_, N) ->
-                  N % Ignore old modulators
-          end, 1, Modulators),
-    println(F, "</material>").
-
-
-
-%%% Export Translucent (SSS) Material
-%%%
-
-
-export_translucent_shader(F, Name, Mat, ExportDir, YafaRay) ->
-    OpenGL = proplists:get_value(opengl, Mat),
-    Maps = proplists:get_value(maps, Mat, []),
-    Modulators = proplists:get_value(modulators, YafaRay, def_modulators(Maps)),
-    foldl(fun ({modulator,Ps}=M, N) when is_list(Ps) ->
-                  case export_texture(F, [Name,$_,format(N)],
-                                      Maps, ExportDir, M) of
-                      off -> N+1;
-                      ok ->
-                          println(F),
-                          N+1
-                  end;
-              (_, N) ->
-                  N % Ignore old modulators
-          end, 1, Modulators),
-    println(F, "<material name=\"~s\">~n"++
-                "<type sval=\"translucent\"/>", [Name]),
-    DiffuseA = {_,_,_,Opacity} = proplists:get_value(diffuse, OpenGL),
-
-    Specular = alpha(proplists:get_value(specular, OpenGL)),
-    DefReflected = Specular,
-    DefTransmitted = def_transmitted(DiffuseA),
-
-
-    SSS_AbsorptionColor =
-        proplists:get_value(sss_absorption_color, YafaRay, ?DEF_SSS_ABSORPTION_COLOR),
-
-
-
-    ScatterColor =
-        proplists:get_value(scatter_color, YafaRay, ?DEF_SCATTER_COLOR),
-
-    SSS_Specular_Color =
-        proplists:get_value(sss_specular_color, YafaRay, ?DEF_SSS_SPECULAR_COLOR),
-
-    %% XXX Wings scaling of shininess is weird. Commonly this value
-    %% is the cosine power and as such in the range 0..infinity.
-    %% OpenGL limits this to 0..128 which mostly is sufficient.
-    println(F, "       <hard ival=\"~.10f\"/>",
-            [proplists:get_value(shininess, OpenGL)*128.0]),
-    export_rgb(F, glossy_color,
-               proplists:get_value(reflected, YafaRay, DefReflected)),
-    export_rgb(F, color,
-               proplists:get_value(transmitted, YafaRay, DefTransmitted)),
-
-    export_rgb(F, specular_color,
-               proplists:get_value(sss_specular_color, YafaRay, SSS_Specular_Color)),
-
-
-
-    case SSS_AbsorptionColor of
-        [ ] -> ok;
-        {AbsR,AbsG,AbsB} ->
-            AbsD =
-                proplists:get_value(absorption_dist, YafaRay,
-                                    ?DEF_ABSORPTION_DIST),
-            export_rgb(F, sigmaA, {-math:log(max(AbsR, ?NONZERO))/AbsD,
-                                   -math:log(max(AbsG, ?NONZERO))/AbsD,
-                                   -math:log(max(AbsB, ?NONZERO))/AbsD})
-    end,
-
-    export_rgb(F, sigmaS,
-               proplists:get_value(scatter_color, YafaRay, ScatterColor)),
-
-    IOR = proplists:get_value(ior, YafaRay, ?DEF_IOR),
-
-
-
-
-    SigmaSfactor = proplists:get_value(sigmas_factor, YafaRay, ?DEF_SIGMAS_FACTOR),
-
-    DiffuseReflect = proplists:get_value(diffuse_reflect, YafaRay, ?DEF_DIFFUSE_REFLECT),
-
-    GlossyReflect = proplists:get_value(glossy_reflect, YafaRay, ?DEF_GLOSSY_REFLECT),
-
-    SSS_Translucency = proplists:get_value(sss_translucency, YafaRay, ?DEF_SSS_TRANSLUCENCY),
-
-    Exponent = proplists:get_value(exponent, YafaRay, ?DEF_EXPONENT),
-
-    DispersionPower =
-        proplists:get_value(dispersion_power, YafaRay, ?DEF_DISPERSION_POWER),
-    case DispersionPower of
-        0.0 -> ok;
-        _   ->
-            DispersionSamples =
-                proplists:get_value(dispersion_samples, YafaRay,
-                                    ?DEF_DISPERSION_SAMPLES),
-            DispersionJitter =
-                proplists:get_value(dispersion_jitter, YafaRay,
-                                    ?DEF_DISPERSION_JITTER),
-            println(F, "       "
-                    "        <dispersion_samples ival=\"~w\"/>~n"
-                    "        <dispersion_jitter bval=\"~s\"/>",
-                    [DispersionSamples,
-                     format(DispersionJitter)])
-
-
-    end,
-    println(F, "        <IOR fval=\"~.10f\"/>~n"
-            "        <sigmaS_factor fval=\"~.10f\"/>~n"
-            "        <diffuse_reflect fval=\"~.10f\"/>~n"
-            "        <glossy_reflect fval=\"~.10f\"/>~n"
-            "        <sss_transmit fval=\"~.10f\"/>~n"
-            "        <exponent fval=\"~.10f\"/>~n",
-            [IOR,SigmaSfactor,DiffuseReflect,GlossyReflect,SSS_Translucency,Exponent]),
     foldl(fun ({modulator,Ps}=M, N) when is_list(Ps) ->
                   case export_modulator(F, [Name,$_,format(N)],
                                         Maps, M, Opacity) of
@@ -3513,8 +3649,6 @@ export_glass_shader(F, Name, Mat, ExportDir, YafaRay) ->
 
     IOR = proplists:get_value(ior, YafaRay, ?DEF_IOR),
 
-    Glass_IR_Depth = proplists:get_value(glass_ir_depth, YafaRay, ?DEF_GLASS_IR_DEPTH),
-
     TransmitFilter = proplists:get_value(transmit_filter, YafaRay, ?DEF_TRANSMIT_FILTER),
 
     DefAbsorptionColor = def_absorption_color(proplists:get_value(diffuse, OpenGL)),
@@ -3538,33 +3672,19 @@ export_glass_shader(F, Name, Mat, ExportDir, YafaRay) ->
                    ,[AbsD,TransmitFilter])
 
     end,
+
     DispersionPower =
         proplists:get_value(dispersion_power, YafaRay, ?DEF_DISPERSION_POWER),
-    case DispersionPower of
-        0.0 -> ok;
-        _   ->
-            DispersionSamples =
-                proplists:get_value(dispersion_samples, YafaRay,
-                                    ?DEF_DISPERSION_SAMPLES),
-
-            println(F, "        <dispersion_power fval=\"~.10f\"/>~n"
-                    "        <dispersion_samples ival=\"~w\"/>~n",
-
-                    [DispersionPower,DispersionSamples
-                    ])
-
-
-    end,
+        println(F, "        <dispersion_power fval=\"~.10f\"/>~n", [DispersionPower]),
 
     FakeShadows =
         proplists:get_value(fake_shadows, YafaRay, ?DEF_FAKE_SHADOWS),
 
     println(F, "        <IOR fval=\"~.10f\"/>~n"
-            "        <glass_internal_reflect_depth ival=\"~w\"/>~n"
             "           <fake_shadows bval=\"~s\"/>~n"
 
             "",
-            [IOR,Glass_IR_Depth,format(FakeShadows)]),
+            [IOR,format(FakeShadows)]),
     foldl(fun ({modulator,Ps}=M, N) when is_list(Ps) ->
                   case export_modulator(F, [Name,$_,format(N)],
                                         Maps, M, Opacity) of
@@ -3641,23 +3761,10 @@ export_rough_glass_shader(F, Name, Mat, ExportDir, YafaRay) ->
                     "        <transmit_filter fval=\"~.10f\"/>~n"
                     "        <roughness fval=\"~.10f\"/>~n",[AbsD,TransmitFilter,Roughness])
     end,
+
     DispersionPower =
         proplists:get_value(dispersion_power, YafaRay, ?DEF_DISPERSION_POWER),
-    case DispersionPower of
-        0.0 -> ok;
-        _   ->
-            DispersionSamples =
-                proplists:get_value(dispersion_samples, YafaRay,
-                                    ?DEF_DISPERSION_SAMPLES),
-
-            println(F, "        <dispersion_power fval=\"~.10f\"/>~n"
-                    "        <dispersion_samples ival=\"~w\"/>~n",
-
-                    [DispersionPower,DispersionSamples
-                    ])
-
-
-    end,
+        println(F, "        <dispersion_power fval=\"~.10f\"/>~n", [DispersionPower]),
 
     FakeShadows =
         proplists:get_value(fake_shadows, YafaRay, ?DEF_FAKE_SHADOWS),
@@ -3894,10 +4001,7 @@ export_texture(F, Name, image, Filename) ->
                 "<type sval=\"image\"/>~n" ++
                 "</texture>", [Name,Filename]);
 export_texture(F, Name, Type, Ps) ->
-    %% Start Work-Around for YafaRay Texture Name TEmytex Requirement for Noise Volume
-    TextureNameChg = re:replace(Name,"w_TEmytex_1","TEmytex",[global]),
-    println(F, "<texture name=\"~s\"> <type sval=\"~s\"/>", [TextureNameChg,format(Type)]),
-    %% End Work-Around for YafaRay Texture Name TEmytex Requirement for Noise Volume
+    println(F, "<texture name=\"~s\"> <type sval=\"~s\"/>", [Name,format(Type)]),
 
     Color1 = proplists:get_value(color1, Ps, ?DEF_MOD_COLOR1),
     Color2 = proplists:get_value(color2, Ps, ?DEF_MOD_COLOR2),
@@ -4368,12 +4472,13 @@ export_object_1(F, NameStr, Mesh0=#e3d_mesh{he=He0}, DefaultMaterial, MatPs, Id)
                     println(F, "<sharpness fval=\"~.10f\"/>",[Volume_Sharpness]),
                     println(F, "<cover fval=\"~.10f\"/>",[Volume_Cover]),
                     println(F, "<density fval=\"~.10f\"/>",[Volume_Density]),
-                    println(F, "<texture sval=\"TEmytex\"/>")
+                    println(F, "<texture sval=\"w_~s_1\"/>",[DefaultMaterial])
 
             end,
 
 
             println(F, "<attgridScale ival=\"~w\"/>",[Volume_Attgridscale]),
+            % FIXME: This is not really good, volume Min/Max coordinates should be automatically calculated based on the object bounds, not entered manually by the user. This is counter-intuitive.
             println(F, "<maxX fval=\"~.10f\"/>",[Volume_Minmax_Z]),
             println(F, "<maxY fval=\"~.10f\"/>",[Volume_Minmax_X]),
             println(F, "<maxZ fval=\"~.10f\"/>",[Volume_Minmax_Y]),
@@ -4415,19 +4520,23 @@ export_object_1(F, NameStr, Mesh0=#e3d_mesh{he=He0}, DefaultMaterial, MatPs, Id)
 
     end,
 
-    export_vertices(F, Vs),
+    case Object_Type of
+        volume -> ok;
+        _ ->
+            export_vertices(F, Vs),
 
-    %% Add Export UV_Vectors Part 1 Start
-    case HasUV of
-        "false" -> ok;
-        "true" -> println(F, "        "),
-                  println(F, "<!--uv_vectors Quantity=\"~w\" -->",[length(Tx)]),
-                  println(F, "        "),
-                  export_vectors2D(F, Tx)
+            %% Add Export UV_Vectors Part 1 Start
+            case HasUV of
+                "false" -> ok;
+                "true" -> println(F, "        "),
+                          println(F, "<!--uv_vectors Quantity=\"~w\" -->",[length(Tx)]),
+                          println(F, "        "),
+                          export_vectors2D(F, Tx)
+            end,
+            %% Add Export UV_Vectors Part 1 End
+
+            export_faces(F, Fs, DefaultMaterial, list_to_tuple(Tx), list_to_tuple(Vc))
     end,
-    %% Add Export UV_Vectors Part 1 End
-
-    export_faces(F, Fs, DefaultMaterial, list_to_tuple(Tx), list_to_tuple(Vc)),
 
     case Object_Type of
         mesh ->
@@ -4451,13 +4560,18 @@ export_object_1(F, NameStr, Mesh0=#e3d_mesh{he=He0}, DefaultMaterial, MatPs, Id)
             println(F," ")
     end,
 
-    case Autosmooth of
-        false ->
-            println(F, "");
-        true ->
-            println(F, "    <smooth ID=\"~w\" angle=\"~.3f\"/>", [Id,AutosmoothAngle])
-    end,
 
+    case Object_Type of
+        volume -> ok;
+        _ ->
+            case Autosmooth of
+                false ->
+                    println(F, "");
+                true ->
+                    println(F, "    <smooth ID=\"~w\" angle=\"~.3f\"/>", [Id,AutosmoothAngle])
+            end
+    end,
+    
     io:format(?__(6,"done")++"~n").
 
 
@@ -5264,6 +5378,9 @@ export_background(F, Name, Ps) ->
             BgRotation = proplists:get_value(background_rotation, YafaRay,
                 ?DEF_BACKGROUND_ROTATION),
 
+            Smartibl_blur = proplists:get_value(smartibl_blur, YafaRay,
+                ?DEF_SMARTIBL_BLUR),
+                
             Samples = proplists:get_value(samples, YafaRay,
                 ?DEF_SAMPLES),
 
@@ -5294,7 +5411,9 @@ export_background(F, Name, Ps) ->
                     println(F, "<ibl bval=\"true\"/>"),
                     println(F, "<ibl_samples ival=\"~w\"/>",[Samples]),
                     println(F, "<with_diffuse bval=\"~s\"/>",[AmbientDiffusePhotons]),
-                    println(F, "<with_caustic bval=\"~s\"/>",[AmbientCausticPhotons]);
+                    println(F, "<with_caustic bval=\"~s\"/>",[AmbientCausticPhotons]),
+                    println(F, "<smartibl_blur fval=\"~w\"/>",[Smartibl_blur]);
+                    
                 false ->
                     println(F, "<ibl bval=\"false\"/>")
             end,
@@ -5312,6 +5431,9 @@ export_background(F, Name, Ps) ->
                 ?DEF_SAMPLES),
             BgRotation = proplists:get_value(background_rotation, YafaRay,
                 ?DEF_BACKGROUND_ROTATION),
+
+            Smartibl_blur = proplists:get_value(smartibl_blur, YafaRay,
+                ?DEF_SMARTIBL_BLUR),
 
             AmbientDiffusePhotons = proplists:get_value(ambient_diffusephotons, YafaRay, ?DEF_AMBIENT_DIFFUSEPHOTONS),
 
@@ -5339,7 +5461,8 @@ export_background(F, Name, Ps) ->
                     println(F, "<ibl bval=\"true\"/>"),
                     println(F, "<ibl_samples ival=\"~w\"/>",[Samples]),
                     println(F, "<with_diffuse bval=\"~s\"/>",[AmbientDiffusePhotons]),
-                    println(F, "<with_caustic bval=\"~s\"/>",[AmbientCausticPhotons]);
+                    println(F, "<with_caustic bval=\"~s\"/>",[AmbientCausticPhotons]),
+                    println(F, "<smartibl_blur fval=\"~w\"/>",[Smartibl_blur]);
                 false ->
                     println(F, "<ibl bval=\"false\"/>")
             end,
@@ -5354,31 +5477,36 @@ export_background(F, Name, Ps) ->
 
 
 
-export_render(F, CameraName, BackgroundName, Outfile, Attr) ->
+export_render(F, CameraName, BackgroundName, Attr) ->
+    ComputerNode = get_pref(computer_node, Attr),
     AA_passes = proplists:get_value(aa_passes, Attr),
     AA_minsamples = proplists:get_value(aa_minsamples, Attr),
+    AA_incsamples = proplists:get_value(aa_incsamples, Attr),
     AA_pixelwidth = proplists:get_value(aa_pixelwidth, Attr),
     AA_threshold = proplists:get_value(aa_threshold, Attr),
-    ClampRGB = proplists:get_value(clamp_rgb, Attr),
+    AA_noise_resampled_floor = proplists:get_value(aa_noise_resampled_floor, Attr),
+    AA_noise_sample_multiplier_factor = proplists:get_value(aa_noise_sample_multiplier_factor, Attr),
+    AA_noise_light_sample_multiplier_factor = proplists:get_value(aa_noise_light_sample_multiplier_factor, Attr),
+    AA_noise_indirect_sample_multiplier_factor = proplists:get_value(aa_noise_indirect_sample_multiplier_factor, Attr),
+    AA_noise_detect_color_noise = proplists:get_value(aa_noise_detect_color_noise, Attr),
+    AA_noise_dark_detection_type = proplists:get_value(aa_noise_dark_detection_type, Attr),
+    AA_noise_dark_threshold_factor = proplists:get_value(aa_noise_dark_threshold_factor, Attr),
+    AA_noise_variance_edge_size = proplists:get_value(aa_noise_variance_edge_size, Attr),
+    AA_noise_variance_pixels = proplists:get_value(aa_noise_variance_pixels, Attr),
+    AA_noise_clamp_samples = proplists:get_value(aa_noise_clamp_samples, Attr),
+    AA_noise_clamp_indirect = proplists:get_value(aa_noise_clamp_indirect, Attr),
+    BackgroundTransp = proplists:get_value(background_transp, Attr),
     BackgroundTranspRefract = proplists:get_value(background_transp_refract, Attr),
     AA_Filter_Type = proplists:get_value(aa_filter_type, Attr),
     SaveAlpha = proplists:get_value(save_alpha, Attr),
     Raydepth = proplists:get_value(raydepth, Attr),
     TransparentShadows = proplists:get_value(transparent_shadows, Attr),
     ShadowDepth = proplists:get_value(shadow_depth, Attr),
+    TileSize = proplists:get_value(tile_size, Attr),
+    TileOrder = proplists:get_value(tile_order, Attr),
     Gamma = proplists:get_value(gamma, Attr),
-    Exposure = proplists:get_value(exposure, Attr),
-    RenderFormat = proplists:get_value(render_format, Attr),
-    ExrFlagFloat = proplists:get_value(exr_flag_float, Attr),
-    ExrFlagZbuf = proplists:get_value(exr_flag_zbuf, Attr),
-    ExrFlagCompression = proplists:get_value(exr_flag_compression, Attr),
     Width = proplists:get_value(width, Attr),
     Height = proplists:get_value(height, Attr),
-    UseSSS = proplists:get_value(use_sss, Attr),
-    SSS_Photons = proplists:get_value(sss_photons, Attr),
-    SSS_Depth = proplists:get_value(sss_depth, Attr),
-    SSS_Scale = proplists:get_value(sss_scale, Attr),
-    SSS_SingleScatter_Samples = proplists:get_value(sss_singlescatter_samples, Attr),
     UseCaustics = proplists:get_value(use_caustics, Attr),
     Caustic_Photons = proplists:get_value(caustic_photons, Attr),
     Caustic_Depth = proplists:get_value(caustic_depth, Attr),
@@ -5420,6 +5548,24 @@ export_render(F, CameraName, BackgroundName, Outfile, Attr) ->
     Volintegr_Stepsize = proplists:get_value(volintegr_stepsize, Attr),
     ThreadsAuto = proplists:get_value(threads_auto, Attr),
     ThreadsNumber = proplists:get_value(threads_number, Attr),
+    Shadow_bias_auto = proplists:get_value(shadow_bias_auto, Attr),
+    Shadow_bias = proplists:get_value(shadow_bias, Attr),
+    Ray_mindist_auto = proplists:get_value(ray_mindist_auto, Attr),
+    Ray_mindist = proplists:get_value(ray_mindist, Attr),
+    Img_autosave_type = proplists:get_value(img_autosave_type, Attr),
+    Img_autosave_passes = proplists:get_value(img_autosave_passes, Attr),
+    Img_autosave_seconds = proplists:get_value(img_autosave_seconds, Attr),
+    Img_denoise_enable = proplists:get_value(img_denoise_enable, Attr),
+    Img_denoise_mix = proplists:get_value(img_denoise_mix, Attr),
+    Img_denoise_h_lum = proplists:get_value(img_denoise_h_lum, Attr),
+    Img_denoise_h_chrom = proplists:get_value(img_denoise_h_chrom, Attr),
+    Film_processing = proplists:get_value(film_processing, Attr),
+    Film_binary_format = proplists:get_value(film_binary_format, Attr),
+    Film_autosave_type = proplists:get_value(film_autosave_type, Attr),
+    Film_autosave_passes = proplists:get_value(film_autosave_passes, Attr),
+    Film_autosave_seconds = proplists:get_value(film_autosave_seconds, Attr),
+
+    
     println(F," "),
     println(F, "<integrator name=\"default\">"),
 
@@ -5430,6 +5576,7 @@ export_render(F, CameraName, BackgroundName, Outfile, Attr) ->
         directlighting ->
             println(F," "),
             println(F, "<type sval=\"~s\"/>",[Lighting_Method]),
+            println(F, "<bg_transp bval=\"~s\"/>",[format(BackgroundTransp)]),
             println(F, "<bg_transp_refract bval=\"~s\"/>",[format(BackgroundTranspRefract)]),
             println(F, "<raydepth ival=\"~w\"/>",[Raydepth]),
             println(F, "<transpShad bval=\"~s\"/>",[format(TransparentShadows)]),
@@ -5439,6 +5586,7 @@ export_render(F, CameraName, BackgroundName, Outfile, Attr) ->
         photonmapping ->
             println(F," "),
             println(F, "<type sval=\"~s\"/>",[Lighting_Method]),
+            println(F, "<bg_transp bval=\"~s\"/>",[format(BackgroundTransp)]),
             println(F, "<bg_transp_refract bval=\"~s\"/>",[format(BackgroundTranspRefract)]),
             println(F, "<raydepth ival=\"~w\"/>",[Raydepth]),
             println(F, "<transpShad bval=\"~s\"/>",[format(TransparentShadows)]),
@@ -5459,6 +5607,7 @@ export_render(F, CameraName, BackgroundName, Outfile, Attr) ->
         pathtracing ->
             println(F," "),
             println(F, "<type sval=\"~s\"/>",[Lighting_Method]),
+            println(F, "<bg_transp bval=\"~s\"/>",[format(BackgroundTransp)]),
             println(F, "<bg_transp_refract bval=\"~s\"/>",[format(BackgroundTranspRefract)]),
             println(F, "<raydepth ival=\"~w\"/>",[Raydepth]),
             println(F, "<transpShad bval=\"~s\"/>",[format(TransparentShadows)]),
@@ -5475,6 +5624,7 @@ export_render(F, CameraName, BackgroundName, Outfile, Attr) ->
         bidirectional ->
             println(F," "),
             println(F, "<type sval=\"~s\"/>",[Lighting_Method]),
+            println(F, "<bg_transp bval=\"~s\"/>",[format(BackgroundTransp)]),
             println(F, "<bg_transp_refract bval=\"~s\"/>",[format(BackgroundTranspRefract)]),
             println(F, "<raydepth ival=\"~w\"/>",[Raydepth]),
             println(F," ");
@@ -5482,6 +5632,7 @@ export_render(F, CameraName, BackgroundName, Outfile, Attr) ->
         sppm ->
             println(F," "),
             println(F, "<type sval=\"SPPM\"/>"),
+            println(F, "<bg_transp bval=\"~s\"/>",[format(BackgroundTransp)]),
             println(F, "<bg_transp_refract bval=\"~s\"/>",[format(BackgroundTranspRefract)]),
             println(F, "<photons ival=\"~w\"/>",[SPPM_Photons]),
             println(F, "<bounces ival=\"~w\"/>",[SPPM_Bounces]),
@@ -5524,21 +5675,6 @@ export_render(F, CameraName, BackgroundName, Outfile, Attr) ->
     end,
 
 
-    case UseSSS of
-        true ->
-            println(F, "<useSSS bval=\"true\"/>"),
-            println(F, "<sssPhotons ival=\"~w\"/>",[SSS_Photons]),
-            println(F, "<sssDepth ival=\"~w\"/>",[SSS_Depth]),
-            println(F, "<sssScale fval=\"~.10f\"/>",[SSS_Scale]),
-            println(F, "<singleScatterSamples ival=\"~w\"/>",[SSS_SingleScatter_Samples]);
-
-        false ->
-            println(F, "<ibl bval=\"false\"/>")
-
-    end,
-
-
-
     println(F, "</integrator>"),
 
 
@@ -5562,70 +5698,56 @@ export_render(F, CameraName, BackgroundName, Outfile, Attr) ->
             println(F," ")
     end,
 
-
-
-
-
-
-
-
-
-
-
-    ExrFlags =
-        case RenderFormat of
-            exr ->
-                [if ExrFlagFloat -> "float "; true -> "" end,
-                 if ExrFlagZbuf -> "zbuf "; true -> "" end,
-                 format(ExrFlagCompression)];
-            _ -> ""
-        end,
-    println(F, "<render> <camera_name sval=\"~s\"/> "
-    "<filter_type sval=\"~s\"/>"
-    "<AA_passes ival=\"~w\"/>~n"
+    println(F, "<render>~n"
+    "        <adv_computer_node ival=\"~w\"/>~n"
+    "        <camera_name sval=\"~s\"/>~n"
+    "        <filter_type sval=\"~s\"/>~n"
+    "        <AA_passes ival=\"~w\"/>~n"
     "        <AA_threshold fval=\"~.10f\"/>~n"
-    "        <AA_minsamples ival=\"~w\"/> <AA_pixelwidth fval=\"~.10f\"/>~n"++
+    "        <AA_minsamples ival=\"~w\"/>~n"
+    "        <AA_inc_samples ival=\"~w\"/>~n"
+    "        <AA_pixelwidth fval=\"~.10f\"/>~n"
+    "        <AA_resampled_floor fval=\"~.10f\"/>~n"
+    "        <AA_sample_multiplier_factor fval=\"~.10f\"/>~n"
+    "        <AA_light_sample_multiplier_factor fval=\"~.10f\"/>~n"
+    "        <AA_indirect_sample_multiplier_factor fval=\"~.10f\"/>~n"
+    "        <AA_detect_color_noise bval=\"~s\"/>~n"
+    "        <AA_dark_detection_type sval=\"~s\"/>~n"
+    "        <AA_dark_threshold_factor fval=\"~.10f\"/>~n"
+    "        <AA_variance_edge_size ival=\"~w\"/>~n"
+    "        <AA_variance_pixels ival=\"~w\"/>~n"
+    "        <AA_clamp_samples fval=\"~.10f\"/>~n"
+    "        <AA_clamp_indirect fval=\"~.10f\"/>~n"++
         case SaveAlpha of
             premultiply ->
                 "        <premult bval=\"true\"/>~n";
             _ -> ""
         end++
-        "        <clamp_rgb bval=\"~s\"/>~n"
-        "    <background_name sval=\"~s\"/>~n"++
-        case RenderFormat of
-            tga -> "";
-            _   -> "    <output_type sval=\"~s\"/>~n"
-        end++
-        case RenderFormat of
-            exr -> "    <exr_flags sval=\"~s\"/>~n";
-            _   -> ""
-        end++
-
-
-
-
-
-
-        "    <width ival=\"~w\"/> <height ival=\"~w\"/>~n"
-        "    <outfile sval=\"~s\"/>~n"
-        "    <indirect_samples sval=\"0\"/>~n"
-        "    <indirect_power sval=\"1.0\"/>~n"
-        "    <exposure fval=\"~.10f\"/>~n"++
-        "    <gamma fval=\"~.10f\"/>~n"
-        "    ",
-        [CameraName,AA_Filter_Type,AA_passes,AA_threshold,
-            AA_minsamples,AA_pixelwidth,
-            format(ClampRGB),BackgroundName]++
-            case RenderFormat of
-                tga -> [];
-                _   -> [format(RenderFormat)]
-            end++
-            case RenderFormat of
-                exr -> [ExrFlags];
-                _   -> []
-            end++
-
-            [Width,Height,Outfile,Exposure,Gamma]),
+    "        <background_name sval=\"~s\"/>~n"++
+    "        <width ival=\"~w\"/> <height ival=\"~w\"/>~n"
+    "        <gamma fval=\"~.10f\"/>~n"
+    "        <adv_auto_shadow_bias_enabled bval=\"~s\"/>~n"
+    "        <adv_shadow_bias_value fval=\"~.10f\"/>~n"
+    "        <adv_auto_min_raydist_enabled bval=\"~s\"/>~n"
+    "        <adv_min_raydist_value fval=\"~.10f\"/>~n"
+    "        <tile_size ival=\"~w\"/>~n"
+    "        <tiles_order sval=\"~s\"/>~n"
+    "        <film_autosave_interval_passes ival=\"~w\"/>~n"
+    "        <film_autosave_interval_seconds fval=\"~.10f\"/>~n"
+    "        <film_autosave_interval_type sval=\"~s\"/>~n"
+    "        <film_save_binary_format bval=\"~s\"/>~n"
+    "        <film_save_load sval=\"~s\"/>~n"
+    "        <images_autosave_interval_passes ival=\"~w\"/>~n"
+    "        <images_autosave_interval_seconds fval=\"~.10f\"/>~n"
+    "        <images_autosave_interval_type sval=\"~s\"/>~n"
+    "        <denoiseEnabled bval=\"~s\"/>~n"
+    "        <denoiseHLum ival=\"~w\"/>~n"
+    "        <denoiseHCol ival=\"~w\"/>~n"
+    "        <denoiseMix fval=\"~.10f\"/>~n"
+    "        ",
+        [ComputerNode,CameraName,AA_Filter_Type,AA_passes,AA_threshold,
+            AA_minsamples,AA_incsamples,AA_pixelwidth,AA_noise_resampled_floor,AA_noise_sample_multiplier_factor,AA_noise_light_sample_multiplier_factor,AA_noise_indirect_sample_multiplier_factor,AA_noise_detect_color_noise,AA_noise_dark_detection_type,AA_noise_dark_threshold_factor,AA_noise_variance_edge_size,AA_noise_variance_pixels,AA_noise_clamp_samples,AA_noise_clamp_indirect,BackgroundName]++
+            [Width,Height,Gamma]++[Shadow_bias_auto, Shadow_bias, Ray_mindist_auto, Ray_mindist]++[TileSize, TileOrder]++[Film_autosave_passes, Film_autosave_seconds, Film_autosave_type, Film_binary_format, Film_processing, Img_autosave_passes, Img_autosave_seconds, Img_autosave_type, Img_denoise_enable, Img_denoise_h_lum, Img_denoise_h_chrom, Img_denoise_mix]),
 
     println(F, "<integrator_name sval=\"default\"/>"),
 
@@ -5637,13 +5759,60 @@ export_render(F, CameraName, BackgroundName, Outfile, Attr) ->
     end,
 
     println(F, "<volintegrator_name sval=\"volintegr\"/>"),
-    println(F, "</render>").
+    println(F, "</render>"),
+
+
+    %% Render Passes
+
+    println(F, "<render_passes name=\"render_passes\">"),
+
+    {_,Max} = range_1(render_passes),
+
+    lists:foldl(fun(N, _) ->
+        RPValue = proplists:get_value(render_pass_id(N), Attr),
+        case RPValue of
+            undefined -> println(F, "	<pass_RenderPass_~w sval=\"disabled\"/>",[N]);
+            _ -> println(F, "	<pass_RenderPass_~w sval=\"~s\"/>",[N,RPValue])
+        end
+    end, [], lists:seq(1,Max)),
+    println(F, "</render_passes>").
+
+
+export_logging_badge(F, Attr) ->
+    LogSaveTxt = proplists:get_value(log_save_txt, Attr),
+    LogSaveHtml = proplists:get_value(log_save_html, Attr),
+    BadgePosition = proplists:get_value(badge_position, Attr),
+    BadgeTitle = proplists:get_value(badge_title, Attr),
+    BadgeAuthor = proplists:get_value(badge_author, Attr),
+    BadgeContact = proplists:get_value(badge_contact, Attr),
+    BadgeComments = proplists:get_value(badge_comments, Attr),
+    BadgeCustomIconPath = proplists:get_value(badge_custom_icon_path, Attr),
+    BadgeDrawRenderSettings = proplists:get_value(badge_draw_render_settings, Attr),
+    BadgeDrawAANoiseSettings = proplists:get_value(badge_draw_aa_noise_settings, Attr),
+    Badge_font_path = proplists:get_value(badge_font_path, Attr),
+    Badge_font_size_factor = proplists:get_value(badge_font_size_factor, Attr),
+    
+    println(F, "<logging_badge name=\"logging_badge\">"),
+    println(F, "	<logging_saveLog bval=\"~s\"/>", [LogSaveTxt]),
+    println(F, "	<logging_saveHTML bval=\"~s\"/>", [LogSaveHtml]),
+    println(F, "	<logging_paramsBadgePosition sval=\"~s\"/>", [BadgePosition]),
+    io:put_chars(F, unicode:characters_to_binary(io_lib:format("	<logging_title sval=\"~ts\"/>", [BadgeTitle]))),
+    io:put_chars(F, unicode:characters_to_binary(io_lib:format("	<logging_author sval=\"~ts\"/>~n", [BadgeAuthor]))),
+    io:put_chars(F, unicode:characters_to_binary(io_lib:format("	<logging_contact sval=\"~ts\"/>", [BadgeContact]))),
+    io:put_chars(F, unicode:characters_to_binary(io_lib:format("	<logging_comments sval=\"~ts\"/>", [BadgeComments]))),
+    println(F, "	<logging_customIcon sval=\"~s\"/>", [BadgeCustomIconPath]),
+    println(F, "	<logging_drawRenderSettings bval=\"~s\"/>", [BadgeDrawRenderSettings]),
+    println(F, "	<logging_drawAANoiseSettings bval=\"~s\"/>", [BadgeDrawAANoiseSettings]),
+    println(F, "	<logging_fontPath sval=\"~s\"/>~n", [Badge_font_path]),
+    println(F, "	<logging_fontSizeFactor fval=\"~.10f\"/>~n", [Badge_font_size_factor]),
+    println(F, "</logging_badge>").
+
 
 %%% Noisy file output functions. Fail if anything goes wrong.
 %%%
 
 open(Filename, export) ->
-    case file:open(Filename, [write,raw,delayed_write]) of
+    case file:open(Filename, [write,{encoding, utf8},delayed_write]) of
         {ok, F} ->
             F;
         Error ->
@@ -5829,32 +5998,37 @@ menu_shader() ->
         {?__(3,"Rough Glass"),rough_glass},
         {?__(4,"Glossy"),glossy},
         {?__(5,"Coated Glossy"),coatedglossy},
-        {?__(6,"Translucent (SSS)"),translucent},
         {?__(7,"Light Material"),lightmat},
         {?__(8,"Blend"),blend_mat}].
 
-%% Split a list into a list of length Pos, and the tail
-%%
-split_list(List, Pos) when is_list(List), is_integer(Pos), Pos >= 0 ->
-    case split_list1(List, Pos, []) of
-        {_,_}=Result -> Result;
-        Error -> erlang:error(Error, [List, Pos])
+
+%%% pulls out all the values stored as {{KeyTag, SubKey}, Value}
+%%% returns {ListOfFound, ListRemaining}
+%%% ListOfFound is a list of {SubKey, Value}
+rip_all(KeyTag, List) ->
+    Keys = proplists:get_keys(List),
+    rip_all(KeyTag, Keys, List).
+rip_all(KeyTag, [Key | Keys], List) ->
+    case rip_keytag(KeyTag, Key) of
+	true ->
+	    {_SetTag, SubTag} = Key,
+	    Value = proplists:get_value(Key, List),
+	    ListNext = proplists:delete(Key, List),
+	    {Found, Remaining} = rip_all(KeyTag, Keys, ListNext),
+	    {[{SubTag, Value} | Found], Remaining};
+	false ->
+	    rip_all(KeyTag, Keys, List)
     end;
-split_list(List, Fun) when is_list(List), is_function(Fun) ->
-    split_list2(List, Fun, []).
-%%
-split_list1(List, 0, Head) ->
-    {lists:reverse(Head),List};
-split_list1([], _Pos, _) ->
-    badarg;
-split_list1([H|T], Pos, Head) ->
-    split_list1(T, Pos-1, [H|Head]).
-%%
-split_list2([H|T]=List, Fun, Head) ->
-    case Fun(H) of
-        true -> {lists:reverse(Head),List};
-        _ -> split_list2(T, Fun, [H|Head])
-    end.
+rip_all(_K, _KL, List) ->
+    {[], List}.
+
+rip_keytag(KeyTag, {SetTag, _}) ->
+    case KeyTag of
+	SetTag -> true;
+	_ -> false
+    end;
+rip_keytag(_KT, _ST) ->
+    false.
 
 
 %% Zip lists together into a list of tuples
@@ -5903,10 +6077,11 @@ help(text, {material_dialog,object}) ->
     [?__(7,"Object Parameters are applied to whole objects, namely those "
       "that have this material on a majority of their faces."),
     ?__(8,"Mesh: Standard 3D mesh."),
-    ?__(9,"Volume: Defines an area for Volumetrics. The material name must be TEmytex. "
+    % FIXME: This is not really good, volume Min/Max coordinates should be automatically calculated based on the object bounds, not entered manually by the user. This is counter-intuitive.
+    ?__(9,"Volume: Defines an area for Volumetrics. "
       "Control simulated size by adjusting Min/Max settings. "
       "When using the Noise option, a Texture must also be defined in the Material "
-      "Properties. Volumetrics must also be enabled under YafaRay Render Options."),
+      "Properties, in that case the first texture will be used. Volumetrics must also be enabled under YafaRay Render Options."),
     ?__(10,"Mesh Light: Use for Neon lights or other glowing meshes. "
       "Limit the number of mesh lights in your scene, since render times are longer. "
       "Mesh Lights provide faster rendering than converting meshes to area lights "
@@ -6007,18 +6182,12 @@ help(text, pref_dialog) ->
      ?__(71,"is the same as for \"Automatic Dialogs\"."),
      %%
      ?__(72,"Executable: The rendering command for the YafaRay raytrace "
-        "renderer ('c:/yafaray/bin/yafaray-xml.exe') that is supposed to "
+        "renderer ('c:/yafaray_v3/bin/yafaray-xml.exe') that is supposed to "
         "be found in the executables search path; or, the absolute path of "
         "that executable."),
      %%
-     ?__(73,"YafaRay Plugins Path: The path to the YafaRay raytrace renderer plugins "
-        "folder('c:/yafaray/bin/plugins'). YafaRay will not work without this."),
-     %%
      ?__(74,"Options: Rendering command line options to be inserted between the "
-      "executable and the .xml filename, -dp (add render settings badge) "
-      "-vl (verbosity level, 0=Mute,1=Errors,2=Warnings,3=All)."),
-     ?__(75,"NOTE: The YafaRay Fork Build, 'TheBounty' by Povmaniac, is required for "
-	 "SUBSURFACE SCATTERING, Translucent (SSS) Material.")];
+      "executable and the .xml filename.")];
 
 help(title, {options_dialog,_}) ->
     ?__(811,"YafaRay Render Options");
@@ -6033,12 +6202,9 @@ help(text, {options_dialog,general}) ->
         ?__(87,"This lighting method in the Lighting tab requires a high number of Passes "
         "in the Anti-Aliasing section of the General Options tab. Anti-Aliasing Threshold "
         "should be set to 0.0."),
-     [{bold,?__(88,"Subsurface Scattering:")++" "}],
-        ?__(89,"This feature, in the Lighting tab, is not available with all Lighting methods. "
-        "An object with Translucent (SSS) material  is required."),
      [{bold,?__(90,"Volumetrics:")++" "}],
         ?__(91,"This feature in the Lighting tab, adds fog or clouds to your scene, assuming "
-        "there is a Volume object with a Material name of \"TEmytex\"."),
+        "there is a Volume object. For noise volumes, the first texture in the associated material will be used."),
      [{bold,?__(92,"Camera Width and Height:")++" "}],
         ?__(93,"This setting, in the Camera tab, controls the size of the rendered image. The size "
         "of the Geometry window affects camera framing. The proportions for Camera Width and "
