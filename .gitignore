@@ -64,6 +64,8 @@
 /macosx/build/*
 /win32/Wings3D.exe
 /win32/wings3d_res.o
+/win32/wings3d.obj
+/win32/wings3d.res
 
 # deps
 /_deps/*
