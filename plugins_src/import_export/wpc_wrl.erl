@@ -193,16 +193,23 @@ def_material(F, Name, Mat0, Dir) ->
     Mat = lookup(opengl, Mat0),
     io:format(F, "      appearance Appearance {\n",[]),
     io:format(F, "        material DEF ~s Material {\n",[clean_id(Name)]),
-    {Ar, Ag, Ab, O} = lookup(ambient, Mat),
+    {Ar, Ag, Ab, O0} = lookup(ambient, Mat),
     {Dr, Dg, Db, _} = lookup(diffuse, Mat),
     io:format(F, "          diffuseColor ~p ~p ~p\n",[Dr, Dg, Db]),
     {Er, Eg, Eb, _} = lookup(emission, Mat),
     io:format(F, "          emissiveColor ~p ~p ~p\n", [Er, Eg, Eb]),
     {Sr, Sg, Sb, _} = lookup(specular, Mat),
     io:format(F, "          specularColor ~p ~p ~p\n",[Sr, Sg, Sb]),
-    Amb = (Ar+Ag+Ab)/3,
+    case (Ar+Ag+Ab)/3 of
+        0.0 ->
+            Amb = 1.0, %% wrml needs a non zero value for ambient intensity
+            O = 0.0;
+        Amb0 ->
+            Amb = Amb0,
+            O = 1.0-O0
+    end,
     io:format(F, "          ambientIntensity ~p\n",[Amb]),
-    io:format(F, "          transparency ~p\n",[1.0-O]),
+    io:format(F, "          transparency ~p\n",[O]),
     S = lookup(shininess, Mat),
     io:format(F, "          shininess ~p\n",[S]),
     io:put_chars(F, "        }\n"),
