@@ -12,6 +12,9 @@
 
 -module(wpc_inset).
 -export([init/0,menu/2,command/2]).
+
+-export([collect_inset_face_data/2]).  %% For wpc_greebles
+
 -include_lib("wings/src/wings.hrl").
 
 init() ->
@@ -113,8 +116,7 @@ inset_faces_setup(inset_faces, St) ->
       end, drag_units(State), Flags, St).
 
 inset_faces_setup_1(Faces, We, State) ->
-    {AllVs0,VData} = collect_inset_face_data(Faces, We, [], [], none),
-    AllVs = ordsets:from_list(AllVs0),
+    {AllVs,VData} = collect_inset_face_data(Faces, We),
     {AllVs,inset_faces_fun(VData, State)}.
 
 test_selection(AllVs) ->
@@ -674,6 +676,9 @@ evaluate_mirror_vdata(VDir,Dir) ->
     end.
 
 %%%% Inset Faces
+collect_inset_face_data(Faces, We) ->
+    collect_inset_face_data(Faces, We, [], [], none).
+
 collect_inset_face_data(Faces0,#we{es=Etab,vp=Vtab,fs=Ftab}=We,AllVs0,VData0,SmallestDist) ->
     case gb_sets:is_empty(Faces0) of
       false ->
@@ -687,7 +692,7 @@ collect_inset_face_data(Faces0,#we{es=Etab,vp=Vtab,fs=Ftab}=We,AllVs0,VData0,Sma
         end,
         VData = [VData2|VData0],
         collect_inset_face_data(Faces1,We,AllVs,VData,NewSmallestDist);
-      true -> {AllVs0,{SmallestDist,VData0}} %result
+      true -> {ordsets:from_list(AllVs0),{SmallestDist,VData0}} %result
     end.
 
 traverse_1(Edge,Face,Etab,Vtab,AllVs) ->

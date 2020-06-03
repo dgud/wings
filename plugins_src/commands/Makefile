@@ -43,6 +43,7 @@ MODULES= \
 	wpc_doosabin \
 	wpc_explode \
 	wpc_flow_connect \
+	wpc_greebles \
 	wpc_grid_snap \
 	wpc_intersect_edge \
 	wpc_intersect_vertex \
