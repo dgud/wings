@@ -54,52 +54,66 @@ window(Pos, Size, Ps0, St) ->
     wings_wm:toplevel(?MODULE, Window, Fs, {push, change_state(Window, St)}),
     keep.
 
-command({edit_material,Name}, _Ost) ->
-    wings_wm:send(geom, {action,{material,{edit,Name}}});
-command({assign_material,Name}, _Ost) ->
-    wings_wm:send(geom, {action,{material,{assign,Name}}});
-command({select_material,Parameters}, _Ost) ->
-    wings_wm:send(geom, {action,{material,{select,Parameters}}});
-command({duplicate_material,Name}, _Ost) ->
-    wings_wm:send(geom, {action,{material,{duplicate,[Name]}}});
-command({delete_material,Name}, _Ost) ->
-    wings_wm:send(geom, {action,{material,{delete,[Name]}}});
-command({rename_material,Name}, _Ost) ->
-    wings_wm:send(geom, {action,{material,{rename,[Name]}}});
-command({assign_texture,Type,Id,Name0, Format}, #st{mat=Mtab}) ->
-    Name = list_to_atom(Name0),
-    Mat0 = gb_trees:get(Name, Mtab),
-    {Maps0,Mat1} = prop_get_delete(maps, Mat0),
-    Maps = [{Type,Id}|keydelete(Type, 1, Maps0)],
-    Mat  = [{maps,Maps}|Mat1],
-    ConvertWarning = ?__(10, "Expected a gray scale image, converting"),
-    case Type of
-	normal -> wings_image:is_normalmap(Id);
-        metallic  when Format =/= g8 -> wings_u:message(ConvertWarning);
-        roughness when Format =/= g8 -> wings_u:message(ConvertWarning);
-        occlusion when Format =/= g8 -> wings_u:message(ConvertWarning);
-	_ -> ignore
-    end,
-    wings_wm:send(geom, {action,{material,{update,Name,Mat}}});
-command({remove_texture,{Type,Name0}}, #st{mat=Mtab}) ->
-    Name = list_to_atom(Name0),
-    Mat0 = gb_trees:get(Name, Mtab),
-    {Maps0,Mat1} = prop_get_delete(maps, Mat0),
-    Maps = keydelete(Type, 1, Maps0),
-    Mat  = [{maps,Maps}|Mat1],
-    wings_wm:send(geom, {action,{material,{update,Name,Mat}}});
+%% The outliner is in it's own process with async protocol with wings process
+%% fast deletion in outliner window may cause materials to be non exitent.
+%% Verify that material exists before doing any operations.
+material_exists(Name, #st{mat=Mtab}) ->
+    gb_trees:is_defined(list_to_atom(Name), Mtab).
+send_if_obj_exists(Id, St, Msg) ->
+    try _ = wings_obj:get(Id, St),
+          wings_wm:send(geom, Msg)
+    catch _:_ -> keep end.
 
-command({duplicate_object,Id}, _) ->
-    wings_wm:send(geom, {action,{body,{duplicate_object,[Id]}}});
-command({delete_object,Id}, _) ->
-    wings_wm:send(geom, {action,{body,{delete_object,[Id]}}});
-command({rename_object,Id}, _) ->
-    wings_wm:send(geom, {action,{body,{rename,[Id]}}});
-command({edit_light,Id}, _) ->
-    wings_wm:send(geom, {action,{light,{edit,Id}}});
+command({select_material,[Name,_] = Parameters}, St) ->
+    case material_exists(Name, St) of
+        true -> wings_wm:send(geom, {action,{material,{select,Parameters}}});
+        false -> keep
+    end;
+command({assign_texture,Type,Id,Name0, Format}, #st{mat=Mtab}=St) ->
+    case material_exists(Name0, St) of
+        true ->
+            Name = list_to_atom(Name0),
+            Mat0 = gb_trees:get(Name, Mtab),
+            {Maps0,Mat1} = prop_get_delete(maps, Mat0),
+            Maps = [{Type,Id}|keydelete(Type, 1, Maps0)],
+            Mat  = [{maps,Maps}|Mat1],
+            ConvertWarning = ?__(10, "Expected a gray scale image, converting"),
+            case Type of
+                normal -> wings_image:is_normalmap(Id);
+                metallic  when Format =/= g8 -> wings_u:message(ConvertWarning);
+                roughness when Format =/= g8 -> wings_u:message(ConvertWarning);
+                occlusion when Format =/= g8 -> wings_u:message(ConvertWarning);
+                _ -> ignore
+            end,
+            wings_wm:send(geom, {action,{material,{update,Name,Mat}}});
+        false ->
+            keep
+    end;
+command({remove_texture,{Type,Name0}}, #st{mat=Mtab}=St) ->
+    case material_exists(Name0, St) of
+        true ->
+            Name = list_to_atom(Name0),
+            Mat0 = gb_trees:get(Name, Mtab),
+            {Maps0,Mat1} = prop_get_delete(maps, Mat0),
+            Maps = keydelete(Type, 1, Maps0),
+            Mat  = [{maps,Maps}|Mat1],
+            wings_wm:send(geom, {action,{material,{update,Name,Mat}}});
+        false ->
+            ignore
+    end;
+command({duplicate_object,Id}, St) ->
+    send_if_obj_exists(Id, St, {action,{body,{duplicate_object,[Id]}}});
+command({delete_object,Id}, St) ->
+    send_if_obj_exists(Id, St, {action,{body,{delete_object,[Id]}}});
+command({rename_object,Id}, St) ->
+    send_if_obj_exists(Id, St, {action,{body,{rename,[Id]}}});
+command({edit_light,Id}, St) ->
+    send_if_obj_exists(Id, St, {action,{light,{edit,Id}}});
 command({show_image,Id}, _) ->
-    wings_image:window(Id),
-    keep;
+    case wings_image:info(Id) of
+        none -> keep;
+        _ -> wings_image:window(Id),keep
+    end;
 command({refresh_image,Id}, _) ->
     refresh_image(Id);
 command({duplicate_image,Id}, _) ->
@@ -121,8 +135,22 @@ command({invert_channel, {Ch, Id}}, _) ->
     invert_image(Ch, Id);
 command({from_channel, {Ch, Id}}, _) ->
     from_channel(Ch, Id);
+command({Op, Name}, St) ->
+    case material_exists(Name, St) of
+        true ->
+            case Op of
+                edit_material -> wings_wm:send(geom, {action,{material,{edit,Name}}});
+                assign_material -> wings_wm:send(geom, {action,{material,{assign,Name}}});
+                duplicate_material -> wings_wm:send(geom, {action,{material,{duplicate,[Name]}}});
+                delete_material -> wings_wm:send(geom, {action,{material,{delete,[Name]}}});
+                rename_material -> wings_wm:send(geom, {action,{material,{rename,[Name]}}});
+                _ -> ?dbg(?__(1,"NYI: ~p ~ts\n"), [Op, Name]), keep
+            end;
+        false ->
+            keep
+    end;
 command(Cmd, _) ->
-    ?dbg(?__(1,"NYI: ~p\n"), [Cmd]),
+    ?dbg(?__(2,"NYI: ~p\n"), [Cmd]),
     keep.
 
 prop_get_delete(Key, List) ->
@@ -130,64 +158,80 @@ prop_get_delete(Key, List) ->
     {Val,keydelete(Key, 1, List)}.
 
 duplicate_image(Id) ->
-    #e3d_image{name=Name0} = Im = wings_image:info(Id),
-    Name = copy_of(Name0),
-    wings_image:new(Name, Im),
-    wings_wm:send(geom, need_save),
-    keep.
-
-invert_image(Ch, Id) ->
-    #e3d_image{type=Type, bytes_pp=Bpp, name=Name} = Im = wings_image:info(Id),
-    try e3d_image:invert_channel(Ch, Im) of
-        Inv ->
-            wings_image:new(filename:rootname(Name) ++ " Inv", Inv),
+    case wings_image:info(Id) of
+        none -> keep;
+        #e3d_image{name=Name0} = Im ->
+            Name = copy_of(Name0),
+            wings_image:new(Name, Im),
             wings_wm:send(geom, need_save),
             keep
-    catch _:_ ->
-            wings_u:error_msg(?__(1, "Cannot invert image type ~s (~w) bytes per pixel"), [Type, Bpp]),
-            keep
+    end.
+
+invert_image(Ch, Id) ->
+    case wings_image:info(Id) of
+        none -> keep;
+        #e3d_image{type=Type, bytes_pp=Bpp, name=Name} = Im ->
+            try e3d_image:invert_channel(Ch, Im) of
+                Inv ->
+                    wings_image:new(filename:rootname(Name) ++ " Inv", Inv),
+                    wings_wm:send(geom, need_save),
+                    keep
+            catch _:_ ->
+                    wings_u:error_msg(?__(1, "Cannot invert image type ~s (~w) bytes per pixel"), [Type, Bpp]),
+                    keep
+            end
     end.
 
 from_channel(Ch, Id) ->
-    Im = wings_image:info(Id),
-    try e3d_image:channel(Ch, Im) of
-        #e3d_image{name=Name} = Gray ->
-            wings_image:new(Name, Gray),
-            wings_wm:send(geom, need_save),
-            keep
-    catch _:_ ->
-            wings_u:message(?__(1, "Cannot read channel from the image type")),
-            keep
+    case wings_image:info(Id) of
+        none -> keep;
+        Im ->
+            try e3d_image:channel(Ch, Im) of
+                #e3d_image{name=Name} = Gray ->
+                    wings_image:new(Name, Gray),
+                    wings_wm:send(geom, need_save),
+                    keep
+            catch _:_ ->
+                    wings_u:message(?__(1, "Cannot read channel from the image type")),
+                    keep
+            end
     end.
 
 delete_image(Id, St) ->
-    Used = wings_material:used_images(St),
-    case gb_sets:is_member(Id, Used) of
-	true ->
-	    wings_u:message(?__(1,"The image is used by a material.")),
-	    keep;
-	false ->
-	    wings_u:yes_no(?__(2,"Are you sure you want to delete the image (NOT undoable)?"),
-			   fun() ->
-				   wings_image:delete(Id),
-				   wings_wm:send(geom, need_save),
-				   ignore
-			   end, ignore)
+    case wings_image:info(Id) of
+        none -> keep;
+        _Im ->
+            Used = wings_material:used_images(St),
+            case gb_sets:is_member(Id, Used) of
+                true ->
+                    wings_u:message(?__(1,"The image is used by a material.")),
+                    keep;
+                false ->
+                    wings_u:yes_no(?__(2,"Are you sure you want to delete the image (NOT undoable)?"),
+                                   fun() ->
+                                           wings_image:delete(Id),
+                                           wings_wm:send(geom, need_save),
+                                           ignore
+                                   end, ignore)
+            end
     end.
 
 copy_of("Copy of "++_=Name) -> Name;
 copy_of(Name) -> "Copy of "++Name.
 
 rename_image(Id) ->
-    #e3d_image{name=Name0} = wings_image:info(Id),
-    wings_dialog:ask(?__(1,"Rename Image"),
-		     [{Name0,Name0,[]}],
-		     fun([Name]) when Name =/= Name0 ->
-			     wings_image:rename(Id, Name),
-			     wings_wm:send(geom, need_save),
-			     ignore;
-			(_) -> ignore
-		     end).
+    case wings_image:info(Id) of
+        none -> keep;
+        #e3d_image{name=Name0} ->
+            wings_dialog:ask(?__(1,"Rename Image"),
+                             [{Name0,Name0,[]}],
+                             fun([Name]) when Name =/= Name0 ->
+                                     wings_image:rename(Id, Name),
+                                     wings_wm:send(geom, need_save),
+                                     ignore;
+                                (_) -> ignore
+                             end)
+    end.
 
 make_external(Id) ->
     Save = fun(Name) ->
@@ -203,28 +247,38 @@ make_external(Id) ->
 			   wings_u:message(Error)
 		   end
 	   end,
-    #e3d_image{name=ImageName} = wings_image:info(Id),
-    Ps = [{extensions,wings_image:image_formats()},
-	  {title,?__(1,"Make External")},
-	  {default_filename,ImageName}],
-    wings_file:export_filename(Ps, Save).
+    case wings_image:info(Id) of
+        none -> keep;
+        #e3d_image{name=ImageName} ->
+            Ps = [{extensions,wings_image:image_formats()},
+                  {title,?__(1,"Make External")},
+                  {default_filename,ImageName}],
+            wings_file:export_filename(Ps, Save)
+    end.
 
 refresh_image(Id) ->
-    #e3d_image{filename=Filename} = wings_image:info(Id),
-    Props = [{filename,Filename},{alignment,1}],
-    case wings_image:image_read(Props) of
-	#e3d_image{}=Image ->
-	    ok = wings_image:update(Id, Image),
-	    keep;
-	{error,R} ->
-	    Msg = e3d_image:format_error(R),
-	    wings_u:message(?__(1,"Failed to refresh \"")
-			       ++ Filename ++ "\": " ++ Msg)
+    case wings_image:info(Id) of
+        none -> keep;
+        #e3d_image{filename=Filename} ->
+            Props = [{filename,Filename},{alignment,1}],
+            case wings_image:image_read(Props) of
+                #e3d_image{}=Image ->
+                    ok = wings_image:update(Id, Image),
+                    keep;
+                {error,R} ->
+                    Msg = e3d_image:format_error(R),
+                    wings_u:message(?__(1,"Failed to refresh \"")
+                                    ++ Filename ++ "\": " ++ Msg)
+            end
     end.
 
 make_internal(Id) ->
-    wings_image:update_filename(Id, none),
-    keep.
+    case wings_image:info(Id) of
+        none -> keep;
+        _ ->
+            wings_image:update_filename(Id, none),
+            keep
+    end.
 
 export_image(Id) ->
     Save = fun(Name) ->
@@ -239,10 +293,13 @@ export_image(Id) ->
 			   wings_u:message(Error)
 		   end
 	   end,
-    #e3d_image{name=ImageName} = wings_image:info(Id),
-    Ps = [{extensions,wings_image:image_formats()},
-	  {default_filename,ImageName}],
-    wings_file:export_filename(Ps, Save).
+     case wings_image:info(Id) of
+         none -> keep;
+         #e3d_image{name=ImageName} ->
+             Ps = [{extensions,wings_image:image_formats()},
+                   {default_filename,ImageName}],
+             wings_file:export_filename(Ps, Save)
+     end.
 
 %%%
 %%% Drag and drop.
@@ -903,9 +960,12 @@ create_normal_map(Id) ->
     create_normal_map_0(Id, #{}).
 
 create_normal_map_0(Id, Params) ->
-    SrcIm = wings_image:info(Id),
-    #e3d_image{name=Name} = Im = e3d_image:height2normal(SrcIm, Params),
-    wings_image:new(Name, Im).
+    case wings_image:info(Id) of
+        none -> keep;
+        SrcIm ->
+            #e3d_image{name=Name} = Im = e3d_image:height2normal(SrcIm, Params),
+            wings_image:new(Name, Im)
+    end.
 
 create_normal_map_fun(Id) ->
     fun (1, _) -> button_menu_cmd(create_normal_map, Id);
