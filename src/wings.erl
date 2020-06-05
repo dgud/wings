@@ -500,6 +500,8 @@ handle_event_3(#wx{event=#wxDropFiles{files=Fs0}}, St0) ->
     lists:foldl(Open, DoOpen, Objects),
     Send({import_files, Fs2}),
     keep;
+handle_event_3({drop,_}, _St) ->
+    keep;
 handle_event_3(ignore, _St) ->
     keep;
 handle_event_3({system,_,_}, _St) ->
