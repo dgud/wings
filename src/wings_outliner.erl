@@ -511,16 +511,16 @@ handle_cast(_Req, State) ->
     {noreply, State}.
 
 handle_info(parent_changed,
-	    #state{top=Top, szr=Szr, shown=Prev, tc=TC0, os=Os, il=IL} = State) ->
-    case os:type() of
-	{win32, _} ->
-	    %% Windows or wxWidgets somehow messes up the icons when reparented,
+            #state{top=Top, szr=Szr, shown=Prev, tc=TC0, os=Os, il=IL} = State) ->
+    case {os:type(), {?wxMAJOR_VERSION, ?wxMINOR_VERSION}} of
+	{{win32, _}, Ver} when Ver < {3,1} ->
+	    %% wxWidgets-3.0 somehow messes up the icons when reparented,
 	    %% Recreating the tree ctrl solves it
             Expanded = expanded_items(maps:to_list(Prev), TC0),
             Selected = selected_item(Prev, TC0),
 	    TC = make_tree(Top, wings_frame:get_colors(), IL),
 	    wxSizer:replace(Szr, TC0, TC),
-	    wxSizer:recalcSizes(Szr),
+            wxSizer:recalcSizes(Szr),
 	    wxWindow:destroy(TC0),
 	    {noreply, update_object(Os, Selected, Expanded, State#state{tc=TC})};
 	_ ->
