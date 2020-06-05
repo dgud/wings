@@ -353,7 +353,8 @@ init([Frame,  _Ps, Os]) ->
 				  ?__(2,"Show outliner menu (if selection)"
 				      " or creation menu (if no selection)")),
     wings_status:message(?MODULE, Msg),
-    State = update_object(Os, #state{top=Panel, szr=Szr, tc=TC, shown=#{}, il=IL, imap=IMap0}),
+    State = #state{top=Panel, szr=Szr, tc=TC, shown=#{}, il=IL, imap=IMap0},
+    wx_object:cast(self(), {new_state, Os}),  %% Workaround gtk bug
     {Panel, State}.
 
 handle_sync_event(#wx{event=#wxTree{type=command_tree_begin_label_edit, item=Indx}}, From,
