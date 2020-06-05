@@ -626,7 +626,7 @@ update_object(Os, Selected, Expanded, #state{tc=TC, il=IL, imap=Imap0}=State) ->
 		 end
 	 end,
     {Items, Imap}  = wx:foldl(Do, {[],Imap0}, Sorted),
-    lists:member(ligths, Expanded) andalso wxTreeCtrl:expand(TC, Lights),
+    lists:member(lights, Expanded) andalso wxTreeCtrl:expand(TC, Lights),
     lists:member(mats, Expanded)   andalso wxTreeCtrl:expand(TC, Materials),
     lists:member(images, Expanded) andalso wxTreeCtrl:expand(TC, Images),
 
