@@ -82,19 +82,19 @@ make_thread(Arg, St) when is_atom(Arg) ->
     Qs = thread_dialog(),
     Label = ?__(1,"Thread Options"),
     wings_dialog:dialog_preview({shape,thread}, Arg, Label, Qs, St);
-make_thread(Arg, _St) ->
-    ArgDict = dict:from_list(Arg),
-    Sections = dict:fetch(sections, ArgDict),
-    Pitch = dict:fetch(pitch, ArgDict),
-    TopRadius = dict:fetch(top_radius, ArgDict),
-    BotRadius = dict:fetch(bottom_radius, ArgDict),
-    CrestH = dict:fetch(crest_h, ArgDict),
-    Occurences = dict:fetch(occurences, ArgDict),
-    Dir = dict:fetch(direction, ArgDict),
-    Type = dict:fetch(thread_type, ArgDict),
-    Modify = [{dict:fetch(rot_x, ArgDict), dict:fetch(rot_y, ArgDict), dict:fetch(rot_z, ArgDict)},
-              {dict:fetch(mov_x, ArgDict), dict:fetch(mov_y, ArgDict), dict:fetch(mov_z, ArgDict)},
-              dict:fetch(ground, ArgDict)],
+make_thread(Arg0, _St) ->
+    Arg = maps:from_list(Arg0),
+    Sections = maps:get(sections, Arg),
+    Pitch = maps:get(pitch, Arg),
+    TopRadius = maps:get(top_radius, Arg),
+    BotRadius = maps:get(bottom_radius, Arg),
+    CrestH = maps:get(crest_h, Arg),
+    Occurences = maps:get(occurences, Arg),
+    Dir = maps:get(direction, Arg),
+    Type = maps:get(thread_type, Arg),
+    Modify = [{maps:get(rot_x, Arg), maps:get(rot_y, Arg), maps:get(rot_z, Arg)},
+              {maps:get(mov_x, Arg), maps:get(mov_y, Arg), maps:get(mov_z, Arg)},
+              maps:get(ground, Arg)],
 
     Height = Pitch*(Occurences+0.5),
     Rows = Occurences+1,
@@ -127,46 +127,54 @@ thread_verts(Type, Sections, TopRadius, BotRadius, CrestH, Pitch, Rows, Height) 
                     Ring0++Ring1++Acc
                 end, [], lists:seq(0,Rows-1)).
 
-thread_faces(helicoid, N, Rows) ->
+thread_faces(helicoid=Type, N, Rows) ->
     R0 = (Rows-1)*2,
     R = (Rows*2-1)*N,
-    Top = lists:reverse(lists:seq(N-1,0,-1)),
+    Top = lists:seq(0,N-1),
     Bottom = lists:seq(R+N-1,R, -1),
-    Ns = lists:seq(0, N-2),
-    Sides =
-        lists:foldl(fun(Idx, Acc) ->
-                        Sides = [[Idx*N + I, (Idx+1)*N + I,
-                                  (Idx+1)*N + ((I+1) rem N), Idx*N + ((Idx*N+I+1) rem N)] || I <- Ns],
-                        if Idx < (R0-1) ->
-                            Stitch = [[Idx*N + N-1, (Idx+1)*N + N-1, (Idx+2)*N + N, (Idx+2)*N]];
-                        Idx < R0 ->
-                            Stitch = [[Idx*N + N-1, (Idx+1)*N + N-1, (Idx+2)*N]];
-                        true ->
-                            Stitch = [[Idx*N + N-1, (Idx+1)*N + N-1, (Idx+1)*N]]
-                        end,
-                        Acc++Sides++Stitch
-                    end, [[0, N-1, N],[N-1, 2*N, N]], lists:seq(0,R0)),
+    Sides = build_sides(Type,R0,N),
     [Top, Bottom | Sides];
-thread_faces(non_helicoid, N, Rows) ->
+thread_faces(non_helicoid=Type, N, Rows) ->
     R0 = (Rows-1)*2,
     R = (Rows*2-1)*N,
     Top = lists:reverse(lists:seq(N-1,0,-1)),
     Bottom = lists:seq(R+N-1,R, -1),
-    Ns = lists:seq(0, N-1),
-    Sides =
-        lists:foldl(fun(Idx, Acc) ->
-                        Sides = [[Idx*N + I, (Idx+1)*N + I,
-                                  (Idx+1)*N + ((I+1) rem N), Idx*N + ((Idx*N+I+1) rem N)] || I <- Ns],
-                        Acc++Sides
-                    end, [], lists:seq(0,R0)),
+    Sides = build_sides(Type,R0,N),
     [Top, Bottom | Sides].
+
+build_sides(helicoid=Type, R, N) ->
+    Ns = lists:seq(0, N-2),
+    Fs = [[0, N-1, N],[N-1, 2*N, N]],
+    build_sides(Type,0,R,N,Ns,Fs);
+build_sides(non_helicoid=Type, R, N) ->
+    Ns = lists:seq(0, N-1),
+    build_sides(Type,0,R,N,Ns,[]).
+
+build_sides(_, Idx, R, _, _, Acc) when Idx > R ->
+    Acc;
+build_sides(helicoid=Type, Idx, R, N, Ns, Acc) ->
+    Sides = [[Idx*N + I, (Idx+1)*N + I,
+              (Idx+1)*N + ((I+1) rem N), Idx*N + ((Idx*N+I+1) rem N)] || I <- Ns],
+    if Idx < (R-1) ->
+        Stitch = [[Idx*N + N-1, (Idx+1)*N + N-1, (Idx+2)*N + N, (Idx+2)*N]];
+        Idx < R ->
+            Stitch = [[Idx*N + N-1, (Idx+1)*N + N-1, (Idx+2)*N]];
+        true ->
+            Stitch = [[Idx*N + N-1, (Idx+1)*N + N-1, (Idx+1)*N]]
+    end,
+    build_sides(Type,Idx+1,R,N,Ns,Acc++Sides++Stitch);
+build_sides(non_helicoid=Type, Idx, R, N, Ns, Acc) ->
+    Sides = [[Idx*N + I, (Idx+1)*N + I,
+              (Idx+1)*N + ((I+1) rem N), Idx*N + ((Idx*N+I+1) rem N)] || I <- Ns],
+    build_sides(Type,Idx+1,R,N,Ns,Acc++Sides).
 
 ring_of_verts(helicoid, Rings, YInc, Delta, YAxis, XZAxis) ->
     [{XZAxis*cos(I*Delta), YAxis+YInc*I, XZAxis*sin(I*Delta)} || I <- Rings];
 ring_of_verts(non_helicoid, Rings, _, Delta, YAxis, XZAxis) ->
     [{XZAxis*cos(I*Delta), YAxis, XZAxis*sin(I*Delta)} || I <- Rings].
 
-set_direction(left,Vs,Fs) -> {Vs,Fs};
+set_direction(left,Vs,Fs) ->
+    {Vs,Fs};
 set_direction(right,Vs0,Fs0) ->
     FlipX = e3d_mat:scale(-1.0, 1.0, 1.0),
     Vs = [e3d_mat:mul_point(FlipX, Pos) || Pos <- Vs0],
