@@ -60,12 +60,13 @@ wsl.exe echo export 'INCLUDE LIB LIBPATH VCToolsRedistDir WSLENV PATH WSLcross';
 wsl.exe echo "# Eval this file eval \`cmd.exe /c SetupWSLcross.bat\`"
 
 rem done
-exit
+goto end
 
 :badarg
 echo "Bad TARGET or not specified: %~1 expected x86 or x64"
-exit
+goto end
 
 :no_vcvars
 echo "Error: SetupWSLcross.bat: Could not find vcvarsall.bat"
-exit
+
+:end

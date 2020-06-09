@@ -24,7 +24,14 @@ endif
 ifdef MSYSTEM
  ifeq ($(MSYSTEM),$(filter $(MSYSTEM),MINGW32 MINGW64))
   USEMINGWGCC := true
-  DEF_CC = gcc
+  ifeq (x$(CC),x)
+    DEF_CC = gcc
+  else
+    DEF_CC = $(CC)
+    ifeq ($(WSLcross), true)
+      UseMCL = true
+    endif
+  endif
  endif
 else
  ifeq ($(WSLcross), true)
@@ -55,8 +62,8 @@ ifeq ($(UseMCL),true)
  OBJ = obj
  SO_EXT = dll
  LIBS = -LD
- CFLAGS += -nologo -Zi -Ox /FS /MP -D__WIN32__
- CXXFLAGS += $(CFLAGS) /EHsc
+ CFLAGS += -nologo -Zi -Ox -FS -MP -D__WIN32__
+ CXXFLAGS += $(CFLAGS) -EHsc
 else
  OUT = -o
  OUT_OBJ = -o
