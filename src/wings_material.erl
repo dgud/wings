@@ -159,7 +159,7 @@ rename_2([], St) -> St.
 
 rename_qs(Ms) ->
     OldNames = [{label,M} || M <- Ms],
-    TextFields = [{text,M,[{key,list_to_atom(M)}]} || M <- Ms],
+    TextFields = [{text,M,[{key,list_to_atom(M)},{width,22}]} || M <- Ms],
     [{hframe,
       [{vframe,OldNames},
        {vframe,TextFields}]}].

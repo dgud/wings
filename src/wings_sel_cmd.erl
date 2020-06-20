@@ -592,7 +592,7 @@ save_group(Key, Sel, #st{ssels=Ssels0}=St) ->
 
 new_group(_) ->
     wings_dialog:ask(?__(1,"Create New Group"),
-		     [{?__(2,"Group Name"), ""}],
+		     [{?__(2,"Group Name"), "",[{width,22}]}],
 		     fun([String]) -> {select,{new_group_name,String}} end).
 
 new_group_name(Name, #st{ssels=Ssels0,selmode=Mode,sel=Sel}=St) ->

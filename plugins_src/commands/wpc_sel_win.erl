@@ -133,7 +133,7 @@ rename({_,OldName}=Id) ->
               {label,OldName}]},
             {hframe,[
               {label,?__(3,"New name")++": "},
-              {text,"",[]}]}
+              {text,OldName,[{width,22}]}]}
            ]}],
     wings_dialog:dialog(?__(1,"Rename"), Qs,
     fun([[]]) -> ignore;

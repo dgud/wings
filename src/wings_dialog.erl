@@ -1488,7 +1488,7 @@ build_textctrl(Ask, Def, Flags, {MaxSize, Validator}, Parent, Sizer) ->
 	    wxTextCtrl:setMaxSize(Ctrl, {MaxSize*CharWidth, -1});
 	Width when is_integer(Width) ->
 	    wxTextCtrl:setMaxSize(Ctrl, {CharWidth*(Width+1), -1}),
-	    wxTextCtrl:setMaxSize(Ctrl, {CharWidth*Width, -1});
+	    wxTextCtrl:setMinSize(Ctrl, {CharWidth*Width, -1});
 	undefined -> %% Let the sizer handle the max and min sizes
 	    ok
     end,

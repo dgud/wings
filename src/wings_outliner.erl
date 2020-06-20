@@ -181,7 +181,7 @@ copy_of(Name) -> "Copy of "++Name.
 rename_image(Id) ->
     #e3d_image{name=Name0} = wings_image:info(Id),
     wings_dialog:ask(?__(1,"Rename Image"),
-		     [{Name0,Name0,[]}],
+		     [{Name0,Name0,[{width,22}]}],
 		     fun([Name]) when Name =/= Name0 ->
 			     wings_image:rename(Id, Name),
 			     wings_wm:send(geom, need_save),
