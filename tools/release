@@ -16,8 +16,8 @@
 -include_lib("kernel/include/file.hrl").
 
 %% Change these when compiler version is changed on windows
--define(WIN32_VCREDIST_VERSION, "12.00.21005.1").
--define(WIN64_VCREDIST_VERSION, "12.00.21005.1").
+-define(WIN32_VCREDIST_VERSION, "14.26.28720.3").
+-define(WIN64_VCREDIST_VERSION, "14.26.28720.3").
 
 main(_) ->
     try
@@ -138,30 +138,39 @@ win_release(Root, WingsVsn) ->
     ok.
 
 setup_vcredist(BitSize, Root) ->
-    VCRedist0 = os:getenv("WINGS_VCREDIST"),
-    (VCRedist0 == false) andalso fatal("No WINGS_VCREDIST in env", []),
-    (ok == file:set_cwd(filename:dirname(VCRedist0))) orelse
-	fatal("dirname(WINGS_VCREDIST) failed: ~ts~n",[VCRedist0]),
     {File, Vsn} = case BitSize of
 		      32 -> {"vcredist_x86.exe", ?WIN32_VCREDIST_VERSION};
 		      64 -> {"vcredist_x64.exe", ?WIN64_VCREDIST_VERSION}
 		  end,
 
+    VCRedistEnv = os:getenv("WINGS_VCREDIST"),
+    VCRedist0 = case VCRedistEnv of
+                    false ->
+                        case os:getenv("VCToolsRedistDir") of
+                            false -> fatal("No WINGS_VCREDIST in env", []);
+                            RedistDir -> filename:join(RedistDir, File)
+                        end;
+                    _ -> VCRedistEnv
+                end,
+    (ok == file:set_cwd(filename:dirname(VCRedist0))) orelse
+	fatal("dirname(WINGS_VCREDIST) failed: ~ts~n",[VCRedist0]),
+
     Quoted = case is_wslcross() of
                  true ->
-                     VCRedist = string:chomp(os:cmd("wslpath -m " ++ VCRedist0)),
+                     VCRedist = string:chomp(os:cmd("wslpath -m \"" ++ VCRedist0 ++ "\"")),
                      case filename:basename(VCRedist0) of
                          File -> ok;
                          _File -> io:format("Wrong vcredist file: ~p expected ~p~n",[_File, File]),
                                   exit({bad, vcredist_file})
                      end,
-                     "\\'" ++ string:join(string:tokens(VCRedist, "/"), "\\\\\\\\") ++ "\\'";
+                     "\\'" ++ wsl_path(VCRedist) ++ "\\'";
                  _ ->
                      Quoted0 = filename:join(filename:dirname(VCRedist0), File),
                      "\"" ++ string:join(string:tokens(Quoted0, "/"), "\\\\") ++ "\""
              end,
     CMD = "wmic.exe datafile where name=" ++ Quoted ++ " get version",
     Res0 = os:cmd(CMD),
+    %% io:format("VMIC: ~p~n\t~p~n",[CMD,Res0]),
     VcVsn = [list_to_integer(V) || V <- tl(string:tokens(Res0, ".\s\r\n"))],
     redist_version_ok(VcVsn, [list_to_integer(V) || V <- string:tokens(Vsn, ".")]),
     copy(File, Root),
@@ -175,6 +184,17 @@ redist_version_ok(Current, Required) ->
 
 nsi_file(32) -> "wings.nsi";
 nsi_file(64) -> "wings64.nsi".
+
+wsl_path([$/|Rest]) ->
+    "\\\\\\\\" ++ wsl_path(Rest);
+wsl_path([$(|Rest]) ->
+    "\\(" ++ wsl_path(Rest);
+wsl_path([$)|Rest]) ->
+    "\\)" ++ wsl_path(Rest);
+wsl_path([Char|Rest]) ->
+    [Char | wsl_path(Rest)];
+wsl_path([]) ->
+    [].
 
 convert_script(Root) ->
     ok = file:set_cwd(filename:join(lib_dir(wings), src)),

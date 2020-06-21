@@ -642,7 +642,7 @@ combine(#st{}=St) ->
 
 separate(St) ->
     CF = fun(Items, We0) ->
-                 Empty = gb_sets:empty(),
+                 Empty = gb_sets:singleton(0),
                  [We|Wes] = wings_we:separate(We0),
                  New = [{W,Empty,sep} || W <- Wes],
                  {We,Items,New}

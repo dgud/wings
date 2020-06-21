@@ -658,7 +658,7 @@ handle_event(#wx{event=#wxCommand{type=command_text_updated, cmdString=Name}, ob
        true -> ok
     end,
     {noreply, State};
-handle_event(#wx{event=#wxCommand{type=command_combobox_selected, cmdString=Name, commandInt=Op}, obj=Obj},
+handle_event(#wx{event=#wxCommand{type=command_combobox_selected, commandInt=Op}, obj=Obj},
 	     #state{ctrls=#{actbtn:=BAct}}=State) ->
     ImgId = wxComboBox:getClientData(Obj,Op),
     #e3d_image{width=W, height=H, name=Name} = wings_image:info(ImgId),
