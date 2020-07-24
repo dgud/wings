@@ -4,6 +4,7 @@
 %%     Binary StereoLithography File Format (*.stl) Import/Export
 %%
 %%  Copyright (c) 2005-2011 Anthony D'Agostino
+%%                2020 Added export dialog by Micheus
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -11,32 +12,34 @@
 
 -module(wpc_stl).
 -export([init/0, menu/2, command/2]).
+-include_lib("wx/include/wx.hrl").
 -include_lib("wings/e3d/e3d.hrl").
+-include_lib("wings/intl_tools/wings_intl.hrl").
 
 init() ->
     true.
 
 menu({file, import}, Menu) ->
-    menu_entry(Menu);
+    menu_entry(import,Menu);
 menu({file, export}, Menu) ->
-    menu_entry(Menu);
+    menu_entry(export,Menu);
 menu({file, export_selected}, Menu) ->
-    menu_entry(Menu);
+    menu_entry(export,Menu);
 menu(_, Menu) -> Menu.
 
 command({file, {import, stl}}, St) ->
     Props = props(),
     wpa:import(Props, fun stl_import/1, St);
-command({file, {export, stl}}, St) ->
-    Props = props(),
-    wpa:export(Props, fun export/2, St);
-command({file, {export_selected, stl}}, St) ->
-    Props = props(),
-    wpa:export_selected(Props, fun export/2, St);
+command({file,{export,{stl,Ask}}}, St) ->
+    Exporter = fun(Ps, Fun) -> wpa:export(Ps, Fun, St) end,
+    do_export(Ask, export, Exporter, St);
+command({file,{export_selected,{stl,Ask}}}, St) ->
+    Exporter = fun(Ps, Fun) -> wpa:export_selected(Ps, Fun, St) end,
+    do_export(Ask, export_selected, Exporter, St);
 command(_, _) -> next.
 
-menu_entry(Menu) ->
-    Menu ++ [{"StereoLithography (.stl)...", stl}].
+menu_entry(Opt,Menu) ->
+    Menu ++ [{"StereoLithography (.stl)...", stl, [if Opt==export -> option; true -> [] end]}].
 
 props() ->
     [{ext, ".stl"},{ext_desc, "StereoLithography Binary File"}].
@@ -44,9 +47,152 @@ props() ->
 %%% ================================
 %%% === StereoLithography Export ===
 %%% ================================
-export(FileName, Contents) ->
+do_export(Ask, Op, _Exporter, _St) when is_atom(Ask) ->
+    wpa:dialog(Ask, ?__(1,"STL Export Options"), dialog_export(),
+               fun(Res) ->
+                   {file,{Op,{stl,Res}}}
+               end);
+do_export(Attr0, _Op, Exporter, _St) when is_list(Attr0) ->
+    %% we store only the selected row id. The table control
+    %% will return the entire list plus the selection.
+    {value,{slicer,_},Attr} = lists:keytake(slicer,1,Attr0),
+    set_pref(Attr),
+    SubDivs = proplists:get_value(subdivisions, Attr, 0),
+    Ps = [{subdivisions,SubDivs}|props()],
+    Exporter(Ps, export_fun(Attr)).
+
+export_fun(Attr) ->
+    fun(Filename, Contents) ->
+        export(Filename, Contents, Attr)
+    end.
+set_pref(KeyVals) ->
+    wpa:pref_set(?MODULE, KeyVals).
+
+dialog_export() ->
+    Hook = fun(Key, Value, Fields) ->
+            {Sel,Lists} = Slicer = wings_dialog:get_value(slicer,Fields),
+            case Key of
+                slicer ->
+                    wings_dialog:set_value(slicer_id,Sel,Fields),
+                    case Sel of
+                        [0] ->
+                            wings_dialog:set_value(wu_equals,stl,Fields),
+                            ConvScale = 1.0,
+                            wings_dialog:enable(pnl_slicer,false,Fields),
+                            wings_dialog:enable(obj_scale,false,Fields);
+                        _ ->
+                            ConvScale = comput_scale(wings_dialog:get_value(wu_equals,Fields),Slicer)
+                    end,
+                    ObjScale = wings_dialog:get_value(obj_scale,Fields),
+                    wings_dialog:set_value(conv_scale,ConvScale,Fields),
+                    wings_dialog:set_value(export_scale,ObjScale*ConvScale,Fields);
+                wu_equals ->
+                    %% workaround to set the previous selected item on table since
+                    %% the table control doesn't allow us to set its initial value
+                    SlicerId = wings_dialog:get_value(slicer_id,Fields),
+                    ObjScale = wings_dialog:get_value(obj_scale,Fields),
+                    case Value of
+                        stl ->
+                            %% setting table default selection to Wings3D scale
+                            ConvScale = 1.0,
+                            SlicerCtrl = wings_dialog:get_widget(slicer,Fields),
+                            wxListCtrl:setItemState(SlicerCtrl,0,?wxLIST_STATE_SELECTED,?wxLIST_STATE_SELECTED);
+                        _ ->
+                            %% computing the conversion scale based on slicer preset
+                            case Sel of
+                                [] when SlicerId=/=[], Value=/=stl ->
+                                    [Id] = SlicerId,
+                                    SlicerCtrl = wings_dialog:get_widget(slicer,Fields),
+                                    wxListCtrl:setItemState(SlicerCtrl,Id,?wxLIST_STATE_SELECTED,?wxLIST_STATE_SELECTED),
+                                    ConvScale = comput_scale(Value, {SlicerId,Lists});
+                                [_] ->
+                                    ConvScale = comput_scale(Value,Slicer)
+                            end
+                    end,
+                    wings_dialog:set_value(conv_scale,ConvScale,Fields),
+                    wings_dialog:set_value(export_scale,ObjScale*ConvScale,Fields),
+                    wings_dialog:enable(pnl_slicer,Value=/=stl,Fields),
+                    wings_dialog:enable(conv_scale,false,Fields),
+                    wings_dialog:enable(obj_scale,Value=/=stl,Fields),
+                    wings_dialog:update(pnl_slicer,Fields);
+                obj_scale ->
+                    ConvScale = wings_dialog:get_value(conv_scale,Fields),
+                    wings_dialog:set_value(export_scale,Value*ConvScale,Fields)
+            end
+        end,
+
+    [{vframe, [
+        {label_column, [
+            {"1 Wings3D Unit (WU) equal to",
+             {menu,[
+                 {"1 STL unit",stl},
+                 {"1 mm",mm},
+                 {"1 cm",cm},
+                 {"1 inch",inch}],wpa:pref_get(?MODULE, wu_equals, stl),[{key,wu_equals},{hook,Hook}]}
+            }
+        ]},
+      {vframe, [
+        {vframe, [
+          {label, ?__(4,"Below you have some scale information to get 1WU = 1mm\n"
+                        "in accord with information we got from Wings3D's users.\n\n"
+                        "Select a row to compute the 'Export scale' value:")},
+          {table,[{"Slicer Software", "1WU", "Scale"},
+                  {{0,"default Wings3D settings"},{1.0,"1STL unit"},{1.0,"1.0"}},
+                  {{1,"Chitubox"},                {1.0,"1mm"},      {1.0,"1.0"}},
+                  {{2,"Cura (Ultimaker)"},        {1.0,"1mm"},      {1.0,"1.0"}},
+                  {{3,"ideaMaker (Raise3D)"},     {1.0,"1mm"},      {1.0,"1.0"}},
+                  {{4,"Makerbot Print"},          {1.0,"1mm"},      {1.0,"1.0"}},
+                  {{5,"Repetier Host"},           {1.0,"1mm"},      {1.0,"1.0"}},
+                  {{6,"Slic3r"},                  {1.0,"1mm"},      {1.0,"1.0"}},
+                  {{7,"Tinkerine™ Suite"},        {1.0,"1mm"},      {1.0,"1.0"}},
+                  {{8,"Up Studio (Tiertime)"},    {25.4,"1inch"},   {0.0393700787401575,"0.0393701"}},
+                  {{9,"Z-Suite (Zortrax)"},       {1.0,"1mm"},      {1.0,"1.0"}},
+                  {{10,"3DWOX Desktop (Sindoh)"}, {1.0,"1mm"},      {1.0,"1.0"}}
+          ],[{key,slicer},{sel_style,single},{hook,Hook},
+             {max_rows,4},{col_widths,{20,7,8}}]},
+          {value,wpa:pref_get(?MODULE, slicer_id, []),[{key,slicer_id}]}
+        ],[{margin,false},{key,pnl_slicer}]},
+        {label_column, [
+            {?__(7,"Conversion scale"),
+             {text,1.0,[{key,conv_scale},{range,{0.0,infinity}}]}},
+            {?__(8,"Object scale"),
+             {text,wpa:pref_get(?MODULE,obj_scale,1.0),[{key,obj_scale},{range,{0.0,infinity}},{hook,Hook}]}}
+        ]}
+      ],[{title," "++?__(9,"Slicer software references")++" "},{margin,false}]},
+      {label_column,
+       [{?__(2,"Export scale"),
+         {text,wpa:pref_get(?MODULE, export_scale, 1.0),
+          [{key,export_scale}]}},
+        {?__(3,"Sub-division Steps"),
+         {text,wpa:pref_get(?MODULE, subdivisions, 0),
+          [{key,subdivisions},{range,{0,4}}]}}
+       ]}
+     ]}
+    ].
+
+comput_scale(WUeq, {Sel,List}) ->
+    case Sel of
+        [Idx] ->
+            Row = element(Idx+1,list_to_tuple(List)),
+            {Scale,_} = element(3,Row),
+            %% Scale is defined in millimeters, so we convert in accord with user selection
+            case WUeq of
+                mm -> Scale;
+                cm -> Scale*10.0;
+                inch -> Scale*25.4;
+                _ -> 1.0
+            end;
+        _ -> 1.0
+    end.
+
+export(FileName, Contents0, Attr) ->
+    Contents = export_transform(Contents0, Attr),
     STL = make_stl(Contents),
     file:write_file(FileName, STL).
+
+export_transform(Contents, Attr) ->
+    Mat = wpa:export_matrix(Attr),
+    e3d_file:transform(Contents, Mat).
 
 make_stl(Contents) ->
     #e3d_file{objs=Objs,creator=Creator} = Contents,
