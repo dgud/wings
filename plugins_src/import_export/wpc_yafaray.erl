@@ -5627,6 +5627,8 @@ export_render(F, CameraName, BackgroundName, Attr) ->
             println(F, "<bg_transp bval=\"~s\"/>",[format(BackgroundTransp)]),
             println(F, "<bg_transp_refract bval=\"~s\"/>",[format(BackgroundTranspRefract)]),
             println(F, "<raydepth ival=\"~w\"/>",[Raydepth]),
+            println(F, "<transpShad bval=\"~s\"/>",[format(TransparentShadows)]),
+            println(F, "<shadowDepth ival=\"~w\"/>",[ShadowDepth]),
             println(F," ");
 
         sppm ->
@@ -5634,6 +5636,8 @@ export_render(F, CameraName, BackgroundName, Attr) ->
             println(F, "<type sval=\"SPPM\"/>"),
             println(F, "<bg_transp bval=\"~s\"/>",[format(BackgroundTransp)]),
             println(F, "<bg_transp_refract bval=\"~s\"/>",[format(BackgroundTranspRefract)]),
+            println(F, "<transpShad bval=\"~s\"/>",[format(TransparentShadows)]),
+            println(F, "<shadowDepth ival=\"~w\"/>",[ShadowDepth]),
             println(F, "<photons ival=\"~w\"/>",[SPPM_Photons]),
             println(F, "<bounces ival=\"~w\"/>",[SPPM_Bounces]),
             println(F, "<searchNum ival=\"~w\"/>",[SPPM_Search]),
