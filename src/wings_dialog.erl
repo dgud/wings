@@ -208,7 +208,7 @@ init() ->
 %% Display a text window (Info converted to html)
 info(Title, Info, Options) ->
     Parent = proplists:get_value(parent, Options, get_dialog_parent()),
-    Flags  = [{size, {500, 400}}, {style, ?wxCAPTION bor ?wxRESIZE_BORDER bor ?wxCLOSE_BOX}],
+    Flags  = [{size, {500, 400}}, {style, ?wxCAPTION bor ?wxRESIZE_BORDER bor ?wxCLOSE_BOX bor ?wxFRAME_FLOAT_ON_PARENT}],
     Frame  = wxFrame:new(Parent, ?wxID_ANY, Title, Flags),
     Panel  = wxHtmlWindow:new(Frame, []),
     Sizer  = wxBoxSizer:new(?wxVERTICAL),
