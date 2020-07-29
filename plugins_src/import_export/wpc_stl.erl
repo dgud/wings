@@ -76,14 +76,17 @@ dialog_export() ->
                     wings_dialog:set_value(slicer_id,Sel,Fields),
                     case Sel of
                         [0] ->
-                            wings_dialog:set_value(wu_equals,stl,Fields),
+                            ObjScale = 1.0,
                             ConvScale = 1.0,
+                            wings_dialog:set_value(wu_equals,stl,Fields),
+                            wings_dialog:set_value(obj_scale,ObjScale,Fields),
+                            wings_dialog:set_value(conv_scale,ConvScale,Fields),
                             wings_dialog:enable(pnl_slicer,false,Fields),
                             wings_dialog:enable(obj_scale,false,Fields);
                         _ ->
+                            ObjScale = wings_dialog:get_value(obj_scale,Fields),
                             ConvScale = comput_scale(wings_dialog:get_value(wu_equals,Fields),Slicer)
                     end,
-                    ObjScale = wings_dialog:get_value(obj_scale,Fields),
                     wings_dialog:set_value(conv_scale,ConvScale,Fields),
                     wings_dialog:set_value(export_scale,ObjScale*ConvScale,Fields);
                 wu_equals ->
@@ -162,7 +165,7 @@ dialog_export() ->
       {label_column,
        [{?__(2,"Export scale"),
          {text,wpa:pref_get(?MODULE, export_scale, 1.0),
-          [{key,export_scale}]}},
+          [{key,export_scale},{range,{0.0,infinity}}]}},
         {?__(3,"Sub-division Steps"),
          {text,wpa:pref_get(?MODULE, subdivisions, 0),
           [{key,subdivisions},{range,{0,4}}]}}
