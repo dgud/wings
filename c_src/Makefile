@@ -55,8 +55,8 @@ ifeq ($(UseMCL),true)
  OBJ = obj
  SO_EXT = dll
  LIBS = -LD
- CFLAGS += -nologo -Zi -Ox /FS /MP -D__WIN32__
- CXXFLAGS += $(CFLAGS) /EHsc
+ CFLAGS += -nologo -Zi -Ox -FS -MP -D__WIN32__
+ CXXFLAGS += $(CFLAGS) -EHsc
 else
  OUT = -o
  OUT_OBJ = -o
