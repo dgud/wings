@@ -120,11 +120,17 @@ command({file, {export, {eps, Arg}}}, St) ->
     export(Arg, export, St);
 command({file, {export_selected, {eps, Arg}}}, St) ->
     export(Arg, export_selected, St);
+command({file, {export_uv, {eps, Arg}}}, St) ->
+	export(Arg, export_uv, St);
 command(_, _) -> next.
 
-export(Arg, Op, _) when is_atom(Arg) ->
-    wpa:dialog(Arg, ?__(1,"Cartoon edges Render Options (EPS/SVG)"), dialog(),
-	       fun(Res) -> {file, {Op, {eps, Res}}} end);
+export(Arg, Op, St) when is_atom(Arg) ->
+	Fun =
+	case Op of
+		export_uv -> fun(Res) -> {file, {Op, {eps, {Res, St}}}} end;
+		_ -> fun(Res) -> {file, {Op, {eps, Res}}} end
+	end,
+    wpa:dialog(Arg, ?__(1,"Cartoon edges Render Options (EPS/SVG)"), dialog(), Fun);
 export(Arg, Op, St0) when is_list(Arg) ->
     set_pref(Arg),
     Camera_info = wpa:camera_info([aim, distance_to_aim,
@@ -150,8 +156,23 @@ export(Arg, Op, St0) when is_list(Arg) ->
 		;
         export_selected ->
             ?SLOW(wpa:export_selected(Props, fun_export(Props), St))
-    end.
+    end;
+export(Arg, export_uv, _) when is_tuple(Arg) ->
+	{Arg0,St} = Arg,
+	set_pref(Arg0),
+	Camera_info = [{0.0,0.0,0.0}, 1.2,
+				   0.0, 0.0, {-0.5,-0.5},
+				   45.0, -0.001, 10.0, {0.0,1.0,0.0}],
+	File_type = get_pref(file_type, ?DEF_FILE_TYPE),
+	Props = [{title, "Export"},
+			 {ext, file_type(File_type, suffix)},
+			 {ext_desc, file_type(File_type, desc)},
+			 {camera_info, Camera_info},
+			 {subdivisions, 0},
+			 {win_size, {100,100}},
+			 {ortho_view, true}],
 
+	?SLOW(wpa:export(Props, fun_export(Props), St)).
 
 
 dialog() ->
@@ -563,7 +584,7 @@ do_export(Props, File_name, #e3d_file{objs=Objs, mat=Mats}) ->
 	    Draw_mode = get_pref(draw_mode, ?DEF_DRAW_MODE),
 
 	    {VC_tree, Edge_dict, Face_tree, _VI_incr, _Obj_count}
-		= foldl(fun(#e3d_object{name=Name, obj=Mesh},
+		= foldl(fun(#e3d_object{name=Name0, obj=Mesh},
 			    {VC_tree_acc0, Edge_dict_acc0, Face_tree_acc0,
 			     VI_incr, Obj_count0}) ->
 				Obj_count = Obj_count0 + 1,
@@ -573,6 +594,7 @@ do_export(Props, File_name, #e3d_file{objs=Objs, mat=Mats}) ->
 						?__(1,"reading objects") ++ " " ++
 						    integer_to_list(round(Percent * 100.0)) ++ "%"),
 				wings_pb:pause(),
+				Name = if is_list(Name0) -> Name0; true -> [] end,	%% exporting uv map name is not valid
 				io:format(?__(2,"Reading object ~B of") ++" ~B \"~ts\"...",
 					  [Obj_count, Objs_total, Name]),
 

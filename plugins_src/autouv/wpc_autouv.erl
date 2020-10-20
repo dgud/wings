@@ -75,6 +75,11 @@ auv_show_menu(Action) ->
 	    wings_menu:update_menu(view, Cmd, delete)
     end.
 
+auv_export_menu(label) ->
+    ?__(1,"Export UV...");
+auv_export_menu(help) ->
+    ?__(2,"Exports the UV as cartoon edges (.eps, .svg)").
+
 command({body,{?MODULE, Op}} , St) ->
     start_uvmap(Op, St);
 command({face,{?MODULE, Op}} , St) ->
@@ -473,9 +478,13 @@ command_menu(vertex, X, Y) ->
 	   ] ++ option_menu(),
     wings_menu:popup_menu(X,Y, {auv,vertex}, Menu);
 command_menu(_, X, Y) ->
+    case catch wpc_hlines:init() of
+        true -> ExportMenu = [{auv_export_menu(label), export_uv, auv_export_menu(help)}];
+        _ -> ExportMenu = []
+    end,
     Checked = [{crossmark, get({?MODULE,show_background})}],
-    Menu = [{auv_show_menu(label),toggle_background,auv_show_menu(help),
-	     Checked}] ++ option_menu(),
+    Menu = [{auv_show_menu(label),toggle_background,auv_show_menu(help),Checked}] ++
+           option_menu() ++ ExportMenu,
     wings_menu:popup_menu(X,Y, {auv,option}, Menu).
 
 stretch_directions() ->
@@ -960,7 +969,8 @@ handle_command_1(toggle_background, _) ->
     Old = get({?MODULE,show_background}),
     put({?MODULE,show_background},not Old),
     wings_wm:dirty();
-
+handle_command_1(export_uv, #st{}=St) ->
+    wpc_hlines:command({file, {export_uv, {eps, true}}}, St);
 handle_command_1(Cmd, #st{selmode=Mode}=St0) ->
     case wings_plugin:command({{auv,Mode},Cmd}, St0) of
       next ->
