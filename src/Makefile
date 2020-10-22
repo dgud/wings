@@ -32,6 +32,7 @@ endif
 # rule to ensure that it gets compiled before all other modules.
 
 MODULES= \
+	libigl \
 	user_default \
 	wings \
 	wings_align \
@@ -150,7 +151,7 @@ ERL_COMPILE_FLAGS += -Werror -I ../.. -I../_deps $(TYPE_FLAGS) \
 # Targets
 # ----------------------------------------------------
 
-opt debug wx:
+opt debug:
 	$(MAKE) TYPE=$@ common
 
 common: $(EBIN)/wings_lang.beam $(TARGET_FILES) $(APP_TARGET)
@@ -160,7 +161,7 @@ template: $(TARGET_FILES)
 
 lang: template
 	@cp *.lang $(EBIN)
-	erl -pa $(WINGS_INTL) -noinput -run tools diff_lang_files $(EBIN)
+	$(ERL) -pa $(WINGS_INTL) -noinput -run tools diff_lang_files $(EBIN)
 
 clean:
 	rm -f $(TARGET_FILES) $(EBIN)/wings_lang.beam

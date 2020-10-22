@@ -45,8 +45,9 @@
 -export([model_l2/5]).
 -export([lsq/2, lsq/3,  % Debug entry points
 	 find_pinned/2,
-	 find_pinned_from_edges/2,
-	 split_edges_1/2]).
+	 split_edges_1/2,
+         loop_to_circle/1
+        ]).
 
 -include_lib("wings/src/wings.hrl").
 -include("auv.hrl").
@@ -87,8 +88,20 @@ map_chart_1(Type, Chart, Loop, Options, We) ->
 
 map_chart_2(project, C, _, _, We) ->    projectFromChartNormal(C, We);
 map_chart_2(camera, C, _, Dir, We) ->   projectFromCamera(C, Dir, We);
-map_chart_2(lsqcm, C, Loop, Pinned, We) -> lsqcm(C, Pinned, Loop, We);
-map_chart_2(Op,C, Loop, Pinned, We) ->  volproject(Op,C, Pinned, Loop,We).
+map_chart_2(lsqcm, C, Loop, Pinned, We) ->
+    case get(auv_use_erlang_impl) == true
+        orelse erlang:system_info(wordsize) =:= 4 of
+        true ->
+            lsqcm(C, Pinned, Loop, We); %% old
+        false ->
+            lscm(C, Pinned, Loop, We)
+    end;
+map_chart_2(harmonic, C, Loop, _Pinned, We) ->
+    ?TC(harmonic(C, Loop, We));  %% debug libigl
+map_chart_2(slim, C, Loop, _Pinned, We) ->
+    slim(C, Loop, We);
+map_chart_2(Op, C, Loop, Pinned, We) ->
+    volproject(Op, C, Pinned, Loop, We).
 
 volproject(Type,Chart,_Pinned,{_,BEdges},We) ->
     {Center,Axes,LoopInfo} = find_axes(Chart,BEdges,We),
@@ -109,8 +122,8 @@ volproject(Type,Chart,_Pinned,{_,BEdges},We) ->
     %%io:format("Tagged ~w~n",[gb_sets:to_list(Tagged)]),
     [{V,fix_positions(V,Pos,CalcUV(Pos),Tagged)} || {V,Pos} <- Vs1].
 
-sphere({X,Y,Z}) ->    
-    S = catchy(catch math:atan2(X,Z)/math:pi()),	
+sphere({X,Y,Z}) ->
+    S = catchy(catch math:atan2(X,Z)/math:pi()),
     T = math:acos(clamp(-Y))/math:pi()-0.5,
     {S,T,0.0}.
 
@@ -119,8 +132,79 @@ cyl({X,Y,Z}) ->
     T = Y,
     {S,T,0.0}.
 
+projectFromChartNormal(Chart, We) ->
+    Normal = chart_normal(Chart,We),
+    Vs0 = wings_face:to_vertices(Chart, We),
+    rotate_to_z(Vs0, Normal, We).
+
+projectFromCamera(Chart,{matrices,{MM,PM,VP}},We) ->
+    Vs = wings_face:to_vertices(Chart, We),
+    Proj = fun(V) ->
+		   {X,Y,Z} = wings_vertex:pos(V, We),
+		   {S,T, _} = wings_gl:project(X,Y,Z,MM,PM,VP),
+		   {V,{S,T,0.0}}
+	   end,
+    lists:map(Proj, Vs).
+
+%% Mostly a test for slim initialization
+harmonic(Chart, Loop, We0) ->
+    {BorderVs0,BorderUVs} = loop_to_circle(Loop),
+    {_TriWe,_TriFs,Vs,Fs,WeVs2Vs,Vs2WeVs} = init_mappings(Chart,We0),
+    BorderVs = [maps:get(V, WeVs2Vs) || V <- BorderVs0],
+    UVs0 = libigl:harmonic(Vs, Fs, BorderVs, BorderUVs),
+    UVs = remap_uvs(UVs0, Vs2WeVs),
+    UVs.
+
+slim(Chart, Loop, We0) ->
+    {BorderVs0,BorderUVs} = loop_to_circle(Loop),
+    {_TriWe,_TriFs,Vs,Fs,WeVs2Vs,Vs2WeVs} = init_mappings(Chart,We0),
+    BorderVs = [maps:get(V, WeVs2Vs) || V <- BorderVs0],
+    UVInit = libigl:harmonic(Vs, Fs, BorderVs, BorderUVs),
+    UVs0 = libigl:slim(Vs,Fs,UVInit, symmetric_dirichlet, 0.00001),
+    UVs = remap_uvs(UVs0, Vs2WeVs),
+    UVs.
+
+lscm(Fs, none, Loop, We) ->
+    lscm(Fs,find_pinned(Loop,We),Loop,We);
+lscm(Fs0, Pinned, _Loop, We0) ->
+    {TriWe,TriFs,Vs,Fs,WeVs2Vs,Vs2WeVs} = init_mappings(Fs0,We0),
+    {BIndx,BPos} = split_pinned(Pinned, WeVs2Vs, [], []),
+    UVs0 = libigl:lscm(Vs, Fs, BIndx, BPos),
+    UVs = remap_uvs(UVs0, Vs2WeVs),
+    OrigArea = fs_area(TriFs, TriWe, 0.0),
+    MappedArea = fs_area(TriFs, TriWe#we{vp=array:from_orddict(UVs)}, 0.0),
+    scaleVs(UVs, math:sqrt(OrigArea/MappedArea)).
+
+lsqcm(Fs, none, Loop, We) ->
+    lsqcm(Fs,find_pinned(Loop,We),Loop,We);
+lsqcm(Fs, Pinned, _Loop, We) ->
+    ?DBG("Project and tri ~n", []),
+    LSQState = lsq_setup(Fs,We,Pinned),
+    {ok,Vs2} = lsq(LSQState, Pinned),
+    %%?DBG("LSQ res ~p~n", [Vs2]),
+    Patch = fun({Idt, {Ut,Vt}}) -> {Idt,{Ut,Vt,0.0}} end,
+    Vs3 = lists:sort(lists:map(Patch, Vs2)),
+    TempVs = array:from_orddict(Vs3),
+    Area = fs_area(Fs, We, 0.0),
+    MappedArea = fs_area(Fs, We#we{vp=TempVs}, 0.0),
+    Scale = Area/MappedArea,
+    scaleVs(Vs3,math:sqrt(Scale)).
+
+
+%%  Map border edges to circle positions
+-spec loop_to_circle({TotDist::float(), [BEs::#be{}]}) -> {[integer()], [{float(),float()}]}.
+loop_to_circle({TotDist, BEs}) ->
+    loop_to_circle(BEs, 0.0, TotDist, [], []).
+
+loop_to_circle([#be{vs=V, dist=D}|BEs], Curr, Tot, Vs, UVs) ->
+    Pi2 = 2.0*math:pi(),
+    Frac = Pi2*(1-Curr/Tot),
+    loop_to_circle(BEs, Curr+D, Tot, [V|Vs], [{math:cos(Frac),math:sin(Frac)}|UVs]);
+loop_to_circle([], _, _, Vs, UVs) ->
+    {Vs, UVs}.
+
 catchy({'EXIT', _}) -> math:pi()/4;
-catchy(X) -> X.    
+catchy(X) -> X.
 
 clamp(X) when X > 1.0 -> 1.0;
 clamp(X) when X < -1.0 -> -1.0;
@@ -309,54 +393,86 @@ reorder_link(Other) ->
     io:format("Other: ~w~n",[Other]),
     exit(internal_error).
 
-%%%% Uncomplete fixme.. BUGBUG
-%%% I can't get this to work satisfactory..aarg.
-%% find_axes_from_eigenv(Fs,CNormal,BEdges,We) ->
-%%     Vs0 = wings_face:to_vertices(Fs, We),
-%%     BVs = [Ver || #be{vs=Ver} <- BEdges],
-%%     Center = wings_vertex:center(BVs,We),
-%%     Vpos = lists:usort([wings_vertex:pos(V, We) || V <- Vs0]),
-%%     {{Ev1,Ev2,Ev3},{Bv1,Bv2,Bv3}} = e3d_bv:eigen_vecs(Vpos),
-%%     Vecs = [{Bv1,Ev1},{Bv2,Ev2},{Bv3,Ev3}],
-%% %%    io:format("EIG ~p~n",[Vecs]),
-%%     [{_Z0,C},{V1,A},{V2,B}] = find_closest(Vecs,CNormal,0.0,[]),
-%%     case A/C > B/C of
-%% 	true ->  Y0=V1,_X0=V2;
-%% 	false -> _X0=V1,Y0=V2
-%%     end,
-%%     {X,Z,Y} = calc_axis(CNormal,Y0),
-%% %%    io:format("Res ~p~n ~p~n ~p~n",[X,Y,Z]),
-%%     {Center,{X,Y,Z},undefined}.
-
-%% find_closest([H = {V,_}|R],N,Best,All=[B|Which]) ->
-%%     Dot = e3d_vec:dot(V,N),
-%%     case abs(Dot) > abs(Best) of
-%% 	true -> find_closest(R,N,Dot,[H|All]);
-%% 	false -> find_closest(R,N,Best,[B,H|Which])
-%%     end;
-%% find_closest([H = {V,_}|R],N,_,[]) ->
-%%     Dot = e3d_vec:dot(V,N),
-%%     find_closest(R,N,Dot,[H]);
-%% find_closest([],_,Best,All) ->
-%%     case Best > 0.0 of
-%% 	true ->All;
-%% 	false -> [{e3d_vec:neg(V),Ev}|| {V,Ev} <- All]
-%%     end.
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-projectFromChartNormal(Chart, We) ->
-    Normal = chart_normal(Chart,We),
-    Vs0 = wings_face:to_vertices(Chart, We),
-    rotate_to_z(Vs0, Normal, We).
 
-projectFromCamera(Chart,{matrices,{MM,PM,VP}},We) ->
-    Vs = wings_face:to_vertices(Chart, We),
-    Proj = fun(V) ->
-		   {X,Y,Z} = wings_vertex:pos(V, We),
-		   {S,T, _} = wings_gl:project(X,Y,Z,MM,PM,VP),
-		   {V,{S,T,0.0}}
-	   end,
-    lists:map(Proj, Vs).
+init_mappings(Fs0,We0) ->
+    %wings_util:profile_start(fprof),
+    #we{vp=Vtab} = TriWe = wings_tesselation:triangulate(Fs0, We0),
+    %wings_util:profile_stop(fprof),
+    Fs1 = Fs0 ++ wings_we:new_items_as_ordset(face,We0,TriWe),
+    Add = fun(V,_,_,{N, Vs,Face, ToNew, ToOld}) ->
+                  case maps:get(V, ToNew, undefined) of
+                      undefined ->
+                          Pos = array:get(V, Vtab),
+                          {N+1, [Pos|Vs], [N|Face], maps:put(V, N, ToNew), [{N,V}|ToOld]};
+                      New ->
+                          {N, Vs, [New|Face], ToNew, ToOld}
+                  end
+          end,
+    {Vs,NewFs,ToNew,ToOld} = setup_maps(Fs1, TriWe, Add, 0, [], [], maps:new(), []),
+    {TriWe, Fs1, Vs, NewFs, ToNew, ToOld}.
+
+setup_maps([F|Fs], We, Add, N0, Vs0, AFs, ToNew0, ToOld0) ->
+    {N, Vs,RFace,ToNew,ToOld} = wings_face:fold(Add, {N0, Vs0, [], ToNew0, ToOld0}, F, We),
+    setup_maps(Fs, We, Add, N, Vs, [RFace|AFs], ToNew, ToOld);
+setup_maps([], _We, _, _, Vs0, AFs, ToNew, ToOld) ->
+    {lists:reverse(Vs0), AFs, ToNew, maps:from_list(ToOld)}.
+
+remap_uvs(UVs0, Vs2WeVs) ->
+    Remap = fun({U,V}, N) -> {{maps:get(N, Vs2WeVs),{U,V,0.0}},N+1} end,
+    {UVs1,_} = lists:mapfoldl(Remap, 0, UVs0),
+    lists:sort(UVs1).
+
+split_pinned([{I,Pos}|Ps], WeVs2Vs, Indx, PosL) ->
+    split_pinned(Ps, WeVs2Vs, [maps:get(I, WeVs2Vs)|Indx], [Pos|PosL]);
+split_pinned([], _, Indx, PosL) ->
+    {reverse(Indx), reverse(PosL)}.
+
+scaleVs(VUVs,Scale) ->
+    [{Id, {X*Scale,Y*Scale,0.0}} || {Id,{X,Y,0.0}} <- VUVs].
+
+find_pinned({Circumference, BorderEdges}, We) ->
+    Vs = [array:get(V1, We#we.vp) || #be{vs=V1} <- BorderEdges],
+    Center = e3d_vec:average(Vs),
+    AllC = lists:map(fun(#be{vs=Id}) ->
+			     Pos = array:get(Id, We#we.vp),
+			     Dist = e3d_vec:dist(Pos, Center),
+			     {Dist, Id, Pos}
+		     end, BorderEdges),
+    [{_,V0,_V1Pos}|_] = lists:reverse(lists:sort(AllC)),
+    BE1 = reorder_edge_loop(V0, BorderEdges, []),
+    HalfCC = Circumference/2, %% - Circumference/100,
+    {V1, V2} = find_pinned(BE1, BE1, 0.0, HalfCC, HalfCC, undefined), 
+    [{V1,{0.0,0.0}},{V2,{1.0,1.0}}].
+    
+find_pinned(Curr=[#be{vs=C1,dist=Clen}|CR],Start=[#be{ve=S2,dist=Slen}|SR],Len,HCC,Best,BVs) ->    
+    Dlen = HCC-(Clen+Len),
+    ADlen = abs(Dlen),
+%    ?DBG("Testing ~p ~p ~p ~p ~p~n", [{S2,C1},Dlen,{Len+Clen,HCC}, Best, BVs]),    
+    if 
+	Dlen >= 0.0 ->
+	    if ADlen < Best ->
+		    find_pinned(CR,Start,Clen+Len,HCC,ADlen,{S2,C1});
+	       true ->
+		    find_pinned(CR,Start,Clen+Len,HCC,Best,BVs)
+	    end;
+	Dlen < 0.0 ->
+	    if ADlen < Best ->
+		    find_pinned(Curr,SR,Len-Slen,HCC, ADlen,{S2,C1});
+	       true ->
+		    find_pinned(Curr,SR,Len-Slen,HCC,Best,BVs)
+	    end
+    end;
+find_pinned([], _, _, _, _Best, Bvs) ->
+%    ?DBG("Found ~p ~p~n", [_Best, Bvs]),
+    Bvs.
+
+reorder_edge_loop(V1, [Rec=#be{vs=V1}|Ordered], Acc) ->
+    Ordered ++ lists:reverse([Rec|Acc]);
+reorder_edge_loop(V1, [H|Tail], Acc) ->
+    reorder_edge_loop(V1, Tail, [H|Acc]).
+
+%%% Utils
 
 chart_normal([],_We) -> throw(?__(1,"Can not calculate normal for chart."));
 chart_normal(Fs,We = #we{es=Etab}) ->
@@ -428,141 +544,6 @@ sum_crossp([V1,V2|Vs], Acc) ->
     sum_crossp([V2|Vs], e3d_vec:add(Acc, Cross));
 sum_crossp([_Last], Acc) ->
     Acc.
-
-lsqcm(Fs, none, Loop, We) ->
-    %%	{V1, V2} = find_pinned_from_edges(Loop,We),
-    %%	[V1,V2];  % the new stuff picks different pinned 
-    {V3, V4} = find_pinned(Loop,We),
-    lsqcm(Fs,[V3,V4],Loop,We);
-lsqcm(Fs, Pinned, _Loop, We) ->
-    ?DBG("Project and tri ~n", []),
-    LSQState = lsq_setup(Fs,We,Pinned),
-    {ok,Vs2} = lsq(LSQState, Pinned),
-    %%?DBG("LSQ res ~p~n", [Vs2]),
-    Patch = fun({Idt, {Ut,Vt}}) -> {Idt,{Ut,Vt,0.0}} end,
-    Vs3 = lists:sort(lists:map(Patch, Vs2)),
-    TempVs = array:from_orddict(Vs3),
-    Area = fs_area(Fs, We, 0.0),
-    MappedArea = fs_area(Fs, We#we{vp=TempVs}, 0.0),
-    Scale = Area/MappedArea,
-    scaleVs(Vs3,math:sqrt(Scale),[]).
-
-scaleVs([{Id, {X,Y,_}}|Rest],Scale,Acc) 
-  when is_float(X), is_float(Y), is_float(Scale) ->
-    scaleVs(Rest, Scale, [{Id, {X*Scale,Y*Scale,0.0}}|Acc]);
-scaleVs([],_,Acc) ->
-    lists:reverse(Acc).
-
--record(link,{no=0,pos={0.0,0.0,0.0}}).
-
-find_pinned_from_edges({Circumference, BorderEdges}, #we{vp=Vtab}) ->    
-    [First,Second,Third|RestOfEdges] = 
-	case BorderEdges of %% Check order
-	    [#be{ve=TO},#be{vs=TO}|_] -> BorderEdges;
-	    _ -> reverse(BorderEdges)
-	end,
-    POS = fun(V) -> array:get(V,Vtab) end,
-    Left = #link{no=1,pos=POS(Second#be.vs)},
-    Right = foldl(fun(#be{vs=V}, #link{no=No,pos=Apos}) ->
-			  #link{no=No+1,pos=e3d_vec:add(Apos,POS(V))}
-		  end, #link{}, RestOfEdges),
-    Vert1 = {First#be.vs,POS(First#be.vs)},
-    VertN = {Third#be.vs,POS(Third#be.vs)},
-    Best = {Vert1,VertN,calc_vp(Vert1,VertN,Left,Right)},
-    HCC = Circumference/2, %% - Circumference/100,
-    Dist = First#be.dist + Second#be.dist,
-%    io:format("Pinned ~p ~n", [Best]),
-%    io:format(" L ~p R ~p~n",[Left,Right]),
-    find_pinned_from_edges2(First,[Second],Third,RestOfEdges,First,Dist,HCC,Left,Right,POS,Best).
-
-find_pinned_from_edges2(_S,_LVs,Start,_,Start,_Dist,_HCC,_Left0,_Right0,_POS,{{V1,_},{V2,_},_Best}) ->
-%%    io:format("Pinned ~p ~p ~p~n", [V1,V2,_Best]),
-    {{V1,{0.0,0.0}},{V2,{1.0,1.0}}};
-find_pinned_from_edges2(S,LVs,E,[Next|RVs],Start,Dist,HCC,Left0,Right0,POS,Best0)
-  when Dist < HCC ->
-%    io:format("LT ~p(~p) +~p ",[Dist,HCC,E]),
-    NewDist = Dist + E#be.dist,
-    {Left,Right,Best} = recalc_positions(S,E,Left0,Next,Right0,POS,Best0,incr),
-    find_pinned_from_edges2(S,LVs++[E],Next,RVs,Start,NewDist,HCC,Left,Right,POS,Best);
-find_pinned_from_edges2(S,[Next|LVs],E,RVs,Start,Dist,HCC,Left0,Right0,POS,Best0) -> 
-%    io:format("RT ~p(~p) -~p ",[Dist,HCC,S]),
-    NewDist = Dist - S#be.dist,
-    {Left,Right,Best} = recalc_positions(E,S,Right0,Next,Left0,POS,Best0,decr),
-    find_pinned_from_edges2(Next,LVs,E,RVs++[S],Start,NewDist,HCC,Left,Right,POS,Best).
-
-recalc_positions(Start,Prev,#link{no=Ino,pos=Ipos},Next,#link{no=Dno,pos=Dpos},POS,Best0,Op) ->
-    {_PV1,_PV2,Least} = Best0,
-    Left  = #link{no=Ino+1,pos=e3d_vec:add(Ipos,POS(Prev#be.vs))},
-    Right = #link{no=Dno-1,pos=e3d_vec:sub(Dpos,POS(Next#be.vs))},
-    Vert1 = {Start#be.vs,POS(Start#be.vs)},
-    Vert2 = {Next#be.vs,POS(Next#be.vs)},
-    New = calc_vp(Vert1,Vert2,Left,Right),
-    case New < Least of
-	true when Op == incr -> {Left,Right,{Vert1,Vert2,New}};
-	true ->  {Right,Left,{Vert2,Vert1,New}};
-	false when Op == incr -> {Left,Right,Best0};
-	false -> {Right,Left,Best0}
-    end.
-
-calc_vp(_VI1={_Id1,V1},_VI2={_Id2,V2},Left,Right) ->
-    try 
-	AxisVec = e3d_vec:sub(V2,V1),
-	AxisLen = e3d_vec:len(AxisVec),
-	Axis = e3d_vec:norm(AxisVec),
-	LeftPos = divide(Left#link.pos, Left#link.no),
-	RightPos = divide(Right#link.pos, Right#link.no),
-	Vec1 = e3d_vec:sub(V2,LeftPos),
-	Vec2 = e3d_vec:sub(V2,RightPos),
-	A1   = abs(math:acos(e3d_vec:dot(e3d_vec:norm(Vec1),Axis))),
-	A2   = abs(math:acos(e3d_vec:dot(e3d_vec:norm(Vec2),Axis))),
-	abs((A1 + 10*e3d_vec:len(Vec1)/AxisLen) - (A2 + 10*e3d_vec:len(Vec2)/AxisLen))
-    catch _:_What ->
-	    9999999999.99
-    end.
-
-divide(What,0) -> What;
-divide(Vec,S) -> e3d_vec:divide(Vec,S).
-     
-find_pinned({Circumference, BorderEdges}, We) ->
-    Vs = [array:get(V1, We#we.vp) || #be{vs=V1} <- BorderEdges],
-    Center = e3d_vec:average(Vs),
-    AllC = lists:map(fun(#be{vs=Id}) ->
-			     Pos = array:get(Id, We#we.vp),
-			     Dist = e3d_vec:dist(Pos, Center),
-			     {Dist, Id, Pos}
-		     end, BorderEdges),
-    [{_,V0,_V1Pos}|_] = lists:reverse(lists:sort(AllC)),
-    BE1 = reorder_edge_loop(V0, BorderEdges, []),
-    HalfCC = Circumference/2, %% - Circumference/100,
-    {V1, V2} = find_pinned(BE1, BE1, 0.0, HalfCC, HalfCC, undefined), 
-    {{V1,{0.0,0.0}},{V2,{1.0,1.0}}}.
-    
-find_pinned(Curr=[#be{vs=C1,dist=Clen}|CR],Start=[#be{ve=S2,dist=Slen}|SR],Len,HCC,Best,BVs) ->    
-    Dlen = HCC-(Clen+Len),
-    ADlen = abs(Dlen),
-%    ?DBG("Testing ~p ~p ~p ~p ~p~n", [{S2,C1},Dlen,{Len+Clen,HCC}, Best, BVs]),    
-    if 
-	Dlen >= 0.0 ->
-	    if ADlen < Best ->
-		    find_pinned(CR,Start,Clen+Len,HCC,ADlen,{S2,C1});
-	       true ->
-		    find_pinned(CR,Start,Clen+Len,HCC,Best,BVs)
-	    end;
-	Dlen < 0.0 ->
-	    if ADlen < Best ->
-		    find_pinned(Curr,SR,Len-Slen,HCC, ADlen,{S2,C1});
-	       true ->
-		    find_pinned(Curr,SR,Len-Slen,HCC,Best,BVs)
-	    end
-    end;
-find_pinned([], _, _, _, _Best, Bvs) ->
-%    ?DBG("Found ~p ~p~n", [_Best, Bvs]),
-    Bvs.
-
-reorder_edge_loop(V1, [Rec=#be{vs=V1}|Ordered], Acc) ->
-    Ordered ++ lists:reverse([Rec|Acc]);
-reorder_edge_loop(V1, [H|Tail], Acc) ->
-    reorder_edge_loop(V1, Tail, [H|Acc]).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%% Least Square Conformal Maps %%%%%%%%%%%%
