@@ -90,7 +90,13 @@ IGL_INCLUDE = -I../_deps/eigen -I../_deps/libigl/include
 
 # libigl only supports 64bits systems
 ifeq (x"${WORDSIZE}",x"64")
-    DRV = $(LIBDIR)/libigl.$(SO_EXT) $(LIBDIR)/wings_pick_nif.$(SO_EXT)
+    IGLFILE = $(LIBDIR)/libigl.$(SO_EXT)
+    ifeq ($(shell test -e $(IGLFILE) && echo -n yes),yes)
+        $(info *** Skip building LIBIGL - use 'make clean' first to rebuild it)
+        DRV = $(LIBDIR)/wings_pick_nif.$(SO_EXT)
+    else
+        DRV = $(IGLFILE) $(LIBDIR)/wings_pick_nif.$(SO_EXT)
+    endif
 else
     $(info 32bits build ignoring libigl not supported)
     DRV = $(LIBDIR)/wings_pick_nif.$(SO_EXT)
