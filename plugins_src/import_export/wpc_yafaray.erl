@@ -5860,21 +5860,11 @@ println(F, Format, Args) ->
 
 uniprint(F, Format, Args) ->
     UnicodeText = io_lib:format(Format, Args),
-    case io:put_chars(F, unicode:characters_to_binary(UnicodeText)) of
-        ok ->
-            ok;
-        Error ->
-            erlang:error(Error, [F,Format,Args])
-    end.
+    io:put_chars(F, unicode:characters_to_binary(UnicodeText)).
 
 uniprintln(F, Format, Args) ->
     UnicodeText = io_lib:format(Format, Args) ++ io_lib:nl(),
-    case io:put_chars(F, unicode:characters_to_binary(UnicodeText)) of
-        ok ->
-            ok;
-        Error ->
-            erlang:error(Error, [F,Format,Args])
-    end.
+    io:put_chars(F, unicode:characters_to_binary(UnicodeText)).
 
 close(F) ->
     case file:close(F) of
