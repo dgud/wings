@@ -1020,7 +1020,7 @@ repeatable({scale, Dir}, Mode)
 	(Dir == normalize)) and (Mode /= body) -> false;
 repeatable({rotate, Dir}, Mode) 
   when ((Dir == align_y) or (Dir == align_x) or (Dir == align_xy)) 
-       and ((Mode == body) or (Mode == face)) -> no;
+       and ((Mode == body) or (Mode == face)) -> false;
 repeatable({move_to,_},Mode) -> Mode == body;
 repeatable({flip,_},Mode) -> Mode == body;
 repeatable(slide, Mode) -> Mode == edge;
