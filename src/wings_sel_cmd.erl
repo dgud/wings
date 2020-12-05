@@ -702,7 +702,7 @@ similar(#st{selmode=body}=St) ->
 			   member(Template, Templates)
 		   end, body, St).
 
-do_similar(MakeTemplate, #st{selmode=Mode}=St) ->
+do_similar(MakeTemplate, #st{selmode=Mode,sel=Sel0}=St) when Sel0 =/= [] ->
     MF = fun(Sel, We) ->
 		 Ts = gb_sets:fold(
 			fun(I, A) ->
@@ -717,7 +717,8 @@ do_similar(MakeTemplate, #st{selmode=Mode}=St) ->
       fun(Item, We) ->
 	      Template = MakeTemplate(Item, We),
 	      match_templates(Template, Templates)
-      end, Mode, St).
+      end, Mode, St);
+do_similar(_, St) -> St.
 
 consolidate_templates([H|T]) ->
     consolidate_templates_1(H, T).
