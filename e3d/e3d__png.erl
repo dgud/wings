@@ -33,7 +33,7 @@
 
 -record(png, {w,h,bpc,type,palette,
 	      interlace=0,trns,bkgd=[0,0,0,0],
-	      restype,chunks=[],z}).
+	      restype,chunks=[]}).
 
 %% Chunk sz of 240 bytes is good divideable with 2|3|4 which always givs complete
 %% pixels in the chunks.
@@ -64,23 +64,20 @@ format_error({unsupported_compression,Comp}) ->
 load(FileName) ->
     load(FileName, []).
 load(FileName, _Opts) ->
-    Z = zlib:open(),  
-    try load1(FileName,_Opts,Z)
-    catch 
+    try load1(FileName,_Opts)
+    catch
 	throw:Reason:ST ->
 	    io:format("~n~p: Bad File: ~p ~P~n",[?MODULE,Reason,ST,30]),
 	    {error, {?MODULE,Reason}};
         error:Reason:ST ->
 	    io:format("~n~p: Internal Error: ~P ~P~n",[?MODULE,Reason,30,ST,30]),
 	    {error, {?MODULE,Reason}}
-    after 
-	zlib:close(Z)
     end.
 
-load1(FileName, _Opts,Z) ->
+load1(FileName, _Opts) ->
     case file:read_file(FileName) of
 	{ok, <<?MAGIC, Chunks/binary>>} ->
-	    decode_chunks(0, Chunks, #png{z=Z});
+	    decode_chunks(0, Chunks, #png{});
 	{ok, _Bin} ->
 	    {error, {?MODULE,corrupt_file}};
 	Error ->
@@ -97,41 +94,38 @@ save(Img, File) ->
 save(Img, File,Opts) ->
     save(Img, File, undefined,Opts).
 save(Img, File, Type, Options) ->
-    Z = zlib:open(),
-    try 
-	Binary = save1(Img,Options,Z),
+    try
+	Binary = save1(Img,Options),
 	case Type of
 	    binary -> {ok, Binary};
 	    _ -> file:write_file(File, Binary)
 	end
-    catch 
+    catch
 	throw:Reason:ST ->
 	    io:format("~n~p: Bad File: ~p ~P~n",[?MODULE,Reason,ST,30]),
 	    {error, {?MODULE,Reason}};
 	  error:Reason:ST ->
 	    io:format("~n~p: Internal Error: ~P ~P~n",[?MODULE,Reason,30,ST,30]),
 	    {error, {?MODULE,Reason}}
-    after 
-	zlib:close(Z)
     end.
 
-get_chunk(Pos,Chunks,#png{z=Z}) ->
+get_chunk(Pos,Chunks) ->
     case Chunks of
 	<<_:Pos/binary, Sz:32, Type:4/binary, Chunk:Sz/binary, Crc:32, _/binary>> ->
 	    Pos1=Pos+4, Sz1=4+Sz,
 	    <<_:Pos1/binary,CRCdata:Sz1/binary,_/binary>> = Chunks,
-	    check_crc(CRCdata,Crc,Z),
+	    check_crc(CRCdata,Crc),
 	    {Pos+12+Sz,{binary_to_list(Type),Chunk}};
 	_ -> 
 	    throw(unsupported_format)
     end.
 
-decode_chunks(Pos,Chunks,_PNG) when Pos >= size(Chunks) -> 
+decode_chunks(Pos,Chunks,_PNG) when Pos >= size(Chunks) ->
     throw(unsupported_format);
 decode_chunks(Pos,Chunks,PNG0) ->
-    {NewPos,Chunk} = get_chunk(Pos,Chunks,PNG0),
+    {NewPos,Chunk} = get_chunk(Pos,Chunks),
     case decode_chunk(Chunk,PNG0) of
-	#png{} = PNG ->  
+	#png{} = PNG ->
 	    decode_chunks(NewPos,Chunks,PNG);
 	#e3d_image{} = Image ->
 	    Image
@@ -181,8 +175,8 @@ decode_chunk({_Type,_Chunk},PNG0) ->
 %%    io:format("Skipped ~s ~n", [Type]),
     PNG0.
 
-check_crc(Data,Crc,Z) ->   
-    case zlib:crc32(Z,Data) of
+check_crc(Data,Crc) ->
+    case erlang:crc32(Data) of
 	Crc -> ok;
 	_E ->
 	    throw(decode_error)
@@ -832,12 +826,12 @@ lookup_trns(I,Map) ->
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-save1(Orig=#e3d_image{},_Opts,Z) ->
+save1(Orig=#e3d_image{},_Opts) ->
     #e3d_image{width=W,height=H,type=T,image=Image,bytes_pp=Bpp} = 
 	e3d_image:convert(Orig,rgb_order(Orig),1,upper_left),
-    HDR = create_chunk(<<"IHDR",W:32,H:32,8:8,(png_type(T)):8,0:8,0:8,0:8>>,Z),
-    DATA = create_chunk(["IDAT",compress_image(0,Bpp*W,Image,[])],Z),
-    END  = create_chunk(<<"IEND">>,Z),
+    HDR = create_chunk(<<"IHDR",W:32,H:32,8:8,(png_type(T)):8,0:8,0:8,0:8>>),
+    DATA = create_chunk(["IDAT",compress_image(0,Bpp*W,Image,[])]),
+    END  = create_chunk(<<"IEND">>),
     list_to_binary([?MAGIC,HDR,DATA,END]).
 
 compress_image(I,RowLen, Bin, Acc) ->
@@ -864,11 +858,11 @@ rgb_order(#e3d_image{type=b8g8r8}) -> r8g8b8;
 rgb_order(#e3d_image{type=b8g8r8a8}) -> r8g8b8a8;
 rgb_order(#e3d_image{type=Type}) -> Type.
     
-create_chunk(Bin,Z) when is_list(Bin) ->
-    create_chunk(list_to_binary(Bin),Z);
-create_chunk(Bin,Z) when is_binary(Bin) ->
+create_chunk(Bin) when is_list(Bin) ->
+    create_chunk(list_to_binary(Bin));
+create_chunk(Bin) when is_binary(Bin) ->
     Sz = size(Bin)-4,
-    Crc = zlib:crc32(Z,Bin),
+    Crc = erlang:crc32(Bin),
     <<Sz:32,Bin/binary,Crc:32>>.
 
 test() ->

@@ -577,7 +577,7 @@ handle_info(parent_changed,
             Selected = selected_item(Prev, TC0),
 	    TC = make_tree(Top, wings_frame:get_colors(), IL),
 	    wxSizer:replace(Szr, TC0, TC),
-            wxSizer:recalcSizes(Szr),
+            wxSizer:layout(Szr),
 	    wxWindow:destroy(TC0),
 	    {noreply, update_object(Os, Selected, Expanded, State#state{tc=TC})};
 	_ ->

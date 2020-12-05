@@ -213,7 +213,7 @@ make_overlay(Parent, ScreenPos) ->
                    1
            end,
     DisplayID = wxDisplay:getFromPoint(ScreenPos),
-    Display = wxDisplay:new([{n, DisplayID}]),
+    Display = wxDisplay_new(DisplayID),
     {DX,DY,DW,DH} = wxDisplay:getClientArea(Display),
     true = wxFrame:create(OL, Parent, -1, "", [{pos,{DX,DY}},{size, {DW,DH}},{style, Flags}]),
     wxFrame:setBackgroundColour(OL, {0,0,0,TCol}),
@@ -234,6 +234,15 @@ make_overlay(Parent, ScreenPos) ->
         Ev <- [left_up, middle_up, right_up, char, char_hook]],
     wxFrame:show(OL),
     {OL, Panel}.
+
+
+wxDisplay_new(DisplayID) ->
+    New = wings_u:id(new),
+    try  %% new
+        wxDisplay:New(DisplayID)
+    catch _:_ -> %% old
+            wxDisplay:New([{n, DisplayID}])
+    end.
 
 setup_dialog(Parent, Entries0, Magnet, {X0,Y0}=ScreenPos) ->
     X1 = X0-25,
@@ -326,7 +335,7 @@ popup_events(Frame, Panel, Entries, Cols, Magnet, Previous, Ns, Owner) ->
 fit_menu_on_display(Frame,{MX,MY} = Pos) ->
     {WW,WH} = wxWindow:getSize(Frame),
     DisplayID = wxDisplay:getFromPoint(Pos),
-    Display = wxDisplay:new([{n, DisplayID}]),
+    Display = wxDisplay_new(DisplayID),
     {DX,DY,DW,DH} = wxDisplay:getClientArea(Display),
     MaxW = (DX+DW),
     PX = if (MX+WW) > MaxW -> MaxW-WW-2;

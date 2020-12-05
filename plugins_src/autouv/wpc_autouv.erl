@@ -144,8 +144,7 @@ create_window(Action, Name, Id, #st{shapes=Shs}=St) ->
 
     {Pos,Size} = init_drawarea(),
     {Frame,Ps} = wings_frame:make_win(Title, [{size, Size}, {pos, Pos}]),
-    Context = wxGLCanvas:getContext(?GET(gl_canvas)),
-    Canvas = wings_gl:window(Frame, Context, true, true),
+    Canvas = wings_gl:window(Frame, ?GET(gl_context), true, true),
     Props = [{display_data,Name}|wings_view:initial_properties()++Ps],
     wings_wm:toplevel(Name, Canvas, Props, Op),
     wings_wm:send(Name, {init,{Action,We}}),

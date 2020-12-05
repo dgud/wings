@@ -111,9 +111,12 @@ handle_info({color_changed, RGB}, State) ->
     [apply_callback(H, Col, true) || H <- Handlers],
     {noreply, Updated};
 
-handle_info(_, State) -> State.
+handle_info(_Msg, State) ->
+    io:format("~p:~p: Unexpected message: ~p~n", [?MODULE, ?LINE, _Msg]),
+    {noreply, State}.
 
 terminate(_Reason, #state{this=_This, brush=Brush}) ->
+    wx:debug(none),
     wxBrush:destroy(Brush),
     %% wxBitmapButton:destroy(This), %% Is destroyed by the owner
     ok.

@@ -263,7 +263,7 @@ init([Frame, {W,_}, _Ps, Cols0]) ->
 	Win = wxScrolledWindow:new(Frame, [{style, wings_frame:get_border()}]),
         #{bg:=BG} = wings_frame:get_colors(),
         wxPanel:setBackgroundColour(Win, BG),
-	Sz = wxGridSizer:new(ColsW, [{vgap, ?BORD},{hgap, ?BORD}]),
+	Sz = wxGridSizer_new(ColsW, ?BORD),
 	Cols = add_empty(Cols0,ColsW,ColsH),
 	manage_bitmaps(Win, Sz, Cols, [], Empty),
 	BorderSz = wxBoxSizer:new(?wxHORIZONTAL),
@@ -280,6 +280,15 @@ init([Frame, {W,_}, _Ps, Cols0]) ->
     catch _:Reason:ST ->
 	    io:format("CRASH: ~p ~p ~p~n",[?MODULE, Reason, ST]),
             error(Reason)
+    end.
+
+wxGridSizer_new(ColsW, Size) ->
+    Func = wings_u:id(new),
+    case wings_u:is_exported(wxGridSizer, new, 3) of
+        true ->
+            wxGridSizer:Func(ColsW, Size, Size);
+        false ->
+            wxGridSizer:Func(ColsW, [{vgap, Size},{hgap, Size}])
     end.
 
 %%%%%%%%%%%%%%%%%%%%%%%

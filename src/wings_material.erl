@@ -690,7 +690,7 @@ edit_dialog(Name, Assign, St=#st{mat=Mtab0}, Mat0, DrawSphere) ->
                       case wxWindow:isShown(GLCanvas) andalso os:type() of
                           false -> ok;
                           {_, darwin} -> %% workaround wxWidgets 3.0.4 and mojave
-                              wxGLCanvas:setCurrent(GLCanvas),
+                              wings_gl:setCurrent(GLCanvas, ?GET(gl_context)),
                               Preview(GLCanvas, Fields),
                               wxGLCanvas:swapBuffers(GLCanvas);
                           _ ->

@@ -438,7 +438,7 @@ reset_dialog_parent(Dialog) ->
 	[Next|_] ->
 	    wxDialog:raise(Next);
 	[] ->
-            wxGLCanvas:setCurrent(?GET(gl_canvas)),
+            wings_gl:setCurrent(?GET(gl_canvas), ?GET(gl_context)),
             ok
     end,
     ?SET(dialog_parent, Stack).
@@ -768,7 +768,7 @@ setup_hook(#in{key=Key, wx=Ctrl, type=table, hook=UserHook}, Fields) ->
 setup_hook(#in{wx=Canvas, type=custom_gl, hook=CustomRedraw}, Fields) ->
     Custom = fun() ->
                      try
-                         wxGLCanvas:setCurrent(Canvas),
+                         wings_gl:setCurrent(Canvas, ?GET(gl_context)),
                          CustomRedraw(Canvas, Fields),
                          wxGLCanvas:swapBuffers(Canvas)
                      catch _:Reason:ST ->
@@ -1366,10 +1366,10 @@ build(Ask, {help, Title, Fun}, Parent, Sizer, In) ->
 build(Ask, {custom_gl, CW, CH, Fun}, Parent, Sizer, In) ->
     build(Ask, {custom_gl, CW, CH, Fun, []}, Parent, Sizer, In);
 build(Ask, {custom_gl, CW, CH, Fun, Flags}, Parent, Sizer, In) ->
-    Context = wxGLCanvas:getContext(?GET(gl_canvas)),
+    Context = ?GET(gl_context),
     Create = fun() ->
 		     Ps = [wings_gl:attributes(),{style, ?wxFULL_REPAINT_ON_RESIZE}],
-		     Canvas = wxGLCanvas:new(Parent, Context, Ps),
+		     Canvas = wings_gl:wxGLCanvas_new(Parent, Context, Ps),
                      wxGLCanvas:setMinSize(Canvas, {CW,CH}),
 		     add_sizer(custom, Sizer, Canvas, Flags),
 		     Canvas

@@ -17,7 +17,7 @@
 	 yes_no/2,yes_no/3,yes_no_cancel/3,
 	 win_crash/1,win_crash/2,crash_log/2,crash_log/3,
 	 pretty_filename/1,relative_path_name/2,caption/1,
-         basedir/1, win32_special_folder/2]).
+         basedir/1, win32_special_folder/2, is_exported/3, id/1]).
 
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
@@ -147,6 +147,11 @@ caption(#st{file=Name}=St) ->
 basedir(Type) ->
     filename:basedir(Type, "Wings3D").
 
+-spec is_exported(module(), atom(), integer()) -> boolean().
+is_exported(M,F,A) ->
+    {module, M} = code:ensure_loaded(M),
+    erlang:function_exported(M, F, A).
+
 %% pretty_filename(Name) -> PrettyName
 %% This function tried to handle utf8 conversions
 %% but now filename may be full Unicode lists.
@@ -199,9 +204,13 @@ wings() ->
 
 wings_branch() ->
     %% Fool dialyzer
+    id({branch, ?wings_branch}).
+
+id(What) ->
+    %% Fool dialyzer
     case is_process_alive(self()) of
-        true -> {branch, ?wings_branch};
-        false -> ""
+        true -> What;
+        false -> will_never_happen
     end.
 
 -ifdef(DEBUG).

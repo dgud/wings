@@ -13,6 +13,7 @@
 
 -module(wings_gl).
 -export([init/1, window/4, attributes/0,
+         setCurrent/2, wxGLCanvas_new/3, %% new wx api variants
 	 is_ext/1,is_ext/2,
 	 error_string/1]).
 
@@ -68,18 +69,22 @@ attributes() ->
          SB ++ [0]
     }.
 
-window(Parent, Context, Connect, Show) ->
+window(Parent, Context0, Connect, Show) ->
     Style = ?wxFULL_REPAINT_ON_RESIZE bor ?wxWANTS_CHARS bor wings_frame:get_border(),
     Flags = [attributes(), {style, Style}],
-    GL = case Context of
-	     undefined ->
-		 Win = wxGLCanvas:new(Parent, Flags),
-		 ?SET(gl_canvas, Win),
-		 Win;
-	     _ ->
-		 wxGLCanvas:new(Parent, Context, Flags)
-	 end,
-    Connect andalso connect_events(GL),
+    GL = wxGLCanvas_new(Parent, Context0, Flags),
+    case Context0 of
+        undefined ->
+            Context = wxGLContext_new(GL),
+            %% If top gl window, store context and canvas
+            ?SET(gl_canvas, GL),
+            ?SET(gl_context, Context);
+        Context0 ->
+            Context = Context0
+    end,
+
+    wxGLCanvas:setBackgroundStyle(GL, ?wxBG_STYLE_PAINT),
+    Connect andalso connect_events(GL, Context),
     case Show of
 	true ->
 	    wxWindow:connect(Parent, show),
@@ -90,18 +95,19 @@ window(Parent, Context, Connect, Show) ->
 	    ok
     end,
     wxWindow:disconnect(Parent, show),
-    wxGLCanvas:setCurrent(GL),
+    setCurrent(GL,Context),
     GL.
 
 %% Event handling for OpenGL windows
 
-connect_events(Canvas) ->
+connect_events(Canvas, Context) ->
     %% Re-attaches the OpenGL Context to Window when is [re] created/showed
     wxWindow:connect(Canvas, create,
-                     [{callback, fun(_, _) -> wxGLCanvas:setCurrent(Canvas) end}]),
+                     [{callback, fun(_, _) -> setCurrent(Canvas, Context) end}]),
     wxWindow:connect(Canvas, show,
                      [{callback, fun(#wx{event=#wxShow{show=Show}}, _) ->
-                                         Show andalso (catch wxGLCanvas:setCurrent(Canvas)) end}]),
+                                         Show andalso (catch setCurrent(Canvas, Context))
+                                 end}]),
     case os:type() of
 	{unix, darwin} ->
 	    wxWindow:connect(Canvas, paint, [{callback, fun redraw/2}]);
@@ -109,8 +115,7 @@ connect_events(Canvas) ->
 	    wxWindow:connect(Canvas, paint, [{skip, true}]),
 	    ok;
 	{win32, _} ->
-	    wxWindow:connect(Canvas, paint, [{callback, fun redraw/2}]),
-	    wxWindow:connect(Canvas, erase_background, [{callback, fun redraw/2}])
+	    wxWindow:connect(Canvas, paint, [{callback, fun redraw/2}])
     end,
 
     wxWindow:connect(Canvas, size),
@@ -127,9 +132,7 @@ redraw(#wx{obj=Canvas, event=#wxPaint{}}=Ev,_) ->
     DC = wxPaintDC:new(Canvas),
     wxPaintDC:destroy(DC),
     wings ! Ev,
-    ok;
-redraw(Ev, _) ->  %% For erase background events
-    wings ! Ev#wx{event=#wxPaint{type=paint}}.
+    ok.
 
 setup_std_events(Canvas) ->
     wxWindow:connect(Canvas, motion),
@@ -177,6 +180,37 @@ forward_key(#wxKey{metaDown=true}) -> true;
 forward_key(#wxKey{shiftDown=true, keyCode=?WXK_SHIFT}) -> true;
 forward_key(_) -> false.
 
+new_gl_api() ->
+    wings_u:is_exported(wxGLCanvas, setCurrent, 2).
+
+setCurrent(GL,Context) ->
+    SetCurrent = wings_u:id(setCurrent),
+    case new_gl_api() of
+        false -> wxGLCanvas:SetCurrent(GL);
+        true -> wxGLCanvas:SetCurrent(GL,Context)
+    end.
+
+
+wxGLCanvas_new(Parent, undefined, Ps) ->
+    wxGLCanvas:new(Parent, Ps);
+wxGLCanvas_new(Parent, Context, Ps) ->
+    New = wings_u:id(new),
+    case new_gl_api() of
+        false ->
+            wxGLCanvas:New(Parent, Context, Ps);
+        true ->
+            wxGLCanvas:New(Parent, Ps)
+    end.
+
+wxGLContext_new(Canvas) ->
+    Context = wings_u:id(wxGLContext),
+    GetContext = wings_u:id(getContext),
+    case new_gl_api() of
+        false ->
+            wxGLCanvas:GetContext(Canvas);
+        true ->
+            Context:new(Canvas)
+    end.
 
 %%%
 %%% OpenGL extensions.

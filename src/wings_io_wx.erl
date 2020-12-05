@@ -53,12 +53,13 @@ quit() ->
     wx:destroy().
 
 get_process_option() ->
-    Canvas = ?GET(gl_canvas),
-    What = [{wx:get_env(), Canvas}],
+    Canvas  = ?GET(gl_canvas),
+    Context = ?GET(gl_context),
+    What = [{wx:get_env(), Canvas, Context}],
     What.
-set_process_option([{Env, Canvas}]) ->
+set_process_option([{Env, Canvas, Context}]) ->
     wx:set_env(Env),
-    wxGLCanvas:setCurrent(Canvas),
+    wings_gl:setCurrent(Canvas, Context),
     ok.
 
 batch(Fun) ->  wx:batch(Fun).
@@ -73,7 +74,7 @@ maximize() ->
 reset_video_mode_for_gl(_W, _H) ->
     %% Needed on mac for some reason
     wxWindow:setFocus(?GET(gl_canvas)),
-    wxGLCanvas:setCurrent(?GET(gl_canvas)),
+    wings_gl:setCurrent(?GET(gl_canvas), ?GET(gl_context)),
     ok.
 
 set_title(Title) ->

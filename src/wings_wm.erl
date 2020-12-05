@@ -262,7 +262,7 @@ delete_windows(Name, W0) ->
             case get(current_gl) of
                 Obj ->
                     erase(current_gl),
-                    wxGLCanvas:setCurrent(wxwindow(geom));
+                    wings_gl:setCurrent(wxwindow(geom), ?GET(gl_context));
                 _ -> ignore
             end,
 	    erase(Obj),
@@ -754,7 +754,7 @@ dispatch_event(#wx{event=#wxActivate{active=Active}}) ->
     end;
 dispatch_event(#wx{obj=Obj, event=#wxSize{size={W,H}}}) ->
     ?CHECK_ERROR(),
-    erase(current_gl), %% resets wxGLCanvas:setCurrent().
+    erase(current_gl), %% resets wings_gl:setCurrent().
     case W > 0 andalso H > 0 andalso not (wx2win(Obj) =:= none) of
 	true ->
 	    #win{name=Name} = Geom0 = get_window_data(Obj),
@@ -913,7 +913,7 @@ redraw_win({Name, #win{w=W,h=H,obj=Obj,scale=Scale}}) ->
                      case get(current_gl) of
                          Obj -> ignore;
                          _ ->
-                             wxGLCanvas:setCurrent(Obj),
+                             wings_gl:setCurrent(Obj, ?GET(gl_context)),
                              put(current_gl, Obj)
                      end,
 		     gl:viewport(0,0,round(W*Scale),round(H*Scale)),
@@ -976,7 +976,7 @@ clear_background() ->
     gl:clear(?GL_COLOR_BUFFER_BIT bor ?GL_DEPTH_BUFFER_BIT).
 
 init_opengl(Name, Canvas) ->
-    wxGLCanvas:setCurrent(Canvas),
+    wings_gl:setCurrent(Canvas, ?GET(gl_context)),
     gl:clear(?GL_COLOR_BUFFER_BIT bor ?GL_DEPTH_BUFFER_BIT),
     gl:pixelStorei(?GL_UNPACK_ALIGNMENT, 1),
     {R,G,B} = wings_pref:get_value(background_color),
