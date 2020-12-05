@@ -150,6 +150,9 @@ menu() ->
       ?__(70,"Hide all (partly or wholly) selected objects")},
      {?__(71,"Hide Unselected")++Objects,
       hide_unselected,?__(72,"Hide objects that have no selection")},
+     {?__(110,"Lock Selected")++Objects,
+      lock_selected,
+      ?__(111,"Lock all (partly or wholly) selected objects")},
      {?__(73,"Lock Unselected")++Objects,
       lock_unselected,?__(74,"Lock objects that have no selection")},
      separator,
@@ -255,6 +258,8 @@ command(hide_selected, St) ->
     {save_state,hide_selected(St)};
 command(hide_unselected, St) ->
     {save_state,hide_unselected(St)};
+command(lock_selected, St) ->
+    {save_state,lock_selected(St)};
 command(lock_unselected, St) ->
     {save_state,lock_unselected(St)};
 command(show_all, St0) ->
@@ -452,6 +457,10 @@ hide_selected(St) ->
 hide_unselected(St) ->
     Unselected = wings_sel:unselected_ids(St),
     wings_obj:hide(Unselected, St).
+
+lock_selected(St) ->
+    Selected = wings_sel:selected_ids(St),
+    wings_obj:lock(Selected, St).
 
 lock_unselected(St) ->
     Unselected = wings_sel:unselected_ids(St),
