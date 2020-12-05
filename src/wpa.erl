@@ -265,7 +265,7 @@ dialog_template(Mod, export) ->
 	  [{key,export_scale}]}},
 	{?__(6,"Sub-division Steps"),
 	 {text,pref_get(Mod, subdivisions, 0),
-	  [{key,subdivisions},{range,0,4}]}}]},
+	  [{key,subdivisions},{range,{0,4}}]}}]},
       panel,
       {?__(norms, "Export normals/smoothing groups"),  
        pref_get(Mod, include_normals, true), [{key,include_normals}]},
