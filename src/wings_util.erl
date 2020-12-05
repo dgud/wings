@@ -215,6 +215,7 @@ simplify_float_1("0"++F) -> simplify_float_1(F);
 simplify_float_1(F) -> F.
 
 
+string_to_float("NaN") -> 0.0;
 string_to_float(Str) ->
     try list_to_float(Str)
     catch _:_ -> make_float2(Str)
