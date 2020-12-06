@@ -4,6 +4,7 @@
 %%     Binary StereoLithography File Format (*.stl) Import/Export
 %%
 %%  Copyright (c) 2005-2011 Anthony D'Agostino
+%%                2020 Added export dialog by Micheus
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -11,32 +12,34 @@
 
 -module(wpc_stl).
 -export([init/0, menu/2, command/2]).
+-include_lib("wx/include/wx.hrl").
 -include_lib("wings/e3d/e3d.hrl").
+-include_lib("wings/intl_tools/wings_intl.hrl").
 
 init() ->
     true.
 
 menu({file, import}, Menu) ->
-    menu_entry(Menu);
+    menu_entry(import,Menu);
 menu({file, export}, Menu) ->
-    menu_entry(Menu);
+    menu_entry(export,Menu);
 menu({file, export_selected}, Menu) ->
-    menu_entry(Menu);
+    menu_entry(export,Menu);
 menu(_, Menu) -> Menu.
 
 command({file, {import, stl}}, St) ->
     Props = props(),
     wpa:import(Props, fun stl_import/1, St);
-command({file, {export, stl}}, St) ->
-    Props = props(),
-    wpa:export(Props, fun export/2, St);
-command({file, {export_selected, stl}}, St) ->
-    Props = props(),
-    wpa:export_selected(Props, fun export/2, St);
+command({file,{export,{stl,Ask}}}, St) ->
+    Exporter = fun(Ps, Fun) -> wpa:export(Ps, Fun, St) end,
+    do_export(Ask, export, Exporter, St);
+command({file,{export_selected,{stl,Ask}}}, St) ->
+    Exporter = fun(Ps, Fun) -> wpa:export_selected(Ps, Fun, St) end,
+    do_export(Ask, export_selected, Exporter, St);
 command(_, _) -> next.
 
-menu_entry(Menu) ->
-    Menu ++ [{"StereoLithography (.stl)...", stl}].
+menu_entry(Opt,Menu) ->
+    Menu ++ [{"StereoLithography (.stl)...", stl, [if Opt==export -> option; true -> [] end]}].
 
 props() ->
     [{ext, ".stl"},{ext_desc, "StereoLithography Binary File"}].
@@ -44,9 +47,96 @@ props() ->
 %%% ================================
 %%% === StereoLithography Export ===
 %%% ================================
-export(FileName, Contents) ->
+do_export(Ask, Op, _Exporter, _St) when is_atom(Ask) ->
+    wpa:dialog(Ask, ?__(1,"STL Export Options"), dialog_export(),
+               fun(Res) ->
+                   {file,{Op,{stl,Res}}}
+               end);
+do_export(Attr, _Op, Exporter, _St) when is_list(Attr) ->
+    set_pref(Attr),
+    SubDivs = proplists:get_value(subdivisions, Attr, 0),
+    Ps = [{subdivisions,SubDivs}|props()],
+    Exporter(Ps, export_fun(Attr)).
+
+export_fun(Attr) ->
+    fun(Filename, Contents) ->
+        export(Filename, Contents, Attr)
+    end.
+set_pref(KeyVals) ->
+    wpa:pref_set(?MODULE, KeyVals).
+
+dialog_export() ->
+    Hook = fun(Key, Value, Fields) ->
+            case Key of
+                wu_equals ->
+                    ObjScale = wings_dialog:get_value(obj_scale,Fields),
+                    ConvScale = conv_scale(Value),
+                    wings_dialog:set_value(conv_scale,ConvScale,Fields),
+                    wings_dialog:set_value(export_scale,ObjScale*ConvScale,Fields),
+                    wings_dialog:enable(conv_scale,false,Fields),
+                    wings_dialog:enable(pnl_slicer,Value=/=stl,Fields);
+                obj_scale ->
+                    ConvScale = wings_dialog:get_value(conv_scale,Fields),
+                    wings_dialog:set_value(export_scale,Value*ConvScale,Fields)
+            end
+        end,
+
+    [{vframe, [
+        {label_column, [
+            {"1 Wings3D Unit (WU) equal to",
+             {menu,[
+                 {"1 STL unit",stl},
+                 {"1 mm",mm},
+                 {"1 cm",cm},
+                 {"1 inch",inch}],wpa:pref_get(?MODULE, wu_equals, stl),[{key,wu_equals},{hook,Hook}]}
+            }
+        ]},
+      {vframe, [
+       {vframe, [
+        {hframe, [
+         {label, ?__(4,"NOTE: By testing the slicers tools below\n"
+                       "it was noticed they translate 1STL unit to 1mm.\n"
+                       "So, we can say that 1WU = 1STL (1mm).")++
+                       "\n\nSlicers: Chitubox, Cura, ideaMaker, Makerbot Print,\n"
+                       "Repetier Host, Slic3r, Tinkerine™ Suite,\n"
+                       "Z-Suite, 3DWOX Desktop."}
+        ]},
+        separator,
+        {label_column, [
+            {?__(7,"Conversion scale"),
+             {text,1.0,[{key,conv_scale},{range,{0.0,infinity}}]}},
+            {?__(8,"Object scale"),
+             {text,wpa:pref_get(?MODULE,obj_scale,1.0),[{key,obj_scale},{range,{0.0,infinity}},{hook,Hook}]}}
+        ]}
+       ],[{title," "++?__(9,"Slicer software information")++" "}]}
+      ],[{key,pnl_slicer},{margin,false}]},
+      {label_column,
+       [{?__(2,"Export scale"),
+         {text,wpa:pref_get(?MODULE, export_scale, 1.0),
+          [{key,export_scale},{range,{0.0,infinity}}]}},
+        {?__(3,"Sub-division Steps"),
+         {text,wpa:pref_get(?MODULE, subdivisions, 0),
+          [{key,subdivisions},{range,{0,4}}]}}
+       ]}
+     ]}
+    ].
+
+conv_scale(WUeq) ->
+    %% Scale is defined in millimeters, so we convert in accord with user selection
+    case WUeq of
+        cm -> 10.0;
+        inch -> 25.4;
+        _ -> 1.0
+    end.
+
+export(FileName, Contents0, Attr) ->
+    Contents = export_transform(Contents0, Attr),
     STL = make_stl(Contents),
     file:write_file(FileName, STL).
+
+export_transform(Contents, Attr) ->
+    Mat = wpa:export_matrix(Attr),
+    e3d_file:transform(Contents, Mat).
 
 make_stl(Contents) ->
     #e3d_file{objs=Objs,creator=Creator} = Contents,
