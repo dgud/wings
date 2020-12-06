@@ -4590,7 +4590,7 @@ export_vertices(F, [Pos|T]) ->
 %% Hence Z=South, X=East, Y=Up in Wings coordinates.
 %%
 export_pos(F, Type, {X,Y,Z}) ->
-    println(F, ["        <",format(Type)," x=\"",format(Z),
+    println(F, ["    <",format(Type)," x=\"",format(Z),
                 "\" y=\"",format(X),"\" z=\"",format(Y),"\"/>"]).
 
 %%Add Export UV_Vectors Part 2 Start
@@ -4599,7 +4599,7 @@ export_vectors2D(_F, [])->
     ok;
 
 export_vectors2D(F, [{X, Y} | List])->
-    println(F, "<uv u=\"~f\" v=\"~f\"/>", [X, Y]),
+    println(F, "    <uv u=\"~f\" v=\"~f\"/>", [X, Y]),
     export_vectors2D(F, List).
 
 %%Add Export UV_Vectors Part 2 End
@@ -4608,12 +4608,12 @@ export_faces(_F, [], _DefMat, _TxT, _VColT) ->
     ok;
 export_faces(F, [#e3d_face{mat=[Mat|_],tx=Tx,vs=[A,B,C],vc=VCols}|T],
 
-             DefaultMaterial, TxT, VColT) ->
+    DefaultMaterial, TxT, VColT) ->
 
     Shader =
         case Mat of
-            DefaultMaterial -> ["  <set_material sval=\"w_",format(Mat),"\"/>"];
-            _ -> ["  <set_material sval=\"w_",format(Mat),"\"/>"]
+            DefaultMaterial -> "    <set_material sval=\"w_" ++ format(Mat) ++ "\"/>";
+            _ -> "    <set_material sval=\"w_" ++ format(Mat) ++ "\"/>"
         end,
 
 
@@ -4655,9 +4655,8 @@ export_faces(F, [#e3d_face{mat=[Mat|_],tx=Tx,vs=[A,B,C],vc=VCols}|T],
                              [length(VCols)]),
                    ""
            end,
-    uniprintln(F, [Shader, "        <f a=\"",format(A),
-                "\" b=\"",format(B),"\" c=\"",format(C),"\"", UVIndices,
-                VCol],[]),
+    uniprintln(F, "~s    <f a=\"~s\" b=\"~s\" c=\"~s\"~s~s",
+               [Shader,format(A),format(B),format(C),UVIndices,VCol]),
 
 
     export_faces(F, T, DefaultMaterial, TxT, VColT).
