@@ -51,14 +51,21 @@ complement(Fs, We) -> complement(gb_sets:to_list(Fs), We).
 dissolve_1(Faces, Complement, We0) ->
     We1 = optimistic_dissolve(Faces,Complement,We0#we{vc=undefined}),
     NewFaces = wings_we:new_items_as_ordset(face, We0, We1),
-    We2 = wings_face:delete_bad_faces(NewFaces, We1),
-    We = wings_we:rebuild(We2),
+    #we{holes=Holes0} = We2 = wings_face:delete_bad_faces(NewFaces, We1),
+    Holes = update_holes(Holes0,Faces),
+    We = wings_we:rebuild(We2#we{holes=Holes}),
     case wings_we:is_consistent(We) of
 	true ->
 	    We;
 	false ->
 	    wings_u:error_msg(?__(1,"Dissolving would cause an inconsistent object structure."))
     end.
+
+update_holes([], _) -> [];
+update_holes(Holes, Fs) when is_list(Fs) ->
+    Holes--Fs;
+update_holes(Holes, Fs) ->
+    update_holes(Holes, gb_sets:to_list(Fs)).
 
 optimistic_dissolve(Faces0, Compl, We0) ->
     %% Optimistically assume that we have a simple region without
