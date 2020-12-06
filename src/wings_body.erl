@@ -784,7 +784,7 @@ rename_2([], [], St) -> St.
 
 rename_qs(Objs) ->
     OldNames = [{label,Name} || #{name:=Name} <- Objs],
-    TextFields = [{text,Name,[]} || #{name:=Name} <- Objs],
+    TextFields = [{text,Name,[{width,22}]} || #{name:=Name} <- Objs],
     [{hframe,
       [{vframe,OldNames},
        {vframe,TextFields}]}].
