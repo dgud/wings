@@ -163,26 +163,22 @@ have_magnet(Ps, _) ->
 
 wx_popup_menu_init(Parent,GlobalPos,Names,Menus0) ->
     Owner = wings_wm:this(),
-    {Pid, Entries} = wx_popup_menu(Parent,GlobalPos,Names,Menus0,false,Owner),
-    {push, fun(Ev) -> popup_event_handler(Ev, {Parent,Owner,Pid}, Entries) end}.
+    Entries = wx_popup_menu(Parent,GlobalPos,Names,Menus0,false,Owner),
+    {push, fun(Ev) -> popup_event_handler(Ev, {Parent,Owner}, Entries) end}.
 
 wx_popup_menu(Parent,Pos,Names,Menus0,Magnet,Owner) ->
-    HotKeys = wings_hotkey:matching(Names),
-    is_list(Menus0) orelse erlang:error(Menus0),
-    Menus1   = wings_plugin:menu(list_to_tuple(reverse(Names)), Menus0),
-    Entries0 = [normalize_menu_wx(Entry, HotKeys, Names) || Entry <- lists:flatten(Menus1)],
-    Entries1 = format_hotkeys(Entries0, pretty),
-    {Entries2,_}  = lists:foldl(fun(ME, {List, Id}) ->
+    Entries0 = make_entries(Names, Menus0, pretty),
+    {Entries1,_}  = lists:foldl(fun(ME, {List, Id}) ->
 					{[ME#menu{wxid=Id},
 					  ME#menu{wxid=Id+1, type=opt}|List],
 					 Id+2}
-				end, {[],500}, Entries1),
-    Entries = reverse(Entries2),
+				end, {[],500}, Entries0),
+    Entries = reverse(Entries1),
     MEs0 = [ME#menu{name=undefined} || ME <- Entries],
     {Overlay, KbdFocus} = make_overlay(Parent, Pos),
     CreateMenu = fun() -> setup_dialog(Overlay, MEs0, Magnet, Pos) end,
     Env = wx:get_env(),
-    Pid = spawn_link(fun() ->
+    spawn_link(fun() ->
 		       try
 			   wx:set_env(Env),
                            register(wings_menu_process, self()),
@@ -198,7 +194,7 @@ wx_popup_menu(Parent,Pos,Names,Menus0,Magnet,Owner) ->
 		       end,
 		       normal
 	       end),
-    {Pid,Entries}.
+    Entries.
 
 make_overlay(Parent, ScreenPos) ->
     OL = wxFrame:new(),
@@ -408,7 +404,7 @@ mouse_button(#wxMouse{type=What, controlDown = Ctrl, altDown = Alt, metaDown = M
 
 popup_event_handler(cancel, _, _) ->
     pop;
-popup_event_handler({click, Id, Click, Ns}, {Parent,Owner,_Pid}, Entries0) ->
+popup_event_handler({click, Id, Click, Ns}, {Parent,Owner}, Entries0) ->
     case popup_result(lists:keyfind(Id, 2, Entries0), Click, Ns, Owner) of
 	pop ->
             pop;
@@ -416,13 +412,13 @@ popup_event_handler({click, Id, Click, Ns}, {Parent,Owner,_Pid}, Entries0) ->
 	    {_, X0, Y0} = wings_io:get_mouse_state(),
 	    Pos = wxWindow:screenToClient(wings_wm:this_win(), {X0,Y0}),
 	    {X,Y} = wxWindow:clientToScreen(wings_wm:this_win(), Pos),
-	    {Pid,Entries} = wx_popup_menu(Parent, {X,Y}, Names, Menus, MagnetClick, Owner),
-	    {replace, fun(Ev) -> popup_event_handler(Ev, {Parent,Owner,Pid}, Entries) end}
+	    Entries = wx_popup_menu(Parent, {X,Y}, Names, Menus, MagnetClick, Owner),
+	    {replace, fun(Ev) -> popup_event_handler(Ev, {Parent,Owner}, Entries) end}
     end;
 popup_event_handler(redraw,_,_) ->
     defer;
-popup_event_handler(#keyboard{sym=?SDLK_ESCAPE}, {_, _, Pid}, _) ->
-    Pid ! cancel, %% Keyboard focus fails on mac wxWidgets-3.1.3
+popup_event_handler(#keyboard{sym=?SDLK_ESCAPE}, {_, _}, _) ->
+    wings_menu_process ! cancel, %% Keyboard focus fails on mac wxWidgets-3.1.3
     keep;
 popup_event_handler(_Ev,_,_) ->
     %% io:format("Hmm ~p ~n",[_Ev]),
@@ -904,14 +900,17 @@ id_to_name(Id) ->
     [#menu{name=Name}] = ets:lookup(wings_menus, Id),
     Name.
 
-setup_menu(Names, Id, Menus1) when is_list(Menus1) ->
+setup_menu(Names, Id, Menus) ->
     Menu   = wxMenu:new(),
-    Menus2  = wings_plugin:menu(list_to_tuple(reverse(Names)), Menus1),
-    HotKeys = wings_hotkey:matching(Names),
-    Menus3 = [normalize_menu_wx(Entry, HotKeys, Names) || Entry <- Menus2],
-    Menus = format_hotkeys(Menus3, wx),
-    Next  = create_menu(Menus, Id, Names, Menu),
+    Entries = make_entries(Names, Menus, wx),
+    Next  = create_menu(Entries, Id, Names, Menu),
     {Menu, Next}.
+
+make_entries(Names, Menus0, Style) when is_list(Menus0) ->
+    Menus1  = wings_plugin:menu(list_to_tuple(reverse(Names)), Menus0),
+    HotKeys = wings_hotkey:matching(Names),
+    Menus2 = [normalize_menu_wx(Entry, HotKeys, Names) || Entry <- lists:flatten(Menus1)],
+    format_hotkeys(Menus2, Style).
 
 normalize_menu_wx(separator, _, _) ->
     #menu{type=separator};
