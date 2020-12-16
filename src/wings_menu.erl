@@ -175,18 +175,16 @@ wx_popup_menu(Parent,Pos,Names,Menus0,Magnet,Owner) ->
 				end, {[],500}, Entries0),
     Entries = reverse(Entries1),
     MEs0 = [ME#menu{name=undefined} || ME <- Entries],
-    {Overlay, KbdFocus} = make_overlay(Parent, Pos),
-    CreateMenu = fun() -> setup_dialog(Overlay, MEs0, Magnet, Pos) end,
+    MenuData = wx:batch(fun() -> setup_dialog(Parent, MEs0, Magnet, Pos) end),
     Env = wx:get_env(),
     spawn_link(fun() ->
 		       try
 			   wx:set_env(Env),
                            register(wings_menu_process, self()),
-			   {Frame, Panel, MEs, Cols} = wx:batch(CreateMenu),
-                           wxWindow:setFocus(KbdFocus),
-			   popup_events(Frame, Panel, MEs, Cols, Magnet, undefined, Names, Owner),
+			   #{overlay:=Overlay, focus:=KbdFocus, frame:=Frame} = MenuData,
+                           KbdFocus(),
+			   popup_events(MenuData, Magnet, undefined, Names, Owner),
                            wxWindow:hide(Frame),
-                           wxFrame:destroy(Frame),
                            wxFrame:destroy(Overlay),
                            wxWindow:setFocus(Parent)
 		       catch _:Reason:ST ->
@@ -229,7 +227,7 @@ make_overlay(Parent, ScreenPos) ->
     [wxWindow:connect(Panel, Ev, [{callback, EvH}]) ||
         Ev <- [left_up, middle_up, right_up, char, char_hook]],
     wxFrame:show(OL),
-    {OL, Panel}.
+    {OL, fun() -> wxWindow:setFocus(Panel) end}.
 
 
 wxDisplay_new(DisplayID) ->
@@ -240,7 +238,8 @@ wxDisplay_new(DisplayID) ->
             wxDisplay:New([{n, DisplayID}])
     end.
 
-setup_dialog(Parent, Entries0, Magnet, {X0,Y0}=ScreenPos) ->
+setup_dialog(TopParent, Entries0, Magnet, {X0,Y0}=ScreenPos) ->
+    {Overlay, KbdFocus} = make_overlay(TopParent, ScreenPos),
     X1 = X0-25,
     Y1 = Y0-15,
     Top = case os:type() of
@@ -248,7 +247,7 @@ setup_dialog(Parent, Entries0, Magnet, {X0,Y0}=ScreenPos) ->
               _ -> ?wxFRAME_FLOAT_ON_PARENT
           end,
     Flags = ?wxFRAME_TOOL_WINDOW bor Top bor ?wxFRAME_NO_TASKBAR,
-    Frame = wxFrame:new(Parent, -1, "", [{style, Flags}]),
+    Frame = wxFrame:new(Overlay, -1, "", [{style, Flags}]),
     Panel = wxPanel:new(Frame),
     wxWindow:setFont(Panel, ?GET(system_font_wx)),
     {{R,G,B,A},FG} = {colorB(menu_color),colorB(menu_text)},
@@ -281,14 +280,15 @@ setup_dialog(Parent, Entries0, Magnet, {X0,Y0}=ScreenPos) ->
 					controlDown=false,shiftDown=false,altDown=false,metaDown=false,
 					wheelRotation=0, wheelDelta=0, linesPerAction=0}}
     end,
-    {Frame, Panel, Entries, Cols}.
+    #{overlay=>Overlay, focus => KbdFocus,
+      frame=>Frame, panel=>Panel, entries=>Entries, colors=>Cols}.
 
-popup_events(Frame, Panel, Entries, Cols, Magnet, Previous, Ns, Owner) ->
+popup_events(MenuData, Magnet, Previous, Ns, Owner) ->
     receive
 	#wx{id=Id, obj=Obj,event=#wxMouse{type=enter_window}} ->
             Set = fun() ->
                           if Obj =/= Previous ->
-                                  {BG,FG} = Cols,
+                                  {BG,FG} = maps:get(colors, MenuData),
                                   setup_colors(Previous, BG, FG),
                                   setup_colors(Obj, colorB(menu_hilite),colorB(menu_hilited_text)),
                                   Obj;
@@ -297,10 +297,10 @@ popup_events(Frame, Panel, Entries, Cols, Magnet, Previous, Ns, Owner) ->
                           end
                   end,
 	    Line = wx:batch(Set),
-	    wings_status:message(Owner, entry_msg(Id, Entries), ""),
-            popup_events(Frame, Panel, Entries, Cols, Magnet, Line, Ns, Owner);
+	    wings_status:message(Owner, entry_msg(Id, maps:get(entries, MenuData)), ""),
+            popup_events(MenuData, Magnet, Line, Ns, Owner);
 	#wx{id=Id0, event=Ev=#wxMouse{y=Y, x=X}} ->
-            Id = case Id0 > 0 orelse find_active_panel(Panel, X, Y) of
+            Id = case Id0 > 0 orelse find_active_panel(maps:get(panel, MenuData), X, Y) of
 		     true -> Id0;
 		     {false, _} = No -> No;
 		     {AId, _} -> AId
@@ -310,7 +310,7 @@ popup_events(Frame, Panel, Entries, Cols, Magnet, Previous, Ns, Owner) ->
 		{false, outside} ->
 		    wings_wm:psend(Owner, cancel);
                 {false, inside} ->
-                    popup_events(Frame, Panel, Entries, Cols, Magnet, Previous, Ns, Owner);
+                    popup_events(MenuData, Magnet, Previous, Ns, Owner);
                 Active when is_integer(Active) ->
 		    MagnetClick = Magnet orelse
 			magnet_pressed(wings_msg:free_rmb_modifier(), Ev),
@@ -319,13 +319,14 @@ popup_events(Frame, Panel, Entries, Cols, Magnet, Previous, Ns, Owner) ->
         cancel ->
             wings_wm:psend(Owner, cancel);
         {move, {X,Y}} ->
+            Frame = maps:get(frame, MenuData),
             Pos = fit_menu_on_display(Frame,{X-25,Y-15}),
             wxWindow:move(Frame, Pos),
             wings_wm:psend(Owner, redraw),
-            popup_events(Frame, Panel, Entries, Cols, Magnet, Previous, Ns, Owner);
+            popup_events(MenuData, Magnet, Previous, Ns, Owner);
 	_Ev ->
 	    %% ?dbg("Got Ev ~p ~n", [_Ev]),
-	    popup_events(Frame, Panel, Entries, Cols, Magnet, Previous, Ns, Owner)
+	    popup_events(MenuData, Magnet, Previous, Ns, Owner)
     end.
 
 fit_menu_on_display(Frame,{MX,MY} = Pos) ->
@@ -574,7 +575,8 @@ setup_popup([#menu{type=opt}=ME|Es], Sizer, Sz, Cs, Parent, Magnet, Acc) ->
 setup_popup([], _, _, _, _, _, Acc) -> lists:reverse(Acc).
 
 menu_connect(Windows, Evs) ->
-    [ [wxWindow:connect(Win, Ev) || Ev <- Evs] || Win <- Windows].
+    EvH = fun(Ev, _) -> wings_menu_process ! Ev end,
+    [ [wxWindow:connect(Win, Ev, [{callback, EvH}]) || Ev <- Evs] || Win <- Windows].
 
 get_pref_bitmap() ->
     case ?GET(small_pref_bm) of
