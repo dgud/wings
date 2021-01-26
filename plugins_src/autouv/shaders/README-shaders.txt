@@ -19,7 +19,7 @@ Comments are written after a percent sign, i.e % This is a comment
 
 The data to the vertex shader comes as:
 gl_Vertex contains the uv-coords.
-gl_MultiTexCoord1 contains the real 3d vertex postions in world space.
+gl_MultiTexCoord1 contains the real 3d vertex positions in world space.
 
 There is also an option 'requires' which contains a list of
 requirements, currently only 'normal' (and 'binormal' currently not

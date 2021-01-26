@@ -259,7 +259,7 @@ save_image(Image, Compress, Offset1) ->
     RPS  = <<?RowsPerStrip:16, (type2type(long)):16, 1:32, (Image#e3d_image.height):32>>,
     STBC =  <<?StripByteCounts:16, (type2type(long)):16, 1:32, (size(Strips)):32>>,
 
-    %% I don't know what to put here but they are requried fields so I add
+    %% I don't know what to put here but they are required fields so I add
     %% some stolen values..
     XRes = <<?XResolution:16, (type2type(rational)):16, 1:32, Offset3:32>> ,
     XResBin = %% should be placed Offset3

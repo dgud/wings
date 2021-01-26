@@ -2336,7 +2336,7 @@ export_dialog_qs(Op, Attr) ->
     Hook_Show = fun(Key, Value, Store) ->
         case Key of
             lighting_method ->
-                %% 1st collumn of panels
+                %% 1st column of panels
                 %% Direct Light
                 wings_dialog:enable(?KEY(pnl_dl1), wings_dialog:get_value(use_caustics, Store) =:= true, Store),
                 wings_dialog:show(?KEY(pnl_caustics), Value =:= directlighting, Store),
@@ -2347,7 +2347,7 @@ export_dialog_qs(Op, Attr) ->
                 %% SPPM - GI
                 wings_dialog:show(?KEY(pnl_sppm1), Value =:= sppm, Store),
 
-                %% 2rd collumn of panels
+                %% 2rd column of panels
                 %% Direct Light
                 wings_dialog:enable(?KEY(pnl_use_ao), wings_dialog:get_value(do_ao, Store) =:= true, Store),
                 wings_dialog:show(?KEY(pnl_ao), Value =:= directlighting, Store),
@@ -2358,7 +2358,7 @@ export_dialog_qs(Op, Attr) ->
                 %% SPPM - GI
                 wings_dialog:show(?KEY(pnl_sppm2), Value =:= sppm, Store),
 
-                %% 3rd collumn of panels
+                %% 3rd column of panels
                 %% Photon Mapping
                 wings_dialog:enable(?KEY(pnl_use_fg), wings_dialog:get_value(pm_use_fg, Store) =:= true, Store),
                 wings_dialog:show(?KEY(pnl_pm3), Value =:= photonmapping, Store),
@@ -2703,7 +2703,7 @@ export_dialog_qs(Op, Attr) ->
                             {?__( 87, "Radius"),{text,get_pref(sppm_radius,Attr),[range(sppm_radius),{key,sppm_radius}]}}
                         ], [key(pnl_sppm1),{show,false}]},
 
-                        %% 2nd collumn of panels
+                        %% 2nd column of panels
 %                        {vframe, [
                             {vframe, [
                                 {hframe, [
@@ -2747,7 +2747,7 @@ export_dialog_qs(Op, Attr) ->
                             ],[key(pnl_sppm2),{show,false},{margin,false}]},
 %                        ], [{margin,false}]},
 
-                        %% 3rd collumn of panels
+                        %% 3rd column of panels
                         {vframe, [
                             {vframe, [
                                 {vframe,[

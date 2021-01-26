@@ -2432,7 +2432,7 @@
     {1,"Настройки Камеры: Field of View"},
     {2,"Sets the vertical field of view, i.e. the angle from lower to upper border seen from the camera. "},
     {3,"The Lens controls sets the field of view according to other perhaps more well-known entities, at least for a photographer. The negative size is stored among the user preferences."},
-    {4,"The Lens controls make the height of the picture right for the choosen lens, so if you do not have the same aspect ratio for the negative size in the Lens frame, as for the size of the Geometry window, the width will be in error."},
+    {4,"The Lens controls make the height of the picture right for the chosen lens, so if you do not have the same aspect ratio for the negative size in the Lens frame, as for the size of the Geometry window, the width will be in error."},
     {5,"Note: the zoom factor is relative a standard lens length of the negative diagonal, while only the negative height affects the effective lens length."}
    ]},
   {menu,

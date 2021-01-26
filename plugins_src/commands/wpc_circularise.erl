@@ -527,7 +527,7 @@ find_stable_point([_|Vs], RayV, Vtab, Index) ->
     find_stable_point(Vs, RayV, Vtab, Index+1).
 
 
-%%%% Return the Index and Postion of the Vertex or midpoint between adjacent
+%%%% Return the Index and Position of the Vertex or midpoint between adjacent
 %%%% vertices closeest to the Center. Distance calculation is made after the
 %%%% point in question is flattened to the relevant Plane.
 get_radius([], Center, _, _, RayLen0, NearestVert, Pos, LastPos, FirstPos, AtIndex, Index) ->

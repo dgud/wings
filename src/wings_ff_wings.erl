@@ -604,7 +604,7 @@ make_merge_dlg(Obj, Lgt, Mtl, Img, SGr, Vws, Plt, Sel, Scn, Locked, Hidden) ->
             ],[{margin,false}]},
             {vframe,[
                 {?__(15,"Make all new Selection"),false,[{key, new_sel},{hook,dlg_hook_enable(true)},
-                    {info, ?__(16,"It makes all new elements selected in accord with the options bellow")}]
+                    {info, ?__(16,"It makes all new elements selected in accord with the options below")}]
                 },
                 {hradio, [
                     {?__(10,"Ignore"),keep},

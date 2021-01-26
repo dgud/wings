@@ -90,7 +90,7 @@ is_good_triangulation({Nx,Ny,Nz}, {Ax,Ay,Az}, {Bx,By,Bz}, {Cx,Cy,Cz}, {Dx,Dy,Dz}
     %% Both dot products should be greater than zero. A zero dot product either
     %% means that the triangle normal was not defined (a degenerate triangle) or
     %% that the angle is exactly 90 degrees. A negative dot product means that
-    %% the angle is greater than 90 degress, which implies that the PointA-PointC
+    %% the angle is greater than 90 degrees, which implies that the PointA-PointC
     %% line is outside the quad.
     %%
     CAx = Cx-Ax, CAy = Cy-Ay, CAz = Cz-Az,
@@ -197,7 +197,7 @@ triangulate_quad_1(VsPos=[A,B,C,D], Vi=[Ai,Bi,Ci,Di], F, TriV, We) ->
 select_newedge(_L = [A,B,C,D],[Ai,Bi,Ci,Di],N,F) ->
     AC = e3d_vec:dist(A, C),
     BD = e3d_vec:dist(B, D),
-    Epsilon = 0.15,  %% 1/6 diffs Is rougly equal 
+    Epsilon = 0.15,  %% 1/6 diffs Is roughly equal 
     case AC < BD of
 	true when ((BD-AC) / BD)  > Epsilon ->
 	    assert_quad2tris(N,A,B,C,D,F),

@@ -11,7 +11,7 @@
 %%     $Id$
 %%
 %%%    Inspiration taken from originally from: 
-%%% "Parallel View-Dependent Tesselation of Catmull-Clark Subdivision
+%%% "Parallel View-Dependent Tessellation of Catmull-Clark Subdivision
 %%% Surfaces" by Anjul Patney, Mohamed S. Ebeida, John D. Owens
 %%% www.idav.ucdavis.edu/func/return_pdf?pub_id=964
 %%%

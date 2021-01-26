@@ -55,7 +55,7 @@
 
 -record(ts,         % What              Type
 	{charts,    % #chart{}          (list)
-         uv,        % UV postions       (binary)
+         uv,        % UV positions       (binary)
 	 pos,       % Real 3D position  (binary)
  	 n,         % Normal            (binary) Optional
 	 bi,        % BiNormal          (binary) Optional

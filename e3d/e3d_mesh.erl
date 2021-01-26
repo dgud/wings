@@ -279,7 +279,7 @@ used_materials(#e3d_mesh{fs=Fs0}) ->
 %% Without the option 'slit_end_vertices', end vertices of 
 %% hard edge chains are not duplicated, since edges that go to the 
 %% end vertex might look hard in some renderers, non just the hard ones. 
-%% End vertices are those occuring only once in the hard edge list.
+%% End vertices are those occurring only once in the hard edge list.
 %%
 %% Solo hard edges (no chain (or rather very short chain)) gets special 
 %% treatment. They get cut in two by a new own vertex, unless the option

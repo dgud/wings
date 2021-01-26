@@ -421,7 +421,7 @@
     {13,"平均中点走向顶点"},
     % "Smooth"
     {14,"顺利"},
-    % "Subdivide all faces to give the object a smoother apperance"
+    % "Subdivide all faces to give the object a smoother appearance"
     {15,"细分给所有面对象的平滑外观"},
     % "Combine"
     {16,"结合"},
@@ -2865,7 +2865,7 @@
    [
     % "Enable or disable this plug-in "
     {1,"启用或禁用此插件"},
-    % "(a disbled plug-in does not show up in menus)"
+    % "(a disabled plug-in does not show up in menus)"
     {2,"（一已停用插件不显示在菜单）"}
    ]},
   {plugin_root_menu,
@@ -5525,7 +5525,7 @@
     {2,"设置垂直领域的观点，即从较低的角度上缘从相机看到。"},
     % "The Lens controls sets the field of view according to other perhaps more well-known entities, at least for a photographer. The negative size is stored among the user preferences."
     {3,"镜头控制设置视野根据或者其他比较著名的实体，至少一名摄影师。负大小存储在用户的喜好。"},
-    % "The Lens controls make the height of the picture right for the choosen lens, so if you do not have the same aspect ratio for the negative size in the Lens frame, as for the size of the Geometry window, the width will be in error."
+    % "The Lens controls make the height of the picture right for the chosen lens, so if you do not have the same aspect ratio for the negative size in the Lens frame, as for the size of the Geometry window, the width will be in error."
     {4,"镜头controls作出的选择lens为图片右侧的高度，所以如果你没有为负的镜头画面大小相同的宽高比为窗口的几何尺寸，宽度将是错误的。"},
     % "Note: the zoom factor is relative a standard lens length of the negative diagonal, while only the negative height affects the effective lens length."
     {5,"注：缩放因子是相对的一负对角线长度标准镜头，只有高度的负面影响的有效镜头长度。"}

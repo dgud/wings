@@ -111,7 +111,7 @@ some functionality will not be available without CL,
 but the build will not fail if building cl fails.
 
 Read cl/README for information of requirements, mainly
-OpenCL headers in the rigth place and rebar3 in the PATH
+OpenCL headers in the right place and rebar3 in the PATH
 
 Running Wings
 ============

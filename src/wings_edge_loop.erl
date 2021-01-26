@@ -464,7 +464,7 @@ expand_edge_link([], _, _, Sel) -> Sel.
 %%
 %%      [ [{Va,Edge},{Vb,Edge}] ]
 %%
-%%  If any number of edges are selected in a continous chain, the
+%%  If any number of edges are selected in a continuous chain, the
 %%  return value will look like:
 %%
 %%      [ [{Va,EdgeA},{Vb,EdgeB}] ]

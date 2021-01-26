@@ -24,7 +24,7 @@
 %%% sub-directories to any level will be searched.
 %%% The plugin directory must be named 'plugins'. It must be located
 %%% either in the same directory as the beam files, or in a directory
-%%% parallell to the 'ebin' directory if the beam files are kept in
+%%% parallel to the 'ebin' directory if the beam files are kept in
 %%% a 'ebin' directory.
 %%%
 %%% To avoid name space clashing, plugins must be named according to
@@ -496,7 +496,7 @@ mk_dialog_1([]) -> [].
 
 plugin_modules(C, Ms) ->
     Ps = [{info,?__(1,"Enable or disable this plug-in ")++
-	       ?__(2,"(a disbled plug-in does not show up in menus)")},
+	       ?__(2,"(a disabled plug-in does not show up in menus)")},
 	  {proportion, 1}],
     {vframe,
      [{hframe, [{atom_to_list(M), member(M, ?GET(wings_plugins)), [{key,M}|Ps]},

@@ -1,7 +1,7 @@
 %%
 %%  wpc_numeric_camera.erl --
 %%
-%%    Plugin to set the camera postion numerically.
+%%    Plugin to set the camera position numerically.
 %%
 %%  Copyright (c) 2009-2011 Richard Jones.
 %%

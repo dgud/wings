@@ -65,7 +65,7 @@
     {1,"Total the lengths of the selected edges and save the result as a distance constraint in the Preferences"},
     {2,"Calculate the average length of the selected edges and save the result as a distance constraint in the Preferences"},
     {3,"Calculate the angle between any two ~s and save the result as a rotation constraint in the Preferences"},
-    {4,"Calculate the differnce between two angles and save the result as a rotation constraint in the Preferences"},
+    {4,"Calculate the difference between two angles and save the result as a rotation constraint in the Preferences"},
     {5,"Measure the angle between a single ~s and a standard axis or defined vector. Save the result as a rotation constraint in the Preferences"},
     {6,"Calculate the difference in scale between the ~s of two ~s selections and save the result as a scale constraint in the Preferences"},
     {7,"Calculate the difference in ~s between two ~s selections and save the result as a distance constraint in the Preferences"},
@@ -95,7 +95,7 @@
     {19,"Pick a second angle from which to subtract the currently selected angle"},
     {20,"Pick a vector and calculate the angle to the original ~s"},
     {21,"Calculate the angle from the ~s axis to the original ~s"},
-    {22," and then caluculate their average length"}
+    {22," and then calculate their average length"}
    ]},
   {menu_title,
    [

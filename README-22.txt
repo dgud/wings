@@ -164,7 +164,7 @@
 
 - Upgraded to erlang/otp-21.2 (mac) which should improve performance on large models. [dgud]
 
-- General Mac improvements, menues and material viewer. Reported by tkbd [dgud]
+- General Mac improvements, menus and material viewer. Reported by tkbd [dgud]
 
 - Fixed opencl crash on old ATI cards. [dgud]
 

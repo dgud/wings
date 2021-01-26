@@ -114,7 +114,7 @@ try_import_ps(Name, Nsubsteps) ->
             {error,file:format_error(Reason)}
     end.
 
-%%% put the object definiton in reverse order to build taces with valid normals
+%%% put the object definition in reverse order to build taces with valid normals
 reverse_def(Contours) ->
     [[lists:reverse(Cntr) || Cntr <- Cntrs] || Cntrs <- Contours, Cntrs=/=[[]]].
 

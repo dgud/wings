@@ -208,7 +208,7 @@ make_overlay(Parent, ScreenPos) ->
                    wxFrame:setBackgroundStyle(OL, 3), %% ?wxBG_STYLE_TRANSPARENT
                    0;
                {{_, darwin}, _} ->
-                   13;  %% No events received if completly transparent ??
+                   13;  %% No events received if completely transparent ??
                _ ->
                    1
            end,

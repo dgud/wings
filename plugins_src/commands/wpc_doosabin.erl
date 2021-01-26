@@ -81,7 +81,7 @@ doo_sabin(#we{es=Etab0}=We0) ->
     %% Return updated #we{} and selection.
     {We5,CornerEdges}.
 
-%% Disolve edges and isolated vertices.
+%% Dissolve edges and isolated vertices.
 dissolve_edges(Es, We0) ->
     We1 = wings_edge:dissolve_edges(Es, We0),
     IsolatedVs = wings_vertex:isolated(We1),

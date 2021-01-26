@@ -73,7 +73,7 @@ init() ->
     set_var(rendering, false),
     true.
 
-%%% retrieve plugin preferences from prefernce file and store as global variables
+%%% retrieve plugin preferences from preference file and store as global variables
 init_pref() ->
     case is_windows() of
         true-> LocalRenderer = ?DEF_RENDERER;

@@ -155,10 +155,10 @@ vismask(A, B, Bord, Bit) ->
     end.
 
 triface(Fl,Vtab) -> 
-    %% We should have a qriteria for the start postion
+    %% We should have a qriteria for the start position
     %% to get a uniform triangulation, if we triangulates
     %% a grid of squares for example.
-    %% I have choosen the least vertex pos in 3d space of the face.
+    %% I have chosen the least vertex pos in 3d space of the face.
 
     Start = get_least_index(Fl ,Vtab),
 %    Start = 1, % qqq

@@ -382,7 +382,7 @@
 - Changed the installer for all OS'es, to behave more like native apps.
 -- Linux: includes desktop shortcuts with icons.
 -- Windows: allows the wings to moved after install
--- Mac: More native apperance, menu in the top bar
+-- Mac: More native appearance, menu in the top bar
 
 - Added edge/hardness/invert command [Mark Whittemore]
 
@@ -1492,7 +1492,7 @@ Performance
   (Thanks to Fonte Boa). [optigon]
 
 --- 1.1.6 ----------------------------------------------------------------------
-- Re-exporting an imported model with tesselation could
+- Re-exporting an imported model with tessellation could
   cause a crash. Also, when importing objects that had UV coordinates
   on some faces but not all, UV coordinates would be discarded
   on both side of edges that only had UV coordinates on one side.
@@ -1892,7 +1892,7 @@ Performance
 - The icon in top left corner of the Wings windows (in Windows) was still
   the old one, and so was the icon on the application switching screen (Alt+Tab
   in Windows). I have now replaced the icon with the new one, but unfortunately
-  I could not use any transparancy so I had to pick a light gray color
+  I could not use any transparency so I had to pick a light gray color
   that at least in Windows XP is not that noticeable. (This particular icon
   is set through SDL and SDL only allows a hard-edged mask which might make
   the edges look jagged. I haven't actually tried setting an hard-edged mask

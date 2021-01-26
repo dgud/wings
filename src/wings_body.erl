@@ -54,7 +54,7 @@ menu(X, Y, St) ->
 	    {?__(12,"Tighten"),tighten,
 	     ?__(13,"Move vertices towards average midpoint")},
 	    {?__(14,"Subdivide"),subdiv_fun(),
-	     {?__(15,"Subdivide all faces to give the object a smoother apperance"),[],
+	     {?__(15,"Subdivide all faces to give the object a smoother appearance"),[],
 	     ?__(53,"Subdivide all the object's faces")},[]},
 	    {?__(16,"Combine"),combine,
 	     ?__(17,"Combine multiple objects into a single object")},

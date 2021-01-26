@@ -55,7 +55,7 @@ radial_menu(GlidePlane,Radial) ->
     RadStr = wings_s:dir(Radial),
     F = fun(help, _Ns) ->
 		Str = ?__(3,"Restrict vertex movement to Shearing Vector ~s across their individual Glide Planes facing ~s")++
-		    ?__(4,".(Origin and Measuring Point caluculated automatically)"),
+		    ?__(4,".(Origin and Measuring Point calculated automatically)"),
 		Help = wings_util:format(Str, [RadStr,GPStr]),
 		{Help,[],?__(5,"Pick Origin and Measuring Point")};
 	   (1, _Ns) -> {vertex,{deform,{shear,{GlidePlane,{Radial,lmb}}}}};
