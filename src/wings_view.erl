@@ -1096,7 +1096,7 @@ views_save_dialog(Ask, Options) ->
 			fun(Opts) -> {view,{views,{save,Opts}}} end).
 
 views_rename_qs([Legend]) ->
-    [{hframe,[{label,?__(1,"Name")},{text,Legend}]}].
+    [{hframe,[{label,?__(1,"Name")},{text,Legend,[{width,22}]}]}].
 
 views_jump(J, St, CurrentView, Views) ->
     S = tuple_size(Views),
