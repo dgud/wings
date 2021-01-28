@@ -181,11 +181,8 @@ wx_popup_menu(Parent,Pos,Names,Menus0,Magnet,Owner) ->
 		       try
 			   wx:set_env(Env),
                            register(wings_menu_process, self()),
-			   #{overlay:=Overlay, focus:=KbdFocus, frame:=Frame} = MenuData,
-                           KbdFocus(),
 			   popup_events(MenuData, Magnet, undefined, Names, Owner),
-                           wxWindow:hide(Frame),
-                           wxFrame:destroy(Overlay),
+                           close_menu_frame(MenuData),
                            wxWindow:setFocus(Parent)
 		       catch _:Reason:ST ->
 			       io:format("CRASH ~p ~p~n",[Reason, ST])
@@ -193,6 +190,67 @@ wx_popup_menu(Parent,Pos,Names,Menus0,Magnet,Owner) ->
 		       normal
 	       end),
     Entries.
+
+setup_dialog(TopParent, Entries0, Magnet, {X0,Y0}=ScreenPos) ->
+    {Overlay, Frame, KbdFocus} = make_menu_frame(TopParent, ScreenPos),
+    X1 = X0-25,
+    Y1 = Y0-15,
+    Panel = wxPanel:new(Frame),
+    wxWindow:setFont(Panel, ?GET(system_font_wx)),
+    {{R,G,B,A},FG} = {colorB(menu_color),colorB(menu_text)},
+    Cols = {{R,G,B,A}, FG},
+    catch wxFrame:setTransparent(Frame, 240),
+    wxWindow:setBackgroundColour(Frame, {R,G,B, 240}),
+    wxWindow:setBackgroundColour(Panel, {R,G,B, 240}),
+    Main = wxBoxSizer:new(?wxHORIZONTAL),
+    Sizer = wxBoxSizer:new(?wxVERTICAL),
+    MinHSzs = calc_min_sizes(Entries0, Panel, 5, 5),
+    Entries = setup_popup(Entries0, Sizer, MinHSzs, Cols, Panel, Magnet, []),
+    wxSizer:setMinSize(Sizer, 225, -1),
+    wxSizer:addSpacer(Main, 5),
+    wxSizer:add(Main, Sizer, [{proportion, 1}, {border, 5}, {flag, ?wxEXPAND bor ?wxALL}]),
+    wxSizer:addSpacer(Main, 5),
+    wxPanel:setSizer(Panel, Main),
+    wxSizer:fit(Main, Panel),
+    wxWindow:setClientSize(Frame, wxWindow:getSize(Panel)),
+    wxWindow:move(Frame, fit_menu_on_display(Frame,{X1,Y1})),
+    wxFrame:show(Frame),
+    KbdFocus(),  %% Set keyboard focus so we can catch ESC on mac
+    %% Color active menuitem
+    {MX, MY} = wxWindow:screenToClient(Panel, ScreenPos),
+    case find_active_panel(Panel, MX, MY) of
+	{false,_} -> ignore;
+	{ActId, ActPanel} ->
+	    self() ! #wx{id=ActId, obj= ActPanel,
+			 event=#wxMouse{type=enter_window,x=0,y=0,
+					leftDown=false,middleDown=false,rightDown=false,
+					controlDown=false,shiftDown=false,altDown=false,metaDown=false,
+					wheelRotation=0, wheelDelta=0, linesPerAction=0}}
+    end,
+    #{overlay=>Overlay, frame=>Frame, panel=>Panel, entries=>Entries, colors=>Cols}.
+
+close_menu_frame(#{overlay:=none, frame:=Frame}) ->
+    wxWindow:hide(Frame),
+    wxWindow:'Destroy'(Frame);
+close_menu_frame(#{overlay:=Overlay, frame:=Frame}) ->
+    wxWindow:hide(Frame),
+    wxFrame:destroy(Overlay).
+
+make_menu_frame(Parent, Pos) ->
+    case os:type() of
+        {win32, _} ->
+            Frame = wxPopupTransientWindow:new(Parent, [{style, ?wxBORDER_SIMPLE}]),
+            EvH = fun(Ev, _) -> catch wings_menu_process ! Ev end,
+            wxPopupTransientWindow:connect(Frame, show, [{callback, EvH}]),
+            wings_wm:grab_focus(),
+            {none, Frame, fun() -> ok end};
+        _ ->
+            %% PopupTransientWindow did not work on Mac on 3.1.3 atleast
+            %% So we make our on own overlay handling there
+            %% on the other transparent windows don't work on some linux'es
+            %% So we can't use this for all OS's
+            make_overlay(Parent,Pos)
+    end.
 
 make_overlay(Parent, ScreenPos) ->
     OL = wxFrame:new(),
@@ -227,8 +285,15 @@ make_overlay(Parent, ScreenPos) ->
     [wxWindow:connect(Panel, Ev, [{callback, EvH}]) ||
         Ev <- [left_up, middle_up, right_up, char, char_hook]],
     wxFrame:show(OL),
-    {OL, fun() -> wxWindow:setFocus(Panel) end}.
 
+    FrameFlags = case os:type() of
+                     {_, linux} -> ?wxSTAY_ON_TOP;  %% Hmm needed for some reason
+                     _ -> ?wxFRAME_FLOAT_ON_PARENT
+                 end,
+    Flags = ?wxFRAME_TOOL_WINDOW bor FrameFlags bor ?wxFRAME_NO_TASKBAR,
+    Frame = wxFrame:new(OL, -1, "", [{style, FrameFlags}]),
+
+    {OL, Frame, fun() -> wxWindow:setFocus(Panel) end}.
 
 wxDisplay_new(DisplayID) ->
     New = wings_u:id(new),
@@ -237,51 +302,6 @@ wxDisplay_new(DisplayID) ->
     catch _:_ -> %% old
             wxDisplay:New([{n, DisplayID}])
     end.
-
-setup_dialog(TopParent, Entries0, Magnet, {X0,Y0}=ScreenPos) ->
-    {Overlay, KbdFocus} = make_overlay(TopParent, ScreenPos),
-    X1 = X0-25,
-    Y1 = Y0-15,
-    Top = case os:type() of
-              {_, linux} -> ?wxSTAY_ON_TOP;  %% Hmm needed for some reason
-              _ -> ?wxFRAME_FLOAT_ON_PARENT
-          end,
-    Flags = ?wxFRAME_TOOL_WINDOW bor Top bor ?wxFRAME_NO_TASKBAR,
-    Frame = wxFrame:new(Overlay, -1, "", [{style, Flags}]),
-    Panel = wxPanel:new(Frame),
-    wxWindow:setFont(Panel, ?GET(system_font_wx)),
-    {{R,G,B,A},FG} = {colorB(menu_color),colorB(menu_text)},
-    Cols = {{R,G,B,A}, FG},
-    catch wxFrame:setTransparent(Frame, 240),
-    wxWindow:setBackgroundColour(Frame, {R,G,B, 240}),
-    wxWindow:setBackgroundColour(Panel, {R,G,B, 240}),
-    Main = wxBoxSizer:new(?wxHORIZONTAL),
-    Sizer = wxBoxSizer:new(?wxVERTICAL),
-    MinHSzs = calc_min_sizes(Entries0, Panel, 5, 5),
-    Entries = setup_popup(Entries0, Sizer, MinHSzs, Cols, Panel, Magnet, []),
-    wxSizer:setMinSize(Sizer, 225, -1),
-    wxSizer:addSpacer(Main, 5),
-    wxSizer:add(Main, Sizer, [{proportion, 1}, {border, 5}, {flag, ?wxEXPAND bor ?wxALL}]),
-    wxSizer:addSpacer(Main, 5),
-    wxPanel:setSizer(Panel, Main),
-    wxSizer:fit(Main, Panel),
-    wxWindow:setClientSize(Frame, wxWindow:getSize(Panel)),
-    wxWindow:move(Frame, fit_menu_on_display(Frame,{X1,Y1})),
-    wxFrame:show(Frame),
-
-    %% Color active menuitem
-    {MX, MY} = wxWindow:screenToClient(Panel, ScreenPos),
-    case find_active_panel(Panel, MX, MY) of
-	{false,_} -> ignore;
-	{ActId, ActPanel} ->
-	    self() ! #wx{id=ActId, obj= ActPanel,
-			 event=#wxMouse{type=enter_window,x=0,y=0,
-					leftDown=false,middleDown=false,rightDown=false,
-					controlDown=false,shiftDown=false,altDown=false,metaDown=false,
-					wheelRotation=0, wheelDelta=0, linesPerAction=0}}
-    end,
-    #{overlay=>Overlay, focus => KbdFocus,
-      frame=>Frame, panel=>Panel, entries=>Entries, colors=>Cols}.
 
 popup_events(MenuData, Magnet, Previous, Ns, Owner) ->
     receive
@@ -324,6 +344,8 @@ popup_events(MenuData, Magnet, Previous, Ns, Owner) ->
             wxWindow:move(Frame, Pos),
             wings_wm:psend(Owner, redraw),
             popup_events(MenuData, Magnet, Previous, Ns, Owner);
+        #wx{event=#wxShow{show=false}} ->
+            wings_wm:psend(Owner, cancel);
 	_Ev ->
 	    %% ?dbg("Got Ev ~p ~n", [_Ev]),
 	    popup_events(MenuData, Magnet, Previous, Ns, Owner)
@@ -404,8 +426,10 @@ mouse_button(#wxMouse{type=What, controlDown = Ctrl, altDown = Alt, metaDown = M
     end.
 
 popup_event_handler(cancel, _, _) ->
+    wings_wm:release_focus(),
     pop;
 popup_event_handler({click, Id, Click, Ns}, {Parent,Owner}, Entries0) ->
+    wings_wm:release_focus(),
     case popup_result(lists:keyfind(Id, 2, Entries0), Click, Ns, Owner) of
 	pop ->
             pop;
@@ -421,8 +445,10 @@ popup_event_handler(redraw,_,_) ->
 popup_event_handler(#keyboard{sym=?SDLK_ESCAPE}, {_, _}, _) ->
     wings_menu_process ! cancel, %% Keyboard focus fails on mac wxWidgets-3.1.3
     keep;
+popup_event_handler(#mousemotion{}, _, _) ->
+    keep;
 popup_event_handler(_Ev,_,_) ->
-    %% io:format("Hmm ~p ~n",[_Ev]),
+    io:format("Hmm ~p ~n",[_Ev]),
     keep.
 
 popup_result(#menu{type=submenu, name={Name, Menus}, opts=Opts}, {What, MagnetClick}, Names0, Owner) ->
