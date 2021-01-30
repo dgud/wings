@@ -178,8 +178,8 @@ wx_popup_menu(Parent,Pos,Names,Menus0,Magnet,Owner) ->
 					 Id+2}
 				end, {[],500}, Entries0),
     Entries = reverse(Entries1),
-    MEs0 = [ME#menu{name=undefined} || ME <- Entries],
-    MenuData = wx:batch(fun() -> setup_dialog(Parent, MEs0, Magnet, Pos) end),
+    MEs = [ME#menu{name=undefined} || ME <- Entries],
+    MenuData = wx:batch(fun() -> setup_dialog(Parent, MEs, Magnet, Pos, ?GET(menu_cache)) end),
     Env = wx:get_env(),
     spawn_link(fun() ->
 		       try
@@ -196,7 +196,29 @@ wx_popup_menu(Parent,Pos,Names,Menus0,Magnet,Owner) ->
 	       end),
     Entries.
 
-setup_dialog(TopParent, Entries0, Magnet, {X0,Y0}=ScreenPos) ->
+setup_dialog(TopParent, Entries, Magnet, ScreenPos, ignore) ->
+    do_setup_dialog(TopParent, Entries, Magnet, ScreenPos);
+setup_dialog(TopParent, Entries, Magnet, ScreenPos, undefined) ->
+    setup_dialog(TopParent, Entries, Magnet, ScreenPos, #{});
+setup_dialog(TopParent, Entries, Magnet, {X,Y} = ScreenPos, Cache) ->
+    case maps:get({Entries, Magnet}, Cache, undefined) of
+        undefined ->
+            MenuData = do_setup_dialog(TopParent, Entries, Magnet, ScreenPos),
+            case maps:get(overlay, MenuData) of
+                none ->
+                    ?SET(menu_cache, Cache#{{Entries, Magnet} => MenuData});
+                _ ->  %% Only for popuptransient windows
+                    ?SET(menu_cache,ignore)
+            end,
+            MenuData;
+        #{frame := Frame} = MenuData ->
+            Pos = fit_menu_on_display(Frame,{X-25,Y-15}),
+            wxWindow:move(Frame, Pos),
+            wxPopupTransientWindow:popup(Frame),
+            MenuData
+    end.
+
+do_setup_dialog(TopParent, Entries0, Magnet, {X0,Y0}=ScreenPos) ->
     {Overlay, Frame, KbdFocus} = make_menu_frame(TopParent, ScreenPos),
     X1 = X0-25,
     Y1 = Y0-15,
@@ -229,8 +251,7 @@ show_menu_frame(_, Frame, KbdFocus) ->
     wxFrame:show(Frame).
 
 close_menu_frame(#{overlay:=none, frame:=Frame}) ->
-    wxWindow:hide(Frame),
-    wxWindow:'Destroy'(Frame);
+    wxPopupTransientWindow:dismiss(Frame);
 close_menu_frame(#{overlay:=Overlay, frame:=Frame}) ->
     wxWindow:hide(Frame),
     wxFrame:destroy(Overlay).
@@ -241,7 +262,7 @@ send_enter_window(#{panel:=Panel}, ScreenPos) ->
     case find_active_panel(Panel, MX, MY) of
 	{false,_} -> ignore;
 	{ActId, ActPanel} ->
-	    self() ! #wx{id=ActId, obj= ActPanel,
+	    self() ! #wx{id=ActId, obj=ActPanel,
 			 event=#wxMouse{type=enter_window,x=0,y=0,
 					leftDown=false,middleDown=false,rightDown=false,
 					controlDown=false,shiftDown=false,altDown=false,metaDown=false,
@@ -250,17 +271,17 @@ send_enter_window(#{panel:=Panel}, ScreenPos) ->
 
 make_menu_frame(Parent, Pos) ->
     case os:type() of
-        {win32, _} ->
-            Frame = wxPopupTransientWindow:new(Parent, [{style, ?wxBORDER_SIMPLE}]),
-            EvH = fun(Ev, _) -> catch wings_menu_process ! Ev end,
-            wxPopupTransientWindow:connect(Frame, show, [{callback, EvH}]),
-            {none, Frame, fun() -> ok end};
-        _ ->
-            %% PopupTransientWindow did not work on Mac on 3.1.3 atleast
+        {_, darwin} ->
+            %% PopupTransientWindow did not work on Mac on wxWidgets 3.1.3 atleast
             %% So we make our on own overlay handling there
             %% on the other transparent windows don't work on some linux'es
             %% So we can't use this for all OS's
-            make_overlay(Parent,Pos)
+            make_overlay(Parent,Pos);
+        _ ->
+            Frame = wxPopupTransientWindow:new(Parent, [{style, ?wxBORDER_SIMPLE}]),
+            EvH = fun(Ev, _) -> catch wings_menu_process ! Ev end,
+            wxPopupTransientWindow:connect(Frame, show, [{callback, EvH}]),
+            {none, Frame, none}
     end.
 
 make_overlay(Parent, ScreenPos) ->
@@ -339,15 +360,21 @@ popup_events(MenuData, Magnet, Previous, Ns, Owner) ->
             %% ?dbg("Ev: ~w ~w ~w~n",[Ev, Id0, Id]),
 	    case Id of
 		{false, outside} ->
+                    {BG,FG} = maps:get(colors, MenuData),
+                    setup_colors(Previous, BG, FG),
 		    wings_wm:psend(Owner, cancel);
                 {false, inside} ->
                     popup_events(MenuData, Magnet, Previous, Ns, Owner);
                 Active when is_integer(Active) ->
+                    {BG,FG} = maps:get(colors, MenuData),
+                    setup_colors(Previous, BG, FG),
 		    MagnetClick = Magnet orelse
 			magnet_pressed(wings_msg:free_rmb_modifier(), Ev),
 		    wings_wm:psend(Owner, {click, Id, {mouse_button(Ev), MagnetClick}, Ns})
 	    end;
         cancel ->
+            {BG,FG} = maps:get(colors, MenuData),
+            setup_colors(Previous, BG, FG),
             wings_wm:psend(Owner, cancel);
         {move, {X,Y}} ->
             Frame = maps:get(frame, MenuData),
@@ -356,6 +383,8 @@ popup_events(MenuData, Magnet, Previous, Ns, Owner) ->
             wings_wm:psend(Owner, redraw),
             popup_events(MenuData, Magnet, Previous, Ns, Owner);
         #wx{event=#wxShow{show=false}} ->
+            {BG,FG} = maps:get(colors, MenuData),
+            setup_colors(Previous, BG, FG),
             wings_wm:psend(Owner, cancel);
 	_Ev ->
 	    %% ?dbg("Got Ev ~p ~n", [_Ev]),
