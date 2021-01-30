@@ -163,8 +163,12 @@ have_magnet(Ps, _) ->
 
 wx_popup_menu_init(Parent,GlobalPos,Names,Menus0) ->
     Owner = wings_wm:this(),
-    Entries = wx_popup_menu(Parent,GlobalPos,Names,Menus0,false,Owner),
-    {push, fun(Ev) -> popup_event_handler(Ev, {Parent,Owner}, Entries) end}.
+    Entries = wx_popup_menu(Parent,GlobalPos,Names,Menus0,false,dialog_blanket),
+    {TopW,TopH} = wings_wm:top_size(),
+    Op = {push, fun(Ev) -> popup_event_handler(Ev, {Parent,Owner}, Entries) end},
+    wings_wm:new(dialog_blanket, {0,0,highest}, {TopW,TopH}, Op),
+    wings_wm:grab_focus(dialog_blanket),
+    keep.
 
 wx_popup_menu(Parent,Pos,Names,Menus0,Magnet,Owner) ->
     Entries0 = make_entries(Names, Menus0, pretty),
@@ -181,6 +185,7 @@ wx_popup_menu(Parent,Pos,Names,Menus0,Magnet,Owner) ->
 		       try
 			   wx:set_env(Env),
                            register(wings_menu_process, self()),
+                           send_enter_window(MenuData, Pos),
 			   popup_events(MenuData, Magnet, undefined, Names, Owner),
                            close_menu_frame(MenuData),
                            wxWindow:setFocus(Parent)
@@ -214,8 +219,23 @@ setup_dialog(TopParent, Entries0, Magnet, {X0,Y0}=ScreenPos) ->
     wxSizer:fit(Main, Panel),
     wxWindow:setClientSize(Frame, wxWindow:getSize(Panel)),
     wxWindow:move(Frame, fit_menu_on_display(Frame,{X1,Y1})),
-    wxFrame:show(Frame),
+    show_menu_frame(Overlay, Frame, KbdFocus),
+    #{overlay=>Overlay, frame=>Frame, panel=>Panel, entries=>Entries, colors=>Cols}.
+
+show_menu_frame(none, Frame, _Focus) ->
+    wxPopupTransientWindow:popup(Frame);
+show_menu_frame(_, Frame, KbdFocus) ->
     KbdFocus(),  %% Set keyboard focus so we can catch ESC on mac
+    wxFrame:show(Frame).
+
+close_menu_frame(#{overlay:=none, frame:=Frame}) ->
+    wxWindow:hide(Frame),
+    wxWindow:'Destroy'(Frame);
+close_menu_frame(#{overlay:=Overlay, frame:=Frame}) ->
+    wxWindow:hide(Frame),
+    wxFrame:destroy(Overlay).
+
+send_enter_window(#{panel:=Panel}, ScreenPos) ->
     %% Color active menuitem
     {MX, MY} = wxWindow:screenToClient(Panel, ScreenPos),
     case find_active_panel(Panel, MX, MY) of
@@ -226,15 +246,7 @@ setup_dialog(TopParent, Entries0, Magnet, {X0,Y0}=ScreenPos) ->
 					leftDown=false,middleDown=false,rightDown=false,
 					controlDown=false,shiftDown=false,altDown=false,metaDown=false,
 					wheelRotation=0, wheelDelta=0, linesPerAction=0}}
-    end,
-    #{overlay=>Overlay, frame=>Frame, panel=>Panel, entries=>Entries, colors=>Cols}.
-
-close_menu_frame(#{overlay:=none, frame:=Frame}) ->
-    wxWindow:hide(Frame),
-    wxWindow:'Destroy'(Frame);
-close_menu_frame(#{overlay:=Overlay, frame:=Frame}) ->
-    wxWindow:hide(Frame),
-    wxFrame:destroy(Overlay).
+    end.
 
 make_menu_frame(Parent, Pos) ->
     case os:type() of
@@ -242,7 +254,6 @@ make_menu_frame(Parent, Pos) ->
             Frame = wxPopupTransientWindow:new(Parent, [{style, ?wxBORDER_SIMPLE}]),
             EvH = fun(Ev, _) -> catch wings_menu_process ! Ev end,
             wxPopupTransientWindow:connect(Frame, show, [{callback, EvH}]),
-            wings_wm:grab_focus(),
             {none, Frame, fun() -> ok end};
         _ ->
             %% PopupTransientWindow did not work on Mac on 3.1.3 atleast
@@ -427,28 +438,26 @@ mouse_button(#wxMouse{type=What, controlDown = Ctrl, altDown = Alt, metaDown = M
 
 popup_event_handler(cancel, _, _) ->
     wings_wm:release_focus(),
-    pop;
+    delete;
 popup_event_handler({click, Id, Click, Ns}, {Parent,Owner}, Entries0) ->
-    wings_wm:release_focus(),
     case popup_result(lists:keyfind(Id, 2, Entries0), Click, Ns, Owner) of
 	pop ->
-            pop;
+            wings_wm:release_focus(),
+            delete;
 	{submenu, Names, Menus, MagnetClick} ->
-	    {_, X0, Y0} = wings_io:get_mouse_state(),
-	    Pos = wxWindow:screenToClient(wings_wm:this_win(), {X0,Y0}),
-	    {X,Y} = wxWindow:clientToScreen(wings_wm:this_win(), Pos),
-	    Entries = wx_popup_menu(Parent, {X,Y}, Names, Menus, MagnetClick, Owner),
+	    {_, X,Y} = wings_io:get_mouse_state(),
+	    Entries = wx_popup_menu(Parent, {X,Y}, Names, Menus, MagnetClick, dialog_blanket),
 	    {replace, fun(Ev) -> popup_event_handler(Ev, {Parent,Owner}, Entries) end}
     end;
 popup_event_handler(redraw,_,_) ->
-    defer;
+    keep;
 popup_event_handler(#keyboard{sym=?SDLK_ESCAPE}, {_, _}, _) ->
     wings_menu_process ! cancel, %% Keyboard focus fails on mac wxWidgets-3.1.3
     keep;
 popup_event_handler(#mousemotion{}, _, _) ->
     keep;
 popup_event_handler(_Ev,_,_) ->
-    io:format("Hmm ~p ~n",[_Ev]),
+    %% io:format("Hmm ~p ~n",[_Ev]),
     keep.
 
 popup_result(#menu{type=submenu, name={Name, Menus}, opts=Opts}, {What, MagnetClick}, Names0, Owner) ->
