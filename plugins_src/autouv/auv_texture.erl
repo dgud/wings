@@ -12,7 +12,7 @@
 %%
 
 -module(auv_texture).
--export([get_texture/2,draw_options/0]).
+-export([get_texture/2,draw_options/1]).
 
 -define(NEED_OPENGL, 1).
 -define(NEED_ESDL, 1).
@@ -28,6 +28,10 @@
 -define(OPT_BG, [auv_background, {type_sel,color},{undefined,ignore},{1.0,1.0,1.0,0.0}]).
 -define(OPT_EDGES, [auv_edges, all_edges,{0.0,0.0,0.0},1.0,false]).
 -define(OPT_FACES, [texture]).
+-define(PREVIEW_SIZE, 256).
+-define(SHADER_PRW_NAME, "shdr_preview").
+-define(SHADER_PRW_SIZE, 512).
+-define(SHADER_PRW_VBO, shdr_vbo).
 
 -record(opt, {texsz = {512,512},   %% Texture size
 	      no_renderers = 4,
@@ -79,7 +83,12 @@
 
 %% Menu
 
-draw_options() ->
+draw_options(#st{bb=Uvs}=AuvSt0) ->
+    #uvstate{st=GeomSt0,matname=MatName0,bg_img=Image} = Uvs,
+    BkpImg = wings_image:info(Image),
+    St = wings_wm:get_current_state(),
+    prw_img_id(new),
+
     [MaxTxs0|_] = gl:getIntegerv(?GL_MAX_TEXTURE_SIZE),
     MaxTxs = max(min(8192, MaxTxs0), 256),
     Prefs = get_pref(tx_prefs, pref_to_list(#opt{})),
@@ -89,13 +98,53 @@ draw_options() ->
 		    [{key,texsz}]}],[{title,?__(1,"Size")}]},
 	  {vframe, render_passes(Prefs, Shaders), [{title,?__(2,"Render")}]}
 	 ],
-
-    wings_dialog:dialog(?__(3,"Draw Options"), Qs,
-			fun(Options) ->
-				Opt = list_to_prefs(Options),
-				set_pref([{tx_prefs,pref_to_list(Opt)}]),
-				{auv,{draw_options,{Opt,Shaders}}}
+    wings_dialog:dialog(?__(3,"Draw Options"), {preview,Qs},
+			fun({dialog_preview,Options}) ->
+                Opt = list_to_prefs(Options),
+                Tx = ?SLOW(get_texture(St, {Opt,Shaders})),
+                case MatName0 of
+                    none ->
+                        ok = wings_image:update(Image, Tx),
+                        put({?MODULE,show_background}, true);
+                    _ ->
+                        TexName = case get_mat_texture(MatName0, St) of
+                                      false -> atom_to_list(MatName0);
+                                      Old  ->
+                                          OldE3d = wings_image:info(Old),
+                                          case OldE3d#e3d_image.name of
+                                              "auvBG" -> atom_to_list(MatName0);
+                                              Other -> Other
+                                          end
+                                  end,
+                        catch wings_material:update_image(MatName0, diffuse, Tx#e3d_image{name=TexName}, GeomSt0)
+                end,
+                {preview,St,St};
+            (cancel) ->
+                case MatName0 of
+                    none ->
+                        ok = wings_image:update(Image, BkpImg);
+                    _ ->
+                        catch wings_material:update_image(MatName0, diffuse, BkpImg, St)
+                end,
+                wings_wm:later({new_state,AuvSt0}),
+                prw_img_id(delete),
+                St;
+            (Options) ->
+                Opt = list_to_prefs(Options),
+                prw_img_id(delete),
+                set_pref([{tx_prefs,pref_to_list(Opt)}]),
+                {auv,{draw_options,{Opt,Shaders}}}
 			end).
+
+get_mat_texture(MatName, #st{mat=Materials}) ->
+    get_mat_texture(MatName, Materials);
+get_mat_texture(MatName, Materials) ->
+    case gb_trees:lookup(MatName, Materials) of
+        none -> false;
+        {value,Mat} ->
+            Maps = proplists:get_value(maps, Mat, []),
+            proplists:get_value(diffuse, Maps, false)
+    end.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Menu handling
@@ -149,20 +198,38 @@ renderers(Shaders) ->
 
 option_dialog(Id, Fields, Renderers, Shaders) ->
     try
-	Name = wings_dialog:get_value({auv_pass, Id}, Fields),
-	Opts = wings_dialog:get_value({auv_opt, Id}, Fields),
-	{StrName, Name} = renderer(Name,Renderers),
-	SetValue = fun(Res) ->
-			   %% Change the value in the parent dialog
-			   wings_dialog:set_value({auv_opt, Id}, [Name|Res], Fields),
-			   ignore
-		   end,
-	wings_dialog:dialog(StrName,options(Name,Opts,Shaders),SetValue)
+        Name = wings_dialog:get_value({auv_pass, Id}, Fields),
+        Opts =
+            case wings_dialog:get_value({auv_opt, Id}, Fields) of
+                [] ->  %% it happens first time the menu item is filled
+                    %% we need the Vals field to be filled in the next dialog,
+                    %% then we need to build it at this point
+                    case Name of
+                        Name when is_atom(Name) -> NameId = Name;
+                        {_,NameId} -> NameId
+                    end,
+                    {value,#sh{def=Opts0}} = lists:keysearch(NameId,#sh.id,Shaders),
+                    [{shader,NameId}|lists:reverse(Opts0)];
+                Opts0 ->
+                    Opts0
+            end,
+        {StrName, Name} = renderer(Name,Renderers),
+        SetValue = fun(Res) ->
+                       %% Change the value in the parent dialog
+                       wings_dialog:set_value({auv_opt, Id}, [Name|Res], Fields),
+                       %% removing the temporary VBO data
+                       Vbo = wings_pref:get_value(?SHADER_PRW_VBO),
+                       wings_pref:delete_value(?SHADER_PRW_VBO),
+                       wings_vbo:delete(Vbo),
+                       ignore
+                   end,
+        UVSt = create_uv_state(),
+        wings_dialog:dialog(StrName,options(Name,Opts,Shaders,UVSt),SetValue)
     catch _:Crash:ST ->
 	    io:format("EXIT: ~p ~p~n",[Crash, ST])
     end.
 
-options(auv_background, [auv_background, {type_sel,Type},{Image,_},Color],_) ->
+options(auv_background, [auv_background, {type_sel,Type},{Image,_},Color],_,_) ->
     Enable = fun(_, What, Fields) ->
 		     IsImage = image == What,
 		     wings_dialog:enable(image_sel, IsImage, Fields),
@@ -170,14 +237,14 @@ options(auv_background, [auv_background, {type_sel,Type},{Image,_},Color],_) ->
 	     end,
     [{hradio,[{?__(1,"Image"),image},{?__(2,"Color"),color}],
       Type,[{key,type_sel},{hook, Enable}]},
-     {hframe,[{label,?__(1,"Image")},image_selector(Image)],
+     {hframe,[{label,?__(1,"Image")},image_selector(Image,[])],
       [{key, image_sel}]},
      {hframe,[{label,?__(2,"Color")},{color,fix(Color,wings_gl:have_fbo())}],
       [{key, col_sel}]}];
-options(auv_background, _Bad,Sh) ->
-    options(auv_background, ?OPT_BG,Sh);
+options(auv_background, _Bad,Sh,SphereData) ->
+    options(auv_background, ?OPT_BG,Sh,SphereData);
 
-options(auv_edges,[auv_edges, Type,Color,Size,UseVtxColors],_) ->
+options(auv_edges,[auv_edges, Type,Color,Size,UseVtxColors],_,_) ->
     [{vradio,[{?__(3,"Draw All Edges"),all_edges},
 	      {?__(4,"Draw Border Edges"), border_edges}],
       Type, []},
@@ -185,25 +252,68 @@ options(auv_edges,[auv_edges, Type,Color,Size,UseVtxColors],_) ->
      {hframe,[{label,?__(6,"Edge Width:")},{text,Size,[{range,{0.0,100.0}}]}]},
      {?__(8,"Use vertex colors (on border edges)"),UseVtxColors}
     ];
-options(auv_edges,_,Sh) -> options(auv_edges,?OPT_EDGES,Sh);
+options(auv_edges,_,Sh,SphereData) ->
+    options(auv_edges,?OPT_EDGES,Sh,SphereData);
 
-options({shader,Id}, Vals0, Sh) ->
+options({shader,Id}=Opt, Vals0, Sh, {UVSt,SphereData}) ->
+    Preview = fun(GLCanvas, _Fields) ->
+                  wings_light:init_opengl(),
+                  %% we create the sphere data for preview once
+                  case wings_pref:get_value(?SHADER_PRW_VBO) of
+                      undefined ->
+                          Vbo = setup_sphere(SphereData),
+                          wings_pref:set_value(?SHADER_PRW_VBO,Vbo);
+                      Vbo0 -> Vbo = Vbo0
+                  end,
+                  tex_preview(GLCanvas,Vbo)
+              end,
+    Refresh = fun(Key, Value, Fields) ->
+        GLCanvas = wings_dialog:get_widget(preview, Fields),
+        case wxWindow:isShown(GLCanvas) of
+            false -> ok;
+            true ->
+                %% we update the fields with the latest Value and
+                %% update the Vals list with its content
+                Vals1 = update_values(Vals0,wings_dialog:set_value(Key,Value,Fields)),
+                wxGLCanvas:setCurrent(GLCanvas),
+                %% creating the texture preview image
+                Tex = get_texture_preview({Opt,Vals1},Sh,UVSt),
+                %% updating the image
+                prw_img_id(Tex),
+                case os:type() of
+                    false -> ok;
+                    {_, darwin} -> %% workaround wxWidgets 3.0.4 and mojave
+                        Preview(GLCanvas, Fields),
+                        wxGLCanvas:swapBuffers(GLCanvas);
+                    _ ->
+                        wxWindow:refresh(GLCanvas)
+                end
+        end
+              end,
+    OptDef = [{hook,Refresh}],
     {value,Shader} = lists:keysearch(Id,#sh.id,Sh),
-    case Vals0 of
-	[{shader,Id}|Vals] ->
-	    shader_options(Shader,Vals);
-	_ ->
-	    shader_options(Shader,[])
-    end;
+    FrmShader =
+        case Vals0 of
+            [{shader,Id}|Vals] ->
+                shader_options(Shader,OptDef,Vals);
+            _ ->
+                shader_options(Shader,OptDef,[])
+        end,
+    [{hframe, [
+        {vframe, [{custom_gl,?PREVIEW_SIZE,?PREVIEW_SIZE,Preview,
+                   [{key, preview}, {proportion, 1}, {flag, ?wxEXPAND bor ?wxALL}]}],
+                 [{title, "Preview"}]},
+        {vframe, FrmShader, [{title, "Paramters"}]}]
+     }];
 
-options(Command,Vals,_) ->
+options(Command,Vals,_,_) ->
     io:format("~p: ~p~n",[Command, Vals]),
     exit(unknown_default).
 
-shader_options(#sh{args=Args,def=Defs,file=File}, Vals) ->
-    case shader_menu(Args,reverse(Vals),[]) of
+shader_options(#sh{args=Args,def=Defs,file=File}, OptDef, Vals) ->
+    case shader_menu(Args,OptDef,reverse(Vals),[]) of
 	{failed,_} ->
-	    case shader_menu(Args,Defs,[]) of
+	    case shader_menu(Args,OptDef,Defs,[]) of
 		{failed,What} ->
 		    io:format("AUV: Bad default value ~p in ~p~n",
 			      [What, File]),
@@ -213,48 +323,48 @@ shader_options(#sh{args=Args,def=Defs,file=File}, Vals) ->
 	Menues ->
 	    Menues
     end.
-shader_menu([{uniform,color,_,_,Label}|As],[Col={_,_,_,_}|Vs],Acc) ->
-    Menu = {hframe, [{label,Label},{color,Col}]},
-    shader_menu(As,Vs,[Menu|Acc]);
-shader_menu([{uniform,float,_,_,Label}|As],[Def|Vs],Acc) 
+shader_menu([{uniform,color,_,_,Label}|As],OptDef,[Col={_,_,_,_}|Vs],Acc) ->
+    Menu = {hframe, [{label,Label},{color,Col,OptDef}]},
+    shader_menu(As,OptDef,Vs,[Menu|Acc]);
+shader_menu([{uniform,float,_,_,Label}|As],OptDef,[Def|Vs],Acc)
   when is_number(Def) ->
     Menu = {hframe,[{label,Label},
-		    {text,Def,[{range,{'-infinity',infinity}}]}]},
-    shader_menu(As,Vs,[Menu|Acc]);
-shader_menu([{uniform,bool,_,_,Label}|As],[Def|Vs],Acc) 
+		    {text,Def,[{range,{'-infinity',infinity}}]++OptDef}]},
+    shader_menu(As,OptDef,Vs,[Menu|Acc]);
+shader_menu([{uniform,bool,_,_,Label}|As],OptDef,[Def|Vs],Acc)
   when is_boolean(Def) ->
-    Menu = {Label, Def},
-    shader_menu(As,Vs,[Menu|Acc]);
-shader_menu([{uniform,{slider,From,To},_,_,Label}|As],[Def|Vs],Acc) 
+    Menu = {Label, Def, OptDef},
+    shader_menu(As,OptDef,Vs,[Menu|Acc]);
+shader_menu([{uniform,{slider,From,To},_,_,Label}|As],OptDef,[Def|Vs],Acc)
   when is_number(Def) ->
     Menu = {hframe,[{label,Label},
-		    {slider,{text,Def,[{range,{From,To}},{width,5}]}}]},
-    shader_menu(As,Vs,[Menu|Acc]);
-shader_menu([{uniform,{image,_},_,_Def,Label}|As],[Def|Vs],Acc) ->
+		    {slider,{text,Def,[{range,{From,To}},{width,5}]++OptDef}}]},
+    shader_menu(As,OptDef,Vs,[Menu|Acc]);
+shader_menu([{uniform,{image,_},_,_Def,Label}|As],OptDef,[Def|Vs],Acc) ->
     Image = case Def of {Im,_} -> Im; _ -> Def end,
-    Menu = {hframe,[{label,Label},image_selector(Image)]},
-    shader_menu(As,Vs,[Menu|Acc]);
-shader_menu([{uniform,menu,_,_,Labels}|As],[Def|Vs],Acc) ->
-    Menu = {menu,Labels,Def,[]},
-    shader_menu(As,Vs,[Menu|Acc]);
-shader_menu([{auv,{auv_send_texture,Label,Def0}}|As],Vs0,Acc) ->
+    Menu = {hframe,[{label,Label},image_selector(Image,OptDef)]},
+    shader_menu(As,OptDef,Vs,[Menu|Acc]);
+shader_menu([{uniform,menu,_,_,Labels}|As],OptDef,[Def|Vs],Acc) ->
+    Menu = {menu,Labels,Def,[]++OptDef},
+    shader_menu(As,OptDef,Vs,[Menu|Acc]);
+shader_menu([{auv,{auv_send_texture,Label,Def0}}|As],OptDef,Vs0,Acc) ->
     case Vs0 of
 	[{auv_send_texture, Def}|Vs] -> ok;
 	[Def|Vs] -> ok;
 	[] -> Def = Def0, Vs = []
     end,
     Menu = {Label, Def, [{key,auv_send_texture}]},
-    shader_menu(As,Vs,[Menu|Acc]);
-shader_menu([{auv,_Skip}|As],Vs,Acc) ->
-    shader_menu(As,Vs,Acc);
-shader_menu([What|_],[Def|_],_) ->
+    shader_menu(As,OptDef,Vs,[Menu|Acc]);
+shader_menu([{auv,_Skip}|As],OptDef,Vs,Acc) ->
+    shader_menu(As,OptDef,Vs,Acc);
+shader_menu([What|_],_,[Def|_],_) ->
     {failed,{What,value,Def}};
-shader_menu([What|_],[],_) ->
+shader_menu([What|_],_,[],_) ->
     {failed,What};
-shader_menu([],_,Acc) -> 
+shader_menu([],_,_,Acc) ->
     Acc.
 
-image_selector(Default) ->
+image_selector(Default,OptDef) ->
     Is = wings_image:images(),
     Menu = [{Name,{Name,TexId}} || {TexId, #e3d_image{name=Name}} <- Is],
     case lists:keysearch(Default,1,Menu) of 
@@ -264,7 +374,7 @@ image_selector(Default) ->
 		 _ -> Def = void
 	     end
     end,
-    {menu,Menu,Def,[layout]}.
+    {menu,Menu,Def,OptDef}.
 
 enable_opt() ->
     {hook,
@@ -293,6 +403,353 @@ option_hook(Id,Renderers,Shaders) ->
 
 renderer(Id,[Renderer={_,Id}|_R]) ->  Renderer;
 renderer(Id,[_|R]) ->  renderer(Id,R).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Texture preview handling
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+update_values(Vals, Fields) ->
+    update_values(1, Vals, Fields, []).
+
+update_values(_, [], _, Acc) -> lists:reverse(Acc);
+update_values(Idx, [H|Vals], Fields, Acc) ->
+    try wings_dialog:get_value(Idx,Fields) of
+        Value ->
+            update_values(Idx+1,Vals,Fields,[Value|Acc])
+    catch
+        _:_ ->
+            update_values(Idx+1,Vals,Fields,[H|Acc])
+    end.
+
+get_texture_preview(Render,Shaders,St) ->
+    Options = #opt{texsz = {?SHADER_PRW_SIZE,?SHADER_PRW_SIZE},no_renderers=2,renderers=[Render]},
+    Compiled = compile_shaders([Render],Shaders),
+    Passes = get_passes([Render],{Shaders,Compiled}),
+    Reqs = get_requirements(Shaders),
+    Ts   = setup(St,Reqs),
+    Res  = render_image_preview(Ts, Passes, Options, Reqs),
+    delete_shaders(Compiled),
+    Res.
+
+render_image_preview(Geom0, Passes, #opt{texsz={TexW,TexH}}, Reqs) ->
+    gl:pushAttrib(?GL_ALL_ATTRIB_BITS),
+    UsingFbo = setup_fbo(TexW,TexH),
+    {W0,H0} = if not UsingFbo ->
+                  wings_wm:top_size();
+              true ->
+                  gl:blendEquationSeparate(?GL_FUNC_ADD, ?GL_MAX),
+                  {TexW,TexH}
+              end,
+    {W,Wd} = calc_texsize(W0, TexW),
+    {H,Hd} = calc_texsize(H0, TexH),
+    set_viewport({0,0,W,H}, 1),
+    Geom = make_vbo(Geom0, Reqs),
+    try
+        Do = fun(Pass) ->
+                if not UsingFbo ->
+                    Pass(Geom,undefined);
+                true ->
+                    fill_bg_tex(UsingFbo),
+                    Pass(Geom,UsingFbo)
+                end
+             end,
+        Dl = fun() -> foreach(Do, Passes) end,
+        ImageBins = get_texture(0, Wd, 0, Hd, {W,H}, Dl, UsingFbo,[]),
+        ImageBin = merge_texture(ImageBins, Wd, Hd, W*3, H, []),
+        if not UsingFbo ->
+            #e3d_image{image=ImageBin,width=TexW,height=TexH};
+        true ->
+            #e3d_image{image=ImageBin,width=TexW,height=TexH,
+                       type=r8g8b8a8,bytes_pp=4}
+        end
+    catch _:What:Where ->
+        exit({What,Where})
+    after
+        case UsingFbo of
+            false -> ignore;
+            #sh_conf{fbo_d=DeleteMe} -> DeleteMe()
+        end,
+        wings_vbo:delete(Geom#ts.vbo),
+        gl:readBuffer(?GL_BACK),
+        gl:popAttrib(),
+        gl:blendEquationSeparate(?GL_FUNC_ADD, ?GL_FUNC_ADD),
+        gl:clear(?GL_COLOR_BUFFER_BIT bor ?GL_DEPTH_BUFFER_BIT),
+        ?ERROR
+    end.
+
+create_uv_state() ->
+    {We, SphereData} = setup_sphere(),
+    Fs = gb_sets:from_ordset(wings_we:visible(We)),
+    Shs = gb_trees:enter(We#we.id, We#we{fs=undefined,es=array:new()}, gb_trees:empty()),
+    Maps =
+        case wings_pref:get_value(?SHADER_PRW_NAME) of
+            undefined -> [];
+            {PrwId,_} -> {maps,[{diffuse,PrwId}]}
+        end,
+    Mat = [{opengl,[{diffuse, {1.0,1.0,1.0,1.0}},
+                    {emission,{0.0,0.0,0.0,1.0}},
+                    {metallic, 0.0},
+                    {roughness, 1.0},
+                    {vertex_colors,ignore}]}] ++ Maps,
+    Mtab = gb_trees:enter(list_to_atom(?SHADER_PRW_NAME),Mat,gb_trees:empty()),
+    FakeSt0 = #st{sel=[],shapes=Shs,mat=Mtab},
+    Uvs = #uvstate{st=wpa:sel_set(face, [], FakeSt0),
+                   id      = We#we.id,
+                   mode    = Fs,
+                   matname = none},
+    FakeSt = FakeSt0#st{selmode=body,sel=[],shapes=gb_trees:empty(),bb=Uvs,
+                        repeatable=ignore,ask_args=none,drag_args=none},
+    {rebuild_charts(We, FakeSt), SphereData}.
+
+prw_img_id(new) ->
+    case wings_pref:get_value(?SHADER_PRW_NAME) of
+        undefined ->
+            Image = bg_image_prw(),
+            Id = wings_image:new_hidden(?SHADER_PRW_NAME,Image),
+            TxId = wings_image:txid(Id),
+            wings_pref:set_value(?SHADER_PRW_NAME,{TxId,Id}),
+            TxId;
+        {TxId,_} ->
+            TxId
+    end;
+prw_img_id(#e3d_image{}=Image) ->
+    TxId =
+        case wings_pref:get_value(?SHADER_PRW_NAME) of
+            undefined ->
+                prw_img_id(new);
+            {TxId0,Id} ->
+                wings_pref:set_value(?SHADER_PRW_NAME,{TxId0,Id}),
+                TxId0
+        end,
+    init_texture(Image, TxId);
+prw_img_id(delete) ->
+    case wings_pref:get_value(?SHADER_PRW_NAME) of
+        undefined ->
+            ignore;
+        {_,Id} ->
+            wings_image:delete(Id),
+            wings_pref:delete_value(?SHADER_PRW_NAME)
+    end.
+
+bg_image_prw() ->
+    White = <<255,255,255,255>>,
+    Width = Height = ?SHADER_PRW_SIZE,
+    Row = fill_bg(Width,White),
+    Pixels = fill_bg(Height,Row),
+    #e3d_image{width=Width,height=Height,image=Pixels,
+               order=lower_left,bytes_pp=4,type=r8g8b8a8,name=?SHADER_PRW_NAME}.
+
+fill_bg(Width, White) ->
+    fill_bg(Width,White,<<>>).
+
+fill_bg(0, _, Acc) -> Acc;
+fill_bg(Width, White, Acc) -> fill_bg(Width-1,White,<<White/binary,Acc/binary>>).
+
+init_texture(#e3d_image{width=W,height=H,image=Bits,extra=Opts}, TxId) ->
+    gl:bindTexture(?GL_TEXTURE_2D, TxId),
+    FT = {Format,Type} = {?GL_RGBA, ?GL_UNSIGNED_BYTE},
+    Ft = case wings_pref:get_value(filter_texture, false) of
+             true -> linear;
+             false -> nearest
+         end,
+    {MinFilter,MagFilter} = proplists:get_value(filter, Opts, {mipmap, Ft}),
+    MMs = proplists:get_value(mipmaps, Opts, []),
+    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_S, ?GL_REPEAT),
+    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_T, ?GL_REPEAT),
+    case MinFilter of
+        mipmap ->
+            case lists:reverse(lists:keysort(4, MMs)) of
+                [{_,_,_,Max}|_] ->
+                    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MAX_LEVEL, Max-1);
+                [] ->
+                    gl:texParameteri(?GL_TEXTURE_2D, ?GL_GENERATE_MIPMAP, ?GL_TRUE)
+            end,
+            gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MIN_FILTER, ?GL_LINEAR_MIPMAP_LINEAR),
+            gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MAG_FILTER, filter(MagFilter));
+        _ ->
+            gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MAG_FILTER, filter(MagFilter)),
+            gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MIN_FILTER, filter(MinFilter))
+    end,
+    IntFormat = internal_format(FT),
+    gl:texImage2D(?GL_TEXTURE_2D, 0, IntFormat, W, H, 0, Format, Type, Bits),
+    [gl:texImage2D(?GL_TEXTURE_2D, Levl, IntFormat, MMW, MMH, 0, Format, Type, MM)
+     || {MM, MMW, MMH, Levl} <- MMs],
+    gl:bindTexture(?GL_TEXTURE_2D, 0),
+    ?CHECK_ERROR(),
+    TxId.
+
+filter(mipmap) -> ?GL_LINEAR_MIPMAP_LINEAR;
+filter(linear) -> ?GL_LINEAR;
+filter(nearest) -> ?GL_NEAREST.
+
+internal_format({?GL_BGR,?GL_UNSIGNED_BYTE}) -> ?GL_RGB;
+internal_format({?GL_BGRA,?GL_UNSIGNED_BYTE}) -> ?GL_RGBA;
+internal_format({?GL_RGBA,?GL_FLOAT}) -> ?GL_RGBA32F;
+internal_format({?GL_RGB,?GL_FLOAT}) -> ?GL_RGB32F;
+internal_format({Format,?GL_UNSIGNED_BYTE}) -> Format.
+
+rebuild_charts(We, St = #st{bb=UVS=#uvstate{st=Old,mode=Mode}}) ->
+    {Faces,FvUvMap} = auv_segment:fv_to_uv_map(Mode,We),
+    {Charts1,Cuts} = auv_segment:uv_to_charts(Faces, FvUvMap, We),
+    Charts2 = auv_segment:cut_model(Charts1, Cuts, We),
+    Charts = update_uv_tab(Charts2, FvUvMap),
+    St#st{sel=[],bb=UVS#uvstate{mode=update_mode(Faces,We),st=Old#st{sel=[]}},shapes=Charts}.
+
+update_mode(Faces0, #we{fs=Ftab}) ->
+    Fs = gb_sets:from_list(Faces0),
+    case gb_sets:size(Fs) == gb_trees:size(Ftab) of
+        true -> object;
+        false -> Fs
+    end.
+
+update_uv_tab(Cs, FvUvMap) ->
+    update_uv_tab_1(Cs, FvUvMap, []).
+
+update_uv_tab_1([#we{id=Id,name=#ch{vmap=Vmap}}=We0|Cs], FvUvMap, Acc) ->
+    Fs = wings_we:visible(We0),
+    UVs0 = wings_face:fold_faces(
+        fun(F, V, _, _, A) ->
+            OrigV = auv_segment:map_vertex(V, Vmap),
+            [{V,[F|OrigV]}|A]
+        end, [], Fs, We0),
+    case update_uv_tab_2(sort(UVs0), FvUvMap, 0.0, []) of
+        error ->
+            %% No UV coordinate for at least some vertices (probably
+            %% all) in the chart. Throw away this chart.
+            update_uv_tab_1(Cs, FvUvMap, Acc);
+        UVs1 ->
+            UVs = array:from_orddict(UVs1),
+            We = We0#we{vp=UVs},
+            update_uv_tab_1(Cs, FvUvMap, [{Id,We}|Acc])
+    end;
+update_uv_tab_1([], _, Acc) ->
+    gb_trees:from_orddict(sort(Acc)).
+
+update_uv_tab_2([{V,_}|T], FvUvMap, Z, [{V,_}|_]=Acc) ->
+    update_uv_tab_2(T, FvUvMap, Z, Acc);
+update_uv_tab_2([{V,Key}|T], FvUvMap, Z, Acc) ->
+    case gb_trees:get(Key, FvUvMap) of
+        {X,Y} ->
+            Pos = {X,Y,Z},
+            update_uv_tab_2(T, FvUvMap, Z, [{V,Pos}|Acc]);
+        _ ->
+            %% No UV-coordinate for this vertex. Abandon the entire chart.
+            error
+    end;
+update_uv_tab_2([], _, _, Acc) ->
+    lists:reverse(Acc).
+
+setup_sphere() ->
+    {Len, Tris, Normals, UVs, Tgs} =
+        wings_shapes:tri_sphere(#{subd=>4, ccw=>false, normals=>true, tgs=>true,
+                                  uvs=>true, scale=>0.45}),
+    Idx = length(Tris) div 3,
+    Fs = [#e3d_face{vs=[I*3,I*3+1,I*3+2],
+                    tx=[I*3,I*3+1,I*3+2],
+                    ns=[I*3,I*3+1,I*3+2]} || I <- lists:seq(0,Idx-1)],
+    Mesh = #e3d_mesh{vs=Tris,tx=UVs,ns=Normals,fs=Fs},
+    #we{fs=Ftab} = We0 = wings_import:import_mesh(material,Mesh),
+    We = wings_facemat:assign(list_to_atom(?SHADER_PRW_NAME),gb_trees:keys(Ftab),We0),
+    Data = {Len, zip(Tris, Normals, UVs, Tgs)},
+    {We#we{id=1},Data}.
+
+setup_sphere({Len,Data}) ->
+    Lighting = wings_pref:get_value(number_of_lights),
+    Layout = [vertex, normal, uv, tangent],
+    D = fun(#{preview := PreviewMat} = RS0) ->
+        RS1 = wings_shaders:use_prog(Lighting, RS0),
+        RS2 = lists:foldl(fun apply_material/2, RS1, PreviewMat),
+        gl:drawArrays(?GL_TRIANGLES, 0, Len*3),
+        wings_shaders:use_prog(0, RS2)
+        end,
+    wings_vbo:new(D, Data, Layout).
+
+apply_material({{tex, Type}=TexType, TexId}, Rs0) ->
+    case wings_shaders:set_state(TexType, TexId, Rs0) of
+        {false, Rs0} ->
+            Rs0;
+        {true, Rs1} when TexId =:= none ->
+            wings_shaders:set_uloc(texture_var(Type), enable(false), Rs1);
+        {true, Rs1} ->
+            gl:activeTexture(?GL_TEXTURE0 + tex_unit(Type)),
+            gl:bindTexture(?GL_TEXTURE_2D, TexId),
+            gl:activeTexture(?GL_TEXTURE0),
+            wings_shaders:set_uloc(texture_var(Type), enable(true), Rs1)
+    end;
+apply_material({Type, Value}, Rs0)
+    when Type =:= diffuse; Type =:= emission; Type =:= metallic; Type =:= roughness ->
+    wings_shaders:set_uloc(Type, Value, Rs0);
+apply_material({_Type,_}, Rs0) ->
+    io:format("~p:~p: unsupported type ~p~n",[?MODULE,?LINE,_Type]),
+    Rs0.
+
+enable(true)  -> 1;
+enable(false) -> 0.
+
+texture_var(diffuse) -> 'UseDiffuseMap';
+texture_var(normal) ->  'UseNormalMap';
+texture_var(pbr_orm) -> 'UsePBRMap'; %% red = occlusion green = roughness blue = metallic
+texture_var(emission) -> 'UseEmissionMap'.
+
+tex_unit(diffuse) -> ?DIFFUSE_MAP_UNIT;
+tex_unit(normal) -> ?NORMAL_MAP_UNIT;
+tex_unit(pbr_orm) -> ?PBR_MAP_UNIT; %% red = occlusion green = roughness blue = metallic
+tex_unit(emission) -> ?EMISSION_MAP_UNIT.
+
+tex_preview(Canvas, Vbo) ->
+    TxId = prw_img_id(new),
+    Maps = [{{tex,diffuse}, TxId}],
+    {W,H} = wxWindow:getSize(Canvas),
+    Scale = wxWindow:getContentScaleFactor(Canvas),
+
+    gl:pushAttrib(?GL_ALL_ATTRIB_BITS),
+    gl:viewport(0, 0, round(W*Scale), round(H*Scale)),
+    {BR,BG,BB, _} = wxWindow:getBackgroundColour(wxWindow:getParent(Canvas)),
+    BGC = fun(Col) -> (Col-15) / 255 end,
+    gl:clearColor(BGC(BR),BGC(BG),BGC(BB),1.0),
+    gl:clear(?GL_COLOR_BUFFER_BIT bor ?GL_DEPTH_BUFFER_BIT),
+    gl:matrixMode(?GL_PROJECTION),
+    gl:loadIdentity(),
+    Fov = 45.0, Aspect = W/H,
+    MatP = e3d_transform:perspective(Fov, Aspect, 0.01, 256.0),
+    gl:multMatrixd(e3d_transform:matrix(MatP)),
+    gl:matrixMode(?GL_MODELVIEW),
+    gl:loadIdentity(),
+    Dist = (0.5/min(1.0,Aspect)) / math:tan(Fov/2*math:pi()/180),
+    Eye = {0.0,0.0,Dist}, Up = {0.0,1.0,0.0},
+    MatMV = e3d_transform:lookat(Eye, {0.0,0.0,0.0}, Up),
+    gl:multMatrixd(e3d_transform:matrix(MatMV)),
+    gl:shadeModel(?GL_SMOOTH),
+    Diff  = {diffuse, {1.0,1.0,1.0,1.0}},
+    Emis  = {emission, {0.0,0.0,0.0,1.0}},
+    Metal = {metallic, 0.0},
+    Rough = {roughness, 1.0},
+    Material = [Diff, Emis, Metal, Rough | Maps],
+    gl:enable(?GL_BLEND),
+    gl:enable(?GL_DEPTH_TEST),
+    gl:enable(?GL_CULL_FACE),
+    gl:blendFunc(?GL_SRC_ALPHA, ?GL_ONE_MINUS_SRC_ALPHA),
+    gl:color4ub(255, 255, 255, 255),
+    RS = #{ws_eyepoint=>Eye, view_from_world=> MatMV, preview=>Material},
+    wings_dl:call(Vbo, RS),
+    gl:disable(?GL_BLEND),
+    gl:shadeModel(?GL_FLAT),
+    gl:popAttrib(),
+    case os:type() of
+        {_, darwin} ->
+            %% Known problem during redraws before window is shown
+            %% only reset error check
+            _ = gl:getError();
+        _ ->
+            wings_develop:gl_error_check("Rendering texture viewer")
+    end.
+
+zip(Vs, Ns, UVs, Tgs) ->
+    zip_0(Vs, Ns, UVs, Tgs, []).
+
+zip_0([V|Vs], [N|Ns], [UV|UVs], [T|Ts], Acc) ->
+    zip_0(Vs, Ns, UVs,Ts, [V,N,UV,T|Acc]);
+zip_0([], [], [], [],Acc) -> Acc.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Texture creation
@@ -1186,7 +1643,7 @@ compile_shader(Id, {value,#sh{name=Name,vs=VsF,fs=FsF}}, Acc) ->
 	Vs = wings_gl:compile(vertex, read_file(VsF)),
         Fs = wings_gl:compile(fragment, read_file(FsF)),
         Prog = wings_gl:link_prog([Vs,Fs]),
-	io:format("AUV: Shader ´~s´ ok~n", [Name]),
+	%% io:format("AUV: Shader ´~s´ ok~n", [Name]),
 	[{Id,Prog}|Acc]
     catch throw:What ->
 	    io:format("AUV: Error ~p ~s ~n",[Name, What]),

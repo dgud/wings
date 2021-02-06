@@ -636,10 +636,10 @@ handle_event_3(#mousebutton{button=?SDL_BUTTON_RIGHT}=Ev,
     end;
 handle_event_3({drop,DropData}, St) ->
     handle_drop(DropData, St);
-handle_event_3({action,{{auv,_},create_texture}},_St) ->
-    auv_texture:draw_options();
-handle_event_3({action,{auv,{draw_options,restart}}}, _St) ->
-    auv_texture:draw_options();
+handle_event_3({action,{{auv,_},create_texture}}, St) ->
+    auv_texture:draw_options(St);
+handle_event_3({action,{auv,{draw_options,restart}}}, St) ->
+    auv_texture:draw_options(St);
 handle_event_3({action,{auv,{draw_options,Opt}}}, #st{bb=Uvs}=St) ->
     #uvstate{st=GeomSt0,matname=MatName0,bg_img=Image} = Uvs,
     Tx = ?SLOW(auv_texture:get_texture(St, Opt)),
