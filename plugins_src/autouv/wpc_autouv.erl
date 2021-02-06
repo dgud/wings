@@ -267,9 +267,9 @@ create_uv_state(Charts, MatName, Fs, We, #st{shapes=Shs0}=GeomSt) ->
     wings_wm:later(got_focus),
 
     Win = wings_wm:this(),
-    case get({?MODULE,show_background}) of
+    case ?GET({?MODULE,show_background}) of
 	undefined -> 
-	    put({?MODULE,show_background}, true);
+	    ?SET({?MODULE,show_background}, true);
 	_ -> ignore
     end,
     wings:register_postdraw_hook(Win, ?MODULE,
@@ -491,7 +491,7 @@ command_menu(_, X, Y) ->
         true -> ExportMenu = [{auv_export_menu(label), export_uv, auv_export_menu(help)}];
         _ -> ExportMenu = []
     end,
-    Checked = [{crossmark, get({?MODULE,show_background})}],
+    Checked = [{crossmark, ?GET({?MODULE,show_background})}],
     Menu = [{auv_show_menu(label),toggle_background,auv_show_menu(help),Checked}] ++
            option_menu() ++ ExportMenu,
     wings_menu:popup_menu(X,Y, {auv,option}, Menu).
@@ -637,16 +637,18 @@ handle_event_3(#mousebutton{button=?SDL_BUTTON_RIGHT}=Ev,
 handle_event_3({drop,DropData}, St) ->
     handle_drop(DropData, St);
 handle_event_3({action,{{auv,_},create_texture}}, St) ->
+    ?SET({?MODULE,show_background}, true),
     auv_texture:draw_options(St);
 handle_event_3({action,{auv,{draw_options,restart}}}, St) ->
+    ?SET({?MODULE,show_background}, true),
     auv_texture:draw_options(St);
 handle_event_3({action,{auv,{draw_options,Opt}}}, #st{bb=Uvs}=St) ->
     #uvstate{st=GeomSt0,matname=MatName0,bg_img=Image} = Uvs,
     Tx = ?SLOW(auv_texture:get_texture(St, Opt)),
-    case MatName0 of 
-	none -> 
+    case MatName0 of
+	none ->
 	    ok = wings_image:update(Image, Tx),
-	    put({?MODULE,show_background}, true),
+	    ?SET({?MODULE,show_background}, true),
 	    get_event(St);
 	_ ->
 	    TexName = case get_texture(MatName0, St) of
@@ -966,8 +968,8 @@ handle_command_1(cut_edges, St0 = #st{selmode=edge,bb=#uvstate{id=Id,st=Geom}}) 
     St  = update_selected_uvcoords(St2),
     get_event(St);
 handle_command_1(toggle_background, _) ->
-    Old = get({?MODULE,show_background}),
-    put({?MODULE,show_background},not Old),
+    Old = ?GET({?MODULE,show_background}),
+    ?SET({?MODULE,show_background},not Old),
     wings_wm:dirty();
 handle_command_1(export_uv, #st{}=St) ->
     wpc_hlines:command({file, {export_uv, {eps, true}}}, St);
@@ -1942,7 +1944,7 @@ draw_background(#st{bb=#uvstate{bg_img=Image}}) ->
     %% Draw the background texture.
     gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_FILL),
     gl:color3f(1.0, 1.0, 1.0),			%Clear
-    case get({?MODULE,show_background}) of
+    case ?GET({?MODULE,show_background}) of
 	false -> ok;
 	_ ->
             case wings_image:txid(Image) of

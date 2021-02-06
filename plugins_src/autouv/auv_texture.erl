@@ -104,8 +104,7 @@ draw_options(#st{bb=Uvs}=AuvSt0) ->
                 Tx = ?SLOW(get_texture(St, {Opt,Shaders})),
                 case MatName0 of
                     none ->
-                        ok = wings_image:update(Image, Tx),
-                        put({?MODULE,show_background}, true);
+                        ok = wings_image:update(Image, Tx);
                     _ ->
                         TexName = case get_mat_texture(MatName0, St) of
                                       false -> atom_to_list(MatName0);
@@ -303,7 +302,7 @@ options({shader,Id}=Opt, Vals0, Sh, {UVSt,SphereData}) ->
         {vframe, [{custom_gl,?PREVIEW_SIZE,?PREVIEW_SIZE,Preview,
                    [{key, preview}, {proportion, 1}, {flag, ?wxEXPAND bor ?wxALL}]}],
                  [{title, "Preview"}]},
-        {vframe, FrmShader, [{title, "Paramters"}]}]
+        {vframe, FrmShader, [{title, "Parameters"}]}]
      }];
 
 options(Command,Vals,_,_) ->
@@ -396,7 +395,8 @@ option_hook(Id,Renderers,Shaders) ->
 	     spawn(fun() ->
 			   %% Neeed open dialog in dialog from another process
 			   wx:set_env(Env),
-			   option_dialog(Id, Fields, Renderers, Shaders)
+			   option_dialog(Id, Fields, Renderers, Shaders),
+                           wings_wm:psend(send_once, dialog_blanket, preview)
 		   end)
      end
     }.
