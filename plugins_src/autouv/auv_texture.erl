@@ -280,7 +280,6 @@ options({shader,Id}=Opt, Vals0, Sh, {UVSt,SphereData}) ->
                 %% updating the image
                 prw_img_id(Tex),
                 case os:type() of
-                    false -> ok;
                     {_, darwin} -> %% workaround wxWidgets 3.0.4 and mojave
                         Preview(GLCanvas, Fields),
                         wxGLCanvas:swapBuffers(GLCanvas);
@@ -582,10 +581,10 @@ filter(mipmap) -> ?GL_LINEAR_MIPMAP_LINEAR;
 filter(linear) -> ?GL_LINEAR;
 filter(nearest) -> ?GL_NEAREST.
 
-internal_format({?GL_BGR,?GL_UNSIGNED_BYTE}) -> ?GL_RGB;
-internal_format({?GL_BGRA,?GL_UNSIGNED_BYTE}) -> ?GL_RGBA;
-internal_format({?GL_RGBA,?GL_FLOAT}) -> ?GL_RGBA32F;
-internal_format({?GL_RGB,?GL_FLOAT}) -> ?GL_RGB32F;
+%% internal_format({?GL_BGR,?GL_UNSIGNED_BYTE}) -> ?GL_RGB;
+%% internal_format({?GL_BGRA,?GL_UNSIGNED_BYTE}) -> ?GL_RGBA;
+%% internal_format({?GL_RGBA,?GL_FLOAT}) -> ?GL_RGBA32F;
+%% internal_format({?GL_RGB,?GL_FLOAT}) -> ?GL_RGB32F;
 internal_format({Format,?GL_UNSIGNED_BYTE}) -> Format.
 
 rebuild_charts(We, St = #st{bb=UVS=#uvstate{st=Old,mode=Mode}}) ->
