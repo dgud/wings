@@ -45,7 +45,7 @@
 	 mag_rad,   % magnet influence radius
 	 id,        % {Id,Elem} mouse was over when tweak began
 	 sym,       % current magnet radius adjustment hotkey
-         ox,oy,     % orignal X,Y
+         ox,oy,     % original X,Y
 	 x,y,       % current X,Y
 	 cx,cy,     % Calculated X,Y
          warp,      % true or size limits

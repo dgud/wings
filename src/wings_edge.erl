@@ -196,7 +196,7 @@ hardness(Edge, hard, Htab) -> gb_sets:add(Edge, Htab).
 %%%
 %%% "Select faces on one side of an edge loop."
 %%%
-%%% This description is pretty ambigous. If there are
+%%% This description is pretty ambiguous. If there are
 %%% multiple edge loops, it is not clear what to select.
 %%%
 %%% What we do for each object is to collect all faces

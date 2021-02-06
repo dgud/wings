@@ -2,7 +2,7 @@
 %%% File    : auv_segment.erl
 %%% Author  : Dan Gudmundsson <dgud@erix.ericsson.se>
 %%% Description : Different segmentation algorithms.
-%%%               Segments Model into set of charts containg faces.
+%%%               Segments Model into set of charts containing faces.
 %%% Created :  3 Oct 2002 by Dan Gudmundsson <dgud@erix.ericsson.se>
 %%%-------------------------------------------------------------------
 %%  Copyright (c) 2001-2011 Dan Gudmundsson, Bjorn Gustavsson
@@ -239,9 +239,9 @@ expand_feature_curve({Edge, _Sharpness}, Fd0, We, Rs) ->
 
 depth_traverse_tree(Tree=[[{Val,_,_}|_]|_],Sharp,Depth,_Dir1,Fd0,We,Rs,Feat) 
   when Sharp + Val > Rs#restr.sharp ->
-    %% Found suiteable edge -> add to feat
+    %% Found suitable edge -> add to feat
     [[{Val0,{Edge,#edge{vs=VaN,ve=VbN}},V0}|_]|Found] = lists:reverse(Tree),
-%%    ?DBG("Found suiteable edge ~p ~p ~p ~n", [Edge,Sharp,Depth]),
+%%    ?DBG("Found suitable edge ~p ~p ~p ~n", [Edge,Sharp,Depth]),
     Fd1 = ?fdmarkused(Edge, Fd0),
     case Found of 
 	[] -> %% Oops first level hit, restart (special case)

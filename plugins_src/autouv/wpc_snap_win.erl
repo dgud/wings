@@ -785,7 +785,7 @@ handle_cast({note,image_change}, #state{ctrls=#{imglst:=ImgLst,actbtn:=BAct}}=St
     end,
     {noreply, State};
 handle_cast({action,_}=Cmd, State) ->
-    %% fowarding the context menu options from window to module process
+    %% forwarding the context menu options from window to module process
     wings_wm:psend(geom, Cmd),
     {noreply, State};
 handle_cast(_Req, State) ->

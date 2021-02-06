@@ -22,7 +22,7 @@
 %%% @end
 -module(e3d_transform).
 
--export([%% Initilizes matrices
+-export([%% Initializes matrices
 	 identity/0, init/1,
 	 lookat/3, ortho/2, ortho/6, perspective/3, perspective/4, pick/5,
 	 %% Get the actual matrices
@@ -47,7 +47,7 @@ identity() ->
     #e3d_transf{}.
 
 %%--------------------------------------------------------------------
-%% @doc  Initilizes transform from matrix mat
+%% @doc  Initializes transform from matrix mat
 %% @end
 %%--------------------------------------------------------------------
 -spec init(matrix()) -> e3d_transform().
@@ -101,7 +101,7 @@ rotate(#e3d_transf{mat=M,inv=I}, Rot)
 		inv = e3d_mat:mul(e3d_mat:transpose(Rot), I)}.
 
 %%--------------------------------------------------------------------
-%% @doc  Rotates the matrix with angle (in degress) and direction
+%% @doc  Rotates the matrix with angle (in degrees) and direction
 %% @end
 %%--------------------------------------------------------------------
 -spec rotate(e3d_transform(), number(), vector()) -> e3d_transform().

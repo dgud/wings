@@ -719,7 +719,7 @@ do_export(Props, File_name, #e3d_file{objs=Objs, mat=Mats}) ->
 											     {regular,  "Regular", get_pref(edge_width_regular,  ?DEF_EDGE_WIDTH_REGULAR) , get_pref( regl_color, ?DEF_REGL_COLOR), get_pref( regl_pattern, ?DEF_REGL_PATTERN) },
 											     {transp, "Trans_hide", get_pref(edge_width_lucent,  ?DEF_EDGE_WIDTH_LUCENT)  , get_pref( lcnt_color, ?DEF_LCNT_COLOR), get_pref( lcnt_pattern, ?DEF_LCNT_PATTERN) }
 
-											    ],% Add Line Group code (Aboid the bug when same width size setting in dictonary)
+											    ],% Add Line Group code (Aboid the bug when same width size setting in dictionary)
 			  {Edge_type2, Edges  } <- Edge_dict,
 			  Edge_type1 =:= Edge_type2]),
 
@@ -2182,7 +2182,7 @@ define_dot_styles() ->
     ].
 
 define_svg_filter( Mode, Type) ->
-    %% ui: return Name for UI build,  getp_aram: return Other Paramaters
+    %% ui: return Name for UI build,  getp_aram: return Other Parameters
     %%  Freq , Octave, Scale, Blur  ,  Morph, fact,  Opt,  Name     , Type#   Opt -1 turbulance
     FList0 =[
 	     { "0",          0,     0,    0,   0,     0,    0, "Not apply"},        %%  1

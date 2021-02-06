@@ -14,7 +14,7 @@
 -define(WINGS_DIR, "c:/src/wings/ebin").
 
 -record(opts,
-	{dir = ".",       %% Ouput to directory
+	{dir = ".",       %% Output to directory
 	 out_module,      %% Output format
 	 verbose=false,   %% Verbose output
 	 in_format,       %% In format (if unknown extension).

@@ -270,7 +270,7 @@
          vab=none :: 'none' | vab(),            %Vertex array (see below)
          tri_map=none :: 'none' | wings_pick:tri_map(), %Tri -> Face map (for picking)
 
-	 %% Miscellanous.
+	 %% Miscellaneous.
          hilite=none ::
            'none' | {wings_sel:mode(),wings_dl:dl()},  %Hilite display list.
          mirror=none ::
@@ -293,7 +293,7 @@
                     | wings_drag:drag()
                     | wings_tweak:drag()
                     | {matrix,_,_,e3d_mat:matrix()}, %For dragging.
-         transparent=false :: boolean() | #we{}, %Object includes transparancy.
+         transparent=false :: boolean() | #we{}, %Object includes transparency.
          open=false :: boolean(),               %Open (has hole).
 
 	 %% List of display lists known to be needed only based

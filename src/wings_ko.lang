@@ -422,7 +422,7 @@
     {13,"평균 중심점으로 버텍스 이동"},
     % "Smooth"
     {14,"스무드(세분)"},
-    % "Subdivide all faces to give the object a smoother apperance"
+    % "Subdivide all faces to give the object a smoother appearance"
     {15,"오브젝트에 부드러운 외관을 만들기 위해 모든 페이스 세분"},
     % "Combine"
     {16,"콤바인(결합)"},
@@ -2882,7 +2882,7 @@
    [
     % "Enable or disable this plug-in "
     {1,"이 플러그인 활성화 또는 비활성화 "},
-    % "(a disbled plug-in does not show up in menus)"
+    % "(a disabled plug-in does not show up in menus)"
     {2,"(비활성화된 플러그인은 이 메뉴에 표시되지 않습니다.)"}
    ]},
   {plugin_root_menu,
@@ -5586,7 +5586,7 @@
     {2,"수직적인 시야, 즉 카메라에서 본 더 낮은 각도의 상단 경계 설정. "},
     % "The Lens controls sets the field of view according to other perhaps more well-known entities, at least for a photographer. The negative size is stored among the user preferences."
     {3,"렌즈 제어는 어쩌면 더 잘 알려진 다른 존재에 따라 적어도 사진 작가를 위해 시야를 설정합니다. 부정 형식 크기는 사용자 환경 설정 사이에 저장됩니다."},
-    % "The Lens controls make the height of the picture right for the choosen lens, so if you do not have the same aspect ratio for the negative size in the Lens frame, as for the size of the Geometry window, the width will be in error."
+    % "The Lens controls make the height of the picture right for the chosen lens, so if you do not have the same aspect ratio for the negative size in the Lens frame, as for the size of the Geometry window, the width will be in error."
     {4,"렌즈 제어는 사진의 높이를 선택된 렌즈에 알맞게 만듭니다, 그래서 렌즈 프레임에 부정 형식 크기에 대한 동일한 종횡비가 없다면, 지오메트리 창의 크기에 관련된, 너비 오류가 있을 것입니다."},
     % "Note: the zoom factor is relative a standard lens length of the negative diagonal, while only the negative height affects the effective lens length."
     {5,"참고: 오직 부정 형식 높이가 효과적인 렌즈의 길이에 영향을 미치는 반면, 줌 요소는 부정 형식 대각선의 상대적인 표준 렌즈 길이입니다."}

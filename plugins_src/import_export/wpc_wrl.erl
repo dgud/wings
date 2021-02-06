@@ -138,7 +138,7 @@ export_object(F, #e3d_mesh{fs=Fs0,ns=NTab,vs=VTab,tx=UVTab,vc=ColTab},
     io:format(F, "        coord Coordinate { point [\n",[]),
     all(W3,F,VTab),
     io:format(F, " ] }\n",[]),
-    %% Write vertex indecies
+    %% Write vertex indices
     io:put_chars(F, "        coordIndex [\n"),
     all(fun(#e3d_face{vs=Vs}) -> print_face(F, Vs) end,F,Fs),
     io:put_chars(F, " ]\n"),

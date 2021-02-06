@@ -163,7 +163,7 @@ rwx_export_object(F,#e3d_object{name=Name,obj=Mesh},Flags,RSurface) ->
     %%file yet.
     Optimized_FS = proplists:get_value(opt_fs,Flags),
 
-    %%write the actual mesh to a 'clump'. A clump in a RWX file is analagous to an 
+    %%write the actual mesh to a 'clump'. A clump in a RWX file is analogous to an 
     %%object in wings.
     write_clump(F,Mesh,RSurface,Optimized_FS),
     io:format(F,"clumpend \r\n",[]).	
@@ -189,7 +189,7 @@ write_clump(F,#e3d_mesh{vs=Vs,fs=Fs,tx=Tx1,vc=Vc},RSurface,OFS_Flag)->
 
     %%one nasty side effect of this is that split vertices cause a bit of damage to lighting
     %%since they can no longer share vertex normals with other vertices that occupy the same
-    %%space as them. Since RWX dosn't allow us to define vertex normals explicitly or 
+    %%space as them. Since RWX doesn't allow us to define vertex normals explicitly or 
     %%make some other concession for this problem (such as a special tag) there
     %%is no getting around this. 
 
@@ -217,8 +217,8 @@ write_clump(F,#e3d_mesh{vs=Vs,fs=Fs,tx=Tx1,vc=Vc},RSurface,OFS_Flag)->
     Matlist = lists:usort(lists:foldl(fun(#e3d_face{vs=Vs0},IDaccum)-> IDaccum ++ Vs0 end, [], Fs)),
     MIndices = build_new_indices(Matlist,(length(TIndices))+1),
 
-    %%build gb trees for fast lookup of vertex and tag values according to ID. This is nessecary since the
-    %%the id's for the exported mesh have to be scrambled, so random access is nessecary.
+    %%build gb trees for fast lookup of vertex and tag values according to ID. This is necessary since the
+    %%the id's for the exported mesh have to be scrambled, so random access is necessary.
     Vert_Tree = build_vdat_tree(Vs),
     Tx_Tree = build_vdat_tree(Tx),
     Vc_Tree = build_vdat_tree(Vc),

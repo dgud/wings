@@ -65,7 +65,7 @@ init() ->
 
 %% pick_matrix(X, Y, Xs, Ys, ViewPort) -> PickMatrix
 %%  Set up a pick matrix like glu:pickMatrix/5,
-%%  but with a diffrent viewing volume (the cube (0...1)^3
+%%  but with a different viewing volume (the cube (0...1)^3
 %%  instead of (-1...1)^3).
 %%
 pick_matrix(X, Y, Xs, Ys, ViewPort) ->

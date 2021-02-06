@@ -334,7 +334,7 @@ specify_warp_and_center(_Axis,NW,RegCntr,_SelCntr,{_lock,_mode,unwarped,region,_
 
 %%%% Flags
 flag(free) -> [screen_relative, keep_drag]; %% <- keep_drag keeps the drag data
-flag(_xyz) -> [].                           %%    from reseting on view_changed
+flag(_xyz) -> [].                           %%    from resetting on view_changed
 
 %%%% Modes changed by number keys
 modes() ->

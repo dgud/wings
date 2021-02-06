@@ -416,7 +416,7 @@
     {13,"各頂点を動かして、オブジェクトを引き締めたり緩くしたりします"},
     % "Smooth"
     {14,"スムーズ(Catmull-Clark)"},
-    % "Subdivide all faces to give the object a smoother apperance"
+    % "Subdivide all faces to give the object a smoother appearance"
     {15,"オブジェクトの全ての面を細分割して滑らかにします(再分割曲面：Catmull-Clarkアルゴリズム)"},
     % "Combine"
     {16,"合体"},
@@ -2823,7 +2823,7 @@
    [
     % "Enable or disable this plug-in "
     {1,"このプラグインを有効/無効にする"},
-    % "(a disbled plug-in does not show up in menus)"
+    % "(a disabled plug-in does not show up in menus)"
     {2,"(無効にしたプラグインはメニューに表示されません)"}
    ]},
   {plugin_root_menu,
@@ -5358,7 +5358,7 @@
     {2,"垂直視野角を設定します,すなわちカメラで対象を見る時に,画面の下端から上端そしてカメラ位置の3点を結ぶ三角形のカメラ側の角度をいいます."},
     % "The Lens controls sets the field of view according to other perhaps more well-known entities, at least for a photographer. The negative size is stored among the user preferences."
     {3,"レンズの制御には,設定済みの様々な視野角を設定することができます.これは少なくともカメラマン向けです.露光サイズの大きさはユーザー環境設定に保存されます"},
-    % "The Lens controls make the height of the picture right for the choosen lens, so if you do not have the same aspect ratio for the negative size in the Lens frame, as for the size of the Geometry window, the width will be in error."
+    % "The Lens controls make the height of the picture right for the chosen lens, so if you do not have the same aspect ratio for the negative size in the Lens frame, as for the size of the Geometry window, the width will be in error."
     {4,"レンズの制御は選択されたレンズに応じた高さの画像を生み出します,そのためフレームサイズとレンズの口径比が同じアスペクト比に対応していないと,ジオメトリウインドウの横幅サイズにエラーが出るでしょう."},
     % "Note: the zoom factor is relative a standard lens length of the negative diagonal, while only the negative height affects the effective lens length."
     {5,"注意 : ズーム比率は標準レンズにおける露光サイズの対角線の長さに相対的です,露光サイズの高さのみ有効なレンズの長さに影響します."}

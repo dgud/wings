@@ -863,7 +863,7 @@
     {13,"Auswahloptionen"},
     {14,"Defines what to do with selections present in der Datei zusammengeführt werden"},
     {15,"Make all new Selection"},
-    {16,"It makes all new elements selected in accord with the options bellow"},
+    {16,"It makes all new elements selected in accord with the options below"},
     {17,"Rendereinstellungen zusammenführen"}
    ]},
   {merge,

@@ -860,7 +860,7 @@ connect_events(TC, LC) ->
     case os:type() of
     	{win32,_} ->
             %% list_item_right_click does not work outside of items
-            %% on windows catched by right|left_up above
+            %% on windows caught by right|left_up above
             wxWindow:connect(TC, command_right_click, []), %% Menu in empty tree area
             wxWindow:connect(LC, command_list_item_right_click, [callback]),
             wxWindow:connect(LC, command_left_click, [callback]);
@@ -1025,7 +1025,7 @@ object_menu(Id) ->
 
 help(Name) ->
     Msg = [?__(1, "Toggle operation"),
-	   wings_msg:mod_format(0, 3, ?__(2, "Toogle all visible objects or show menu")),
+	   wings_msg:mod_format(0, 3, ?__(2, "Toggle all visible objects or show menu")),
 	   wings_msg:mod_format(?SHIFT_BITS, 3, ?__(3, "Toggle objects in all folders"))],
     wings_status:message(Name, wings_msg:join(Msg)).
 

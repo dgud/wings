@@ -250,7 +250,7 @@ dialog(export) ->
          [{key,faces_group},{info,?__(3,"Exports face's group IDs by material")}]}},
        {?__(4,"Build the main() statement"),
         {"",get_pref(build_main, true),
-         [{key,build_main},{info,?__(5,"Add a main() funtion to build the scene")}]}}
+         [{key,build_main},{info,?__(5,"Add a main() function to build the scene")}]}}
       ]},
      {vframe,[{vradio,[{?__(9,"CSG Object"),object},
                        {?__(10,"Properties"),properties}],
