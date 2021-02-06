@@ -121,14 +121,14 @@ command({file, {export, {eps, Arg}}}, St) ->
 command({file, {export_selected, {eps, Arg}}}, St) ->
     export(Arg, export_selected, St);
 command({file, {export_uv, {eps, Arg}}}, St) ->
-	export(Arg, export_uv, St);
+    export(Arg, export_uv, St);
 command(_, _) -> next.
 
 export(Arg, Op, St) when is_atom(Arg) ->
-	Fun =
+    Fun =
 	case Op of
-		export_uv -> fun(Res) -> {file, {Op, {eps, {Res, St}}}} end;
-		_ -> fun(Res) -> {file, {Op, {eps, Res}}} end
+            export_uv -> fun(Res) -> {file, {Op, {eps, {Res, St}}}} end;
+            _ -> fun(Res) -> {file, {Op, {eps, Res}}} end
 	end,
     wpa:dialog(Arg, ?__(1,"Cartoon edges Render Options (EPS/SVG)"), dialog(), Fun);
 export(Arg, Op, St0) when is_list(Arg) ->
@@ -153,26 +153,26 @@ export(Arg, Op, St0) when is_list(Arg) ->
     case Op of
         export ->
             ?SLOW(wpa:export(Props, fun_export(Props), St))
-		;
+      ;
         export_selected ->
             ?SLOW(wpa:export_selected(Props, fun_export(Props), St))
     end;
 export(Arg, export_uv, _) when is_tuple(Arg) ->
-	{Arg0,St} = Arg,
-	set_pref(Arg0),
-	Camera_info = [{0.0,0.0,0.0}, 1.2,
-				   0.0, 0.0, {-0.5,-0.5},
-				   45.0, -0.001, 10.0, {0.0,1.0,0.0}],
-	File_type = get_pref(file_type, ?DEF_FILE_TYPE),
-	Props = [{title, "Export"},
-			 {ext, file_type(File_type, suffix)},
-			 {ext_desc, file_type(File_type, desc)},
-			 {camera_info, Camera_info},
-			 {subdivisions, 0},
-			 {win_size, {100,100}},
-			 {ortho_view, true}],
+    {Arg0,St} = Arg,
+    set_pref(Arg0),
+    Camera_info = [{0.0,0.0,0.0}, 1.2,
+                   0.0, 0.0, {-0.5,-0.5},
+                   45.0, -0.001, 10.0, {0.0,1.0,0.0}],
+    File_type = get_pref(file_type, ?DEF_FILE_TYPE),
+    Props = [{title, "Export"},
+             {ext, file_type(File_type, suffix)},
+             {ext_desc, file_type(File_type, desc)},
+             {camera_info, Camera_info},
+             {subdivisions, 0},
+             {win_size, {100,100}},
+             {ortho_view, true}],
 
-	?SLOW(wpa:export(Props, fun_export(Props), St)).
+    ?SLOW(wpa:export(Props, fun_export(Props), St)).
 
 
 dialog() ->
