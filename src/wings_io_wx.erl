@@ -290,7 +290,7 @@ rec_events(Eq0, Prev, Wait) ->
                     erase(mouse_warp),
                     rec_events(Eq0, Prev, Wait);
                 _ ->
-                    rec_events(Eq0, Ev, 5)
+                    rec_events(Eq0, Ev, 0)
 	    end;
 	#wx{} = Ev ->
 	    rec_events(q_in(Ev, q_in(Prev, Eq0)), undefined, 0);

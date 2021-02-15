@@ -116,7 +116,6 @@ handle_info(_Msg, State) ->
     {noreply, State}.
 
 terminate(_Reason, #state{this=_This, brush=Brush}) ->
-    wx:debug(none),
     wxBrush:destroy(Brush),
     %% wxBitmapButton:destroy(This), %% Is destroyed by the owner
     ok.

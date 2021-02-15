@@ -243,7 +243,9 @@ handle_info(apply_cb, State) ->
     end(),
     [apply_callback(H, get_curr_color(State)) || H <- State#state.handlers],
     {noreply, State};
-handle_info(_, State) -> State.
+handle_info(_Msg, State) ->
+    io:format("~p:~p: Unexpected message: ~p~n", [?MODULE, ?LINE, _Msg]),
+    {noreply, State}.
 
 code_change(_, _, State) -> State.
 
