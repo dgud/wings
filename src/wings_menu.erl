@@ -212,10 +212,17 @@ setup_dialog(TopParent, Entries, Magnet, {X,Y} = ScreenPos, Cache) ->
             end,
             MenuData;
         #{frame := Frame} = MenuData ->
-            Pos = fit_menu_on_display(Frame,{X-25,Y-15}),
-            wxWindow:move(Frame, Pos),
-            wxPopupTransientWindow:popup(Frame),
-            MenuData
+            case frame_exists(Frame) of
+                true ->
+                    Pos = fit_menu_on_display(Frame,{X-25,Y-15}),
+                    wxWindow:move(Frame, Pos),
+                    wxPopupTransientWindow:popup(Frame),
+                    MenuData;
+                false ->
+                    NewCache = maps:remove({Entries, Magnet}, Cache),
+                    ?SET(menu_cache, NewCache),
+                    setup_dialog(TopParent, Entries, Magnet, {X,Y} = ScreenPos, NewCache)
+            end
     end.
 
 do_setup_dialog(TopParent, Entries0, Magnet, {X0,Y0}=ScreenPos) ->
@@ -243,6 +250,15 @@ do_setup_dialog(TopParent, Entries0, Magnet, {X0,Y0}=ScreenPos) ->
     wxWindow:move(Frame, fit_menu_on_display(Frame,{X1,Y1})),
     show_menu_frame(Overlay, Frame, KbdFocus),
     #{overlay=>Overlay, frame=>Frame, panel=>Panel, entries=>Entries, colors=>Cols}.
+
+
+% If a top-level window is deleted, the menu-frame have been deleted as well.
+frame_exists(Frame) ->
+    try wxWindow:getSize(Frame) of
+        _ -> true
+    catch _:_ ->
+            false
+    end.
 
 show_menu_frame(none, Frame, _Focus) ->
     wxPopupTransientWindow:popup(Frame);
