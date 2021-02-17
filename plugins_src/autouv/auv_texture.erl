@@ -207,8 +207,12 @@ option_dialog(Id, Fields, Renderers, Shaders) ->
                         Name when is_atom(Name) -> NameId = Name;
                         {_,NameId} -> NameId
                     end,
-                    {value,#sh{def=Opts0}} = lists:keysearch(NameId,#sh.id,Shaders),
-                    [{shader,NameId}|lists:reverse(Opts0)];
+                    if NameId =/= auv_edges ->
+                        {value,#sh{def=Opts0}} = lists:keysearch(NameId,#sh.id,Shaders),
+                        [{shader,NameId}|lists:reverse(Opts0)];
+                    true ->
+                        []
+                    end;
                 Opts0 ->
                     Opts0
             end,
@@ -217,10 +221,13 @@ option_dialog(Id, Fields, Renderers, Shaders) ->
                        %% Change the value in the parent dialog
                        wings_dialog:set_value({auv_opt, Id}, [Name|Res], Fields),
                        %% removing the temporary VBO data
-                       Vbo = wings_pref:get_value(?SHADER_PRW_VBO),
-                       wings_pref:delete_value(?SHADER_PRW_VBO),
-                       wings_vbo:delete(Vbo),
-                       ignore
+                       case wings_pref:get_value(?SHADER_PRW_VBO) of
+                           undefined ->  ignore;
+                           Vbo ->
+                               wings_pref:delete_value(?SHADER_PRW_VBO),
+                               wings_vbo:delete(Vbo),
+                               ignore
+                       end
                    end,
         UVSt = create_uv_state(),
         wings_dialog:dialog(StrName,options(Name,Opts,Shaders,UVSt),SetValue)
