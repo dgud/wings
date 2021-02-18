@@ -235,6 +235,49 @@ option_dialog(Id, Fields, Renderers, Shaders) ->
 	    io:format("EXIT: ~p ~p~n",[Crash, ST])
     end.
 
+%% function required to ensure a config file with image on shader can be correctly
+%% load by file name or by name (image in Wings3D), otherwise we use the default
+%% auvBG in order to avoid GLSL issues by not receiving an image.
+%% The Filename parameter comes from .auv config file
+load_image(ImgName, Filename) when is_list(Filename) ->
+    Is = wings_image:images(),
+    ImgsId = [{Name,TexId} || {TexId, #e3d_image{name=Name}} <- Is],
+    case filelib:is_file(Filename) of
+        true ->
+            %% lets check if the file was not loaded before (using the same var name)
+            case lists:keyfind(ImgName,1,ImgsId) of
+                {_,Value} -> Value;
+                _ ->
+                    %% we try to load the file set in the .auv configuration file
+                    case wpa:image_read([{filename,Filename},
+                                         {alignment,1}]) of
+                        #e3d_image{}=Image ->
+                            {ImgName,wings_image:new_temp(ImgName, Image)};
+                        _ -> image_bg(ImgsId)
+                    end
+                end;
+        _ ->
+            %% Filename is an image name at Wings3D
+            case lists:keyfind(Filename,1,ImgsId) of
+                {_,Value} -> Value;
+                _ ->
+                    %% check for the image name already load
+                    case lists:keyfind(ImgName,1,ImgsId) of
+                        {_,Value} -> Value;
+                        _ -> image_bg(ImgsId)
+                    end
+            end
+    end;
+%% after the first call, in the further ones the Filename will be
+%% the image info {name,id}
+load_image(_, Filename) -> Filename.
+
+image_bg(ImgsId) ->
+    case lists:keyfind("auvBG",1,ImgsId) of
+        {_,Value} -> Value;
+        _ -> {"auvBG",wings_image:new("auvBG",wpc_autouv:bg_image())}
+    end.
+
 options(auv_background, [auv_background, {type_sel,Type},{Image,_},Color],_,_) ->
     Enable = fun(_, What, Fields) ->
 		     IsImage = image == What,
@@ -1603,7 +1646,10 @@ parse_sh_info([What={uniform,float,_,Def,_}|Opts],Sh,NI,Acc)
 parse_sh_info([What={uniform,bool,_,Def,_}|Opts],Sh,NI,Acc) ->
     parse_sh_info(Opts, Sh#sh{args=[What|Sh#sh.args],def=[Def|Sh#sh.def]},
 		  NI,Acc);
-parse_sh_info([{uniform,image,Id,Def,Str}|Opts],Sh,NI,Acc) ->
+parse_sh_info([{uniform,image,Id,Def0,Str}|Opts],Sh,NI,Acc) ->
+    %% default value must to be an image valid. It can be a file name or an internal
+    %% image name. Otherwise, it will be created an background image will be used
+    Def = load_image(Id, Def0),
     What = {uniform,{image,NI},Id,Def,Str},
     parse_sh_info(Opts, Sh#sh{args=[What|Sh#sh.args],def=[Def|Sh#sh.def]},
 		  NI+1,Acc);
