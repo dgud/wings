@@ -162,12 +162,16 @@ have_magnet(Ps, _) ->
     proplists:is_defined(magnet, Ps).
 
 wx_popup_menu_init(Parent,GlobalPos,Names,Menus0) ->
-    Owner = wings_wm:this(),
-    Entries = wx_popup_menu(Parent,GlobalPos,Names,Menus0,false,dialog_blanket),
-    {TopW,TopH} = wings_wm:top_size(),
-    Op = {push, fun(Ev) -> popup_event_handler(Ev, {Parent,Owner}, Entries) end},
-    wings_wm:new(dialog_blanket, {0,0,highest}, {TopW,TopH}, Op),
-    wings_wm:grab_focus(dialog_blanket),
+    case wings_wm:grabbed_focus_window() of
+        dialog_blanket ->  ignore;
+        _ ->
+            Owner = wings_wm:this(),
+            Entries = wx_popup_menu(Parent,GlobalPos,Names,Menus0,false,dialog_blanket),
+            {TopW,TopH} = wings_wm:top_size(),
+            Op = {push, fun(Ev) -> popup_event_handler(Ev, {Parent,Owner}, Entries) end},
+            wings_wm:new(dialog_blanket, {0,0,highest}, {TopW,TopH}, Op),
+            wings_wm:grab_focus(dialog_blanket)
+	end,
     keep.
 
 wx_popup_menu(Parent,Pos,Names,Menus0,Magnet,Owner) ->
