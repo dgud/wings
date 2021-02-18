@@ -571,6 +571,9 @@ event_handler(got_focus, #eh{dialog=Dialog}) ->
     %% wxWidgets MacOSX workaround to keep dialog on top
     wxWindow:raise(Dialog),
     keep;
+event_handler(user_attention, #eh{dialog=Dialog}) ->
+    wxTopLevelWindow:requestUserAttention(Dialog),
+    keep;
 event_handler(_Ev, _) ->
     %% io:format("unhandled Ev ~p~n",[_Ev]),
     keep.
