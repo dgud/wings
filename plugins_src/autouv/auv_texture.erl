@@ -57,18 +57,18 @@
 		  prog,       % Shader Id
 		  ts}).       % Shader data
 
--record(ts,         % What              Type
+-record(ts,     % What              Type
 	{charts,    % #chart{}          (list)
-         uv,        % UV positions       (binary)
+	 uv,        % UV positions      (binary)
 	 pos,       % Real 3D position  (binary)
  	 n,         % Normal            (binary) Optional
 	 bi,        % BiNormal          (binary) Optional
 	 bb,        % BoundingBox 3D pos
-         vc,        % Vertex colors     (binary)
-         vbo        % Vbo               (binary)
+	 vc,        % Vertex colors     (binary)
+	 vbo        % Vbo               (binary)
 	}).
 
--record(chart, 
+-record(chart,
 	{id,        % Chart ID
 	 fs,        % Faces see [{Face,#fs{}}]
 	 oes=[],    % Outer vertices [[va,vb,face],[vc,vb,face]..],
@@ -175,8 +175,8 @@ default_menu(Pass, Prefs) ->
 	ignore -> default_menu(Pass);
 	Val -> Val
     end.
-	    
-default_menu(1) -> auv_edges; 
+
+default_menu(1) -> auv_edges;
 default_menu(_) -> ignore.
 
 get_def(List, What, Id) ->
@@ -229,8 +229,8 @@ option_dialog(Id, Fields, Renderers, Shaders) ->
                                ignore
                        end
                    end,
-        UVSt = create_uv_state(),
-        wings_dialog:dialog(StrName,options(Name,Opts,Shaders,UVSt),SetValue)
+        SphereData = create_sphere_data(),
+        wings_dialog:dialog(StrName,options(Name,Opts,Shaders,SphereData),SetValue)
     catch _:Crash:ST ->
 	    io:format("EXIT: ~p ~p~n",[Crash, ST])
     end.
@@ -273,10 +273,12 @@ load_image(ImgName, Filename) when is_list(Filename) ->
 load_image(_, Filename) -> Filename.
 
 image_bg(ImgsId) ->
-    case lists:keyfind("auvBG",1,ImgsId) of
-        {_,Value} -> Value;
-        _ -> {"auvBG",wings_image:new("auvBG",wpc_autouv:bg_image())}
-    end.
+    AuvBG =
+        case lists:keyfind("auvBG",1,ImgsId) of
+            {_,Value} -> Value;
+            _ -> wings_image:new("auvBG",wpc_autouv:bg_image())
+        end,
+    {"auvBG",AuvBG}.
 
 options(auv_background, [auv_background, {type_sel,Type},{Image,_},Color],_,_) ->
     Enable = fun(_, What, Fields) ->
@@ -292,7 +294,6 @@ options(auv_background, [auv_background, {type_sel,Type},{Image,_},Color],_,_) -
       [{key, col_sel}]}];
 options(auv_background, _Bad,Sh,SphereData) ->
     options(auv_background, ?OPT_BG,Sh,SphereData);
-
 options(auv_edges,[auv_edges, Type,Color,Size,UseVtxColors],_,_) ->
     [{vradio,[{?__(3,"Draw All Edges"),all_edges},
 	      {?__(4,"Draw Border Edges"), border_edges}],
@@ -303,14 +304,13 @@ options(auv_edges,[auv_edges, Type,Color,Size,UseVtxColors],_,_) ->
     ];
 options(auv_edges,_,Sh,SphereData) ->
     options(auv_edges,?OPT_EDGES,Sh,SphereData);
-
-options({shader,Id}=Opt, Vals0, Sh, {UVSt,SphereData}) ->
+options({shader,Id}=Opt, Vals0, Sh, {Ts,SphereMesh}) ->
     Preview = fun(GLCanvas, _Fields) ->
                   wings_light:init_opengl(),
                   %% we create the sphere data for preview once
                   case wings_pref:get_value(?SHADER_PRW_VBO) of
                       undefined ->
-                          Vbo = setup_sphere(SphereData),
+                          Vbo = setup_sphere(SphereMesh),
                           wings_pref:set_value(?SHADER_PRW_VBO,Vbo);
                       Vbo0 -> Vbo = Vbo0
                   end,
@@ -326,7 +326,7 @@ options({shader,Id}=Opt, Vals0, Sh, {UVSt,SphereData}) ->
                 Vals1 = update_values(Vals0,wings_dialog:set_value(Key,Value,Fields)),
                 wxGLCanvas:setCurrent(GLCanvas),
                 %% creating the texture preview image
-                Tex = get_texture_preview({Opt,Vals1},Sh,UVSt),
+                Tex = get_texture_preview({Opt,Vals1},Sh,Ts),
                 %% updating the image
                 prw_img_id(Tex),
                 case os:type() of
@@ -353,7 +353,6 @@ options({shader,Id}=Opt, Vals0, Sh, {UVSt,SphereData}) ->
                  [{title, "Preview"}]},
         {vframe, FrmShader, [{title, "Parameters"}]}]
      }];
-
 options(Command,Vals,_,_) ->
     io:format("~p: ~p~n",[Command, Vals]),
     exit(unknown_default).
@@ -415,9 +414,9 @@ shader_menu([],_,_,Acc) ->
 image_selector(Default,OptDef) ->
     Is = wings_image:images(),
     Menu = [{Name,{Name,TexId}} || {TexId, #e3d_image{name=Name}} <- Is],
-    case lists:keysearch(Default,1,Menu) of 
+    case lists:keysearch(Default,1,Menu) of
 	{value,{_,What}} -> Def = What;
-	_ -> case Menu of 
+	_ -> case Menu of
 		 [{_,Def}|_] -> Def;
 		 _ -> Def = void
 	     end
@@ -470,12 +469,11 @@ update_values(Idx, [H|Vals], Fields, Acc) ->
             update_values(Idx+1,Vals,Fields,[H|Acc])
     end.
 
-get_texture_preview(Render,Shaders,St) ->
+get_texture_preview(Render,Shaders,Ts) ->
     Options = #opt{texsz = {?SHADER_PRW_SIZE,?SHADER_PRW_SIZE},no_renderers=2,renderers=[Render]},
     Compiled = compile_shaders([Render],Shaders),
     Passes = get_passes([Render],{Shaders,Compiled}),
     Reqs = get_requirements(Shaders),
-    Ts   = setup(St,Reqs),
     Res  = render_image_preview(Ts, Passes, Options, Reqs),
     delete_shaders(Compiled),
     Res.
@@ -526,10 +524,10 @@ render_image_preview(Geom0, Passes, #opt{texsz={TexW,TexH}}, Reqs) ->
         ?ERROR
     end.
 
-create_uv_state() ->
+create_sphere_data() ->
     {We, SphereData} = setup_sphere(),
     Fs = gb_sets:from_ordset(wings_we:visible(We)),
-    Shs = gb_trees:enter(We#we.id, We#we{fs=undefined,es=array:new()}, gb_trees:empty()),
+    Shs = gb_trees:enter(We#we.id, We, gb_trees:empty()),
     Maps =
         case wings_pref:get_value(?SHADER_PRW_NAME) of
             undefined -> [];
@@ -548,7 +546,8 @@ create_uv_state() ->
                    matname = none},
     FakeSt = FakeSt0#st{selmode=body,sel=[],shapes=gb_trees:empty(),bb=Uvs,
                         repeatable=ignore,ask_args=none,drag_args=none},
-    {rebuild_charts(We, FakeSt), SphereData}.
+    Ts = setup(rebuild_charts(We, FakeSt),[normal]),
+    {Ts, SphereData}.
 
 prw_img_id(new) ->
     case wings_pref:get_value(?SHADER_PRW_NAME) of
@@ -697,10 +696,20 @@ setup_sphere() ->
                     tx=[I*3,I*3+1,I*3+2],
                     ns=[I*3,I*3+1,I*3+2]} || I <- lists:seq(0,Idx-1)],
     Mesh = #e3d_mesh{vs=Tris,tx=UVs,ns=Normals,fs=Fs},
-    #we{fs=Ftab} = We0 = wings_import:import_mesh(material,Mesh),
+    #we{vp=Vtab0,fs=Ftab} = We0 = wings_import:import_mesh(material,Mesh),
+    %% rotating the sphere slight above and right to better visualization
+    %% of the blending area of a triplanar shader
+    M0 = e3d_mat:rotate(30.0,{0.0,1.0,0.0}),
+    M1 = e3d_mat:rotate(-30.0,{1.0,0.0,0.0}),
+    M = e3d_mat:mul(M0,M1),
+    Vtab =
+        array:sparse_foldl(fun(V, Value0, Acc)->
+                              Value = e3d_mat:mul_point(M,Value0),
+                              array:set(V,Value,Acc)
+                           end,Vtab0,Vtab0),
     We = wings_facemat:assign(list_to_atom(?SHADER_PRW_NAME),gb_trees:keys(Ftab),We0),
     Data = {Len, zip(Tris, Normals, UVs, Tgs)},
-    {We#we{id=1},Data}.
+    {We#we{id=1,vp=Vtab},Data}.
 
 setup_sphere({Len,Data}) ->
     Lighting = wings_pref:get_value(number_of_lights),
@@ -906,10 +915,10 @@ setup_fbo(W,H) ->
 	    #sh_conf{texsz={W,H},fbo_r=Col2,fbo_w=Col1,
 		     fbo_d=fun() -> wings_gl:delete_fbo(List) end}
     end.
-	
+
 error_msg(Line) ->
-    case wings_gl:error_string(gl:getError()) of 
-	no_error -> ok; 
+    case wings_gl:error_string(gl:getError()) of
+	no_error -> ok;
 	Err -> io:format("~p: ~p ~n",[Line,Err])
     end.
 
@@ -930,7 +939,7 @@ fill_bg_tex(#sh_conf{fbo_w=Prev}) ->
     gl:disable(?GL_TEXTURE_2D),
     gl:drawBuffer(?GL_COLOR_ATTACHMENT0_EXT),
     ok.
-	    
+
 get_texture(Wc, Wd, Hc, Hd, {W,H}=Info, DL, UsingFbo, ImageAcc)
   when Wc < Wd, Hc < Hd ->
     gl:pixelStorei(?GL_UNPACK_ALIGNMENT, 1),
@@ -941,12 +950,12 @@ get_texture(Wc, Wd, Hc, Hd, {W,H}=Info, DL, UsingFbo, ImageAcc)
     texture_view(Wc, Wd, Hc, Hd),
     DL(),
     gl:flush(),
-    {Sz,Type} = 
+    {Sz,Type} =
 	case UsingFbo of
-	    false -> 
+	    false ->
 		gl:readBuffer(?GL_BACK),
 		{3,?GL_RGB};
-	    _ -> 
+	    _ ->
 		gl:readBuffer(?GL_COLOR_ATTACHMENT0_EXT),
 		{4,?GL_RGBA}
 	end,
@@ -965,7 +974,7 @@ texture_view(WC, WD, HC, HD) ->
     gl:matrixMode(?GL_MODELVIEW),
     gl:loadIdentity(),
     gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_FILL).
-    
+
 merge_texture_cols(List, Wd, Wd, _W, _RowC, Acc) ->
     {list_to_binary(reverse(Acc)), List};
 merge_texture_cols([H|R], Wc, Wd, W, RowC, Acc) ->
@@ -981,9 +990,9 @@ merge_texture_rows(ImageBins, RowC, H, W, Wd, Acc, _) ->
 
 merge_texture([Bin],1,1,_,_,[]) ->   Bin;  %% No merge needed.
 merge_texture(Bins, 1,_,_,_,[]) ->   list_to_binary(Bins);  %% No merge needed.
-merge_texture([],_,_,_,_,Acc) -> 
+merge_texture([],_,_,_,_,Acc) ->
     list_to_binary(reverse(Acc));
-merge_texture(ImageBins,Wd,Hd,W,H,Acc) ->    
+merge_texture(ImageBins,Wd,Hd,W,H,Acc) ->
     {Col, Bins} = merge_texture_rows(ImageBins, 0, H, W, Wd, [], ImageBins),
     merge_texture(Bins,Wd,Hd,W,H,[Col|Acc]).
 
@@ -1000,7 +1009,7 @@ get_pref(Key, Def) ->
 set_pref(KeyVals) ->
     wpa:pref_set(autouv, KeyVals).
 
-pref_to_list(#opt{texsz={TexSz,_TexSz}, no_renderers=NoR, 
+pref_to_list(#opt{texsz={TexSz,_TexSz}, no_renderers=NoR,
 		  renderers=[{auv_background,Bg}|Rs]}) ->
     [{texsz, TexSz},{{auv_pass,0},auv_background},{{auv_opt,0},Bg}|
      r2list(Rs,1,NoR)].
@@ -1020,7 +1029,7 @@ listOfRenders([{{auv_pass,_},ignore},_|Rest],Acc) ->
 listOfRenders([{{auv_pass,_},Type},{{auv_opt,_},Opts}|Rest],Acc) ->
     listOfRenders(Rest,[{Type,Opts}|Acc]);
 listOfRenders([],Acc) -> reverse(Acc).
-    
+
 gen_tx_sizes(Sz, Acc) when Sz < 128 -> Acc;
 gen_tx_sizes(Sz, Acc) ->
     Bytes = Sz*Sz*3,
@@ -1041,7 +1050,7 @@ set_viewport({X,Y,W,H}=Viewport, Scale) ->
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Data setup 
+%% Data setup
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 setup(#st{bb=#uvstate{id=RId,st=#st{shapes=Sh0}}}=St, Reqs) ->
@@ -1063,11 +1072,11 @@ setup_charts(#st{shapes=Cs0,selmode=Mode,sel=Sel}, We, Reqs) ->
     Z = e3d_vec:zero(),
     TSA = array:new([{default, {Z,Z}}]),
     Start = {0,[],[],[],{TSA,[]},[],[]}, %% {UvPos,3dPos,Normal,Tangent,Vc}
-    Shapes = if Sel =:= [] -> 
+    Shapes = if Sel =:= [] ->
 		     gb_trees:values(Cs0);
-		Mode =:= body -> 
+		Mode =:= body ->
 		     [gb_trees:get(Id,Cs0) || {Id,_} <- Sel];
-		true -> 
+		true ->
 		     gb_trees:values(Cs0)
 	     end,
     Setup = fun(Ch,Acc) ->
@@ -1087,7 +1096,7 @@ create_faces(#we{vp=Vtab,name=#ch{vmap=Vmap}}=We,
     C=fun(Face,{OEs,UvBB,{Cnt,UVpos,Vpos,Ns,Ts0,PosBB,Vc}}) ->
 	      Vs0 = wings_face:vertices_ccw(Face,We),
 	      UVcoords = [array:get(V, Vtab) || V <- Vs0],
-	      Coords   = [array:get(map_vertex(V,Vmap),Vt3d) 
+	      Coords   = [array:get(map_vertex(V,Vmap),Vt3d)
 			  || V <- Vs0],
 	      Normals = if
 			    NTab=:= [] ->
@@ -1137,8 +1146,8 @@ map_oes([], _, _, _) -> [].
 find_index(Val, [Val|_], Pos) -> Pos;
 find_index(Val, [_|R], Pos) -> find_index(Val, R, Pos-1).
 
-fix_normals(Vs,Vmap,VsI,Ns0) -> %% can be different order 
-    fix_normals(Vs,n_zip(VsI,Ns0),Vmap).  
+fix_normals(Vs,Vmap,VsI,Ns0) -> %% can be different order
+    fix_normals(Vs,n_zip(VsI,Ns0),Vmap).
 fix_normals([V|R],Ns,Vmap) ->
     [find(map_vertex(V,Vmap),Ns)|fix_normals(R,Ns,Vmap)];
 fix_normals([],_,_) -> [].
@@ -1255,7 +1264,7 @@ cross_axis(N = {NX,NY,NZ}) ->
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 fix_vc(Vs, Face, We, Vmap) ->
-    try 
+    try
 	Uvc = wings_va:face_attr([vertex|color], Face, We),
 	fix_vc1(Vs, Uvc, Vmap, [])
     catch error:_ ->
@@ -1277,13 +1286,13 @@ find(_, []) -> none.
 n_zip([[V|_]|R1],[N|R2]) ->
     [[V|N]|n_zip(R1,R2)];
 n_zip([],[]) -> [].
-    
+
 
 fix(OK = {_,_,_}, false) -> OK;
 fix(OK = {_,_,_,_}, true) -> OK;
 fix({R,G,B,_}, false) -> {R,G,B};
 fix({R,G,B}, true) -> {R,G,B,1.0}.
-    
+
 setup_normals(We = #we{fs=Ftab}) ->
     FN0	= [{Face,wings_face:normal(Face, We)} || Face <- gb_trees:keys(Ftab)],
     Ns = wings_we:normals(FN0, We, none),
@@ -1291,24 +1300,24 @@ setup_normals(We = #we{fs=Ftab}) ->
 
 outer_verts(We = #we{es=Etab}) ->
     Fs = wings_we:visible(We),
-    Outer = auv_util:outer_edges(Fs,We,false),    
-    Verts = fun({Edge,Face}) -> 
+    Outer = auv_util:outer_edges(Fs,We,false),
+    Verts = fun({Edge,Face}) ->
 		    #edge{vs=Va,ve=Vb} = array:get(Edge, Etab),
 		    [Va,Vb,Face]
 	    end,
     lists:map(Verts, Outer).
 
-%% Start with 64 bytes so that binary will be reference counted 
+%% Start with 64 bytes so that binary will be reference counted
 %% and not on the process heap spent hours debugging this.. :-(
 to_bin(List, uv) -> to_bin3to2(List,[<<0:512>>]);
 to_bin(List, pos) -> to_bin3(List,[<<0:512>>]);
 to_bin(List, vertex) -> to_bin3(List,[<<0:512>>]).  %% Vertex colors
 
-to_bin3([{A,B,C}|R],Acc) -> 
+to_bin3([{A,B,C}|R],Acc) ->
     to_bin3(R,[<<A:32/native-float,B:32/native-float,C:32/native-float>>|Acc]);
 to_bin3([],Acc) -> list_to_binary(Acc).
 
-to_bin3to2([{A,B,_}|R],Acc) -> 
+to_bin3to2([{A,B,_}|R],Acc) ->
     to_bin3to2(R,[<<A:32/native-float,B:32/native-float>>|Acc]);
 to_bin3to2([],Acc) -> list_to_binary(Acc).
 
@@ -1497,7 +1506,7 @@ shader_uniforms([{uniform,color,Name,_,_}|As],[Val|Opts],Conf) ->
 shader_uniforms([{uniform,float,Name,_,_}|As],[Val|Opts],Conf) ->
     wings_gl:set_uloc(Conf#sh_conf.prog, Name, Val),
     shader_uniforms(As,Opts,Conf);
-shader_uniforms([{uniform,menu,Name,_,_}|As],[Vals|Opts],Conf) 
+shader_uniforms([{uniform,menu,Name,_,_}|As],[Vals|Opts],Conf)
   when is_list(Vals) ->
     Loc = wings_gl:uloc(Conf#sh_conf.prog,Name),
     foldl(fun(Val,Cnt) when is_integer(Val) ->
@@ -1583,7 +1592,7 @@ get_requirements(Shaders) ->
 		end, [], Shaders).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Shader loading/handling 
+%% Shader loading/handling
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 shaders() ->
@@ -1603,7 +1612,7 @@ load_shaders_cfg() ->
 load_configs([Name|Fs], Path, Acc) ->
     File = filename:join(Path,Name),
     case file:consult(File) of
-	{ok,Info} -> 
+	{ok,Info} ->
 	    Id = list_to_atom(filename:basename(Name,".auv")++"_auv"),
 	    Sh = #sh{file=File,id=Id},
 	    load_configs(Fs,Path,parse_sh_info(Info,Sh,1,Acc));
@@ -1632,7 +1641,7 @@ parse_sh_info([What={auv,auv_bbpos2d}|Opts],Sh,NI,Acc) ->
     parse_sh_info(Opts, Sh#sh{args=[What|Sh#sh.args]},NI,Acc);
 parse_sh_info([What={auv,auv_bbpos3d}|Opts],Sh,NI,Acc) ->
     parse_sh_info(Opts, Sh#sh{args=[What|Sh#sh.args]},NI,Acc);
-parse_sh_info([What={auv,{auv_send_texture,L,Def}}|Opts],Sh,NI,Acc) 
+parse_sh_info([What={auv,{auv_send_texture,L,Def}}|Opts],Sh,NI,Acc)
   when is_list(L) ->
     parse_sh_info(Opts, Sh#sh{args=[What|Sh#sh.args],def=[Def|Sh#sh.def]},
 		  NI,Acc);
@@ -1653,16 +1662,16 @@ parse_sh_info([{uniform,image,Id,Def0,Str}|Opts],Sh,NI,Acc) ->
     What = {uniform,{image,NI},Id,Def,Str},
     parse_sh_info(Opts, Sh#sh{args=[What|Sh#sh.args],def=[Def|Sh#sh.def]},
 		  NI+1,Acc);
-parse_sh_info([What={uniform,{slider,F,T},_,Def,_}|Opts],Sh,NI,Acc) 
+parse_sh_info([What={uniform,{slider,F,T},_,Def,_}|Opts],Sh,NI,Acc)
   when is_number(F),is_number(T),is_number(Def) ->
     parse_sh_info(Opts, Sh#sh{args=[What|Sh#sh.args],def=[Def|Sh#sh.def]},
 		  NI,Acc);
 parse_sh_info([What={uniform,menu,_,DefKey,List}|Opts],Sh,NI,Acc) ->
     case lists:keysearch(DefKey,1, List) of
-	{value, {_,Def}} -> 
+	{value, {_,Def}} ->
 	    parse_sh_info(Opts, Sh#sh{args=[What|Sh#sh.args],
 				      def=[Def|Sh#sh.def]},NI,Acc);
-	false -> 
+	false ->
 	    io:format("AUV: ~p Bad default value ignored menu ~p ~n",
 		      [Sh#sh.file,What]),
 	    parse_sh_info(Opts,Sh,NI,Acc)
@@ -1680,16 +1689,16 @@ parse_sh_info([],Sh,NI,Acc) ->
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 compile_shaders(Passes, Available) ->
-    foldl(fun({{shader,Id},_},Acc) -> 
+    foldl(fun({{shader,Id},_},Acc) ->
 		  case lists:keysearch(Id,1,Acc) of
 		      {value, _} -> Acc; %  Already compiled
 		      false ->
 			  compile_shader(Id,lists:keysearch(Id,#sh.id,Available),Acc)
 		  end;
-	     (_NormalPass,Acc) -> 
+	     (_NormalPass,Acc) ->
 		  Acc
 	  end, [], Passes).
-		   
+
 compile_shader(Id, {value,#sh{name=Name,vs=VsF,fs=FsF}}, Acc) ->
     try
 	Vs = wings_gl:compile(vertex, read_file(VsF)),

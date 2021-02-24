@@ -30,12 +30,11 @@ vec4 pick_textel(sampler2D Img, vec2 UV) {
 void main( void ) {
     vec4 color;
     float scl0 = scale/100.0;
-    float hofs = auv_texsz.x*(hoffset/100.0);
-    float vofs = auv_texsz.y*(voffset/100.0);
+    float hofs = auv_texsz.x * (hoffset/100.0);
+    float vofs = auv_texsz.y * (voffset/100.0);
 
-    vec2 coord = vec2(w3d_uv.x+hofs,w3d_uv.y+vofs);
-    coord = coord.xy/scl0;
-    vec4 col = pick_textel(image_mix,coord.xy)*(weight/100.0);
+    vec2 coord = vec2(w3d_uv.x+hofs, w3d_uv.y+vofs) / scl0;
+    vec4 col = pick_textel(image_mix,coord.xy) * (weight/100.0);
     vec4 p_col = pick_textel(auv_bg,w3d_uv.xy);
     if (mixmode == 0) {  // Add
         color = col+p_col;

@@ -40,6 +40,8 @@ FILES = standard.vs \
 	caustics.fs \
 	wpc_camouflage.auv \
 	camouflage.fs \
+	wpc_image_mixer.auv \
+	image_mixer.fs \
 	README-shaders.txt
 
 
