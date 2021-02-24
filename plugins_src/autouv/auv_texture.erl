@@ -229,8 +229,8 @@ option_dialog(Id, Fields, Renderers, Shaders) ->
                                ignore
                        end
                    end,
-        UVSt = create_uv_state(),
-        wings_dialog:dialog(StrName,options(Name,Opts,Shaders,UVSt),SetValue)
+        SphereData = create_sphere_data(),
+        wings_dialog:dialog(StrName,options(Name,Opts,Shaders,SphereData),SetValue)
     catch _:Crash:ST ->
 	    io:format("EXIT: ~p ~p~n",[Crash, ST])
     end.
@@ -273,10 +273,12 @@ load_image(ImgName, Filename) when is_list(Filename) ->
 load_image(_, Filename) -> Filename.
 
 image_bg(ImgsId) ->
-    case lists:keyfind("auvBG",1,ImgsId) of
-        {_,Value} -> Value;
-        _ -> {"auvBG",wings_image:new("auvBG",wpc_autouv:bg_image())}
-    end.
+    AuvBG =
+        case lists:keyfind("auvBG",1,ImgsId) of
+            {_,Value} -> Value;
+            _ -> wings_image:new("auvBG",wpc_autouv:bg_image())
+        end,
+    {"auvBG",AuvBG}.
 
 options(auv_background, [auv_background, {type_sel,Type},{Image,_},Color],_,_) ->
     Enable = fun(_, What, Fields) ->
@@ -304,13 +306,13 @@ options(auv_edges,[auv_edges, Type,Color,Size,UseVtxColors],_,_) ->
 options(auv_edges,_,Sh,SphereData) ->
     options(auv_edges,?OPT_EDGES,Sh,SphereData);
 
-options({shader,Id}=Opt, Vals0, Sh, {UVSt,SphereData}) ->
+options({shader,Id}=Opt, Vals0, Sh, {Ts,SphereMesh}) ->
     Preview = fun(GLCanvas, _Fields) ->
                   wings_light:init_opengl(),
                   %% we create the sphere data for preview once
                   case wings_pref:get_value(?SHADER_PRW_VBO) of
                       undefined ->
-                          Vbo = setup_sphere(SphereData),
+                          Vbo = setup_sphere_vbo(SphereMesh),
                           wings_pref:set_value(?SHADER_PRW_VBO,Vbo);
                       Vbo0 -> Vbo = Vbo0
                   end,
@@ -326,7 +328,7 @@ options({shader,Id}=Opt, Vals0, Sh, {UVSt,SphereData}) ->
                 Vals1 = update_values(Vals0,wings_dialog:set_value(Key,Value,Fields)),
                 wxGLCanvas:setCurrent(GLCanvas),
                 %% creating the texture preview image
-                Tex = get_texture_preview({Opt,Vals1},Sh,UVSt),
+                Tex = get_texture_preview({Opt,Vals1},Sh,Ts),
                 %% updating the image
                 prw_img_id(Tex),
                 case os:type() of
@@ -470,12 +472,11 @@ update_values(Idx, [H|Vals], Fields, Acc) ->
             update_values(Idx+1,Vals,Fields,[H|Acc])
     end.
 
-get_texture_preview(Render,Shaders,St) ->
+get_texture_preview(Render,Shaders,Ts) ->
     Options = #opt{texsz = {?SHADER_PRW_SIZE,?SHADER_PRW_SIZE},no_renderers=2,renderers=[Render]},
     Compiled = compile_shaders([Render],Shaders),
     Passes = get_passes([Render],{Shaders,Compiled}),
     Reqs = get_requirements(Shaders),
-    Ts   = setup(St,Reqs),
     Res  = render_image_preview(Ts, Passes, Options, Reqs),
     delete_shaders(Compiled),
     Res.
@@ -526,10 +527,10 @@ render_image_preview(Geom0, Passes, #opt{texsz={TexW,TexH}}, Reqs) ->
         ?ERROR
     end.
 
-create_uv_state() ->
-    {We, SphereData} = setup_sphere(),
+create_sphere_data() ->
+    {We, SphereData} = setup_sphere_mesh(),
     Fs = gb_sets:from_ordset(wings_we:visible(We)),
-    Shs = gb_trees:enter(We#we.id, We#we{fs=undefined,es=array:new()}, gb_trees:empty()),
+    Shs = gb_trees:enter(We#we.id, We, gb_trees:empty()),
     Maps =
         case wings_pref:get_value(?SHADER_PRW_NAME) of
             undefined -> [];
@@ -548,7 +549,8 @@ create_uv_state() ->
                    matname = none},
     FakeSt = FakeSt0#st{selmode=body,sel=[],shapes=gb_trees:empty(),bb=Uvs,
                         repeatable=ignore,ask_args=none,drag_args=none},
-    {rebuild_charts(We, FakeSt), SphereData}.
+    Ts = setup(rebuild_charts(We, FakeSt),[normal]),
+    {Ts, SphereData}.
 
 prw_img_id(new) ->
     case wings_pref:get_value(?SHADER_PRW_NAME) of
@@ -688,7 +690,7 @@ update_uv_tab_2([{V,Key}|T], FvUvMap, Z, Acc) ->
 update_uv_tab_2([], _, _, Acc) ->
     lists:reverse(Acc).
 
-setup_sphere() ->
+setup_sphere_mesh() ->
     {Len, Tris, Normals, UVs, Tgs} =
         wings_shapes:tri_sphere(#{subd=>4, ccw=>false, normals=>true, tgs=>true,
                                   uvs=>true, scale=>0.45}),
@@ -697,12 +699,22 @@ setup_sphere() ->
                     tx=[I*3,I*3+1,I*3+2],
                     ns=[I*3,I*3+1,I*3+2]} || I <- lists:seq(0,Idx-1)],
     Mesh = #e3d_mesh{vs=Tris,tx=UVs,ns=Normals,fs=Fs},
-    #we{fs=Ftab} = We0 = wings_import:import_mesh(material,Mesh),
+    #we{vp=Vtab0,fs=Ftab} = We0 = wings_import:import_mesh(material,Mesh),
+    %% rotating the sphere slight above and right to better visualization
+    %% of the blending area of a triplanar shader
+    M0 = e3d_mat:rotate(30.0,{0.0,1.0,0.0}),
+    M1 = e3d_mat:rotate(-30.0,{1.0,0.0,0.0}),
+    M = e3d_mat:mul(M0,M1),
+    Vtab =
+        array:sparse_foldl(fun(V, Value0, Acc)->
+                              Value = e3d_mat:mul_point(M,Value0),
+                              array:set(V,Value,Acc)
+                           end,Vtab0,Vtab0),
     We = wings_facemat:assign(list_to_atom(?SHADER_PRW_NAME),gb_trees:keys(Ftab),We0),
     Data = {Len, zip(Tris, Normals, UVs, Tgs)},
-    {We#we{id=1},Data}.
+    {We#we{id=1,vp=Vtab},Data}.
 
-setup_sphere({Len,Data}) ->
+setup_sphere_vbo({Len,Data}) ->
     Lighting = wings_pref:get_value(number_of_lights),
     Layout = [vertex, normal, uv, tangent],
     D = fun(#{preview := PreviewMat} = RS0) ->
