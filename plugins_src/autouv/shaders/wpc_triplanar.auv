@@ -1,0 +1,34 @@
+%%
+%%  wpc_triplanar.auv --
+%%
+%%     Config file to load an image on shader generate a triplanar texture
+%%
+%%  Copyright (c) 2021 Micheus
+%%
+%%  See the file "license.terms" for information on usage and redistribution
+%%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+%%
+%%     $Id: wpc_triplanar.auv,v 1.0 2021/02/20 14:00:0 micheus Exp $
+%%
+
+%%  Everything behind a '%' is a comment
+
+{name, "Triplanar"}.                % The name in the shader selector
+{vertex_shader, "Triplanar.vs"}.     % Vertex shader used
+{fragment_shader, "Triplanar.fs"}. % Fragment shader used
+
+{requires,[normal]}.
+
+%% Uses these uniforms:
+{uniform, image, "imagey", "", "Top (other them *_auv)"}.
+{uniform, {slider,0.0,100.0}, "shapnessy", 50.0, "Blend Sharpness Top"}.
+{uniform, {slider,-100.0,100.0}, "hoffsety", 0.0, "Horiz. Offset (%)"}.
+{uniform, {slider,-100.0,100.0}, "voffsety", 0.0, "Vert. Offset (%)"}.
+{uniform, {slider,1.0,500.0}, "scaley", 100.0, "Scale (%)"}.
+{uniform, image, "imagex", "", "Side (X axis) (other them *_auv)"}.
+{uniform, image, "imagez", "", "Side (Z axis) (other them *_auv)"}.
+{uniform, {slider,0.0,100.0}, "shapnessxz", 50.0, "Blend Sharpness"}.
+{uniform, {slider,-100.0,100.0}, "hoffsetxz", 0.0, "Horiz. Offset (%)"}.
+{uniform, {slider,-100.0,100.0}, "voffsetxz", 0.0, "Vert. Offset (%)"}.
+{uniform, {slider,1.0,500.0}, "scalexz", 100.0, "Scale (%)"}.
+

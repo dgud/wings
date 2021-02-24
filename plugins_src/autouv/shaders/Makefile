@@ -42,6 +42,9 @@ FILES = standard.vs \
 	camouflage.fs \
 	wpc_image_mixer.auv \
 	image_mixer.fs \
+	wpc_triplanar.auv \
+	triplanar.vs \
+	triplanar.fs \
 	README-shaders.txt
 
 
