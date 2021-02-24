@@ -1,0 +1,30 @@
+%%
+%%  wpc_image_mixer.auv --
+%%
+%%     Config file to load an image on shader and mix it to a previous layer
+%%
+%%  Copyright (c) 2021 Micheus
+%%
+%%  See the file "license.terms" for information on usage and redistribution
+%%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+%%
+%%     $Id: wpc_image_mixer.auv,v 1.0 2021/03/11 14:00:0 micheus Exp $
+%%
+
+%%  Everything behind a '%' is a comment
+
+{name, "Image Mixer"}.                  % The name in the shader selector
+{vertex_shader, "standard.vs"}.         % Vertex shader used
+{fragment_shader, "image_mixer.fs"}.    % Fragment shader used
+
+%% Uses these uniforms:
+
+{uniform, image, "image_mix", "", "Image (other them *_auv)"}.
+{uniform, {slider,0.0,1000.0}, "hscale", 100.0, "Horiz. Scale (%)"}.
+{uniform, {slider,0.0,1000.0}, "vscale", 100.0, "Vert. Scale (%)"}.
+{uniform, bool, "tillable", true, "Tillable"}.
+{uniform, {slider,-360.0,360.0}, "rot", 0.0, "Rotate"}.
+{uniform, {slider,-100.0,100.0}, "hshift", 0.0, "Horiz. Shift (%)"}.
+{uniform, {slider,-100.0,100.0}, "vshift", 0.0, "Vert. Shift (%)"}.
+{uniform, menu, "mixmode","Mix",[{"Mix",0},{"Multiply",1}]}.
+{uniform, {slider,0.0,100.0}, "weight", 50.0, "Mix Mode Weight"}.
