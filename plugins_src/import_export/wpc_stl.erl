@@ -38,8 +38,10 @@ command({file,{export_selected,{stl,Ask}}}, St) ->
     do_export(Ask, export_selected, Exporter, St);
 command(_, _) -> next.
 
-menu_entry(Opt,Menu) ->
-    Menu ++ [{"StereoLithography (.stl)...", stl, [if Opt==export -> option; true -> [] end]}].
+menu_entry(import,Menu) ->
+    Menu ++ [{"StereoLithography (.stl)...", stl}];
+menu_entry(_,Menu) ->
+    Menu ++ [{"StereoLithography (.stl)...", stl, [option]}].
 
 props() ->
     [{ext, ".stl"},{ext_desc, "StereoLithography Binary File"}].
