@@ -12,7 +12,7 @@
 %%
 
 -module(auv_texture).
--export([get_texture/2,draw_options/1]).
+-export([get_texture/2,draw_options/1,delete_preview_vbo/0]).
 
 -define(NEED_OPENGL, 1).
 -define(NEED_ESDL, 1).
@@ -221,18 +221,22 @@ option_dialog(Id, Fields, Renderers, Shaders) ->
                        %% Change the value in the parent dialog
                        wings_dialog:set_value({auv_opt, Id}, [Name|Res], Fields),
                        %% removing the temporary VBO data
-                       case wings_pref:get_value(?SHADER_PRW_VBO) of
-                           undefined ->  ignore;
-                           Vbo ->
-                               wings_pref:delete_value(?SHADER_PRW_VBO),
-                               wings_vbo:delete(Vbo),
-                               ignore
-                       end
+                       delete_preview_vbo()
                    end,
         SphereData = create_sphere_data(),
         wings_dialog:dialog(StrName,options(Name,Opts,Shaders,SphereData),SetValue)
     catch _:Crash:ST ->
 	    io:format("EXIT: ~p ~p~n",[Crash, ST])
+    end.
+
+%% removing the temporary VBO data used by preview
+delete_preview_vbo() ->
+    case wings_pref:get_value(?SHADER_PRW_VBO) of
+        undefined ->  ignore;
+        Vbo ->
+            wings_pref:delete_value(?SHADER_PRW_VBO),
+            wings_vbo:delete(Vbo),
+            ignore
     end.
 
 %% function required to ensure a config file with image on shader can be correctly

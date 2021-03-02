@@ -1972,6 +1972,9 @@ init_drawarea() ->
     {{W,75},{W,H0-100}}.
 
 cleanup_before_exit() ->
+    %% Ensure the used vbo data will be released. By canceling the Option
+    %% dialog doesn't remove it automatically.
+    auv_texture:delete_preview_vbo(),
     wings:unregister_postdraw_hook(wings_wm:this(), ?MODULE),
     wings_dl:delete_dlists().
 
