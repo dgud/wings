@@ -8,13 +8,33 @@
 //  See the file "license.terms" for information on usage and redistribution
 //  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 //
-// Grabbed from tutorial By Jérôme Guinot jegx [at] ozone3d [dot] net
+// Grabbed from tutorial By JÃ©rÃ´me Guinot jegx [at] ozone3d [dot] net
 //
+#version 120
 
 varying vec2 w3d_uv;
 uniform sampler2D auv_bg;
 uniform vec2 auv_texsz;
 uniform float alpha_limit;
+
+int calc_threshold(float res)
+{
+	if (res <= 128.0) {
+		return 3;
+	} else if (res <= 256.0) {
+		return 5;
+	} else if (res <= 512.0) {
+		return 7;
+	} else if (res <= 1024.0) {
+		return 9;
+	} else if (res <= 2048.0) {
+		return 11;
+	} else if (res <= 4096.0) {
+		return 13;
+	} else {
+		return 15;
+	}
+}
 
 void main(void)
 {
@@ -23,12 +43,13 @@ void main(void)
 
     vec4 sum = vec4(0.0), tmp, result;
 
-    int f_sz = 5;
+    int f_sz = calc_threshold(max(auv_texsz.x, auv_texsz.y));
+	float div = (f_sz + 1.0)/2.0;
 
     float orig_x  = w3d_uv.x;
     float orig_y  = w3d_uv.y;
-    float orig_dw = orig_y - 2.5*step_h; // Center texel
-    float orig_lt = orig_x - 2.5*step_w; // Center texel
+    float orig_dw = orig_y - div*step_h; // Center texel
+    float orig_lt = orig_x - div*step_w; // Center texel
     float tx_weight = 0.0;
     float tx, ty;
 
