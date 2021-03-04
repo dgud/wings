@@ -496,6 +496,7 @@ enter_dialog(true, PreviewType, Dialog, Fields, Fun) ->
     Op = {push,fun(Ev) -> event_handler(Ev, State) end},
     {TopW,TopH} = wings_wm:top_size(),
     wings_wm:new(dialog_blanket, {0,0,highest}, {TopW,TopH}, Op),
+    wxDialog:connect(Dialog, destroy),
     wings_wm:grab_focus(dialog_blanket),
     keep.
 
@@ -512,8 +513,7 @@ close(Pid) ->
     Pid ! closed,
     receive {'DOWN',Ref,process,_,_} -> ok end.
 
-event_handler(#wx{id=?wxID_CANCEL},
-	      #eh{apply=Fun, owner=Owner, type=Preview, pid=Pid}=Eh0) ->
+cancel_dialog(#eh{apply=Fun, owner=Owner, type=Preview, pid=Pid}=Eh0) ->
     reset_timer(Eh0),
     wings_wm:release_focus(),
     case Preview of
@@ -524,10 +524,13 @@ event_handler(#wx{id=?wxID_CANCEL},
 	    wings_wm:send(Owner, cancel)
     end,
     close(Pid),
-    delete;
-event_handler(#wx{id=Result}=_Ev,
+    delete.
+
+event_handler(#wx{id=?wxID_CANCEL}, Eh0) ->
+    cancel_dialog(Eh0);
+event_handler(#wx{id=Result, event=#wxCommand{}}=_Ev,
 	      #eh{fs=Fields, apply=Fun, owner=Owner, pid=Pid} = Eh0) ->
-    %%io:format("Ev closing ~p~n  ~p~n",[_Ev, Fields]),
+    %%?dbg("Ev closing ~p~n  ~p~n",[_Ev, Fields]),
     reset_timer(Eh0),
     wings_wm:release_focus(),
     Values = get_output(Result, Fields),
@@ -536,7 +539,7 @@ event_handler(#wx{id=Result}=_Ev,
     catch throw:{command_error,_} = Error ->
 	    wings_wm:send(Owner, Error);
           _:Reason:ST ->
-            io:format("Dialog preview crashed: ~p~n~p~n",[Reason, ST])
+            ?dbg("Dialog preview crashed: ~p~n~p~n",[Reason, ST])
     end,
     delete;
 event_handler(preview, Eh0) ->
@@ -559,7 +562,7 @@ event_handler(preview_exec, #eh{fs=Fields, apply=Fun, owner=Owner}=Eh0) ->
 	    %%io:format("~p:~p: ~p~n",[?MODULE,?LINE,{preview,[Owner,{action,Action}]}]),
 	    wings_wm:send(Owner, {action,Action})
     catch _:Reason:ST ->
-            io:format("Dialog preview crashed: ~p~n~p~n",[Reason, ST])
+            ?dbg("Dialog preview crashed: ~p~n~p~n",[Reason, ST])
     end,
     {replace, fun(Ev) -> event_handler(Ev, Eh) end};
 event_handler(#mousebutton{which=Obj}=Ev, _) ->
@@ -574,8 +577,10 @@ event_handler(got_focus, #eh{dialog=Dialog}) ->
 event_handler(user_attention, #eh{dialog=Dialog}) ->
     wxTopLevelWindow:requestUserAttention(Dialog),
     keep;
+event_handler(#wx{event=#wxWindowDestroy{}}, Eh0) ->
+    cancel_dialog(Eh0);
 event_handler(_Ev, _) ->
-    %% io:format("unhandled Ev ~p~n",[_Ev]),
+    %%?dbg("unhandled Ev ~p~n",[_Ev]),
     keep.
 
 reset_timer(#eh{timer=undefined} = Eh) ->

@@ -451,13 +451,15 @@ grab_focus() ->
 grab_focus(Name) ->
     case is_window(Name) of
 	true  ->
-	    %%{_, [_,Where|_]} = erlang:process_info(self(), current_stacktrace),
-	    %%io:format("Grab focus: ~p~n   ~p~n",[Name, Where]),
+	    %% {_, [_,Where|_]} = erlang:process_info(self(), current_stacktrace),
 	    case get(wm_focus_grab) of
 		undefined ->
 		    update_focus(Name),
+                    %% ?dbg("Grab focus: ~p in []~n   ~p~n",[Name,Where]),
 		    put(wm_focus_grab, [Name]);
-		Stack -> put(wm_focus_grab, [Name|Stack])
+		Stack ->
+                    %% ?dbg("Grab focus: ~p in ~p~n   ~p~n",[Name,Stack,Where]),
+                    put(wm_focus_grab, [Name|Stack])
 	    end;
 	false -> ok
     end.
@@ -466,10 +468,10 @@ release_focus() ->
     case get(wm_focus_grab) of
 	undefined -> ok;
 	[_Name] ->
-            %%io:format("Release focus ~p~n",[_Name]),
+            %% ?dbg("Release focus ~p~n",[_Name]),
             erase(wm_focus_grab);
 	[_Name|Stack] ->
-            %%io:format("Release focus ~p~n",[_Name]),
+            %% ?dbg("Release focus ~p next: ~p~n",[_Name, Stack]),
             put(wm_focus_grab, Stack)
     end.
 
