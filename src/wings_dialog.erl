@@ -707,23 +707,24 @@ setup_hook(#in{key=Key, wx=Ctrl, type=text, hook=UserHook, wx_ext=Ext, def=Def, 
 				 end}]),
     case Ext of
 	[Slider] ->
-        wxTextCtrl:connect(Ctrl, mousewheel,
-                 [{callback, fun(#wx{event=#wxMouse{type=mousewheel}=EvMouse}, Obj) ->
-                         wxEvent:skip(Obj),
-                         Str = text_wheel_move(Def,wxTextCtrl:getValue(Ctrl),EvMouse),
-                         case Validate(Str) of
-                             {true, Val} ->
-                                 UserHook(Key, Val, Fields),
-                                 ok;
-                             _ -> ok
-                         end
-                     end}]),
-        wxSlider:connect(Slider, scroll_thumbtrack,
-                 [{callback, fun(#wx{event=#wxScroll{commandInt=Val}}, Obj) ->
-                         wxEvent:skip(Obj),
-                         UserHook(Key, Val, Fields),
-                         ok
-                     end}]);
+            ScrollText = fun(#wx{event=#wxMouse{type=mousewheel}=EvMouse}, Obj) ->
+                                 wxEvent:skip(Obj),
+                                 Str = text_wheel_move(Def,wxTextCtrl:getValue(Ctrl),EvMouse),
+                                 case Validate(Str) of
+                                     {true, Val} ->
+                                         UserHook(Key, Val, Fields),
+                                         ok;
+                                     _Fail ->
+                                         ok
+                                 end
+                         end,
+            ScrollSlider = fun(#wx{event=#wxCommand{commandInt=Val}}, Obj) ->
+                                   wxEvent:skip(Obj),
+                                   UserHook(Key, Val, Fields),
+                                   ok
+                           end,
+            wxTextCtrl:connect(Ctrl, mousewheel, [{callback, ScrollText}]),
+            wxSlider:connect(Slider, command_slider_updated, [{callback, ScrollSlider}]);
 	_ -> ignore
     end,
     UserHook(Key,validate(Validate, wxTextCtrl:getValue(Ctrl), Def),Fields);
@@ -734,8 +735,8 @@ setup_hook(#in{key=Key, wx=Ctrl, type=button, hook=UserHook}, Fields) ->
 				 end}]),
     ok;
 setup_hook(#in{key=Key, wx=Ctrl, type=slider, hook=UserHook, data={FromSlider,_}}, Fields) ->
-    wxSlider:connect(Ctrl, scroll_thumbtrack,
-		     [{callback, fun(#wx{event=#wxScroll{commandInt=Val}}, _) ->
+    wxSlider:connect(Ctrl, command_slider_updated,
+		     [{callback, fun(#wx{event=#wxCommand{commandInt=Val}}, _) ->
 					 UserHook(Key, FromSlider(Val), Fields)
 				 end}]),
     ok;
