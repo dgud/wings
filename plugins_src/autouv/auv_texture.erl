@@ -84,8 +84,8 @@
 %% Menu
 
 draw_options(#st{bb=Uvs}=AuvSt0) ->
-    #uvstate{st=GeomSt0,matname=MatName0,bg_img=Image} = Uvs,
-    BkpImg = wings_image:info(Image),
+    #uvstate{st=GeomSt0,matname=MatName0,bg_img=TexImg} = Uvs,
+    BkpImg = wings_image:info(TexImg),
     St = wings_wm:get_current_state(),
     prw_img_id(new),
 
@@ -101,27 +101,27 @@ draw_options(#st{bb=Uvs}=AuvSt0) ->
     wings_dialog:dialog(?__(3,"Draw Options"), {preview,Qs},
 			fun({dialog_preview,Options}) ->
                 Opt = list_to_prefs(Options),
-                Tx = ?SLOW(get_texture(St, {Opt,Shaders})),
+                NewImg = ?SLOW(get_texture(St, {Opt,Shaders})),
                 case MatName0 of
                     none ->
-                        ok = wings_image:update(Image, Tx);
+                        ok = wings_image:update(TexImg, NewImg);
                     _ ->
                         TexName = case get_mat_texture(MatName0, St) of
                                       false -> atom_to_list(MatName0);
-                                      Old  ->
-                                          OldE3d = wings_image:info(Old),
-                                          case OldE3d#e3d_image.name of
+                                      OldId  ->
+                                          OldImg = wings_image:info(OldId),
+                                          case OldImg#e3d_image.name of
                                               "auvBG" -> atom_to_list(MatName0);
                                               Other -> Other
                                           end
                                   end,
-                        catch wings_material:update_image(MatName0, diffuse, Tx#e3d_image{name=TexName}, GeomSt0)
+                        catch wings_material:update_image(MatName0, diffuse, NewImg#e3d_image{name=TexName}, GeomSt0)
                 end,
                 {preview,St,St};
             (cancel) ->
                 case MatName0 of
                     none ->
-                        ok = wings_image:update(Image, BkpImg);
+                        ok = wings_image:update(TexImg, BkpImg);
                     _ ->
                         catch wings_material:update_image(MatName0, diffuse, BkpImg, St)
                 end,
@@ -332,11 +332,12 @@ options({shader,Id}=Opt, Vals0, Sh, {Ts,SphereMesh}) ->
                 Vals1 = update_values(Vals0,wings_dialog:set_value(Key,Value,Fields)),
                 wxGLCanvas:setCurrent(GLCanvas),
                 %% creating the texture preview image
-                Tex = get_texture_preview({Opt,Vals1},Sh,Ts),
+                PrwImg = get_texture_preview({Opt,Vals1},Sh,Ts),
                 %% updating the image
-                prw_img_id(Tex),
+                prw_img_id(PrwImg),
                 case os:type() of
                     {_, darwin} -> %% workaround wxWidgets 3.0.4 and mojave
+                        wings_gl:setCurrent(GLCanvas, ?GET(gl_context)),
                         Preview(GLCanvas, Fields),
                         wxGLCanvas:swapBuffers(GLCanvas);
                     _ ->
@@ -533,12 +534,11 @@ render_image_preview(Geom0, Passes, #opt{texsz={TexW,TexH}}, Reqs) ->
 
 create_sphere_data() ->
     {We, SphereData} = setup_sphere_mesh(),
-    Fs = gb_sets:from_ordset(wings_we:visible(We)),
     Shs = gb_trees:enter(We#we.id, We, gb_trees:empty()),
     Maps =
         case wings_pref:get_value(?SHADER_PRW_NAME) of
             undefined -> [];
-            {PrwId,_} -> {maps,[{diffuse,PrwId}]}
+            {TxId,_} -> {maps,[{diffuse,TxId}]}
         end,
     Mat = [{opengl,[{diffuse, {1.0,1.0,1.0,1.0}},
                     {emission,{0.0,0.0,0.0,1.0}},
@@ -549,7 +549,7 @@ create_sphere_data() ->
     FakeSt0 = #st{sel=[],shapes=Shs,mat=Mtab},
     Uvs = #uvstate{st=wpa:sel_set(face, [], FakeSt0),
                    id      = We#we.id,
-                   mode    = Fs,
+                   mode    = object,
                    matname = none},
     FakeSt = FakeSt0#st{selmode=body,sel=[],shapes=gb_trees:empty(),bb=Uvs,
                         repeatable=ignore,ask_args=none,drag_args=none},
@@ -703,7 +703,7 @@ setup_sphere_mesh() ->
                     tx=[I*3,I*3+1,I*3+2],
                     ns=[I*3,I*3+1,I*3+2]} || I <- lists:seq(0,Idx-1)],
     Mesh = #e3d_mesh{vs=Tris,tx=UVs,ns=Normals,fs=Fs},
-    #we{vp=Vtab0,fs=Ftab} = We0 = wings_import:import_mesh(material,Mesh),
+    #we{vp=Vtab0} = We = wings_import:import_mesh(material,Mesh),
     %% rotating the sphere slight above and right to better visualization
     %% of the blending area of a triplanar shader
     M0 = e3d_mat:rotate(30.0,{0.0,1.0,0.0}),
@@ -714,15 +714,13 @@ setup_sphere_mesh() ->
                               Value = e3d_mat:mul_point(M,Value0),
                               array:set(V,Value,Acc)
                            end,Vtab0,Vtab0),
-    We = wings_facemat:assign(list_to_atom(?SHADER_PRW_NAME),gb_trees:keys(Ftab),We0),
     Data = {Len, zip(Tris, Normals, UVs, Tgs)},
-    {We#we{id=1,vp=Vtab},Data}.
+    {We#we{id=1,vp=Vtab,mat=list_to_atom(?SHADER_PRW_NAME)},Data}.
 
 setup_sphere_vbo({Len,Data}) ->
-    Lighting = wings_pref:get_value(number_of_lights),
     Layout = [vertex, normal, uv, tangent],
     D = fun(#{preview := PreviewMat} = RS0) ->
-        RS1 = wings_shaders:use_prog(Lighting, RS0),
+        RS1 = wings_shaders:use_prog(1, RS0),
         RS2 = lists:foldl(fun apply_material/2, RS1, PreviewMat),
         gl:drawArrays(?GL_TRIANGLES, 0, Len*3),
         wings_shaders:use_prog(0, RS2)
@@ -795,7 +793,7 @@ tex_preview(Canvas, Vbo) ->
     gl:enable(?GL_CULL_FACE),
     gl:blendFunc(?GL_SRC_ALPHA, ?GL_ONE_MINUS_SRC_ALPHA),
     gl:color4ub(255, 255, 255, 255),
-    RS = #{ws_eyepoint=>Eye, view_from_world=> MatMV, preview=>Material},
+    RS = #{ws_eyepoint=>Eye, view_from_world=>MatMV, preview=>Material},
     wings_dl:call(Vbo, RS),
     gl:disable(?GL_BLEND),
     gl:shadeModel(?GL_FLAT),
