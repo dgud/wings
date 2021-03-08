@@ -327,12 +327,12 @@ options({shader,Id}=Opt, Vals0, Sh, {Ts,SphereMesh}) ->
         case wxWindow:isShown(GLCanvas) of
             false -> ok;
             true ->
-                %% we update the fields with the latest Value and
-                %% update the Vals list with its content
-                Vals1 = update_values(Vals0,wings_dialog:set_value(Key,Value,Fields)),
-                wxGLCanvas:setCurrent(GLCanvas),
+                %% update the Vals list with the content of Fields plus the
+                %% current field changed (Key) which is not updated in Fields
+                Vals = update_values(Key,Value,Vals0,Fields),
                 %% creating the texture preview image
-                PrwImg = get_texture_preview({Opt,Vals1},Sh,Ts),
+                wxGLCanvas:setCurrent(GLCanvas),
+                PrwImg = get_texture_preview({Opt,Vals},Sh,Ts),
                 %% updating the image
                 prw_img_id(PrwImg),
                 case os:type() of
@@ -464,17 +464,19 @@ renderer(Id,[_|R]) ->  renderer(Id,R).
 %% Texture preview handling
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-update_values(Vals, Fields) ->
-    update_values(1, Vals, Fields, []).
+update_values(Key, Val, Vals, Fields) ->
+    update_values(1,Key,Val,Vals,Fields,[]).
 
-update_values(_, [], _, Acc) -> lists:reverse(Acc);
-update_values(Idx, [H|Vals], Fields, Acc) ->
-    try wings_dialog:get_value(Idx,Fields) of
+update_values(_, _, _, [], _, Acc) -> lists:reverse(Acc);
+update_values(Key, Key, Value, [_|Vals], Fields, Acc) ->
+    update_values(Key+1,Key,Value,Vals,Fields,[Value|Acc]);
+update_values(Key, CKey, CValue, [H|Vals], Fields, Acc) ->
+    try wings_dialog:get_value(Key,Fields) of
         Value ->
-            update_values(Idx+1,Vals,Fields,[Value|Acc])
+            update_values(Key+1,CKey,CValue,Vals,Fields,[Value|Acc])
     catch
         _:_ ->
-            update_values(Idx+1,Vals,Fields,[H|Acc])
+            update_values(Key+1,CKey,CValue,Vals,Fields,[H|Acc])
     end.
 
 get_texture_preview(Render,Shaders,Ts) ->
