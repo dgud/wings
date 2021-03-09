@@ -697,7 +697,8 @@ setup_hook(#in{key=Key, wx=Ctrl, type=radiobox, hook=UserHook, data=Keys}, Field
 					 UserHook(Key, Sel, Fields)
 				 end}]),
     UserHook(Key, lists:nth(1+wxRadioBox:getSelection(Ctrl),Keys),Fields);
-setup_hook(#in{key=Key, wx=Ctrl, type=text, hook=UserHook, wx_ext=Ext, def=Def, validator=Validate}, Fields) ->
+setup_hook(#in{key=Key, wx=Ctrl, type=text, hook=UserHook, wx_ext=Ext, def=Def,
+               data={FromSlider,_ToSlider}, validator=Validate}, Fields) ->
     wxWindow:connect(Ctrl, command_text_updated,
 		     [{callback, fun(#wx{event=#wxCommand{cmdString=Str}}, Obj) ->
 					 wxEvent:skip(Obj),
@@ -720,7 +721,7 @@ setup_hook(#in{key=Key, wx=Ctrl, type=text, hook=UserHook, wx_ext=Ext, def=Def, 
                          end,
             ScrollSlider = fun(#wx{event=#wxCommand{commandInt=Val}}, Obj) ->
                                    wxEvent:skip(Obj),
-                                   UserHook(Key, Val, Fields),
+                                   UserHook(Key, FromSlider(Val), Fields),
                                    ok
                            end,
             wxTextCtrl:connect(Ctrl, mousewheel, [{callback, ScrollText}]),
@@ -1087,11 +1088,11 @@ build(Ask, {text, Def, Flags}, Parent, Sizer, In) ->
 build(Ask, {slider, {text, Def, Flags}}, Parent, Sizer, In) ->
     SizeVal = {_,Validator} = validator(Def, Flags),
     Create = fun() -> create_slider(Ask, Def, Flags, SizeVal, Parent, Sizer) end,
-    {Ctrl,CtrlExt} = case create(Ask,Create) of
-			 undefined -> {undefined, []};
+    {Ctrl,CtrlExt, Data} = case create(Ask,Create) of
+			 undefined -> {undefined, [], Def};
 			 Ctrls -> Ctrls
 		     end,
-    [#in{key=proplists:get_value(key,Flags), def=Def,
+    [#in{key=proplists:get_value(key,Flags), def=Def, data=Data,
 	 hook=proplists:get_value(hook, Flags),
 	 type=text, wx=Ctrl, wx_ext=CtrlExt, validator=Validator}|In];
 
@@ -1605,7 +1606,7 @@ create_slider(Ask, Def, Flags, {MaxSize,Validator}, Parent, TopSizer) when is_nu
 			   end
 		   end,
     wxTextCtrl:connect(Text, command_text_updated, [{callback, UpdateSlider}]),
-    {Text,[Slider]}.
+    {Text,[Slider], {ToText, ToSlider}}.
 
 slider_style(Def, {Min, Max})
   when is_integer(Def), Def >= Min, Def =< Max, Min < Max ->
