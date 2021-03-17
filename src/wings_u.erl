@@ -88,6 +88,10 @@ crash_log(WinName, Reason, StackTrace) ->
     F = open_log_file(LogName),
     io:format("Internal Error~n",[]),
     [io:format(Fd, "Version: ~s\n", [?WINGS_VERSION]) || Fd <- [F, group_leader()]],
+    [io:format(Fd, "Window: ~p\n", [WinName])  || Fd <- [F, group_leader()]],
+    [io:format(Fd, "Reason: ~P\n\n", [Reason,20]) || Fd <- [F, group_leader()]],
+    report_stacktrace(F, StackTrace),
+    analyse(F, StackTrace),
     try
         OsDesc = wx_misc:getOsDescription(),
         {GLVend, GLRend} = {gl:getString(?GL_VENDOR), gl:getString(?GL_RENDERER)},
@@ -96,10 +100,6 @@ crash_log(WinName, Reason, StackTrace) ->
     catch
 	_:_ -> ignore
     end,
-    [io:format(Fd, "Window: ~p\n", [WinName])  || Fd <- [F, group_leader()]],
-    [io:format(Fd, "Reason: ~P\n\n", [Reason,20]) || Fd <- [F, group_leader()]],
-    report_stacktrace(F, StackTrace),
-    analyse(F, StackTrace),
     file:close(F),
     LogName.
 
