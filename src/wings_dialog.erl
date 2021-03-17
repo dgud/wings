@@ -708,12 +708,12 @@ setup_hook(#in{key=Key, wx=Ctrl, type=text, hook=UserHook, wx_ext=Ext, def=Def,
 				 end}]),
     case Ext of
 	[Slider] ->
-            {FromSlider,_ToSlider} = Conversion,
-            ScrollText = fun(#wx{event=#wxMouse{type=mousewheel}=EvMouse}, Obj) ->
+            {FromSlider,ToSlider} = Conversion,
+            ScrollText = fun(#wx{event=#wxMouse{type=mousewheel}=Ev}, Obj) ->
                                  wxEvent:skip(Obj),
-                                 Str = text_wheel_move(Def,wxTextCtrl:getValue(Ctrl),EvMouse),
-                                 case Validate(Str) of
-                                     {true, Val} ->
+                                 case Validate(wxTextCtrl:getValue(Ctrl)) of
+                                     {true, V0} ->
+                                         Val = text_wheel_move(V0,Ev,ToSlider,FromSlider),
                                          UserHook(Key, Val, Fields),
                                          ok;
                                      _Fail ->
@@ -1249,7 +1249,7 @@ build(Ask, {button, Label, Action, Flags}, Parent, Sizer, In) ->
 	       done ->
 		   UserHook = proplists:get_value(hook, Flags),
 		   fun(Key, button_pressed, Store) ->
-			   wings_dialog:set_value(Key, true, Store),
+			   set_value(Key, true, Store),
 			   UserHook == undefined orelse
 			       UserHook(Key, button_pressed, Store)
 		   end;
@@ -1516,10 +1516,10 @@ build_textctrl(Ask, Def, Flags, {MaxSize, Validator}, Parent, Sizer) ->
         _ ->
 	    UpdateTextWheel =
 		fun(#wx{event=#wxMouse{type=mousewheel}=EvMouse}, _) ->
-			Str = text_wheel_move(Def,wxTextCtrl:getValue(Ctrl),EvMouse),
-			case Validator(Str) of
-			    {true, Val} ->
+			case Validator(wxTextCtrl:getValue(Ctrl)) of
+			    {true, V0} ->
 				PreviewFun(),
+                                Val = text_wheel_move(Def,V0,EvMouse,Validator),
 				wxTextCtrl:setValue(Ctrl, to_str(Val));
 			    _ ->
 				ignore
@@ -1585,16 +1585,16 @@ create_slider(Ask, Def, Flags, {MaxSize,Validator}, Parent, TopSizer) when is_nu
 			 wxTextCtrl:changeValue(Text, to_str(ToText(Where)))
 		 end,
     wxSlider:connect(Slider, command_slider_updated, [{callback, UpdateText}]),
-    UpdateTextWheel = fun(#wx{event=#wxMouse{type=mousewheel}=EvMouse}, _) ->
-			  Str = text_wheel_move(Def,wxTextCtrl:getValue(Text),EvMouse),
-			  case Validator(Str) of
-			      {true, Val} ->
-				  PreviewFun(),
-				  wxSlider:setValue(Slider, ToSlider(Val)),
-				  wxTextCtrl:changeValue(Text, to_str(Val));
-			      _ ->
-				  ignore
-			  end
+    UpdateTextWheel = fun(#wx{event=#wxMouse{type=mousewheel}=Ev}, _) ->
+                              case Validator(wxTextCtrl:getValue(Text)) of
+                                  {true, V0} ->
+                                      Val = text_wheel_move(V0, Ev, ToSlider, ToText),
+                                      PreviewFun(),
+                                      wxSlider:setValue(Slider, ToSlider(Val)),
+                                      wxTextCtrl:changeValue(Text, to_str(Val));
+                                  _ ->
+                                      ignore
+                              end
 		      end,
     wxTextCtrl:connect(Text, mousewheel, [{callback, UpdateTextWheel}]),
     UpdateSlider = fun(#wx{event=#wxCommand{cmdString=Str}}, _) ->
@@ -1611,17 +1611,30 @@ create_slider(Ask, Def, Flags, {MaxSize,Validator}, Parent, TopSizer) when is_nu
 
 slider_style(Def, {Min, Max})
   when is_integer(Def), Def >= Min, Def =< Max, Min < Max ->
-    ToInt = fun(Value) -> Value end,
+    ToInt = fun(Value) ->
+                    if Value < Min -> round(Min);
+                       Value > Max -> round(Max);
+                       true -> round(Value)
+                    end
+            end,
     {Min, Def, Max, ?wxSL_HORIZONTAL, ToInt, ToInt};
 slider_style(Def, {Min, Max})
   when is_float(Def), Def >= Min, Def =< Max, Min < Max ->
     ToSlider = fun(Value) ->
 		       Step = (Max - Min) / 100,
-		       round((Value - Min) / Step)
+		       case round((Value - Min) / Step) of
+                           V when V > 100 -> 100;
+                           V when V < 0 -> 0;
+                           V -> V
+                       end
 	       end,
     ToText = fun(Percent) ->
 		     Step = (Max - Min) / 100,
-		     Min + Percent * Step
+		     case Min + Percent * Step of
+                         V when V > Max -> Max;
+                         V when V < Min -> Min;
+                         V -> V
+                     end
 	     end,
     {0, ToSlider(Def), 100, ?wxSL_HORIZONTAL, ToText, ToSlider};
 slider_style(Def, {Min, Max}=MM) when Min < Max ->
@@ -2024,25 +2037,26 @@ constraint_factor(#wxMouse{altDown=A,shiftDown=S,metaDown=M,controlDown=R}) ->
 	C -> wings_pref:get_value(con_dist_ctrl);
 	S -> wings_pref:get_value(con_dist_shift);
 	A -> wings_pref:get_value(con_dist_alt);
-	true -> none
+	true -> 1
     end.
 
-text_wheel_move(Def, Value, #wxMouse{wheelRotation=Count,wheelDelta=Delta}=EvMouse) ->
-    Incr = case constraint_factor(EvMouse) of
-	       none -> 1;
-	       Other -> Other
-	   end,
-    try
-	case is_integer(Def) of
-	    true ->
-		CurValue = list_to_integer(Value),
-		Increment = round(Incr),
-		integer_to_list(CurValue +round((Count/Delta)*Increment));
-	    _ ->
-		CurValue = wings_util:string_to_float(Value),
-		Increment = Incr,
-		float_to_list(CurValue +((Count/Delta)*Increment))
-	end
-    catch _:_ ->
-	    Value
-    end.
+text_wheel_move(Def, Value, #wxMouse{wheelRotation=Count,wheelDelta=Delta}=EvMouse, Validator) ->
+    Incr = constraint_factor(EvMouse),
+    New = case is_integer(Def) of
+              true ->
+                  Increment = round(Incr),
+                  Value - round((Count/Delta)*Increment);
+              _ ->
+                  Increment = Incr,
+                  Value - ((Count/Delta)*Increment)
+          end,
+    case Validator(to_str(New)) of
+        {true, Val} -> Val;
+        _         -> Value
+    end;
+text_wheel_move(Value, #wxMouse{wheelRotation=Count,wheelDelta=Delta}=EvMouse, ToSlider, FromSlider) ->
+    Percent = ToSlider(Value),
+    Incr = constraint_factor(EvMouse),
+    ValPercent =  Percent - (Count/Delta)*Incr,
+    FromSlider(ValPercent).
+
