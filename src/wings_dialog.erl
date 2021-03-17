@@ -698,7 +698,7 @@ setup_hook(#in{key=Key, wx=Ctrl, type=radiobox, hook=UserHook, data=Keys}, Field
 				 end}]),
     UserHook(Key, lists:nth(1+wxRadioBox:getSelection(Ctrl),Keys),Fields);
 setup_hook(#in{key=Key, wx=Ctrl, type=text, hook=UserHook, wx_ext=Ext, def=Def,
-               data={FromSlider,_ToSlider}, validator=Validate}, Fields) ->
+               data=Conversion, validator=Validate}, Fields) ->
     wxWindow:connect(Ctrl, command_text_updated,
 		     [{callback, fun(#wx{event=#wxCommand{cmdString=Str}}, Obj) ->
 					 wxEvent:skip(Obj),
@@ -708,6 +708,7 @@ setup_hook(#in{key=Key, wx=Ctrl, type=text, hook=UserHook, wx_ext=Ext, def=Def,
 				 end}]),
     case Ext of
 	[Slider] ->
+            {FromSlider,_ToSlider} = Conversion,
             ScrollText = fun(#wx{event=#wxMouse{type=mousewheel}=EvMouse}, Obj) ->
                                  wxEvent:skip(Obj),
                                  Str = text_wheel_move(Def,wxTextCtrl:getValue(Ctrl),EvMouse),
