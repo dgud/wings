@@ -472,18 +472,17 @@ enter_dialog(true, PreviewType, Dialog, Fields, Fun) ->
     Env = wx:get_env(),
     Pid = spawn_link(fun() ->
 			     wx:set_env(Env),
-			     Forward = fun(Event, _) ->
-					       wxDialog:show(Dialog, [{show,false}]),
-					       wings_wm:psend(dialog_blanket, Event)
-				       end,
-
-			     wxDialog:connect(Dialog, command_button_clicked,
-					      [{id, ?wxID_OK},
-					       {lastId, ?wxID_NO},
-					       {callback,Forward}]),
 			     set_dialog_parent(Dialog),
-			     wxDialog:show(Dialog),
 			     wings_wm:psend(send_after_redraw, dialog_blanket, preview),
+                             case is_modal(PreviewType) of
+                                 false ->
+                                     setup_non_modal(Dialog),
+                                     wxDialog:show(Dialog);
+                                 true ->
+                                     %% wx bug (mac modal) workaround fixed in 21.3?
+                                     os:type() == {unix,darwin} andalso timer:sleep(200),
+                                     send_modal_result(Dialog, wxDialog:showModal(Dialog))
+                             end,
 			     receive
 				 closed ->
 				     reset_dialog_parent(Dialog),
@@ -499,6 +498,30 @@ enter_dialog(true, PreviewType, Dialog, Fields, Fun) ->
     wxDialog:connect(Dialog, destroy),
     wings_wm:grab_focus(dialog_blanket),
     keep.
+
+is_modal(Atom) when is_atom(Atom) ->
+    case Atom of
+        %% Fool dialyzer
+        prepared_for_non_modal_dialogs -> false;
+        _ -> true
+    end;
+is_modal(_PreviewType) ->
+    true.
+
+setup_non_modal(Dialog) ->
+    Forward = fun(Event, _) ->
+                      wxDialog:show(Dialog, [{show,false}]),
+                      wings_wm:psend(dialog_blanket, Event)
+              end,
+    wxDialog:connect(Dialog, command_button_clicked,
+                     [{id, ?wxID_OK},
+                      {lastId, ?wxID_NO},
+                      {callback,Forward}]).
+
+send_modal_result(Dialog, Res) ->
+    CmdEv = #wxCommand{type=command_button_clicked, cmdString="", commandInt=Res, extraLong = 0},
+    Event = #wx{id=Res, obj=Dialog, event=CmdEv},
+    wings_wm:psend(dialog_blanket, Event).
 
 notify_event_handler(false, _Msg) -> fun() -> ignore end;
 notify_event_handler(no_preview, _) -> fun() -> ignore end;
