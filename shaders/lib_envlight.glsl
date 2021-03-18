@@ -19,7 +19,12 @@ vec2 vec2uv(vec3 vec)
 {
   float u = atan(vec.x, vec.z);
   float v = acos(vec.y);
-  return vec2(0.5f+0.5*u/M_PI, v/M_PI);
+  u = 0.5f+0.5*u/M_PI;
+  v = v/M_PI;
+  // http://vcg.isti.cnr.it/~tarini/no-seams/
+  // float u1 = fract(u+0.5)-0.5;
+  // u = (fwidth(u)) < ((fwidth(u1)*2.1)) ?  u : u1;
+  return vec2(u, v);
 }
 
 vec3 background_ligthting(PBRInfo pbrInputs, vec3 N, vec3 reflection)

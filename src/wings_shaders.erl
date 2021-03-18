@@ -26,14 +26,17 @@
 init() ->
     wings_pref:set_default(hl_skycol, {0.95,0.95,0.90}),
     wings_pref:set_default(hl_groundcol, {0.026,0.024,0.021}),
+    wings_pref:set_default(cl_lightpos, ?cl_lightpos),
     compile_all().
 
 compile_all() ->
     HL = [{'LightPosition', wings_pref:get_value(hl_lightpos)},
 	  {'SkyColor', wings_pref:get_value(hl_skycol)},
 	  {'GroundColor', wings_pref:get_value(hl_groundcol)}],
+
     Programs0 = [{1, camera_light, [], "One Camera Lights"},
                  {2, hemilight, HL, "Hemispherical Lighting"},
+                 {background, background, [{blurry, 0.5}], ""},
                  {ambient_light, ambient_light, [], ""},
                  {infinite_light, infinite_light, [], ""},
                  {point_light, point_light, [], ""},
@@ -68,12 +71,14 @@ use_prog(Name, RS) ->
             case Name of
                 1 ->
                     WorldFromView = e3d_transform:inv_matrix(maps:get(view_from_world, RS2)),
-                    LPos = e3d_mat:mul_point(WorldFromView, ?cl_lightpos),
+                    LPos = e3d_mat:mul_point(WorldFromView, wings_pref:get_value(cl_lightpos)),
                     set_uloc('ws_lightpos', LPos, RS2);
                 2 ->
                     WorldFromView = e3d_transform:inv_matrix(maps:get(view_from_world, RS2)),
                     LPos = e3d_mat:mul_point(WorldFromView, ?hl_lightpos),
-                    set_uloc('ws_lightpos', LPos, RS2);
+                    RS3 = set_uloc('ws_lightpos', LPos, RS2),
+                    RS4 = set_uloc('SkyColor', wings_pref:get_value(hl_skycol), RS3),
+                    set_uloc('GroundColor', wings_pref:get_value(hl_groundcol), RS4);
                 _ ->
                     RS2
             end

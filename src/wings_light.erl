@@ -51,6 +51,8 @@
 	}).
 
 init() ->
+    wings_pref:set_default(show_bg, false),
+    wings_pref:set_default(show_bg_blur, 0.2),
     init(false).
 
 init(Recompile) ->
@@ -940,7 +942,7 @@ fake_envmap(Path, EnvImgRec) ->
     SBG0 = wings_image:wxImage_to_e3d(SpecBG),
     SpecBG1 = wxImage:copy(SpecBG),
     MMs = make_mipmaps(SpecBG1, 1, 256, 128),
-    Opts = [{wrap, {repeat,clamp}}, {filter, {mipmap, linear}}, {mipmaps, MMs}],
+    Opts = [{wrap, {repeat,repeat}}, {filter, {mipmap, linear}}, {mipmaps, MMs}],
     SBG = SBG0#e3d_image{name="Fake Spec", extra=Opts},
     SpecId = wings_image:new_hidden(env_spec_tex, SBG),
 
@@ -948,7 +950,7 @@ fake_envmap(Path, EnvImgRec) ->
     DiffBG = wxImage:blur(SpecBG, 10),
     blur_edges(DiffBG),
     DBG0 = wings_image:wxImage_to_e3d(DiffBG),
-    DBG = DBG0#e3d_image{name="Fake diffuse", extra=[{wrap, {repeat,clamp}},
+    DBG = DBG0#e3d_image{name="Fake diffuse", extra=[{wrap, {repeat,repeat}},
                                                      {filter, {linear,linear}}]},
     wxImage:destroy(SpecBG),
     wxImage:destroy(DiffBG),
@@ -1082,14 +1084,14 @@ make_diffuse(OrigImg, Buff0, Buff1, W, H, CL) ->
     Img = << << (round(R*255)), (round(G*255)), (round(B*255)) >> ||
               <<R:32/float-native, G:32/float-native, B:32/float-native, _:32>> <= DiffData >>,
     %% wings_image:debug_display(1000+W,#e3d_image{width=W, height=H, image=Img, name="Diffuse"}),
-    Opts = [{wrap, {repeat,clamp}}, {filter, {linear, linear}}],
+    Opts = [{wrap, {repeat,repeat}}, {filter, {linear, linear}}],
     ImId = wings_image:new_hidden(env_diffuse_tex, #e3d_image{width=W,height=H,image=Img,extra=Opts}),
     {env_diffuse_tex, ImId}.
 
 make_spec(OrigImg, Buff0, Buff1, W0, H0, CL) ->
     NoMipMaps = trunc(math:log2(min(W0,H0))),
     [{Img,W0,H0,0}|MMs] = make_spec(0, NoMipMaps, OrigImg, Buff0, Buff1, W0, H0, CL),
-    Opts = [{wrap, {repeat,clamp}}, {filter, {mipmap, linear}}, {mipmaps, MMs}],
+    Opts = [{wrap, {repeat,repeat}}, {filter, {mipmap, linear}}, {mipmaps, MMs}],
     ImId = wings_image:new_hidden(env_spec_tex, #e3d_image{width=W0,height=H0,image=Img,extra=Opts}),
     {env_spec_tex, ImId}.
 

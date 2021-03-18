@@ -22,7 +22,7 @@ void main(void)
     vec3 n = get_normal();
     vec3 v = normalize(ws_eyepoint-ws_position);  // point to camera
     vec3 l = normalize(ws_lightpos-ws_position);  // point to ligth
-    PBRInfo pbr = calc_views(n, v, vec3(0.0));
+    PBRInfo pbr = calc_views(n, v, l);
     pbr = calc_material(pbr);
 
     // Calculate the shading terms for the microfacet specular shading model

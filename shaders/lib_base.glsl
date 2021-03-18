@@ -13,7 +13,7 @@
 #extension GL_ARB_shader_texture_lod : enable
 #endif
 
-const float M_PI = 3.141592653589793;
+const float M_PI = 3.14159265359;
 
 // Encapsulate the various inputs used by the various functions in the shading equation
 struct PBRInfo

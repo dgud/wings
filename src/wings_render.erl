@@ -48,6 +48,7 @@ render(#st{selmode=Mode}=St) ->
     end,
     {PM,MM,SceneLights} = wings_view:load_matrices(true),
     View = wings_view:current(),
+    draw_background(SceneLights, MM),
     AxesData = ground_and_axes(View, PM,MM),
     mini_axis_icon(View, MM),
     show_saved_bb(St),
@@ -661,6 +662,44 @@ edge_width(_) -> 1.0.
 hard_edge_width(edge) -> wings_pref:get_value(hard_edge_width);
 hard_edge_width(_) -> max(wings_pref:get_value(hard_edge_width) - 1, 1.0).
 
+draw_background(false, MM) ->
+    case wings_pref:get_value(number_of_lights) of
+        2 -> ignore;
+        1 -> wings_pref:get_value(show_bg) andalso draw_background_1(MM)
+    end;
+draw_background(true, MM) ->
+    wings_pref:get_value(show_bg) andalso draw_background_1(MM).
+
+draw_background_1(MM) ->
+    gl:disable(?GL_CULL_FACE),
+    gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_FILL),
+    gl:disable(?GL_DEPTH_TEST),
+    RS0 = #{ws_eyepoint => e3d_mat:mul_point(e3d_transform:inv_matrix(MM), {0.0,0.0,0.0}),
+            view_from_world => MM
+           },
+
+    Update = fun(_) ->
+                     {NoFs, Data, _, _, _} = wings_shapes:tri_cube(#{}),
+		     D = fun(RS1) ->
+                                 RS = wings_shaders:set_uloc(bg_blur, wings_pref:get_value(show_bg_blur), RS1),
+                                 wings_io:set_color({0.0,0.8,0.8}),
+				 gl:drawArrays(?GL_TRIANGLES, 0, NoFs*3),
+                                 RS
+			 end,
+		     wings_vbo:new(D, Data)
+	     end,
+    RS = wings_shaders:use_prog(background, RS0),
+    wings_dl:draw(background, ignore, Update, RS),
+
+    %% Reset
+    gl:popMatrix(),
+    gl:matrixMode(?GL_PROJECTION),
+    gl:popMatrix(),
+    gl:matrixMode(?GL_MODELVIEW),
+    gl:enable(?GL_DEPTH_TEST),
+    wings_shaders:use_prog(0, RS),
+    ok.
+
 ground_and_axes(#view{yon=Yon0} = View, PM,MM) ->
     Axes = wings_wm:get_prop(show_axes),
     {ShowGrid, GridSize} = groundplane(Axes, View, PM, MM),
@@ -687,12 +726,10 @@ ground_and_axes(#view{yon=Yon0} = View, PM,MM) ->
     wings_dl:draw(axes, Key, Update, #{}),
     {ShowGrid, Axes, Yon}.
 
-get_pref(Key) ->
-    wings_pref:get_value(Key).
 
 axis_data([{I,PosKey,NegKey}|T], Yon) ->
-    Pos = get_pref(PosKey),
-    Neg = get_pref(NegKey),
+    Pos = wings_pref:get_value(PosKey),
+    Neg = wings_pref:get_value(NegKey),
     A0 = {0.0,0.0,0.0},
     A = setelement(I, A0, Yon),
     B = setelement(I, A0, -Yon),
@@ -770,7 +807,6 @@ show_camera_image_plane() ->
 		     {X2*1.0,Y2,0.0},{WinW*1.0,WinH*1.0,0.0},	% right
 		     {WinW*1.0,0.0,0.0},{X2,Y1,0.0}],
 	    Poly = << <<X:?F32,Y:?F32,Z:?F32>> || {X,Y,Z} <- Quads >>,
-
 	    Update = fun draw_camera_image_plane/1,
 	    wings_dl:draw(draw_cam_imageplane, {Poly,{X1,Y1,X2,Y2}}, Update, #{})
     end.
