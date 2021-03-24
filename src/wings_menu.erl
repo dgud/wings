@@ -201,33 +201,29 @@ wx_popup_menu(Parent,Pos,Names,Menus0,Magnet,Owner) ->
 	       end),
     Entries.
 
-setup_dialog(TopParent, Entries, Magnet, ScreenPos, ignore) ->
-    do_setup_dialog(TopParent, Entries, Magnet, ScreenPos);
-setup_dialog(TopParent, Entries, Magnet, ScreenPos, undefined) ->
-    setup_dialog(TopParent, Entries, Magnet, ScreenPos, #{});
-setup_dialog(TopParent, Entries, Magnet, {X,Y} = ScreenPos, Cache) ->
-    case maps:get({Entries, Magnet}, Cache, undefined) of
+setup_dialog(Parent, Entries, Magnet, ScreenPos, ignore) ->
+    do_setup_dialog(Parent, Entries, Magnet, ScreenPos);
+setup_dialog(Parent, Entries, Magnet, ScreenPos, undefined) ->
+    setup_dialog(Parent, Entries, Magnet, ScreenPos, #{});
+setup_dialog(Parent, Entries, Magnet, {X,Y} = ScreenPos, Cache) ->
+    TopParent = get_toplevel(Parent),
+    case maps:get({Entries, TopParent}, Cache, undefined) of
         undefined ->
             MenuData = do_setup_dialog(TopParent, Entries, Magnet, ScreenPos),
             case maps:get(overlay, MenuData) of
                 none ->
-                    ?SET(menu_cache, Cache#{{Entries, Magnet} => MenuData});
+                    %% Note we leak popup windows menues here,
+                    %% like autouv, should it be cleaned up?
+                    ?SET(menu_cache, Cache#{{Entries, TopParent} => MenuData});
                 _ ->  %% Only for popuptransient windows
                     ?SET(menu_cache,ignore)
             end,
             MenuData;
         #{frame := Frame} = MenuData ->
-            case frame_exists(Frame) of
-                true ->
-                    Pos = fit_menu_on_display(Frame,{X-25,Y-15}),
-                    wxWindow:move(Frame, Pos),
-                    wxPopupTransientWindow:popup(Frame),
-                    MenuData;
-                false ->
-                    NewCache = maps:remove({Entries, Magnet}, Cache),
-                    ?SET(menu_cache, NewCache),
-                    setup_dialog(TopParent, Entries, Magnet, {X,Y} = ScreenPos, NewCache)
-            end
+            Pos = fit_menu_on_display(Frame,{X-25,Y-15}),
+            wxWindow:move(Frame, Pos),
+            wxPopupTransientWindow:popup(Frame),
+            MenuData
     end.
 
 do_setup_dialog(TopParent, Entries0, Magnet, {X0,Y0}=ScreenPos) ->
@@ -256,13 +252,16 @@ do_setup_dialog(TopParent, Entries0, Magnet, {X0,Y0}=ScreenPos) ->
     show_menu_frame(Overlay, Frame, KbdFocus),
     #{overlay=>Overlay, frame=>Frame, panel=>Panel, entries=>Entries, colors=>Cols}.
 
-
-% If a top-level window is deleted, the menu-frame have been deleted as well.
-frame_exists(Frame) ->
-    try wxWindow:getSize(Frame) of
-        _ -> true
-    catch _:_ ->
-            false
+get_toplevel(Win) ->
+    Parent = try wxWindow:isTopLevel(Win) of
+                 true  -> wx:null();
+                 false -> wxWindow:getParent(Win)
+             catch _:_ ->
+                     no_exists
+             end,
+    case wx:is_null(Parent) of
+        true -> Win;
+        false -> get_toplevel(Parent)
     end.
 
 show_menu_frame(none, Frame, _Focus) ->
