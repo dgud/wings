@@ -488,12 +488,12 @@ command_menu(vertex, X, Y) ->
     wings_menu:popup_menu(X,Y, {auv,vertex}, Menu);
 command_menu(_, X, Y) ->
     case catch wpc_hlines:init() of
-        true -> ExportMenu = [{auv_export_menu(label), export_uv, auv_export_menu(help)}];
+        true -> ExportMenu = [separator, {auv_export_menu(label), export_uv, auv_export_menu(help)}];
         _ -> ExportMenu = []
     end,
     Checked = [{crossmark, ?GET({?MODULE,show_background})}],
     Menu = [{auv_show_menu(label),toggle_background,auv_show_menu(help),Checked}] ++
-           option_menu() ++ ExportMenu,
+           ExportMenu ++ option_menu(),
     wings_menu:popup_menu(X,Y, {auv,option}, Menu).
 
 stretch_directions() ->
