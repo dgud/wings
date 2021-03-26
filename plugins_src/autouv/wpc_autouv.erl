@@ -497,7 +497,10 @@ command_menu(_, X, Y) ->
     wings_menu:popup_menu(X,Y, {auv,option}, Menu).
 
 stretch_directions() ->
-    [{?__(1,"Max Uniform"), max_uniform, ?__(2,"Maximize either horizontally or vertically")},
+    [{?__(1,"Max Uniform"), max_uniform(),
+      {?__(2,"Maximize either horizontally or vertically"),
+       ?__(7,"Maximize by using the horizontal dimention"),
+       ?__(8,"Maximize by using the vertical dimention")}, []},
      {?__(3,"Max Horizontal"), max_x, ?__(4,"Maximize horizontally (X dir)")},
      {?__(5,"Max Vertical"),   max_y, ?__(6,"Maximize vertically (Y dir)")}].
 
@@ -515,10 +518,17 @@ scale_directions(true) ->
      {?__(3,"Horizontal"), x, ?__(4,"Scale horizontally (X dir)"), [magnet]},
      {?__(5,"Vertical"),   y, ?__(6,"Scale vertically (Y dir)"), [magnet]}];
 scale_directions(false) ->
-    [{?__(1,"Uniform"),    uniform, ?__(2,"Scale in both directions")},
+    [{?__(1,"Uniform"),    uniform, ?__(2,"Scale in both directions"), []},
      {?__(3,"Horizontal"), x, ?__(4,"Scale horizontally (X dir)")},
      {?__(5,"Vertical"),   y, ?__(6,"Scale vertically (Y dir)")}].
 
+
+max_uniform() ->
+    fun
+        (1, _Ns) -> {auv,{scale,max_uniform}};
+        (2, _Ns) -> {auv,{scale,{max_uniform,x}}};
+        (3, _Ns) -> {auv,{scale,{max_uniform,y}}}
+    end.
 
 option_menu() ->
     [separator,
@@ -853,7 +863,8 @@ handle_command_1({move,{'ASK',Ask}}, St) ->
 handle_command_1({move,Axis}, St) ->
     wings_move:setup(Axis, St);
 handle_command_1({scale,Dir}, St0) %% Maximize chart
-  when Dir == max_uniform; Dir == max_x; Dir == max_y -> 
+  when Dir == max_uniform; Dir == {max_uniform,x}; Dir == {max_uniform,y};
+       Dir == max_x; Dir == max_y ->
     St1 = wpa:sel_map(fun(_, We) -> stretch(Dir,We) end, St0),
     St = update_selected_uvcoords(St1),
     get_event(St);
@@ -1787,20 +1798,27 @@ stretch(Dir,We) ->
     T0 = e3d_mat:translate(e3d_vec:neg(Center)),
     SX0 = 1.0/(X2-X1), SY0= 1.0/(Y2-Y1),
     {SX,SY} = case Dir of
-		  max_x -> {SX0, 1.0};
-		  max_y -> {1.0, SY0};
-		  max_uniform when SX0 < SY0 -> 
-		      {SX0, SX0};
-		  _ ->
-		      {SY0, SY0}
-	      end,
+                max_x -> {SX0, 1.0};
+                max_y -> {1.0, SY0};
+                max_uniform ->
+                    if SX0 < SY0 -> {SX0, SX0};
+                    true -> {SY0, SY0}
+                    end;
+                {max_uniform, Axis} ->
+                    case Axis of
+                        x -> {SX0, SX0};
+                        y -> {SY0, SY0}
+                    end
+              end,
     Stretch = e3d_mat:scale(SX, SY, 1.0),
     T1 = e3d_mat:mul(Stretch, T0),
     Pos = case Dir of
-	      max_uniform -> {0.5,0.5,CZ};
-	      max_x -> {0.5,CY,CZ};
-	      max_y -> {CX,0.5,CZ}
-	  end,    
+              {max_uniform,x} -> {CY,CY,CZ};
+              {max_uniform,y} -> {CX,CX,CZ};
+              max_uniform -> {0.5,0.5,CZ};
+              max_x -> {0.5,CY,CZ};
+              max_y -> {CX,0.5,CZ}
+          end,
     T = e3d_mat:mul(e3d_mat:translate(Pos), T1),
     wings_we:transform_vs(T, We).
     
