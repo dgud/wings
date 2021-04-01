@@ -16,6 +16,7 @@ varying vec3 ws_position;
 uniform vec3 ws_eyepoint;
 uniform vec3 ws_lightpos;
 uniform vec3 LightColor;
+uniform float Exposure;
 
 void main(void)
 {
@@ -40,6 +41,7 @@ void main(void)
     frag_color += 0.6*background_ligthting(pbr, n, normalize(reflect(v, n)));
     frag_color = mix(frag_color, frag_color * pbr.occlusion, 0.7);
     frag_color += get_emission();
+    frag_color *= Exposure;
     gl_FragColor = vec4(pow(frag_color, vec3(1.0/2.2)), baseColor.a); // Should be 2.2
 }
 

@@ -20,6 +20,7 @@ uniform vec3 light_att;
 uniform vec3 light_dir;
 uniform float light_angle;
 uniform float light_exp;
+uniform float Exposure;
 
 void main(void)
 {
@@ -53,7 +54,7 @@ void main(void)
   specContrib *= light_specular.xyz;
   // Obtain final intensity as reflectance (BRDF) scaled by the energy of the light (cosine law)
   vec3 frag_color = att * pbr.NdotL * (diffuseContrib + specContrib);
-
+  frag_color *= Exposure;
   gl_FragColor = vec4(pow(frag_color, vec3(1.0/2.2)), pbr.opaque);
 }
 

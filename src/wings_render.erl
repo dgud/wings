@@ -48,7 +48,7 @@ render(#st{selmode=Mode}=St) ->
     end,
     {PM,MM,SceneLights} = wings_view:load_matrices(true),
     View = wings_view:current(),
-    draw_background(SceneLights, MM),
+    draw_background(MM),
     AxesData = ground_and_axes(View, PM,MM),
     mini_axis_icon(View, MM),
     show_saved_bb(St),
@@ -662,12 +662,7 @@ edge_width(_) -> 1.0.
 hard_edge_width(edge) -> wings_pref:get_value(hard_edge_width);
 hard_edge_width(_) -> max(wings_pref:get_value(hard_edge_width) - 1, 1.0).
 
-draw_background(false, MM) ->
-    case wings_pref:get_value(number_of_lights) of
-        2 -> ignore;
-        1 -> wings_pref:get_value(show_bg) andalso draw_background_1(MM)
-    end;
-draw_background(true, MM) ->
+draw_background(MM) ->
     wings_pref:get_value(show_bg) andalso draw_background_1(MM).
 
 draw_background_1(MM) ->

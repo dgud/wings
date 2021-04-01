@@ -15,6 +15,7 @@
 varying vec3 position;
 uniform vec3 ws_eyepoint;
 uniform float bg_blur;
+uniform float Exposure;
 
 void main(void)
 {
@@ -28,6 +29,6 @@ void main(void)
 #else  // NO GL_ARB_shader_texture_lod
   vec3 col = SRGBtoLINEAR(texture2D(EnvSpecMap, index, lod)).rgb;
 #endif // GL_ARB_shader_texture_lod
-
+  col *= Exposure;
   gl_FragColor = vec4(pow(col, vec3(1.0/2.2)), 1.0);
 }

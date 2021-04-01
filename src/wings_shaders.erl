@@ -28,6 +28,7 @@ init() ->
     wings_pref:set_default(hl_groundcol, {0.026,0.024,0.021}),
     wings_pref:set_default(cl_lightpos, ?cl_lightpos),
     wings_pref:set_default(cl_lightcol, {1.0,1.0,1.0}),
+    wings_pref:set_default(cam_exposure, 1.0),
     compile_all().
 
 compile_all() ->
@@ -67,8 +68,10 @@ use_prog(Name, RS) ->
         #{Name:=Shader} ->
             #{prog:=Prog} = Shader,
             wings_gl:use_prog(Prog),
-            RS1 = set_uloc(ws_matrix, e3d_mat:identity(), RS#{shader=>Shader}),
+            RS0 = set_uloc('Exposure', wings_pref:get_value(cam_exposure), RS#{shader=>Shader}),
+            RS1 = set_uloc(ws_matrix, e3d_mat:identity(), RS0),
             RS2 = set_uloc(ws_eyepoint, maps:get(ws_eyepoint, RS1), RS1),
+
             case Name of
                 1 ->
                     WorldFromView = e3d_transform:inv_matrix(maps:get(view_from_world, RS2)),

@@ -27,12 +27,13 @@
 -define(HEMI_SKY, 1001).
 -define(HEMI_GROUND, 1002).
 -define(CAM_LIGHT, 1010).
--define(CAM_BG, 1011).
--define(CAM_BG_SLIDER, 1012).
 -define(CAM_POSX, 1013).
 -define(CAM_POSY, 1014).
 -define(CAM_COL,  1015).
--define(SCENE_LIGHT, 1020).
+-define(CAM_EXP_SLIDER, 1020).
+-define(CAM_BG, 1021).
+-define(CAM_BG_SLIDER, 1022).
+-define(SCENE_LIGHT, 1030).
 
 -define(AlignSz, 80).
 -define(SPACER_SIZE, 8).
@@ -72,6 +73,7 @@ get_init_state(#st{} = St) ->
     Light = use_light(HaveSceneLight, SceneLight),
     {CamX,CamY,_} = wings_pref:get_value(cl_lightpos),
     CamCol = wings_pref:get_value(cl_lightcol),
+    Exposure = wings_pref:get_value(cam_exposure),
     #{have_scene_light => HaveSceneLight,
       light => Light,
       cam_bg => wings_pref:get_value(show_bg),
@@ -79,6 +81,7 @@ get_init_state(#st{} = St) ->
       cam_pos_x => CamX,
       cam_pos_y => CamY,
       cam_col => CamCol,
+      cam_exposure => Exposure,
       hemi_sky => wings_pref:get_value(hl_skycol),
       hemi_ground => wings_pref:get_value(hl_groundcol)
      }.
@@ -180,6 +183,12 @@ forward_event({apply, {camera_opts, bg_slider}, Val}, Window, State) ->
     wings_pref:set_value(show_bg_blur, Val/100),
     wings_wm:dirty(),
     change_state(Window, State#{cam_bg_blur := Val});
+forward_event({apply, {camera_opts, exp_slider}, Val}, Window, State) ->
+    Exp = math:pow(2.0, Val / 3.0),
+    wings_pref:set_value(cam_exposure, Exp),
+    wings_wm:dirty(),
+    change_state(Window, State#{cam_exposure := Exp});
+
 forward_event(redraw, _, _) ->
     keep;
 forward_event(_Ev, _Win, _State) ->
@@ -281,18 +290,21 @@ create_scenelight(Panel, LightSz, SubFlags) ->
       ids => [{radio, ?SCENE_LIGHT}]}.
 
 create_camera(Panel, TopSz, SubFlags) ->
+    ExpCtrl = wxSlider:new(Panel, ?CAM_EXP_SLIDER, 0, -9, 9, [{style, ?wxSL_HORIZONTAL}]),
+    ExpSz = pre_text(?__(0, "Exposure:"), ExpCtrl, Panel),
     SeeBg = wxCheckBox:new(Panel, ?CAM_BG, ?__(1, "View background"), [{style,?wxALIGN_LEFT}]),
     CamSz = wxBoxSizer:new(?wxVERTICAL),
-    wxSizer:add(CamSz, SeeBg),
     SeeBgBlur = wxSlider:new(Panel, ?CAM_BG_SLIDER, 30, 0, 100, [{style, ?wxSL_HORIZONTAL}]),
     wxWindow:setToolTip(SeeBgBlur, wxToolTip:new(?__(21, "Background blur"))),
     BlurSz = pre_text(?__(2, "Blur:"), SeeBgBlur, Panel),
+    wxSizer:add(CamSz, ExpSz, [{flag, ?wxEXPAND}]),
+    wxSizer:add(CamSz, SeeBg),
     wxSizer:add(CamSz, BlurSz, [{flag, ?wxEXPAND}]),
     wxSizer:add(TopSz, CamSz, SubFlags),
     wxSizer:addSpacer(TopSz, ?SPACER_SIZE),
     wxCheckBox:connect(SeeBg, command_checkbox_clicked),
-    #{bg => SeeBg, bg_slider => SeeBgBlur,
-      ids => [{bg, ?CAM_BG}, {bg_slider, ?CAM_BG_SLIDER}]}.
+    #{bg => SeeBg, bg_slider => SeeBgBlur, exp_slider => ExpCtrl,
+      ids => [{bg, ?CAM_BG}, {bg_slider, ?CAM_BG_SLIDER}, {exp_slider, ?CAM_EXP_SLIDER}]}.
 
 pre_text(String, Ctrl, Parent) ->
     Sz = wxBoxSizer:new(?wxHORIZONTAL),
@@ -324,6 +336,9 @@ setup_gui(cam_bg, Bool, #{camera_opts:=Cam}) ->
 setup_gui(cam_bg_blur, Val, #{camera_opts:=Cam}) ->
     #{bg_slider:=Slider} = Cam,
     wxSlider:setValue(Slider, round(Val*100));
+setup_gui(cam_exposure, Val, #{camera_opts:=Cam}) ->
+    #{exp_slider:=Slider} = Cam,
+    wxSlider:setValue(Slider, round(math:log(Val)) * 3);
 
 setup_gui(cam_pos_x, Val, #{camera_light:=Cam}) ->
     #{x_slider:=Slider} = Cam,
