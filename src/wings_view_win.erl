@@ -175,6 +175,7 @@ forward_event({apply, {camera_light, col}, Val}, Window, State) ->
     wings_pref:set_value(cl_lightcol, Val),
     wings_wm:dirty(),
     change_state(Window, State#{cam_col := Val});
+
 forward_event({apply, {camera_opts, bg}, Bool}, Window, State) ->
     wings_pref:set_value(show_bg, Bool),
     wings_wm:dirty(),

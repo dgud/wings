@@ -218,6 +218,7 @@ save_window({geom,_}) -> true;
 save_window({plugin,_}) -> true;
 save_window(split) -> true;
 save_window(split_rev) -> true;
+save_window(wings_view_win) -> true;
 save_window(_) -> false.
 
 window_prop(Geom) when ?IS_GEOM(Geom) ->
