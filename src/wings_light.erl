@@ -12,7 +12,7 @@
 %%
 
 -module(wings_light).
--export([init/0, init/1, init_opengl/0,
+-export([init/0, init/1, init_opengl/0, load_env_image/1,
          light_types/0,menu/3,command/2,is_any_light_selected/1,
 	 any_enabled_lights/0,info/1,setup_light/2,
 	 create/2,update_dynamic/2,update_matrix/2,update/1,
@@ -50,30 +50,57 @@
 	 prop=[]				%Extra properties.
 	}).
 
+def_envmap() ->
+    DefEnvMap = "grandcanyon.png",
+    DefPath = filename:join(wings_util:lib_dir(wings), "textures"),
+    filename:join(DefPath, DefEnvMap).
+
 init() ->
     wings_pref:set_default(show_bg, false),
     wings_pref:set_default(show_bg_blur, 0.2),
-    init(false).
+    wings_pref:set_default(bg_image, def_envmap()),
+    EnvImgRec = load_env_file(wings_pref:get_value(bg_image)),
+    init(false, EnvImgRec).
 
-init(Recompile) ->
-    Path = filename:join(wings_util:lib_dir(wings), "textures"),
-    LTCmatFile = "areal_ltcmat.bin",
-    {ok, LTCmat} = file:read_file(filename:join(Path, LTCmatFile)),
-    AreaMatTxId = load_area_light_tab(LTCmat),
-    DefEnvMap = "grandcanyon.png",
-    EnvImgRec = wings_image:image_read([{filename, filename:join(Path, DefEnvMap)}]),
+init(Recompile) ->  %% Debug
+    EnvImgRec = load_env_file(wings_pref:get_value(bg_image)),
+    init(Recompile, EnvImgRec).
+
+init(Recompile, EnvImgRec) ->
+    AreaMatTagId = load_area_light_tab(),
     EnvIds = case wings:is_fast_start() orelse cl_setup(Recompile) of
                  true ->
-                     fake_envmap(Path, EnvImgRec);
+                     fake_envmap(EnvImgRec);
                  {error, _} ->
                      ErrorStr = ?__(1, "Could not initialize OpenCL: env lighting limited ~n"),
                      io:format(ErrorStr,[]),
                      wings_status:message(geom, ErrorStr),
-                     fake_envmap(Path, EnvImgRec);
+                     fake_envmap(EnvImgRec);
                  CL ->
                      make_envmap(CL, EnvImgRec)
              end,
-    [?SET(Tag, Id) || {Tag,Id} <- [AreaMatTxId|EnvIds]],
+    [?SET(Tag, Id) || {Tag,Id} <- [AreaMatTagId|EnvIds]],
+    init_opengl(),
+    wings_develop:gl_error_check({?MODULE,?FUNCTION_NAME}),
+    ok.
+
+-spec load_env_image(FileName::string()) -> ok | {file_error, {error, term()}} | {cl_error, {error, term()}}.
+load_env_image(FileName) ->
+    try load_env_image_1(FileName)
+    catch throw:Error ->
+            Error
+    end.
+
+load_env_image_1(FileName) ->
+    EnvImgRec = wings_image:image_read([{filename, FileName}]),
+    is_record(EnvImgRec, e3d_image) orelse throw({file_error, EnvImgRec}),
+    CL = case cl_setup(false) of
+             {error, _} = Error ->
+                 throw({cl_error, Error});
+             CL0 -> CL0
+         end,
+    EnvIds = make_envmap(CL, EnvImgRec),
+    [?SET(Tag, Id) || {Tag,Id} <- EnvIds],
     init_opengl(),
     wings_develop:gl_error_check({?MODULE,?FUNCTION_NAME}),
     ok.
@@ -96,6 +123,15 @@ init_opengl() ->
                 end,
     _ = [SetupUnit(Id) || Id <- Ids],
     ok.
+
+load_env_file(FileName) ->
+    case wings_image:image_read([{filename, FileName}]) of
+        #e3d_image{} = Img ->
+            Img;
+        _Error ->
+            ?dbg("Could not load env image: ~p~n", [FileName]),
+            wings_image:image_read([{filename, def_envmap()}])
+    end.
 
 command({move_light,Type}, St) ->
     wings_move:setup(Type, St);
@@ -922,7 +958,11 @@ mul_point(M, P) -> e3d_mat:mul_point(M, P).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-load_area_light_tab(LTCmat) ->
+load_area_light_tab() ->
+    Path = filename:join(wings_util:lib_dir(wings), "textures"),
+    LTCmatFile = "areal_ltcmat.bin",
+    {ok, LTCmat} = file:read_file(filename:join(Path, LTCmatFile)),
+
     64*64*4*4 = byte_size(LTCmat),
     Opts = [{wrap, {clamp,clamp}}, {filter, {linear, linear}}],
     ImId = wings_image:new_hidden(area_mat,
@@ -934,8 +974,9 @@ load_area_light_tab(LTCmat) ->
     ?CHECK_ERROR(),
     {areamatrix_tex, ImId}.
 
-fake_envmap(Path, EnvImgRec) ->
+fake_envmap(EnvImgRec) ->
     %% Poor mans version with blured images
+    Path = filename:join(wings_util:lib_dir(wings), "textures"),
     SpecBG = wings_image:e3d_to_wxImage(EnvImgRec),
     wxImage:rescale(SpecBG, 512, 256, [{quality, ?wxIMAGE_QUALITY_HIGH}]),
     tone_map(SpecBG),

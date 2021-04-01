@@ -33,6 +33,7 @@
 -define(CAM_EXP_SLIDER, 1020).
 -define(CAM_BG, 1021).
 -define(CAM_BG_SLIDER, 1022).
+-define(CAM_BG_IMAGE, 1023).
 -define(SCENE_LIGHT, 1030).
 
 -define(AlignSz, 80).
@@ -76,12 +77,14 @@ get_init_state(#st{} = St) ->
     Exposure = wings_pref:get_value(cam_exposure),
     #{have_scene_light => HaveSceneLight,
       light => Light,
-      cam_bg => wings_pref:get_value(show_bg),
-      cam_bg_blur => wings_pref:get_value(show_bg_blur),
       cam_pos_x => CamX,
       cam_pos_y => CamY,
       cam_col => CamCol,
+
       cam_exposure => Exposure,
+      cam_bg => wings_pref:get_value(show_bg),
+      cam_bg_blur => wings_pref:get_value(show_bg_blur),
+      cam_bg_image => wings_pref:get_value(bg_image),
       hemi_sky => wings_pref:get_value(hl_skycol),
       hemi_ground => wings_pref:get_value(hl_groundcol)
      }.
@@ -104,11 +107,10 @@ use_light(HaveSceneLight, SceneLight) ->
 changed_state(Key0, Val0, Window, State) ->
     case changed_state(Key0, Val0, State) of
         {true, {Key, Val} = Opt} ->
-            ?dbg("Update ~p ~p~n",[Key,Val]),
             wx_object:cast(Window, {update, Opt}),
             {replace, change_state(Window, State#{Key:=Val})};
         {false, _What} ->
-            ?dbg("Ignore: ~p~n",[_What]),
+            % ?dbg("Ignore: ~p~n",[_What]),
             keep
     end.
 
@@ -124,7 +126,7 @@ changed_state(scene_lights, Bool, #{light:=Light0, have_scene_light:=HaveSceneLi
 changed_state(have_scene_light, Bool, #{have_scene_light:=HaveSceneLight}) ->
     {Bool =/= HaveSceneLight, {have_scene_light, Bool}};
 changed_state(_Key, _Val, _State) ->
-    ?dbg("Ignore: ~p ~p in ~p~n",[_Key, _Val, _State]),
+    %% ?dbg("Ignore: ~p ~p in ~p~n",[_Key, _Val, _State]),
     {false, ignored}.
 
 change_state(Window, State) ->
@@ -176,6 +178,11 @@ forward_event({apply, {camera_light, col}, Val}, Window, State) ->
     wings_wm:dirty(),
     change_state(Window, State#{cam_col := Val});
 
+forward_event({apply, {camera_opts, exp_slider}, Val}, Window, State) ->
+    Exp = math:pow(2.0, Val / 3.0),
+    wings_pref:set_value(cam_exposure, Exp),
+    wings_wm:dirty(),
+    change_state(Window, State#{cam_exposure := Exp});
 forward_event({apply, {camera_opts, bg}, Bool}, Window, State) ->
     wings_pref:set_value(show_bg, Bool),
     wings_wm:dirty(),
@@ -184,17 +191,35 @@ forward_event({apply, {camera_opts, bg_slider}, Val}, Window, State) ->
     wings_pref:set_value(show_bg_blur, Val/100),
     wings_wm:dirty(),
     change_state(Window, State#{cam_bg_blur := Val});
-forward_event({apply, {camera_opts, exp_slider}, Val}, Window, State) ->
-    Exp = math:pow(2.0, Val / 3.0),
-    wings_pref:set_value(cam_exposure, Exp),
-    wings_wm:dirty(),
-    change_state(Window, State#{cam_exposure := Exp});
+forward_event({apply, {camera_opts, bg_image}, Image}, Window, State) ->
+    case wings_light:load_env_image(Image) of
+        {file_error, Err} ->
+            handle_error(file, Err, Image),
+            keep;
+        {cl_error, Err} ->
+            handle_error(opencl, Err, Image),
+            keep;
+        ok ->
+            wings_pref:set_value(bg_image, Image),
+            wings_wm:dirty(),
+            change_state(Window, State#{cam_bg_image := Image})
+    end;
 
 forward_event(redraw, _, _) ->
     keep;
 forward_event(_Ev, _Win, _State) ->
-    ?dbg("Ignored: ~p~n",[_Ev]),
+    %% ?dbg("Ignored: ~p~n",[_Ev]),
     keep.
+
+handle_error(opencl, {error, Reason}, _Image) ->
+    wings_u:message(io_lib:format(?__(1, "Can not use OpenCL, environment map will not be loaded\n Reason: ~p"),
+                                  [Reason]));
+handle_error(file, {error, Reason}, Image) ->
+    wings_u:message(io_lib:format(?__(2, "Could not load image file: ~s\n Reason: ~p"),
+                                  [Image, Reason])).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Window process
 
 init([Frame, _Ps, Os]) ->
     Panel = wxPanel:new(Frame),
@@ -293,19 +318,28 @@ create_scenelight(Panel, LightSz, SubFlags) ->
 create_camera(Panel, TopSz, SubFlags) ->
     ExpCtrl = wxSlider:new(Panel, ?CAM_EXP_SLIDER, 0, -9, 9, [{style, ?wxSL_HORIZONTAL}]),
     ExpSz = pre_text(?__(0, "Exposure:"), ExpCtrl, Panel),
-    SeeBg = wxCheckBox:new(Panel, ?CAM_BG, ?__(1, "View background"), [{style,?wxALIGN_LEFT}]),
+    SeeBg = wxCheckBox:new(Panel, ?CAM_BG, ?__(1, "View environment"), [{style,?wxALIGN_LEFT}]),
     CamSz = wxBoxSizer:new(?wxVERTICAL),
     SeeBgBlur = wxSlider:new(Panel, ?CAM_BG_SLIDER, 30, 0, 100, [{style, ?wxSL_HORIZONTAL}]),
-    wxWindow:setToolTip(SeeBgBlur, wxToolTip:new(?__(21, "Background blur"))),
-    BlurSz = pre_text(?__(2, "Blur:"), SeeBgBlur, Panel),
+    wxWindow:setToolTip(SeeBgBlur, wxToolTip:new(?__(21, "Environent blur"))),
+    BlurSz = pre_text(?__(2, "Env Blur:"), SeeBgBlur, Panel),
+
+    ImageCtrl = wxFilePickerCtrl:new(Panel, ?CAM_BG_IMAGE, []),
+    ImageSz = pre_text(?__(3, "Env Image:"), ImageCtrl, Panel),
+
     wxSizer:add(CamSz, ExpSz, [{flag, ?wxEXPAND}]),
+    wxSizer:addSpacer(CamSz, ?SPACER_SIZE),
     wxSizer:add(CamSz, SeeBg),
     wxSizer:add(CamSz, BlurSz, [{flag, ?wxEXPAND}]),
+    wxSizer:add(CamSz, ImageSz, [{flag, ?wxEXPAND}]),
     wxSizer:add(TopSz, CamSz, SubFlags),
     wxSizer:addSpacer(TopSz, ?SPACER_SIZE),
     wxCheckBox:connect(SeeBg, command_checkbox_clicked),
-    #{bg => SeeBg, bg_slider => SeeBgBlur, exp_slider => ExpCtrl,
-      ids => [{bg, ?CAM_BG}, {bg_slider, ?CAM_BG_SLIDER}, {exp_slider, ?CAM_EXP_SLIDER}]}.
+    wxFilePickerCtrl:connect(ImageCtrl, command_filepicker_changed),
+    #{bg => SeeBg, bg_slider => SeeBgBlur, exp_slider => ExpCtrl, bg_image => ImageCtrl,
+      ids => [{exp_slider, ?CAM_EXP_SLIDER},
+              {bg, ?CAM_BG}, {bg_slider, ?CAM_BG_SLIDER},
+              {bg_image, ?CAM_BG_IMAGE}]}.
 
 pre_text(String, Ctrl, Parent) ->
     Sz = wxBoxSizer:new(?wxHORIZONTAL),
@@ -330,6 +364,9 @@ setup_gui(have_scene_light, Bool, #{scene_light:=Cam}) ->
     #{radio:=Button} = Cam,
     wxRadioButton:enable(Button, [{enable, Bool}]);
 
+setup_gui(cam_exposure, Val, #{camera_opts:=Cam}) ->
+    #{exp_slider:=Slider} = Cam,
+    wxSlider:setValue(Slider, round(math:log(Val)) * 3);
 setup_gui(cam_bg, Bool, #{camera_opts:=Cam}) ->
     #{bg:=OnOff, bg_slider:=Slider} = Cam,
     wxCheckBox:setValue(OnOff, Bool),
@@ -337,9 +374,9 @@ setup_gui(cam_bg, Bool, #{camera_opts:=Cam}) ->
 setup_gui(cam_bg_blur, Val, #{camera_opts:=Cam}) ->
     #{bg_slider:=Slider} = Cam,
     wxSlider:setValue(Slider, round(Val*100));
-setup_gui(cam_exposure, Val, #{camera_opts:=Cam}) ->
-    #{exp_slider:=Slider} = Cam,
-    wxSlider:setValue(Slider, round(math:log(Val)) * 3);
+setup_gui(cam_bg_image, FileName, #{camera_opts:=Cam}) ->
+    #{bg_image:=Slider} = Cam,
+    wxFilePickerCtrl:setPath(Slider, FileName);
 
 setup_gui(cam_pos_x, Val, #{camera_light:=Cam}) ->
     #{x_slider:=Slider} = Cam,
@@ -411,6 +448,8 @@ forward_setting(What, #wxCommand{type=command_checkbox_clicked, commandInt = Val
     wings_wm:psend(?MODULE, {apply, What, Val == 1});
 forward_setting(What, #wxCommand{type=command_slider_updated, commandInt = Val}) ->
     wings_wm:psend(?MODULE, {apply, What, Val});
+forward_setting(What, #wxFileDirPicker{type=command_filepicker_changed, path = Path}) ->
+    wings_wm:psend(?MODULE, {apply, What, Path});
 forward_setting(What, {col_changed, _, RGB}) ->
     wings_wm:psend(?MODULE, {apply, What, RGB});
 forward_setting(What, _Ev) ->
