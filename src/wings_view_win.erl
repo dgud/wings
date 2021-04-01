@@ -31,6 +31,7 @@
 -define(CAM_BG_SLIDER, 1012).
 -define(CAM_POSX, 1013).
 -define(CAM_POSY, 1014).
+-define(CAM_COL,  1015).
 -define(SCENE_LIGHT, 1020).
 
 -define(AlignSz, 80).
@@ -70,12 +71,14 @@ get_init_state(#st{} = St) ->
     SceneLight = wings_pref:get_value(scene_lights, false),
     Light = use_light(HaveSceneLight, SceneLight),
     {CamX,CamY,_} = wings_pref:get_value(cl_lightpos),
+    CamCol = wings_pref:get_value(cl_lightcol),
     #{have_scene_light => HaveSceneLight,
       light => Light,
       cam_bg => wings_pref:get_value(show_bg),
       cam_bg_blur => wings_pref:get_value(show_bg_blur),
       cam_pos_x => CamX,
       cam_pos_y => CamY,
+      cam_col => CamCol,
       hemi_sky => wings_pref:get_value(hl_skycol),
       hemi_ground => wings_pref:get_value(hl_groundcol)
      }.
@@ -165,6 +168,10 @@ forward_event({apply, {camera_light, pos_y}, Val}, Window, #{cam_pos_x := PosX} 
     wings_pref:set_value(cl_lightpos, {PosX, Val/2.0, 0.0}),
     wings_wm:dirty(),
     change_state(Window, State#{cam_pos_y := Val/2.0});
+forward_event({apply, {camera_light, col}, Val}, Window, State) ->
+    wings_pref:set_value(cl_lightcol, Val),
+    wings_wm:dirty(),
+    change_state(Window, State#{cam_col := Val});
 forward_event({apply, {camera_opts, bg}, Bool}, Window, State) ->
     wings_pref:set_value(show_bg, Bool),
     wings_wm:dirty(),
@@ -246,15 +253,20 @@ create_cameralight(Panel, LightSz, SubFlags) ->
     wxWindow:setToolTip(PosCtrlY, wxToolTip:new(?__(51, "Camera lights vertical offset from camera"))),
     PosSzY = pre_text(?__(5, "Vertical:"), PosCtrlY, Panel),
 
+    ColCtrl = ww_color_ctrl:new(Panel, ?CAM_COL, [{col, {1.0,1.0,1.0}}]),
+    ColSz = pre_text(?__(6, "Color:"), ColCtrl, Panel),
+
     wxSizer:add(CamLiSz, PosSzX, [{flag, ?wxEXPAND}]),
     wxSizer:add(CamLiSz, PosSzY, [{flag, ?wxEXPAND}]),
+    wxSizer:add(CamLiSz, ColSz),
 
     wxSizer:add(LightSz, CamLiLB),
     wxSizer:add(LightSz, CamLiSz, SubFlags),
     wxSizer:addSpacer(LightSz, ?SPACER_SIZE),
+    ok = ww_color_ctrl:connect(ColCtrl, col_changed),
     #{radio => CamLiLB, sz => CamLiSz,
-      x_slider => PosCtrlX, y_slider => PosCtrlY,
-      ids => [{radio, ?CAM_LIGHT}, {pos_x, ?CAM_POSX}, {pos_y, ?CAM_POSY}]}.
+      x_slider => PosCtrlX, y_slider => PosCtrlY, col => ColCtrl,
+      ids => [{radio, ?CAM_LIGHT}, {pos_x, ?CAM_POSX}, {pos_y, ?CAM_POSY}, {col, ?CAM_COL}]}.
 
 create_scenelight(Panel, LightSz, SubFlags) ->
     SceneLB = wxRadioButton:new(Panel, ?SCENE_LIGHT, ?__(10, "Scene Light"), []),
@@ -299,28 +311,30 @@ setup_gui(light, scene_light, #{scene_light:=Cam}) ->
 setup_gui(light, hemi_light, #{hemi_light:=Cam}) ->
     #{radio:=Button} = Cam,
     wxRadioButton:setValue(Button, true);
+
 setup_gui(have_scene_light, Bool, #{scene_light:=Cam}) ->
     %% Scene light is available
     #{radio:=Button} = Cam,
-    wxRadioButton:enable(Button, [{enable, Bool}]),
-    ok;
+    wxRadioButton:enable(Button, [{enable, Bool}]);
+
 setup_gui(cam_bg, Bool, #{camera_opts:=Cam}) ->
     #{bg:=OnOff, bg_slider:=Slider} = Cam,
     wxCheckBox:setValue(OnOff, Bool),
-    wxSlider:enable(Slider, [{enable, Bool}]),
-    ok;
+    wxSlider:enable(Slider, [{enable, Bool}]);
 setup_gui(cam_bg_blur, Val, #{camera_opts:=Cam}) ->
     #{bg_slider:=Slider} = Cam,
-    wxSlider:setValue(Slider, round(Val*100)),
-    ok;
+    wxSlider:setValue(Slider, round(Val*100));
+
 setup_gui(cam_pos_x, Val, #{camera_light:=Cam}) ->
     #{x_slider:=Slider} = Cam,
-    wxSlider:setValue(Slider, round(Val*2)),
-    ok;
+    wxSlider:setValue(Slider, round(Val*2));
 setup_gui(cam_pos_y, Val, #{camera_light:=Cam}) ->
     #{y_slider:=Slider} = Cam,
-    wxSlider:setValue(Slider, round(Val*2)),
-    ok;
+    wxSlider:setValue(Slider, round(Val*2));
+setup_gui(cam_col, RGB, #{camera_light:=Cam}) ->
+    #{col:=Ctrl} = Cam,
+    ww_color_ctrl:setColor(Ctrl, RGB);
+
 setup_gui(hemi_sky, RGB, #{hemi_light:=Hemi}) ->
     #{sky:=Ctrl} = Hemi,
     ww_color_ctrl:setColor(Ctrl, RGB);

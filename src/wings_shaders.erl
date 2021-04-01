@@ -27,6 +27,7 @@ init() ->
     wings_pref:set_default(hl_skycol, {0.95,0.95,0.90}),
     wings_pref:set_default(hl_groundcol, {0.026,0.024,0.021}),
     wings_pref:set_default(cl_lightpos, ?cl_lightpos),
+    wings_pref:set_default(cl_lightcol, {1.0,1.0,1.0}),
     compile_all().
 
 compile_all() ->
@@ -72,7 +73,8 @@ use_prog(Name, RS) ->
                 1 ->
                     WorldFromView = e3d_transform:inv_matrix(maps:get(view_from_world, RS2)),
                     LPos = e3d_mat:mul_point(WorldFromView, wings_pref:get_value(cl_lightpos)),
-                    set_uloc('ws_lightpos', LPos, RS2);
+                    RS3 = set_uloc('ws_lightpos', LPos, RS2),
+                    set_uloc('LightColor', wings_pref:get_value(cl_lightcol), RS3);
                 2 ->
                     WorldFromView = e3d_transform:inv_matrix(maps:get(view_from_world, RS2)),
                     LPos = e3d_mat:mul_point(WorldFromView, ?hl_lightpos),
