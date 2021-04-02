@@ -167,10 +167,12 @@ forward_event({apply, {hemi_light, ground}, RGB}, Window, State) ->
 
 forward_event({apply, {camera_light, pos_x}, Val}, Window, #{cam_pos_y := PosY} = State) ->
     wings_pref:set_value(cl_lightpos, {Val/2.0, PosY, 0.0}),
+    wings_status:message(?MODULE, io_lib:format(?__(20,"Camera light position: ~.2f, ~.2f"), [Val/2.0, PosY])),
     wings_wm:dirty(),
     change_state(Window, State#{cam_pos_x := Val/2.0});
 forward_event({apply, {camera_light, pos_y}, Val}, Window, #{cam_pos_x := PosX} = State) ->
     wings_pref:set_value(cl_lightpos, {PosX, Val/2.0, 0.0}),
+    wings_status:message(?MODULE, io_lib:format(?__(20,"Camera light position: ~.2f, ~.2f"), [PosX, Val/2.0])),
     wings_wm:dirty(),
     change_state(Window, State#{cam_pos_y := Val/2.0});
 forward_event({apply, {camera_light, col}, Val}, Window, State) ->
@@ -180,6 +182,7 @@ forward_event({apply, {camera_light, col}, Val}, Window, State) ->
 
 forward_event({apply, {camera_opts, exp_slider}, Val}, Window, State) ->
     Exp = math:pow(2.0, Val / 3.0),
+    wings_status:message(?MODULE, io_lib:format(?__(21,"Camera exposure: ~.2f"), [Exp])),
     wings_pref:set_value(cam_exposure, Exp),
     wings_wm:dirty(),
     change_state(Window, State#{cam_exposure := Exp});
@@ -189,6 +192,7 @@ forward_event({apply, {camera_opts, bg}, Bool}, Window, State) ->
     change_state(Window, State#{cam_bg := Bool});
 forward_event({apply, {camera_opts, bg_slider}, Val}, Window, State) ->
     wings_pref:set_value(show_bg_blur, Val/100),
+    wings_status:message(?MODULE, io_lib:format(?__(22,"Environement blur: ~.3f"), [Val/100])),
     wings_wm:dirty(),
     change_state(Window, State#{cam_bg_blur := Val});
 forward_event({apply, {camera_opts, bg_image}, Image}, Window, State) ->
@@ -248,7 +252,9 @@ init([Frame, _Ps, Os]) ->
     State = ids_to_path(State0),
     wxWindow:connect(Panel, command_radiobutton_selected),
     wxWindow:connect(Panel, command_slider_updated),
-
+    Children = [wxStaticBoxSizer:getStaticBox(LightSz), wxStaticBoxSizer:getStaticBox(CameraSz)
+               | wxWindow:getChildren(Panel)],
+    [wxWindow:connect(Win, enter_window, [{userData, {win, Panel}}]) || Win <- Children],
     [setup_gui(Key,Val,State) || {Key,Val} <- Os],
     {Panel, State}.
 
@@ -281,11 +287,11 @@ create_cameralight(Panel, LightSz, SubFlags) ->
     CamLiSz = wxBoxSizer:new(?wxVERTICAL),
 
     PosCtrlX = wxSlider:new(Panel, ?CAM_POSX, 0, -50, 50, [{style, ?wxSL_HORIZONTAL}]),
-    wxWindow:setToolTip(PosCtrlX, wxToolTip:new(?__(41, "Camera lights horizontal offset from camera"))),
+    wxWindow:setToolTip(PosCtrlX, wxToolTip:new(?__(41, "Camera light horizontal position offset."))),
     PosSzX = pre_text(?__(4, "Horizontal:"), PosCtrlX, Panel),
 
     PosCtrlY = wxSlider:new(Panel, ?CAM_POSY, 0, -50, 50, [{style, ?wxSL_HORIZONTAL}]),
-    wxWindow:setToolTip(PosCtrlY, wxToolTip:new(?__(51, "Camera lights vertical offset from camera"))),
+    wxWindow:setToolTip(PosCtrlY, wxToolTip:new(?__(51, "Camera light vertical position offset."))),
     PosSzY = pre_text(?__(5, "Vertical:"), PosCtrlY, Panel),
 
     ColCtrl = ww_color_ctrl:new(Panel, ?CAM_COL, [{col, {1.0,1.0,1.0}}]),
@@ -407,6 +413,20 @@ handle_event(#wx{id=?CAM_BG,event=#wxCommand{type=command_checkbox_clicked, comm
     forward_setting(What, Ev),
     #{bg_slider:=Slider} = Cam,
     wxSlider:enable(Slider, [{enable, Val == 1}]),
+    {noreply, State};
+handle_event(#wx{id=Id, event=#wxMouse{type=enter_window}}=Ev, #{ids:=Ids} = State) ->
+    Msg = case maps:get(Id, Ids, none) of
+              {hemi_light, _} -> ?__(2, "Change light color");
+              {camera_light, col} -> ?__(2, "Change light color");
+              {camera_light, _} -> ?__(3, "Change light position");
+              {camera_opts, exp_slider} -> ?__(10, "Change exposure");
+              {camera_opts, bg} -> ?__(11, "Show environment");
+              {camera_opts, bg_slider} -> ?__(12, "Blur environment");
+              {camera_opts, bg_image} -> ?__(13, "Change environment image");
+              _What -> ?__(1, "Edit camera and light settings")
+          end,
+    wings_status:message(?MODULE, Msg),
+    wings_frame ! Ev,
     {noreply, State};
 handle_event(#wx{id=Id,event=Ev}, #{ids:=Ids} = State) ->
     What = maps:get(Id, Ids),
