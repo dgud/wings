@@ -48,7 +48,6 @@ render(#st{selmode=Mode}=St) ->
     end,
     {PM,MM,SceneLights} = wings_view:load_matrices(true),
     View = wings_view:current(),
-    draw_background(MM),
     AxesData = ground_and_axes(View, PM,MM),
     mini_axis_icon(View, MM),
     show_saved_bb(St),
@@ -57,6 +56,7 @@ render(#st{selmode=Mode}=St) ->
     render_objects(Mode, PM, MM, SceneLights),
     user_clipping_planes(off),
     axis_letters(PM,MM,AxesData),
+    draw_background(MM),
     show_camera_image_plane(),
     gl:popAttrib(),
     call_post_hook(St),
@@ -668,16 +668,17 @@ draw_background(MM) ->
 draw_background_1(MM) ->
     gl:disable(?GL_CULL_FACE),
     gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_FILL),
-    gl:disable(?GL_DEPTH_TEST),
+    gl:depthFunc(?GL_LEQUAL),
+    gl:matrixMode(?GL_PROJECTION),
+    gl:pushMatrix(),
+    load_perspectiv(),
     RS0 = #{ws_eyepoint => e3d_mat:mul_point(e3d_transform:inv_matrix(MM), {0.0,0.0,0.0}),
-            view_from_world => MM
-           },
+            view_from_world => MM},
 
     Update = fun(_) ->
                      {NoFs, Data, _, _, _} = wings_shapes:tri_cube(#{}),
 		     D = fun(RS1) ->
                                  RS = wings_shaders:set_uloc(bg_blur, wings_pref:get_value(show_bg_blur), RS1),
-                                 wings_io:set_color({0.0,0.8,0.8}),
 				 gl:drawArrays(?GL_TRIANGLES, 0, NoFs*3),
                                  RS
 			 end,
@@ -688,12 +689,19 @@ draw_background_1(MM) ->
 
     %% Reset
     gl:popMatrix(),
-    gl:matrixMode(?GL_PROJECTION),
-    gl:popMatrix(),
     gl:matrixMode(?GL_MODELVIEW),
-    gl:enable(?GL_DEPTH_TEST),
+    gl:depthFunc(?GL_LESS),
     wings_shaders:use_prog(0, RS),
     ok.
+
+load_perspectiv() ->
+    {W,H} = wings_wm:win_size(),
+    Aspect = W/H,
+    #view{fov=Fov,hither=Hither,yon=Yon} = wings_view:current(),
+    TP = e3d_transform:perspective(Fov, Aspect, Hither, Yon),
+    gl:loadMatrixd(e3d_transform:matrix(TP)).
+
+
 
 ground_and_axes(#view{yon=Yon0} = View, PM,MM) ->
     Axes = wings_wm:get_prop(show_axes),

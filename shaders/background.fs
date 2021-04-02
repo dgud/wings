@@ -21,8 +21,8 @@ void main(void)
 {
   vec3 view_vec = normalize(-position);
   vec2 index = vec2uv(view_vec);
-  float mipCount = 8.0; // resolution of 512x256
-  float lod = (bg_blur * mipCount);
+  float scale = 3.0;  // ~ sqrt(NoOfmipmaps)  mipmaps = 10 for 2048x1024
+  float lod = pow((0.1+bg_blur) * scale, 2.0);
 
 #ifdef GL_ARB_shader_texture_lod
   vec3 col = SRGBtoLINEAR(texture2DLod(EnvSpecMap, index, lod)).rgb;

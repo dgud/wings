@@ -35,7 +35,7 @@ vec3 background_ligthting(PBRInfo pbrInputs, vec3 N, vec3 reflection)
     vec2 brdf = texture2D(EnvBrdfMap, vec2(pbrInputs.NdotV, pbrInputs.perceptualRoughness)).rg;
     vec3 difflight = SRGBtoLINEAR(texture2D(EnvDiffMap, index)).rgb;
     vec3 diffuse  = difflight * pbrInputs.diffuseColor;
-    float mipCount = 8.0; // resolution of 512x256
+    float mipCount = 10.0; // resolution of 2048x1024
     float lod = (pbrInputs.perceptualRoughness * mipCount);
 #ifdef GL_ARB_shader_texture_lod
     vec3 specligth = SRGBtoLINEAR(texture2DLod(EnvSpecMap, index, lod)).rgb;
