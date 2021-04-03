@@ -86,7 +86,6 @@
 draw_options(#st{bb=Uvs}=AuvSt0) ->
     #uvstate{st=GeomSt0,matname=MatName0,bg_img=TexImg} = Uvs,
     BkpImg = wings_image:info(TexImg),
-    St = wings_wm:get_current_state(),
     prw_img_id(new),
 
     [MaxTxs0|_] = gl:getIntegerv(?GL_MAX_TEXTURE_SIZE),
@@ -101,12 +100,12 @@ draw_options(#st{bb=Uvs}=AuvSt0) ->
     wings_dialog:dialog(?__(3,"Draw Options"), {preview,Qs},
 			fun({dialog_preview,Options}) ->
                 Opt = list_to_prefs(Options),
-                NewImg = ?SLOW(get_texture(St, {Opt,Shaders})),
+                NewImg = ?SLOW(get_texture(AuvSt0, {Opt,Shaders})),
                 case MatName0 of
                     none ->
                         ok = wings_image:update(TexImg, NewImg);
                     _ ->
-                        TexName = case get_mat_texture(MatName0, St) of
+                        TexName = case get_mat_texture(MatName0, GeomSt0) of
                                       false -> atom_to_list(MatName0);
                                       OldId  ->
                                           OldImg = wings_image:info(OldId),
@@ -117,17 +116,17 @@ draw_options(#st{bb=Uvs}=AuvSt0) ->
                                   end,
                         catch wings_material:update_image(MatName0, diffuse, NewImg#e3d_image{name=TexName}, GeomSt0)
                 end,
-                {preview,St,St};
+                {preview,GeomSt0,GeomSt0};
             (cancel) ->
                 case MatName0 of
                     none ->
                         ok = wings_image:update(TexImg, BkpImg);
                     _ ->
-                        catch wings_material:update_image(MatName0, diffuse, BkpImg, St)
+                        catch wings_material:update_image(MatName0, diffuse, BkpImg, GeomSt0)
                 end,
                 wings_wm:later({new_state,AuvSt0}),
                 prw_img_id(delete),
-                St;
+                GeomSt0;
             (Options) ->
                 Opt = list_to_prefs(Options),
                 prw_img_id(delete),
@@ -1073,7 +1072,7 @@ setup(#st{bb=#uvstate{id=RId,st=#st{shapes=Sh0}}}=St, Reqs) ->
 
 setup_charts(#st{shapes=Cs0,selmode=Mode,sel=Sel}, We, Reqs) ->
     Ns = case member(normal, Reqs) orelse member(binormal, Reqs) of
-	     true -> setup_normals(We);
+	     true -> setup_normals(We#we{mirror=none});
 	     false -> []
 	 end,
     Z = e3d_vec:zero(),
