@@ -926,10 +926,17 @@ handle_command_1({move_to,Dir}, St0) ->
     St1 = wpa:sel_map(fun(_, We) -> move_to(Dir,We) end, St0),
     St = update_selected_uvcoords(St1),
     get_event(St);
-handle_command_1({align,Dir}, St0) ->
-    BB = wings_sel:bounding_box(St0),
-    St1 = wpa:sel_map(fun(_, We) -> align(Dir,BB,We) end, St0),
-    St = update_selected_uvcoords(St1),
+handle_command_1({align,Dir}, #st{selmode=Mode,sel=[{_,Els}]}=St0) ->
+    St =
+        case gb_sets:size(Els) of
+            1 ->
+                align_error(Mode),
+                St0;
+            _ ->
+                BB = wings_sel:bounding_box(St0),
+                St1 = wpa:sel_map(fun(_, We) -> align(Dir,BB,We) end, St0),
+                update_selected_uvcoords(St1)
+        end,
     get_event(St);
 handle_command_1({flip,horizontal}, St0) ->
     St1 = wpa:sel_map(fun(_, We) -> flip_horizontal(We) end, St0),
@@ -1752,7 +1759,7 @@ align_chart(Dir, St = #st{selmode=Mode}) ->
 		      align_chart(Dir,array:get(V1,Vtab),
 				  array:get(V2,Vtab),
 				  We);
-		  _ -> align_error()
+		  _ -> align_error(Mode)
 	      end
       end, St).
 
@@ -1770,9 +1777,11 @@ align_chart(Dir, V1={X1,Y1,_},V2={X2,Y2,_}, We) ->
     Center = e3d_vec:average(V1,V2),
     rotate_chart(-Deg,Center,We).
 
--spec align_error() -> no_return().
-align_error() ->
-    wings_u:error_msg(?__(1,"Select two vertices or one edge")).
+-spec align_error(term()) -> no_return().
+align_error(Mode) when Mode==edge; Mode==vertex ->
+    wings_u:error_msg(?__(1,"Select two vertices or one edge"));
+align_error(body) ->
+    wings_u:error_msg(?__(2,"Select at least two charts to be aligned to each other")).
 
 flip_horizontal(We) ->
     flip(e3d_mat:scale(-1.0, 1.0, 1.0), We).
