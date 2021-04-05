@@ -437,7 +437,7 @@ get_shape_state({_,Client}, #st{pst=Pst}=St) ->
         lists:foldr(fun({Folder, {State, _}}, Acc) ->
                         IdsInFolder = ids_in_folder(Folder, St),
                         Common = sets:intersection(SelIds, sets:from_list(IdsInFolder)),
-                        [{Folder, State, length(IdsInFolder), sets:to_list(Common)=/=[]}|Acc]
+                        [{Folder, State, length(IdsInFolder), not sets:is_empty(Common)}|Acc]
                     end, [], Folds1),
     F = fun(Obj, A) -> [Obj|A] end,
     Shapes = wings_obj:fold(F, [], St),
@@ -468,7 +468,6 @@ init([Frame, {W,_}, _Ps, Name, SS]) ->
     TC  = wxTreeCtrl:new(Splitter, [{style, TreeStyle}]),
     wxTreeCtrl:setBackgroundColour(TC, BG),
     wxTreeCtrl:setForegroundColour(TC, FG),
-    wxTreeCtrl:assignImageList(TC, load_icons()),
 
     LCStyle = ?wxLC_REPORT bor ?wxLC_NO_HEADER bor ?wxLC_EDIT_LABELS
         bor ?wxLC_SINGLE_SEL bor wings_frame:get_border(),
@@ -703,12 +702,9 @@ update_folders({Curr, Fld0}, TC) ->
 		 Sorted = lists:sort([{wings_util:cap(F),F,S,Hs} || {F,_,S,Hs} <- Fld]),
 		 Add = fun({_, Name, Qtd, HasSel}) ->
 			    Caption = io_lib:format("~ts (~p)",[Name, Qtd]),
-                Options =
-                    case HasSel of
-                        true -> [{image, image_idx(sel)},{selectedImage, image_idx(sel)}];
-                        false -> []
-                    end,
-			    {wxTreeCtrl:appendItem(TC, Root, Caption, Options), Name}
+			    NewItem = wxTreeCtrl:appendItem(TC, Root, Caption, []),
+			    wxTreeCtrl:setItemBold(TC,NewItem,[{bold,HasSel}]),
+			    {NewItem, Name}
 		       end,
 		 Leaves = lists:map(Add, Sorted),
 		 wxTreeCtrl:expand(TC, Root),
