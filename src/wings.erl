@@ -843,6 +843,8 @@ command_1({window,outliner}, St) ->
     wings_outliner:window(St);
 command_1({window,object}, St) ->
     wings_geom_win:window(St);
+command_1({window,view}, St) ->
+    wings_view_win:window(St);
 command_1({window,palette}, St) ->
     wings_palette:window(St);
 command_1({window,console}, _St) ->
@@ -1039,6 +1041,7 @@ window_menu() ->
 	     {Name,object,
 	      ?__(5,"Open a Geometry Graph window (showing objects)")},
 	     {?__(6,"Palette"), palette,?__(7,"Open the color palette window")},
+             {?__(14,"View Settings"), view, ?__(15,"Open view settings window")},
 	     {?__(12,"Tweak Palette"), tweak_palette,
 	      ?__(13,"Open palettes from which tweak tools may be selected or bound to modifier keys")},
 	     separator,

@@ -15,6 +15,8 @@
 varying vec3 ws_position;
 uniform vec3 ws_eyepoint;
 uniform vec3 ws_lightpos;
+uniform vec3 LightColor;
+uniform float Exposure;
 
 void main(void)
 {
@@ -22,7 +24,7 @@ void main(void)
     vec3 n = get_normal();
     vec3 v = normalize(ws_eyepoint-ws_position);  // point to camera
     vec3 l = normalize(ws_lightpos-ws_position);  // point to ligth
-    PBRInfo pbr = calc_views(n, v, vec3(0.0));
+    PBRInfo pbr = calc_views(n, v, l);
     pbr = calc_material(pbr);
 
     // Calculate the shading terms for the microfacet specular shading model
@@ -35,9 +37,11 @@ void main(void)
     vec3 specContrib = F * G * D / (4.0 * pbr.NdotL * pbr.NdotV);
     // Obtain final intensity as reflectance (BRDF) scaled by the energy of the light (cosine law)
     vec3 frag_color = pbr.NdotL * (diffuseContrib + specContrib);
+    frag_color = frag_color * LightColor;
     frag_color += 0.6*background_ligthting(pbr, n, normalize(reflect(v, n)));
     frag_color = mix(frag_color, frag_color * pbr.occlusion, 0.7);
     frag_color += get_emission();
+    frag_color *= Exposure;
     gl_FragColor = vec4(pow(frag_color, vec3(1.0/2.2)), baseColor.a); // Should be 2.2
 }
 

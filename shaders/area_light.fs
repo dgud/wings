@@ -19,6 +19,7 @@ uniform vec4 light_diffuse;
 uniform vec4 light_specular;
 uniform vec3[4] light_points;
 uniform vec3 light_att;
+uniform float Exposure;
 
 uniform sampler2D EnvBrdfMap;
 uniform sampler2D AreaLTCMap;
@@ -242,6 +243,7 @@ void main(void)
   }
   frag_color += diffLigth*pbr.diffuseColor;
   frag_color *= att;
+  frag_color *= Exposure;
   gl_FragColor = vec4(pow(frag_color, vec3(1.0/2.2)), pbr.opaque);
 }
 

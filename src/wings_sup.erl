@@ -55,7 +55,13 @@ wx_object(Name, Module, Args) ->
                  _ ->
                      wx_object:start_link({local,Name}, Module, Args, [])
              end,
-    {ok, wx_object:get_pid(Window), Window}.
+    case Window of
+        {error, Reason} ->
+            io:format("Error starting window: ~p in ~p\n  ~p~n",[Name, Module, Reason]),
+            error({window_failed, Reason});
+        _ ->
+            {ok, wx_object:get_pid(Window), Window}
+    end.
 
 %% Starts the window supervisor
 window_sup(Env) ->

@@ -14,6 +14,7 @@
 varying vec3 ws_position;
 uniform vec3 ws_eyepoint;
 uniform vec4 light_diffuse;
+uniform float Exposure;
 
 void main(void)
 {
@@ -23,5 +24,6 @@ void main(void)
     pbr = calc_material(pbr);
     vec3 frag_color = light_diffuse.rgb * background_ligthting(pbr, n, normalize(reflect(v, n)));
     frag_color += get_emission();
+    frag_color *= Exposure;
     gl_FragColor = vec4(pow(frag_color, vec3(1.0/2.2)), pbr.opaque); // Should be 2.2
 }

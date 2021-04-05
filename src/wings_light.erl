@@ -12,7 +12,7 @@
 %%
 
 -module(wings_light).
--export([init/0, init/1, init_opengl/0,
+-export([init/0, init/1, init_opengl/0, load_env_image/1,
          light_types/0,menu/3,command/2,is_any_light_selected/1,
 	 any_enabled_lights/0,info/1,setup_light/2,
 	 create/2,update_dynamic/2,update_matrix/2,update/1,
@@ -50,28 +50,57 @@
 	 prop=[]				%Extra properties.
 	}).
 
-init() ->
-    init(false).
-
-init(Recompile) ->
-    Path = filename:join(wings_util:lib_dir(wings), "textures"),
-    LTCmatFile = "areal_ltcmat.bin",
-    {ok, LTCmat} = file:read_file(filename:join(Path, LTCmatFile)),
-    AreaMatTxId = load_area_light_tab(LTCmat),
+def_envmap() ->
     DefEnvMap = "grandcanyon.png",
-    EnvImgRec = wings_image:image_read([{filename, filename:join(Path, DefEnvMap)}]),
+    DefPath = filename:join(wings_util:lib_dir(wings), "textures"),
+    filename:join(DefPath, DefEnvMap).
+
+init() ->
+    wings_pref:set_default(show_bg, false),
+    wings_pref:set_default(show_bg_blur, 0.5),
+    wings_pref:set_default(bg_image, def_envmap()),
+    EnvImgRec = load_env_file(wings_pref:get_value(bg_image)),
+    init(false, EnvImgRec).
+
+init(Recompile) ->  %% Debug
+    EnvImgRec = load_env_file(wings_pref:get_value(bg_image)),
+    init(Recompile, EnvImgRec).
+
+init(Recompile, EnvImgRec) ->
+    AreaMatTagId = load_area_light_tab(),
     EnvIds = case wings:is_fast_start() orelse cl_setup(Recompile) of
                  true ->
-                     fake_envmap(Path, EnvImgRec);
+                     fake_envmap(load_env_file(def_envmap()));
                  {error, _} ->
                      ErrorStr = ?__(1, "Could not initialize OpenCL: env lighting limited ~n"),
                      io:format(ErrorStr,[]),
                      wings_status:message(geom, ErrorStr),
-                     fake_envmap(Path, EnvImgRec);
+                     fake_envmap(load_env_file(def_envmap()));
                  CL ->
                      make_envmap(CL, EnvImgRec)
              end,
-    [?SET(Tag, Id) || {Tag,Id} <- [AreaMatTxId|EnvIds]],
+    [?SET(Tag, Id) || {Tag,Id} <- [AreaMatTagId|EnvIds]],
+    init_opengl(),
+    wings_develop:gl_error_check({?MODULE,?FUNCTION_NAME}),
+    ok.
+
+-spec load_env_image(FileName::string()) -> ok | {file_error, {error, term()}} | {cl_error, {error, term()}}.
+load_env_image(FileName) ->
+    try load_env_image_1(FileName)
+    catch throw:Error ->
+            Error
+    end.
+
+load_env_image_1(FileName) ->
+    EnvImgRec = wings_image:image_read([{filename, FileName}]),
+    is_record(EnvImgRec, e3d_image) orelse throw({file_error, EnvImgRec}),
+    CL = case cl_setup(false) of
+             {error, _} = Error ->
+                 throw({cl_error, Error});
+             CL0 -> CL0
+         end,
+    EnvIds = make_envmap(CL, EnvImgRec),
+    [?SET(Tag, Id) || {Tag,Id} <- EnvIds],
     init_opengl(),
     wings_develop:gl_error_check({?MODULE,?FUNCTION_NAME}),
     ok.
@@ -94,6 +123,15 @@ init_opengl() ->
                 end,
     _ = [SetupUnit(Id) || Id <- Ids],
     ok.
+
+load_env_file(FileName) ->
+    case wings_image:image_read([{filename, FileName}]) of
+        #e3d_image{} = Img ->
+            Img;
+        _Error ->
+            ?dbg("Could not load env image: ~p~n", [FileName]),
+            wings_image:image_read([{filename, def_envmap()}])
+    end.
 
 command({move_light,Type}, St) ->
     wings_move:setup(Type, St);
@@ -920,7 +958,11 @@ mul_point(M, P) -> e3d_mat:mul_point(M, P).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-load_area_light_tab(LTCmat) ->
+load_area_light_tab() ->
+    Path = filename:join(wings_util:lib_dir(wings), "textures"),
+    LTCmatFile = "areal_ltcmat.bin",
+    {ok, LTCmat} = file:read_file(filename:join(Path, LTCmatFile)),
+
     64*64*4*4 = byte_size(LTCmat),
     Opts = [{wrap, {clamp,clamp}}, {filter, {linear, linear}}],
     ImId = wings_image:new_hidden(area_mat,
@@ -932,15 +974,16 @@ load_area_light_tab(LTCmat) ->
     ?CHECK_ERROR(),
     {areamatrix_tex, ImId}.
 
-fake_envmap(Path, EnvImgRec) ->
+fake_envmap(EnvImgRec) ->
     %% Poor mans version with blured images
+    Path = filename:join(wings_util:lib_dir(wings), "textures"),
     SpecBG = wings_image:e3d_to_wxImage(EnvImgRec),
     wxImage:rescale(SpecBG, 512, 256, [{quality, ?wxIMAGE_QUALITY_HIGH}]),
     tone_map(SpecBG),
     SBG0 = wings_image:wxImage_to_e3d(SpecBG),
     SpecBG1 = wxImage:copy(SpecBG),
     MMs = make_mipmaps(SpecBG1, 1, 256, 128),
-    Opts = [{wrap, {repeat,clamp}}, {filter, {mipmap, linear}}, {mipmaps, MMs}],
+    Opts = [{wrap, {repeat,repeat}}, {filter, {mipmap, linear}}, {mipmaps, MMs}],
     SBG = SBG0#e3d_image{name="Fake Spec", extra=Opts},
     SpecId = wings_image:new_hidden(env_spec_tex, SBG),
 
@@ -948,7 +991,7 @@ fake_envmap(Path, EnvImgRec) ->
     DiffBG = wxImage:blur(SpecBG, 10),
     blur_edges(DiffBG),
     DBG0 = wings_image:wxImage_to_e3d(DiffBG),
-    DBG = DBG0#e3d_image{name="Fake diffuse", extra=[{wrap, {repeat,clamp}},
+    DBG = DBG0#e3d_image{name="Fake diffuse", extra=[{wrap, {repeat,repeat}},
                                                      {filter, {linear,linear}}]},
     wxImage:destroy(SpecBG),
     wxImage:destroy(DiffBG),
@@ -1046,13 +1089,13 @@ make_envmap(CL, EnvImgRec0) ->
     wings_pb:update(0.1),
     W = 512, H = 256,  %% Sizes for result images
     OrigImg = wings_cl:image(EnvImgRec, CL),
-    Buff0   = wings_cl:buff(W*512*4*4, [read_write], CL),
-    Buff1   = wings_cl:buff(W*512*4*4, [read_write], CL),
+    Buff0   = wings_cl:buff(2048*1024*4*4, [read_write], CL),
+    Buff1   = wings_cl:buff(2048*1024*4*4, [read_write], CL),
     BrdfId = make_brdf(Buff0, 512, 512, CL),
     wings_pb:update(0.5),
     DiffId = make_diffuse(OrigImg, Buff0, Buff1, W, H, CL),
     wings_pb:update(0.9),
-    SpecId = make_spec(OrigImg, Buff0, Buff1, W, H, CL),
+    SpecId = make_spec(OrigImg, Buff0, Buff1, 2048, 1024, CL),
     wings_pb:done(),
     cl:release_mem_object(OrigImg),
     cl:release_mem_object(Buff0),
@@ -1082,14 +1125,15 @@ make_diffuse(OrigImg, Buff0, Buff1, W, H, CL) ->
     Img = << << (round(R*255)), (round(G*255)), (round(B*255)) >> ||
               <<R:32/float-native, G:32/float-native, B:32/float-native, _:32>> <= DiffData >>,
     %% wings_image:debug_display(1000+W,#e3d_image{width=W, height=H, image=Img, name="Diffuse"}),
-    Opts = [{wrap, {repeat,clamp}}, {filter, {linear, linear}}],
+    Opts = [{wrap, {repeat,repeat}}, {filter, {linear, linear}}],
     ImId = wings_image:new_hidden(env_diffuse_tex, #e3d_image{width=W,height=H,image=Img,extra=Opts}),
     {env_diffuse_tex, ImId}.
 
 make_spec(OrigImg, Buff0, Buff1, W0, H0, CL) ->
     NoMipMaps = trunc(math:log2(min(W0,H0))),
     [{Img,W0,H0,0}|MMs] = make_spec(0, NoMipMaps, OrigImg, Buff0, Buff1, W0, H0, CL),
-    Opts = [{wrap, {repeat,clamp}}, {filter, {mipmap, linear}}, {mipmaps, MMs}],
+    Opts = [{wrap, {repeat,repeat}}, {filter, {mipmap, linear}}, {mipmaps, MMs}],
+    %% ?dbg("Spec: ~p ~p => ~w mipmaps~n",[W0,H0,length(MMs)]),
     ImId = wings_image:new_hidden(env_spec_tex, #e3d_image{width=W0,height=H0,image=Img,extra=Opts}),
     {env_spec_tex, ImId}.
 
@@ -1107,7 +1151,7 @@ make_spec(Level, Max, OrigImg, Buff0, Buff1, W, H, CL) when Level =< Max ->
     %% io:format("~p: ~p ~p  ~.3f~n", [Level, W, H, Step]),
     %% Level < 3 andalso
     %%     wings_image:debug_display(900-Level, #e3d_image{width=W, height=H, image=Img,
-    %%                                         name="Spec: " ++ integer_to_list(Level)}),
+    %%                                                     name="Spec: " ++ integer_to_list(Level)}),
     [{Img,W,H,Level} | make_spec(Level+1, Max, OrigImg, Buff0, Buff1, W div 2, H div 2, CL)];
 make_spec(_Level, _Max, _OrigImg, _B0, _B1, _W, _H, _CL) ->
     [].

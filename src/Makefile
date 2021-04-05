@@ -122,6 +122,7 @@ MODULES= \
 	wings_vertex \
 	wings_vertex_cmd \
 	wings_view \
+	wings_view_win \
 	wings_we \
 	wings_we_build \
 	wings_we_util \

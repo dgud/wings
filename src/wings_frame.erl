@@ -218,6 +218,7 @@ save_window({geom,_}) -> true;
 save_window({plugin,_}) -> true;
 save_window(split) -> true;
 save_window(split_rev) -> true;
+save_window(wings_view_win) -> true;
 save_window(_) -> false.
 
 window_prop(Geom) when ?IS_GEOM(Geom) ->
@@ -520,6 +521,7 @@ handle_cast({mode_restriction, _}=Restrict, #state{toolbar=TB}=State) ->
 handle_cast({menu, {Menu, Key, Value}=Update}, #state{toolbar=TB}=State) ->
     wings_menu:update_menu_enabled(Menu, Key, Value),
     wings_toolbar:update(Update, TB),
+    wings_view_win:update(Update),
     {noreply, State};
 handle_cast({got_focus, Window, Props}, #state{toolbar=TB0}=State) ->
     Fun = fun(Menu, Key, Value) ->

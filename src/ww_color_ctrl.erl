@@ -52,7 +52,7 @@ connect(Ctrl, What, Opts) ->
 
 -record(state,
 	{this, bitmap, brush, static,
-	 current, def, dialog,
+	 current, def, dialog, id=1,
 	 bg,
 	 handlers=[]  %% Listeners or callbacks
 	}).
@@ -67,7 +67,7 @@ init([Parent, Id, O0]) ->
 				[{style, ?wxBU_AUTODRAW bor Style}|Opts]),
     wxBitmapButton:connect(Button, command_button_clicked),
 
-    State = #state{this=Button, bitmap=Bitmap, dialog=Dialog,
+    State = #state{this=Button, bitmap=Bitmap, dialog=Dialog, id=Id,
 		   brush=wxBrush:new(wings_color:rgb3bv(DefColor)),
 		   def=DefColor, current=DefColor, static=Static},
     update_color(State),
@@ -84,7 +84,7 @@ handle_event(#wx{event=#wxCommand{type=command_button_clicked}},
 
 handle_call(get_color, _From, #state{current=Curr} = State) ->
     {reply, Curr, State};
-handle_call({connect, Opts}, From, #state{handlers=Curr} = State) ->
+handle_call({connect, Opts}, {From, _}, #state{handlers=Curr} = State) ->
     All = proplists:get_value(col_changed, Opts, false),
     case proplists:get_value(callback, Opts) of
 	undefined ->
@@ -104,11 +104,11 @@ handle_cast({set_color, Col}, State0 = #state{brush=Old}) ->
 
 handle_cast(_, State) -> State.
 
-handle_info({color_changed, RGB}, State) ->
+handle_info({color_changed, RGB}, #state{id=Id} = State) ->
     Updated = update_state(RGB, State),
     update_color(Updated),
     #state{current=Col, handlers=Handlers} = Updated,
-    [apply_callback(H, Col, true) || H <- Handlers],
+    [apply_callback(H, Col, Id, true) || H <- Handlers],
     {noreply, Updated};
 
 handle_info(_Msg, State) ->
@@ -140,12 +140,12 @@ update_color(#state{this=This, brush=FG, bitmap=BM}) ->
     wxBitmapButton:setBitmapLabel(This, BM),
     ok.
 
-apply_callback({Pid, Changed}, Col, UserSet)
+apply_callback({Pid, Changed}, Col, Id, UserSet)
   when is_pid(Pid), UserSet orelse Changed ->
-    Pid ! {col_changed, Col};
-apply_callback({CB, Changed}, Col, UserSet)
+    Pid ! {col_changed, Id, Col};
+apply_callback({CB, Changed}, Col, _, UserSet)
   when is_function(CB), UserSet orelse Changed ->
     CB({col_changed, Col});
-apply_callback(_, _, _) -> ok.
+apply_callback(_, _, _, _) -> ok.
 
 

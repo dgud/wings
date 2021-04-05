@@ -1144,6 +1144,7 @@ toggle_lights() ->
     end,
     Lights0 = wings_pref:get_value(number_of_lights),
     update_menu(Lights0),
+    wings_wm:send(top_frame, {menu,{view, number_of_lights, toggle_light(Lights0)}}),
     wings_pref:set_value(number_of_lights, toggle_light(Lights0)).
 
 toggle_light(Lights0) ->
