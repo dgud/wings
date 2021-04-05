@@ -663,7 +663,12 @@ hard_edge_width(edge) -> wings_pref:get_value(hard_edge_width);
 hard_edge_width(_) -> max(wings_pref:get_value(hard_edge_width) - 1, 1.0).
 
 draw_background(MM) ->
-    wings_pref:get_value(show_bg) andalso draw_background_1(MM).
+    case wings_wm:is_geom() of
+        false ->
+            ignore;
+        true ->
+            wings_pref:get_value(show_bg) andalso draw_background_1(MM)
+    end.
 
 draw_background_1(MM) ->
     gl:disable(?GL_CULL_FACE),

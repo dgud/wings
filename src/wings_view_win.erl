@@ -52,7 +52,7 @@ window(St) ->
 	    {DeskW, DeskH} = wings_wm:top_size(),
 	    W = 28*?CHAR_WIDTH,
 	    Pos  = {DeskW-50, 0},
-	    Size = {W,DeskH div 4},
+	    Size = {W,DeskH div 3},
 	    window(Pos, Size, [], St),
 	    keep
     end.
@@ -246,8 +246,6 @@ init([Frame, _Ps, Os]) ->
     wxSizer:add(Szr, CameraSz, [{border, 5}, {flag, ?wxEXPAND bor ?wxALL}]),
 
     wxPanel:setSizer(Panel, Szr),
-    wxPanel:fit(Panel),
-    wxWindow:fit(Frame),
     State0 = #{camera_light => CamL, hemi_light => HemL, scene_light => SceneL, camera_opts => CamS},
     State = ids_to_path(State0),
     wxWindow:connect(Panel, command_radiobutton_selected),

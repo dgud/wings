@@ -268,6 +268,8 @@ restore_window({{object,_}=Name,Pos,{_,_}=Size,Ps}, St) ->
     wings_geom_win:window(Name, Pos, Size, Ps, St);
 restore_window({wings_outliner,Pos,{_,_}=Size, Ps}, St) ->
     wings_outliner:window(Pos, Size, Ps, St);
+restore_window({wings_view_win,Pos,{_,_}=Size, Ps}, St) ->
+    wings_view_win:window(Pos, Size, Ps, St);
 restore_window({palette,Pos,{_,_}=Size, Ps}, St) ->
     wings_palette:window(Pos, Size, Ps, St);
 restore_window({console,Pos,{_,_}=Size, Ps}, _St) ->
