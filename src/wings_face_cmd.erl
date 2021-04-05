@@ -49,7 +49,7 @@ menu(X, Y, St) ->
 	    separator,
 	    {?__(14,"Bump"),bump,
 	     ?__(15,"Create bump of selected faces")},
-	    {?__(16,"Lift"),{lift,lift_fun(St)}},
+	    {?__(16,"Lift"),{lift,lift_fun()}},
 	    {?__(17,"Put On"),put_on_fun(),
 	     {?__(18,"Move and rotate object, aligning the selected face to another element"),[],
 	      ?__(19,"Clone object on to one or more elements")},[]},
@@ -100,17 +100,19 @@ bridge_fun() ->
 	(_, _) -> ignore
     end.
 
-lift_fun(St) ->
+lift_fun() ->
     fun(help, _Ns) ->
 	    {?__(1,"Lift, rotating face around edge or vertex"),[],
 	     ?__(2,"Lift in std. directions")};
        (1, Ns) ->
-	    Funs = lift_selection(rotate, St),
-	    wings_menu:build_command({'ASK',Funs}, Ns);
+	    wings_menu:build_command({'ASK',fun lift_fun0/1}, Ns);
        (3, Ns) ->
 	    wings_menu_util:directions([normal,free,x,y,z], Ns);
        (_, _) -> ignore
     end.
+
+lift_fun0(St) ->
+    lift_selection(rotate, St).
 
 put_on_fun() ->
     fun(1, _Ns) ->
@@ -1114,7 +1116,8 @@ export_sel(#st{selmode=Mode}=St) ->
     Sel = wings_sel:dfold(MF, RF, [], St),
     {Mode,maps:from_list(Sel)}.
 
-lift({'ASK',Ask}, St) ->
+lift({'ASK',Ask0}, St) ->
+    Ask = Ask0(St),
     wings:ask(Ask, St, fun lift/2);
 lift({Dir,edge,EdgeSel}, St) ->
     lift_from_edge(Dir, EdgeSel, St);
