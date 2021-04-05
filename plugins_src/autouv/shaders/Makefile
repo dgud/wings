@@ -40,6 +40,13 @@ FILES = standard.vs \
 	caustics.fs \
 	wpc_camouflage.auv \
 	camouflage.fs \
+	wpc_image_mixer.auv \
+	image_mixer.fs \
+	wpc_triplanar.auv \
+	triplanar.vs \
+	triplanar.fs \
+	wpc_triplanar3.auv \
+	triplanar3.fs \
 	README-shaders.txt
 
 
