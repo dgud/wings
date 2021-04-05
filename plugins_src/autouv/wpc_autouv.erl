@@ -412,6 +412,13 @@ command_menu(body, X, Y) ->
 	       {?__(19,"Left"), left, ?__(20,"Move to left border")},
 	       {?__(21,"Right"), right, ?__(22,"Move to right border")}
 	      ]}, ?__(23,"Move charts to position")},
+	    {?__(93,"Align"),
+	     {align,
+	      [{?__(15,"Bottom"), bottom, ?__(95,"Align to bottom")},
+	       {?__(17,"Top"), top, ?__(96,"Align to top")},
+	       {?__(19,"Left"), left, ?__(97,"Align to left")},
+	       {?__(21,"Right"), right, ?__(98,"Align to right")}
+	      ]}, ?__(94,"Align charts relative each other")},
 	    {?__(24,"Flip"),{flip,
                              [{?__(25,"Horizontal"),horizontal,?__(26,"Flip selection horizontally")},
                               {?__(27,"Vertical"),vertical,?__(28,"Flip selection vertically")}]},
@@ -918,6 +925,18 @@ handle_command_1({rotate,Deg}, St0) ->
 handle_command_1({move_to,Dir}, St0) ->
     St1 = wpa:sel_map(fun(_, We) -> move_to(Dir,We) end, St0),
     St = update_selected_uvcoords(St1),
+    get_event(St);
+handle_command_1({align,Dir}, #st{selmode=Mode,sel=[{_,Els}]}=St0) ->
+    St =
+        case gb_sets:size(Els) of
+            1 ->
+                align_error(Mode),
+                St0;
+            _ ->
+                BB = wings_sel:bounding_box(St0),
+                St1 = wpa:sel_map(fun(_, We) -> align(Dir,BB,We) end, St0),
+                update_selected_uvcoords(St1)
+        end,
     get_event(St);
 handle_command_1({flip,horizontal}, St0) ->
     St1 = wpa:sel_map(fun(_, We) -> flip_horizontal(We) end, St0),
@@ -1740,7 +1759,7 @@ align_chart(Dir, St = #st{selmode=Mode}) ->
 		      align_chart(Dir,array:get(V1,Vtab),
 				  array:get(V2,Vtab),
 				  We);
-		  _ -> align_error()
+		  _ -> align_error(Mode)
 	      end
       end, St).
 
@@ -1758,9 +1777,11 @@ align_chart(Dir, V1={X1,Y1,_},V2={X2,Y2,_}, We) ->
     Center = e3d_vec:average(V1,V2),
     rotate_chart(-Deg,Center,We).
 
--spec align_error() -> no_return().
-align_error() ->
-    wings_u:error_msg(?__(1,"Select two vertices or one edge")).
+-spec align_error(term()) -> no_return().
+align_error(Mode) when Mode==edge; Mode==vertex ->
+    wings_u:error_msg(?__(1,"Select two vertices or one edge"));
+align_error(body) ->
+    wings_u:error_msg(?__(2,"Select at least two charts to be aligned to each other")).
 
 flip_horizontal(We) ->
     flip(e3d_mat:scale(-1.0, 1.0, 1.0), We).
@@ -1789,6 +1810,18 @@ move_to(Dir,We) ->
 	      left ->     {-X1,0.0,0.0};
 	      right ->    {1.0-X2,0.0,0.0}
 	  end,
+    T = e3d_mat:translate(Translate),
+    wings_we:transform_vs(T, We).
+
+align(Dir,[{Xa,Ya,_},{Xb,Yb,_}],We) ->
+    [{X1,Y1,_},{X2,Y2,_}] = wings_vertex:bounding_box(We),
+    Translate =
+        case Dir of
+            bottom ->   {0.0,(Ya-Y1),0.0};
+            top ->      {0.0,(Yb-Y2),0.0};   
+            left ->     {(Xa-X1),0.0,0.0};
+            right ->    {(Xb-X2),0.0,0.0}
+        end,
     T = e3d_mat:translate(Translate),
     wings_we:transform_vs(T, We).
 
