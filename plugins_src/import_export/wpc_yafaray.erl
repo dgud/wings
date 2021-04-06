@@ -72,6 +72,7 @@ key(Key) -> {key,?KEY(Key)}.
 -define(DEF_IOR, 1.4).
 -define(DEF_MIN_REFLE, 0.0).
 -define(DEF_OBJECT_TYPE, mesh).
+-define(DEF_VISIBILITY, normal).
 -define(DEF_VOLUME_TYPE, uniformvolume).
 -define(DEF_VOLUME_SIGMA_A, 0.4).
 -define(DEF_VOLUME_SIGMA_S, 0.05).
@@ -752,6 +753,7 @@ material_dialog(_Name, Mat) ->
     DefShaderType = get_pref(shader_type, YafaRay),
     ShaderType = proplists:get_value(shader_type, YafaRay, DefShaderType),
     Object_Type = proplists:get_value(object_type, YafaRay, ?DEF_OBJECT_TYPE),
+    Visibility = proplists:get_value(visibility, YafaRay, ?DEF_VISIBILITY),
     Volume_Type = proplists:get_value(volume_type, YafaRay, ?DEF_VOLUME_TYPE),
     Volume_Sigma_a = proplists:get_value(volume_sigma_a, YafaRay, ?DEF_VOLUME_SIGMA_A),
     Volume_Sigma_s = proplists:get_value(volume_sigma_s, YafaRay, ?DEF_VOLUME_SIGMA_S),
@@ -938,7 +940,15 @@ material_dialog(_Name, Mat) ->
                         {?__(32,"Volume"),volume},
                         {?__(33,"Mesh Light"),meshlight},
                         {?__(34,"Light Portal"),lightportal}
-                    ],Object_Type,[key(object_type),{hook,Hook_Show}]}
+                    ],Object_Type,[key(object_type),{hook,Hook_Show}]},
+                    panel,
+                    {label, ?__(108,"Visibility")},
+                    {menu,[
+                        {?__(109,"Normal"),normal},
+                        {?__(110,"No shadows"),no_shadows},
+                        {?__(111,"Shadows only"),shadow_only},
+                        {?__(112,"Invisible"),invisible}
+                    ],Visibility,[key(visibility)]}
                 ]},
                 {hframe, [
                     {hframe, [
@@ -1667,15 +1677,21 @@ light_dialog(Name, Ps) ->
             _ -> ?DEF_POWER
         end,
     Power = proplists:get_value(power, YafaRay, DefPower),
+    CastShadows = proplists:get_value(cast_shadows, YafaRay, ?DEF_CAST_SHADOWS),
     PowerStr =
-        [{hframe, [
-            {label_column, [
-                {?__(1,"Power"),
-                {text,Power,[key(power),range(power),key(power)]}}
-            ]},
-            panel,
-            help_button({light_dialog,Type})
-        ]}],
+        [{vframe, [
+            {hframe, [
+                {label_column, [
+                    {?__(1,"Power"), {text,Power,[key(power),range(power),key(power)]}}
+                ]},
+                panel,
+                help_button({light_dialog,Type})],[{margin,false}]
+            },
+            {hframe, [
+                {?__(2,"Cast Shadows"),CastShadows,[key(cast_shadows)]}
+            ],[{margin,false}]}
+         ]}
+        ],
     {vframe, PowerStr ++ light_dialog(Name, Type, YafaRay)}.
 
 %%% Point Light Dialog
@@ -1865,9 +1881,9 @@ light_dialog(_Name, infinite, Ps) ->
             {vframe, [
                 %% Sunsky Background
                 {hradio, [
+                    {?__(45,"None"), undefined},
                     {?__(44,"Sunsky"),sunsky},
-                    {?__(46,"Darktide Sunsky"),darksky},
-                    {?__(45,"None"), undefined}
+                    {?__(46,"Darktide Sunsky"),darksky}
                 ],Bg,[key(background),{hook,Hook_Show}]},
                 {vframe, [
                     {hframe, [
@@ -1953,7 +1969,7 @@ light_dialog(_Name, ambient, Ps) ->
     Type = proplists:get_value(type, Ps, ?DEF_AMBIENT_TYPE),
     Samples = proplists:get_value(samples, Ps, ?DEF_SAMPLES),
     Smartibl_blur = proplists:get_value(smartibl_blur, Ps, ?DEF_SMARTIBL_BLUR),
-    
+
     Hook_Enabled =
         fun(Key, Value, Store) ->
             case Key of
@@ -3319,6 +3335,7 @@ export_shader(F, Name, Mat, ExportDir) ->
 export_shinydiffuse_shader(F, Name, Mat, ExportDir, YafaRay) ->
     OpenGL = proplists:get_value(opengl, Mat),
     Maps = proplists:get_value(maps, Mat, []),
+    Visibility = proplists:get_value(visibility, YafaRay, ?DEF_VISIBILITY),
     Modulators = proplists:get_value(modulators, YafaRay, def_modulators(Maps)),
     foldl(fun ({modulator,Ps}=M, N) when is_list(Ps) ->
                   case export_texture(F, [Name,$_,format(N)],
@@ -3405,6 +3422,7 @@ export_shinydiffuse_shader(F, Name, Mat, ExportDir, YafaRay) ->
               (_, N) ->
                   N % Ignore old modulators
           end, 1, Modulators),
+    println(F, "        <visibility sval=\"~s\"/>~n", [Visibility]),
     println(F, "</material>").
 
 
@@ -3415,6 +3433,7 @@ export_shinydiffuse_shader(F, Name, Mat, ExportDir, YafaRay) ->
 export_glossy_shader(F, Name, Mat, ExportDir, YafaRay) ->
     OpenGL = proplists:get_value(opengl, Mat),
     Maps = proplists:get_value(maps, Mat, []),
+    Visibility = proplists:get_value(visibility, YafaRay, ?DEF_VISIBILITY),
     Modulators = proplists:get_value(modulators, YafaRay, def_modulators(Maps)),
     foldl(fun ({modulator,Ps}=M, N) when is_list(Ps) ->
                   case export_texture(F, [Name,$_,format(N)],
@@ -3499,6 +3518,7 @@ export_glossy_shader(F, Name, Mat, ExportDir, YafaRay) ->
               (_, N) ->
                   N % Ignore old modulators
           end, 1, Modulators),
+    println(F, "        <visibility sval=\"~s\"/>~n", [Visibility]),
     println(F, "</material>").
 
 
@@ -3511,6 +3531,7 @@ export_glossy_shader(F, Name, Mat, ExportDir, YafaRay) ->
 export_coatedglossy_shader(F, Name, Mat, ExportDir, YafaRay) ->
     OpenGL = proplists:get_value(opengl, Mat),
     Maps = proplists:get_value(maps, Mat, []),
+    Visibility = proplists:get_value(visibility, YafaRay, ?DEF_VISIBILITY),
     Modulators = proplists:get_value(modulators, YafaRay, def_modulators(Maps)),
     foldl(fun ({modulator,Ps}=M, N) when is_list(Ps) ->
                   case export_texture(F, [Name,$_,format(N)],
@@ -3606,6 +3627,7 @@ export_coatedglossy_shader(F, Name, Mat, ExportDir, YafaRay) ->
               (_, N) ->
                   N % Ignore old modulators
           end, 1, Modulators),
+    println(F, "        <visibility sval=\"~s\"/>~n", [Visibility]),
     println(F, "</material>").
 
 
@@ -3616,6 +3638,7 @@ export_coatedglossy_shader(F, Name, Mat, ExportDir, YafaRay) ->
 export_glass_shader(F, Name, Mat, ExportDir, YafaRay) ->
     OpenGL = proplists:get_value(opengl, Mat),
     Maps = proplists:get_value(maps, Mat, []),
+    Visibility = proplists:get_value(visibility, YafaRay, ?DEF_VISIBILITY),
     Modulators = proplists:get_value(modulators, YafaRay, def_modulators(Maps)),
     foldl(fun ({modulator,Ps}=M, N) when is_list(Ps) ->
                   case export_texture(F, [Name,$_,format(N)],
@@ -3695,6 +3718,7 @@ export_glass_shader(F, Name, Mat, ExportDir, YafaRay) ->
               (_, N) ->
                   N % Ignore old modulators
           end, 1, Modulators),
+    println(F, "        <visibility sval=\"~s\"/>~n", [Visibility]),
     println(F, "</material>").
 
 
@@ -3705,6 +3729,7 @@ export_glass_shader(F, Name, Mat, ExportDir, YafaRay) ->
 export_rough_glass_shader(F, Name, Mat, ExportDir, YafaRay) ->
     OpenGL = proplists:get_value(opengl, Mat),
     Maps = proplists:get_value(maps, Mat, []),
+    Visibility = proplists:get_value(visibility, YafaRay, ?DEF_VISIBILITY),
     Modulators = proplists:get_value(modulators, YafaRay, def_modulators(Maps)),
     foldl(fun ({modulator,Ps}=M, N) when is_list(Ps) ->
                   case export_texture(F, [Name,$_,format(N)],
@@ -3784,6 +3809,7 @@ export_rough_glass_shader(F, Name, Mat, ExportDir, YafaRay) ->
               (_, N) ->
                   N % Ignore old modulators
           end, 1, Modulators),
+    println(F, "        <visibility sval=\"~s\"/>~n", [Visibility]),
     println(F, "</material>").
 
 
@@ -3797,6 +3823,7 @@ export_rough_glass_shader(F, Name, Mat, ExportDir, YafaRay) ->
 export_lightmat_shader(F, Name, Mat, ExportDir, YafaRay) ->
     OpenGL = proplists:get_value(opengl, Mat),
     Maps = proplists:get_value(maps, Mat, []),
+    Visibility = proplists:get_value(visibility, YafaRay, ?DEF_VISIBILITY),
     Modulators = proplists:get_value(modulators, YafaRay, def_modulators(Maps)),
     foldl(fun ({modulator,Ps}=M, N) when is_list(Ps) ->
                   case export_texture(F, [Name,$_,format(N)],
@@ -3846,6 +3873,7 @@ export_lightmat_shader(F, Name, Mat, ExportDir, YafaRay) ->
               (_, N) ->
                   N % Ignore old modulators
           end, 1, Modulators),
+    println(F, "        <visibility sval=\"~s\"/>~n", [Visibility]),
     println(F, "</material>").
 
 
@@ -3896,6 +3924,7 @@ export_shaderblend(F, Name, Mat, ExportDir) ->
 export_blend_mat_shader(F, Name, Mat, ExportDir, YafaRay) ->
     OpenGL = proplists:get_value(opengl, Mat),
     Maps = proplists:get_value(maps, Mat, []),
+    Visibility = proplists:get_value(visibility, YafaRay, ?DEF_VISIBILITY),
     Modulators = proplists:get_value(modulators, YafaRay, def_modulators(Maps)),
     foldl(fun ({modulator,Ps}=M, N) when is_list(Ps) ->
                   case export_texture(F, [Name,$_,format(N)],
@@ -3950,6 +3979,7 @@ export_blend_mat_shader(F, Name, Mat, ExportDir, YafaRay) ->
               (_, N) ->
                   N % Ignore old modulators
           end, 1, Modulators),
+    println(F, "        <visibility sval=\"~s\"/>~n", [Visibility]),
     println(F, "</material>").
 
 %%% End Blend Materials Export
@@ -4681,14 +4711,12 @@ export_light(F, Name, point, OpenGL, YafaRay) ->
     Position = proplists:get_value(position, OpenGL, {0.0,0.0,0.0}),
     Diffuse = proplists:get_value(diffuse, OpenGL, {1.0,1.0,1.0,1.0}),
     Type = proplists:get_value(type, YafaRay, ?DEF_POINT_TYPE),
+    CastShadows = proplists:get_value(cast_shadows, YafaRay, ?DEF_CAST_SHADOWS),
     uniprintln(F,"<light name=\"~ts\"> <type sval=\"~w\"/>  <power fval=\"~.3f\"/> ",
             [Name,Type,Power]),
     case Type of
         pointlight ->
-            CastShadows =
-                proplists:get_value(cast_shadows, YafaRay, ?DEF_CAST_SHADOWS),
-            println(F,"       <cast_shadows bval=\"~s\"/>", [format(CastShadows)]);
-
+            ignore;
         spherelight ->
             ArealightRadius =
                 proplists:get_value(arealight_radius, YafaRay,
@@ -4707,6 +4735,7 @@ export_light(F, Name, point, OpenGL, YafaRay) ->
     export_pos(F, from, Position),
     export_rgb(F, color, Diffuse),
 
+    println(F,"       <cast_shadows bval=\"~s\"/>", [format(CastShadows)]),
     println(F, "</light>"),
     undefined;
 
@@ -4720,6 +4749,7 @@ export_light(F, Name, infinite, OpenGL, YafaRay) ->
     Diffuse = proplists:get_value(diffuse, OpenGL, {1.0,1.0,1.0,1.0}),
     SunSamples = proplists:get_value(sun_samples, YafaRay, ?DEF_SUN_SAMPLES),
     SunAngle = proplists:get_value(sun_angle, YafaRay, ?DEF_SUN_ANGLE),
+    CastShadows = proplists:get_value(cast_shadows, YafaRay, ?DEF_CAST_SHADOWS),
 
     %% Directional Infinite Light Start
     case Type of
@@ -4744,6 +4774,7 @@ export_light(F, Name, infinite, OpenGL, YafaRay) ->
 
             export_pos(F, direction, Position),
             export_rgb(F, color, Diffuse),
+            println(F," <cast_shadows bval=\"~s\"/>", [format(CastShadows)]),
             println(F, "</light>"),
             Bg;
 
@@ -4759,6 +4790,7 @@ export_light(F, Name, infinite, OpenGL, YafaRay) ->
 
             export_pos(F, direction, Position),
             export_rgb(F, color, Diffuse),
+            println(F," <cast_shadows bval=\"~s\"/>", [format(CastShadows)]),
             println(F, "</light>"),
             Bg;
 
@@ -4776,6 +4808,7 @@ export_light(F, Name, spot, OpenGL, YafaRay) ->
     ConeAngle = proplists:get_value(cone_angle, OpenGL, ?DEF_CONE_ANGLE),
     Diffuse = proplists:get_value(diffuse, OpenGL, {1.0,1.0,1.0,1.0}),
     Type = proplists:get_value(type, YafaRay, ?DEF_SPOT_TYPE),
+    CastShadows = proplists:get_value(cast_shadows, YafaRay, ?DEF_CAST_SHADOWS),
     uniprintln(F,"<light name=\"~ts\"> <power fval=\"~.3f\"/> ",
                [Name,Power]),
     case Type of
@@ -4790,15 +4823,13 @@ export_light(F, Name, spot, OpenGL, YafaRay) ->
             SpotIESSamples = proplists:get_value(spot_ies_samples, YafaRay,
                                                  ?DEF_SPOT_IES_SAMPLES),
 
-            CastShadows =
-                proplists:get_value(cast_shadows, YafaRay, ?DEF_CAST_SHADOWS),
             SpotExponent =
                 proplists:get_value(spot_exponent, OpenGL, ?DEF_SPOT_EXPONENT),
             SpotBlend = proplists:get_value(spot_blend, YafaRay, ?DEF_SPOT_BLEND),
             SpotFuzzyness = proplists:get_value(spot_fuzzyness, YafaRay, ?DEF_SPOT_FUZZYNESS),
-            print(F, "<type sval=\"spotlight\"/> <cast_shadows bval=\"~s\"/> <photon_only bval=\"~s\"/> <cone_angle fval=\"~.3f\"/>~n"++
+            print(F, "<type sval=\"spotlight\"/> <photon_only bval=\"~s\"/> <cone_angle fval=\"~.3f\"/>~n"++
             "       <beam_falloff fval=\"~.10f\"/> <blend fval=\"~.3f\"/> <soft_shadows bval=\"~s\"/> <shadowFuzzyness fval=\"~.3f\"/> <samples ival=\"~w\"/>",
-                [format(CastShadows), SpotPhotonOnly, ConeAngle, SpotExponent, SpotBlend,SpotSoftShadows,SpotFuzzyness,SpotIESSamples]);
+                [SpotPhotonOnly, ConeAngle, SpotExponent, SpotBlend,SpotSoftShadows,SpotFuzzyness,SpotIESSamples]);
 
         spot_ies ->
 
@@ -4819,15 +4850,16 @@ export_light(F, Name, spot, OpenGL, YafaRay) ->
     export_pos(F, from, Position),
     export_pos(F, to, AimPoint),
     export_rgb(F, color, Diffuse),
+    println(F," <cast_shadows bval=\"~s\"/>", [format(CastShadows)]),
     println(F, "</light>"),
     undefined;
 
 %% Export Ambient Light
-
 export_light(F, Name, ambient, _OpenGL, YafaRay) ->
     Type = proplists:get_value(type, YafaRay, ?DEF_AMBIENT_TYPE),
     Power = proplists:get_value(power, YafaRay, ?DEF_POWER),
     Bg = proplists:get_value(background, YafaRay, ?DEF_BACKGROUND_AMBIENT),
+    CastShadows = proplists:get_value(cast_shadows, YafaRay, ?DEF_CAST_SHADOWS),
     case Type of
         hemilight when Power > 0.0 ->
             println(F,"",
@@ -4914,6 +4946,7 @@ export_light(F, Name, ambient, _OpenGL, YafaRay) ->
                             [Maxdistance]);
                 false -> ok
             end,
+            println(F," <cast_shadows bval=\"~s\"/>", [format(CastShadows)]),
             println(F, "</light>"),
             Bg;
         pathlight -> Bg;
@@ -4934,6 +4967,7 @@ export_light(F, Name, ambient, _OpenGL, YafaRay) ->
             println(F,"       photons ival=\"~w\" radius=\"~.3f\" "
                     "depth=\"~w\" search=\"~w\">",
                     [GplPhotons,GplRadius,GplDepth,GplSearch]),
+            println(F," <cast_shadows bval=\"~s\"/>", [format(CastShadows)]),
             println(F, "</light>"),
             Bg
     end;
@@ -4948,6 +4982,7 @@ export_light(F, Name, area, OpenGL, YafaRay) ->
     Samples = proplists:get_value(arealight_samples, YafaRay,
                                   ?DEF_AREALIGHT_SAMPLES),
     Dummy = proplists:get_value(dummy, YafaRay, ?DEF_DUMMY),
+    CastShadows = proplists:get_value(cast_shadows, YafaRay, ?DEF_CAST_SHADOWS),
     Fs = foldr(fun (Face, Acc) ->
                        e3d_mesh:quadrangulate_face(Face, Vs)++Acc
                end, [], Fs0),
@@ -4977,6 +5012,7 @@ export_light(F, Name, area, OpenGL, YafaRay) ->
                       export_pos(F, from, B),
                       export_pos(F, point1, C),
                       export_pos(F, point2, D),
+                      println(F," <cast_shadows bval=\"~s\"/>", [format(CastShadows)]),
                       println(F, "</light>"),
                       I+1
               end
@@ -5102,6 +5138,7 @@ export_background(F, Name, Ps) ->
     OpenGL = proplists:get_value(opengl, Ps, []),
     YafaRay = proplists:get_value(?TAG, Ps, []),
     Bg = proplists:get_value(background, YafaRay, ?DEF_BACKGROUND_AMBIENT),
+    CastShadows = proplists:get_value(cast_shadows, YafaRay, ?DEF_CAST_SHADOWS),
     case Bg of
 %% Constant Background Export
         constant ->
@@ -5113,7 +5150,7 @@ export_background(F, Name, Ps) ->
 
             AmbientCausticPhotons = proplists:get_value(ambient_causticphotons, YafaRay, ?DEF_AMBIENT_CAUSTICPHOTONS),
 
-            print(F, "<background name=\"~ts\">",
+            uniprintln(F, "<background name=\"~ts\">",
                 [Name]),
 
             println(F, "<type sval=\"~s\"/>",
@@ -5138,7 +5175,6 @@ export_background(F, Name, Ps) ->
             end,
 
 %% Add Enlight Constant Background End
-
 
 
             println(F, "<power fval=\"~w\"/>~n",
@@ -5471,6 +5507,7 @@ export_background(F, Name, Ps) ->
 
             println(F, "    <texture sval=\"world_texture\" />")
     end,
+    println(F, "    <cast_shadows bval=\"~s\"/>", [format(CastShadows)]),
     println(F, "</background>").
 
 
@@ -6101,7 +6138,12 @@ help(text, {material_dialog,object}) ->
       "Apply to a flat plane. Light Portals are used to reduce render times."),
     ?__(12,"Autosmooth Angle: Controls YafaRay simulated smoothing of a mesh. "
       "For best results, adjust the Subdivisions setting under YafaRay Render "
-      "Options to control real mesh smoothing.")];
+      "Options to control real mesh smoothing."),
+    [{bold,?__(100,"Material Visibity")}],
+    [{bullet,[?__(101,"Normal: visible and casting shadows."),
+              ?__(102,"No shadows: visible but not casting shadows."),
+              ?__(103,"Shadows only: invisible but casting shadows."),
+              ?__(104,"Invisible: totally invisible material.")]}]];
 %%help(title, {material_dialog,fresnel}) ->
 %%    ?__(15,"YafaRay Material Properties: Fresnel Parameters");
 %%help(text, {material_dialog,fresnel}) ->
