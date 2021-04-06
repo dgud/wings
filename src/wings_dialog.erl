@@ -1585,6 +1585,17 @@ create_slider(Ask, Def, Flags, {MaxSize,Validator}, Parent, TopSizer) when is_nu
 			 wxTextCtrl:changeValue(Text, to_str(ToText(Where)))
 		 end,
     wxSlider:connect(Slider, command_slider_updated, [{callback, UpdateText}]),
+
+    UpdateSliderWheel = fun(#wx{obj=Obj,event=#wxMouse{wheelDelta=Delta,
+								wheelRotation=Rotation,linesPerAction=Lines}}, _) ->
+			 CommandInt = trunc((Rotation/Delta)*Lines),
+			 Val = wxSlider:getValue(Obj)+CommandInt,
+			 wxSlider:setValue(Obj,Val),
+			 PreviewFun(),
+			 wxTextCtrl:changeValue(Text, to_str(ToText(Val)))
+		 end,
+    wxSlider:connect(Slider, mousewheel, [{callback, UpdateSliderWheel}]),
+
     UpdateTextWheel = fun(#wx{event=#wxMouse{type=mousewheel}=Ev}, _) ->
                               case Validator(wxTextCtrl:getValue(Text)) of
                                   {true, V0} ->
@@ -2041,7 +2052,7 @@ constraint_factor(#wxMouse{altDown=A,shiftDown=S,metaDown=M,controlDown=R}) ->
     end.
 
 text_wheel_move(Def, Value, #wxMouse{wheelRotation=Count,wheelDelta=Delta}=EvMouse, Validator) ->
-    Incr = constraint_factor(EvMouse),
+    Incr = -constraint_factor(EvMouse),
     New = case is_integer(Def) of
               true ->
                   Increment = round(Incr),
@@ -2056,7 +2067,7 @@ text_wheel_move(Def, Value, #wxMouse{wheelRotation=Count,wheelDelta=Delta}=EvMou
     end;
 text_wheel_move(Value, #wxMouse{wheelRotation=Count,wheelDelta=Delta}=EvMouse, ToSlider, FromSlider) ->
     Percent = ToSlider(Value),
-    Incr = constraint_factor(EvMouse),
+    Incr = -constraint_factor(EvMouse),
     ValPercent =  Percent - (Count/Delta)*Incr,
     FromSlider(ValPercent).
 
