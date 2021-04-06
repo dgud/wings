@@ -212,13 +212,10 @@ command({save_selected,Filename}, St) ->
     save_selected(Filename, St);
 command(save_incr, St) ->
     save_incr(St);
-command(revert, St0) ->
-    case revert(St0) of
-	{error,Reason} ->
-	    wings_u:error_msg(?__(1,"Revert failed: ") ++ Reason),
-	    St0;
-	#st{}=St -> {save_state,St}
-    end;
+command(revert, St) ->
+    revert(St);
+command(confirmed_revert, St) ->
+    confirmed_revert(St);
 command(save_unused_materials, St) ->
     Bool = wings_pref:get_value(save_unused_materials),
     wings_pref:set_value(save_unused_materials, not Bool),
@@ -687,9 +684,22 @@ recent_files_1([], _, _, Tail) -> Tail.
 %%
 %% The Revert command.
 %%
-
 revert(#st{file=undefined}=St) -> St;
-revert(#st{file=File}=St0) ->
+revert(St0) ->
+    wings_u:yes_no(?__(2,"All changes made since the last save will be lost.\n" ++
+                         "Do you want to continue?"),
+                          fun() -> {file,confirmed_revert} end,
+                          fun() -> St0 end).
+
+confirmed_revert(St0) ->
+    case confirmed_revert_1(St0) of
+        {error,Reason} ->
+            wings_u:error_msg(?__(1,"Revert failed: ") ++ Reason),
+            St0;
+        #st{}=St -> {save_state,St}
+    end.
+
+confirmed_revert_1(#st{file=File}=St0) ->
     St1 = wings_obj:create_folder_system(clean_st(St0)),
     case ?SLOW(wings_ff_wings:import(File, St1)) of
 	#st{}=St2 ->
