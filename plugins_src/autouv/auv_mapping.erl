@@ -67,10 +67,10 @@ map_chart(Type, We, Options) ->
 	_ when Type == lsqcm, is_list(Options), length(Options) < 2 ->
 	    {error,?__(3,"At least 2 vertices (per chart) must be selected")};
 	[Best|_] ->
-	    map_chart_1(Type, Faces, Best, Options, We);	
+	    map_chart_1(Type, Faces, Best, Options, We);
 	Err ->
-	    io:format(?__(4,"Error:")++" ~p~n", [Err]),
-	    {error, ?__(5,"Internal Error")}
+	    ?dbg(?__(4,"Error:")++" ~p~n", [Err]),
+	    {error, ?__(5,"Error, try to cleanup objects before uv-mapping")}
     end.
 
 map_chart_1(Type, Chart, Loop, Options, We) ->
@@ -80,8 +80,8 @@ map_chart_1(Type, Chart, Loop, Options, We) ->
 	throw:What ->
 	    {error,lists:flatten(What)};
 	_:Reason:ST ->
-	    Msg = io_lib:format(?__(2,"Internal error:")++" ~P", [Reason,10]),
-	    io:format("~p:~p "++?__(3,"Error")++" ~p~n  ~p ~n",
+	    Msg = ?__(2,"Error: try to cleanup objects before uv-mapping"),
+	    ?dbg("~p:~p "++?__(3,"Error")++" ~p~n  ~p ~n",
 		      [?MODULE,?LINE,Reason,ST]),
 	    {error,lists:flatten(Msg)}
     end.
@@ -169,11 +169,21 @@ lscm(Fs, none, Loop, We) ->
 lscm(Fs0, Pinned, _Loop, We0) ->
     {TriWe,TriFs,Vs,Fs,WeVs2Vs,Vs2WeVs} = init_mappings(Fs0,We0),
     {BIndx,BPos} = split_pinned(Pinned, WeVs2Vs, [], []),
-    UVs0 = libigl:lscm(Vs, Fs, BIndx, BPos),
-    UVs = remap_uvs(UVs0, Vs2WeVs),
-    OrigArea = fs_area(TriFs, TriWe, 0.0),
-    MappedArea = fs_area(TriFs, TriWe#we{vp=array:from_orddict(UVs)}, 0.0),
-    scaleVs(UVs, math:sqrt(OrigArea/MappedArea)).
+    case libigl:lscm(Vs, Fs, BIndx, BPos) of
+        false ->
+            ?dbg("Fs: ~p~n",[Fs0]),
+            ?dbg("Pinned: ~p~n",[Pinned]),
+            ?dbg("Loop: ~p~n",[_Loop]),
+            throw(?__(1, "Couldn't calculate uv-coords for chart"));
+        {error, Reason} ->
+            ?dbg("Error: ~p", [Reason]),
+            throw(?__(2, "Math error"));
+        UVs0 ->
+            UVs = remap_uvs(UVs0, Vs2WeVs),
+            OrigArea = fs_area(TriFs, TriWe, 0.0),
+            MappedArea = fs_area(TriFs, TriWe#we{vp=array:from_orddict(UVs)}, 0.0),
+            scaleVs(UVs, math:sqrt(OrigArea/MappedArea))
+    end.
 
 lsqcm(Fs, none, Loop, We) ->
     lsqcm(Fs,find_pinned(Loop,We),Loop,We);

@@ -25,7 +25,7 @@
 %% Least sqaure conformal maps
 %% At least bind two BorderVs with UV-positions in BorderPos
 -spec lscm(Vs::[e3d_vec:point()],Fs::triangles(),[BVs::integer()], BPos::[point2d()]) ->
-        [point2d()].
+          [point2d()] | {'error', term()} | 'false'.
 lscm(_Vs,_Fs,_BorderVs,_BorderPos) ->
     ?nif_stub.
 
