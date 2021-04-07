@@ -11,13 +11,13 @@
 
 %%  Everything behind a '%' is a comment
 
-{name, "Edge Filter"}.                      % The name in the shader selector
+{name, "Edge Filter"}.                 % The name in the shader selector
 {vertex_shader, "standard.vs"}.        % Vertex shader used
-{fragment_shader, "edge_filter.fs"}.  % Fragment shader used
+{fragment_shader, "edge_filter.fs"}.   % Fragment shader used
+{preview, no}.                         % No preview for this shader
 %% Asks what data to send to the shader
 {auv, auv_bg}.                         % Work on the bg texture
 {auv, auv_texsz}.                      % vec2 width and height
 {auv, {auv_send_texture,"Filter the entire Image (required!)",true}}.
 
 {uniform, float, "alpha_limit",  0.3, "Edge have alpha above"}.
-%%

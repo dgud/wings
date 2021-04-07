@@ -47,7 +47,8 @@
 	     tex_units = 1,    %% No of texture units used
 	     reqs = [],        %% Requirements: normals and/or binormals
 	     args = [],        %% Arguments
-	     def  = []         %% Gui Strings
+	     def  = [],        %% Gui Strings
+	     preview = true    %% Shows or not the preview dialog for the shader
 	    }).
 
 -record(sh_conf, {texsz,      % More shader options
@@ -90,9 +91,9 @@ draw_options(#st{bb=Uvs}=AuvSt0) ->
 
     [MaxTxs0|_] = gl:getIntegerv(?GL_MAX_TEXTURE_SIZE),
     MaxTxs = max(min(8192, MaxTxs0), 256),
-    Prefs = get_pref(tx_prefs, pref_to_list(#opt{})),
-    TexSz = proplists:get_value(texsz, Prefs, 512),
     Shaders = shaders(),
+    Prefs = get_valid_prefs(Shaders),
+    TexSz = proplists:get_value(texsz, Prefs, 512),
     Qs = [{hframe,[{menu, gen_tx_sizes(MaxTxs, []),TexSz,
 		    [{key,texsz}]}],[{title,?__(1,"Size")}]},
 	  {vframe, render_passes(Prefs, Shaders), [{title,?__(2,"Render")}]}
@@ -143,6 +144,44 @@ get_mat_texture(MatName, Materials) ->
             Maps = proplists:get_value(maps, Mat, []),
             proplists:get_value(diffuse, Maps, false)
     end.
+
+%% the goal is to remove invalid images references from the previous
+%% shader settings stored in preferences which may not be present in 
+%% the current project. That avoid crashes on preview dialg
+get_valid_prefs(Shaders) ->
+    Prefs = get_pref(tx_prefs, pref_to_list(#opt{})),
+    validate_prefs(Prefs,Shaders,[]).
+    
+validate_prefs([], _, Acc) -> Acc;
+validate_prefs([{texsz,_}=Val|Prefs], Sh, Acc) ->
+    validate_prefs(Prefs, Sh, [Val|Acc]);
+validate_prefs([{{auv_pass,_}=Slot,PassId}=Pass,{{auv_opt,_}=Op,OptVal}=Opt0|Prefs], Sh, Acc) ->
+    PassOpt = 
+        case PassId of
+            {shader,Id} when OptVal /= [] -> 
+                case lists:keysearch(Id,#sh.id,Sh) of
+                    {value,#sh{args=Args}} ->
+                        [{shader,_}|Opts] = OptVal,
+                        case valid_opt(reverse(Args),Opts,true) of
+                            true -> [Pass,Opt0];
+                            false -> [{Slot,ignore},{Op,[]}]
+                        end;
+                    _ -> [{Slot,ignore},{Op,[]}]
+                end;
+            _ -> [Pass,Opt0]
+        end,
+    validate_prefs(Prefs, Sh, Acc++PassOpt);
+validate_prefs([Val|Prefs], Sh, Acc) ->
+    validate_prefs(Prefs, Sh, [Val|Acc]).
+
+valid_opt([], _, Acc) -> Acc;
+valid_opt([{uniform,{image,_},_,_,_}|As], [{_,Id}|Opts], Acc) ->
+    ValidImg = wings_image:txid(Id) /= none,
+    valid_opt(As,Opts,Acc and ValidImg);
+valid_opt([{uniform,_,_,_,_}|As], [_|Opts], Acc) ->
+    valid_opt(As,Opts,Acc);
+valid_opt([_|As], Opts, Acc) ->
+    valid_opt(As,Opts,Acc).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Menu handling
@@ -309,60 +348,77 @@ options(auv_edges,[auv_edges, Type,Color,Size,UseVtxColors],_,_) ->
 options(auv_edges,_,Sh,SphereData) ->
     options(auv_edges,?OPT_EDGES,Sh,SphereData);
 
-options({shader,Id}=Opt, Vals0, Sh, {Ts,SphereMesh}) ->
-    Preview = fun(GLCanvas, _Fields) ->
-                  wings_light:init_opengl(),
-                  %% we create the sphere data for preview once
-                  case wings_pref:get_value(?SHADER_PRW_VBO) of
-                      undefined ->
-                          Vbo = setup_sphere_vbo(SphereMesh),
-                          wings_pref:set_value(?SHADER_PRW_VBO,Vbo);
-                      Vbo0 -> Vbo = Vbo0
-                  end,
-                  tex_preview(GLCanvas,Vbo)
-              end,
-    Refresh = fun(Key, Value, Fields) ->
-        GLCanvas = wings_dialog:get_widget(preview, Fields),
-        case wxWindow:isShown(GLCanvas) of
-            false -> ok;
-            true ->
-                %% update the Vals list with the content of Fields plus the
-                %% current field changed (Key) which is not updated in Fields
-                Vals = update_values(Key,Value,Vals0,Fields),
-                %% creating the texture preview image
-                wxGLCanvas:setCurrent(GLCanvas),
-                PrwImg = get_texture_preview({Opt,Vals},Sh,Ts),
-                %% updating the image
-                prw_img_id(PrwImg),
-                case os:type() of
-                    {_, darwin} -> %% workaround wxWidgets 3.0.4 and mojave
-                        wings_gl:setCurrent(GLCanvas, ?GET(gl_context)),
-                        Preview(GLCanvas, Fields),
-                        wxGLCanvas:swapBuffers(GLCanvas);
-                    _ ->
-                        wxWindow:refresh(GLCanvas)
-                end
-        end
-              end,
-    OptDef = [{hook,Refresh}],
+options({shader,Id}=Opt,Vals,Sh,SphereData) ->
     {value,Shader} = lists:keysearch(Id,#sh.id,Sh),
+    options_1(Opt,Vals,Sh,SphereData,Shader);
+
+options(Command,Vals,_,_) ->
+    io:format("~p: ~p~n",[Command, Vals]),
+    exit(unknown_default).
+
+options_1(Opt, Vals0, _, _, #sh{preview=false}=Shader) ->
     FrmShader =
         case Vals0 of
-            [{shader,Id}|Vals] ->
-                shader_options(Shader,OptDef,Vals);
+            [Opt|Vals] ->
+                shader_options(Shader,[],Vals);
             _ ->
-                shader_options(Shader,OptDef,[])
+                shader_options(Shader,[],[])
+        end,
+    [{vframe, FrmShader}];
+
+options_1(Opt, Vals0, Sh, {Ts,SphereMesh}, Shader) ->
+    Preview =
+        fun(GLCanvas, _Fields) ->
+            wings_light:init_opengl(),
+            %% we create the sphere data for preview once
+            case wings_pref:get_value(?SHADER_PRW_VBO) of
+                undefined ->
+                    Vbo = setup_sphere_vbo(SphereMesh),
+                    wings_pref:set_value(?SHADER_PRW_VBO,Vbo);
+                Vbo0 -> Vbo = Vbo0
+            end,
+            tex_preview(GLCanvas,Vbo)
+        end,
+
+    Refresh =
+        fun(Key, Value, Fields) ->
+            GLCanvas = wings_dialog:get_widget(preview, Fields),
+            case wxWindow:isShown(GLCanvas) of
+                false -> ok;
+                true ->
+                    %% update the Vals list with the content of Fields plus
+                    %% the current field changed (Key) which is not updated
+                    %% in Fields
+                    Vals = update_values(Key,Value,Vals0,Fields),
+                    %% creating the texture preview image
+                    wxGLCanvas:setCurrent(GLCanvas),
+                    PrwImg = get_texture_preview({Opt,Vals},Sh,Ts),
+                    %% updating the image
+                    prw_img_id(PrwImg),
+                    case os:type() of
+                        {_, darwin} -> %% workaround wxWidgets 3.0.4 and mojave
+                            wings_gl:setCurrent(GLCanvas, ?GET(gl_context)),
+                            Preview(GLCanvas, Fields),
+                            wxGLCanvas:swapBuffers(GLCanvas);
+                        _ ->
+                            wxWindow:refresh(GLCanvas)
+                    end
+            end
+        end,
+
+    FrmShader =
+        case Vals0 of
+            [Opt|Vals] ->
+                shader_options(Shader,[{hook,Refresh}],Vals);
+            _ ->
+                shader_options(Shader,[{hook,Refresh}],[])
         end,
     [{hframe, [
         {vframe, [{custom_gl,?PREVIEW_SIZE,?PREVIEW_SIZE,Preview,
                    [{key, preview}, {proportion, 1}, {flag, ?wxEXPAND bor ?wxALL}]}],
                  [{title, "Preview"}]},
         {vframe, FrmShader, [{title, "Parameters"}]}]
-     }];
-
-options(Command,Vals,_,_) ->
-    io:format("~p: ~p~n",[Command, Vals]),
-    exit(unknown_default).
+    }].
 
 shader_options(#sh{args=Args,def=Defs,file=File}, OptDef, Vals) ->
     case shader_menu(Args,OptDef,reverse(Vals),[]) of
@@ -1638,6 +1694,8 @@ parse_sh_info([{fragment_shader,Name}|Opts],Sh,NI,Acc) ->
     parse_sh_info(Opts, Sh#sh{fs=Name},NI, Acc);
 parse_sh_info([{requires,List}|Opts],Sh,NI,Acc) when is_list(List) ->
     parse_sh_info(Opts, Sh#sh{reqs=List},NI, Acc);
+parse_sh_info([{preview,Opt}|Opts],Sh,NI,Acc) ->
+    parse_sh_info(Opts, Sh#sh{preview=(Opt=/=no)},NI, Acc);
 parse_sh_info([{auv,auv_bg}|Opts],Sh,NI,Acc) ->
     What = {auv,{auv_bg,0}},
     parse_sh_info(Opts, Sh#sh{args=[What|Sh#sh.args]},NI,Acc);
