@@ -192,7 +192,7 @@ forward_event({apply, {camera_opts, bg}, Bool}, Window, State) ->
     change_state(Window, State#{cam_bg := Bool});
 forward_event({apply, {camera_opts, bg_slider}, Val}, Window, State) ->
     wings_pref:set_value(show_bg_blur, Val/100),
-    wings_status:message(?MODULE, io_lib:format(?__(22,"Environement blur: ~.3f"), [Val/100])),
+    wings_status:message(?MODULE, io_lib:format(?__(22,"Environment blur: ~.3f"), [Val/100])),
     wings_wm:dirty(),
     change_state(Window, State#{cam_bg_blur := Val});
 forward_event({apply, {camera_opts, bg_image}, Image}, Window, State) ->
@@ -325,7 +325,7 @@ create_camera(Panel, TopSz, SubFlags) ->
     SeeBg = wxCheckBox:new(Panel, ?CAM_BG, ?__(1, "View environment"), [{style,?wxALIGN_LEFT}]),
     CamSz = wxBoxSizer:new(?wxVERTICAL),
     SeeBgBlur = wxSlider:new(Panel, ?CAM_BG_SLIDER, 30, 0, 100, [{style, ?wxSL_HORIZONTAL}]),
-    wxWindow:setToolTip(SeeBgBlur, wxToolTip:new(?__(21, "Environent blur"))),
+    wxWindow:setToolTip(SeeBgBlur, wxToolTip:new(?__(21, "Set Environment blur"))),
     BlurSz = pre_text(?__(2, "Env Blur:"), SeeBgBlur, Panel),
 
     ImageCtrl = wxFilePickerCtrl:new(Panel, ?CAM_BG_IMAGE, []),
