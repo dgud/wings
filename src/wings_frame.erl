@@ -212,13 +212,13 @@ save_window(palette) -> true;
 save_window({tweak, _}) -> true;
 save_window(outliner) -> true;
 save_window(wings_outliner) -> true;
+save_window(wings_view_win) -> true;
 save_window({object,_}) -> true;
 save_window(geom) -> true;
 save_window({geom,_}) -> true;
 save_window({plugin,_}) -> true;
 save_window(split) -> true;
 save_window(split_rev) -> true;
-save_window(wings_view_win) -> true;
 save_window(_) -> false.
 
 window_prop(Geom) when ?IS_GEOM(Geom) ->
@@ -369,11 +369,18 @@ make_splash(Canvas, Imgs) ->
 
 %%%%%%%%%%%%%%%%%%%%%%%
 
-handle_event(#wx{obj=Win, event=#wxMove{}}, State) ->
+handle_event(#wx{obj=Obj, event=#wxMove{}}, #state{windows=#{loose:=Loose}} = State) ->
     MS = wx_misc:getMouseState(),
     {X,Y} = wx_misc:getMousePosition(),
-    %% io:format("Move ~p ~p ~p ~n", [Win, X,Y]),
-    {noreply, preview_attach(stopped_moving(MS), {X,Y}, Win, State)};
+    Find = fun(#win{frame=Frame, name=Name}) ->
+                   wings_util:wxequal(Frame, Obj) andalso save_window(Name)
+           end,
+    case lists:any(Find, maps:values(Loose)) of
+        true ->
+            {noreply, preview_attach(stopped_moving(MS), {X,Y}, Obj, State)};
+        false ->
+            {noreply, State}
+    end;
 
 handle_event(#wx{userData={move,Win}, event=Ev}, #state{windows=Wins0} = State) ->
     Wins = detach_window(Ev, Win, Wins0),
@@ -683,9 +690,11 @@ preview_attach(false, Pos, Frame,
   when Action =:= undefined; Action =:= preview_attach ->
     case get_split_path(Pos, Wins) of
 	ignore -> %% Outside attached window
+            wings_status:message(?MODULE, ""),
 	    overlay_hide(Overlay),
 	    State#state{windows=delete_timer(Wins)};
 	Path ->
+            wings_status:message(?MODULE, ?__(1, "Hold SHIFT to not attach window")),
 	    {Rect,_} = preview_rect(Path, Frame),
 	    overlay_draw(Overlay, Rect, 170),
 	    State#state{windows=setup_timer(Frame, Path, delete_timer(Wins))}
@@ -740,6 +749,7 @@ overlay_hide(Overlay) ->
 attach_floating(false, _, #{op:=Op}=State) when Op =/= undefined ->
     setup_timer(State);
 attach_floating(true, Overlay, #{op:=#{mwin:=Frame, mpath:=Path}, loose:=Loose}=State) ->
+    wings_status:message(?MODULE, ""),
     case maps:get(Frame, Loose, false) of
 	false ->
 	    State#{action:=undefined, op:=undefined};
@@ -757,6 +767,7 @@ attach_floating(true, Overlay, #{op:=#{mwin:=Frame, mpath:=Path}, loose:=Loose}=
     end;
 attach_floating(_B, Overlay, State) ->
     %% Spurious Move events on windows
+    wings_status:message(?MODULE, ""),
     overlay_hide(Overlay),
     State#{action:=undefined, op:=undefined}.
 
