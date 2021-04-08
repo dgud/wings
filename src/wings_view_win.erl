@@ -49,10 +49,10 @@ window(St) ->
 	    wings_wm:raise(?MODULE),
 	    keep;
 	false ->
-	    {DeskW, DeskH} = wings_wm:top_size(),
+	    {DeskW, _DeskH} = wings_wm:top_size(),
 	    W = 28*?CHAR_WIDTH,
 	    Pos  = {DeskW-50, 0},
-	    Size = {W,DeskH div 3},
+	    Size = {W, 400},
 	    window(Pos, Size, [], St),
 	    keep
     end.
