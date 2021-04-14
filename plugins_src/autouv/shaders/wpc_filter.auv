@@ -16,6 +16,7 @@
 {name, "Filter"}.                      % The name in the shader selector
 {vertex_shader, "standard.vs"}.        % Vertex shader used
 {fragment_shader, "image_filter.fs"}.  % Fragment shader used
+{preview, no}.                         % No preview for this shader
 %% Asks what data to send to the shader
 {auv, {auv_send_texture,"Filter the entire Image",true}}. 
 {auv, auv_bg}.                         % Work on the bg texture
