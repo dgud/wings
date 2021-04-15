@@ -1083,7 +1083,20 @@ make_mipmaps(Img, _, _, _) ->
     wxImage:destroy(Img),
     [].
 
-make_envmap(CL, EnvImgRec0) ->
+make_envmap(CL, #e3d_image{filename=FileName}=EnvImgRec) ->
+    EnvIds =
+        case load_cached_envmap(FileName) of
+            [] ->
+                Cached = make_envmap_1(CL, EnvImgRec),
+                save_cached_envmap(FileName, Cached),
+                [TagId || {TagId,_} <- Cached];
+            Cached ->
+                Cached
+        end,
+    wings_cl:working(),
+    EnvIds.
+
+make_envmap_1(CL, EnvImgRec0) ->
     wings_pb:start(?__(1, "Building envmaps")),
     EnvImgRec = e3d_image:convert(EnvImgRec0, r8g8b8a8, 1, lower_left),
     wings_pb:update(0.1),
@@ -1100,7 +1113,6 @@ make_envmap(CL, EnvImgRec0) ->
     cl:release_mem_object(OrigImg),
     cl:release_mem_object(Buff0),
     cl:release_mem_object(Buff1),
-    wings_cl:working(),
     [DiffId,SpecId,BrdfId].
 
 make_brdf(Buff, W, H, CL) ->
@@ -1112,7 +1124,7 @@ make_brdf(Buff, W, H, CL) ->
     %% wings_image:debug_display(brdf,#e3d_image{width=W, height=H, image=Img, name="BRDF"}),
     Opts = [{wrap, {clamp,clamp}}, {filter, {linear, linear}}],
     ImId = wings_image:new_hidden(brdf_tex, #e3d_image{width=W,height=H,image=Img,extra=Opts}),
-    {brdf_tex, ImId}.
+    {{brdf_tex, ImId}, Img}.
 
 make_diffuse(OrigImg, Buff0, Buff1, W, H, CL) ->
     Fill0 = wings_cl:fill(Buff0, <<0:(32*4)>>, W*H*4*4, CL),
@@ -1127,7 +1139,7 @@ make_diffuse(OrigImg, Buff0, Buff1, W, H, CL) ->
     %% wings_image:debug_display(1000+W,#e3d_image{width=W, height=H, image=Img, name="Diffuse"}),
     Opts = [{wrap, {repeat,repeat}}, {filter, {linear, linear}}],
     ImId = wings_image:new_hidden(env_diffuse_tex, #e3d_image{width=W,height=H,image=Img,extra=Opts}),
-    {env_diffuse_tex, ImId}.
+    {{env_diffuse_tex, ImId}, Img}.
 
 make_spec(OrigImg, Buff0, Buff1, W0, H0, CL) ->
     NoMipMaps = trunc(math:log2(min(W0,H0))),
@@ -1135,7 +1147,7 @@ make_spec(OrigImg, Buff0, Buff1, W0, H0, CL) ->
     Opts = [{wrap, {repeat,repeat}}, {filter, {mipmap, linear}}, {mipmaps, MMs}],
     %% ?dbg("Spec: ~p ~p => ~w mipmaps~n",[W0,H0,length(MMs)]),
     ImId = wings_image:new_hidden(env_spec_tex, #e3d_image{width=W0,height=H0,image=Img,extra=Opts}),
-    {env_spec_tex, ImId}.
+    {{env_spec_tex, ImId}, {Img,MMs}}.
 
 make_spec(Level, Max, OrigImg, Buff0, Buff1, W, H, CL) when Level =< Max ->
     Step = Level/Max,
@@ -1155,6 +1167,63 @@ make_spec(Level, Max, OrigImg, Buff0, Buff1, W, H, CL) when Level =< Max ->
     [{Img,W,H,Level} | make_spec(Level+1, Max, OrigImg, Buff0, Buff1, W div 2, H div 2, CL)];
 make_spec(_Level, _Max, _OrigImg, _B0, _B1, _W, _H, _CL) ->
     [].
+
+save_cached_envmap(FileName0, Cached0) ->
+    FileName = env_map_cache_name(FileName0),
+    case file:open(FileName, [write, raw, binary]) of
+        {ok,File} ->
+            Cached = [{Tag,Img} || {{Tag,_},Img} <- Cached0],
+            Bin = term_to_binary(Cached),
+            file:write(File,Bin),
+            file:close(File);
+        _ ->
+            ok
+    end,
+    ok.
+
+%% By not being able to load the file we return an empty list
+%% signing that a new environment map needs to be computed
+load_cached_envmap(FileName0) ->
+    FileName = env_map_cache_name(FileName0),
+    case filelib:is_file(FileName) of
+        true ->
+            case file:read_file(FileName) of
+                {ok,Bin} ->
+                    Cached = binary_to_term(Bin),
+                    [rebuild_cached_img(Buf) || Buf <- Cached];
+                _ ->
+                    file:delete(FileName),
+                    []
+                end;
+        false -> []
+    end.
+
+env_map_cache_name(FileName) ->
+    CacheName = filename:rootname(filename:basename(FileName))++".emc",
+    filename:join(wings_u:basedir(user_cache), CacheName).
+
+rebuild_cached_img({Tag,Img}) ->
+    case Tag of
+        brdf_tex -> cached_brdf(Img, 512, 512);
+        env_diffuse_tex -> cached_diffuse(Img, 512, 256);
+        env_spec_tex -> cached_spec(Img, 2048, 1024)
+    end.
+
+cached_brdf(Img, W, H) ->
+    Opts = [{wrap, {clamp,clamp}}, {filter, {linear, linear}}],
+    ImId = wings_image:new_hidden(brdf_tex, #e3d_image{width=W,height=H,image=Img,extra=Opts}),
+    {brdf_tex, ImId}.
+
+cached_diffuse(Img, W, H) ->
+    Opts = [{wrap, {repeat,repeat}}, {filter, {linear, linear}}],
+    ImId = wings_image:new_hidden(env_diffuse_tex, #e3d_image{width=W,height=H,image=Img,extra=Opts}),
+    {env_diffuse_tex, ImId}.
+
+cached_spec({Img,MMs}, W, H) ->
+    Opts = [{wrap, {repeat,repeat}}, {filter, {mipmap, linear}}, {mipmaps, MMs}],
+    ImId = wings_image:new_hidden(env_spec_tex, #e3d_image{width=W,height=H,image=Img,extra=Opts}),
+    {env_spec_tex, ImId}.
+
 
 cl_multipass(Kernel, Args, Buff0, Buff1, N, Tot, No, Wait, CL) when N < Tot ->
     Next = wings_cl:cast(Kernel, Args ++ [Buff0, Buff1, N, Tot], No, Wait, CL),
