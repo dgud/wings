@@ -29,6 +29,8 @@ init() ->
     wings_pref:set_default(cl_lightpos, ?cl_lightpos),
     wings_pref:set_default(cl_lightcol, {1.0,1.0,1.0}),
     wings_pref:set_default(cam_exposure, 1.0),
+    %% For some reason compiling the shaders twice, solves rendering issues
+    %% on some Intel drivers :-(
     Vendor = string:tokens(string:lowercase(gl:getString(?GL_VENDOR))," "),
     case lists:member("intel",Vendor) of
         true -> compile_all();
