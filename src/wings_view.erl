@@ -327,7 +327,7 @@ sel_mirror_objects(St) ->
 
 
 -define(RANGE_FOV, {1.0,179.9}).
--define(RANGE_NEAR_CLIP, {0.01,1000.0}).
+-define(RANGE_NEAR_CLIP, {0.001,1000.0}).
 -define(RANGE_FAR_CLIP, {100.0,infinity}).
 -define(RANGE_ZOOM_SLIDER, {-1.0,4.0}).
 -define(RANGE_NEGATIVE_SIZE, {1,infinity}).

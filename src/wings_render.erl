@@ -876,7 +876,8 @@ axis_text(X, Y, C) ->
 
 show_scale(W, H) ->
     Scale = ground_grid_scale(),
-    StrScale = ?__(1,"Grid Scale: x")++integer_to_list(Scale),
+    ScaleStr = float_to_list(float(Scale),[{decimals, 3}, compact]),
+    StrScale = ?__(1,"Grid Scale: x")++ScaleStr,
     X = W-wings_text:width(StrScale)-10,
     wings_io:info(X, H-18, StrScale).
 
@@ -913,8 +914,13 @@ groundplane(Axes, #view{origin=Origin, distance=Dist, along_axis=Along}, PM, MM)
             wings_dl:draw(groundplane, none, fun update_groundplane/1, #{}),
             {Show, 1.0};
         true ->
-            Exp = trunc(math:log(max(1.0, Dist))/math:log(10))-1,
-            Scale = max(trunc(math:pow(10.0,Exp)), 1),
+            if Dist > 2.0 ->
+                Exp = trunc(math:log(max(1.0, Dist))/math:log(10))-1,
+                Scale = max(trunc(math:pow(10.0,Exp)), 1);
+            Dist > 0.2 -> Scale = 0.1;
+            Dist > 0.02 -> Scale = 0.01;
+            true -> Scale = 0.001
+            end,
             ?SET({wings_wm:this(),ground_grid_scale},Scale),
             NumGrid = calc_grid_size(Origin,PM,MM),
             GridSize = ground_grid_size()*NumGrid,
@@ -951,7 +957,7 @@ update_groundplane({Along,Sz,Axes,Color}) ->
 
 groundplane_2(X, Last, _Sz, _Axes) when X > Last ->
     [];
-groundplane_2(X, Last, Sz, true) when X == 0->
+groundplane_2(X, Last, Sz, true) when abs(X) < 0.0001 ->
     %% Skip ground plane where the axes go.
     groundplane_2(ground_grid_size(), Last, Sz, true);
 groundplane_2(X, Last, Sz, Axes) ->
