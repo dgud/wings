@@ -2068,10 +2068,10 @@ text_wheel_move(Def, Value, #wxMouse{wheelRotation=Count,wheelDelta=Delta}=EvMou
     New = case is_integer(Def) of
               true ->
                   Increment = round(Incr),
-                  Value - round((Count/Delta)*Increment);
+                  Value + round((Count/Delta)*Increment);
               _ ->
                   Increment = Incr,
-                  Value - ((Count/Delta)*Increment)
+                  Value + ((Count/Delta)*Increment)
           end,
     case Validator(to_str(New)) of
         {true, Val} -> Val;
@@ -2080,6 +2080,6 @@ text_wheel_move(Def, Value, #wxMouse{wheelRotation=Count,wheelDelta=Delta}=EvMou
 text_wheel_move(Value, #wxMouse{wheelRotation=Count,wheelDelta=Delta}=EvMouse, ToSlider, FromSlider) ->
     Percent = ToSlider(Value),
     Incr = constraint_factor(EvMouse),
-    ValPercent =  Percent - (Count/Delta)*Incr,
+    ValPercent =  Percent + (Count/Delta)*Incr,
     FromSlider(ValPercent).
 
