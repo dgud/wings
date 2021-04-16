@@ -853,6 +853,11 @@ material_dialog(_Name, Mat) ->
                     wings_dialog:show(?KEY(pnl_volume), Value =:= volume, Store),
                     wings_dialog:show(?KEY(pnl_mesh_light), Value =:= meshlight, Store),
                     wings_dialog:show(?KEY(pnl_lightportal), Value =:= lightportal, Store),
+                    case Value of
+                        lightportal -> wings_dialog:set_value(?KEY(visibility),normal,Store);
+                        _ -> ignore
+                    end,
+                    wings_dialog:enable(?KEY(visibility), Value =/= lightportal, Store),
                     wings_dialog:update(?KEY(pnl_obj_params), Store);
                 ?KEY(volume_type) ->
                     wings_dialog:show(?KEY(pnl_desnity_volume), Value =:= expdensityvolume, Store),
