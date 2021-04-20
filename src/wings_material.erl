@@ -71,7 +71,10 @@ mat_used_list(St) ->
                 end
             end, Acc, Sel)
         end, [], St),
-    [{MatName,{'VALUE',{material,{edit,MatName}}},[]} || MatName <- MatList].
+    case length(MatList) of
+        1 -> {material,{edit,lists:nth(1,MatList)}};
+        _ -> [{MatName,{'VALUE',{material,{edit,MatName}}},[]} || MatName <- MatList]
+    end.
 
 new(_) ->
     new_1(new).
