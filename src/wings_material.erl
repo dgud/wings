@@ -39,7 +39,7 @@ material_menu(St) ->
 material_fun(St) ->
     fun(help, _Ns) ->
 	    {?__(1,"Assign existing material to selection"),
-         ?__(3,"Edit material assigned to selection"),
+	     ?__(3,"Edit material assigned to selection"),
 	     ?__(2,"Create and assign new material")};
        (1, _Ns) ->
 	    mat_list(St);
