@@ -4575,7 +4575,7 @@ export_object_1(F, NameStr, Mesh0=#e3d_mesh{he=He0}, DefaultMaterial, MatPs, Id)
             println(F, "<with_caustic bval=\"~s\"/>",[Lightportal_Causticphotons]),
             println(F, "<photon_only bval=\"~s\"/>",[Lightportal_Photon_Only]),
             println(F, "</light>"),
-            println(F, "<mesh id=\"~w\" vertices=\"~w\" faces=\"~w\" has_uv=\"~s\" type=\"0\">",[Id,length(Vs),length(Fs),HasUV]),
+            println(F, "<mesh id=\"~w\" vertices=\"~w\" faces=\"~w\" has_uv=\"~s\" type=\"256\">",[Id,length(Vs),length(Fs),HasUV]),
             println(F," ")
 
     end,
