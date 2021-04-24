@@ -905,7 +905,7 @@ calc_grid_size({X,Y,Z},PM,MM) ->
 				 Viewport),
     trunc(max((max(max(abs(S-X),abs(T-Y)),abs(U-Z))/Max),10.0)).
 
-groundplane(Axes, #view{origin=Origin, distance=Dist, along_axis=Along}, PM, MM) ->
+groundplane(Axes, #view{origin=Origin, distance=Dist0, along_axis=Along}, PM, MM) ->
     Show = wings_wm:get_prop(show_groundplane) orelse
 	  (wings_pref:get_value(force_show_along_grid) andalso
 	   Along =/= none),
@@ -914,13 +914,14 @@ groundplane(Axes, #view{origin=Origin, distance=Dist, along_axis=Along}, PM, MM)
             wings_dl:draw(groundplane, none, fun update_groundplane/1, #{}),
             {Show, 1.0};
         true ->
-            if Dist > 2.0 ->
-                Exp = trunc(math:log(max(1.0, Dist))/math:log(10))-1,
-                Scale = max(trunc(math:pow(10.0,Exp)), 1);
-            Dist > 0.2 -> Scale = 0.1;
-            Dist > 0.02 -> Scale = 0.01;
-            true -> Scale = 0.001
-            end,
+            Dist = abs(Dist0),
+            Scale = if Dist > 2.0 ->
+                            Exp = trunc(math:log(max(1.0, Dist))/math:log(10))-1,
+                            max(trunc(math:pow(10.0,Exp)), 1);
+                       Dist > 0.2 -> 0.1;
+                       Dist > 0.008 -> 0.01;
+                       true -> 0.001
+                    end,
             ?SET({wings_wm:this(),ground_grid_scale},Scale),
             NumGrid = calc_grid_size(Origin,PM,MM),
             GridSize = ground_grid_size()*NumGrid,
@@ -936,7 +937,7 @@ groundplane(Axes, #view{origin=Origin, distance=Dist, along_axis=Along}, PM, MM)
     end.
 
 update_groundplane({Along,Sz,Axes,Color}) ->
-    Data = groundplane_2(-Sz, Sz, Sz, Axes),
+    Data = groundplane_2(-Sz, Sz, Sz, ground_grid_size(), Axes),
     N = length(Data),
     Draw = fun(RS) ->
 		   gl:color3fv(Color),
@@ -955,15 +956,15 @@ update_groundplane({Along,Sz,Axes,Color}) ->
 	   end,
     wings_vbo:new(Draw, Data).
 
-groundplane_2(X, Last, _Sz, _Axes) when X > Last ->
+groundplane_2(X, Last, _Sz, _Step, _Axes) when X > Last ->
     [];
-groundplane_2(X, Last, Sz, true) when abs(X) < 0.0001 ->
+groundplane_2(X, Last, Sz, Step, true) when abs(X) < 0.0001 ->
     %% Skip ground plane where the axes go.
-    groundplane_2(ground_grid_size(), Last, Sz, true);
-groundplane_2(X, Last, Sz, Axes) ->
+    groundplane_2(Step, Last, Sz, Step, true);
+groundplane_2(X, Last, Sz, Step, Axes) ->
     NegSz = -Sz,
     [{X,NegSz,0},{X,Sz,0},{NegSz,X,0},{Sz,X,0}|
-     groundplane_2(X+ground_grid_size(), Last, Sz, Axes)].
+     groundplane_2(X+Step, Last, Sz, Step, Axes)].
 
 ground_grid_size() ->
     Scale = ground_grid_scale(),
