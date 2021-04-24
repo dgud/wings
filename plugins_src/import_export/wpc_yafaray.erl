@@ -4446,7 +4446,6 @@ export_object_1(F, NameStr, Mesh0=#e3d_mesh{he=He0}, DefaultMaterial, MatPs, Id)
                                         true -> ?DEF_AUTOSMOOTH end),
 
 
-
     %% Pre-process mesh
     Mesh1 = #e3d_mesh{} =
         case {He0,UseHardness} of
@@ -4551,6 +4550,8 @@ export_object_1(F, NameStr, Mesh0=#e3d_mesh{he=He0}, DefaultMaterial, MatPs, Id)
             println(F, "<with_diffuse bval=\"~s\"/>",[Lightportal_Diffusephotons]),
             println(F, "<with_caustic bval=\"~s\"/>",[Lightportal_Causticphotons]),
             println(F, "<photon_only bval=\"~s\"/>",[Lightportal_Photon_Only]),
+            println(F, "</light>"),
+            println(F, "<mesh id=\"~w\" vertices=\"~w\" faces=\"~w\" has_uv=\"~s\" type=\"0\">",[Id,length(Vs),length(Fs),HasUV]),
             println(F," ")
 
     end,
@@ -4591,7 +4592,7 @@ export_object_1(F, NameStr, Mesh0=#e3d_mesh{he=He0}, DefaultMaterial, MatPs, Id)
 
         lightportal ->
             println(F," "),
-            println(F, "</light>"),
+            println(F, "</mesh>"),
             println(F," ")
     end,
 
