@@ -326,10 +326,12 @@ handle_call({update,Id,Image}, _From, S) ->
             {reply, error, S}
     end;
 handle_call({find_image, Dir, File}, _From, #ist{images=Ims}=S) ->
-    AbsName = filename:join(Dir, File),
+    AbsName = filename:nativename(filename:join(Dir, File)),
     Find = case os:type() of
                {win32, _} ->
-                   fun(Fn) -> string:casefold(Fn) == string:casefold(AbsName) end;
+                   fun(none) -> false;
+                      (Fn) -> string:casefold(Fn) == string:casefold(AbsName)
+                   end;
                _ ->
                    fun(Fn) -> Fn == AbsName end
            end,
