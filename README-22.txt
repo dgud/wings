@@ -1,3 +1,84 @@
+--- 2.2.7 --------------------------------------------
+
+New stuff
+
+- Added "View Settings Window" where camera and light options can
+  be edited. [dgud]
+
+- Large auto-uv work
+-- Added a new uv-unwrapping algorithm unfold for 64b versions (old is kept as slow). [dgud]
+-- Added an option to AutoUV to export the UV mesh as .eps/.svg files. [micheus]
+-- Added option to scale uniformly the UV to the max U or max V. [micheus]
+-- Added Align option to AutoUV in order to make easier to align islands to each other [micheus]
+-- Added triplanar and image mix shaders to AutoUV Shader. [micheus]
+-- Added preview window for the shaders when generating textures. [micheus]
+
+- A large re-write of the yafray plugin. Thanks David Bluecame [David Bluecame]
+
+- Added missing option for Select menu that allows to lock the current
+  selected objects. Thanks to tkbd. [micheus]
+
+- Changed Separate command in order to keep all object selected.
+  Thanks to tkbd for the suggestion [micheus]
+
+- Added a greebles plugin [dgud]
+
+- Added a dialog to STL exporter allowing users to set the scale.
+  Thanks to dawntreader, imagine and Mert HANCIOGLU(instagram) for provide
+  us informations about the slicers measures. [Micheus]
+
+- Added new primitive screw thread [Micheus]
+
+- Folder system now shows in bold the folder which owns any selected objects; [micheus]
+
+- Added a warning for Revert command on the  main menu File. [micheus]
+
+- Decreased the near clipping value from 0.01 to 0.001;
+  The ground grid is also now drawn for scales as 0.1, 0.01 and 0.001; [micheus]
+
+- Added MMB option to Material menu item when Geometry window is in Face
+  selection mode. Thanks Hank for the suggestion. [micheus]
+
+- Do not attach temporary windows when moving them on top of wings. [dgud]
+
+- New splash screen image by the user olve11. [micheus]
+
+Bugs fixed
+
+- WRML plugin was exporting inverted values for ambientIntensity and
+  Transparency. Thanks to greg. [micheus]
+
+- Fixed outliner hanging on linux, fixed lights nodes not
+  expanding when redrawing. [dgud]
+
+- Fixed crash when dropping images on geom window, thanks tkbd. [dgud]
+
+- Fixed snap image window crash, thanks tkbd. [dgud]
+
+- Fixed timing related crashes in outliner. Thanks Hank. [dgud]
+
+- Run the Select->Similar command in an empty was causing Wings3D to
+  display the 'Delete Hotkey' dialog. [micheus]
+
+- Fixed the help windows visibility which were getting hidden when moving
+  the mouse outside it. Thanks Grumbler. [micheus]
+
+- Fixed the collada importer error caused by NaN values. Thanks to tkbd [micheus]
+
+- Alignment commands not valid for Body or Face mode was causing the AutoUV
+  window to crash when a repeat command was used in these modes. [micheus]
+
+- Input dialogs to name/rename elements now is a little wider. Thanks tkbd
+  for the suggestion. [Micheus]
+
+- Fixed missing export parameters for SPPM and Bidirectional. Thanks oort [DavidBluecame]
+
+- Lift command with LMB option was not working properly due the use of the
+  selection state when it first was used. Thanks Hank for report it. [micheus]
+
+- RMB menus have been rewritten again, should work better and faster on linux/windows
+  [dgud]
+
 --- 2.2.6 --------------------------------------------
 
 - Error exporting .eps/.svg files using diacritical marks. Thanks Hank [micheus]
