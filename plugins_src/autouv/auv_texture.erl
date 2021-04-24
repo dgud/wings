@@ -12,7 +12,8 @@
 %%
 
 -module(auv_texture).
--export([get_texture/2,draw_options/1,delete_preview_vbo/0]).
+-export([get_texture/2,draw_options/1,load_draw_options/0,draw_options_loaded/2,
+         delete_preview_vbo/0]).
 
 -define(NEED_OPENGL, 1).
 -define(NEED_ESDL, 1).
@@ -32,6 +33,7 @@
 -define(SHADER_PRW_NAME, "shdr_preview").
 -define(SHADER_PRW_SIZE, 512).
 -define(SHADER_PRW_VBO, shdr_vbo).
+-define(TEXTURE_SHADER_LIB, "ShdrLib").
 
 -record(opt, {texsz = {512,512},   %% Texture size
 	      no_renderers = 4,
@@ -84,22 +86,33 @@
 
 %% Menu
 
-draw_options(#st{bb=Uvs}=AuvSt0) ->
+draw_options(AuvSt0) ->
+    Prefs = get_pref(tx_prefs, pref_to_list(#opt{})),
+    Shaders = shaders(),
+    draw_options(Prefs,Shaders,AuvSt0).
+
+draw_options_loaded(Prefs0,AuvSt0) ->
+    Shaders = shaders(),
+    Prefs = validate_loaded_lib(Prefs0,Shaders),
+    draw_options(Prefs,Shaders,AuvSt0).
+
+draw_options(Prefs0, Shaders, #st{bb=Uvs}=AuvSt0) ->
     #uvstate{st=GeomSt0,matname=MatName0,bg_img=TexImg} = Uvs,
     BkpImg = wings_image:info(TexImg),
     prw_img_id(new),
 
     [MaxTxs0|_] = gl:getIntegerv(?GL_MAX_TEXTURE_SIZE),
     MaxTxs = max(min(8192, MaxTxs0), 256),
-    Shaders = shaders(),
-    Prefs = get_valid_prefs(Shaders),
+    Prefs = get_valid_prefs(Prefs0,Shaders),
     TexSz = proplists:get_value(texsz, Prefs, 512),
     Qs = [{hframe,[{menu, gen_tx_sizes(MaxTxs, []),TexSz,
-		    [{key,texsz}]}],[{title,?__(1,"Size")}]},
-	  {vframe, render_passes(Prefs, Shaders), [{title,?__(2,"Render")}]}
-	 ],
+            [{key,texsz}]}],[{title,?__(1,"Size")}]},
+          {vframe, render_passes(Prefs, Shaders), [{title,?__(2,"Render")}]},
+          {?__(4,"Save draw settings"),false,[{key,save}]}
+         ],
     wings_dialog:dialog(?__(3,"Draw Options"), {preview,Qs},
-			fun({dialog_preview,Options}) ->
+            fun({dialog_preview,Options0}) ->
+                {value,_,Options} = lists:keytake(save,1,Options0),
                 Opt = list_to_prefs(Options),
                 NewImg = ?SLOW(get_texture(AuvSt0, {Opt,Shaders})),
                 case MatName0 of
@@ -128,12 +141,16 @@ draw_options(#st{bb=Uvs}=AuvSt0) ->
                 wings_wm:later({new_state,AuvSt0}),
                 prw_img_id(delete),
                 GeomSt0;
-            (Options) ->
+            (Options0) ->
+                {value,{save,Save},Options} = lists:keytake(save,1,Options0),
                 Opt = list_to_prefs(Options),
                 prw_img_id(delete),
                 set_pref([{tx_prefs,pref_to_list(Opt)}]),
+                if Save -> save_draw_options(Shaders);
+                true -> ignore
+                end,
                 {auv,{draw_options,{Opt,Shaders}}}
-			end).
+            end).
 
 get_mat_texture(MatName, #st{mat=Materials}) ->
     get_mat_texture(MatName, Materials);
@@ -147,9 +164,8 @@ get_mat_texture(MatName, Materials) ->
 
 %% the goal is to remove invalid images references from the previous
 %% shader settings stored in preferences which may not be present in 
-%% the current project. That avoid crashes on preview dialg
-get_valid_prefs(Shaders) ->
-    Prefs = get_pref(tx_prefs, pref_to_list(#opt{})),
+%% the current project. That avoid crashes on preview dialog
+get_valid_prefs(Prefs,Shaders) ->
     validate_prefs(Prefs,Shaders,[]).
     
 validate_prefs([], _, Acc) -> Acc;
@@ -1779,10 +1795,10 @@ compile_shader(Id, {value,#sh{name=Name,vs=VsF,fs=FsF}}, Acc) ->
 	%% io:format("AUV: Shader ´~s´ ok~n", [Name]),
 	[{Id,Prog}|Acc]
     catch throw:What ->
-	    io:format("AUV: Error ~p ~s ~n",[Name, What]),
+	    io:format("AUV: Error ~p ~n for shader: ´~s´~n",[What,Name]),
 	    Acc;
 	_:Err:Stack ->
-	    io:format("AUV: Internal Error ~s in~n ~p~n",[Err,Stack]),
+	    io:format("AUV: Internal Error ~p in~n ~p~n",[Err,Stack]),
 	    Acc
     end;
 compile_shader(Id, false, Acc) ->
@@ -1796,3 +1812,183 @@ read_file(Name) ->
 	{ok, Bin} -> Bin;
 	_ -> throw("Couldn't read file: " ++ File)
     end.
+
+
+save_draw_options(Shaders) ->
+    wings_dialog:dialog(?__(1,"Auv Shader Name"),
+                     [{hframe, [{label,?__(2,"Name")},
+                                panel,
+                                {text,"",[{width,20}]}]},
+                      {?__(3,"Copy images to lib folder"),false,[]}],
+                     fun([FileName0,Copy]) when FileName0=/=[] ->
+                         FileName = string:lowercase(FileName0),
+                         Prefs = get_pref(tx_prefs, []),
+                         ShdrLibDir = filename:join(wings_u:basedir(user_data),?TEXTURE_SHADER_LIB),
+                         Name = filename:absname(FileName++[".slib"], ShdrLibDir),
+                         case filelib:ensure_dir(Name) of
+                             ok ->
+                                 if Copy -> Dir = ShdrLibDir;
+                                 true -> Dir = ""
+                                 end,
+                                 ToSave = validate_to_save(Dir,Prefs,Shaders,[]),
+                                 Bin = term_to_binary(ToSave),
+                                 catch file:delete(Name),
+                                 ok = file:write_file(Name,Bin);
+                             {error, _} ->
+                                 ignore
+                         end,
+                         ignore;
+                     (_) ->
+                         ignore
+                     end),
+    ok.
+
+validate_to_save(_, [], _, Acc) -> Acc;
+validate_to_save(Dir, [{{auv_pass,_}=Slot,PassId}=Pass,{{auv_opt,_}=Op,OptVal0}|Prefs], Sh, Acc) ->
+    Pref =
+        case PassId of
+            {shader,Id} when OptVal0 /= [] ->
+                case lists:keysearch(Id,#sh.id,Sh) of
+                    {value,#sh{args=Args}} ->
+                        [{shader,_}=Opt0|Opts0] = OptVal0,
+                            case save_img_to_lib(Dir,lists:reverse(Args),Opts0,[]) of
+                                [] -> [{Slot,ignore},{Op,[]}];
+                                Opts -> [Pass,{Op,[Opt0|Opts]}]
+                            end;
+                    _ -> [{Slot,ignore},{Op,[]}]
+                end;
+            _ -> [Pass,{Op,OptVal0}]
+        end,
+    validate_to_save(Dir,Prefs,Sh,Acc++Pref);
+validate_to_save(Dir, [Pref|Prefs], Sh, Acc) ->
+    validate_to_save(Dir,Prefs,Sh,Acc++[Pref]).
+
+save_img_to_lib(_, [], _, Acc) -> lists:reverse(Acc);
+save_img_to_lib(Dir, [{uniform,{image,_},_,_,_}|As], [{_,Id}|Opts], Acc) ->
+    case wings_image:txid(Id) =/= none of
+        true ->
+            #e3d_image{filename=FileName0} = Im0 = wings_image:info(Id),
+            Name = filename:basename(FileName0),
+            FileName = filename:absname(Name, Dir),
+            try
+                if Dir=/=[] ->
+                    Im = Im0#e3d_image{filename=FileName},
+                    Ps = [{filename,FileName},{image,Im}],
+                    wings_image:image_write(Ps),
+                    %% Stores the file name only - relative to the shader lib folder
+                    Opt = {Name,Id};
+                true ->
+                    %% Stores information about the original file image location
+                    Opt = {FileName0,Id}
+                end,
+                save_img_to_lib(Dir,As,Opts,[Opt|Acc])
+            catch _:_ -> []
+            end;
+        false -> []
+    end;
+save_img_to_lib(Dir, [{uniform,_,_,_,_}|As], [Opt|Opts], Acc) ->
+    save_img_to_lib(Dir,As,Opts,[Opt|Acc]);
+save_img_to_lib(Dir, [{auv,_}|As], Opts, Acc) ->
+    save_img_to_lib(Dir,As,Opts,Acc);
+save_img_to_lib(Dir, [_|As], [Opt|Opts], Acc) ->
+    save_img_to_lib(Dir,As,Opts,[Opt|Acc]).
+
+load_draw_options() ->
+    ShdrLibDir = filename:join(wings_u:basedir(user_data),?TEXTURE_SHADER_LIB),
+    Add = fun(Filename, Acc) ->
+            Name = filename:basename(Filename,".slib"),
+            gb_sets:add({Name,list_to_atom(Name)},Acc)
+        end,
+    Names = filelib:fold_files(ShdrLibDir, [".slib"], false, Add, gb_sets:empty()),
+    case gb_sets:size(Names) of
+        0 ->
+            wings_u:message(?__(3,"No autouv shader settings is available in the library"));
+        _ ->
+            [{_,Default}|_] = Items = gb_sets:to_list(Names),
+            wings_dialog:ask(?__(1,"Load AutoUV Shader"),
+                             [{?__(2,"Name"),{menu,Items,Default,[]}}],
+                            fun(Name)->
+                                case validate_loaded_lib(Name) of
+                                    false -> ignore;
+                                    ShLib -> wings_wm:later({action,{auv,{draw_options_loaded,ShLib}}})
+                                end,
+                                ignore
+                            end)
+    end.
+
+validate_loaded_lib(FileName) ->
+    ShdrLibDir = filename:join(wings_u:basedir(user_data),?TEXTURE_SHADER_LIB),
+    Name = filename:absname(FileName++[".slib"], ShdrLibDir),
+    case filelib:is_file(Name) of
+        true ->
+            case file:read_file(Name) of
+                {ok, Bin} when size(Bin) > 0 ->
+                    case binary_to_term(Bin) of
+                        ShLib when is_list(ShLib) -> ShLib;
+                        _ -> false
+                    end;
+                {ok, _} ->
+                    wings_u:message("Invalid texture settings file (empty)\n"),
+                    false;
+                {error, Error} ->
+                    wings_u:message(io_lib:format("Failed to load texture settings: ~ts\n",[Error])),
+                    false
+            end;
+        false -> false
+    end.
+
+validate_loaded_lib(Prefs,Shaders) ->
+    validate_loaded_lib(Prefs,Shaders,[]).
+
+validate_loaded_lib([], _, Acc) -> Acc;
+validate_loaded_lib([{texsz,_}=Val|Prefs], Sh, Acc) ->
+    validate_loaded_lib(Prefs, Sh, [Val|Acc]);
+validate_loaded_lib([{{auv_pass,_}=Slot,PassId}=Pass,{{auv_opt,_}=Op,OptVal}=Opt0|Prefs], Sh, Acc) ->
+    PassOpt =
+        case PassId of
+            {shader,Id} when OptVal /= [] ->
+                case lists:keysearch(Id,#sh.id,Sh) of
+                    {value,#sh{args=Args}} ->
+                        [{shader,_}=Opt|Opts0] = OptVal,
+                        Opts = valid_loaded_opt(reverse(Args),Opts0,[]),
+                        [Pass,{Op,[Opt|Opts]}];
+                    _ ->
+                        [{Slot,ignore},{Op,[]}]
+                end;
+            _ -> [Pass,Opt0]
+        end,
+    validate_loaded_lib(Prefs, Sh, Acc++PassOpt);
+validate_loaded_lib([Val|Prefs], Sh, Acc) ->
+    validate_loaded_lib(Prefs, Sh, [Val|Acc]).
+
+valid_loaded_opt([], _, Acc) -> lists:reverse(Acc);
+valid_loaded_opt([{uniform,{image,_},_,_,_}|As], [{Filename0,_}|Opts], Acc) ->
+    Filename =
+        case filename:dirname(Filename0) of
+            "." -> %% using image stored in the shader lib
+                ShdrLibDir = filename:join(wings_u:basedir(user_data),?TEXTURE_SHADER_LIB),
+                filename:absname(Filename0, ShdrLibDir);
+            _ -> Filename0
+        end,
+    Id =
+        case wings_image:find_image("", Filename) of
+            false ->
+                case wings_image:from_file(Filename) of
+                    Id0 when is_integer(Id0) -> Id0;
+                    _ -> none
+                end;
+            {true, Id0}  ->
+                Id0
+        end,
+    Name =
+        case Id of
+            Id when is_integer(Id) ->
+                #e3d_image{name=Name0} = wings_image:info(Id),
+                Name0;
+            none -> Filename0
+        end,
+    valid_loaded_opt(As,Opts,[{Name,Id}|Acc]);
+valid_loaded_opt([{uniform,_,_,_,_}|As], [Opt|Opts], Acc) ->
+    valid_loaded_opt(As,Opts,[Opt|Acc]);
+valid_loaded_opt([_|As], Opts, Acc) ->
+    valid_loaded_opt(As,Opts,Acc).

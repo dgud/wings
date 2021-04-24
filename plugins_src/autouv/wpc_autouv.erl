@@ -539,6 +539,8 @@ max_uniform() ->
 
 option_menu() ->
     [separator,
+     {?__(3,"Load Draw Options..."),load_texture,?__(4,"Load a saved texture draw settings")},
+     separator,
      {?__(1,"Create Texture"),create_texture,?__(2,"Make and Attach a texture to the model")}].
 
 %%% Event handling
@@ -656,6 +658,11 @@ handle_event_3({drop,DropData}, St) ->
 handle_event_3({action,{{auv,_},create_texture}}, St) ->
     ?SET({?MODULE,show_background}, true),
     auv_texture:draw_options(St);
+handle_event_3({action,{{auv,_},load_texture}}, _) ->
+    auv_texture:load_draw_options();
+handle_event_3({action,{auv,{draw_options_loaded,ShLib}}}, St) ->
+    ?SET({?MODULE,show_background}, true),
+    auv_texture:draw_options_loaded(ShLib,St);
 handle_event_3({action,{auv,{draw_options,restart}}}, St) ->
     ?SET({?MODULE,show_background}, true),
     auv_texture:draw_options(St);
