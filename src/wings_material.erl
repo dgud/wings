@@ -38,10 +38,13 @@ material_menu(St) ->
 
 material_fun(St) ->
     fun(help, _Ns) ->
-	    {?__(1,"Assign existing material to selection"),[],
+	    {?__(1,"Assign existing material to selection"),
+	     ?__(3,"Edit material assigned to selection"),
 	     ?__(2,"Create and assign new material")};
        (1, _Ns) ->
 	    mat_list(St);
+       (2, _Ns) ->
+	    mat_used_list(St);
        (3, _) ->
 	    {material,new};
        (_, _) -> ignore
@@ -56,6 +59,22 @@ mat_list_1([{Name,Ps}|Ms], Acc) ->
     Menu = {atom_to_list(Name),{assign,Name},[],[{color,Diff}]},
     mat_list_1(Ms, [Menu|Acc]);
 mat_list_1([], Acc) -> reverse(Acc).
+
+mat_used_list(St) ->
+    MatList =
+        wings_sel:fold(fun(Sel,We,Acc) ->
+            gb_sets:fold(fun(F,Acc0)->
+                MatName = atom_to_list(wings_facemat:face(F,We)),
+                case lists:member(MatName,Acc0) of
+                    false -> [MatName|Acc0];
+                    true -> Acc0
+                end
+            end, Acc, Sel)
+        end, [], St),
+    case length(MatList) of
+        1 -> {material,{edit,lists:nth(1,MatList)}};
+        _ -> [{MatName,{'VALUE',{material,{edit,MatName}}},[]} || MatName <- MatList]
+    end.
 
 new(_) ->
     new_1(new).
