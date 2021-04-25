@@ -327,7 +327,12 @@ handle_call({update,Id,Image}, _From, S) ->
     end;
 handle_call({find_image, Dir, File}, _From, #ist{images=Ims}=S) ->
     AbsName = filename:join(Dir, File),
-    Find = fun(Fn) -> Fn == AbsName end,
+    Find = case os:type() of
+               {win32, _} ->
+                   fun(Fn) -> string:casefold(Fn) == string:casefold(AbsName) end;
+               _ ->
+                   fun(Fn) -> Fn == AbsName end
+           end,
     Found = [Id || {Id, #img{e3d=#e3d_image{filename=FN}}} <-
                        gb_trees:to_list(Ims), Find(FN)],
     case Found of
