@@ -250,9 +250,14 @@ init([Frame, _Ps, Os]) ->
     State = ids_to_path(State0),
     wxWindow:connect(Panel, command_radiobutton_selected),
     wxWindow:connect(Panel, command_slider_updated),
-    Children = [wxStaticBoxSizer:getStaticBox(LightSz), wxStaticBoxSizer:getStaticBox(CameraSz)
-               | wxWindow:getChildren(Panel)],
-    [wxWindow:connect(Win, enter_window, [{userData, {win, Panel}}]) || Win <- Children],
+    case os:type() of
+        {_, linux} ->
+            ignore;
+        _ ->
+            Children = [wxStaticBoxSizer:getStaticBox(LightSz), wxStaticBoxSizer:getStaticBox(CameraSz)
+                       | wxWindow:getChildren(Panel)],
+            [wxWindow:connect(Win, enter_window, [{userData, {win, Panel}}]) || Win <- Children]
+    end,
     [setup_gui(Key,Val,State) || {Key,Val} <- Os],
     {Panel, State}.
 
