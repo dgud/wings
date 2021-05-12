@@ -391,13 +391,12 @@ options_1(Opt, Vals0, Sh, {Ts,SphereMesh}, Shader) ->
                     %% in Fields
                     Vals = update_values(Key,Value,Vals0,Fields),
                     %% creating the texture preview image
-                    wxGLCanvas:setCurrent(GLCanvas),
+                    wings_gl:setCurrent(GLCanvas, ?GET(gl_context)),
                     PrwImg = get_texture_preview({Opt,Vals},Sh,Ts),
                     %% updating the image
                     prw_img_id(PrwImg),
                     case os:type() of
                         {_, darwin} -> %% workaround wxWidgets 3.0.4 and mojave
-                            wings_gl:setCurrent(GLCanvas, ?GET(gl_context)),
                             Preview(GLCanvas, Fields),
                             wxGLCanvas:swapBuffers(GLCanvas);
                         _ ->
@@ -979,9 +978,9 @@ setup_fbo(W,H) ->
     end.
 	
 error_msg(Line) ->
-    case wings_gl:error_string(gl:getError()) of 
-	no_error -> ok; 
-	Err -> io:format("~p: ~p ~n",[Line,Err])
+    case wings_gl:error_string(gl:getError()) of
+	no_error -> ok;
+	Err -> io:format("~p:~p: ~p ~n",[?MODULE, Line,Err]), error
     end.
 
 draw_texture_square() ->
@@ -1562,13 +1561,24 @@ send_texture([_|Next], [_|Opts]) ->
 send_texture([],_) -> false.
 
 
-shader_uniforms([{uniform,color,Name,_,_}|As],[Val|Opts],Conf) ->
+shader_uniforms([A|As], [O|Opts]=Opts0, Conf) ->
+    Res = shader_uniform(A,O,Conf),
+    ?ERROR == error andalso io:format("~p~n", [A]),
+    case Res of
+        ok -> shader_uniforms(As,Opts,Conf);
+        no_opt -> shader_uniforms(As,Opts0,Conf);
+        {keep, Keep} -> [Keep|shader_uniforms(As,Opts0,Conf)]
+    end;
+shader_uniforms([], [], _) ->
+    [].
+
+shader_uniform({uniform,color,Name,_,_}, Val, Conf) ->
     wings_gl:set_uloc(Conf#sh_conf.prog, Name,Val),
-    shader_uniforms(As,Opts,Conf);
-shader_uniforms([{uniform,float,Name,_,_}|As],[Val|Opts],Conf) ->
+    ok;
+shader_uniform({uniform,float,Name,_,_},Val,Conf) ->
     wings_gl:set_uloc(Conf#sh_conf.prog, Name, Val),
-    shader_uniforms(As,Opts,Conf);
-shader_uniforms([{uniform,menu,Name,_,_}|As],[Vals|Opts],Conf) 
+    ok;
+shader_uniform({uniform,menu,Name,_,_}, Vals,Conf)
   when is_list(Vals) ->
     Loc = wings_gl:uloc(Conf#sh_conf.prog,Name),
     foldl(fun(Val,Cnt) when is_integer(Val) ->
@@ -1576,56 +1586,54 @@ shader_uniforms([{uniform,menu,Name,_,_}|As],[Vals|Opts],Conf)
              (Val,Cnt) ->
                 gl:uniform1f(Loc+Cnt,Val),Cnt+1
           end,0,Vals),
-    shader_uniforms(As,Opts,Conf);
-shader_uniforms([{uniform,menu,Name,_,_}|As],[Vals|Opts],Conf)
+    ok;
+shader_uniform({uniform,menu,Name,_,_},Vals,Conf)
     when is_integer(Vals) ->
     Loc = wings_gl:uloc(Conf#sh_conf.prog,Name),
     gl:uniform1i(Loc,Vals),
-    shader_uniforms(As,Opts,Conf);
-shader_uniforms([{uniform,bool,Name,_,_}|As],[Val|Opts],Conf) ->
+    ok;
+shader_uniform({uniform,bool,Name,_,_},Val,Conf) ->
     Loc = wings_gl:uloc(Conf#sh_conf.prog,Name),
     BoolF = if Val -> 1.0; true -> 0.0 end,
     gl:uniform1f(Loc, BoolF),
-    shader_uniforms(As,Opts,Conf);
-shader_uniforms([{uniform,{slider,_,_},Name,_,_}|As],[Val|Opts],Conf) ->
+    ok;
+shader_uniform({uniform,{slider,_,_},Name,_,_},Val,Conf) ->
     Loc = wings_gl:uloc(Conf#sh_conf.prog,Name),
 	if is_integer(Val) ->
 			gl:uniform1i(Loc,Val);
 		true ->
 			gl:uniform1f(Loc,Val)
 	end,
-    shader_uniforms(As,Opts,Conf);
-shader_uniforms([{uniform,{image,Unit},Name,_,_}|As],[{_,Id}|Opts],Conf) ->
+    ok;
+shader_uniform({uniform,{image,Unit},Name,_,_},{_,Id},Conf) ->
     Loc = wings_gl:uloc(Conf#sh_conf.prog,Name),
     gl:activeTexture(?GL_TEXTURE0 + Unit),
     TxId = wings_image:txid(Id),
     gl:bindTexture(?GL_TEXTURE_2D, TxId),
     gl:uniform1i(Loc, Unit),
-    shader_uniforms(As,Opts,Conf);
-shader_uniforms([{auv,{auv_bg,Unit}}|Rest],Opts,Conf) ->
+    ok;
+shader_uniform({auv,{auv_bg,Unit}},_Opts,Conf) ->
     Loc = wings_gl:uloc(Conf#sh_conf.prog, "auv_bg"),
     gl:activeTexture(?GL_TEXTURE0),
     gl:bindTexture(?GL_TEXTURE_2D, Conf#sh_conf.fbo_r),
     gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MAG_FILTER, ?GL_NEAREST),
     gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_MIN_FILTER, ?GL_NEAREST),
     gl:uniform1i(Loc, Unit),
-    shader_uniforms(Rest,Opts,Conf);
-shader_uniforms([{auv,auv_texsz}|As],Opts,Conf = #sh_conf{texsz={W,H}}) ->
+    no_opt;
+shader_uniform({auv,auv_texsz},_Opts,Conf = #sh_conf{texsz={W,H}}) ->
     Loc = wings_gl:uloc(Conf#sh_conf.prog,"auv_texsz"),
-    gl:uniform2f(Loc,W,H),
-    shader_uniforms(As,Opts,Conf);
-shader_uniforms([{auv,{auv_send_texture,_,_}}|As],[_Val|Opts],Conf) ->
-    shader_uniforms(As,Opts,Conf);
-shader_uniforms([{auv,auv_bbpos3d}|R],Opts,Conf) ->
+    gl:uniform2f(Loc,float(W),float(H)),
+    no_opt;
+shader_uniform({auv,{auv_send_texture,_,_}},_Val,_Conf) ->
+    ok;
+shader_uniform({auv,auv_bbpos3d},_Opts,Conf) ->
     Loc = wings_gl:uloc(Conf#sh_conf.prog,"auv_bbpos3d"),
     [{MinX,MinY,MinZ},{MaxX,MaxY,MaxZ}] = (Conf#sh_conf.ts)#ts.bb,
     gl:uniform3f(Loc,MinX,MinY,MinZ),
     gl:uniform3f(Loc+1,MaxX,MaxY,MaxZ),
-    shader_uniforms(R,Opts,Conf);
-shader_uniforms([{auv,What}|As],Opts,Conf) ->
-    [What|shader_uniforms(As,Opts,Conf)];
-shader_uniforms([],[],_) ->
-    [].
+    no_opt;
+shader_uniform({auv,What},_Opts,_Conf) ->
+    {keep, What}.
 
 %% Per Face or per Chart uniforms
 sh_uniforms([auv_bbpos2d|R],Chart=#chart{bb_uv=BB},Conf) ->
