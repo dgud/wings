@@ -785,7 +785,7 @@ do_export(Props, File_name, #e3d_file{objs=Objs, mat=Mats}) ->
 		    %% Begin Draw Edge
 
 		    foldl(fun({ Line_code, {Line_width ,Edges, Line_color,Line_pattern} }, {Group_count, Edge_count0}) ->
-				  %% Line code is only acces dictionary
+				  %% Line code is only access dictionary
 				  {Ls0, Edge_count} = foldl(fun(EVIt, {Ls_acc0, Edge_count_acc0}) ->
 								    EVCt = vct(EVIt, VC_tree),
 								    {Ls_acc, Edge_count_acc} =
@@ -2498,7 +2498,7 @@ write_svg_header(F, {Wbb, Hbb}, Line_cap, Mats_dict, {Shade,_Lpos}) ->
     case get_pref(responsive, ?DEF_RESPONSIVE) of true -> ok;false -> io:fwrite(F, " width=\"~w" ++ "px\" height=\"~w" ++ "px\" " , [ round(Wbb),round(Hbb)]) end,
 
     io:fwrite(F, " viewBox=\"~w ~w ~w ~w\" style=\"enable-background:new 0 0 ~w ~w;\"~n" , [0, 0, round(Wbb), round(Hbb), round(Wbb), round(Hbb)]),
-    io:put_chars(F, " stroke=\"black\""), % storoke = "currentColor" cant work LibreOfficeDraw
+    io:put_chars(F, " stroke=\"black\""), % storoke = "currentColor" can't work in LibreOfficeDraw
     case Line_cap of
 	0 -> ok;
 	_ ->

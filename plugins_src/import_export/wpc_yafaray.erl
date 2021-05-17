@@ -4,7 +4,7 @@
 %%     YafaRay Plugin User Interface, for YafaRay Core v3.1.0
 %%
 %%  Copyright (c) 2003-2008 Raimo Niskanen
-%%                2013-2015 Code Convertion from Yafray to YafaRay by Bernard Oortman (Wings3d user oort)
+%%                2013-2015 Code Conversion from Yafray to YafaRay by Bernard Oortman (Wings3d user oort)
 %%                2015 Micheus (porting to use wx dialogs)
 %%                2016 David Bluecame (adaptation for YafaRay Core v3.1.0)
 %%
@@ -910,7 +910,7 @@ material_dialog(_Name, Mat) ->
                     wings_dialog:show(?KEY(pnl_on), is_member(Value, [shinydiffuse,glossy,coatedglossy]), Store),
                     %% Fresnel Effect
                     wings_dialog:show(?KEY(pnl_fe), Value =:= shinydiffuse, Store),
-                    %% Ligth Material: Color & Power
+                    %% Light Material: Color & Power
                     wings_dialog:show(?KEY(pnl_lm), Value =:= lightmat, Store),
                     %% Blend: Material 1, Material 2 & Blend Mix
                     wings_dialog:show(?KEY(pnl_bl), Value =:= blend_mat, Store),
@@ -1668,7 +1668,7 @@ modulator_init(Mode) ->
 
 
 %%%
-%%% Ligth dialogs
+%%% Light dialogs
 %%%
 light_dialog(Name, Ps) ->
     OpenGL = proplists:get_value(opengl, Ps, []),
@@ -2368,7 +2368,7 @@ export_dialog_qs(Op, Attr) ->
                 %% SPPM - GI
                 wings_dialog:show(?KEY(pnl_sppm1), Value =:= sppm, Store),
 
-                %% 2rd column of panels
+                %% 2nd column of panels
                 %% Direct Light
                 wings_dialog:enable(?KEY(pnl_use_ao), wings_dialog:get_value(do_ao, Store) =:= true, Store),
                 wings_dialog:show(?KEY(pnl_ao), Value =:= directlighting, Store),
@@ -6212,7 +6212,7 @@ help(text,{light,ambient}) ->
 help(text,{light,area}) ->
     [[{bold,?__(80,"Area Light")}],
         ?__(81,"A rectangular light with rays emitting from the entire surface. Use for "
-        "light coming through a window or florescent ceiling lights.\n"
+        "light coming through a window or fluorescent ceiling lights.\n"
         "Wings3D objects can be converted to Area Lights with the Object to Area Light "
         "command. Expect longer render times when using Area Lights.")];
 

@@ -22,7 +22,7 @@
 -type energy_type() :: 'arap' | 'log_arap' | 'symmetric_dirichlet' |
                        'conformal' | 'exp_conformal' | 'exp_symmetric_dirichlet'.
 
-%% Least sqaure conformal maps
+%% Least square conformal maps
 %% At least bind two BorderVs with UV-positions in BorderPos
 -spec lscm(Vs::[e3d_vec:point()],Fs::triangles(),[BVs::integer()], BPos::[point2d()]) ->
           [point2d()] | {'error', term()} | 'false'.
@@ -39,7 +39,7 @@ harmonic(_Vs,_Fs,_BorderVs,_BorderPos) ->
 
 
 %% Slim Scalable Locally Injective Mappings
-%% UVInitPos must contain an intial (non-flipped) UV-mapping of all verts
+%% UVInitPos must contain an initial (non-flipped) UV-mapping of all verts
 %% Stops when change is less then eps
 -spec slim(VS::[e3d_vec:point()], Fs::triangles(),
            UVInitPos::[point2d()], energy_type(), Eps::float()) -> [point2d()].

@@ -14,7 +14,7 @@
 %%
 %%  2000-10-09:  Fixed undo bug (had forgotten to use "{save_state, ...}")
 %%  2000-10-01:  Incorporated help text suggestions from Puzzled Paul
-%%  2000-09-21:  Normalized line direction (so lineDotPlane dependant only on
+%%  2000-09-21:  Normalized line direction (so lineDotPlane dependent only on
 %%               angle, not size of LD vector)
 %%  2000-09-17:  Tried to make more compliant w/ wings API (Paul Molodowitch)
 %%  2000-09-17:  Allowed more than one edge per body (though none can share

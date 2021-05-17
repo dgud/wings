@@ -503,7 +503,7 @@ option_hook(Id,Renderers,Shaders) ->
      fun(_Key, button_pressed, Fields) ->
 	     Env = wx:get_env(),
 	     spawn(fun() ->
-			   %% Neeed open dialog in dialog from another process
+			   %% Need open dialog in dialog from another process
 			   wx:set_env(Env),
 			   option_dialog(Id, Fields, Renderers, Shaders),
                            wings_wm:psend(send_once, dialog_blanket, preview)

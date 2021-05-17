@@ -202,7 +202,7 @@
 %% `canonical_form': <br />
 %% - produce a canonical form of a JSON document <br />
 %%
-%% `{float_format, Optoins}':
+%% `{float_format, Options}':
 %% - Encodes a `float()` value in the format which specified by `Options' <br />
 %% - default: `[{scientific, 20}]' <br />
 %%
@@ -219,7 +219,7 @@
 %% - NOTE: If `scalar' or `value' option is specified, non `json_string()' key will be automatically converted to a `binary()' value (e.g. `1' => `<<"1">>', `#{}' => `<<"{}">>') <br />
 %%
 %% `{space, N}': <br />
-%% - Inserts `N' spaces after every commna and colon <br />
+%% - Inserts `N' spaces after every comma and colon <br />
 %% - default: `0' <br />
 %%
 %% `{indent, N}': <br />

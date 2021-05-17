@@ -407,8 +407,8 @@ collapse_connect_1(Face, [Va,Vb], {EdgeA,EdgeB}, #we{es=Etab}=We0) ->
 	    %% collapsed will not be part of it), and the new face
 	    %% inside (two original edges, soon to be dissolved, and
 	    %% the new edge will surround the new face). This is
-	    %% particularily important when the existing face is a
-	    %% hole (the hole face would dissappear or shrink to a
+	    %% particularly important when the existing face is a
+	    %% hole (the hole face would disappear or shrink to a
 	    %% triangle if it is placed inside).
 	    %%
 	    case array:get(EdgeA, Etab) of
@@ -530,7 +530,7 @@ delete_if_bad(Face, #we{fs=Ftab,es=Etab}=We) ->
 	none -> We
     end.
 
-%% Remove holes refering to faces that no longer exist.
+%% Remove holes referring to faces that no longer exist.
 
 remove_bad_holes(#we{fs=Ftab,holes=Holes0}=We) ->
     Holes = ordsets:intersection(gb_trees:keys(Ftab), Holes0),

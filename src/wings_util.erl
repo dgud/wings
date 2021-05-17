@@ -793,6 +793,6 @@ translation_string(materials_to_colors)  -> ?__(288,"Materials to Colors");
 %%%%   Translation strings used so far 1 - 290
 %%%%
 
-%%%% Others as yet to be added are proccessed here
+%%%% Others as yet to be added are processed here
 translation_string(Atom) when is_atom(Atom) ->
     wings_util:cap(atom_to_list(Atom)).

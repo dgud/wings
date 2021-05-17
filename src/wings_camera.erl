@@ -729,7 +729,7 @@ generic_event(#mousewheel{dir=hor, wheel=N, mod=Mod}, _Camera, _Redraw) ->
             whpan(N/20.0,0.0);
         Mod band ?ALT_BITS =/= 0 ->
             whrotate(0.0,N/2.0);
-        true ->  %% rotate X wether SHIFT is pressed or not
+        true ->  %% rotate X whether SHIFT is pressed or not
             do_whrotate(N/2.0,0.0)
     end;
 generic_event(grab_lost, Camera, _Redraw) ->
