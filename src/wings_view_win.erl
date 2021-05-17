@@ -23,7 +23,7 @@
 -define(NEED_ESDL, true).
 -include("wings.hrl").
 
--define(HEMI_LIGTH, 1000).
+-define(HEMI_LIGHT, 1000).
 -define(HEMI_SKY, 1001).
 -define(HEMI_GROUND, 1002).
 -define(CAM_LIGHT, 1010).
@@ -262,8 +262,8 @@ init([Frame, _Ps, Os]) ->
     {Panel, State}.
 
 create_hemilight(Panel, LightSz, SubFlags) ->
-    HemiLB   = wxRadioButton:new(Panel, ?HEMI_LIGTH, ?__(2, "Hemilight"), [{style, ?wxRB_GROUP}]),
-    Desc = ?__(3, "Simple light for modelling, only uses diffuse, emission and occlusion material properities, no highlights"),
+    HemiLB   = wxRadioButton:new(Panel, ?HEMI_LIGHTs, ?__(2, "Hemilight"), [{style, ?wxRB_GROUP}]),
+    Desc = ?__(3, "Simple light for modelling, only uses diffuse, emission and occlusion material properties, no highlights"),
     wxWindow:setToolTip(HemiLB, wxToolTip:new(Desc)),
     HemiSz   = wxBoxSizer:new(?wxVERTICAL),
 
@@ -281,7 +281,7 @@ create_hemilight(Panel, LightSz, SubFlags) ->
     ok = ww_color_ctrl:connect(SkyCtrl, col_changed),
     ok = ww_color_ctrl:connect(GroundCtrl, col_changed),
     #{radio => HemiLB, sz => HemiSz, sky=>SkyCtrl, ground=>GroundCtrl,
-      ids => [{radio, ?HEMI_LIGTH}, {sky, ?HEMI_SKY}, {ground, ?HEMI_GROUND}]}.
+      ids => [{radio, ?HEMI_LIGHT}, {sky, ?HEMI_SKY}, {ground, ?HEMI_GROUND}]}.
 
 create_cameralight(Panel, LightSz, SubFlags) ->
     CamLiLB = wxRadioButton:new(Panel, ?CAM_LIGHT, ?__(2, "Camera Light"), []),
