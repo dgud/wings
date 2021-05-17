@@ -683,7 +683,7 @@ split_new_normals(Ftab, #dlo{ns=Ns0,src_we=We}=D) ->
 
 split_new_normals([{Face,Edge}|T], We, none) ->
     %% No normals means that a new object was created in an
-    %% interative command (Shell Extrude).
+    %% interactive command (Shell Extrude).
     Ps = wings_face:vertex_positions(Face, Edge, We),
     Ns = array:set(Face, face_ns_data(Ps), array:new()),
     split_new_normals(T, We, Ns);

@@ -228,7 +228,7 @@ dialog_preview(Cmd, Bool, Title, Qs, St) ->
     dialog_1(Bool, Title, preview, Qs, preview_fun(Cmd, St)).
 
 %% Currently a modal dialog
-%%   (orginal wings let camera events trough)
+%%   (original wings let camera events through)
 ask(Title, Qs0, Fun) ->
     {PreviewCmd, Qs} = preview_cmd(Qs0),
     dialog_1(true, Title, PreviewCmd, queries(Qs), Fun).

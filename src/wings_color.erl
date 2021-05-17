@@ -1,7 +1,7 @@
 %%
 %%  wings_color.erl --
 %%
-%%     Color utilites.
+%%     Color utilities.
 %%
 %%  Copyright (c) 2001-2011 Bjorn Gustavsson
 %%
@@ -215,7 +215,7 @@ convert_hsv(H,V,Min) ->
     {Mean,V,Min}.
 
 %%%
-%%% Local functions for color choser.
+%%% Local functions for color chooser.
 %%%
 
 choose_1(RGB0, Done, true) ->

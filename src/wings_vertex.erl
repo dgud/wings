@@ -110,7 +110,7 @@ other(V, #edge{vs=V,ve=Other}) -> Other;
 other(V, #edge{ve=V,vs=Other}) -> Other.
 
 %% pos(Vertex, VtabOrWe) -> {X,Y,Z}
-%%  Return the three co-ordinates for a vertex.
+%%  Return the three coordinates for a vertex.
 pos(V, #we{vp=Vtab}) ->
     array:get(V, Vtab);
 pos(V, Vtab) ->
@@ -245,7 +245,7 @@ connect(Face, Vs, #we{} = We0) ->
 	#we{} = We -> We
     end.
 
-%% Connect Va to Vb, maybe trough several faces.
+%% Connect Va to Vb, maybe through several faces.
 %% Return {#we{},gbset(Edges).
 
 -spec connect_cut(vertex_num(), vertex_num(), #we{}) ->
@@ -343,7 +343,7 @@ select_cut_edges_2({Type, Edge, VId, Face}=New, Stop, Es0, We, CEs) ->
 				   collect_cut_edge(Face, Es, EdgeId, E, Acc)
 			   end, [fail], Face, We),
     case {Type, CEs} of
-	{vertex, [{vertex, _, VId, _}|Acc]} -> %% Ignore alread connect VId
+	{vertex, [{vertex, _, VId, _}|Acc]} -> %% Ignore already connect VId
 	    select_cut_edges_2(hd(Next), Stop, Es, We, [New|Acc]);
 	_ ->
 	    select_cut_edges_2(hd(Next), Stop, Es, We, [New|CEs])

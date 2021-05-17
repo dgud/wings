@@ -489,7 +489,7 @@ check_vertex_order(Vs, Axis1, Axis2) ->
        true -> lists:reverse(Vs)
     end.
 
-%% Differenciate between Lmb and Rmb Arc commands
+%% Differentiate between Lmb and Rmb Arc commands
 check_plane(Vs, We) ->
     Normals = normals_for_surrounding_faces(Vs, We, []),
     e3d_vec:average(Normals).

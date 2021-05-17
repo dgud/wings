@@ -351,7 +351,7 @@ vtx_attrs(V, Face, #we{lv=Lva,rv=Rva}=We) ->
 %%     What = uv | color | [vertex|uv] | [vertex|color]
 %%     Attrs = opaque representation of attributes
 %%   Given Attrs, an opaque collection of attributes,
-%%   retrive the attribute given by What.
+%%   retrieve the attribute given by What.
 %%
 -spec attr('uv' | 'color', all_attributes()) -> term().
 attr(uv, [_|UV]) -> UV;

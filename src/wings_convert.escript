@@ -1,6 +1,6 @@
 #!/usr/bin/env escript
 %%   -*- erlang -*-
-%%     Wings 3D File convertion.
+%%     Wings 3D File conversion.
 %%
 %%  Copyright (c) 2010 Dan Gudmundsson
 %%
@@ -21,7 +21,7 @@
 	 image_format,    %% Image out format
 	 in_formats=[],   %% Scanned, all import formats
 	 out_formats=[],  %% Scanned, all export formats
-	 modify=[]        %% Convertion modifications
+	 modify=[]        %% Conversion modifications
 	}).
 
 -record(format,

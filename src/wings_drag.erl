@@ -652,7 +652,7 @@ handle_drag_event_0(Cancel, #drag{})
 handle_drag_event_0(#mousebutton{button=3,state=?SDL_RELEASED},
 		  #drag{rmb_timer=StartTime}=Drag) when StartTime =/= 0 ->
     %% When Rmb is released we subtract the StartTime (when the Rmb was pressed)
-    %% from the Stop time (relased) and if the result is less than 500000 ms, then
+    %% from the Stop time (released) and if the result is less than 500000 ms, then
     %% we cancel the drag. If not we continue the drag using the 
     Stop = os:timestamp(),
     Time = timer:now_diff(Stop, StartTime),

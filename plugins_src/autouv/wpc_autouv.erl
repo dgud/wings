@@ -506,8 +506,8 @@ command_menu(_, X, Y) ->
 stretch_directions() ->
     [{?__(1,"Max Uniform"), max_uniform(),
       {?__(2,"Maximize either horizontally or vertically"),
-       ?__(7,"Maximize by using the horizontal dimention"),
-       ?__(8,"Maximize by using the vertical dimention")}, []},
+       ?__(7,"Maximize by using the horizontal dimension"),
+       ?__(8,"Maximize by using the vertical dimension")}, []},
      {?__(3,"Max Horizontal"), max_x, ?__(4,"Maximize horizontally (X dir)")},
      {?__(5,"Max Vertical"),   max_y, ?__(6,"Maximize vertically (Y dir)")}].
 

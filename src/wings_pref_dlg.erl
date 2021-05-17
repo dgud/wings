@@ -506,7 +506,7 @@ misc_prefs() ->
 		      ?__(20,"Decreases large jumps in mouse coordinate changes")},
                      {no_warp,
                       ?__(31,"Camera moves and interactive commands not working"),
-		      ?__(32,"Minimize mouse moves programatically")},
+		      ?__(32,"Minimize mouse moves programmatically")},
 		     {ungrab_bug,
 		      ?__(26,"Camera moves steals focus"),
 		      ?__(27,"Problem occurs on linux")}

@@ -212,7 +212,7 @@ setup_dialog(Parent, Entries, Magnet, {X,Y} = ScreenPos, Cache) ->
             MenuData = do_setup_dialog(TopParent, Entries, Magnet, ScreenPos),
             case maps:get(overlay, MenuData) of
                 none ->
-                    %% Note we leak popup windows menues here,
+                    %% Note we leak popup windows menus here,
                     %% like autouv, should it be cleaned up?
                     ?SET(menu_cache, Cache#{{Entries, TopParent} => MenuData});
                 _ ->  %% Only for popuptransient windows
@@ -427,7 +427,7 @@ fit_menu_on_display(Frame,{MX,MY} = Pos) ->
     wxDisplay:destroy(Display),
     {PX,PY}.
 
-%% If the mouse is not moved after popping up the menu, the meny entry
+%% If the mouse is not moved after popping up the menu, the menu entry
 %% is not active, find_active_panel finds the active row.
 find_active_panel(Panel, MX, MY) ->
     {_,_,WinW,WinH} = wxWindow:getRect(Panel),

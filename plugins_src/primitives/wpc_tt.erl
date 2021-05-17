@@ -524,7 +524,7 @@ getpas(I,N,Contd,Cct,{Pas,Ass}=Acc) ->
 	    end
     end.
 
-%% Return true if thre is no unassigned J <= second arg, J /= I,
+%% Return true if there is no unassigned J <= second arg, J /= I,
 %% such that contour J contains contour I.
 isboundary(_I,0,_Contd,_Ass) -> true;
 isboundary(I,I,Contd,Ass) -> isboundary(I,I-1,Contd,Ass);
@@ -1407,7 +1407,7 @@ get_glyph_shape_tt(TTF = #ttf_info{data=Bin}, _Glyph, Offset) ->
 	    N = length(Flags),
 	    setup_vertices(Flags, XCs, YCs, GlyphDesc);
        NumberOfContours =:= -1 ->
-	    %% Several Glyphs (Compund shapes)
+	    %% Several Glyphs (Compound shapes)
 	    get_glyph_shapes(GlyphDesc, TTF, []);
        NumberOfContours < -1 ->
 	    throw({error, bad_ttf, ?__(1, "Unsupported TTF format")});
@@ -1527,7 +1527,7 @@ get_glyph_shapes(<<Flags:?S16, GidX:?S16, GlyphDesc0/binary>>, Font, Vs0) ->
     Vs1 = get_glyph_shape(Font, GidX),
     Vs = scale_vertices(Vs1, ScaleInfo, Vs0),
     case (Flags band (1 bsl 5)) > 1 of
-	true -> %% More Compontents
+	true -> %% More Components
 	    get_glyph_shapes(GlyphDesc, Font, Vs);
 	false ->
 	    lists:reverse(Vs)

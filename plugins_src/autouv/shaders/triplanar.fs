@@ -92,11 +92,11 @@ vec4 pick_textel(sampler2D img, vec2 uv) {
 void main() {
     float mixVal = weight/100.0;
     vec4 bgCol = pick_textel(auv_bg, w3d_uv);
-    // matching the 3D coordiante space to the UV space [0,1]
+    // matching the 3D coordinate space to the UV space [0,1]
     vec3 pos = (w3d_pos-auv_bbpos3d[0]) / (auv_bbpos3d[1]-auv_bbpos3d[0]);
     vec3 nor = w3d_normal;
 
-    // packing paramters
+    // packing parameters
     vec2 scale = vec2(100.0/max(hscale,ZERO), 100.0/max(vscale,ZERO));
     vec2 offset = vec2(hshift/-100.0, vshift/-100.0);
     vec4 scloft = vec4(scale, offset);
