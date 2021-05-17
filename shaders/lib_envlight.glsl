@@ -27,7 +27,7 @@ vec2 vec2uv(vec3 vec)
   return vec2(u, v);
 }
 
-vec3 background_ligthting(PBRInfo pbrInputs, vec3 N, vec3 reflection)
+vec3 background_lighting(PBRInfo pbrInputs, vec3 N, vec3 reflection)
 {
     vec3 refl = normalize(reflection);
     vec2 index = vec2uv(refl);
