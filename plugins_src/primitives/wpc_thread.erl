@@ -66,7 +66,7 @@ thread_dialog() ->
         {" ", separator},
         {?__(4,"Pitch"), {text,0.3,[{key,pitch},{range,{0.0001,infinity}}]}},
         {?__(5,"Crest Height"), {text,0.35,[{key,crest_h},{range,{0.0,infinity}}]}},
-        {?__(6,"Crest Amount"), {text,5,[{key,occurences},{range,{1,infinity}}]}}]
+        {?__(6,"Crest Amount"), {text,5,[{key,occurrences},{range,{1,infinity}}]}}]
      },
      {hradio, [
          {?__(10,"Helicoidal"),helicoid},
@@ -89,15 +89,15 @@ make_thread(Arg0, _St) ->
     TopRadius = maps:get(top_radius, Arg),
     BotRadius = maps:get(bottom_radius, Arg),
     CrestH = maps:get(crest_h, Arg),
-    Occurences = maps:get(occurences, Arg),
+    Occurrences = maps:get(occurrences, Arg),
     Dir = maps:get(direction, Arg),
     Type = maps:get(thread_type, Arg),
     Modify = [{maps:get(rot_x, Arg), maps:get(rot_y, Arg), maps:get(rot_z, Arg)},
               {maps:get(mov_x, Arg), maps:get(mov_y, Arg), maps:get(mov_z, Arg)},
               maps:get(ground, Arg)],
 
-    Height = Pitch*(Occurences+0.5),
-    Rows = Occurences+1,
+    Height = Pitch*(Occurrences+0.5),
+    Rows = Occurrences+1,
     make_thread(Type, Dir, Sections, Height, TopRadius, BotRadius, CrestH, Pitch, Rows, Modify).
 
 %%%
