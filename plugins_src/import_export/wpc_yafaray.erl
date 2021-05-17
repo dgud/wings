@@ -4691,7 +4691,7 @@ export_faces(F, [#e3d_face{mat=[Mat|_],tx=Tx,vs=[A,B,C],vc=VCols}|T],
                              [length(VCols)]),
                    ""
            end,
-    uniprintln(F, "~ts    <f a=\"~ts\" b=\"~ts\" c=\"~ts\"~ts~ts",
+    uniprintln(F, "~ts    <f a=\"~s\" b=\"~s\" c=\"~s\"~s~s",
                [Shader,format(A),format(B),format(C),UVIndices,VCol]),
 
 
