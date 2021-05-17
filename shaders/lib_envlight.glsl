@@ -38,11 +38,11 @@ vec3 background_lighting(PBRInfo pbrInputs, vec3 N, vec3 reflection)
     float mipCount = 10.0; // resolution of 2048x1024
     float lod = (pbrInputs.perceptualRoughness * mipCount);
 #ifdef GL_ARB_shader_texture_lod
-    vec3 specligth = SRGBtoLINEAR(texture2DLod(EnvSpecMap, index, lod)).rgb;
+    vec3 speclight = SRGBtoLINEAR(texture2DLod(EnvSpecMap, index, lod)).rgb;
 #else  // NO GL_ARB_shader_texture_lod
-    vec3 specligth = SRGBtoLINEAR(texture2D(EnvSpecMap, index, lod)).rgb;
+    vec3 speclight = SRGBtoLINEAR(texture2D(EnvSpecMap, index, lod)).rgb;
 #endif // GL_ARB_shader_texture_lod
 
-    vec3 specular = specligth * (pbrInputs.specularColor * brdf.x + brdf.y);
+    vec3 specular = speclight * (pbrInputs.specularColor * brdf.x + brdf.y);
     return diffuse + specular;
 }
