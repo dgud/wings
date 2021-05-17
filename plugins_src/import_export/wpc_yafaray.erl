@@ -3162,7 +3162,7 @@ export(Attr, Filename, #e3d_file{objs=Objs,mat=Mats,creator=Creator}) ->
     Lights = proplists:get_value(lights, Attr, []),
     %%
     uniprintln(F,  "<?xml version=\"1.0\"?>~n"++
-                "<!-- ~ts: Exported from ~s -->~n"++
+                "<!-- ~ts: Exported from ~ts -->~n"++
                 "~n"++
                 "<scene type=\"triangle\">", [filename:basename(ExportFile), CreatorChg]),
     %%
@@ -4691,7 +4691,7 @@ export_faces(F, [#e3d_face{mat=[Mat|_],tx=Tx,vs=[A,B,C],vc=VCols}|T],
                              [length(VCols)]),
                    ""
            end,
-    uniprintln(F, "~s    <f a=\"~s\" b=\"~s\" c=\"~s\"~s~s",
+    uniprintln(F, "~ts    <f a=\"~ts\" b=\"~ts\" c=\"~ts\"~ts~ts",
                [Shader,format(A),format(B),format(C),UVIndices,VCol]),
 
 
@@ -5839,8 +5839,8 @@ export_logging_badge(F, Attr) ->
     Badge_font_size_factor = proplists:get_value(badge_font_size_factor, Attr),
     
     println(F, "<logging_badge name=\"logging_badge\">"),
-    println(F, "	<logging_saveLog bval=\"~s\"/>", [LogSaveTxt]),
-    println(F, "	<logging_saveHTML bval=\"~s\"/>", [LogSaveHtml]),
+    println(F, "	<logging_saveLog bval=\"~ts\"/>", [LogSaveTxt]),
+    println(F, "	<logging_saveHTML bval=\"~ts\"/>", [LogSaveHtml]),
     println(F, "	<logging_paramsBadgePosition sval=\"~s\"/>", [BadgePosition]),
     uniprintln(F, " <logging_title sval=\"~ts\"/>", [BadgeTitle]),
     uniprintln(F, "	<logging_author sval=\"~ts\"/>", [BadgeAuthor]),
