@@ -79,7 +79,7 @@ try_import_ps(Name, Nsubsteps) ->
             case tokenize_bin_ps(Rest) of
                 {{error,no_token}, Creator} ->
                     {error, Creator ++ "\n"++?__(2,"File doesn't have a valid token structure")};
-                {{error,unsuported}, Creator} ->
+                {{error,unsupported}, Creator} ->
                     {error, Creator ++ "\n"++?__(3,"File creator unsupported")};
                 {Objs0, Creator} ->
                     Objs = break_grouped_moveto(Objs0),
@@ -189,7 +189,7 @@ tokenize_bin_ps(Bin) ->
                                 lists:usort(Tokens)
                         end
                 end;
-            _ -> {error,unsuported}
+            _ -> {error,unsupported}
         end,
     {Objs, Creator}.
 
@@ -207,7 +207,7 @@ get_creator(Creator0) ->
                         true ->
                             Idx3 = string:str(Creator,"SCRIBUS"),
                             if Idx3 > 0 -> scribus;
-                                true -> unknow
+                                true -> unknown
                             end
                     end
             end

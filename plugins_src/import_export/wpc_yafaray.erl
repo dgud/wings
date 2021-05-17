@@ -1601,12 +1601,12 @@ mod_legend(Enabled, Mode, Type) when is_list(Mode), is_list(Type) ->
 
 
 process_modulator(Ps) ->
-    {Modulators,Remaning} =
+    {Modulators,Remaining} =
         lists:foldr(fun(Id, {Mod0,Ps0})->
             {Mod1, Ps1} = modulator_result_find(Ps0, Id, {[],[]}),
             {[{modulator, lists:sort(Mod1)}]++Mod0,Ps1}
         end, {[],Ps}, lists:seq(1,?MAX_MODULATORS)),
-    {[{modulators, Modulators}], Remaning}.
+    {[{modulators, Modulators}], Remaining}.
 
 modulator_result_find([], _, Acc) -> Acc;
 modulator_result_find([{{Id,Field},Value}|Ps], Id, {Mod, Remaining}) ->
@@ -3032,7 +3032,7 @@ build_render_pass_frame(Label, Attr) ->
         end,0, lists:seq(1,Max)),
     Passes =
         case {PassesEnable,(UsedPasses =/= 0)} of
-            {fase,true} -> UsedPasses;
+            {false,true} -> UsedPasses;
             {true,true} -> max(MaxRenderPasses, UsedPasses);
             {true,false} -> MaxRenderPasses;
             _ -> 0
