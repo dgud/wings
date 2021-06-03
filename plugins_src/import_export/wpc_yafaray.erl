@@ -1557,7 +1557,7 @@ modulator_dialog({modulator,Ps}, Maps, M) when is_list(Ps) ->
                                 {?__(94,"Voronoi F3"),voronoi_f3},
                                 {?__(95,"Voronoi F4"),voronoi_f4},
                                 {?__(96,"Voronoi F1F2"),voronoi_f2f1}
-                            ],DistortionType,[key({M,distotion_type})]},
+                            ],DistortionType,[key({M,distortion_type})]},
                             %% End Distorted Noise Type Select
                             {label,?__(107,"Noise Size")},{text,DistortionNoiseSize,[key({M,distortion_noisesize}), range(distortion_noisesize)]},
                             {label,?__(108,"Distortion")},{text,DistortionIntensity,[key({M,distortion_intensity}), range(distortion_intensity)]}
@@ -2321,6 +2321,15 @@ export_dialog_qs(Op, Attr) ->
     BrowseProps = [{dialog_type,open_dialog}, {extensions,ImageFormats}],
     FontProps = [{dialog_type,open_dialog}, {extensions,[{".ttf","True Type Fonts"}]}],
 
+    %% this fix wrong setup in old project files
+    case get_pref(save_alpha,Attr) of
+        false ->
+            set_prefs([{background_transp,false},{background_transp_refract,false}]);
+        true ->
+            set_prefs([{background_transp,false}]);
+        _ -> ignore
+    end,
+
     Hook_Enable = fun(Key, Value, Store) ->
         case Key of
             threads_auto ->
@@ -2412,6 +2421,21 @@ export_dialog_qs(Op, Attr) ->
         end
     end,
 
+    Check_bkground = fun(Key, Value, Store) ->
+        case Key of
+            save_alpha ->
+                case Value of
+                    false ->
+                        wings_dialog:set_value(background_transp, false, Store),
+                        wings_dialog:set_value(background_transp_refract, false, Store);
+                    _ ->
+                        wings_dialog:set_value(background_transp, true, Store)
+                end,
+                wings_dialog:enable(background_transp_refract, Value=/=false, Store);
+            background_transp ->
+                wings_dialog:enable(background_transp, false, Store)
+        end
+    end,
 %%     % TO DO: we need changes to wings_dialog code in order to enable this kind of use for buttons
 %%     ButtonsHook = fun(Key,_,_Store) ->
 %%         io:format("Button ~p pressed...\n",[Key])
@@ -2515,13 +2539,13 @@ export_dialog_qs(Op, Attr) ->
                         {?__(23, "Off"), false},
                         {?__(61, "On"), true},
                         {?__(24, "Premultiply"), premultiply}
-                    ], get_pref(save_alpha,Attr), [{key,save_alpha}]},
-                    panel,
-                    {?__(159, "Transp Refraction"),get_pref(background_transp_refract,Attr),
-                        [{key,background_transp_refract}]},
+                    ], get_pref(save_alpha,Attr), [{key,save_alpha},{hook,Check_bkground}]},
                     panel,
                     {?__(161, "Transp Background"),get_pref(background_transp,Attr),
-                        [{key,background_transp}]}
+                        [{key,background_transp},{hook,Check_bkground}]},
+                    panel,
+                    {?__(159, "Transp Refraction"),get_pref(background_transp_refract,Attr),
+                     [{key,background_transp_refract}]}
                 ],[{title, ?__(26, "Background")},{margin,true}]},
 
                 %% Image Autosaving group
