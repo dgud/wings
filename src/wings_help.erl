@@ -207,7 +207,7 @@ performance_tips(Head) ->
 	   ?__(5,"type of graphics card"),
 	   ?__(6,"amount of video memory"),
 	   ?__(7,"the phase of the moon") ++
-	       ?__(8,"Therefore, it is difficult to give any firm advice on how to improve Wings performance. The following tips MAY improve performance:"),
+	       ?__(8," Therefore, it is difficult to give any firm advice on how to improve Wings performance. The following tips MAY improve performance:"),
 
 	   ?__(31,"Use fewer Undo levels. Setting to 4 or less (default 32) will let you work on models with almost 8 times the detail. In this case, using a shorter autosave period (default 10mins) may be advisable."),
 
