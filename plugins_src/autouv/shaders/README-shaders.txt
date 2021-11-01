@@ -30,7 +30,7 @@ gl_Normal.  'binormal' are sent through 'gl_MultiTexCoord2.xyz'.
 
 Other options:  Sent as uniforms
 {auv, auv_bg}.    % sampler2D image of the previous pass
-{auv, auv_txsz}.  % vec2 width and heigth of image
+{auv, auv_txsz}.  % vec2 width and height of image
 {auv, {auv_send_texture,"UserQuestion",true}}.    % Float 1.0 (true) or 0.0 (false) 
 % Asks user if we should work on whole image or only the selected chart parts, sent as float 1.0 or 0.0.
 {auv, auv_bbpos3d}. % Vec3[2] The Min and Max coords of the rendered charts

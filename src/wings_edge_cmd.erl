@@ -386,8 +386,8 @@ slide(St0) ->
     State = {Mode,none,Stop},
     SUp = SDown = SN = SBi = {0.0,0.0,0.0},
 
-    %% FIXME: The use of the process dicationary (wings_slide) will
-    %% not work when each #we{} are stored in its own process.
+    %% FIXME: The use of the process dictionary (wings_slide) will
+    %% not work when each #we{} is stored in its own process.
     %%
     %% FIXME: Someone who understands the Up, Dw, N, and Bi parameters
     %% should rewrite this code in a way that can be parallelized

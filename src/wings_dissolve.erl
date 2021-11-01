@@ -265,7 +265,7 @@ any_duplicates([_], _) -> false;
 any_duplicates([{V,_}|Es], _) -> any_duplicates(Es, V).
 
 %% outer_edge_partition(FaceSet, WingedEdge) -> [[Edge]].
-%%  Partition the outer edges of the FaceSet. Each partion
+%%  Partition the outer edges of the FaceSet. Each partition
 %%  of edges form a closed loop with no repeated vertices.
 %%    Outer edges are edges that have one face in FaceSet
 %%  and one outside.

@@ -642,7 +642,7 @@ is_mat_transparent(Mat) ->
 %%     Attr = color|uv|tangent
 %%  Return a ordered list of the type of attributes that are needed
 %%  according to the materials.
-%%  tanget requires uv since it needs the uv's to calculate tanget space
+%%  tangent requires uv since it needs the uv's to calculate tangent space
 needed_attributes(We, #st{mat=Mat}) ->
     Used = wings_facemat:used_materials(We),
     needed_attributes_1(Used, Mat, false, false, false).

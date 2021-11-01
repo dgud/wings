@@ -708,7 +708,7 @@ make_chunk(Tag, Contents) when is_list(Contents) ->
     make_chunk(Tag, list_to_binary(Contents)).
 
 %%%
-%%% Create smoothing groups from the hard egdes.
+%%% Create smoothing groups from the hard edges.
 %%%
 
 assign_smooth_groups(#e3d_mesh{fs=Fs0,he=[]}=Mesh) ->

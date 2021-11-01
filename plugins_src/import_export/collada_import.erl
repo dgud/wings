@@ -899,7 +899,7 @@ test() ->
 -endif.
 
 %%%%
-%%%%   Provisory convertion from UTF16/32 - it make possible load a file
+%%%%   Provisory conversion from UTF16/32 - it make possible load a file
 %%%%   which materials name/id uses unicode
 %%%%   reported in: http://www.wings3d.com/forum/showthread.php?tid=2321
 atom_name(Name) ->

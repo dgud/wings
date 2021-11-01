@@ -217,7 +217,7 @@ performance_tips(Head) ->
 
 	   ?__(11,"Make sure that Geometry windows don't overlap."),
 
-	   ?__(12,"Use as few (active) lights as possible. More lights means less speed on most grahics cards."),
+	   ?__(12,"Use as few (active) lights as possible. More lights means less speed on most graphics cards."),
 
 	   ?__(13,"If possible, use the ")
 	   ++cmd([?__(14,"Tools"),

@@ -510,7 +510,7 @@ revecheck(E={A,B}, TD, Bord, Vtab, Acc) ->
 
 %% If E is a non-border edge, with left-face triangle Tl and
 %% right-face triangle Tr, then it is "reversed" if the circle through
-%% A, B, and (say) the other vertex of Tl containts the other vertex of Tr.
+%% A, B, and (say) the other vertex of Tl contains the other vertex of Tr.
 isreversed(E={A,B}, TD, Bord, Vtab) ->
     case gb_sets:is_member(E, Bord) of
 	true -> false;

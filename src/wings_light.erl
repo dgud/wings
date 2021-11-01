@@ -975,7 +975,7 @@ load_area_light_tab() ->
     {areamatrix_tex, ImId}.
 
 fake_envmap(EnvImgRec) ->
-    %% Poor mans version with blured images
+    %% Poor mans version with blurred images
     Path = filename:join(wings_util:lib_dir(wings), "textures"),
     SpecBG = wings_image:e3d_to_wxImage(EnvImgRec),
     wxImage:rescale(SpecBG, 512, 256, [{quality, ?wxIMAGE_QUALITY_HIGH}]),
@@ -1305,9 +1305,9 @@ menu(X, Y, St) ->
 		  ?__(11,"Interactively adjust how much light weakens as it travels away from its source (quadratic factor)")}]}}},
 	     {SpotOnly,separator},
 	     {SpotOnly,{?__(12,"Spot Angle"),spot_angle,
-			?__(13,"Interactivly adjust the angle of the spotlight cone")}},
+			?__(13,"Interactively adjust the angle of the spotlight cone")}},
 	     {SpotOnly,{?__(14,"Spot Falloff"),spot_falloff,
-			?__(15,"Interactivly adjust how much light weakens farther away from the center of the spotlight cone")}},
+			?__(15,"Interactively adjust how much light weakens farther away from the center of the spotlight cone")}},
 	     {One,separator},
 	     {One,{?__(16,"Edit Properties..."),edit,
 		   ?__(17,"Edit light properties")}}|body_menu(Dir, St)],
@@ -1319,7 +1319,7 @@ body_menu(Dir, #st{selmode=body}) ->
      {?STR(menu,18,"Duplicate"),{duplicate,Dir},
       ?STR(menu,19,"Duplicate and move selected lights")},
      {?STR(menu,20,"Delete"),delete,
-      ?STR(menu,21,"Delete seleced lights")}];
+      ?STR(menu,21,"Delete selected lights")}];
 body_menu(_, _) -> [].
 
 filter_menu(Menu, St) ->

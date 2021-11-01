@@ -23,7 +23,7 @@ void main(void)
     vec4 baseColor = get_basecolor();
     vec3 n = get_normal();
     vec3 v = normalize(ws_eyepoint-ws_position);  // point to camera
-    vec3 l = normalize(ws_lightpos-ws_position);  // point to ligth
+    vec3 l = normalize(ws_lightpos-ws_position);  // point to light
     PBRInfo pbr = calc_views(n, v, l);
     pbr = calc_material(pbr);
 

@@ -285,7 +285,7 @@ create_hemilight(Panel, LightSz, SubFlags) ->
 
 create_cameralight(Panel, LightSz, SubFlags) ->
     CamLiLB = wxRadioButton:new(Panel, ?CAM_LIGHT, ?__(2, "Camera Light"), []),
-    Desc = ?__(3, "Camera light, emulates a physically based renderer, uses all material properities"),
+    Desc = ?__(3, "Camera light, emulates a physically based renderer, uses all material properties"),
     wxWindow:setToolTip(CamLiLB, wxToolTip:new(Desc)),
     CamLiSz = wxBoxSizer:new(?wxVERTICAL),
 
@@ -314,7 +314,7 @@ create_cameralight(Panel, LightSz, SubFlags) ->
 
 create_scenelight(Panel, LightSz, SubFlags) ->
     SceneLB = wxRadioButton:new(Panel, ?SCENE_LIGHT, ?__(10, "Scene Light"), []),
-    Desc = ?__(3, "Scene light, uses the scene lights, emulates a physically based renderer, uses all material properities"),
+    Desc = ?__(3, "Scene light, uses the scene lights, emulates a physically based renderer, uses all material properties"),
     wxWindow:setToolTip(SceneLB, wxToolTip:new(Desc)),
 
     SceneSz = wxBoxSizer:new(?wxVERTICAL),

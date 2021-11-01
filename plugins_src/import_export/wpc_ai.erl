@@ -400,7 +400,7 @@ getpas(I,N,Contd,Cct,{Pas,Ass}=Acc) ->
 	    end
     end.
 
-%% Return true if thre is no unassigned J <= second arg, J /= I,
+%% Return true if there is no unassigned J <= second arg, J /= I,
 %% such that contour J contains contour I.
 isboundary(_I,0,_Contd,_Ass) -> true;
 isboundary(I,I,Contd,Ass) -> isboundary(I,I-1,Contd,Ass);

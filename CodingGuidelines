@@ -319,7 +319,7 @@ And now over to more concrete rules:
          cmp(A, B) when A == B -> equal;
          cmp(A, B when A > B -> greater.
 
-  the operator in the second cluase must be '==' and not '=:='.
+  the operator in the second clause must be '==' and not '=:='.
   If the function was defined like this
 
          bad_cmp(A, B) when A < B -> less;
