@@ -298,7 +298,7 @@ cut_pick_marker([I], D, Edge, We0, Start, Dir, Char) ->
 		   gl:pushMatrix(),
 		   gl:loadIdentity(),
 		   {W,H} = wings_wm:win_size(),
-		   glu:ortho2D(0.0, W, 0.0, H),
+		   glu:ortho2D(0.0, float(W), 0.0, float(H)),
 		   gl:matrixMode(?GL_MODELVIEW),
 		   gl:pushMatrix(),
 		   gl:loadIdentity(),

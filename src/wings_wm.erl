@@ -507,31 +507,38 @@ win_scale() ->
     #win{scale=Scale} = get_window_data(this()),
     Scale.
 
+-spec viewport() -> {integer(), integer(), integer(), integer()}.
 viewport(Name) ->
     #win{x=X,y=Y0,w=W,h=H} = get_window_data(Name),
     {_,TopH} = wings_wm:top_size(),
     Y = TopH-(Y0+H),
     {X,Y,W,H}.
 
+-spec win_size() -> {integer(), integer()}.
 win_size() ->
     {_,_,W,H} = get(wm_viewport),
     {W,H}.
 
+-spec win_size(Name::term()) -> {integer(), integer()}.
 win_size(Name) ->
     #win{w=W,h=H} = get_window_data(Name),
     {W,H}.
 
+-spec win_rect() -> {integer(), integer(), integer(), integer()}.
 win_rect() ->
     win_rect(this()).
 
+-spec win_rect(Name::term()) -> {integer(), integer(), integer(), integer()}.
 win_rect(Name) ->
     {X0,Y0,W,H} = wxWindow:getRect(wxwindow(Name)),
     {X,Y} = wxWindow:screenToClient(?GET(top_frame),{X0,Y0}),
     {X,Y,W,H}.
 
+-spec win_ul() -> {integer(), integer()}.
 win_ul() ->
     win_ul(this()).
 
+-spec win_ul(Name::term()) -> {integer(), integer()}.
 win_ul(Name) ->
     case get_window_data(Name) of
 	#win{x=X,y=Y,obj=undefined} ->

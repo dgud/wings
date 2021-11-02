@@ -609,7 +609,7 @@ gldraw_connect(Pos0, Pos1) ->
     gl:color3f(0.0, 0.0, 0.0),
     gl:matrixMode(?GL_PROJECTION),
     gl:loadIdentity(),
-    glu:ortho2D(0.0, W, 0.0, H),
+    glu:ortho2D(0.0, float(W), 0.0, float(H)),
     gl:matrixMode(?GL_MODELVIEW),
     gl:loadIdentity(),
     wings_vbo:draw(fun(_) ->
