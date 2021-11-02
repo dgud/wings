@@ -224,14 +224,14 @@ void main(void)
   mat3 Minv = mat3(vec3(  1,   0, t.y),
                    vec3(  0, t.z,   0),
                    vec3(t.w,   0, t.x) );
-  vec3 specLigth = ltc_eval(n, v, ws_position, Minv, light_points, two_sided);
-  specLigth *= light_specular.xyz;
-  vec3 frag_color = specLigth*(pbr.specularColor*brdf.x+brdf.y);
+  vec3 specLight = ltc_eval(n, v, ws_position, Minv, light_points, two_sided);
+  specLight *= light_specular.xyz;
+  vec3 frag_color = specLight*(pbr.specularColor*brdf.x+brdf.y);
   mat3 Mid = mat3(vec3( 1, 0, 0),
                   vec3( 0, 1, 0),
                   vec3( 0, 0, 1) );
-  vec3 diffLigth = ltc_eval(n, v, ws_position, Mid, light_points, two_sided);
-  diffLigth *= light_diffuse.xyz;
+  vec3 diffLight = ltc_eval(n, v, ws_position, Mid, light_points, two_sided);
+  diffLight *= light_diffuse.xyz;
   if(light_att.y < 0.00005 && light_att.z < 0.00005)
       att = 1.0;
   else {
@@ -241,7 +241,7 @@ void main(void)
       dist = min(dist, length(ws_position-light_points[3]));
       att = 1.0/(light_att.x+light_att.y*dist+light_att.z*dist*dist);
   }
-  frag_color += diffLigth*pbr.diffuseColor;
+  frag_color += diffLight*pbr.diffuseColor;
   frag_color *= att;
   frag_color *= Exposure;
   gl_FragColor = vec4(pow(frag_color, vec3(1.0/2.2)), pbr.opaque);

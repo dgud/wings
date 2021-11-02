@@ -71,15 +71,15 @@ is_available(Write) ->
 
 %% setup() -> cli().
 setup() ->
-    Prefered = wings_pref:get_value(cl_type, gpu),
-    [Other] = [gpu,cpu] -- [Prefered],
-    {Use,CL} = case clu:setup(Prefered) of
+    Preferred = wings_pref:get_value(cl_type, gpu),
+    [Other] = [gpu,cpu] -- [Preferred],
+    {Use,CL} = case clu:setup(Preferred) of
                    {error, _} ->
                        case clu:setup(Other) of
                            {error, R} -> exit({no_opencl_device, R});
                            Cpu -> {Other, Cpu}
                        end;
-                   Gpu -> {Prefered, Gpu}
+                   Gpu -> {Preferred, Gpu}
                end,
     {ok,PI} = cl:get_platform_info(CL#cl.platform),
     io:format("Using OpenCL via ~p:Name ~s:VSN: ~s~n",

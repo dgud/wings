@@ -517,7 +517,7 @@ line_intersect2d({X1,Y1,_},{X2,Y2,_},{X3,Y3,_},{X4,Y4,_}) ->
     line_intersect2d({X1,Y1},{X2,Y2},{X3,Y3},{X4,Y4});
 line_intersect2d({X1,Y1},{X2,Y2},{X3,Y3},{X4,Y4}) ->
     Div = ((Y4-Y3)*(X2-X1)-(X4-X3)*(Y2-Y1)),
-    if Div == 0.0 -> {false,{both,paralell}};
+    if Div == 0.0 -> {false,{both,parallel}};
        true ->
 	    Ua = ((X4-X3)*(Y1-Y3)-(Y4-Y3)*(X1-X3)) / Div,
 	    Ub = ((X2-X1)*(Y1-Y3)-(Y2-Y1)*(X1-X3)) / Div,

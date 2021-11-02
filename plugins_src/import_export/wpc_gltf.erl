@@ -207,9 +207,9 @@ exp_add_index(Ps0, GLTF0) ->
     {Ps1, Bin} = lists:mapfoldl(AppendBin, <<>>, Ps0),
     {BVId, GLTF1} = exp_add(Bin, bufferViews, GLTF0),
     lists:mapfoldr(fun({#{indices:=Len}=P, Offset}, GLTF_t) ->
-                           Acces = exp_make_acc(BVId, Len, ?GL_UNSIGNED_INT,
+                           Access = exp_make_acc(BVId, Len, ?GL_UNSIGNED_INT,
                                                 <<"SCALAR">>, Offset),
-                           {AId, GLTF} = exp_add(Acces, accessors, GLTF_t),
+                           {AId, GLTF} = exp_add(Access, accessors, GLTF_t),
                            {P#{indices:=AId}, GLTF}
                    end, GLTF1, Ps1).
 
