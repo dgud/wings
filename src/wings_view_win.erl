@@ -262,7 +262,7 @@ init([Frame, _Ps, Os]) ->
     {Panel, State}.
 
 create_hemilight(Panel, LightSz, SubFlags) ->
-    HemiLB   = wxRadioButton:new(Panel, ?HEMI_LIGHTs, ?__(2, "Hemilight"), [{style, ?wxRB_GROUP}]),
+    HemiLB   = wxRadioButton:new(Panel, ?HEMI_LIGHT, ?__(2, "Hemilight"), [{style, ?wxRB_GROUP}]),
     Desc = ?__(3, "Simple light for modelling, only uses diffuse, emission and occlusion material properties, no highlights"),
     wxWindow:setToolTip(HemiLB, wxToolTip:new(Desc)),
     HemiSz   = wxBoxSizer:new(?wxVERTICAL),
