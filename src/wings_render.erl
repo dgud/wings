@@ -900,10 +900,7 @@ calc_grid_size({X,Y,Z},PM,MM) ->
     Viewport = {_,_,W,H} =  wings_wm:viewport(),
     W1 = max(W,H)/2.0,
     Max = ground_grid_size(),
-    {S,T,U} = wings_gl:unProject(W1, 0.0, 0.0,
-				 e3d_transform:matrix(MM),
-				 e3d_transform:matrix(PM),
-				 Viewport),
+    {S,T,U} = e3d_transform:unproject({W1, 0.0, 0.0}, MM,PM, Viewport),
     trunc(max((max(max(abs(S-X),abs(T-Y)),abs(U-Z))/Max),10.0)).
 
 groundplane(Axes, #view{origin=Origin, distance=Dist0, along_axis=Along}, PM, MM) ->

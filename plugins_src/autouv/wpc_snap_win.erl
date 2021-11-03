@@ -292,8 +292,8 @@ calc_uv_fun() ->
     {Xs,Ys} = scale(W, H, IW, IH),
     %% In the fun, do the calculations that are specific
     %% for each vertex.
-    fun({X,Y,Z}) ->
-            {S,T,_} = wings_gl:project(X, Y, Z, MM, PM, Viewport),
+    fun(Point) ->
+            {S,T,_} = e3d_transform:project(Point, MM, PM, Viewport),
             Center = 0.5,
             {XA0,YA0}={Tx/2+(S/W*Xs*Sx+Center-Sx*Xs/2),Ty/2+(T/H*Sy*Ys+Center-Sy*Ys/2)},
             {XA,YA}=rotate_uv(Rot,{XA0-Center,YA0-Center}),

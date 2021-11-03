@@ -486,7 +486,7 @@ invert({M0, M1,  M2, M3,
 %% @doc  Prints a matrix
 %% @end
 %%--------------------------------------------------------------------
--spec print(e3d_transform()) -> ok.
+-spec print(e3d_transform:transform()) -> ok.
 
 print(#e3d_transf{mat=Mat}) ->
     print_1(Mat);

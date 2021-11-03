@@ -1272,11 +1272,11 @@ tweak_along_axis(false, Axis, Pos0, TweakPos) ->
 %%% Screen to Object Coordinates
 %%%
 
-obj_to_screen({MVM,PM,VP}, {X,Y,Z}) ->
-    wings_gl:project(X, Y, Z, MVM, PM, VP).
+obj_to_screen({MVM,PM,VP}, Point) ->
+    e3d_transform:project(Point, MVM, PM, VP).
 
-screen_to_obj({MVM,PM,VP}, {Xs,Ys,Zs}) ->
-    wings_gl:unProject(Xs, Ys, Zs, MVM, PM, VP).
+screen_to_obj({MVM,PM,VP}, Point) ->
+    e3d_transform:unproject(Point, MVM, PM, VP).
 
 sel_to_vs(vertex, Vs, _) -> Vs;
 sel_to_vs(edge, Es, We) -> wings_vertex:from_edges(Es, We);
@@ -2488,8 +2488,8 @@ draw(plain, EdgeList, _D, SelMode, RS) ->
     wings_dl:call(EdgeList, RS);
 draw(_,_,_,_, RS) -> RS.
 
-edge_width(edge) -> wings_pref:get_value(edge_width);
-edge_width(_) -> 1.
+edge_width(edge) -> float(wings_pref:get_value(edge_width));
+edge_width(_) -> 1.0.
 
 col_to_vec({R,G,B}) when is_integer(R) -> {R/255.0,G/255.0,B/255.0};
 col_to_vec({_,_,_}=Col) -> Col;

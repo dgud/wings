@@ -463,7 +463,7 @@ select_way(Cuts,We,NMM = {Mode,_}) ->
 check_normal(Face,{Way,MM},We = #we{id=Id}) ->
     {MVM,_PM,_} = wings_u:get_matrices(Id, MM),
     Normal0 = wings_face:normal(Face,We),
-    {_,_,Z} = e3d_mat:mul_vector(MVM, Normal0),
+    {_,_,Z} = e3d_mat:mul_vector(e3d_transform:matrix(MVM), Normal0),
     if 
 	Way == normal, Z > 0.1 -> true;
 	Way == inverted, Z < -0.1 -> true;
@@ -546,8 +546,8 @@ line_intersect2d({X1,Y1},{X2,Y2},{X3,Y3},{X4,Y4}) ->
 	    end
     end.
 
-obj_to_screen({MVM,PM,VP}, {X,Y,Z}) ->
-    wings_gl:project(X, Y, Z, MVM, PM, VP).
+obj_to_screen({MVM,PM,VP}, Pos) ->
+    e3d_transform:project(Pos, MVM, PM, VP).
 
 help(Cs = #cs{v=[]}) ->
     Msg1 = wings_msg:button_format(?__(1,"Select vertex or cut edge [press button to slide]")),

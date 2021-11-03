@@ -27,7 +27,7 @@
 -export([have_fbo/0, setup_fbo/2, delete_fbo/1]).
 
 %% GL wrappers
--export([project/6, unProject/6,
+-export([
 	 triangulate/2, deleteTextures/1,
 	 bindFramebuffer/2,
 	 drawElements/4
@@ -509,18 +509,6 @@ check_fbo_status(FB) ->
 
 bindFramebuffer(W, Fbo) ->
     gl:bindFramebuffer(W,Fbo).
-
-project(X,Y,Z, Mod, Proj, View) ->
-    {_, RX,RY,RZ} = glu:project(X,Y,Z, mat(Mod), mat(Proj), View),
-    {RX,RY,RZ}.
-
-unProject(X,Y,Z, Mod, Proj, View) ->
-    {_, RX,RY,RZ} = glu:unProject(X,Y,Z, mat(Mod), mat(Proj), View),
-    {RX,RY,RZ}.
-
-mat(Mat) when tuple_size(Mat) =:= 16 ->  Mat;
-mat(Mat) when is_tuple(Mat) -> e3d_mat:expand(Mat);
-mat(List) when is_list(List) ->  mat(list_to_tuple(List)).
 
 triangulate(Normal, Pos0) ->
     {Tris0, BinPos} = glu:tesselate(Normal, Pos0),

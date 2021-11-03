@@ -22,9 +22,6 @@
 	{mat = e3d_mat:identity() :: e3d_mat:matrix(),
 	 inv = e3d_mat:identity() :: e3d_mat:matrix()}).
 
--type e3d_transform() :: #e3d_transf{}.
-
-
 -record(ray,
 	{o::e3d_vec:point(),
          d::e3d_vec:vector(),

@@ -43,16 +43,19 @@ message(Message) ->
 geom_windows() ->
     geom_windows_1(wings_wm:windows()).
 
+-spec get_matrices(Id::integer(), mirror|original) ->
+          {e3d_transform:transform(), e3d_transform:transform(), {0,0,W::non_neg_integer(),H::non_neg_integer()}}.
 get_matrices(Id, MM) ->
     {TPM, TMV0, _} = wings_view:load_matrices(false),
     TMV = case MM of
 	      mirror ->
 		  Matrix = wings_dl:mirror_matrix(Id),
-		  e3d_mat:mul(e3d_transform:matrix(TMV0),Matrix);
-	      original -> e3d_transform:matrix(TMV0)
+                  Mirror = e3d_transform:init(Matrix),
+		  e3d_transform:mul(TMV0,Mirror);
+	      original -> TMV0
 	  end,
     {_,_,W,H} =  wings_wm:viewport(),
-    {TMV,e3d_transform:matrix(TPM),{0,0,W,H}}.
+    {TMV,TPM,{0,0,W,H}}.
 
 yes_no(Question, Yes) ->
     yes_no(Question, Yes, ignore).

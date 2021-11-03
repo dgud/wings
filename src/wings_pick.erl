@@ -573,8 +573,8 @@ is_all_inside_rect([P|Ps], Rect) ->
     is_inside_rect(P, Rect) andalso is_all_inside_rect(Ps, Rect);
 is_all_inside_rect([], _Rect) -> true.
 
-is_inside_rect({Px,Py,Pz}, {MM,PM,ViewPort,X1,Y1,X2,Y2}) ->
-    {Sx,Sy,_} = wings_gl:project(Px, Py, Pz, MM, PM, ViewPort),
+is_inside_rect(Pos, {MM,PM,ViewPort,X1,Y1,X2,Y2}) ->
+    {Sx,Sy,_} = e3d_transform:project(Pos, MM, PM, ViewPort),
     X1 < Sx andalso Sx < X2 andalso
 	Y1 < Sy andalso Sy < Y2.
 
@@ -827,9 +827,8 @@ find_edge(Face, We, Cx, Cy, Trans) ->
       end, [], Face, We).
 
 project_vertex(V, We, {ModelMatrix,ProjMatrix,ViewPort}) ->
-    {Px,Py,Pz} = wings_vertex:pos(V, We),
-    {Xs,Ys,_}  = wings_gl:project(Px, Py, Pz, ModelMatrix,
-				  ProjMatrix, ViewPort),
+    Pos = wings_vertex:pos(V, We),
+    {Xs,Ys,_}  = e3d_transform:project(Pos, ModelMatrix, ProjMatrix, ViewPort),
     {Xs,Ys}.
 
 check_restriction({Mode,MM,_}=Hilite, Id, V, Edge, Face) ->
