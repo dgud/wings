@@ -158,12 +158,13 @@ lookat(Pos, Look, Up) ->
 %%--------------------------------------------------------------------
 -spec ortho(float(), float()) -> e3d_transform().
 ortho(Near, Far) ->
-    ortho(-1.0, 1.0, -1.0, 1.0, Far, Near).
+    ortho(-1.0, 1.0, -1.0, 1.0, Near, Far).
 
+-spec ortho(float(), float(), float(), float(), float(), float()) -> e3d_transform().
 ortho(Left, Right, Bottom, Top, Near, Far) ->
     O = 0.0,
-    IDx = 1/max(Right-Left, 0.00000001),
-    IDy = 1/max(Top-Bottom, 0.00000001),
+    IDx = 1/(Right-Left),
+    IDy = 1/(Top-Bottom),
     IDz = 1/(Far-Near),
 
     Mat0 = {2.0, O, O,
@@ -172,12 +173,9 @@ ortho(Left, Right, Bottom, Top, Near, Far) ->
 	    O,   O, O},
     %% Do this in 3 steps to avoid inverse calculation problems
     Mat1 = scale(init(Mat0), {IDx,IDy,IDz}),
-    Trans = translate(identity(), {-(Right+Left)*IDx, 
-				   -(Top+Bottom)*IDy, 
-				   -(Far+Near)*IDz}),
+    Tv = {-(Right+Left)*IDx, -(Top+Bottom)*IDy, -(Far+Near)*IDz},
+    Trans = translate(identity(), Tv),
     mul(Trans, Mat1).
-
-    
 
 %%--------------------------------------------------------------------
 %% @doc  Generates a perspective transformation

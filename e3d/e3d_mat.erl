@@ -499,8 +499,8 @@ print(Mat) when tuple_size(Mat) =:= 12;
 print_1({A,B,C,D,E,F,G,H,I,Tx,Ty,Tz}) ->
     print_1({A,B,C,0.0,D,E,F,0.0,G,H,I,0.0,Tx,Ty,Tz,1.0});
 print_1(_Mat = {A,B,C,D,E,F,G,H,I,J,K,L,TX,TY,TZ,W}) ->
-    io:format(" ~7.3f ~7.3f ~7.3f ~7.3f~n ~7.3f ~7.3f ~7.3f ~7.3f~n"
-    	      " ~7.3f ~7.3f ~7.3f ~7.3f~n ~7.3f ~7.3f ~7.3f ~7.3f~n~n", 
+    io:format(" ~10.3g ~10.3g ~10.3g ~10.3g~n ~10.3g ~10.3g ~10.3g ~10.3g~n"
+    	      " ~10.3g ~10.3g ~10.3g ~10.3g~n ~10.3g ~10.3g ~10.3g ~10.3g~n~n", 
     	      [A,E,I,TX,
     	       B,F,J,TY,
     	       C,G,K,TZ,

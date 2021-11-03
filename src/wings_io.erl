@@ -275,7 +275,8 @@ ortho_setup_1() ->
     gl:matrixMode(?GL_PROJECTION),
     gl:loadIdentity(),
     {_,_,W,H} = wings_wm:viewport(),
-    glu:ortho2D(0.0, float(W), float(H), 0.0),
+    Ortho = e3d_transform:ortho(0.0, float(W), float(H), 0.0, -1.0, 1.0),
+    gl:loadMatrixd(e3d_transform:matrix(Ortho)),
     gl:matrixMode(?GL_MODELVIEW),
     gl:loadIdentity().
 

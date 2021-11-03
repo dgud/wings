@@ -609,7 +609,8 @@ gldraw_connect(Pos0, Pos1) ->
     gl:color3f(0.0, 0.0, 0.0),
     gl:matrixMode(?GL_PROJECTION),
     gl:loadIdentity(),
-    glu:ortho2D(0.0, float(W), 0.0, float(H)),
+    Ortho = e3d_transform:ortho(0.0, float(W), 0.0, float(H), -1.0, 1.0),
+    gl:loadMatrixd(e3d_transform:matrix(Ortho)),
     gl:matrixMode(?GL_MODELVIEW),
     gl:loadIdentity(),
     wings_vbo:draw(fun(_) ->

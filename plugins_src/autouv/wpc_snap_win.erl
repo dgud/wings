@@ -223,7 +223,8 @@ draw_image(Image,_St) ->
     gl:pushAttrib(?GL_ALL_ATTRIB_BITS),
     gl:matrixMode(?GL_PROJECTION),
     gl:loadIdentity(),
-    glu:ortho2D(0.0, 1.0, 0.0, 1.0),
+    Ortho = e3d_transform:ortho(0.0, 1.0, 0.0, 1.0, -1.0, 1.0),
+    gl:loadMatrixd(e3d_transform:matrix(Ortho)),
     gl:matrixMode(?GL_MODELVIEW),
     gl:loadIdentity(),
 

@@ -1031,7 +1031,9 @@ get_texture(_,_,_,_,_,_,_,ImageAcc) -> reverse(ImageAcc).
 texture_view(WC, WD, HC, HD) ->
     gl:matrixMode(?GL_PROJECTION),
     gl:loadIdentity(),
-    glu:ortho2D(WC/WD, (1+WC)/WD, HC/HD, (1+HC)/HD),
+    Ortho = e3d_transform:ortho(WC/WD, (1+WC)/WD, HC/HD, (1+HC)/HD, -1.0, 1.0),
+    gl:loadMatrixd(e3d_transform:matrix(Ortho)),
+
     gl:matrixMode(?GL_MODELVIEW),
     gl:loadIdentity(),
     gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_FILL).
