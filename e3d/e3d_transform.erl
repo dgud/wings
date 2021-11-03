@@ -24,7 +24,7 @@
 
 -export([%% Initializes matrices
 	 identity/0, init/1,
-	 lookat/3, ortho/2, ortho/6, perspective/3, perspective/4, pick/5,
+	 lookat/3, ortho/2, ortho/6, perspective/3, perspective/4, pick/5, frustum/6,
 	 %% Get the actual matrices
 	 matrix/1, inv_matrix/1,
 	 %% Transform the matrices
@@ -203,6 +203,33 @@ perspective(Fov, Aspect, Near, Far) ->
     InvPersp = e3d_mat:invert(Persp),
     scale(#e3d_transf{mat=Persp, inv=InvPersp}, {T,T,1.0}).
 
+%%--------------------------------------------------------------------
+%% @doc  Generates a perspective projection matrix
+%% @end
+%%--------------------------------------------------------------------
+
+-spec frustum(Left::float(), Right::float(),
+              Bottom::float(), Top::float(),
+              Near::float(), Far::float()) ->
+          e3d_transform().
+frustum(Left, Right, Bottom, Top, Near, Far) ->
+    InvX = 1/(Right-Left),
+    InvY = 1/(Top-Bottom),
+    InvZ = 1/(Far-Near),
+    A = (Right+Left)*InvX,
+    B = (Top+Bottom)*InvY,
+    C = -(Far+Near)*InvZ,
+    D = -(2*Far*Near)*InvZ,
+    I = 1.0, O = 0.0,
+    E = 2*Near*InvX,
+    F = 2*Near*InvY,
+
+    Persp = {E,   O,   O,  O,
+	     O,   F,   O,  O,
+	     A,   B,   C, -I,
+	     O,   O,   D,  O},
+    InvPersp = e3d_mat:invert(Persp),
+    #e3d_transf{mat=Persp, inv=InvPersp}.
 
 %%--------------------------------------------------------------------
 %% @doc  Generates a pick matrix transformation

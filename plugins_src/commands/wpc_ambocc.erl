@@ -250,19 +250,22 @@ render_hemicube(SX, SY, Eye, Lookat, DF) ->
 render_view(Eye, Lookat, Up, Frustum, Viewport, DrawFun) ->
     Near = 0.01,
     Far = 100.0,
-    {Ex,Ey,Ez} = Eye,
-    {Dx,Dy,Dz} = Lookat,
-    {Ux,Uy,Uz} = Up,
     [L,R,B,T] = [I*Near || I <- Frustum],
     [X,Y,W,H] = Viewport,
     gl:matrixMode(?GL_PROJECTION),
     gl:loadIdentity(),
-    gl:frustum(L,R, B,T, Near,Far),
+    FM = e3d_transform:frustum(L,R, B,T, Near,Far),
+    gl:loadMatrixd(e3d_transform:matrix(FM)),
+
     gl:matrixMode(?GL_MODELVIEW),
     gl:loadIdentity(),
-    glu:lookAt(Ex,Ey,Ez, Dx,Dy,Dz, Ux,Uy,Uz),
+
+    LM = e3d_transform:lookat(Eye, Lookat, Up), 
+    gl:loadMatrixd(e3d_transform:matrix(LM)),
+
     gl:viewport(X,Y, W,H),
     DrawFun().
+
 
 create_ambient_light(St) ->
     case wings_pref:get_value(scene_lights, true) of
