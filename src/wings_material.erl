@@ -782,7 +782,7 @@ ask_prop_put(Key, {R,G,B}, Opacity) ->
     {Key,{R,G,B,Opacity}}.
 
 setup_sphere() ->
-    {Len, Tris, Normals, UVs, Tgs} =
+    #{size:=Len, tris:=Tris, ns:=Normals, uvs:=UVs, tgs:=Tgs} =
         wings_shapes:tri_sphere(#{subd=>4, ccw=>false, normals=>true, tgs=>true,
                                   uvs=>true, scale=>0.45}),
     Data = zip(Tris, Normals, UVs, Tgs),

@@ -751,7 +751,7 @@ update_uv_tab_2([], _, _, Acc) ->
     lists:reverse(Acc).
 
 setup_sphere_mesh() ->
-    {Len, Tris, Normals, UVs, Tgs} =
+    #{size:=Len, tris:= Tris, ns:=Normals, uvs:=UVs, tgs:=Tgs} =
         wings_shapes:tri_sphere(#{subd=>4, ccw=>false, normals=>true, tgs=>true,
                                   uvs=>true, scale=>0.45}),
     Idx = length(Tris) div 3,

@@ -1488,9 +1488,8 @@ draw_magnet_1(#dlo{src_sel={Mode,Els},src_we=We,mirror=Mtx,drag=#drag{mm=Side}},
     Vs = sel_to_vs(Mode, gb_sets:to_list(Els), We),
     {X,Y,Z} = wings_vertex:center(Vs, We),
     gl:translatef(X, Y, Z),
-    Obj = glu:newQuadric(),
-    glu:sphere(Obj, R, 40, 40),
-    glu:deleteQuadric(Obj);
+    #{size:=Size, tris:=Tris} = wings_shapes:tri_sphere(#{subd=>4, scale=> R, binary => true}),
+    wings_vbo:draw(fun(_) -> gl:drawArrays(?GL_TRIANGLES, 0, Size*3) end, Tris);
 draw_magnet_1(_, _) -> [].
 
 mirror_info(#we{mirror=none}) -> {[],identity};

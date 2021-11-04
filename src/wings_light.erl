@@ -494,7 +494,7 @@ update_fun(infinite, SelColor, #we{light=#light{aim=Aim}}=We) ->
     LightCol = get_light_col(We),
     Vec = e3d_vec:norm_sub(Aim, LightPos),
     Data = [e3d_vec:mul(Vec, 0.2),e3d_vec:mul(Vec, 0.6)],
-    {Len, Tris,_,_,_} = wings_shapes:tri_sphere(#{subd=>3, scale=>0.08}),
+    #{size:=Len, tris:=Tris} = wings_shapes:tri_sphere(#{subd=>3, scale=>0.08}),
     D = fun(RS) ->
 		gl:lineWidth(1.5),
 		gl:pushMatrix(),
@@ -519,7 +519,7 @@ update_fun(point, SelColor, We) ->
 	     {0.0,0.71,0.71}],
     N = length(Data0) * 4,
     Data = lines(Data0),
-    {Len, Tris,_,_,_} = wings_shapes:tri_sphere(#{subd=>3, scale=>0.08}),
+    #{size:=Len, tris:=Tris} = wings_shapes:tri_sphere(#{subd=>3, scale=>0.08}),
     D = fun(RS) ->
 		gl:lineWidth(1.0),
 		wings_shaders:set_uloc(light_color, LightCol, RS),
@@ -546,7 +546,9 @@ update_fun(spot, SelColor, #we{light=#light{aim=Aim,spot_angle=Angle}}=We) ->
     H = math:cos(Rad),
     Translate = e3d_vec:mul(SpotDir, H),
     Rot = e3d_mat:rotate_s_to_t({0.0,0.0,1.0}, e3d_vec:neg(SpotDir)),
-    {Len, Tris,_,_,_} = wings_shapes:tri_sphere(#{subd=>3, scale=>0.08}),
+    #{size:=Len, tris:=Tris} = wings_shapes:tri_sphere(#{subd=>3, scale=>0.08}),
+    CylLines = cylinder_lines(R, 0.08, H, 3),
+    N = length(CylLines),
     D = fun(RS) ->
                 gl:lineWidth(1.0),
 		wings_shaders:set_uloc(light_color, LightCol, RS),
@@ -558,14 +560,11 @@ update_fun(spot, SelColor, #we{light=#light{aim=Aim,spot_angle=Angle}}=We) ->
                 {Dx,Dy,Dz} = Translate,
                 gl:translatef(Dx, Dy, Dz),
                 gl:multMatrixd(Rot),
-                Obj = glu:newQuadric(),
-                glu:quadricDrawStyle(Obj, ?GLU_LINE),
-                glu:cylinder(Obj, R, 0.08, H, 12, 1),
-                glu:deleteQuadric(Obj),
+                gl:drawArrays(?GL_LINES, Len*3, N),
                 gl:popMatrix(),
                 RS
         end,
-    wings_vbo:new(D, Tris);
+    wings_vbo:new(D, Tris ++ CylLines);
 update_fun(ambient, _, _) ->
     fun(RS) -> RS end.
 
@@ -575,6 +574,33 @@ lines([Vec|Vecs]) ->
      e3d_vec:mul(Vec, -0.2),
      e3d_vec:mul(Vec, -0.6)|lines(Vecs)];
 lines([]) -> [].
+
+cylinder_lines(BaseR, TopR, H, Levels) ->
+    Quad = [{0.0,1.0,0.0},{-1.0,0.0,0.0},{0.0,-1.0,0.0},{1.0,0.0,0.0}],
+    Subd = subd_cyl(Quad, Levels),
+    Orig = mk_lines(Subd, hd(Subd)),
+    Base = [e3d_vec:mul(V, BaseR) || V <- Orig],
+    Top  = [e3d_vec:add_prod({0.0, 0.0, H}, V, TopR) || V <- Orig],
+    Connect = lists:foldl(fun({A,B}, Acc) -> [A,B|Acc] end, [], lists:zip(Base,Top)),
+    Base ++ Top ++ Connect.
+
+subd_cyl(List, Level) when Level > 1 ->
+    New = subd_cyl(List, hd(List), []),
+    subd_cyl(New, Level-1);
+subd_cyl(List, _) ->
+    List.
+
+subd_cyl([V1|[V2|_]=Rest], First, Acc) ->
+    M = e3d_vec:norm(e3d_vec:average(V1, V2)),
+    subd_cyl(Rest, First, [M, V1|Acc]);
+subd_cyl([V1], V2, Acc) ->
+    M = e3d_vec:norm(e3d_vec:average(V1, V2)),
+    [M, V1|Acc].
+
+mk_lines([V1|[V2|_]=Rest],First) ->
+    [V1,V2|mk_lines(Rest,First)];
+mk_lines([V1], V2) ->
+    [V1,V2].
 
 get_light_col(#we{light=#light{diffuse=Diff}}) ->
     Diff.

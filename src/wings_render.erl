@@ -681,7 +681,7 @@ draw_background_1(MM) ->
             view_from_world => MM},
 
     Update = fun(_) ->
-                     {NoFs, Data, _, _, _} = wings_shapes:tri_cube(#{}),
+                     #{size:=NoFs, tris:=Data} = wings_shapes:tri_cube(#{}),
 		     D = fun(RS1) ->
                                  RS = wings_shaders:set_uloc(bg_blur, wings_pref:get_value(show_bg_blur), RS1),
 				 gl:drawArrays(?GL_TRIANGLES, 0, NoFs*3),
@@ -1192,11 +1192,14 @@ draw_clip_disk(Direction, Expand) ->
     Nz = Expand(NZ),
     Nw = [0.0,0.0,0.0,1.0],
     M  = list_to_tuple(lists:append([Nx,Ny,Nz,Nw])),
-    Obj = glu:newQuadric(),
-    glu:quadricDrawStyle(Obj, ?GLU_SILHOUETTE),
+    Rad = wings_pref:get_value(clip_plane_size),
+
+    gl:color3fv(wings_pref:get_value(clip_plane_color)),
     gl:pushMatrix(),
     gl:multMatrixd(M),
-    gl:color3fv(wings_pref:get_value(clip_plane_color)),
-    glu:disk(Obj, 0.0, wings_pref:get_value(clip_plane_size), 35, 1),
-    gl:popMatrix(),
-    glu:deleteQuadric(Obj).
+
+    #{size:=Size, tris:=Tris} = wings_shapes:tri_disc(#{subd=>4, scale=> Rad, binary => true}),
+    gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_LINE),
+    wings_vbo:draw(fun(_) -> gl:drawArrays(?GL_TRIANGLES, 0, Size*3) end, Tris),
+    gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_FILL),
+    gl:popMatrix().

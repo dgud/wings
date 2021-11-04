@@ -325,9 +325,8 @@ draw_magnet(X, Y, #sculpt{rad=Rad,str=Str,st=#st{shapes=Shs}=St}) ->
     P = Str*10,
     wings_io:set_color({1.0*P,0.0,1.0/P,0.1}),
     gl:translatef(Xm, Ym, Zm),
-    Obj = glu:newQuadric(),
-    glu:sphere(Obj, Rad, 40, 40),
-    glu:deleteQuadric(Obj),
+    #{size:=Size, tris:=Tris} = wings_shapes:tri_sphere(#{subd=>4, scale=> Rad, binary => true}),
+    wings_vbo:draw(fun(_) -> gl:drawArrays(?GL_TRIANGLES, 0, Size*3) end, Tris),
     gl:popAttrib().
 
 dist_along_vector({Xa,Ya,Za},{Xb,Yb,Zb},{Vx,Vy,Vz}) ->

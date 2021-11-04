@@ -273,7 +273,7 @@ load_img_plane(FileName, #e3d_image{type=Type}=Image0) ->
     case wings_image:maybe_exceds_opengl_caps(Image0) of
     {error,GlErr} ->
         wpa:error_msg(?__(1,"The image cannot be loaded as a texture.~nFile: \"~s\"~n GLU Error: ~p - ~s~n"),
-              [FileName,GlErr, glu:errorString(GlErr)]);
+              [FileName,GlErr, wings_gl:error_string(GlErr)]);
     Image0i ->
         Image1 = e3d_image:convert(Image0i, img_type(Type), 1, lower_left),
         #e3d_image{width=W0,height=H0} = Image1,

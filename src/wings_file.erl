@@ -739,7 +739,7 @@ import_image(Name) ->
 	{error,100902=Error} ->  % GLU_OUT_OF_MEMORY
             wings_u:error_msg(?__(2,"The image cannot be loaded.~nFile: "
                                   "\"~ts\"~n GLU Error: ~p - ~s~n"),
-                              [Name, Error, glu:errorString(Error)]);
+                              [Name, Error, wings_gl:error_string(Error)]);
         {error,Error} ->
             case file:format_error(Error) of
                 "unknown" ++ _ ->
