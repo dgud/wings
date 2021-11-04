@@ -553,7 +553,7 @@ wire(#we{id=Id}) ->
 
 draw_sel(#dlo{sel=none}, RS) -> RS;
 draw_sel(#dlo{sel=SelDlist,src_sel={edge,_}}, RS0) ->
-    gl:lineWidth(wings_pref:get_value(selected_edge_width)),
+    gl:lineWidth(float(wings_pref:get_value(selected_edge_width))),
     RS = sel_color(RS0),
     wings_dl:call(SelDlist, RS);
 draw_sel(#dlo{sel=SelDlist,src_sel={vertex,_}}, RS0) ->
@@ -617,7 +617,7 @@ draw_orig_sel_fun(Mode, DlistSel) ->
                     RS
             end;
         edge ->
-            LineWidth = wings_pref:get_value(selected_edge_width)*2,
+            LineWidth = wings_pref:get_value(selected_edge_width)*2.0,
             fun(RS0) ->
                     gl:lineWidth(LineWidth),
                     gl:enable(?GL_BLEND),
@@ -653,14 +653,14 @@ draw_hard_edges(#dlo{hard=Hard}, SelMode, RS) ->
 draw_normals(#dlo{normals=none}, RS) -> RS;
 draw_normals(#dlo{normals=Ns}, RS) ->
     gl:color3f(0.0, 0.0, 1.0),
-    gl:lineWidth(wings_pref:get_value(normal_vector_width)),
+    gl:lineWidth(float(wings_pref:get_value(normal_vector_width))),
     wings_dl:call(Ns, RS).
 
-edge_width(edge) -> wings_pref:get_value(edge_width);
+edge_width(edge) -> float(wings_pref:get_value(edge_width));
 edge_width(_) -> 1.0.
 
-hard_edge_width(edge) -> wings_pref:get_value(hard_edge_width);
-hard_edge_width(_) -> max(wings_pref:get_value(hard_edge_width) - 1, 1.0).
+hard_edge_width(edge) -> float(wings_pref:get_value(hard_edge_width));
+hard_edge_width(_) -> max(wings_pref:get_value(hard_edge_width) - 1.0, 1.0).
 
 draw_background(MM) ->
     case wings_wm:is_geom() of

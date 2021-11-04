@@ -1440,7 +1440,7 @@ pass({auv_edges, [auv_edges,all_edges,Color,Width,_UseMat]},_) ->
     fun(#ts{vbo={call,_,{vbo,Vbo}}, charts=Charts},_) ->
 	    gl:disable(?GL_DEPTH_TEST),
 	    gl:color3fv(Color),
-	    gl:lineWidth(Width),
+	    gl:lineWidth(float(Width)),
             gl:bindBuffer(?GL_ARRAY_BUFFER, Vbo),
             gl:vertexPointer(2, ?GL_FLOAT, 0, 0),
 	    gl:enableClientState(?GL_VERTEX_ARRAY),
@@ -1454,7 +1454,7 @@ pass({auv_edges, [auv_edges,border_edges,Color,Width,UseMat]},_) ->
        end,
     fun(#ts{vbo={call,_,{vbo,Vbo}}, charts=Charts},_) ->
 	    gl:color3fv(Color),
-	    gl:lineWidth(Width),
+	    gl:lineWidth(float(Width)),
             gl:bindBuffer(?GL_ARRAY_BUFFER, Vbo),
             gl:vertexPointer(2, ?GL_FLOAT, 0, 0),
 	    gl:enableClientState(?GL_VERTEX_ARRAY),

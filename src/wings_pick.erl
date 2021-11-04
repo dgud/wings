@@ -344,7 +344,7 @@ hilite_draw_sel_fun(vertex, V, #dlo{src_we=#we{vp=Vtab}}) ->
     wings_vbo:new(D, Data);
 hilite_draw_sel_fun(edge, Edge, #dlo{src_we=#we{es=Etab,vp=Vtab}}) ->
     #edge{vs=Va,ve=Vb} = array:get(Edge, Etab),
-    LineWidth = wings_pref:get_value(selected_edge_width),
+    LineWidth = float(wings_pref:get_value(selected_edge_width)),
     Data = [array:get(Va, Vtab),array:get(Vb, Vtab)],
     D = fun(RS) ->
 		gl:lineWidth(LineWidth),

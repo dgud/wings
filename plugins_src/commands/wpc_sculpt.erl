@@ -1161,8 +1161,8 @@ draw(plain, DrawEdges, _D, SelMode, RS) ->
     wings_dl:call(DrawEdges, RS);
 draw(_,_,_,_, RS) -> RS.
 
-edge_width(edge) -> wings_pref:get_value(edge_width);
-edge_width(_) -> 1.
+edge_width(edge) -> float(wings_pref:get_value(edge_width));
+edge_width(_) -> 1.0.
 
 col_to_vec({R,G,B}) when is_integer(R) -> {R/255.0,G/255.0,B/255.0};
 col_to_vec({_,_,_}=Col) -> Col;

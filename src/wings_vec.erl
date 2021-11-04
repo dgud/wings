@@ -750,7 +750,7 @@ make_vec_fun({Center,Vec0}) ->
     end,
     Arrow1 = e3d_vec:sub(HeadPt, PosHead0),
     Arrow2 = e3d_vec:sub(HeadPt, PosHead1),
-    Width = wings_pref:get_value(active_vector_width),
+    Width = float(wings_pref:get_value(active_vector_width)),
     Color = wings_pref:get_value(active_vector_color),
     Data = [Center,End, End,Arrow1, End,Arrow2],
     N = length(Data),
