@@ -22,7 +22,7 @@
 	 update/2,update_filename/2,find_image/2,
 	 window/1, debug_display/2]).
 -export([image_formats/0,image_read/1,image_write/1,
-	 e3d_to_wxImage/1, wxImage_to_e3d/1]).
+	 e3d_to_wxImage/1, wxImage_to_e3d/1, resize_image/3]).
 -export([maybe_exceds_opengl_caps/1]).
 
 -behavior(gen_server).
@@ -633,19 +633,12 @@ maybe_exceds_opengl_caps(#e3d_image{width=W0,height=H0}=Image) ->
 
 resize_image(#e3d_image{width=W0,height=H0}=Image, W0, H0) ->
     Image;
-resize_image(#e3d_image{width=W0,height=H0,bytes_pp=BytesPerPixel,
-                        image=Bits0}=Image, W, H) ->
-    Out = wings_io:get_buffer(BytesPerPixel*W*H, ?GL_UNSIGNED_BYTE),
-    {Format, ?GL_UNSIGNED_BYTE} = texture_format(Image),
-    GlErr =glu:scaleImage(Format, W0, H0, ?GL_UNSIGNED_BYTE,
-        Bits0, W, H, ?GL_UNSIGNED_BYTE, Out),
-    case GlErr of
-        0 ->
-            Bits = wings_io:get_bin(Out),
-            Image#e3d_image{width=W,height=H,bytes_pp=BytesPerPixel,image=Bits};
-        _ ->
-            {error,GlErr}
-    end.
+resize_image(#e3d_image{type=OrigType}=Orig, W, H) ->
+    Image = e3d_to_wxImage(Orig),
+    wxImage:rescale(Image, W, H, [{quality, ?wxIMAGE_QUALITY_HIGH}]),
+    ScaledE3d = wxImage_to_e3d(Image),
+    wxImage:destroy(Image),
+    e3d_image:convert(ScaledE3d, OrigType).
 
 need_resize_image(W, H, Max) when W > Max; H > Max ->
     true;
