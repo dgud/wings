@@ -465,29 +465,39 @@ create(Type, #st{onext=Oid}=St) ->
 update_dynamic(#dlo{src_we=We0}=D, Vtab0) ->
     Vtab = array:from_orddict(sort(Vtab0)),
     We = We0#we{vp=Vtab},
-    List = update_1(We, D),
-    D#dlo{work=List,src_we=We}.
+    update_1(We, D#dlo{src_we=We}).
 
 update_matrix(#dlo{src_we=We0}=D, Matrix) ->
     We = wings_we:transform_vs(Matrix, We0),
-    List = update_1(We, D),
-    D#dlo{work=List,sel=none,transparent=We}.
+    update_1(We, D#dlo{transparent=We}).
 
-update(#dlo{work=none,src_we=#we{light=#light{}}=We}=D) ->
-    List = update_1(We, D),
-    D#dlo{work=List,sel=List};
-update(#dlo{sel=none,src_we=#we{light=#light{}}=We}=D) ->
-    List = update_1(We, D),
-    D#dlo{work=List,sel=List};
+update(#dlo{work=W,src_sel=Sel,src_we=#we{light=#light{}}=We}=D) ->
+    IsSel = Sel =/= none,
+    HaveW = W =/= none andalso not is_list(W),
+    HaveS = is_list(W),
+    if
+        W =:= none -> update_1(We, D);
+        IsSel andalso HaveS -> D;
+        (not IsSel) andalso HaveW -> D;
+        true -> update_1(We, D)
+    end;
 update(D) -> D.
 
-update_1(#we{light=#light{type=Type}}=We, #dlo{src_sel=SrcSel}) ->
-    SelColor = case SrcSel of
-		   none -> {0.0,0.0,1.0,1.0};
-		   _ -> {R,G,B} = wings_pref:get_value(selected_color),
-                        {R,G,B,1.0}
+update_1(#we{light=#light{type=Type}}=We, #dlo{src_sel=Sel}=D) ->
+    IsSel = Sel =/= none,
+    SelColor = case IsSel of
+		   false -> {0.0,0.0,1.0,1.0};
+		   true -> {R,G,B} = wings_pref:get_value(selected_color),
+                           {R,G,B,1.0}
 	       end,
-    update_fun(Type, SelColor, We).
+    Draw = update_fun(Type, SelColor, We),
+    case IsSel of
+        true ->
+            %% Use a list of ops to indicate selected color
+            D#dlo{work=[Draw], sel=Draw};
+        false ->
+            D#dlo{work=Draw, sel=none}
+    end.
 
 update_fun(infinite, SelColor, #we{light=#light{aim=Aim}}=We) ->
     LightPos = light_pos(We),

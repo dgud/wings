@@ -187,20 +187,15 @@ handle_hilite_event(#mousemotion{x=X,y=Y}, #hl{prev=PrevHit}=HL0) ->
 	    wings_wm:dirty(),
 	    get_hilite_event(HL0);
 	PrevHit ->
-	    case tweak_vector() of
-	      true ->
-	        case tweak_hilite(X,Y,St) of
-	          none ->
-	            HL = HL0;
-	          Hit ->
-	            wings_wm:dirty(),
-	            insert_tweak_vector(PrevHit, Hit, St),
-	            HL = HL0#hl{prev={PrevHit,Hit}}
-	        end;
-	      _ ->
-	        HL = HL0
-	    end,
-	    wings_draw:refresh_dlists(St),
+	    HL = case tweak_vector() andalso tweak_hilite(X,Y,St) of
+                     false -> HL0;
+                     none ->  HL0;
+                     Hit ->
+                         wings_wm:dirty(),
+                         insert_tweak_vector(PrevHit, Hit, St),
+                         wings_draw:refresh_dlists(St),
+                         HL0#hl{prev={PrevHit,Hit}}
+                 end,
 	    get_hilite_event(HL);
 	none ->
 	    wings_wm:dirty(),
