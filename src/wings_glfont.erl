@@ -100,23 +100,22 @@ tex_id(#font{tex=TexId}) ->
 render(#font{} = GLFont, String) when is_list(String) ->
     render_text(GLFont, String);
 render(#font{}, {_, _, <<>>}) -> ok;
-render(#font{tex=TexId, height=H}, {X,Y, _, Bin0}) ->
-    Size = byte_size(Bin0),
-    Bin = <<_:2/unit:32, TxBin/bytes>> =
-	if Size < ?BIN_XTRA -> <<Bin0/bytes, 0:(?BIN_XTRA*8)>>;
-	   true -> Bin0
-	end,
-
-    wx:retain_memory(Bin),
+render(#font{tex=TexId, height=H}, {X,Y, _, Data}) ->
+    Size = byte_size(Data),
+    [Vbo] = Buffers = gl:genBuffers(1),
+    gl:bindBuffer(?GL_ARRAY_BUFFER, Vbo),
+    gl:bufferData(?GL_ARRAY_BUFFER, Size, Data, ?GL_STATIC_DRAW),
     gl:bindTexture(?GL_TEXTURE_2D, TexId),
-    gl:vertexPointer(2, ?GL_FLOAT, 16, Bin),
-    gl:texCoordPointer(2, ?GL_FLOAT, 16, TxBin),
+
+    gl:vertexPointer(2, ?GL_FLOAT, 16, 0),
+    gl:texCoordPointer(2, ?GL_FLOAT, 16, 8),
     gl:enableClientState(?GL_VERTEX_ARRAY),
     gl:enableClientState(?GL_TEXTURE_COORD_ARRAY),
     gl:drawArrays(?GL_QUADS, 0, Size div 16),
     gl:disableClientState(?GL_VERTEX_ARRAY),
     gl:disableClientState(?GL_TEXTURE_COORD_ARRAY),
-    wx:release_memory(Bin),
+    gl:bindBuffer(?GL_ARRAY_BUFFER, 0),
+    gl:deleteBuffers(Buffers),
     {X,abs(Y-H)}.
 
 %% @spec(Font::font_info(), unicode:charlist()) ->
