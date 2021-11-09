@@ -18,7 +18,6 @@
 
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
--include_lib("wings/e3d/e3d_image.hrl").
 
 -define(cl_lightpos, {2.5, 2.5, 0.0}).
 -define(hl_lightpos, {3000.0, 10000.0, 1000.0}).
@@ -51,7 +50,8 @@ compile_all() ->
                  {point_light, point_light, [], ""},
                  {spot_light, spot_light, [], ""},
                  {area_light, area_light, [], ""},
-                 {light_light, light_light, [], ""}
+                 {light_light, light_light, [], ""},
+                 {grid, grid, [], ""}
                 ],
     Make = fun({Id, Name, Uniforms, Desc}, Acc) ->
                    case make_prog(Name, Uniforms, Desc) of
@@ -77,7 +77,7 @@ use_prog(Name, RS) ->
             wings_gl:use_prog(Prog),
             RS0 = set_uloc('Exposure', wings_pref:get_value(cam_exposure), RS#{shader=>Shader}),
             RS1 = set_uloc(ws_matrix, e3d_mat:identity(), RS0),
-            RS2 = set_uloc(ws_eyepoint, maps:get(ws_eyepoint, RS1), RS1),
+            RS2 = set_uloc(ws_eyepoint, maps:get(ws_eyepoint, RS1, undefined), RS1),
 
             case Name of
                 1 ->
@@ -93,7 +93,9 @@ use_prog(Name, RS) ->
                     set_uloc('GroundColor', wings_pref:get_value(hl_groundcol), RS4);
                 _ ->
                     RS2
-            end
+            end;
+        Shaders ->
+            error({shader_not_found, Name, maps:keys(Shaders)})
     end.
 
 set_uloc(Id, To, Rs0) ->

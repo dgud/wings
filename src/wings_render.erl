@@ -48,15 +48,14 @@ render(#st{selmode=Mode}=St) ->
     end,
     {PM,MM,SceneLights} = wings_view:load_matrices(true),
     View = wings_view:current(),
-    AxesData = ground_and_axes(View, PM,MM),
     mini_axis_icon(View, MM),
     show_saved_bb(St),
     show_bb_center(St),
     user_clipping_planes(on),
-    render_objects(Mode, PM, MM, SceneLights),
+    RS = render_objects(Mode, PM, MM, SceneLights),
     user_clipping_planes(off),
     draw_background(MM),
-    axis_letters(PM,MM,AxesData),
+    ground_and_axes(View, PM,MM, RS),
     show_camera_image_plane(),
     gl:popAttrib(),
     call_post_hook(St),
@@ -706,34 +705,36 @@ load_perspectiv() ->
     TP = e3d_transform:perspective(Fov, Aspect, Hither, Yon),
     gl:loadMatrixd(e3d_transform:matrix(TP)).
 
-
-
-ground_and_axes(#view{yon=Yon0} = View, PM,MM) ->
+ground_and_axes(View, PM,MM, RS0) ->
     Axes = wings_wm:get_prop(show_axes),
-    {ShowGrid, GridSize} = groundplane(Axes, View, PM, MM),
-    Yon = case wings_pref:get_value(constrain_axes) of
-	      true  -> GridSize;
-	      false -> Yon0
-	  end,
-    Key = case Axes of
-	      true ->
-		  axis_data([{1,x_color,neg_x_color},
-			     {2,y_color,neg_y_color},
-			     {3,z_color,neg_z_color}],
-			    Yon);
-	      false ->
-		  none
-	  end,
+    RS1 = draw_axes(RS0, Axes, PM, MM, View),
+    groundplane(RS1, View, PM, MM).
+
+draw_axes(RS0, false, _, _, _) ->
+    wings_dl:draw(axes, none, fun(_) -> none end, RS0);
+draw_axes(RS0, _Show, PM, MM, View) ->
+    Yon = axis_size(RS0, View),
+    Key = axis_data([{1,x_color,neg_x_color},
+                     {2,y_color,neg_y_color},
+                     {3,z_color,neg_z_color}],
+                    Yon),
     Update = fun(Data) ->
 		     D = fun(RS) ->
+                                 gl:lineWidth(2.1),
 				 gl:drawArrays(?GL_LINES, 0, 3*4),
                                  RS
 			 end,
 		     wings_vbo:new(D, Data, [color,vertex])
 	     end,
-    wings_dl:draw(axes, Key, Update, #{}),
-    {ShowGrid, Axes, Yon}.
+    %% io:format("~p: depth_test ~p ~p~n", [?LINE, gl:isEnabled(?GL_DEPTH_TEST)==1, hd(gl:getIntegerv(?GL_DEPTH_FUNC))]),
+    RS1 = wings_dl:draw(axes, Key, Update, RS0),
+    axis_letters(RS1, PM, MM, Yon).
 
+axis_size(#{ws_eyepoint:=Eye}, #view{yon=Yon, distance=Dist0}) ->
+    case wings_pref:get_value(constrain_axes) of
+        true  -> max((abs(element(2,Eye))+Dist0)*2, 25.0); %% As calculated in shader
+        false -> Yon
+    end.
 
 axis_data([{I,PosKey,NegKey}|T], Yon) ->
     Pos = wings_pref:get_value(PosKey),
@@ -744,38 +745,26 @@ axis_data([{I,PosKey,NegKey}|T], Yon) ->
     [Pos,A0,Pos,A,Neg,A0,Neg,B|axis_data(T, Yon)];
 axis_data([], _) -> [].
 
-axis_letters(TPM, TMM, {ShowGrid, ShowAxes, Yon0}) ->
-    case ShowAxes orelse ShowGrid of
-	false ->
-	    ok;
-	true ->
-	    ViewPort = wings_wm:viewport(),
-	    gl:matrixMode(?GL_PROJECTION),
-	    gl:loadIdentity(),
-	    {_,_,W,H} = ViewPort,
-            Ortho = e3d_transform:ortho(0.0, float(W), float(H), 0.0, -1.0, 1.0),
-            gl:loadMatrixd(e3d_transform:matrix(Ortho)),
-	    gl:matrixMode(?GL_MODELVIEW),
-	    gl:loadIdentity(),
-	    gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_FILL),
-            case ShowGrid of
-                true -> show_scale(W,H);
-                false -> ok
-            end,
-            case ShowAxes of
-                false -> ok;
-                true ->
-                    PM = e3d_transform:matrix(TPM),
-                    MM = e3d_transform:matrix(TMM),
-                    Start = {0.0,0.0,0.0},
-                    Origin = proj(Start, MM, PM),
-                    Info = {Start,Origin,MM,PM,ViewPort},
-                    Yon = Yon0 + ground_grid_size(),
-                    axis_letter_1(1, Yon, axisx, x_color, Info),
-                    axis_letter_1(2, Yon, axisy, y_color, Info),
-                    axis_letter_1(3, Yon, axisz, z_color, Info)
-            end
-    end.
+axis_letters(RS, TPM, TMM, Yon0) ->
+    ViewPort = wings_wm:viewport(),
+    gl:matrixMode(?GL_PROJECTION),
+    gl:loadIdentity(),
+    {_,_,W,H} = ViewPort,
+    Ortho = e3d_transform:ortho(0.0, float(W), float(H), 0.0, -1.0, 1.0),
+    gl:loadMatrixd(e3d_transform:matrix(Ortho)),
+    gl:matrixMode(?GL_MODELVIEW),
+    gl:loadIdentity(),
+    gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_FILL),
+    PM = e3d_transform:matrix(TPM),
+    MM = e3d_transform:matrix(TMM),
+    Start = {0.0,0.0,0.0},
+    Origin = proj(Start, MM, PM),
+    Info = {Start,Origin,MM,PM,ViewPort},
+    Yon = Yon0 * 1.2,
+    axis_letter_1(1, Yon, axisx, x_color, Info),
+    axis_letter_1(2, Yon, axisy, y_color, Info),
+    axis_letter_1(3, Yon, axisz, z_color, Info),
+    RS.
 
 axis_letter_1(I, Yon, Char, Color0, {Start,{Ox,Oy,_,Ow},MM,PM,Viewport}) ->
     Color = wings_pref:get_value(Color0),
@@ -875,13 +864,6 @@ show_letter(X0, Y0, W, Char, {_,_,Vw,Vh}) ->
 axis_text(X, Y, C) ->
     wings_text:render(X, Y, [C]).
 
-show_scale(W, H) ->
-    Scale = ground_grid_scale(),
-    ScaleStr = float_to_list(float(Scale),[{decimals, 3}, compact]),
-    StrScale = ?__(1,"Grid Scale: x")++ScaleStr,
-    X = W-wings_text:width(StrScale)-10,
-    wings_io:info(X, H-18, StrScale).
-
 proj({X0,Y0,Z0}, MM, PM) ->
     e3d_mat:mul(PM, e3d_mat:mul(MM, {X0,Y0,Z0,1.0})).
 
@@ -896,84 +878,79 @@ sub({X1,Y1}, {X2,Y2}) ->
 add_prod({X1,Y1}, {X2,Y2}, S) when is_float(S) ->
     {S*X2+X1,S*Y2+Y1}.
 
-calc_grid_size({X,Y,Z},PM,MM) ->
-    Viewport = {_,_,W,H} =  wings_wm:viewport(),
-    W1 = max(W,H)/2.0,
-    Max = ground_grid_size(),
-    {S,T,U} = e3d_transform:unproject({W1, 0.0, 0.0}, MM,PM, Viewport),
-    trunc(max((max(max(abs(S-X),abs(T-Y)),abs(U-Z))/Max),10.0)).
-
-groundplane(Axes, #view{origin=Origin, distance=Dist0, along_axis=Along}, PM, MM) ->
-    Show = wings_wm:get_prop(show_groundplane) orelse
-	  (wings_pref:get_value(force_show_along_grid) andalso
-	   Along =/= none),
-    case Axes orelse Show of
-        false ->
-            wings_dl:draw(groundplane, none, fun update_groundplane/1, #{}),
-            {Show, 1.0};
-        true ->
-            Dist = abs(Dist0),
-            Scale = if Dist > 2.0 ->
-                            Exp = trunc(math:log(max(1.0, Dist))/math:log(10))-1,
-                            max(trunc(math:pow(10.0,Exp)), 1);
-                       Dist > 0.2 -> 0.1;
-                       Dist > 0.008 -> 0.01;
-                       true -> 0.001
-                    end,
-            ?SET({wings_wm:this(),ground_grid_scale},Scale),
-            NumGrid = calc_grid_size(Origin,PM,MM),
-            GridSize = ground_grid_size()*NumGrid,
-            Key = case Show of
-                      true ->
-                          Color = wings_pref:get_value(grid_color),
-                          {Along,GridSize,Axes,Color};
-                      false ->
-                          none
-                  end,
-            wings_dl:draw(groundplane, Key, fun update_groundplane/1, #{}),
-            {Show, float(GridSize)}
+groundplane(RS0, #view{along_axis=Along, distance=Dist0}=View, PM, MM) ->
+    Show = wings_wm:get_prop(show_groundplane)
+        orelse (wings_pref:get_value(force_show_along_grid)
+                andalso Along =/= none),
+    Eye = maps:get(ws_eyepoint, RS0),
+    Scale = grid_scale(Eye, Dist0, Along),
+    case Show of
+        false -> RS0;
+        true -> draw_grid(View, PM, MM, Along, Scale, RS0)
     end.
 
-update_groundplane({Along,Sz,Axes,Color}) ->
-    Data = groundplane_2(-Sz, Sz, Sz, ground_grid_size(), Axes),
-    N = length(Data),
-    Draw = fun(RS) ->
-		   gl:color3fv(Color),
-		   gl:lineWidth(1.0),
-		   gl:matrixMode(?GL_MODELVIEW),
-		   gl:pushMatrix(),
-		   case Along of
-		       x -> gl:rotatef(90.0, 0.0, 1.0, 0.0);
-		       z -> ok;
-		       _ -> gl:rotatef(90.0, 1.0, 0.0, 0.0)
-		   end,
-		   gl:drawArrays(?GL_LINES, 0, N),
-		   gl:popMatrix(),
-		   ?CHECK_ERROR(),
-                   RS
-	   end,
-    wings_vbo:new(Draw, Data).
-
-groundplane_2(X, Last, _Sz, _Step, _Axes) when X > Last ->
-    [];
-groundplane_2(X, Last, Sz, Step, true) when abs(X) < 0.0001 ->
-    %% Skip ground plane where the axes go.
-    groundplane_2(Step, Last, Sz, Step, true);
-groundplane_2(X, Last, Sz, Step, Axes) ->
-    NegSz = -Sz,
-    [{X,NegSz,0},{X,Sz,0},{NegSz,X,0},{Sz,X,0}|
-     groundplane_2(X+Step, Last, Sz, Step, Axes)].
-
-ground_grid_size() ->
-    Scale = ground_grid_scale(),
-    ?GROUND_GRID_SIZE*Scale.
-
-ground_grid_scale() ->
-    Key = {wings_wm:this(),ground_grid_scale},
-    case ?GET(Key) of
-        undefined -> 1;
-        Scale -> Scale
+-spec grid_scale(Eye::e3d_vec:point(), Dist::float(), ViewAlong::atom()) ->
+          {InvScale::float(), InvScale10::float(), Alpha1::float(), Alpha2::float()}.
+grid_scale({_,Y,_}, Dist0, Along) ->
+    Dist = case Along of
+               none -> max(abs(Dist0), abs(Y));
+               _ -> Dist0
+           end,
+    Calc = fun(Len) ->
+                   if Len > 10.0 ->
+                           Exp = trunc(math:log(max(1.0, Len))/math:log(10))-1,
+                           max(trunc(math:pow(10.0,Exp))*1.0, 1.0);
+                      Len > 1.0 -> 0.1;
+                      Len > 0.1 -> 0.01;
+                      true -> 0.001
+                   end
+           end,
+    Res = Calc(Dist),
+    Inc = Calc(Dist*2.0),  %% Start blending when 50% distance covered
+    if
+        Inc > Res ->  %% Blend in new lines
+            {1/Res, 1/Inc, 2*(1.0 - Dist/(Inc*10)), 1.0};
+        true ->  %% Make every 10th stronger
+            {1/Res, 0.1/Res, 1.0, 1.0}
     end.
+
+
+draw_grid(#view{origin=Origin, distance=Dist}, PM, MM, Along, Scale, RS0) ->
+    wings_io:ortho_setup(),
+    gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_FILL),
+    gl:enable(?GL_BLEND),
+    gl:enable(?GL_DEPTH_TEST),
+    gl:disable(?GL_CULL_FACE),
+    gl:blendFunc(?GL_SRC_ALPHA, ?GL_ONE_MINUS_SRC_ALPHA),
+    Color = wings_pref:get_value(grid_color),
+    RS1 = wings_shaders:use_prog(grid, RS0),
+    RS2 = wings_shaders:set_uloc(proj, e3d_transform:matrix(PM), RS1),
+    RS3 = wings_shaders:set_uloc(view, e3d_transform:matrix(MM), RS2),
+    RS4 = wings_shaders:set_uloc(ws_origin, Origin, RS3),
+    RS5 = wings_shaders:set_uloc(dist, Dist, RS4),
+    RS6 = wings_shaders:set_uloc(scale, Scale, RS5),
+    RS7 = wings_shaders:set_uloc(color, Color, RS6),
+    RS8 = wings_shaders:set_uloc(along, along_axis(Along), RS7),
+    {_,_,W,H} = wings_wm:viewport(),
+    gl:recti(0, 0, W, H),
+    RS = wings_shaders:use_prog(0, RS8),
+    show_scale(W,H,1/element(1,Scale)),
+    %% Reset state..
+    gl:enable(?GL_DEPTH_TEST),
+    wings_view:load_matrices(true),
+    RS.
+
+along_axis(none) -> 0;
+along_axis(x) -> 1;
+along_axis(y) -> 2;
+along_axis(z) -> 3.
+
+
+show_scale(W, H, Scale) ->
+    ScaleStr = float_to_list(float(Scale),[{decimals, 4}, compact]),
+    StrScale = ?__(1,"Grid Scale: x")++ScaleStr,
+    X = W-wings_text:width(StrScale)-10,
+    wings_io:info(X, H-18, StrScale).
 
 show_saved_bb(St) ->
     Key = get_saved_bb_key(St),
