@@ -511,15 +511,8 @@ bindFramebuffer(W, Fbo) ->
     gl:bindFramebuffer(W,Fbo).
 
 triangulate(Normal, Pos0) ->
-    {Tris0, BinPos} = wings_glu_tess:triangulate(Normal, Pos0),
-    Tris = tris(Tris0),
-    Res = {Tris, [{X,Y,Z}|| <<X:64/float-native,Y:64/float-native, Z:64/float-native>> <= BinPos]},
-    %%io:format("~p~n~p~n~p~n",[Pos0, Tris, element(2, Res)]),
-    Res.
+    wings_glu_tess:triangulate(Normal, Pos0).
 
-tris([A,B,C|Rs]) ->
-    [{A+1,B+1,C+1}|tris(Rs)];
-tris([]) -> [].
 
 deleteTextures(List) ->
     gl:deleteTextures(List).
