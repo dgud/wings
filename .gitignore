@@ -38,6 +38,8 @@
 /c_src/*.o
 /c_src/*.obj
 /c_src/*.pdb
+/c_src/tess/*.o
+/c_src/tess/*.obj
 
 # /plugins/
 /plugins/*

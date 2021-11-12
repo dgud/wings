@@ -55,13 +55,14 @@ ifeq ($(UseMCL),true)
  OBJ = obj
  SO_EXT = dll
  LIBS = -LD
+ DEBUG = -Fd$@.pdb
  CFLAGS += -nologo -Zi -Ox -FS -MP -D__WIN32__
  CXXFLAGS += $(CFLAGS) -EHsc
 else
  OUT = -o
  OUT_OBJ = -o
  OBJ = o
- CFLAGS += $(COMMON_CFLAGS) -O3
+ CFLAGS += $(COMMON_CFLAGS) -O3 -fPIC
  CXXFLAGS += -Wno-deprecated-declarations -Wno-unknown-pragmas -Wno-switch
 
  ifdef USEMINGWGCC
@@ -75,7 +76,7 @@ else
     LIBS = $(UNIVERSAL_FLAGS) -bundle -flat_namespace -undefined suppress
     CXXFLAGS += $(CFLAGS) -std=c++14
   else
-    LIBS = -shared -fpic
+    LIBS = -shared
     CXX_LD = -lstdc++
     CXXFLAGS += $(CFLAGS)
   endif
@@ -88,26 +89,41 @@ endif
 
 IGL_INCLUDE = -I../_deps/eigen -I../_deps/libigl/include
 
+TESS_SRC = dict geom memalloc mesh normal priorityq render sweep tess tessmono
+TESS_HEADER = $(TESS_SRC) priorityq-sort dict-list priorityq-heap
+
+# TESS_SRC_FILES = $(TESS_SRC:%=tess/%.c)
+TESS_OBJ_FILES = $(TESS_SRC:%=tess/%.$(OBJ))
+TESS_HEADER_FILES = $(TESS_HEADER:%=tess/%.h) tess/wtess.h
+
 # libigl only supports 64bits systems
 ifeq (x"${WORDSIZE}",x"64")
-    DRV = $(LIBDIR)/libigl.$(SO_EXT) $(LIBDIR)/wings_pick_nif.$(SO_EXT)
+    DRV = libigl wings_pick_nif wings_tess
 else
     $(info 32bits build ignoring libigl not supported)
-    DRV = $(LIBDIR)/wings_pick_nif.$(SO_EXT)
+    DRV = wings_pick_nif wings_tess
 endif
 
-TARGET_FILES=$(DRV)
+TARGET_FILES=$(DRV:%=$(LIBDIR)/%.$(SO_EXT))
 
 opt debug: $(TARGET_FILES)
 
 $(LIBDIR)/libigl.$(SO_EXT): libigl.cpp
 	install -d $(LIBDIR)
-	$(GCC) $(CXXFLAGS) $(IGL_OPTS) -I$(ERL_INC) $(IGL_INCLUDE) $(OUT)$@ $< $(LIBS) $(CXX_LD)
+	$(GCC) $(CXXFLAGS) $(IGL_OPTS) -I$(ERL_INC) $(IGL_INCLUDE) $(DEBUG) $(OUT)$@ $< $(LIBS) $(CXX_LD)
+
+$(LIBDIR)/wings_tess.$(SO_EXT): $(TESS_OBJ_FILES) wings_tess.c
+	install -d $(LIBDIR)
+	$(GCC) $(CFLAGS) -I$(ERL_INC) $(DEBUG) $(OUT)$@ wings_tess.c $(TESS_OBJ_FILES) $(LIBS)
 
 $(LIBDIR)/%.$(SO_EXT): %.c
 	install -d $(LIBDIR)
-	$(GCC) $(CFLAGS) -I$(ERL_INC) $(OUT) $@ $< $(LIBS)
+	$(GCC) $(CFLAGS) -I$(ERL_INC) $(DEBUG) $(OUT) $@ $< $(LIBS)
+
+tess/%.$(OBJ): tess/%.c $(TESS_HEADER_FILES)
+	$(GCC) $(CFLAGS) -c $(OUT_OBJ)$@ $<
 
 clean:
 	rm -f $(TARGET_FILES) vc*.pdb *.$(OBJ)
+	rm -f tess/*.$(OBJ)
 	rm -f core

@@ -68,6 +68,7 @@ MODULES= \
 	wings_geom_win \
 	wings_gl \
 	wings_glfont \
+	wings_glu_tess \
 	wings_help \
 	wings_hotkey \
 	wings_info \
