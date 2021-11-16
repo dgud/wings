@@ -909,7 +909,9 @@ grid_scale({_,Y,_}, Dist0, Along) ->
     Inc = Calc(Dist*2.0),  %% Start blending when 50% distance covered
     if
         Inc > Res ->  %% Blend in new lines
-            {1/Res, 1/Inc, 2*(1.0 - Dist/(Inc*10)), 1.0};
+            Blend = min(0.8,max(0.1, 2*(1.0 - Dist/(Inc*10)))),
+            %% io:format("~.3f ~.3f ~.3f ~.3f~n", [Dist, Inc, Blend, (abs(Y)+Dist0)*2]),
+            {1/Res, 1/Inc, Blend, 1.0};
         true ->  %% Make every 10th stronger
             {1/Res, 0.1/Res, 1.0, 1.0}
     end.
