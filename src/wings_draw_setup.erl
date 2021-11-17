@@ -109,10 +109,9 @@ has_active_color(#vab{face_vc=Color}) ->
 %%    ExtraPointer = face_normals | vertex_normals | colors | uvs | tangents
 %%  Enable the vertex buffer pointer, and optionally other pointers.
 
-enable_pointers(#vab{id=Vbo,face_vs={Stride,VsIdx}}=Vab, Extra, RS0)
-  when is_integer(VsIdx) ->
+enable_pointers(#vab{id=Vbo,face_vs={Stride,BinVs}}=Vab, Extra, RS0) ->
     gl:bindBuffer(?GL_ARRAY_BUFFER, Vbo),
-    gl:vertexPointer(3, ?GL_FLOAT, Stride, VsIdx),
+    gl:vertexPointer(3, ?GL_FLOAT, Stride, BinVs),
     CS = foldl(fun(What,Acc) ->
                        case enable_pointer(What, Vab) of
                            ok -> Acc;
@@ -124,7 +123,7 @@ enable_pointers(#vab{id=Vbo,face_vs={Stride,VsIdx}}=Vab, Extra, RS0)
     [enable_state(State)  || State <- CS],
     %io:format("Disable: ~p => ~p~n", [OldCs, OldCs -- CS]),
     [disable_state(State) || State <- OldCs -- CS],
-    %% gl:bindBuffer(?GL_ARRAY_BUFFER, 0),
+    gl:bindBuffer(?GL_ARRAY_BUFFER, 0),
     RS0#{{vbo,Vbo}=>CS}.
 
 %% disable_pointers(RS)
@@ -136,8 +135,7 @@ disable_pointers(#vab{id=Vbo}, RS0) ->
     gl:bindBuffer(?GL_ARRAY_BUFFER, 0),
     RS0#{{vbo, Vbo}=>[]}.
 
-enable_pointer(face_normals, #vab{face_fn={Stride,Ns}})
-  when is_integer(Ns) ->
+enable_pointer(face_normals, #vab{face_fn={Stride,Ns}}) ->
     gl:normalPointer(?GL_FLOAT, Stride, Ns),
     ?GL_NORMAL_ARRAY;
 enable_pointer(vertex_normals, #vab{id=MainVbo,face_sn={vbo,Vbo}}) ->
@@ -145,8 +143,7 @@ enable_pointer(vertex_normals, #vab{id=MainVbo,face_sn={vbo,Vbo}}) ->
     gl:normalPointer(?GL_FLOAT, 0, 0),
     gl:bindBuffer(?GL_ARRAY_BUFFER, MainVbo),
     ?GL_NORMAL_ARRAY;
-enable_pointer(vertex_normals, #vab{face_sn={Stride,Ns}})
-  when is_integer(Ns) ->
+enable_pointer(vertex_normals, #vab{face_sn={Stride,Ns}}) ->
     %% Only used by wings_cc.
     gl:normalPointer(?GL_FLOAT, Stride, Ns),
     ?GL_NORMAL_ARRAY;
@@ -154,7 +151,7 @@ enable_pointer(colors, #vab{face_vc=FaceCol}) ->
     case FaceCol of
 	none ->
 	    ok;
-	{Stride,Color} when is_integer(Color) ->
+	{Stride,Color} ->
 	    gl:colorPointer(3, ?GL_FLOAT, Stride, Color),
 	    ?GL_COLOR_ARRAY
     end;
@@ -162,7 +159,7 @@ enable_pointer(uvs, #vab{face_uv=FaceUV}) ->
     case FaceUV of
 	none ->
 	    ok;
-	{Stride,UV}  when is_integer(UV) ->
+	{Stride,UV} ->
 	    gl:texCoordPointer(2, ?GL_FLOAT, Stride, UV),
 	    ?GL_TEXTURE_COORD_ARRAY
     end;
@@ -170,7 +167,7 @@ enable_pointer(tangents, #vab{face_ts=FaceTs}) ->
     case FaceTs of
 	none ->
 	    ok;
-	{Stride,Ts} when is_integer(Ts) ->
+	{Stride,Ts} ->
 	    gl:vertexAttribPointer(?TANGENT_ATTR, 4, ?GL_FLOAT,
 				   ?GL_FALSE, Stride, Ts),
             {attrib, ?TANGENT_ATTR}
