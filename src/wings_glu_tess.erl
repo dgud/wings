@@ -42,8 +42,8 @@ init() ->
 %% and a binary (64bit native float) containing an array of
 %% vertex positions, it starts with the vertices in Vs and
 %% may contain newly created vertices in the end.
--spec triangulate(Normal, [Vs]) -> {Triangles, VertexPos}
-              when Normal :: e3d_vec:vertex(), Vs :: e3d_vec:vertex(),
-                   Triangles :: [integer()], VertexPos :: binary().
+-spec triangulate(Normal, [Vs]) -> {[TriIndex], [VPos]}
+              when Normal :: e3d_vec:vertex(), Vs :: e3d_vec:point(),
+                   TriIndex :: {integer(),integer(),integer()}, VPos ::e3d_vec:point().
 triangulate(_Normal, _Vs) ->
     ?nif_stub.
