@@ -14,7 +14,7 @@
 %%
 
 -module(wpc_yafaray).
--export([init/0,menu/2,dialog/2,command/2]).
+-export([init/0,menu/2,dialog/2,has_dialog/1,command/2]).
 
 %% Debug exports
 %% -export([now_diff_1/1]).
@@ -584,6 +584,16 @@ command({edit,{plugin_preferences,?TAG}}, St) ->
 command(_Spec, _St) ->
     %% erlang:display({?MODULE,?LINE,_Spec}),
     next.
+
+%%% checking for Material / Light Dialogs support
+has_dialog(Kind) when is_atom(Kind) ->
+    Handled = [material_editor_setup, material_editor_result,
+               light_editor_setup, light_editor_result],
+    case lists:member(Kind,Handled) of
+        true -> {?__(1,"YafaRay"),?TAG};
+        false -> false
+    end;
+has_dialog(_) -> false.
 
 dialog({material_editor_setup,Name,Mat}, Dialog) ->
     case is_plugin_active(edit) of
