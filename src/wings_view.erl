@@ -639,12 +639,12 @@ pget(Key, Props) -> proplists:get_value(Key, Props).
 	 delay, 				%Current delay.
 	 st,					%St record.
          start=erlang:monotonic_time(),
-         frames=-1
+         frames=0
 	 }).
 
 auto_rotate(St) ->
     auto_rotate_help(),
-    Delay = 15,
+    Delay = 0, %% Render as fast as possible and sync with gl:finish()
     ?SET(auto_rotate, max(1/120, wings_pref:get_value(auto_rotate_angle)/60)),
     Active = wings_wm:this(),
     {W,H} = wings_wm:win_size(Active),
@@ -673,8 +673,9 @@ auto_rotate_event(Event, #tim{st=St, timer=Timer}=Tim) ->
     end.
 
 auto_rotate_event_1(redraw, Tim) ->
-    wings_io:batch(fun() -> auto_rotate_redraw(Tim),
-                            wxWindow:getSize(?GET(top_frame))
+    wings_io:batch(fun() ->
+                           gl:finish(), %% Sync all prev commands
+                           auto_rotate_redraw(Tim)
                    end),
     keep;
 auto_rotate_event_1(#mousemotion{}, _) -> keep;
