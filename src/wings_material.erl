@@ -735,8 +735,8 @@ edit_dialog(Name, Assign, St=#st{mat=Mtab0}, Mat0, DrawSphere) ->
             {value, Mat0, [{key,material}]}], [{proportion, 1},{title," Wings 3D "}]},
     %% Check for plugin's material editor available and inset their information
     %% in a dropdown list to allow users to choose their properties via a new dialog
-    Qs2 = plugin_dlg_menu(Name, Qs1, wings_plugin:has_dialog(material_editor_setup)),
-    Qs = {vframe_dialog, [{vframe, Qs2}], [{buttons, [ok, cancel]}, {key, result}]},
+    Qs2 = plugin_dlg_menu(Name, wings_plugin:has_dialog(material_editor_setup)),
+    Qs = {vframe_dialog, [Qs1 | Qs2], [{buttons, [ok, cancel]}, {key, result}]},
     Ask = fun([{diffuse,Diff},
                {metallic, Met},
                {roughness, Roug},
@@ -790,13 +790,12 @@ plugin_dlg_hook(Name) ->
             end
         end}.
 
-plugin_dlg_menu(_, Qs, []) -> Qs;
-plugin_dlg_menu(Name, Qs, Plugins) ->
+plugin_dlg_menu(_, []) -> [];
+plugin_dlg_menu(Name, Plugins) ->
     [{_,PlgId}|_] = Opts = [{?__(1,"Select..."),{none,none}}]++[{PlgName,{Pm,Tag}} || {Pm,{PlgName,Tag}} <- lists:sort(Plugins)],
     DefPlg = wings_pref:get_value(material_default_plugin,PlgId),
     Hook = plugin_dlg_hook(Name),
-    [Qs,
-     {hframe, [
+    [{hframe, [
          {label_column,
           [{?__(2,"Available"), {menu, Opts, DefPlg, [{key,plugin},Hook]}}]},
          {button, ?__(3,"Edit Property..."),show_plugin_dlg,[{key,show_plugin_dlg},Hook]}

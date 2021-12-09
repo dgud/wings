@@ -211,11 +211,16 @@ command(_Spec, _St) ->
 
 %%% checking for Material / Light Dialogs support
 has_dialog(Kind) when is_atom(Kind) ->
-    Handled = [material_editor_setup, material_editor_result,
-               light_editor_setup, light_editor_result],
-    case lists:member(Kind,Handled) of
-        true -> {?__(1,"POV-Ray"),?TAG};
-        false -> false
+    case get_var(dialogs) of
+        false-> false;
+        _ ->
+            %% these are the dialogs handled by the plugin
+            Handled = [material_editor_setup, material_editor_result,
+                       light_editor_setup, light_editor_result],
+            case lists:member(Kind,Handled) of
+                true -> {?__(1,"POV-Ray"),?TAG};
+                false -> false
+            end
     end;
 has_dialog(_) -> false.
 
