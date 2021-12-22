@@ -14,7 +14,7 @@
 
 -module(wpc_pov).
 
--export([init/0, menu/2, command/2, dialog/2]).
+-export([init/0,menu/2,command/2,has_dialog/1,dialog/2]).
 
 -include_lib("wings/src/wings.hrl").
 -include_lib("wings/e3d/e3d.hrl").
@@ -208,6 +208,21 @@ command({edit, {plugin_preferences, ?TAG}}, St) ->
     pref_dialog(St);
 command(_Spec, _St) ->
     next.
+
+%%% checking for Material / Light Dialogs support
+has_dialog(Kind) when is_atom(Kind) ->
+    case get_var(dialogs) of
+        false-> false;
+        _ ->
+            %% these are the dialogs handled by the plugin
+            Handled = [material_editor_setup, material_editor_result,
+                       light_editor_setup, light_editor_result],
+            case lists:member(Kind,Handled) of
+                true -> {?__(1,"POV-Ray"),?TAG};
+                false -> false
+            end
+    end;
+has_dialog(_) -> false.
 
 %%% Material / Light Dialogs
 dialog({material_editor_setup, Name, Mat}, Dialog) ->
