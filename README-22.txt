@@ -1,3 +1,22 @@
+--- 2.2.8 --------------------------------------------
+
+- Fixed a crash caused by checking image name. Thanks to rgcotl (at Discord) [micheus]
+
+- Rewrote grid drawing. [dgud]
+
+- New splash screen image. Congrats to Hank. [micheus]
+
+- Uses Erlang/OTP-24 in pre-built versions, which should give a performance boost. [dgud]
+
+- The material properties for plugins are now accessed by choosing the
+  plugin name in a drop-down list and clicking on the "Edit..." button. [micheus]
+
+- Yafaray fixes:
+-- Fixed Yafaray issues in both Material and Option dialogs. Thanks to oort [micheus]
+-- Fixed the remaining non-latin characters handling in order to prevent
+     further crashes in Yafaray exporter. Thanks to tkbd. [Micheus]
+-- Small fixes to Yafaray plugin. Thanks to oort. [micheus]
+
 --- 2.2.7 --------------------------------------------
 
 New stuff
