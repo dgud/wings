@@ -4,6 +4,8 @@
 
 - Rewrote grid drawing. [dgud]
 
+- Fixed pale colors for materials and vertex colors. [dgud]
+
 - New splash screen image. Congrats to Hank. [micheus]
 
 - Uses Erlang/OTP-24 in pre-built versions, which should give a performance boost. [dgud]

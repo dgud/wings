@@ -16,6 +16,7 @@
 	 share/1,store/1,average/1,average/2,mix/3,white/0,
 	 rgb_to_hsv/1,rgb_to_hsv/3,hsv_to_rgb/1,hsv_to_rgb/3,
 	 rgba_to_rgb/1, rgb3bv/1, rgb4bv/1, rgb3fv/1, rgb4fv/1,
+         srgb_to_linear/1,
 	 def_palette/0
 	]).
 
@@ -213,6 +214,18 @@ convert_hsv(H,V,Min) when H =< 60.0 ->
 convert_hsv(H,V,Min) ->
     Mean = Min+(120-H)*(V-Min)/H,
     {Mean,V,Min}.
+
+srgb_to_linear({SR,SG,SB,A}) ->
+    {col_to_linear(SR),col_to_linear(SG),col_to_linear(SB),A};
+srgb_to_linear({SR,SG,SB}) ->
+    {col_to_linear(SR),col_to_linear(SG),col_to_linear(SB)}.
+
+col_to_linear(X)
+  when is_float(X), X < 0.04045 ->
+    X/12.92;
+col_to_linear(X)
+  when is_float(X) ->
+    math:pow((X+0.055)/1.055, 2.4).
 
 %%%
 %%% Local functions for color chooser.

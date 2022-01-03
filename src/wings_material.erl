@@ -496,7 +496,10 @@ apply_material_3({{tex, Type}=TexType, TexId}, Rs0) ->
             wings_shaders:set_uloc(texture_var(Type), enable(true), Rs1)
     end;
 apply_material_3({Type, Value}, Rs0)
-  when Type =:= diffuse; Type =:= emission; Type =:= metallic; Type =:= roughness ->
+  when Type =:= diffuse; Type =:= emission ->
+    wings_shaders:set_uloc(Type, wings_color:srgb_to_linear(Value), Rs0);
+apply_material_3({Type, Value}, Rs0)
+  when Type =:= metallic; Type =:= roughness ->
     wings_shaders:set_uloc(Type, Value, Rs0);
 apply_material_3({_Type,_}, Rs0) ->
     %% io:format("~p:~p: unsupported type ~p~n",[?MODULE,?LINE,_Type]),

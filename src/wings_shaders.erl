@@ -84,19 +84,23 @@ use_prog(Name, RS) ->
                     WorldFromView = e3d_transform:inv_matrix(maps:get(view_from_world, RS2)),
                     LPos = e3d_mat:mul_point(WorldFromView, wings_pref:get_value(cl_lightpos)),
                     RS3 = set_uloc('ws_lightpos', LPos, RS2),
-                    set_uloc('LightColor', wings_pref:get_value(cl_lightcol), RS3);
+                    set_uloc('LightColor', linear(cl_lightcol), RS3);
                 2 ->
                     WorldFromView = e3d_transform:inv_matrix(maps:get(view_from_world, RS2)),
                     LPos = e3d_mat:mul_point(WorldFromView, ?hl_lightpos),
                     RS3 = set_uloc('ws_lightpos', LPos, RS2),
-                    RS4 = set_uloc('SkyColor', wings_pref:get_value(hl_skycol), RS3),
-                    set_uloc('GroundColor', wings_pref:get_value(hl_groundcol), RS4);
+                    RS4 = set_uloc('SkyColor', linear(hl_skycol), RS3),
+                    set_uloc('GroundColor', linear(hl_groundcol), RS4);
                 _ ->
                     RS2
             end;
         Shaders ->
             error({shader_not_found, Name, maps:keys(Shaders)})
     end.
+
+linear(Name) when is_atom(Name) ->
+    Col = wings_pref:get_value(Name),
+    wings_color:srgb_to_linear(Col).
 
 set_uloc(Id, To, Rs0) ->
     case maps:get(shader, Rs0) of

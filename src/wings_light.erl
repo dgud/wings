@@ -510,9 +510,9 @@ update_fun(infinite, SelColor, #we{light=#light{aim=Aim}}=We) ->
 		gl:pushMatrix(),
 		{X,Y,Z} = LightPos,
 		gl:translatef(X, Y, Z),
-		wings_shaders:set_uloc(light_color, LightCol, RS),
+		wings_shaders:set_uloc(light_color, wings_color:srgb_to_linear(LightCol), RS),
                 gl:drawArrays(?GL_TRIANGLES, 2, Len*3),
-                wings_shaders:set_uloc(light_color, SelColor, RS),
+                wings_shaders:set_uloc(light_color, wings_color:srgb_to_linear(SelColor), RS),
                 gl:drawArrays(?GL_LINES, 0, 2),
 		gl:popMatrix(),
                 RS
@@ -532,12 +532,12 @@ update_fun(point, SelColor, We) ->
     #{size:=Len, tris:=Tris} = wings_shapes:tri_sphere(#{subd=>3, scale=>0.08}),
     D = fun(RS) ->
 		gl:lineWidth(1.0),
-		wings_shaders:set_uloc(light_color, LightCol, RS),
+		wings_shaders:set_uloc(light_color, wings_color:srgb_to_linear(LightCol), RS),
 		gl:pushMatrix(),
 		{X,Y,Z} = LightPos,
 		gl:translatef(X, Y, Z),
                 gl:drawArrays(?GL_TRIANGLES, N, Len*3),
-		wings_shaders:set_uloc(light_color, SelColor, RS),
+		wings_shaders:set_uloc(light_color, wings_color:srgb_to_linear(SelColor), RS),
 		gl:drawArrays(?GL_LINES, 0, N),
 		gl:popMatrix(),
                 RS
@@ -561,12 +561,12 @@ update_fun(spot, SelColor, #we{light=#light{aim=Aim,spot_angle=Angle}}=We) ->
     N = length(CylLines),
     D = fun(RS) ->
                 gl:lineWidth(1.0),
-		wings_shaders:set_uloc(light_color, LightCol, RS),
+		wings_shaders:set_uloc(light_color, wings_color:srgb_to_linear(LightCol), RS),
                 gl:pushMatrix(),
                 {Tx,Ty,Tz} = Top,
                 gl:translatef(Tx, Ty, Tz),
                 gl:drawArrays(?GL_TRIANGLES, 0, Len*3),
-		wings_shaders:set_uloc(light_color, SelColor, RS),
+		wings_shaders:set_uloc(light_color, wings_color:srgb_to_linear(SelColor), RS),
                 {Dx,Dy,Dz} = Translate,
                 gl:translatef(Dx, Dy, Dz),
                 gl:multMatrixd(Rot),
@@ -914,22 +914,22 @@ prepare_light(#light{type=area}=L, We, M) ->
 
 setup_light(#{light:=#light{type=ambient,ambient=Amb}}, RS0) ->
     RS = wings_shaders:use_prog(ambient_light, RS0),
-    wings_shaders:set_uloc(light_diffuse, Amb, RS);
+    wings_shaders:set_uloc(light_diffuse, wings_color:srgb_to_linear(Amb), RS);
 
 setup_light(#{light:=#light{type=infinite, diffuse=Diff, specular=Spec},
               pos:=Pos}, RS0) ->
     RS1 = wings_shaders:use_prog(infinite_light, RS0),
     RS2 = wings_shaders:set_uloc(ws_lightpos, Pos, RS1),
-    RS3 = wings_shaders:set_uloc(light_diffuse, Diff, RS2),
-    wings_shaders:set_uloc(light_specular, Spec, RS3);
+    RS3 = wings_shaders:set_uloc(light_diffuse, wings_color:srgb_to_linear(Diff), RS2),
+    wings_shaders:set_uloc(light_specular, wings_color:srgb_to_linear(Spec), RS3);
 
 setup_light(#{light:=#light{type=point, diffuse=Diff,specular=Spec,
                             lin_att=Lin,quad_att=Quad},
               pos:=Pos}, RS0) ->
     RS1 = wings_shaders:use_prog(point_light, RS0),
     RS2 = wings_shaders:set_uloc(ws_lightpos, Pos, RS1),
-    RS3 = wings_shaders:set_uloc(light_diffuse, Diff, RS2),
-    RS4 = wings_shaders:set_uloc(light_specular, Spec, RS3),
+    RS3 = wings_shaders:set_uloc(light_diffuse, wings_color:srgb_to_linear(Diff), RS2),
+    RS4 = wings_shaders:set_uloc(light_specular, wings_color:srgb_to_linear(Spec), RS3),
     wings_shaders:set_uloc(light_att, {0.8, Lin, Quad}, RS4);
 
 setup_light(#{light:=#light{type=spot, diffuse=Diff,specular=Spec,
@@ -938,19 +938,19 @@ setup_light(#{light:=#light{type=spot, diffuse=Diff,specular=Spec,
               pos:=Pos, dir:=Dir}, RS0) ->
     RS1 = wings_shaders:use_prog(spot_light, RS0),
     RS2 = wings_shaders:set_uloc(ws_lightpos, Pos, RS1),
-    RS3 = wings_shaders:set_uloc(light_diffuse, Diff, RS2),
+    RS3 = wings_shaders:set_uloc(light_diffuse, wings_color:srgb_to_linear(Diff), RS2),
     RS4 = wings_shaders:set_uloc(light_att, {0.8, Lin, Quad}, RS3),
     RS5 = wings_shaders:set_uloc(light_dir, Dir, RS4),
     RS6 = wings_shaders:set_uloc(light_angle, math:cos(Angle*math:pi()/180.0), RS5),
     RS7 = wings_shaders:set_uloc(light_exp, Exp, RS6),
-    wings_shaders:set_uloc(light_specular, Spec, RS7);
+    wings_shaders:set_uloc(light_specular, wings_color:srgb_to_linear(Spec), RS7);
 
 setup_light(#{light:=#light{type=area, diffuse=Diff, specular=Spec,
                             lin_att=Lin,quad_att=Quad},
               points:=Points}, RS0) ->
     RS1 = wings_shaders:use_prog(area_light, RS0),
-    RS2 = wings_shaders:set_uloc(light_diffuse, Diff, RS1),
-    RS3 = wings_shaders:set_uloc(light_specular, Spec, RS2),
+    RS2 = wings_shaders:set_uloc(light_diffuse, wings_color:srgb_to_linear(Diff), RS1),
+    RS3 = wings_shaders:set_uloc(light_specular, wings_color:srgb_to_linear(Spec), RS2),
     RS4 = wings_shaders:set_uloc(light_att, {0.8, Lin, Quad}, RS3),
     wings_shaders:set_uloc(light_points, Points, RS4).
 

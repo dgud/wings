@@ -14,11 +14,18 @@ varying vec4 v_basecolor;
 
 uniform mat3x4 ws_matrix;
 
+vec4 SRGBtoLINEAR(vec4 srgbIn)
+{
+    vec3 bLess = step(vec3(0.04045),srgbIn.xyz);
+    vec3 linOut = mix( srgbIn.xyz/vec3(12.92), pow((srgbIn.xyz+vec3(0.055))/vec3(1.055),vec3(2.4)), bLess );
+    return vec4(linOut,srgbIn.w);
+}
+
 void main(void)
 {
     ws_position = mat3x3(ws_matrix)*gl_Vertex.xyz;
     // ws_position = gl_Vertex.xyz;
-    v_basecolor	= diffuse * gl_Color;
+    v_basecolor	= diffuse * SRGBtoLINEAR(gl_Color);
     ws_normal	= normalize(mat3x3(ws_matrix)*gl_Normal);
     vec3 T      = mat3x3(ws_matrix)*wings_tangent.xyz;
     ws_tangent  = vec4(T.xyz, wings_tangent.w);
