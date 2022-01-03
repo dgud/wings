@@ -166,7 +166,12 @@ command(orthogonal_view, St) ->
     St;
 command(Option={show,What}, St) ->
     Prev = toggle_option(Option),
+    Keep = [show_groundplane, show_axes, show_info_text, show_cam_imageplane,
+            show_bb, show_bb_center, clip_plane],
+    KeepDls = lists:member(What, Keep),
     if
+        KeepDls ->
+            ignore;
 	What =:= show_normals ->
 	    Prev andalso wings_dl:map(fun(D, _) -> D#dlo{normals=none} end, []);
 	What =:= filter_texture ->
