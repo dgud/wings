@@ -55,10 +55,10 @@ render(#st{selmode=Mode}=St) ->
     RS = render_objects(Mode, PM, MM, SceneLights),
     user_clipping_planes(off),
     draw_background(MM),
+    call_post_hook(St),
     ground_and_axes(View, PM,MM, RS),
     show_camera_image_plane(),
     gl:popAttrib(),
-    call_post_hook(St),
     wings_develop:gl_error_check("Rendering scene").
 
 %% draw_orig_sel_dl(Mode) -> ok.

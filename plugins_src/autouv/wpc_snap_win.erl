@@ -247,7 +247,7 @@ draw_image(Image,_St) ->
     end,
 
     gl:texEnvi(?GL_TEXTURE_ENV, ?GL_TEXTURE_ENV_MODE, ?GL_MODULATE),
-
+    gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_FILL),
     gl:color4f(1.0, 1.0, 1.0, Opa),   %%Semitransparant
     {_,_,W,H} = wings_wm:viewport(),
     {Xs,Ys,Xe,Ye} = {0.0,0.0,1.0,1.0},
