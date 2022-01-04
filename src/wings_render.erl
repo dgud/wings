@@ -194,6 +194,7 @@ render_work_objects(Open, Closed, SceneLights, RS0) ->
     polygonOffset(2.0),
     gl:shadeModel(?GL_SMOOTH),
     RS1 = enable_lighting(SceneLights, RS0),
+    gl:enable(?GL_CULL_FACE),
     RS2 = render_work_objects_0(Closed, SceneLights, RS1),
     wings_pref:get_value(show_backfaces) andalso gl:disable(?GL_CULL_FACE),
     RS3 = render_work_objects_0(Open, SceneLights, RS2),
