@@ -56,7 +56,13 @@ start(Op, #we{id=Id}=We0, OrigWe, St0) ->
 
     St = St1#st{sel=[],selmode=face,shapes=gb_trees:from_orddict([{Id,We}])},
     Ss = seg_init_message(#seg{selmodes=Modes,st=St,orig_st=St0,we=OrigWe,fs=Fs}),
-    
+
+    %% Set camera on object/faces
+    RemoveOthers = fun(Sel, #we{id=SelId}) when SelId =:= Id -> Sel;
+                      (_, _) -> gb_sets:empty()
+                   end,
+    wings_view:command(frame, wings_sel:update_sel(RemoveOthers, St0)),
+
     %% Don't push here - instead replace the default crash handler
     %% which is the only item on the stack.
     get_seg_event(Ss).
