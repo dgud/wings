@@ -592,8 +592,8 @@ init([Frame, Name, {OpaVal,Tiled}=State]) ->
 
     wxToggleButton:connect(BAct, command_togglebutton_clicked),
     wxButton:connect(BSnap, command_button_clicked),
-    wxListBox:connect(ModLbx, left_up),
     wxListBox:connect(ModLbx, motion),
+    wxListBox:connect(ModLbx, command_listbox_selected),
     wxListBox:connect(ModLbx, leave_window),
     wxCheckBox:connect(TileChk, command_checkbox_clicked),
     wxSlider:connect(Opa,command_slider_updated),
@@ -727,7 +727,6 @@ handle_event(#wx{event=#wxMouse{type=motion, x=X, y=Y}, obj=LBox}, State) ->
 	    _ -> -1
 	end,
     if (Sel >= 0) and (Sel =/= Sel0) ->
-            wxListBox:setSelection(LBox, Sel),
             wxListBox:setToolTip(LBox, snap_tooltip(MKind)),
             wings_status:message(wings_wm:this(),snap_tooltip(MKind));
        true -> ok
@@ -740,6 +739,19 @@ handle_event(#wx{event=#wxMouse{type=leave_window}, obj=LBox}, State) ->
     end,
     wxListBox:setToolTip(LBox, ""),
     wings_status:message(wings_wm:this(),""),
+    {noreply, State};
+
+handle_event(#wx{event=#wxCommand{type=command_listbox_selected, commandInt=Sel}, obj=LBox}, State) ->
+    MKind = case Sel of
+                0 -> move;
+                1 -> scale;
+                2 -> fit
+            end,
+    wxListBox:deselect(LBox,Sel),
+    Menus = snap_menu(MKind),
+    MPos = wx_misc:getMousePosition(),
+    Cmd = fun(_) -> wings_menu:popup_menu(LBox, MPos, ?MODULE, Menus) end,
+    wings_wm:psend(?WIN_NAME, {apply, false, Cmd}),
     {noreply, State};
 handle_event(#wx{event=#wxMouse{type=left_up, x=X, y=Y}, obj=LBox}, State) ->
     MPos = wxWindow:clientToScreen(LBox, {X,Y}),
@@ -763,6 +775,7 @@ handle_event(#wx{event=#wxMouse{type=enter_window}}=Ev, State) ->
     wings_frame ! Ev,
     {noreply, State};
 handle_event(#wx{} = _Ev, State) ->
+    %% ?dbg("Got: ~p~n",[_Ev]),
     {noreply, State}.
 
 
