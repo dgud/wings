@@ -514,7 +514,7 @@ splash_contents() ->
      ?__(4,"but is completely free for any kind of use") ++ "\n" ++
      ?__(5,"(including commercial)."),
 
-     ?__(6,"Copyright") ++ [$\s,169] ++ " 2001-2019 Björn Gustavsson" ++ "\n" ++
+     ?__(6,"Copyright") ++ [$\s,169] ++ " 2001-2022 Björn Gustavsson" ++ "\n" ++
      "Dan Gudmundsson" ++ ?__(7," and Others")
     ].
 
