@@ -64,6 +64,7 @@
 /wings-*
 /build/*
 /macosx/build/*
+/macosx/Info.plist
 /win32/Wings3D.exe
 /win32/wings3d_res.o
 /win32/wings3d.obj
@@ -77,5 +78,3 @@
 
 # Emacs Tag files
 TAGS
-
-# 

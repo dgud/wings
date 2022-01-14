@@ -5,7 +5,7 @@
 %%
 %%     Release wings into the given target directory.
 %%
-%%  Copyright (c) 2014 Bjorn Gustavsson
+%%  Copyright (c) 2014-2022 Bjorn Gustavsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -65,9 +65,10 @@ mac_release(BuildRoot, WingsVsn) ->
     {ok,_} = file:copy(filename:join(MacDir, "Wings3D.sh"), Script),
     ok = file:write_file_info(Script, #file_info{mode=8#555}),
     ok = file:set_cwd(MacDir),
+    create_info_plist(WingsVsn),
     copy("Info.plist", Contents),
     ResourceFiles = ["wings3d.icns","wings_doc.icns"],
-    [copy(F, Resources) || F <- ResourceFiles],
+    _ = [copy(F, Resources) || F <- ResourceFiles],
     copy("InfoPlist.strings", filename:join(Resources, "English.lproj")),
     release_otp(Resources, undefined),
     convert_script(Resources),
@@ -77,6 +78,22 @@ mac_release(BuildRoot, WingsVsn) ->
     run(MakeDmg, ["wings-"++WingsVsn++"-macosx.dmg",Root,
                   "Wings3D "++WingsVsn++".app"]),
     ok.
+
+create_info_plist(WingsVsn) ->
+    WingsShortVsn = short_vsn(WingsVsn, 0),
+    {ok,Bin0} = file:read_file("Info.plist.src"),
+    Bin1 = re:replace(Bin0, "%WINGS_SHORT_VSN%", WingsShortVsn),
+    Bin = re:replace(Bin1, "%WINGS_VSN%", WingsVsn),
+    ok = file:write_file("Info.plist", Bin).
+
+short_vsn([H|T], N) when $0 =< H, H =< $9 ->
+    [H|short_vsn(T, N)];
+short_vsn([_|_], 2) ->
+    [];
+short_vsn([H|T], N) ->
+    [H|short_vsn(T, N + 1)];
+short_vsn([], _) ->
+    [].
 
 codesign(Root) ->
     %% Codesign all executable code in the package with timestamp and
@@ -333,6 +350,7 @@ ext(".glsl") -> {text, shader};
 ext(".fs")   -> {text, shader};
 ext(".vs")   -> {text, shader};
 ext(".auv")  -> {text, shader};
+ext(".plist") -> {text, plist};
 ext("." ++ Rest) -> {unknown, list_to_atom(Rest)};
 ext("") -> {unknown, []}.
 
