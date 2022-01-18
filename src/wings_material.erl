@@ -750,7 +750,8 @@ edit_dialog(Name, Assign, St=#st{mat=Mtab0}, Mat0, DrawSphere) ->
               %% storing the latest Render engine as the preferred one
               case lists:keyfind(plugin,1,More) of
                   {plugin,{none,none}} -> wings_pref:delete_value(material_default_plugin);
-                  {plugin,Value} -> wings_pref:set_value(material_default_plugin,Value)
+                  {plugin,Value} -> wings_pref:set_value(material_default_plugin,Value);
+                  _ -> ignore
               end,
               OpenGL = [ask_prop_put(diffuse, Diff, Opacity),
                         {metallic, Met},
