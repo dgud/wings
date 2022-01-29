@@ -98,10 +98,10 @@ TESS_HEADER_FILES = $(TESS_HEADER:%=tess/%.h) tess/wtess.h
 
 # libigl only supports 64bits systems
 ifeq (x"${WORDSIZE}",x"64")
-    DRV = libigl wings_pick_nif wings_tess
+    DRV = libigl wings_pick_nif wings_tess os_env
 else
     $(info 32bits build ignoring libigl not supported)
-    DRV = wings_pick_nif wings_tess
+    DRV = wings_pick_nif wings_tess os_env
 endif
 
 TARGET_FILES=$(DRV:%=$(LIBDIR)/%.$(SO_EXT))

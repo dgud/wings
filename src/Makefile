@@ -133,7 +133,8 @@ MODULES= \
 	ww_color_slider \
 	jsone \
 	jsone_decode \
-	jsone_encode
+	jsone_encode \
+	os_env
 
 TARGET_FILES= $(MODULES:%=$(EBIN)/%.beam)
 
