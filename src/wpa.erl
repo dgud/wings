@@ -112,7 +112,8 @@ import(#e3d_file{}=E3dFile, St) ->
 import(Files, St0) when is_list(Files) ->
     Imps = importers(),
     Import = fun(File, St) ->
-                     case maps:get(filename:extension(File), Imps, undefined) of
+                     Ext = filename:extension(File),
+                     case maps:get(string:lowercase(Ext), Imps, undefined) of
                          undefined ->
                              wings_u:message(?__(2, "Unknown file format: ")++File),
                              St;
