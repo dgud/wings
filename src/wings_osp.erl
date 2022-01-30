@@ -43,7 +43,8 @@ render(#st{shapes=Sh, mat=Materials} = St, Opts) ->
     Wes = gb_trees:values(Sh),
     Subdiv = proplists:get_value(subdivisions, Opts, 0),
     Stash = #{opts=>Opts, subdiv=>Subdiv, materials=>Materials, st=>St, pid=>Pid},
-
+    
+    ok = gen_server:call(Pid, cancel_prev_render),
     send({camera, wpa:camera_info([pos_dir_up])}, Stash),
     send({materials, Materials}, Stash),
     lists:foldl(fun prepare_mesh/2, Stash, Wes),
@@ -92,9 +93,14 @@ init([]) ->
     Sz = {800,600},
     {ok, reset(#{dev=>Dev, sz=>Sz})}.
 
-handle_call(_Request, _From, State) ->
-    Reply = ok,
-    {reply, Reply, State}.
+handle_call(cancel_prev_render, _From, State) ->
+    case maps:get(render, State, false) of
+        false ->
+            {reply, ok, State};
+        #{future:=Future} ->
+            osp:cancel(Future),
+            {reply, ok, reset(State)}
+    end.
 
 handle_cast({mesh, Request}, #{meshes:=Ms, materials:=Mats0} = State) ->
     %% ?dbg("~P~n", [Request,20]),
@@ -114,8 +120,7 @@ handle_cast({materials, Materials0}, State) ->
     {noreply, State#{materials => Materials}};
 handle_cast(render, State0) ->
     ?dbg("Start render: ~p~n",[time()]),
-    try State = render_start(State0),
-         {noreply, reset(State)}
+    try {noreply, render_start(State0)}
     catch _:Reason:ST ->
             ?dbg("Crash: ~P ~P~n",[Reason,20, ST,20]),
             {stop, normal}
@@ -124,7 +129,11 @@ handle_cast(What, State) ->
     ?dbg("unexpected msg: ~p~n",[What]),
     {noreply, State}.
 
+handle_info({osp, Future, task_finished}, #{render:=#{future:=Future}} = State0) ->
+    State = render_done(State0),
+    {noreply, State};
 handle_info(_Info, State) ->
+    ?dbg("unexpected info: ~p ~P~n",[_Info, State, 20]),
     {noreply, State}.
 
 terminate(_Reason, _State) ->
@@ -138,11 +147,11 @@ format_status(_Opt, Status) ->
 %%%===================================================================
 
 reset(State) ->
-    State#{meshes=>[], materials=>[]}.
+    maps:remove(render, State#{meshes=>[], materials=>[]}).
 
 render_start(#{meshes := []} = State) ->
     State;
-render_start(#{meshes := Ms, camera := Camera, sz:= {W,H} = Sz, dev := Dev} = State) ->
+render_start(#{meshes := Ms, camera := Camera, sz:= {W,H}, dev := Dev} = State) ->
     no_error = osp:deviceGetLastErrorCode(Dev),
     Meshes = [Geom || #{geom:=Geom} <- Ms],
     ?dbg("Meshes: ~w ~n", [length(Ms)]),
@@ -170,16 +179,30 @@ render_start(#{meshes := Ms, camera := Camera, sz:= {W,H} = Sz, dev := Dev} = St
     Framebuffer = osp:newFrameBuffer(W,H, fb_srgba, [fb_color, fb_accum]),
     osp:resetAccumulation(Framebuffer),
     ?dbg("~p~n", [osp:deviceGetLastErrorCode(Dev)]),
-    Render = fun() ->
-                     Future = osp:renderFrame(Framebuffer, Renderer, Camera, World),
-                     osp:wait(Future)
-             end,
-    [Render() || _ <- lists:seq(1,10)],
+    Future = osp:renderFrame(Framebuffer, Renderer, Camera, World),
+    RenderOpts = #{da=>5, done=>5, future=>Future, fb=>Framebuffer, render=>Renderer, cam=>Camera, world=>World},
+    osp:subscribe(Future),
+    State#{render => RenderOpts}.
 
+render_done(#{render:=#{da:=Da}=Render} = State) when Da > 0 ->
+    #{fb:=Framebuffer, render:=Renderer, cam:=Camera, world:=World} = Render,
+    Future = osp:renderFrame(Framebuffer, Renderer, Camera, World),
+    osp:subscribe(Future),
+    State#{render:=Render#{da:=Da-1, future:=Future}};
+render_done(#{render:=#{done:=Done}=Render, sz:={W,H}=Sz} = State) when Done > 0 ->
+    #{fb:=Framebuffer, render:=Renderer, cam:=Camera, world:=World} = Render,
     %% access framebuffer and display content
-    FirstImage = osp:readFrameBuffer(Framebuffer, W,H, fb_srgba, fb_color),
-    display("Wings N=10", Sz, FirstImage),
-    State.
+    Image = osp:readFrameBuffer(Framebuffer, W,H, fb_srgba, fb_color),
+    display("Wings temp", Sz, Image),
+    Future = osp:renderFrame(Framebuffer, Renderer, Camera, World),
+    osp:subscribe(Future),
+    State#{render:=Render#{da:=10, done:=Done-1, future:=Future}};
+render_done(#{render:=Render, sz:={W,H}=Sz} = State) ->
+    #{fb:=Framebuffer} = Render,
+    %% access framebuffer and display content
+    Image = osp:readFrameBuffer(Framebuffer, W,H, fb_srgba, fb_color),
+    display("Wings Last", Sz, Image),
+    reset(State).
 
 make_geom(#{id:=Id, bin:=Data, ns:=NsBin, vs:=Vs, vc:=Vc, uv:=Uv, mm:=MM} = _Input, Mats0) ->
     {Stride, 0} = Vs,
