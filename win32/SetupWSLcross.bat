@@ -47,13 +47,16 @@ FOR %%F IN ("%_cl_exec_%") DO SET CL_PATH=%%~dpF
 FOR /F "delims==" %%F IN ('where rc.exe') DO SET _rc_exec_=%%F
 FOR %%F IN ("%_rc_exec_%") DO SET RC_PATH=%%~dpF
 
+FOR /F "delims==" %%F IN ('where cmake.exe') DO SET _cm_exec_=%%F
+FOR %%F IN ("%_cm_exec_%") DO SET CM_PATH=%%~dpF
+
 rem Order is important for some unknown reason
-set WSLENV=VCToolsRedistDir/up:CL_PATH/up:RC_PATH/up:LIBPATH/ul:LIB/ul:INCLUDE/ul
+set WSLENV=VCToolsRedistDir/up:CL_PATH/up:RC_PATH/up:CM_PATH/up:LIBPATH/ul:LIB/ul:INCLUDE/ul
 wsl.exe echo INCLUDE=\"$INCLUDE\";
 wsl.exe echo LIB=\"$LIB\";
 wsl.exe echo LIBPATH=\"$LIBPATH\";
 wsl.exe echo VCToolsRedistDir=\"$VCToolsRedistDir\";
-wsl.exe echo PATH=\"$CL_PATH\":\"$RC_PATH\":'$PATH';
+wsl.exe echo PATH=\"$CL_PATH\":\"$RC_PATH\":\"$CM_PATH\":'$PATH';
 wsl.exe echo WSLENV='$WSLENV:LIBPATH/l:LIB/l:INCLUDE/l';
 wsl.exe echo WSLcross=true;
 wsl.exe echo export 'INCLUDE LIB LIBPATH VCToolsRedistDir WSLENV PATH WSLcross';
