@@ -463,7 +463,7 @@ setup_smooth_normals(D=#dlo{src_we=#we{}=We,ns=Ns0,mirror=MM,
     gl:bindBuffer(?GL_ARRAY_BUFFER, Vbo),
     gl:bufferData(?GL_ARRAY_BUFFER, byte_size(SN), SN, ?GL_STATIC_DRAW),
     gl:bindBuffer(?GL_ARRAY_BUFFER, 0),
-    D#dlo{vab=Vab#vab{face_sn={vbo,Vbo}}}.
+    D#dlo{vab=Vab#vab{face_sn={vbo,Vbo}, sn_data=SN}}.
 
 setup_smooth_normals([{Face,{_,3}}|Fs], Ftab, Flat, SN0) ->
     %% One triangle.

@@ -306,8 +306,8 @@
 -record(vab, 
 	{
 	  id :: non_neg_integer(), %Unique identifier for this instance.
-	  data,			 %Copy of data in VBO (for picking).
-
+	  data,			   %Copy of data in VBO (for picking).
+          sn_data,                 %Copy of smooth normals (if requested)
 	  %% Vertex buffers. Each vertex buffer looks like
 	  %% {Stride,Binary}, where Stride is the stride to be
 	  %% used when setting up the vertex buffer.

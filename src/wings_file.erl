@@ -163,7 +163,7 @@ menu() ->
      separator,
      {?__(21,"Import Image..."),import_image,?__(22,"Import an image file")},
      separator,
-     {?__(23,"Render"),{render,[]}},
+     {?__(23,"Render"),{render,[wings_osp:menu()]}},
      separator,
      {?__(24,"Install Plug-In or Patch"),install_plugin,
       ?__(27,"Install a plug-in or a wings patch file")},
@@ -212,6 +212,8 @@ command({save_selected,Filename}, St) ->
     save_selected(Filename, St);
 command(save_incr, St) ->
     save_incr(St);
+command({render, wings_osp}, St) ->
+    wings_osp:render(St);
 command(revert, St) ->
     revert(St);
 command(confirmed_revert, St) ->

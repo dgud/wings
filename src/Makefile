@@ -86,6 +86,7 @@ MODULES= \
 	wings_move \
 	wings_msg \
 	wings_obj \
+	wings_osp \
 	wings_outliner \
 	wings_palette \
 	wings_pb \
