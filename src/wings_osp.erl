@@ -45,6 +45,7 @@ render(#st{shapes=Sh, mat=Materials} = St, Opts) ->
     Stash = #{opts=>Opts, subdiv=>Subdiv, materials=>Materials, st=>St, pid=>Pid},
 
     send({camera, wpa:camera_info([pos_dir_up])}, Stash),
+    send({materials, Materials}, Stash),
     lists:foldl(fun prepare_mesh/2, Stash, Wes),
     send(render, Stash),
     keep.
@@ -65,47 +66,22 @@ prepare_mesh(#we{id=Id}=We, #{st:=St, subdiv:=SubDiv} = Stash) when ?IS_VISIBLE(
     Vab = wings_draw_setup:we(We, Options, St),
     %% I know something about this implementation :-)
     try Vab of
-	#vab{data=Bin, sn_data=Ns, face_vs=Vs, face_vc=Vc, face_uv=Uv, mat_map=_MatMap} ->
-            send({mesh, #{id=>Id, bin=>Bin, vs=>Vs, ns=>Ns, vc=>Vc, uv=>Uv}}, Stash),
-            %% Change Normals
-	    %Data = swap_normals(Vs, Ns, <<>>),
-	    %MM = lists:reverse(lists:keysort(3, MatMap)),
-	    %Mats = fix_matmap(MM, LightId, Mtab, []), %% This should be a tree?
+	#vab{data=Bin, sn_data=Ns, face_vs=Vs, face_vc=Vc, face_uv=Uv, mat_map=MatMap} ->
+            send({mesh, #{id=>Id, bin=>Bin, vs=>Vs, ns=>Ns, vc=>Vc, uv=>Uv, mm=>MatMap}}, Stash),
             Stash
     catch _:badmatch ->
 	    erlang:error({?MODULE, vab_internal_format_changed})
     end;
 %% {byte_size(Bin) div 96, Bin, array:from_list(lists:append(MatList))}.
 prepare_mesh(_We, Stash) ->
-    ?dbg("Perm = ~p ~p~n", [_We#we.perm, ?IS_VISIBLE(_We#we.perm)]),
+    %% ?dbg("Perm = ~p ~p~n", [_We#we.perm, ?IS_VISIBLE(_We#we.perm)]),
     Stash.
-
-swap_normals(<<Vs:12/binary, _:12/binary, Uv:8/binary, NextVs/binary>>, 
-	     <<Ns:12/binary, NextNs/binary>>, Acc) ->
-    swap_normals(NextVs, NextNs, <<Acc/binary, Vs/binary, Ns/binary, Uv/binary>>);
-swap_normals(<<>>,<<>>, Acc) -> Acc.
-
-fix_matmap([_MI={Name, _, _Start, Count}|Mats], false, Mtab, Acc0) ->
-    Mat = gb_trees:get(Name, Mtab),
-    Acc = append_color(Count div 3, Mat, Acc0),
-    fix_matmap(Mats, false, Mtab, Acc);
-fix_matmap([_MI={_, _, _Start, Count}|Mats], LightId, Mtab, Acc0) ->
-    Acc = append_color(Count div 3, LightId, Acc0),
-    fix_matmap(Mats, LightId, Mtab, Acc);
-fix_matmap([], _, _, Acc) -> Acc.
-
-append_color(N, Diff, Acc) when N > 0 ->
-    append_color(N-1, Diff, [Diff|Acc]);
-append_color(_, _, Acc) -> Acc.
 
 start_link() ->
     case gen_server:start_link({local, ?SERVER}, ?MODULE, [], []) of
-        {ok, Pid} ->
-            Pid;
-        {error, {already_started, Pid}} ->
-            Pid;
-        Error ->
-            error(Error)
+        {ok, Pid} -> Pid;
+        {error, {already_started, Pid}} -> Pid;
+        Error -> error(Error)
     end.
 
 init([]) ->
@@ -113,21 +89,18 @@ init([]) ->
     add_priv_path(),   %% Must be done before osp:init/1 otherwise we can't load the nif
     Dev = osp:init(),
     no_error = osp:deviceGetLastErrorCode(Dev),
-    Temp = osp:newMaterial("obj"),  %% Fixme
-    osp:commit(Temp),
-
     Sz = {800,600},
-    {ok, #{dev=>Dev, mat=>Temp, meshes => [], sz => Sz}}.
+    {ok, reset(#{dev=>Dev, sz=>Sz})}.
 
 handle_call(_Request, _From, State) ->
     Reply = ok,
     {reply, Reply, State}.
 
-handle_cast({mesh, Request}, #{meshes:=Ms, mat:=Mat} = State) ->
+handle_cast({mesh, Request}, #{meshes:=Ms, materials:=Mats0} = State) ->
     %% ?dbg("~P~n", [Request,20]),
-    Mesh = make_geom(Request, Mat),
+    {Mesh, Mats} = make_geom(Request, Mats0),
     no_error = osp:deviceGetLastErrorCode(maps:get(dev, State)),
-    {noreply, State#{meshes:=[Mesh|Ms]}};
+    {noreply, State#{meshes:=[Mesh|Ms], materials:=Mats}};
 handle_cast({camera, [{Pos,Dir,Up}]}, #{sz:={W,H}} = State) ->
     Camera = osp:newCamera(perspective),
     osp:setFloat(Camera, "aspect", W / H),
@@ -136,10 +109,13 @@ handle_cast({camera, [{Pos,Dir,Up}]}, #{sz:={W,H}} = State) ->
     osp:setParam(Camera, "up", vec3f, Up),
     osp:commit(Camera),
     {noreply, State#{camera=>Camera}};
+handle_cast({materials, Materials0}, State) ->
+    Materials = prepare_materials(gb_trees:to_list(Materials0)),
+    {noreply, State#{materials => Materials}};
 handle_cast(render, State0) ->
     ?dbg("Start render: ~p~n",[time()]),
     try State = render_start(State0),
-         {noreply, State#{meshes:=[]}}
+         {noreply, reset(State)}
     catch _:Reason:ST ->
             ?dbg("Crash: ~P ~P~n",[Reason,20, ST,20]),
             {stop, normal}
@@ -161,44 +137,38 @@ format_status(_Opt, Status) ->
 %%% Internal functions
 %%%===================================================================
 
+reset(State) ->
+    State#{meshes=>[], materials=>[]}.
+
 render_start(#{meshes := []} = State) ->
     State;
 render_start(#{meshes := Ms, camera := Camera, sz:= {W,H} = Sz, dev := Dev} = State) ->
     no_error = osp:deviceGetLastErrorCode(Dev),
     Meshes = [Geom || #{geom:=Geom} <- Ms],
-    ?dbg("Meshes: ~P ~n", [Ms, 20]),
+    ?dbg("Meshes: ~w ~n", [length(Ms)]),
     Group = osp:newGroup(),
     ModelList = osp:newCopiedData(Meshes, geometric_model, length(Meshes)),
     osp:setParam(Group, "geometry", geometric_model, ModelList),
     osp:commit(Group),
-
-    %% put the group into an instance (give the group a world transform)
     Instance = osp:newInstance(Group),
     osp:commit(Instance),
-
-    %% put the instance in the world
     World = osp:newWorld(),
     osp:setParam(World, "instance", instance, osp:newCopiedData([Instance], instance, 1)),
 
-    %% create and setup light for Ambient Occlusion
     Light = osp:newLight("sunSky"),
     osp:commit(Light),
     osp:setParam(World, "light", light, osp:newCopiedData([Light], light, 1)),
     osp:commit(World),
 
     ?dbg("~p~n", [osp:deviceGetLastErrorCode(Dev)]),
-    io:format("World bounds ~p~n",[osp:getBounds(World)]),
-
-    %% create renderer
     Renderer = osp:newRenderer("pathtracer"), %% choose path tracing renderer
-    %% complete setup of renderer
-    osp:setParam(Renderer, "backgroundColor", vec4f, {1,0,0,1.0}),
+    osp:setParam(Renderer, "backgroundColor", vec4f, {1,1,1,1.0}),
+    MaterialsData = setup_materials(maps:get(materials, State)),
+    osp:setObject(Renderer, "material", MaterialsData),
     osp:commit(Renderer),
 
-    %% create and setup framebuffer
     Framebuffer = osp:newFrameBuffer(W,H, fb_srgba, [fb_color, fb_accum]),
     osp:resetAccumulation(Framebuffer),
-
     ?dbg("~p~n", [osp:deviceGetLastErrorCode(Dev)]),
     Render = fun() ->
                      Future = osp:renderFrame(Framebuffer, Renderer, Camera, World),
@@ -206,33 +176,93 @@ render_start(#{meshes := Ms, camera := Camera, sz:= {W,H} = Sz, dev := Dev} = St
              end,
     [Render() || _ <- lists:seq(1,10)],
 
-    %% access framebuffer and write its content as PPM file
+    %% access framebuffer and display content
     FirstImage = osp:readFrameBuffer(Framebuffer, W,H, fb_srgba, fb_color),
     display("Wings N=10", Sz, FirstImage),
-
-    io:format("done\n"),
     State.
 
-make_geom(#{id:=Id, bin:=Data, ns:=NsBin, vs:=Vs, vc:=Vc, uv:=Uv} = _Input, Mat) ->
+make_geom(#{id:=Id, bin:=Data, ns:=NsBin, vs:=Vs, vc:=Vc, uv:=Uv, mm:=MM} = _Input, Mats0) ->
     {Stride, 0} = Vs,
     %% Asserts
     N = byte_size(Data) div Stride,
     0 = byte_size(Data) rem Stride,
     %% ?dbg("id:~p ~p ~p ~p~n",[Id, Vs, Vc, Uv]),
     Mesh = osp:newGeometry("mesh"),
+    {MatIds, UseVc, Mats} = make_mesh_materials(MM, Mats0),
+
     add_data(Mesh, Data, "vertex.position", vec3f, N, Vs),
     add_data(Mesh, Data, "vertex.texcoord", vec3f, N, Uv),
-    add_vc_data(Mesh, Data, N, Vc),
+    add_vc_data(Mesh, Data, N, Vc, UseVc),
     add_data(Mesh, NsBin, "vertex.normal", vec3f, N),
     Index = lists:seq(0, N-1),
     IndexD  = osp:newCopiedData(Index, vec3ui, N div 3),  %% Triangles
     osp:setObject(Mesh, "index", IndexD),
     osp:commit(Mesh),
     Geom = osp:newGeometricModel(Mesh),
-    osp:setObject(Geom, "material", Mat),
+    add_mat(Geom, MatIds),
     osp:commit(Geom),
-    #{id=>Id, geom=>Geom}. %% , orig=>Input}.
+    {#{id=>Id, geom=>Geom}, Mats}.
 
+%% Material handling
+
+prepare_materials(Materials0) ->
+    Mats = [prepare_mat(Mat) || Mat <- Materials0],
+    Maps = maps:from_list(Mats),
+    Maps#{'_next_id'=>0}.
+
+prepare_mat({Name, Attrs0}) ->
+    Maps = proplists:get_value(maps, Attrs0),
+    Attrs1 = proplists:get_value(opengl, Attrs0),
+    {value, {_, VC}, Attrs} = lists:keytake(vertex_colors, 1, Attrs1),
+    {Name, maps:from_list([{maps,Maps}, {use_vc, VC /= ignore}|Attrs])}.
+
+make_mesh_materials([{Name,_,_,_}], Mats0) ->
+    %% Single material per mesh
+    get_mat_id(Name, Mats0);
+make_mesh_materials(MMS, Mats0) ->
+    Sorted = lists:keysort(3, MMS),
+    make_mesh_materials(Sorted, false, Mats0, 0, []).
+
+make_mesh_materials([{Name,_,Start,N}|MMs],UseVc0,Mats0, Start, Acc) ->
+    {Id, UseVc, Mats} = get_mat_id(Name,Mats0),
+    MatIndex = make_mat_index(Id, N),
+    make_mesh_materials(MMs, UseVc orelse UseVc0, Mats, Start+N, [MatIndex|Acc]);
+make_mesh_materials([], UseVc, Mats, N, Acc) ->
+    Index = iolist_to_binary(lists:reverse(Acc)),
+    Data = osp:newCopiedData(Index, uint, N),
+    {Data, UseVc, Mats}.
+
+make_mat_index(Id, N) ->
+    iolist_to_binary(lists:duplicate(N, <<Id:32/unsigned-native>>)).
+
+get_mat_id(Name, #{'_next_id':= Next}=Mats0) ->
+    #{use_vc:=UseVC} = Mat0 = maps:get(Name, Mats0),
+    case maps:get(id, Mat0, undefined) of
+        undefined ->
+            Mat = Mat0#{id=>Next},
+            {Next, UseVC, Mats0#{'_next_id':=Next+1, Name=>Mat}};
+        Id ->
+            {Id, UseVC, Mats0}
+    end.
+
+setup_materials(MatMap) ->
+    Mats0 = maps:values(MatMap),
+    MatRefs = lists:foldl(fun create_mat/2, [], Mats0),
+    MatRefList = [Mat || {_, Mat} <- lists:keysort(1, MatRefs)],
+    osp:newCopiedData(MatRefList, material, length(MatRefList)).
+
+create_mat(#{id:=Id, diffuse:=Base, roughness:=Roughness, metallic:=Metallic, emission:=E}, Acc) ->
+    Mat = osp:newMaterial("principled"),
+    {R,G,B,A} = Base,
+    {0.0, 0.0, 0.0, _} = E,
+    osp:setParam(Mat, "baseColor", vec3f, {R,G,B}),
+    osp:setParam(Mat, "metallic",  float, Metallic),
+    osp:setParam(Mat, "roughness", float, Roughness),
+    osp:setParam(Mat, "opacity",   float, A),
+    osp:commit(Mat),
+    [{Id, Mat}|Acc];
+create_mat(_, Acc) ->
+    Acc.
 
 add_data(Obj, Data, Id, Type, N) ->
     add_data(Obj, Data, Id, Type, N, {0, 0}).
@@ -249,9 +279,16 @@ add_data(Obj, Data0, Id, Type, N, {Stride, Start}) ->
     osp:commit(Copied),
     osp:setObject(Obj, Id, Copied).
 
-add_vc_data(_Mesh, _Data, _N, none) ->
+add_mat(Geom, Id) when is_integer(Id) ->
+    osp:setParam(Geom,  "material", uint, Id);
+add_mat(Geom, IdsData) when is_reference(IdsData) ->
+    osp:setObject(Geom, "material", IdsData).
+
+add_vc_data(_Mesh, _Data, _N, none, _) ->
     ok;
-add_vc_data(Mesh, Data, N, Vc) ->
+add_vc_data(_Mesh, _Data, _N, _, false) ->
+    ok;
+add_vc_data(Mesh, Data, N, Vc, true) ->
     VcBin = rgb_to_rgba(Data, Vc),
     N = byte_size(VcBin) div 16,
     0 = byte_size(VcBin) rem 16,
