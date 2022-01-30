@@ -249,7 +249,7 @@ render_done(#{render:=Render, sz:={W,H}=Sz} = State) ->
                      false ->
                          {T0, Wait0}
                  end,
-    case Wait < 15 of
+    case Wait < 10 of
         true ->
             F = osp:renderFrame(Framebuffer, Renderer, Camera, World),
             osp:subscribe(F),
@@ -265,7 +265,7 @@ make_geom(#{id:=Id, bin:=Data, ns:=NsBin, vs:=Vs, vc:=Vc, uv:=Uv, mm:=MM} = _Inp
     %% Asserts
     N = byte_size(Data) div Stride,
     0 = byte_size(Data) rem Stride,
-    %% ?dbg("id:~p ~p ~p ~p~n",[Id, Vs, Vc, Uv]),
+    %% ?dbg("id:~p ~p ~p ~p ~p ~p~n",[Id, N, Vs, Vc, Uv, MM]),
     Mesh = osp:newGeometry("mesh"),
     {MatIds, UseVc, Mats} = make_mesh_materials(MM, Mats0),
 
@@ -304,11 +304,12 @@ make_mesh_materials(MMS, Mats0) ->
 
 make_mesh_materials([{Name,_,Start,N}|MMs],UseVc0,Mats0, Start, Acc) ->
     {Id, UseVc, Mats} = get_mat_id(Name,Mats0),
-    MatIndex = make_mat_index(Id, N),
+    %% Verts div by 3 to get triangle index
+    MatIndex = make_mat_index(Id, N div 3),
     make_mesh_materials(MMs, UseVc orelse UseVc0, Mats, Start+N, [MatIndex|Acc]);
 make_mesh_materials([], UseVc, Mats, N, Acc) ->
     Index = iolist_to_binary(lists:reverse(Acc)),
-    Data = osp:newCopiedData(Index, uint, N),
+    Data = osp:newCopiedData(Index, uint, N div 3),
     {Data, UseVc, Mats}.
 
 make_mat_index(Id, N) ->
