@@ -38,6 +38,7 @@ $(SUBDIRS):
 #
 .PHONY: win32
 win32: opt lang
+	rm -f priv/libigl.*
 	(cd win32; $(MAKE))
 	escript tools/release
 
