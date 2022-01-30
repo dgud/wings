@@ -224,29 +224,35 @@ render_start(#{meshes := Ms, camera := Camera, sz:= {W,H}, dev := Dev} = State) 
     osp:resetAccumulation(Framebuffer),
     ?dbg("~p~n", [osp:deviceGetLastErrorCode(Dev)]),
     Future = osp:renderFrame(Framebuffer, Renderer, Camera, World),
-    RenderOpts = #{da=>5, done=>5, future=>Future, fb=>Framebuffer, render=>Renderer, cam=>Camera, world=>World},
+    T0 = erlang:system_time(),
+    RenderOpts = #{fs=>0, t0=>T0, time=>T0, wait=>1, %% stats
+                   future=>Future, fb=>Framebuffer, render=>Renderer, cam=>Camera, world=>World},
     osp:subscribe(Future),
     State#{render => RenderOpts}.
 
-render_done(#{render:=#{da:=Da}=Render} = State) when Da > 0 ->
-    #{fb:=Framebuffer, render:=Renderer, cam:=Camera, world:=World} = Render,
-    Future = osp:renderFrame(Framebuffer, Renderer, Camera, World),
-    osp:subscribe(Future),
-    State#{render:=Render#{da:=Da-1, future:=Future}};
-render_done(#{render:=#{done:=Done}=Render, sz:={W,H}=Sz} = State) when Done > 0 ->
-    #{fb:=Framebuffer, render:=Renderer, cam:=Camera, world:=World} = Render,
-    %% access framebuffer and display content
-    Image = osp:readFrameBuffer(Framebuffer, W,H, fb_srgba, fb_color),
-    Future = osp:renderFrame(Framebuffer, Renderer, Camera, World),
-    wings_wm:psend(?MODULE, {render_image, Sz, Image}),
-    osp:subscribe(Future),
-    State#{render:=Render#{da:=10, done:=Done-1, future:=Future}};
 render_done(#{render:=Render, sz:={W,H}=Sz} = State) ->
-    #{fb:=Framebuffer} = Render,
-    %% access framebuffer and display content
-    Image = osp:readFrameBuffer(Framebuffer, W,H, fb_srgba, fb_color),
-    wings_wm:psend(?MODULE, {render_image, Sz, Image}),
-    reset(State).
+    #{time := T0, wait:=Wait0, fs:=N,
+      fb:=Framebuffer, render:=Renderer, cam:=Camera, world:=World} = Render,
+    Now = erlang:system_time(),
+    Expired = erlang:convert_time_unit(Now-T0, native, seconds) >= Wait0,
+    {T1, Wait} = case Expired of
+                     true ->
+                         Image = osp:readFrameBuffer(Framebuffer, W,H, fb_srgba, fb_color),
+                         wings_wm:psend(?MODULE, {render_image, Sz, Image}),
+                         {Now, Wait0 + 2};
+                     false ->
+                         {T0, Wait0}
+                 end,
+    case Wait < 15 of
+        true ->
+            F = osp:renderFrame(Framebuffer, Renderer, Camera, World),
+            osp:subscribe(F),
+            State#{render := Render#{fs:=N+1, time:=T1, wait:=Wait, future:=F}};
+        false ->
+            Total = erlang:convert_time_unit(Now - maps:get(t0,Render), native, millisecond),
+            ?dbg("Image rendered ~w frames in ~ws (~f)~n", [N, Total div 1000, N/Total]),
+            reset(State)
+    end.
 
 make_geom(#{id:=Id, bin:=Data, ns:=NsBin, vs:=Vs, vc:=Vc, uv:=Uv, mm:=MM} = _Input, Mats0) ->
     {Stride, 0} = Vs,
