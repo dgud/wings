@@ -126,6 +126,7 @@ handle_call(_Request, _From, State) ->
 handle_cast({mesh, Request}, #{meshes:=Ms, mat:=Mat} = State) ->
     %% ?dbg("~P~n", [Request,20]),
     Mesh = make_geom(Request, Mat),
+    no_error = osp:deviceGetLastErrorCode(maps:get(dev, State)),
     {noreply, State#{meshes:=[Mesh|Ms]}};
 handle_cast({camera, [{Pos,Dir,Up}]}, #{sz:={W,H}} = State) ->
     Camera = osp:newCamera(perspective),
@@ -160,11 +161,13 @@ format_status(_Opt, Status) ->
 %%% Internal functions
 %%%===================================================================
 
+render_start(#{meshes := []} = State) ->
+    State;
 render_start(#{meshes := Ms, camera := Camera, sz:= {W,H} = Sz, dev := Dev} = State) ->
     no_error = osp:deviceGetLastErrorCode(Dev),
-    Group = osp:newGroup(),
     Meshes = [Geom || #{geom:=Geom} <- Ms],
     ?dbg("Meshes: ~P ~n", [Ms, 20]),
+    Group = osp:newGroup(),
     ModelList = osp:newCopiedData(Meshes, geometric_model, length(Meshes)),
     osp:setParam(Group, "geometry", geometric_model, ModelList),
     osp:commit(Group),
@@ -210,18 +213,17 @@ render_start(#{meshes := Ms, camera := Camera, sz:= {W,H} = Sz, dev := Dev} = St
     io:format("done\n"),
     State.
 
-make_geom(#{id:=Id, bin:=Data, ns:=Ns, vs:={Stride,VsStart}} = _Input, Mat) ->
-    N = byte_size(Data) div Stride,
+make_geom(#{id:=Id, bin:=Data, ns:=NsBin, vs:=Vs, vc:=Vc, uv:=Uv} = _Input, Mat) ->
+    {Stride, 0} = Vs,
     %% Asserts
+    N = byte_size(Data) div Stride,
     0 = byte_size(Data) rem Stride,
-    0 = VsStart,
+    %% ?dbg("id:~p ~p ~p ~p~n",[Id, Vs, Vc, Uv]),
     Mesh = osp:newGeometry("mesh"),
-    VsD  = osp:newCopiedData(Data, vec3f, N, Stride),
-    osp:commit(VsD),
-    osp:setObject(Mesh, "vertex.position", VsD),
-    ND  = osp:newCopiedData(Ns, vec3f, N),
-    osp:commit(ND),
-    osp:setObject(Mesh, "vertex.normal", ND),
+    add_data(Mesh, Data, "vertex.position", vec3f, N, Vs),
+    add_data(Mesh, Data, "vertex.texcoord", vec3f, N, Uv),
+    add_vc_data(Mesh, Data, N, Vc),
+    add_data(Mesh, NsBin, "vertex.normal", vec3f, N),
     Index = lists:seq(0, N-1),
     IndexD  = osp:newCopiedData(Index, vec3ui, N div 3),  %% Triangles
     osp:setObject(Mesh, "index", IndexD),
@@ -231,6 +233,44 @@ make_geom(#{id:=Id, bin:=Data, ns:=Ns, vs:={Stride,VsStart}} = _Input, Mat) ->
     osp:commit(Geom),
     #{id=>Id, geom=>Geom}. %% , orig=>Input}.
 
+
+add_data(Obj, Data, Id, Type, N) ->
+    add_data(Obj, Data, Id, Type, N, {0, 0}).
+add_data(_Obj, _Data0, _Id, _Type, _N, none) ->
+    ok;
+add_data(Obj, Data0, Id, Type, N, {Stride, Start}) ->
+    Data = case Start of
+               0 -> Data0;
+               _ ->
+                   <<_:Start/binary, Data1/binary>> = Data0,
+                   Data1
+           end,
+    Copied  = osp:newCopiedData(Data, Type, N, Stride),
+    osp:commit(Copied),
+    osp:setObject(Obj, Id, Copied).
+
+add_vc_data(_Mesh, _Data, _N, none) ->
+    ok;
+add_vc_data(Mesh, Data, N, Vc) ->
+    VcBin = rgb_to_rgba(Data, Vc),
+    N = byte_size(VcBin) div 16,
+    0 = byte_size(VcBin) rem 16,
+    add_data(Mesh, VcBin, "vertex.color", vec4f, N).
+
+rgb_to_rgba(Data0, {Stride, Start}) ->
+    <<_:Start/binary, Data/binary>> = Data0,
+    Skip = Stride - 12,
+    rgb_to_rgba(Data,Skip, <<>>).
+
+rgb_to_rgba(Data, SkipBytes, Acc) ->
+    case Data of
+        <<Cols:12/binary, _:SkipBytes/binary, Rest/binary>> ->
+            rgb_to_rgba(Rest, SkipBytes, <<Acc/binary, Cols:12/binary, 1.0:32/float-native>>);
+        <<Cols:12/binary, _/binary>> ->
+            <<Acc/binary, Cols:12/binary, 1.0:32/float-native>>;
+        <<>> ->
+            Acc
+    end.
 %%
 
 send(Cmd, #{pid := Pid}) ->
