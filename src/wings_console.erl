@@ -159,7 +159,7 @@ init(Env, GroupLeader) ->
             logger:remove_handler(default),
             logger:add_handler(wings_logger, ?MODULE, #{}),
             logger:update_formatter_config(wings_logger, single_line, false),
-            logger:update_formatter_config(wings_logger, depth, 20),
+            logger:update_formatter_config(wings_logger, depth, 40),
             logger:update_formatter_config(wings_logger, max_size, 500),
             logger:set_handler_config(wings_logger, config, #{});
             %% case logger:get_handler_config(wings_logger) of
