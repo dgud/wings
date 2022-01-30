@@ -14,6 +14,7 @@
 
 -compile([export_all, nowarn_export_all]).
 -include("wings.hrl").
+-include_lib("wings/e3d/e3d_image.hrl").
 
 %% API
 -export([render/1, render/2, menu/0]).
@@ -40,13 +41,12 @@ render(St) ->
 render(#st{shapes=Sh, mat=Materials} = St, Opts) ->
     %% Should work on objects but wings_draw_setup:we/3 needs we{} for now
     Pid = start_link(),
-    Wes = gb_trees:values(Sh),
     Subdiv = proplists:get_value(subdivisions, Opts, 0),
-    Stash = #{opts=>Opts, subdiv=>Subdiv, materials=>Materials, st=>St, pid=>Pid},
-    
+    Stash = #{opts=>Opts, subdiv=>Subdiv, st=>St, pid=>Pid},
     ok = gen_server:call(Pid, cancel_prev_render),
     send({camera, wpa:camera_info([pos_dir_up])}, Stash),
     send({materials, Materials}, Stash),
+    Wes = gb_trees:values(Sh),
     lists:foldl(fun prepare_mesh/2, Stash, Wes),
     send(render, Stash),
     keep.
@@ -73,17 +73,61 @@ prepare_mesh(#we{id=Id}=We, #{st:=St, subdiv:=SubDiv} = Stash) when ?IS_VISIBLE(
     catch _:badmatch ->
 	    erlang:error({?MODULE, vab_internal_format_changed})
     end;
-%% {byte_size(Bin) div 96, Bin, array:from_list(lists:append(MatList))}.
 prepare_mesh(_We, Stash) ->
     %% ?dbg("Perm = ~p ~p~n", [_We#we.perm, ?IS_VISIBLE(_We#we.perm)]),
     Stash.
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%  Start window (and event listener)
+
 start_link() ->
-    case gen_server:start_link({local, ?SERVER}, ?MODULE, [], []) of
-        {ok, Pid} -> Pid;
-        {error, {already_started, Pid}} -> Pid;
-        Error -> error(Error)
+    Pid = case gen_server:start_link({local, ?SERVER}, ?MODULE, [], []) of
+              {ok, New} -> New;
+              {error, {already_started, Old}} -> Old;
+              Error -> error(Error)
+          end,
+    case wings_wm:is_window(?MODULE) of
+	true -> Pid;
+	false ->
+	    Op = {seq, push, fun(Ev) -> wings_event(Ev, #{pid=>Pid}) end},
+	    wings_wm:new(?MODULE, {0,0,1}, {0,0}, Op),
+	    wings_wm:hide(?MODULE),
+	    %%wings_wm:set_dd(?MODULE, geom_display_lists),
+            Pid
     end.
+
+%% wings_event({note, image_change}, Pid, State) ->
+%%     case [Im || {Id, Im} <- wings_image:images(), WinId =:= Id] of
+%%         [Image] -> wx_object:cast(Window, {image_change, Image});
+%%         _ -> ignore
+%%     end,
+%%     keep;
+wings_event({render_image, Sz, Image}, State0) ->
+    State = update_image(Image, Sz, State0),
+    {replace, fun(Ev) -> wings_event(Ev, State) end};
+wings_event(_Ev, _State) ->
+    ?dbg("Got Ev ~P~n", [_Ev, 20]),
+    keep.
+
+update_image(Image, {W,H}, State) ->
+    Name = ?__(1, "OSPRAY render"),
+    E3DImage = #e3d_image{type=r8g8b8a8, bytes_pp=4,
+                          width=W, height=H, image=Image},
+    Id = case maps:get(image, State, undefined) of
+             undefined ->
+                 wings_image:new_temp(Name, E3DImage);
+             Old ->
+                 case wings_image:update(Old, E3DImage) of
+                     ok -> Old;
+                     %% oops render was deleted
+                     error -> wings_image:new_temp(Name, E3DImage)
+                 end
+         end,
+    wings_image:window(Id),
+    State#{image => Id}.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% Below here is render server process
 
 init([]) ->
     %% process_flag(trap_exit, false),
@@ -193,15 +237,15 @@ render_done(#{render:=#{done:=Done}=Render, sz:={W,H}=Sz} = State) when Done > 0
     #{fb:=Framebuffer, render:=Renderer, cam:=Camera, world:=World} = Render,
     %% access framebuffer and display content
     Image = osp:readFrameBuffer(Framebuffer, W,H, fb_srgba, fb_color),
-    display("Wings temp", Sz, Image),
     Future = osp:renderFrame(Framebuffer, Renderer, Camera, World),
+    wings_wm:psend(?MODULE, {render_image, Sz, Image}),
     osp:subscribe(Future),
     State#{render:=Render#{da:=10, done:=Done-1, future:=Future}};
 render_done(#{render:=Render, sz:={W,H}=Sz} = State) ->
     #{fb:=Framebuffer} = Render,
     %% access framebuffer and display content
     Image = osp:readFrameBuffer(Framebuffer, W,H, fb_srgba, fb_color),
-    display("Wings Last", Sz, Image),
+    wings_wm:psend(?MODULE, {render_image, Sz, Image}),
     reset(State).
 
 make_geom(#{id:=Id, bin:=Data, ns:=NsBin, vs:=Vs, vc:=Vc, uv:=Uv, mm:=MM} = _Input, Mats0) ->
@@ -278,7 +322,7 @@ create_mat(#{id:=Id, diffuse:=Base, roughness:=Roughness, metallic:=Metallic, em
     Mat = osp:newMaterial("principled"),
     {R,G,B,A} = Base,
     {0.0, 0.0, 0.0, _} = E,
-    osp:setParam(Mat, "baseColor", vec3f, {R,G,B}),
+    osp:setParam(Mat, "baseColor", vec3f, wings_color:srgb_to_linear({R,G,B})),
     osp:setParam(Mat, "metallic",  float, Metallic),
     osp:setParam(Mat, "roughness", float, Roughness),
     osp:setParam(Mat, "opacity",   float, A),
@@ -362,32 +406,3 @@ add_priv_path() ->
                     ok
             end
     end.
-
-display(Title, {IW,IH}=_Size, RGBABin0) ->
-    wx:new(),
-    Frame = wxFrame:new(wx:null(), ?wxID_ANY, Title, [{size, {IW+50, IH+50}}]),
-    Panel = wxPanel:new(Frame),
-    wxWindow:setBackgroundColour(Panel, {200, 180, 180}),
-    Szr = wxBoxSizer:new(?wxHORIZONTAL),
-    wxSizer:addStretchSpacer(Szr),
-    %% Sigh wxWidgets splits rgb and alpha
-    RowSz = IW*4,
-    RGBABin = flip_image(RGBABin0, RowSz, []),
-    RGB = << <<RGB:24>> || <<RGB:24,_:8>> <= RGBABin >>,
-    Alpha = << <<A:8>> || <<_:24, A:8>> <= RGBABin >>,
-    Image = wxImage:new(IW,IH, RGB, Alpha),
-    BMImage = wxBitmap:new(Image),
-    SBM = wxStaticBitmap:new(Panel, ?wxID_ANY, BMImage),
-    wxBitmap:destroy(BMImage),
-    wxImage:destroy(Image),
-    wxSizer:add(Szr, SBM, [{flag, ?wxALIGN_CENTER}]),
-    wxSizer:addStretchSpacer(Szr),
-    wxPanel:setSizer(Panel, Szr),
-    wxFrame:show(Frame),
-    #{frame => Frame, panel => Panel}.
-
-flip_image(<<>>, _, Acc) ->
-    iolist_to_binary(Acc);
-flip_image(Bin, Size, Acc) ->
-    <<Row:Size/binary, Rest/binary>> = Bin,
-    flip_image(Rest, Size, [Row|Acc]).
