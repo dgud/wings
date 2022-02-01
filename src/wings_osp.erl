@@ -16,12 +16,16 @@
 -include("wings.hrl").
 -include_lib("wings/e3d/e3d_image.hrl").
 
+-on_load(reload/0).
+
 %% API
 -export([render/1, render/2, menu/0]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, format_status/2]).
+
+-export([wings_event/2]).
 
 -define(SERVER, ?MODULE).
 
@@ -104,7 +108,9 @@ start_link() ->
 %%     keep;
 wings_event({render_image, Sz, Image}, State0) ->
     State = update_image(Image, Sz, State0),
-    {replace, fun(Ev) -> wings_event(Ev, State) end};
+    {replace, fun(Ev) -> ?MODULE:wings_event(Ev, State) end};
+wings_event(update_fun, State) ->
+    {replace, fun(Ev) -> ?MODULE:wings_event(Ev, State) end};
 wings_event(_Ev, _State) ->
     ?dbg("Got Ev ~P~n", [_Ev, 20]),
     keep.
@@ -412,3 +418,7 @@ add_priv_path() ->
                     ok
             end
     end.
+
+reload() ->
+    wings_wm:psend(?MODULE, update_fun),
+    ok.
