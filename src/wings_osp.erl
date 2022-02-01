@@ -48,7 +48,9 @@ render(#st{shapes=Sh, mat=Materials} = St, Opts) ->
     Subdiv = proplists:get_value(subdivisions, Opts, 0),
     Stash = #{opts=>Opts, subdiv=>Subdiv, st=>St, pid=>Pid},
     ok = gen_server:call(Pid, cancel_prev_render),
-    send({camera, wpa:camera_info([pos_dir_up])}, Stash),
+    Camera = [ {wings_pref:get_value(negative_width),wings_pref:get_value(negative_height)}
+             | wpa:camera_info([pos_dir_up, fov, distance_to_aim])],
+    send({camera, Camera}, Stash),
     send({materials, Materials}, Stash),
     Wes = gb_trees:values(Sh),
     lists:foldl(fun prepare_mesh/2, Stash, Wes),
@@ -140,8 +142,7 @@ init([]) ->
     add_priv_path(),   %% Must be done before osp:init/1 otherwise we can't load the nif
     Dev = osp:init(),
     no_error = osp:deviceGetLastErrorCode(Dev),
-    Sz = {800,600},
-    {ok, reset(#{dev=>Dev, sz=>Sz})}.
+    {ok, reset(#{dev=>Dev, sz_w=>1000})}.
 
 handle_call(cancel_prev_render, _From, State) ->
     case maps:get(render, State, false) of
@@ -157,14 +158,19 @@ handle_cast({mesh, Request}, #{meshes:=Ms, materials:=Mats0} = State) ->
     {Mesh, Mats} = make_geom(Request, Mats0),
     no_error = osp:deviceGetLastErrorCode(maps:get(dev, State)),
     {noreply, State#{meshes:=[Mesh|Ms], materials:=Mats}};
-handle_cast({camera, [{Pos,Dir,Up}]}, #{sz:={W,H}} = State) ->
+handle_cast({camera, [{NW,NH}, {Pos,Dir,Up}, Fov, Dist]}, #{sz_w:=W} = State) ->
+    H = round(W*NH/NW),
     Camera = osp:newCamera(perspective),
     osp:setFloat(Camera, "aspect", W / H),
     osp:setParam(Camera, "position", vec3f, Pos),
     osp:setParam(Camera, "direction", vec3f, Dir),
     osp:setParam(Camera, "up", vec3f, Up),
+    osp:setParam(Camera, "fovy", float, Fov),
+    osp:setParam(Camera, "focusDistance", float, Dist),
+    ?dbg("Camera dist ~p~n",[Dist]),
+    osp:setParam(Camera, "apertureRadius", float, Dist/100.0),
     osp:commit(Camera),
-    {noreply, State#{camera=>Camera}};
+    {noreply, State#{camera=>Camera, sz=>{W,H}}};
 handle_cast({materials, Materials0}, State) ->
     Materials = prepare_materials(gb_trees:to_list(Materials0)),
     {noreply, State#{materials => Materials}};
@@ -183,7 +189,7 @@ handle_info({osp, Future, task_finished}, #{render:=#{future:=Future}} = State0)
     State = render_done(State0),
     {noreply, State};
 handle_info(_Info, State) ->
-    ?dbg("unexpected info: ~p ~P~n",[_Info, State, 20]),
+    ?dbg("unexpected info: ~p~n",[_Info]),
     {noreply, State}.
 
 terminate(_Reason, _State) ->
@@ -215,18 +221,22 @@ render_start(#{meshes := Ms, camera := Camera, sz:= {W,H}, dev := Dev} = State) 
     osp:setParam(World, "instance", instance, osp:newCopiedData([Instance], instance, 1)),
 
     Light = osp:newLight("sunSky"),
+    osp:setParam(Light, up, vec3f, e3d_vec:norm({0.2,1.0,0.2})),
+    osp:setParam(Light, direction, vec3f, e3d_vec:norm({-0.2,-1.0,-0.2})),
     osp:commit(Light),
     osp:setParam(World, "light", light, osp:newCopiedData([Light], light, 1)),
     osp:commit(World),
 
     ?dbg("~p~n", [osp:deviceGetLastErrorCode(Dev)]),
     Renderer = osp:newRenderer("pathtracer"), %% choose path tracing renderer
-    osp:setParam(Renderer, "backgroundColor", vec4f, {1,1,1,1.0}),
+    osp:setParam(Renderer, "backgroundColor", vec4f, {1,1,1,0.0}),
+    osp:setParam(Renderer, "pixelSamples", int, 2), %% Per Pixel and pass
+    osp:setParam(Renderer, "varianceThreshol", float, 0.1),
     MaterialsData = setup_materials(maps:get(materials, State)),
     osp:setObject(Renderer, "material", MaterialsData),
     osp:commit(Renderer),
 
-    Framebuffer = osp:newFrameBuffer(W,H, fb_srgba, [fb_color, fb_accum]),
+    Framebuffer = osp:newFrameBuffer(W,H, fb_srgba, [fb_color, fb_accum, fb_variance]),
     osp:resetAccumulation(Framebuffer),
     ?dbg("~p~n", [osp:deviceGetLastErrorCode(Dev)]),
     Future = osp:renderFrame(Framebuffer, Renderer, Camera, World),
@@ -267,7 +277,7 @@ make_geom(#{id:=Id, bin:=Data, ns:=NsBin, vs:=Vs, vc:=Vc, uv:=Uv, mm:=MM} = _Inp
     0 = byte_size(Data) rem Stride,
     %% ?dbg("id:~p ~p ~p ~p ~p ~p~n",[Id, N, Vs, Vc, Uv, MM]),
     Mesh = osp:newGeometry("mesh"),
-    {MatIds, UseVc, Mats} = make_mesh_materials(MM, Mats0),
+    {MatIds, UseVc, Mats} = make_material_index(MM, Mats0),
 
     add_data(Mesh, Data, "vertex.position", vec3f, N, Vs),
     add_data(Mesh, Data, "vertex.texcoord", vec3f, N, Uv),
@@ -295,19 +305,19 @@ prepare_mat({Name, Attrs0}) ->
     {value, {_, VC}, Attrs} = lists:keytake(vertex_colors, 1, Attrs1),
     {Name, maps:from_list([{maps,Maps}, {use_vc, VC /= ignore}|Attrs])}.
 
-make_mesh_materials([{Name,_,_,_}], Mats0) ->
+make_material_index([{Name,_,_,_}], Mats0) ->
     %% Single material per mesh
     get_mat_id(Name, Mats0);
-make_mesh_materials(MMS, Mats0) ->
+make_material_index(MMS, Mats0) ->
     Sorted = lists:keysort(3, MMS),
-    make_mesh_materials(Sorted, false, Mats0, 0, []).
+    make_material_index(Sorted, false, Mats0, 0, []).
 
-make_mesh_materials([{Name,_,Start,N}|MMs],UseVc0,Mats0, Start, Acc) ->
+make_material_index([{Name,_,Start,N}|MMs],UseVc0,Mats0, Start, Acc) ->
     {Id, UseVc, Mats} = get_mat_id(Name,Mats0),
     %% Verts div by 3 to get triangle index
     MatIndex = make_mat_index(Id, N div 3),
-    make_mesh_materials(MMs, UseVc orelse UseVc0, Mats, Start+N, [MatIndex|Acc]);
-make_mesh_materials([], UseVc, Mats, N, Acc) ->
+    make_material_index(MMs, UseVc orelse UseVc0, Mats, Start+N, [MatIndex|Acc]);
+make_material_index([], UseVc, Mats, N, Acc) ->
     Index = iolist_to_binary(lists:reverse(Acc)),
     Data = osp:newCopiedData(Index, uint, N div 3),
     {Data, UseVc, Mats}.
@@ -332,14 +342,48 @@ setup_materials(MatMap) ->
     osp:newCopiedData(MatRefList, material, length(MatRefList)).
 
 create_mat(#{id:=Id, diffuse:=Base, roughness:=Roughness, metallic:=Metallic, emission:=E}, Acc) ->
-    Mat = osp:newMaterial("principled"),
     {R,G,B,A} = Base,
-    {0.0, 0.0, 0.0, _} = E,
-    osp:setParam(Mat, "baseColor", vec3f, wings_color:srgb_to_linear({R,G,B})),
-    osp:setParam(Mat, "metallic",  float, Metallic),
-    osp:setParam(Mat, "roughness", float, Roughness),
-    osp:setParam(Mat, "opacity",   float, A),
-    osp:commit(Mat),
+    {ER,EB,EG,_} = E,
+    if
+        ER+EB+EG > 0.3 ->  %% Emissive material
+            Mat = osp:newMaterial("luminous"),
+            osp:setParam(Mat, "color", vec3f, wings_color:srgb_to_linear({ER,EG,EB})),
+            osp:setParam(Mat, "transparency",   float, 1.0-A),
+            %% osp:setParam(Mat, "intensity",   float, 1),
+            osp:commit(Mat);
+        %% A < 0.9 -> %% Glass
+        %%     Mat = osp:newMaterial("thinGlass"),
+        %%     %% osp:setParam(Mat, "color", vec3f, wings_color:srgb_to_linear({R,G,B})),
+        %%     osp:setParam(Mat, "attenuationColor", vec3f, wings_color:srgb_to_linear({R,G,B})),
+        %%     osp:setParam(Mat, "attenuationDistance",   float, 1.0),
+        %%     osp:setParam(Mat, "thickness",   float, 0.05+A*A*A*4.0),
+        %%     if A < 0.1 ->  %% Diamonds
+        %%             osp:setParam(Mat, "eta", float, 2.5);
+        %%        A < 0.3 ->  %% ???
+        %%             osp:setParam(Mat, "eta", float, 2.0);
+        %%        A ->  %% Glass
+        %%             osp:setParam(Mat, "eta", float, 1.5);
+        %%        true -> ok
+        %%     end,
+        %%     osp:commit(Mat);
+        true ->
+            Mat = osp:newMaterial("principled"),
+            osp:setParam(Mat, "metallic",  float, Metallic),
+            osp:setParam(Mat, "roughness", float, Roughness),
+            osp:setParam(Mat, "opacity",   float, A),
+            osp:setParam(Mat, "ior",   float, 1.5),
+            if  (A < 0.9) ->  %% Fake glass
+                    osp:setParam(Mat, "transmission", float, 1.0-A),
+                    osp:setParam(Mat, "transmissionDepth", float, 1.0),
+                    osp:setParam(Mat, "transmissionColor", vec3f, wings_color:srgb_to_linear({R,G,B})),
+                    osp:setParam(Mat, "thin", bool, true),
+                    osp:setParam(Mat, "thickness",   float, 0.05+A*A*A*3.0),
+                    osp:setParam(Mat, "backlight",   float, 2.0 - A*A*2);
+                true ->
+                    osp:setParam(Mat, "baseColor", vec3f, wings_color:srgb_to_linear({R,G,B}))
+            end,
+            osp:commit(Mat)
+    end,
     [{Id, Mat}|Acc];
 create_mat(_, Acc) ->
     Acc.
