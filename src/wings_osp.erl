@@ -29,6 +29,15 @@
 
 -define(SERVER, ?MODULE).
 
+-define(OSP_ERROR(Dev),
+        fun() ->
+                case osp:deviceGetLastErrorCode(Dev) of
+                    no_error -> ok;
+                    _ -> io:format("~p:~p: ~p~n",[?MODULE, ?LINE, osp:deviceGetLastErrorMsg(Dev)])
+                end
+        end()).
+
+
 %%%===================================================================
 %%% API
 %%%===================================================================
@@ -102,12 +111,12 @@ start_link() ->
             Pid
     end.
 
-%% wings_event({note, image_change}, Pid, State) ->
-%%     case [Im || {Id, Im} <- wings_image:images(), WinId =:= Id] of
-%%         [Image] -> wx_object:cast(Window, {image_change, Image});
-%%         _ -> ignore
-%%     end,
-%%     keep;
+wings_event({note, {image_change, Id}}, State) ->
+    case maps:get(image, State, undefined) =:= Id of
+        true -> ignore;
+        false -> ignore_for_now % Fixme
+    end,
+    keep;
 wings_event({render_image, Sz, Image}, State0) ->
     State = update_image(Image, Sz, State0),
     {replace, fun(Ev) -> ?MODULE:wings_event(Ev, State) end};
@@ -141,7 +150,9 @@ init([]) ->
     %% process_flag(trap_exit, false),
     add_priv_path(),   %% Must be done before osp:init/1 otherwise we can't load the nif
     Dev = osp:init(),
-    no_error = osp:deviceGetLastErrorCode(Dev),
+    %% osp:deviceSetParam(Dev, debug, bool, true),
+    osp:deviceCommit(Dev),
+    ?OSP_ERROR(Dev),
     {ok, reset(#{dev=>Dev, sz_w=>1000})}.
 
 handle_call(cancel_prev_render, _From, State) ->
@@ -156,7 +167,7 @@ handle_call(cancel_prev_render, _From, State) ->
 handle_cast({mesh, Request}, #{meshes:=Ms, materials:=Mats0} = State) ->
     %% ?dbg("~P~n", [Request,20]),
     {Mesh, Mats} = make_geom(Request, Mats0),
-    no_error = osp:deviceGetLastErrorCode(maps:get(dev, State)),
+    ?OSP_ERROR(maps:get(dev, State)),
     {noreply, State#{meshes:=[Mesh|Ms], materials:=Mats}};
 handle_cast({camera, [{NW,NH}, {Pos,Dir,Up}, Fov, Dist]}, #{sz_w:=W} = State) ->
     H = round(W*NH/NW),
@@ -207,8 +218,8 @@ reset(State) ->
 
 render_start(#{meshes := []} = State) ->
     State;
-render_start(#{meshes := Ms, camera := Camera, sz:= {W,H}, dev := Dev} = State) ->
-    no_error = osp:deviceGetLastErrorCode(Dev),
+render_start(#{meshes := Ms, camera := Camera, sz:= {W,H}} = State) ->
+    ?OSP_ERROR(maps:get(dev, State)),
     Meshes = [Geom || #{geom:=Geom} <- Ms],
     ?dbg("Meshes: ~w ~n", [length(Ms)]),
     Group = osp:newGroup(),
@@ -227,18 +238,20 @@ render_start(#{meshes := Ms, camera := Camera, sz:= {W,H}, dev := Dev} = State) 
     osp:setParam(World, "light", light, osp:newCopiedData([Light], light, 1)),
     osp:commit(World),
 
-    ?dbg("~p~n", [osp:deviceGetLastErrorCode(Dev)]),
+    ?OSP_ERROR(maps:get(dev, State)),
     Renderer = osp:newRenderer("pathtracer"), %% choose path tracing renderer
     osp:setParam(Renderer, "backgroundColor", vec4f, {1,1,1,0.0}),
     osp:setParam(Renderer, "pixelSamples", int, 2), %% Per Pixel and pass
-    osp:setParam(Renderer, "varianceThreshol", float, 0.1),
-    MaterialsData = setup_materials(maps:get(materials, State)),
+    osp:setParam(Renderer, "varianceThreshold", float, 0.1),
+    {_Textures, MaterialsData} = setup_materials(maps:get(materials, State), #{}),
+    ?OSP_ERROR(maps:get(dev, State)),
     osp:setObject(Renderer, "material", MaterialsData),
+    ?OSP_ERROR(maps:get(dev, State)),
     osp:commit(Renderer),
 
     Framebuffer = osp:newFrameBuffer(W,H, fb_srgba, [fb_color, fb_accum, fb_variance]),
     osp:resetAccumulation(Framebuffer),
-    ?dbg("~p~n", [osp:deviceGetLastErrorCode(Dev)]),
+    ?OSP_ERROR(maps:get(dev, State)),
     Future = osp:renderFrame(Framebuffer, Renderer, Camera, World),
     T0 = erlang:system_time(),
     RenderOpts = #{fs=>0, t0=>T0, time=>T0, wait=>1, %% stats
@@ -280,7 +293,7 @@ make_geom(#{id:=Id, bin:=Data, ns:=NsBin, vs:=Vs, vc:=Vc, uv:=Uv, mm:=MM} = _Inp
     {MatIds, UseVc, Mats} = make_material_index(MM, Mats0),
 
     add_data(Mesh, Data, "vertex.position", vec3f, N, Vs),
-    add_data(Mesh, Data, "vertex.texcoord", vec3f, N, Uv),
+    add_data(Mesh, Data, "vertex.texcoord", vec2f, N, Uv),
     add_vc_data(Mesh, Data, N, Vc, UseVc),
     add_data(Mesh, NsBin, "vertex.normal", vec3f, N),
     Index = lists:seq(0, N-1),
@@ -335,22 +348,25 @@ get_mat_id(Name, #{'_next_id':= Next}=Mats0) ->
             {Id, UseVC, Mats0}
     end.
 
-setup_materials(MatMap) ->
+setup_materials(MatMap, Textures0) ->
     Mats0 = maps:values(MatMap),
-    MatRefs = lists:foldl(fun create_mat/2, [], Mats0),
+    {Textures, MatRefs} = lists:foldl(fun create_material/2, {Textures0, []}, Mats0),
     MatRefList = [Mat || {_, Mat} <- lists:keysort(1, MatRefs)],
-    osp:newCopiedData(MatRefList, material, length(MatRefList)).
+    {Textures, osp:newCopiedData(MatRefList, material, length(MatRefList))}.
 
-create_mat(#{id:=Id, diffuse:=Base, roughness:=Roughness, metallic:=Metallic, emission:=E}, Acc) ->
+create_material(#{id:=Id, diffuse:=Base, roughness:=Roughness,
+                  metallic:=Metallic, emission:=E, maps:=Maps},
+                {Textures0, Acc}) ->
     {R,G,B,A} = Base,
     {ER,EB,EG,_} = E,
     if
-        ER+EB+EG > 0.3 ->  %% Emissive material
+        (ER+EB+EG) > 0.3, Maps =:= [] ->  %% Emissive material (single color so if texture exist ignore)
             Mat = osp:newMaterial("luminous"),
             osp:setParam(Mat, "color", vec3f, wings_color:srgb_to_linear({ER,EG,EB})),
             osp:setParam(Mat, "transparency",   float, 1.0-A),
             %% osp:setParam(Mat, "intensity",   float, 1),
-            osp:commit(Mat);
+            osp:commit(Mat),
+            {Textures0, [{Id, Mat}|Acc]};
         %% A < 0.9 -> %% Glass
         %%     Mat = osp:newMaterial("thinGlass"),
         %%     %% osp:setParam(Mat, "color", vec3f, wings_color:srgb_to_linear({R,G,B})),
@@ -370,23 +386,102 @@ create_mat(#{id:=Id, diffuse:=Base, roughness:=Roughness, metallic:=Metallic, em
             Mat = osp:newMaterial("principled"),
             osp:setParam(Mat, "metallic",  float, Metallic),
             osp:setParam(Mat, "roughness", float, Roughness),
-            osp:setParam(Mat, "opacity",   float, A),
             osp:setParam(Mat, "ior",   float, 1.5),
+            osp:setParam(Mat, "baseColor", vec3f, wings_color:srgb_to_linear({R,G,B})),
             if  (A < 0.9) ->  %% Fake glass
-                    osp:setParam(Mat, "transmission", float, 1.0-A),
-                    osp:setParam(Mat, "transmissionDepth", float, 1.0),
+                    osp:setParam(Mat, "transmission", float, _T=1.0-A*A),
+                    osp:setParam(Mat, "transmissionDepth", float, _TD=3),
                     osp:setParam(Mat, "transmissionColor", vec3f, wings_color:srgb_to_linear({R,G,B})),
-                    osp:setParam(Mat, "thin", bool, true),
-                    osp:setParam(Mat, "thickness",   float, 0.05+A*A*A*3.0),
-                    osp:setParam(Mat, "backlight",   float, 2.0 - A*A*2);
+                    %% osp:setParam(Mat, "thin", bool, true),
+                    %% osp:setParam(Mat, "thickness",   float, TH=0.05+A*A*A*3.0),
+                    %% osp:setParam(Mat, "backlight",   float, _BL=2.0 - A*A*2),
+                    %% ?dbg("Trans: ~.3f Depth ~.3f Thick ~.3f BackLight ~.3f~n", [T,TD,0.0,BL]),
+                    ok;
                 true ->
-                    osp:setParam(Mat, "baseColor", vec3f, wings_color:srgb_to_linear({R,G,B}))
+                    osp:setParam(Mat, "opacity",   float, A),
+                    ok
             end,
-            osp:commit(Mat)
-    end,
-    [{Id, Mat}|Acc];
-create_mat(_, Acc) ->
+            Textures = lists:foldl(fun(Map, Cache) -> add_texture_map(Mat, Map, Cache) end, Textures0, Maps),
+            osp:commit(Mat),
+            {Textures, [{Id, Mat}|Acc]}
+    end;
+create_material(_, Acc) ->
     Acc.
+
+add_texture_map(Mat, {diffuse, Id}, Textures0) ->
+    {[Base, Alpha], Textures} = get_or_create_txs([baseColor, alpha], Id, Textures0),
+    add_texture(Mat, Base, map_baseColor),
+    add_texture(Mat, Alpha, map_opacity),
+    Textures;
+add_texture_map(Mat, {normal, Id}, Textures0) ->
+    {[Normal], Textures} = get_or_create_txs([normal], Id, Textures0),
+    add_texture(Mat, Normal, map_normal),
+    Textures;
+add_texture_map(Mat, {metallic, Id}, Textures0) ->
+    {[Normal], Textures} = get_or_create_txs([metallic], Id, Textures0),
+    add_texture(Mat, Normal, map_metallic),
+    Textures;
+add_texture_map(Mat, {roughness, Id}, Textures0) ->
+    {[Normal], Textures} = get_or_create_txs([roughness], Id, Textures0),
+    add_texture(Mat, Normal, map_roughness),
+    Textures;
+add_texture_map(_Mat, Map, Textures0) ->
+    ?dbg("NYI map ~p~n", [Map]),
+    Textures0.
+
+get_or_create_txs([T0|Ts]=Types, ImgId, Textures) ->
+    case maps:get({T0, ImgId}, Textures, undefined) of
+        undefined ->
+            E3dImage = wings_image:info(ImgId),
+            lists:mapfoldl(fun(Type, Txs) ->
+                                   create_texture(Type, ImgId, E3dImage, Txs)
+                           end, Textures, Types);
+        Obj0 ->
+            {[Obj0| [maps:get({T, ImgId}, Textures) ||  T <- Ts]], Textures}
+    end.
+
+create_texture(Type, ImgId, Image, Textures) ->
+    case texture_data(Image, Type) of
+        {Format, Data} ->
+            Tx = osp:newTexture(texture2d),
+            osp:setParam(Tx, format, int, Format),
+            osp:setObject(Tx, data, Data),
+            osp:commit(Tx),
+            {Tx, Textures#{{Type, ImgId} => Tx}};
+        none ->
+            {none, Textures}
+    end.
+
+texture_data(#e3d_image{type=Type, bytes_pp=Bpp, order=lower_left, width=W, height=H, image=Bin},
+             baseColor) ->
+    case Type of
+        r8g8b8 ->   {texture_srgb, osp:newCopiedData(Bin, vec3uc, W, Bpp, H)};
+        r8g8b8a8 -> {texture_srgb, osp:newCopiedData(Bin, vec3uc, W, Bpp, H)}
+    end;
+texture_data(#e3d_image{type=Type, bytes_pp=Bpp, order=lower_left, width=W, height=H, image=Bin},
+             normal) ->
+    case Type of
+        r8g8b8 ->   {texture_rgb8, osp:newCopiedData(Bin, vec3uc, W, Bpp, H)};
+        r8g8b8a8 -> {texture_rgb8, osp:newCopiedData(Bin, vec3uc, W, Bpp, H)}
+    end;
+texture_data(#e3d_image{type=Type, bytes_pp=Bpp, order=lower_left, width=W, height=H, image=Bin0},
+             alpha) ->
+    case Type of
+        r8g8b8 ->   none;
+        a8 ->      {texture_r8, osp:newCopiedData(Bin0, uchar, W, Bpp, H)};
+        g8 ->      {texture_r8, osp:newCopiedData(Bin0, uchar, W, Bpp, H)};
+        r8g8b8a8 ->
+            <<_:24, Bin/binary>> = Bin0,
+            {texture_r8, osp:newCopiedData(Bin, uchar, W, Bpp, H)}
+    end;
+texture_data(#e3d_image{bytes_pp=Bpp, order=lower_left, width=W, height=H, image=Bin0}, Channel)
+  when Channel =:= roughness; Channel =:= metallic ->
+    {texture_r8, osp:newCopiedData(Bin0, uchar, W, Bpp, H)};
+
+texture_data(#e3d_image{type=ImgType}, Req) ->
+    ?dbg("NYI: Img ~p and requested ~p ~n", [ImgType, Req]),
+    none.
+
 
 add_data(Obj, Data, Id, Type, N) ->
     add_data(Obj, Data, Id, Type, N, {0, 0}).
@@ -408,6 +503,12 @@ add_mat(Geom, Id) when is_integer(Id) ->
 add_mat(Geom, IdsData) when is_reference(IdsData) ->
     osp:setObject(Geom, "material", IdsData).
 
+add_texture(Mat, Texture, Id) when is_reference(Texture) ->
+    %% ?dbg("setParam: ~p ~p texture ~p~n",[Mat, Id, Texture]),
+    osp:setParam(Mat, Id, texture, Texture);
+add_texture(_Mat, none, _Id) ->
+    ok.
+
 add_vc_data(_Mesh, _Data, _N, none, _) ->
     ok;
 add_vc_data(_Mesh, _Data, _N, _, false) ->
@@ -425,10 +526,12 @@ rgb_to_rgba(Data0, {Stride, Start}) ->
 
 rgb_to_rgba(Data, SkipBytes, Acc) ->
     case Data of
-        <<Cols:12/binary, _:SkipBytes/binary, Rest/binary>> ->
-            rgb_to_rgba(Rest, SkipBytes, <<Acc/binary, Cols:12/binary, 1.0:32/float-native>>);
-        <<Cols:12/binary, _/binary>> ->
-            <<Acc/binary, Cols:12/binary, 1.0:32/float-native>>;
+        <<R0:?F32,G0:?F32,B0:?F32, _:SkipBytes/binary, Rest/binary>> ->
+            {R,G,B} = wings_color:srgb_to_linear({R0, G0, B0}),
+            rgb_to_rgba(Rest, SkipBytes, <<Acc/binary, R:?F32,G:?F32,B:?F32, 1.0:?F32>>);
+        <<R0:?F32,G0:?F32,B0:?F32, _/binary>> ->
+            {R,G,B} = wings_color:srgb_to_linear({R0, G0, B0}),
+            <<Acc/binary, R:?F32,G:?F32,B:?F32,1.0:?F32>>;
         <<>> ->
             Acc
     end.
@@ -445,10 +548,10 @@ add_priv_path() ->
             case string:find(P0, OSPPath) of
                 nomatch ->
                     P1 = P0 ++ ";" ++ OSPPath,
-                    io:format("Adding osp path: ~s~n", [P1]),
+                    %% io:format("Adding osp path: ~s~n", [P1]),
                     os_env:set("PATH", P1);
                 _Where ->
-                    io:format("osp path found: ~s~n", [_Where]),
+                    %% io:format("osp path found: ~s~n", [_Where]),
                     ok
             end;
         _ ->
@@ -457,7 +560,7 @@ add_priv_path() ->
             case string:find(P0, OSPPath) of
                 nomatch ->
                     P1 = P0 ++ ":" ++ OSPPath,
-                    io:format("Adding osp path: ~s~n", [P1]),
+                    %% io:format("Adding osp path: ~s~n", [P1]),
                     os_env:set("PATH", P1);
                 _ ->
                     ok
