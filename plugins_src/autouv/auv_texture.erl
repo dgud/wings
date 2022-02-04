@@ -98,42 +98,42 @@ draw_options(#st{bb=Uvs}=AuvSt0) ->
 		    [{key,texsz}]}],[{title,?__(1,"Size")}]},
 	  {vframe, render_passes(Prefs, Shaders), [{title,?__(2,"Render")}]}
 	 ],
-    wings_dialog:dialog(?__(3,"Draw Options"), {preview,Qs},
-			fun({dialog_preview,Options}) ->
-                Opt = list_to_prefs(Options),
-                NewImg = ?SLOW(get_texture(AuvSt0, {Opt,Shaders})),
-                case MatName0 of
-                    none ->
-                        ok = wings_image:update(TexImg, NewImg);
-                    _ ->
-                        TexName = case get_mat_texture(MatName0, GeomSt0) of
-                                      false -> atom_to_list(MatName0);
-                                      OldId  ->
-                                          OldImg = wings_image:info(OldId),
-                                          case OldImg#e3d_image.name of
-                                              "auvBG" -> atom_to_list(MatName0);
-                                              Other -> Other
-                                          end
-                                  end,
-                        catch wings_material:update_image(MatName0, diffuse, NewImg#e3d_image{name=TexName}, GeomSt0)
-                end,
-                {preview,GeomSt0,GeomSt0};
-            (cancel) ->
-                case MatName0 of
-                    none ->
-                        ok = wings_image:update(TexImg, BkpImg);
-                    _ ->
-                        catch wings_material:update_image(MatName0, diffuse, BkpImg, GeomSt0)
-                end,
-                wings_wm:later({new_state,AuvSt0}),
-                prw_img_id(delete),
-                GeomSt0;
-            (Options) ->
-                Opt = list_to_prefs(Options),
-                prw_img_id(delete),
-                set_pref([{tx_prefs,pref_to_list(Opt)}]),
-                {auv,{draw_options,{Opt,Shaders}}}
-			end).
+    Fun = fun({dialog_preview,Options}) ->
+                  Opt = list_to_prefs(Options),
+                  NewImg = ?SLOW(get_texture(AuvSt0, {Opt,Shaders})),
+                  case MatName0 of
+                      none ->
+                          ok = wings_image:update(TexImg, NewImg);
+                      _ ->
+                          TexName = case get_mat_texture(MatName0, GeomSt0) of
+                                        false -> atom_to_list(MatName0);
+                                        OldId  ->
+                                            OldImg = wings_image:info(OldId),
+                                            case OldImg#e3d_image.name of
+                                                "auvBG" -> atom_to_list(MatName0);
+                                                Other -> Other
+                                            end
+                                    end,
+                          catch wings_material:update_image(MatName0, diffuse, NewImg#e3d_image{name=TexName}, GeomSt0)
+                  end,
+                  {preview,GeomSt0,GeomSt0};
+             (cancel) ->
+                  case MatName0 of
+                      none ->
+                          ok = wings_image:update(TexImg, BkpImg);
+                      _ ->
+                          catch wings_material:update_image(MatName0, diffuse, BkpImg, GeomSt0)
+                  end,
+                  wings_wm:later({new_state,AuvSt0}),
+                  prw_img_id(delete),
+                  GeomSt0;
+             (Options) ->
+                  Opt = list_to_prefs(Options),
+                  prw_img_id(delete),
+                  set_pref([{tx_prefs,pref_to_list(Opt)}]),
+                  {auv,{draw_options,{Opt,Shaders}}}
+          end,
+    wings_dialog:dialog(?__(3,"Draw Options"), {preview, Qs}, Fun).
 
 get_mat_texture(MatName, #st{mat=Materials}) ->
     get_mat_texture(MatName, Materials);
@@ -499,17 +499,17 @@ enable_opt() ->
      end}.
 
 option_hook(Id,Renderers,Shaders) ->
-    {hook,
-     fun(_Key, button_pressed, Fields) ->
-	     Env = wx:get_env(),
-	     spawn(fun() ->
-			   %% Need open dialog in dialog from another process
-			   wx:set_env(Env),
-			   option_dialog(Id, Fields, Renderers, Shaders),
-                           wings_wm:psend(send_once, dialog_blanket, preview)
-		   end)
-     end
-    }.
+    Me = wings_wm:this(),
+    {hook, fun(_Key, button_pressed, Fields) ->
+                   %% Open dialog from the autouv process
+                   Dlg = fun() ->
+                                 option_dialog(Id, Fields, Renderers, Shaders),
+                                 wings_wm:psend(send_once, dialog_blanket, preview),
+                                 keep
+                         end,
+                   wings_wm:psend(Me, {callback, Dlg}),
+                   ok
+           end}.
 
 renderer(Id,[Renderer={_,Id}|_R]) ->  Renderer;
 renderer(Id,[_|R]) ->  renderer(Id,R).
@@ -776,10 +776,10 @@ setup_sphere_mesh() ->
 setup_sphere_vbo({Len,Data}) ->
     Layout = [vertex, normal, uv, tangent],
     D = fun(#{preview := PreviewMat} = RS0) ->
-        RS1 = wings_shaders:use_prog(1, RS0),
-        RS2 = lists:foldl(fun apply_material/2, RS1, PreviewMat),
-        gl:drawArrays(?GL_TRIANGLES, 0, Len*3),
-        wings_shaders:use_prog(0, RS2)
+                RS1 = wings_shaders:use_prog(1, RS0),
+                RS2 = lists:foldl(fun apply_material/2, RS1, PreviewMat),
+                gl:drawArrays(?GL_TRIANGLES, 0, Len*3),
+                wings_shaders:use_prog(0, RS2)
         end,
     wings_vbo:new(D, Data, Layout).
 
