@@ -806,7 +806,11 @@ split_win([Which|Path], NewWin, #split{mode=Mode} = Node, Pos) ->
     {Child0, Child1} = child(Which, Node),
     Child = split_win(Path, NewWin, Child0, Pos),
     wxSplitterWindow:replaceWindow(win(Node), win(Child0), win(Child)),
-    set_splitter(Which, Mode, false, Node, Child1, Child).
+    set_splitter(Which, Mode, false, Node, Child1, Child);
+split_win([_|Path], NewWin, Node, Pos0) ->
+    %% Something went wrong here a plugin or window we don't know about
+    %% in this release was not created as it should so the path was incorrect
+    split_win(Path, NewWin, Node, Pos0).
 
 make(Parent) ->
     Style = case os:type() of

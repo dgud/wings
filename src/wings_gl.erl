@@ -91,9 +91,14 @@ window(Parent, Context0, Connect, Show) ->
 	    wxFrame:show(Parent),
 	    receive #wx{event=#wxShow{}} -> ok end;
 	false ->
-            timer:sleep(200), %% Let wx realize the window on gtk
 	    ok
     end,
+    %% Let wxWidgets have time to realize the window (on GTK)
+    %% otherwise the setCurrent fails.
+    %% The show event may come before the window is actually
+    %% displayed, sigh, so always sleep for a short while before
+    %% the setCurrent call.
+    timer:sleep(200),
     wxWindow:disconnect(Parent, show),
     setCurrent(GL,Context),
     GL.
