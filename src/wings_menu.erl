@@ -205,7 +205,7 @@ setup_dialog(Parent, Entries, Magnet, ScreenPos, ignore) ->
     do_setup_dialog(Parent, Entries, Magnet, ScreenPos);
 setup_dialog(Parent, Entries, Magnet, ScreenPos, undefined) ->
     setup_dialog(Parent, Entries, Magnet, ScreenPos, #{});
-setup_dialog(Parent, Entries, Magnet, {X,Y} = ScreenPos, Cache) ->
+setup_dialog(Parent, Entries, Magnet, ScreenPos, Cache) ->
     TopParent = get_toplevel(Parent),
     case maps:get({Entries, TopParent}, Cache, undefined) of
         undefined ->
@@ -220,16 +220,14 @@ setup_dialog(Parent, Entries, Magnet, {X,Y} = ScreenPos, Cache) ->
             end,
             MenuData;
         #{frame := Frame} = MenuData ->
-            Pos = fit_menu_on_display(Frame,{X-25,Y-15}),
+            Pos = fit_menu_on_display(Frame,ScreenPos),
             wxWindow:move(Frame, Pos),
             wxPopupTransientWindow:popup(Frame),
             MenuData
     end.
 
-do_setup_dialog(TopParent, Entries0, Magnet, {X0,Y0}=ScreenPos) ->
+do_setup_dialog(TopParent, Entries0, Magnet, ScreenPos) ->
     {Overlay, Frame, KbdFocus} = make_menu_frame(TopParent, ScreenPos),
-    X1 = X0-25,
-    Y1 = Y0-15,
     Panel = wxPanel:new(Frame),
     wxWindow:setFont(Panel, ?GET(system_font_wx)),
     {{R,G,B,A},FG} = {colorB(menu_color),colorB(menu_text)},
@@ -248,7 +246,7 @@ do_setup_dialog(TopParent, Entries0, Magnet, {X0,Y0}=ScreenPos) ->
     wxPanel:setSizer(Panel, Main),
     wxSizer:fit(Main, Panel),
     wxWindow:setClientSize(Frame, wxWindow:getSize(Panel)),
-    wxWindow:move(Frame, fit_menu_on_display(Frame,{X1,Y1})),
+    wxWindow:move(Frame, fit_menu_on_display(Frame, ScreenPos)),
     show_menu_frame(Overlay, Frame, KbdFocus),
     #{overlay=>Overlay, frame=>Frame, panel=>Panel, entries=>Entries, colors=>Cols}.
 
@@ -398,7 +396,7 @@ popup_events(MenuData, Magnet, Previous, Ns, Owner) ->
             wings_wm:psend(Owner, cancel);
         {move, {X,Y}} ->
             Frame = maps:get(frame, MenuData),
-            Pos = fit_menu_on_display(Frame,{X-25,Y-15}),
+            Pos = fit_menu_on_display(Frame, {X,Y}),
             wxWindow:move(Frame, Pos),
             wings_wm:psend(Owner, redraw),
             popup_events(MenuData, Magnet, Previous, Ns, Owner);
@@ -411,18 +409,19 @@ popup_events(MenuData, Magnet, Previous, Ns, Owner) ->
 	    popup_events(MenuData, Magnet, Previous, Ns, Owner)
     end.
 
-fit_menu_on_display(Frame,{MX,MY} = Pos) ->
+fit_menu_on_display(Frame, {MX,MY} = Pos) ->
     {WW,WH} = wxWindow:getSize(Frame),
     DisplayID = wxDisplay:getFromPoint(Pos),
     Display = wxDisplay_new(DisplayID),
     {DX,DY,DW,DH} = wxDisplay:getClientArea(Display),
     MaxW = (DX+DW),
     PX = if (MX+WW) > MaxW -> MaxW-WW-2;
-            true -> MX
+            (MX-25) < DX -> MX;
+            true -> max(5, (MX-25)) %% Move so mouse is inside menu
          end,
     MaxH = (DY+DH),
     PY = if (MY+WH) > MaxH -> MaxH-WH-2;
-            true -> MY
+            true -> max(5, (MY-15)) %% Move so mouse is inside menu
          end,
     wxDisplay:destroy(Display),
     {PX,PY}.
