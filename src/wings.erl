@@ -466,7 +466,7 @@ handle_event_3(lost_focus, _) -> keep;
 handle_event_3(grab_lost, _) -> keep;
 handle_event_3({note,menu_aborted}, St) ->
     main_loop(clear_temp_sel(St));
-handle_event_3({note, image_change}, _) ->
+handle_event_3({note, {image_change, _}}, _) ->
     wings_wm:dirty(),
     keep;
 handle_event_3({note,_}, _) ->

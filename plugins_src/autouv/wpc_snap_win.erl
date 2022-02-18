@@ -440,7 +440,7 @@ window(Name, Pos, Size, Ps0, St) ->
 change_state(Window, St) ->
     fun(Ev) -> forward_event(Ev, Window, St) end.
 
-forward_event({note,image_change}=Ev, Window, _St) ->
+forward_event({note,{image_change,_}}=Ev, Window, _St) ->
     wx_object:cast(Window, Ev),
     keep;
 forward_event({action,{wpc_snap_win,_}}=Ev, Window, _St) ->
@@ -784,7 +784,7 @@ handle_event(#wx{} = _Ev, State) ->
 handle_call(_Req, _From, State) ->
     {reply, ok, State}.
 
-handle_cast({note,image_change}, #state{ctrls=#{imglst:=ImgLst,actbtn:=BAct}}=State) ->
+handle_cast({note,{image_change, _Id}}, #state{ctrls=#{imglst:=ImgLst,actbtn:=BAct}}=State) ->
     Active = setup_image_list(ImgLst),
     %% Active is true if current image is still in the image list
     %% also, when a new project is started of the image deleted the UI will be updated

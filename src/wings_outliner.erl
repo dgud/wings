@@ -359,9 +359,14 @@ forward_event({action,{?MODULE,Cmd}}, _Window, St) ->
     command(Cmd, St);
 forward_event({action,{shape,_}}=Act, _, _) ->
     wings_wm:send(geom, Act);
-forward_event({note, image_change}, Window, St) ->
-    SelSt = get_state(St),
-    wx_object:cast(Window, {new_state,SelSt}),
+forward_event({note, {image_change, OpOrId}}, Window, St) ->
+    case OpOrId =:= new orelse OpOrId =:= delete of
+        true ->
+            SelSt = get_state(St),
+            wx_object:cast(Window, {new_state,SelSt});
+        false when is_integer(OpOrId) ->
+            ignore
+    end,
     keep;
 forward_event(Ev, Window, _) ->
     wx_object:cast(Window, Ev),

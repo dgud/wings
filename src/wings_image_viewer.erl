@@ -51,11 +51,9 @@ new(WinName, Image, Opts) ->
     wxWindow:refresh(Window),
     keep.
 
-forward_ev({note, image_change}, {_, WinId}, Window) ->
-    case [Im || {Id, Im} <- wings_image:images(), WinId =:= Id] of
-        [Image] -> wx_object:cast(Window, {image_change, Image});
-        _ -> ignore
-    end,
+forward_ev({note, {image_change, WinId}}, {_, WinId}, Window) ->
+    Image = wings_image:info(WinId),
+    wx_object:cast(Window, {image_change, Image}),
     keep;
 forward_ev(_, _, _) ->
     keep.

@@ -80,18 +80,18 @@ from_file(Filename) ->
     case image_read(Props) of
 	#e3d_image{}=Image ->
 	    Name = filename:basename(Filename),
-	    req({new,Image#e3d_image{name=Name},false, false});
+            new(Name, Image#e3d_image{name=Name});
 	{error,_}=Error -> Error
     end.
 
 new(Name, E3DImage) ->
-    req({new,E3DImage#e3d_image{name=Name},false, false}).
+    req({new,E3DImage#e3d_image{name=Name},false, false}, new).
 
 new_temp(Name, E3DImage) ->
-    req({new,E3DImage#e3d_image{name=Name},true, false}).
+    req({new,E3DImage#e3d_image{name=Name},true, false}, new).
 
 new_hidden(Name, E3DImage) ->
-    req({new,E3DImage#e3d_image{name=Name},true, true}).
+    req({new,E3DImage#e3d_image{name=Name},true, true}, new).
 
 debug_display(Id, Img) ->
     Display = fun(_) -> wings_image_viewer:new({image, Id}, Img), keep end,
@@ -102,60 +102,62 @@ create(St) ->
     St.
 
 rename(Id, NewName) ->
-    req({rename,Id,NewName}).
+    req({rename,Id,NewName}, Id).
 
 txid(Id) ->
-    req({txid,Id}, false).
+    req({txid,Id}, none, false).
 
 bumpid(Id) ->
-    req({bumpid,Id}, false).
+    req({bumpid,Id}, none, false).
 
 combid(Id) ->
-    req({combid,Id}, false).
+    req({combid,Id}, none, false).
 
 is_normalmap(Id) ->
-    req({is_normalmap,Id},false).
+    req({is_normalmap,Id}, none, false).
 
 info(Id) ->
-    req({info,Id}, false).
+    req({info,Id}, none, false).
 
 images() ->
-    req(images, false).
+    req(images, none, false).
 
 filter_images(Bool) ->
-    req({filter_images, Bool}, false).
+    req({filter_images, Bool}, none, false).
 
 next_id() ->
-    req(next_id, false).
+    req(next_id, none, false).
 
 delete_older(Id) ->
-    req({delete_older,Id}).
+    req({delete_older,Id}, delete).
 
 delete_from(Id) ->
-    req({delete_from,Id}).
+    req({delete_from,Id}, delete).
 
 delete(Id) ->
-    req({delete,Id}).
+    req({delete,Id}, Id).
 
 update(Id, Image) ->
-    req({update,Id,Image}).
+    req({update,Id,Image}, Id).
 
 update_filename(Id, Filename) ->
     gen_server:cast(?MODULE, {update_filename,Id,Filename}),
-    wings_wm:notify(image_change).
+    wings_wm:notify({image_change, Id}).
 
 find_image(Dir, Filename) ->
-    req({find_image,Dir,Filename}, false).
+    req({find_image,Dir,Filename}, none, false).
 
-req(Req) ->
-    req(Req, true).
+-spec req(atom() | tuple(), integer() | new | delete) -> any().
+req(Req, Id) when not is_boolean(Id)->
+    req(Req, Id, true).
 
-req(Req, Notify) ->
+-spec req(atom() | tuple(), integer() | new | delete | none, boolean()) -> any().
+req(Req, Id, Notify) ->
     Reply = gen_server:call(?MODULE, Req, infinity),
     Running = get(wings_not_running) == undefined,
-    case Notify andalso Running of
+    case Notify andalso Running andalso Id =/= none of
         false -> ok;
-        true -> wings_wm:notify(image_change)
+        true -> wings_wm:notify({image_change, Id})
     end,
     Reply.
 
