@@ -730,7 +730,7 @@ make_overlay(Parent) ->
 	?wxNO_BORDER,
     Overlay = wxFrame:new(),
     case {os:type(), {?wxMAJOR_VERSION, ?wxMINOR_VERSION}} of
-        {{_, linux}, Ver} when Ver > {3,0} ->
+        {{_, linux}, Ver} when Ver >= {3,0} ->
             wxFrame:setBackgroundStyle(Overlay, 3); %% ?wxBG_STYLE_TRANSPARENT
         _ -> ok
     end,
