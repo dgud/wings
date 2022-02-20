@@ -226,7 +226,7 @@ succ([], [Succ|_]) -> Succ.
 %%  Return 'error' if the faces in FaceSet does not form a
 %%  simple region without holes.
 %%
-%%  Equvivalent to
+%%  Equivalent to
 %%      case outer_edge_partition(FaceSet,WingedEdge) of
 %%         [Loop] -> Loop;
 %%         [_|_] -> error

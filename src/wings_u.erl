@@ -187,7 +187,7 @@ get_rel_path(_,Src) -> Src.   % paths are in a different Drive - ignore routine
 get_rel_path([]=_Dst, []=_Src, Acc) -> Acc;     % export and file dir are the same
 get_rel_path([_|T], [], Acc) ->             % file is in some dir level in the Dst
     get_rel_path(T,[],["../"]++Acc);
-get_rel_path([], [H|T], Acc)->              % all previous dir match - file is in uppper dir level
+get_rel_path([], [H|T], Acc)->              % all previous dir match - file is in upper dir level
     get_rel_path([],T,[H]++Acc);
 get_rel_path([H|T0], [H|T1], Acc) ->        % continue checking in next dir level
     get_rel_path(T0,T1,Acc);

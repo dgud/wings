@@ -871,14 +871,14 @@ scene_lights_fun(#dlo{drag=Drag,src_we=We0}=D) ->
     We = case We0 of
 	     #we{light=#light{type=area}} ->
 		 %% For an area light it looks better in vertex/edge/face
-		 %% modes to emulate with the static non-splitted shape
+		 %% modes to emulate with the static non-split shape
 		 %% during drag. It would be more correct if the area light
 		 %% updating would use the resulting #we{}, but it does not
 		 %% exist until the drag is done.
 		 wings_draw:original_we(D);
 	     _ ->
 		 %% Non-area lights drag the whole shape so they can use
-		 %% the dynamic part of the splitted shape
+		 %% the dynamic part of the split shape
 		 %% (which is the whole shape).
 		 We0
 	 end,

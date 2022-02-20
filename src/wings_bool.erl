@@ -196,7 +196,7 @@ merge_1(#{we:=We10,el:=_EL10,temp_es:=TEs1}=I10,
     Loops0 = build_vtx_loops(EdgeInfo), %% Figure out edge loops
     L10 = [split_loop(Loop, Vmap, {We10,We20}) || Loop <- Loops0], % Split loops per We and precalc
     L20 = [split_loop(Loop, Vmap, {We20,We10}) || Loop <- Loops0], % some data
-    %% Remove vertexes on triangulated edges
+    %% Remove vertices on triangulated edges
     Loops1 = [filter_tess_edges(Loop,We10,We20) || Loop <- lists:zip(L10,L20)],
     Loops = sort_largest(Loops1, Vmap),
     %% Create vertices on the edge-loops

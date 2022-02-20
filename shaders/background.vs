@@ -1,5 +1,5 @@
 //
-// Vertex shader for most of the frament shader
+// Vertex shader for most of the fragment shader
 //
 #version 120
 

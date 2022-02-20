@@ -46,7 +46,7 @@ New stuff
 
 - Added a dialog to STL exporter allowing users to set the scale.
   Thanks to dawntreader, imagine and Mert HANCIOGLU(instagram) for provide
-  us informations about the slicers measures. [Micheus]
+  us information about the slicers measures. [Micheus]
 
 - Added new primitive screw thread [Micheus]
 
@@ -156,8 +156,8 @@ Bugs fixed
 - Fixed importing non-square 'dds' textures with mipmaps
   which caused an eternal loop. Thanks Simon Griffiths. [dgud]
 
-- Fixed crash when trying to edit area ligth properties
-  and not selecting an area ligth. Thanks Lars Thorsen. [dgud]
+- Fixed crash when trying to edit area light properties
+  and not selecting an area light. Thanks Lars Thorsen. [dgud]
 
 - Fix ttf text plugin error handling. Thanks Hank. [dgud]
 

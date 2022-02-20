@@ -104,7 +104,7 @@ make_plane([{_,Nres},{_,Size},{_,Thickness},{_,sombrero},
     {new_shape,"Sombrero Plane",Fs,Vs}.
 
 %%%
-%%% Vertex distrobutions
+%%% Vertex distributions
 %%%
 
 regular_plane_verts(Nres, Size, Thickness) ->

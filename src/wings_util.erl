@@ -615,7 +615,7 @@ translation_string(outliner)         -> ?__(137,"Outliner");
 translation_string(object)           -> ?__(138,"Geometry Graph");
 translation_string(palette)          -> ?__(139,"Palette");
 translation_string(console)          -> ?__(140,"Console");
-translation_string(geom_viewer)      -> ?__(141,"New Geomerty Window");
+translation_string(geom_viewer)      -> ?__(141,"New Geometry Window");
 translation_string(uv_editor_window) -> ?__(142,"UV Editor Window");
 
 %%%% Help Menu

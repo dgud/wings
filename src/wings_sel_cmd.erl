@@ -544,7 +544,7 @@ select_group({Mode,_}=Key, #st{ssels=Ssels}=St) ->
     St#st{selmode=Mode,sel=ValidSel}.
 
 %%%% Delete Groups that return an empty selection. Invalid ssels can result from
-%%%% creating or deleting geomerty.
+%%%% creating or deleting geometry.
 delete_invalid_groups(#st{ssels=Ssels}=St0) ->
     case gb_trees:is_empty(Ssels) of
       true ->
