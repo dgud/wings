@@ -353,10 +353,10 @@ get_nendo_event(Camera, Redraw, MouseRotates) ->
 
 nendo_message(true) ->
     Help = wings_msg:join([wings_msg:button_format(wings_s:accept(),[],
-           ?STR(message,2,"Drag to Dolly")),
-           ?STR(message,3,"Move mouse to tumble"),
-          [?STR(message,4,"[Q]"),?CSEP,
-           ?STR(message,5,"Move mouse to track")]]),
+                                                   ?STR(message,2,"Drag to Dolly")),
+                           ?STR(message,3,"Move mouse to tumble"),
+                           [?STR(message,4,"[Q]"),?CSEP,
+                            ?STR(message,5,"Move mouse to track")]]),
     message(Help);
 nendo_message(false) ->
     QText = case allow_rotation() of
@@ -659,19 +659,21 @@ wings_cam_event(#mousebutton{button=1,state=?SDL_RELEASED}, Camera, _, _) ->
 wings_cam_event(#mousebutton{button=3,state=?SDL_RELEASED}, Camera, _, View) ->
     wings_view:set_current(View),
     stop_camera(Camera);
-wings_cam_event(#mousemotion{x=X,y=Y,state=Buttons}, Camera0, Redraw, View) ->
+wings_cam_event(#mousemotion{x=X,y=Y,mod=Mod,state=Buttons}, Camera0, Redraw, View) ->
     {Dx,Dy,Camera} = camera_mouse_range(X, Y, Camera0),
-    case Buttons band 2 of
-      0 ->					%MMB not pressed.
-          rotate(-Dx, -Dy);
-      _Other ->				%MMB pressed.
-          pan(-Dx, -Dy)
+    if
+        (Mod band ?CTRL_BITS) =/= 0 ->
+            zoom(Dy);
+        (Buttons band 2) =:= 0 ->  %MMB not pressed.
+            rotate(-Dx, -Dy);
+        true ->			   %MMB pressed.
+            pan(-Dx, -Dy)
     end,
     get_wings_cam_event(Camera, Redraw, View);
 wings_cam_event(#keyboard{sym=Sym}=Event, Camera, Redraw, _) ->
     case arrow_key_pan(Sym) of
-      keep -> keep;
-      next -> view_hotkey(Event, Camera, Redraw)
+        keep -> keep;
+        next -> view_hotkey(Event, Camera, Redraw)
     end;
 wings_cam_event(Event, Camera, Redraw, _) ->
     generic_event(Event, Camera, Redraw).
@@ -682,9 +684,11 @@ get_wings_cam_event(Camera, Redraw, View) ->
 
 wings_cam_message() ->
     Help = wings_msg:join([wings_msg:button_format(wings_s:accept(),
-                ?STR(message,8,"Drag to Pan"),
-                ?STR(message,6,"Cancel/restore view")),
-                ?STR(message,3,"Move mouse to tumble")]),
+                                                   ?STR(message,8,"Drag to Pan"),
+                                                   ?STR(message,6,"Cancel/restore view")),
+                           ?STR(message,3,"Move mouse to tumble"),
+                           wings_msg:mod_name(?CTRL_BITS) ++ " " ++
+                               ?STR(message,2,"Drag to Dolly")]),
     message(Help).
 
 %%%
