@@ -306,7 +306,7 @@ make_overlay(Parent, ScreenPos) ->
     OL = wxFrame:new(),
     Flags = ?wxFRAME_TOOL_WINDOW bor ?wxFRAME_FLOAT_ON_PARENT bor ?wxFRAME_NO_TASKBAR,
     TCol = case {os:type(), {?wxMAJOR_VERSION, ?wxMINOR_VERSION}} of
-               {{_, linux}, Ver} when Ver > {3,0} ->
+               {{_, linux}, Ver} when Ver >= {3,0} ->
                    wxFrame:setBackgroundStyle(OL, 3), %% ?wxBG_STYLE_TRANSPARENT
                    0;
                {{_, darwin}, _} ->
