@@ -1,3 +1,22 @@
+--- 2.2.9 --------------------------------------------
+
+- Drag and drop file feature was not importing files with uppercase file
+  extensions. Thanks to rgcotl at Discord. [micheus]
+
+- Fixed autouv crash in create_texture dialogs. [dgud]
+
+- Fixed marquee transparency on Linux. Thanks to Klim. [micheus]
+
+- Added zoom option to wings camera mode. [dgud]
+
+- Fixed material dialog crash. [micheus]
+
+- Updated geometry graph icons. [dgud]
+
+- Fixed startup crash. [dgud]
+
+- Fixed crash when creating menu. [dgud]
+
 --- 2.2.8 --------------------------------------------
 
 - Fixed a crash caused by checking image name. Thanks to rgcotl (at Discord) [micheus]
