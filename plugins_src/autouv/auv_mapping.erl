@@ -579,7 +579,7 @@ lsq_setup(Fs,We,Pinned) ->
     {Mfp1c,Mfp2c,Mfp2nc,LuLv} = build_cols(M1,M2,M2n,Lquv),
     ?DBG("lsq_int - LuLv = ~p~n", [LuLv]),
     %% Compose the matrix and vector to solve
-    %% for a Least SQares solution.
+    %% for a Least Squares solution.
     {Af,Ap} = build_matrixes(N,Mfp1c,Mfp2c,Mfp2nc),
     ?DBG("Solving matrices~n", []),
     X0Fix = auv_matrix:vector(lists:duplicate(M-Np, Usum/Np)++

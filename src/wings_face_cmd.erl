@@ -45,7 +45,7 @@ menu(X, Y, St) ->
 	    {?__(12,"Bridge"),bridge_fun(),
 	     {?__(13,"Create a bridge or tunnel between two faces") ++
 	      ?__(40," or face regions"),[],
-	      ?__(43,"Create a bridge or tunnel from reference vertexes")},[]},
+	      ?__(43,"Create a bridge or tunnel from reference vertices")},[]},
 	    separator,
 	    {?__(14,"Bump"),bump,
 	     ?__(15,"Create bump of selected faces")},

@@ -590,7 +590,7 @@ handle_magnet_event(Ev,T) ->
 
 
 %%%
-%%% Handeler for In-Drag Magnet Radius Adjustments
+%%% Handler for In-Drag Magnet Radius Adjustments
 %%%
 
 tweak_drag_mag_adjust(#tweak{st=#st{selmode=body}}) -> keep;

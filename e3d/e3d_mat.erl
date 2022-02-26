@@ -33,7 +33,7 @@
        float(),float(),float(),
        float(),float(),float()}.
 
-%% General 4x4 matrix represention.
+%% General 4x4 matrix representation.
 -type matrix() :: 'identity' | compact_matrix() |
   {float(),float(),float(),float(),
    float(),float(),float(),float(),
