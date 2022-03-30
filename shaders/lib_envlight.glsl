@@ -14,6 +14,7 @@
 uniform sampler2D EnvBrdfMap;
 uniform sampler2D EnvDiffMap;
 uniform sampler2D EnvSpecMap;
+uniform float bg_rotate;
 
 vec2 vec2uv(vec3 vec)
 {
@@ -31,6 +32,7 @@ vec3 background_lighting(PBRInfo pbrInputs, vec3 N, vec3 reflection)
 {
     vec3 refl = normalize(reflection);
     vec2 index = vec2uv(refl);
+    index = vec2(index.x+bg_rotate, index.y);
 
     vec2 brdf = texture2D(EnvBrdfMap, vec2(pbrInputs.NdotV, pbrInputs.perceptualRoughness)).rg;
     vec3 difflight = SRGBtoLINEAR(texture2D(EnvDiffMap, index)).rgb;

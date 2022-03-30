@@ -34,6 +34,7 @@
 -define(CAM_BG, 1021).
 -define(CAM_BG_SLIDER, 1022).
 -define(CAM_BG_IMAGE, 1023).
+-define(CAM_BG_ROTATE, 1024).
 -define(SCENE_LIGHT, 1030).
 
 -define(AlignSz, 80).
@@ -84,6 +85,7 @@ get_init_state(#st{} = St) ->
       cam_exposure => Exposure,
       cam_bg => wings_pref:get_value(show_bg),
       cam_bg_blur => wings_pref:get_value(show_bg_blur),
+      cam_bg_rotate => wings_pref:get_value(show_bg_rotate),
       cam_bg_image => wings_pref:get_value(bg_image),
       hemi_sky => wings_pref:get_value(hl_skycol),
       hemi_ground => wings_pref:get_value(hl_groundcol)
@@ -195,6 +197,11 @@ forward_event({apply, {camera_opts, bg_slider}, Val}, Window, State) ->
     wings_status:message(?MODULE, io_lib:format(?__(22,"Environment blur: ~.3f"), [Val/100])),
     wings_wm:dirty(),
     change_state(Window, State#{cam_bg_blur := Val});
+forward_event({apply, {camera_opts, bg_rot_slider}, Val}, Window, State) ->
+    wings_pref:set_value(show_bg_rotate, Val/200),
+    wings_status:message(?MODULE, io_lib:format(?__(23,"Environment Rotate: ~.3f"), [Val/100])),
+    wings_wm:dirty(),
+    change_state(Window, State#{cam_bg_rotate := Val});
 forward_event({apply, {camera_opts, bg_image}, Image}, Window, State) ->
     case wings_light:load_env_image(Image) of
         {file_error, Err} ->
@@ -332,6 +339,9 @@ create_camera(Panel, TopSz, SubFlags) ->
     SeeBgBlur = wxSlider:new(Panel, ?CAM_BG_SLIDER, 30, 0, 100, [{style, ?wxSL_HORIZONTAL}]),
     wxWindow:setToolTip(SeeBgBlur, wxToolTip:new(?__(21, "Set Environment blur"))),
     BlurSz = pre_text(?__(2, "Env Blur:"), SeeBgBlur, Panel),
+    SeeBgRotate = wxSlider:new(Panel, ?CAM_BG_ROTATE, 0, -100, 100, [{style, ?wxSL_HORIZONTAL}]),
+    wxWindow:setToolTip(SeeBgRotate, wxToolTip:new(?__(22, "Set Environment Rotation"))),
+    RotateSz = pre_text(?__(4, "Env Rotation:"), SeeBgRotate, Panel),
 
     ImageCtrl = wxFilePickerCtrl:new(Panel, ?CAM_BG_IMAGE, []),
     ImageSz = pre_text(?__(3, "Env Image:"), ImageCtrl, Panel),
@@ -340,14 +350,16 @@ create_camera(Panel, TopSz, SubFlags) ->
     wxSizer:addSpacer(CamSz, ?SPACER_SIZE),
     wxSizer:add(CamSz, SeeBg),
     wxSizer:add(CamSz, BlurSz, [{flag, ?wxEXPAND}]),
+    wxSizer:add(CamSz, RotateSz, [{flag, ?wxEXPAND}]),
     wxSizer:add(CamSz, ImageSz, [{flag, ?wxEXPAND}]),
     wxSizer:add(TopSz, CamSz, SubFlags),
     wxSizer:addSpacer(TopSz, ?SPACER_SIZE),
     wxCheckBox:connect(SeeBg, command_checkbox_clicked),
     wxFilePickerCtrl:connect(ImageCtrl, command_filepicker_changed),
-    #{bg => SeeBg, bg_slider => SeeBgBlur, exp_slider => ExpCtrl, bg_image => ImageCtrl,
+    #{bg => SeeBg, bg_slider => SeeBgBlur, bg_rot_slider => SeeBgRotate,
+      exp_slider => ExpCtrl, bg_image => ImageCtrl,
       ids => [{exp_slider, ?CAM_EXP_SLIDER},
-              {bg, ?CAM_BG}, {bg_slider, ?CAM_BG_SLIDER},
+              {bg, ?CAM_BG}, {bg_slider, ?CAM_BG_SLIDER}, {bg_rot_slider, ?CAM_BG_ROTATE},
               {bg_image, ?CAM_BG_IMAGE}]}.
 
 pre_text(String, Ctrl, Parent) ->
@@ -382,6 +394,9 @@ setup_gui(cam_bg, Bool, #{camera_opts:=Cam}) ->
     wxSlider:enable(Slider, [{enable, Bool}]);
 setup_gui(cam_bg_blur, Val, #{camera_opts:=Cam}) ->
     #{bg_slider:=Slider} = Cam,
+    wxSlider:setValue(Slider, round(Val*100));
+setup_gui(cam_bg_rotate, Val, #{camera_opts:=Cam}) ->
+    #{bg_rot_slider:=Slider} = Cam,
     wxSlider:setValue(Slider, round(Val*100));
 setup_gui(cam_bg_image, FileName, #{camera_opts:=Cam}) ->
     #{bg_image:=Slider} = Cam,
@@ -425,6 +440,7 @@ handle_event(#wx{id=Id, event=#wxMouse{type=enter_window}}=Ev, #{ids:=Ids} = Sta
               {camera_opts, exp_slider} -> ?__(10, "Change exposure");
               {camera_opts, bg} -> ?__(11, "Show environment");
               {camera_opts, bg_slider} -> ?__(12, "Blur environment");
+              {camera_opts, bg_rot_slider} -> ?__(14, "Rotate environment");
               {camera_opts, bg_image} -> ?__(13, "Change environment image");
               _What -> ?__(1, "Edit camera and light settings")
           end,

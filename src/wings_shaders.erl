@@ -78,21 +78,22 @@ use_prog(Name, RS) ->
             RS0 = set_uloc('Exposure', wings_pref:get_value(cam_exposure), RS#{shader=>Shader}),
             RS1 = set_uloc(ws_matrix, e3d_mat:identity(), RS0),
             RS2 = set_uloc(ws_eyepoint, maps:get(ws_eyepoint, RS1, undefined), RS1),
+            RS3 = wings_shaders:set_uloc(bg_rotate, wings_pref:get_value(show_bg_rotate), RS2),
 
             case Name of
                 1 ->
-                    WorldFromView = e3d_transform:inv_matrix(maps:get(view_from_world, RS2)),
+                    WorldFromView = e3d_transform:inv_matrix(maps:get(view_from_world, RS3)),
                     LPos = e3d_mat:mul_point(WorldFromView, wings_pref:get_value(cl_lightpos)),
-                    RS3 = set_uloc('ws_lightpos', LPos, RS2),
-                    set_uloc('LightColor', linear(cl_lightcol), RS3);
+                    RS4 = set_uloc('ws_lightpos', LPos, RS3),
+                    set_uloc('LightColor', linear(cl_lightcol), RS4);
                 2 ->
-                    WorldFromView = e3d_transform:inv_matrix(maps:get(view_from_world, RS2)),
+                    WorldFromView = e3d_transform:inv_matrix(maps:get(view_from_world, RS3)),
                     LPos = e3d_mat:mul_point(WorldFromView, ?hl_lightpos),
-                    RS3 = set_uloc('ws_lightpos', LPos, RS2),
-                    RS4 = set_uloc('SkyColor', linear(hl_skycol), RS3),
-                    set_uloc('GroundColor', linear(hl_groundcol), RS4);
+                    RS4 = set_uloc('ws_lightpos', LPos, RS3),
+                    RS5 = set_uloc('SkyColor', linear(hl_skycol), RS4),
+                    set_uloc('GroundColor', linear(hl_groundcol), RS5);
                 _ ->
-                    RS2
+                    RS3
             end;
         Shaders ->
             error({shader_not_found, Name, maps:keys(Shaders)})

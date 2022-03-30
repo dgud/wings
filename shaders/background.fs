@@ -21,6 +21,7 @@ void main(void)
 {
   vec3 view_vec = normalize(-position);
   vec2 index = vec2uv(view_vec);
+  index = vec2(index.x+bg_rotate, index.y);
   float scale = 3.0;  // ~ sqrt(NoOfmipmaps)  mipmaps = 10 for 2048x1024
   float lod = pow((0.1+bg_blur) * scale, 2.0);
 
