@@ -37,10 +37,18 @@
 -define(IS_SPLIT(WinProp), (element(1, WinProp) =:= split
 			    orelse element(1, WinProp) =:= split_rev)).
 
+-ifndef(wxID_OSX_HIDE).
 -define(wxID_OSX_HIDE, 5250).
+-endif.
+-ifndef(wxID_OSX_HIDEOTHERS).
 -define(wxID_OSX_HIDEOTHERS, 5251).
+-endif.
+-ifndef(wxID_OSX_SHOWALL).
 -define(wxID_OSX_SHOWALL, 5252).
+-endif.
+-ifndef(wxID_OSX_MENU_LAST).
 -define(wxID_OSX_MENU_LAST, 5255).
+-endif.
 
 %% API  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
