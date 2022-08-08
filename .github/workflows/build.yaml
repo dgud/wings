@@ -16,8 +16,12 @@ concurrency:
 
 jobs:
   build-ubuntu:
-    runs-on: erlang:25.0.3.0
+    runs-on: ubuntu-latest
     steps:
+      - uses: bajankristof/setup-erlang@master
+        with:
+          otp-version: 25
+          allow-cache: false
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install Wings dependencies.
