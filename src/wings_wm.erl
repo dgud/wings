@@ -579,7 +579,8 @@ screen2local(Pos) ->
     wxWindow:screenToClient(this_win(), Pos).
 
 local_mouse_state() ->
-    {B,X0,Y0} = wings_io:get_mouse_state(),
+    {B,_,_} = wings_io:get_mouse_state(),
+    {X0,Y0} = wx_misc:getMousePosition(),   %% temporary - until wx_misc:getMouseState be fixed
     {X,Y} = screen2local({X0, Y0}),
     {B,X,Y}.
 
