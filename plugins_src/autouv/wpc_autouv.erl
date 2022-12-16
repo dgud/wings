@@ -412,13 +412,7 @@ command_menu(body, X, Y) ->
 	       {?__(19,"Left"), left, ?__(20,"Move to left border")},
 	       {?__(21,"Right"), right, ?__(22,"Move to right border")}
 	      ]}, ?__(23,"Move charts to position")},
-	    {?__(93,"Align"),
-	     {align,
-	      [{?__(15,"Bottom"), bottom, ?__(95,"Align to bottom")},
-	       {?__(17,"Top"), top, ?__(96,"Align to top")},
-	       {?__(19,"Left"), left, ?__(97,"Align to left")},
-	       {?__(21,"Right"), right, ?__(98,"Align to right")}
-	      ]}, ?__(94,"Align charts relative each other")},
+        align_menu(),
 	    {?__(24,"Flip"),{flip,
                              [{?__(25,"Horizontal"),horizontal,?__(26,"Flip selection horizontally")},
                               {?__(27,"Vertical"),vertical,?__(28,"Flip selection vertically")}]},
@@ -484,6 +478,7 @@ command_menu(vertex, X, Y) ->
                                 [{"X", x, ?__(84,"Flatten horizontally")},
                                  {"Y", y, ?__(85,"Flatten vertically")}]},
 	     ?__(86,"Flatten selected vertices")},
+        align_menu(),
 	    {?__(87,"Tighten"),tighten,
 	     ?__(88,"Move UV coordinates towards average midpoint"),
 	     [magnet]},
@@ -529,6 +524,14 @@ scale_directions(false) ->
      {?__(3,"Horizontal"), x, ?__(4,"Scale horizontally (X dir)")},
      {?__(5,"Vertical"),   y, ?__(6,"Scale vertically (Y dir)")}].
 
+align_menu() ->
+    {?__(93,"Align"),
+     {align,
+      [{?__(15,"Bottom"), bottom, ?__(95,"Align to bottom")},
+       {?__(17,"Top"), top, ?__(96,"Align to top")},
+       {?__(19,"Left"), left, ?__(97,"Align to left")},
+       {?__(21,"Right"), right, ?__(98,"Align to right")}
+      ]}, ?__(94,"Align charts relative each other")}.
 
 max_uniform() ->
     fun
@@ -926,9 +929,9 @@ handle_command_1({move_to,Dir}, St0) ->
     St1 = wpa:sel_map(fun(_, We) -> move_to(Dir,We) end, St0),
     St = update_selected_uvcoords(St1),
     get_event(St);
-handle_command_1({align,Dir}, #st{selmode=Mode,sel=[{_,Els}]}=St0) ->
+handle_command_1({align,Dir}, #st{selmode=Mode,sel=Sel}=St0) when Mode == body; Mode == vertex ->
     St =
-        case gb_sets:size(Els) of
+        case length(Sel) of
             1 ->
                 align_error(Mode),
                 St0;
@@ -1778,8 +1781,8 @@ align_chart(Dir, V1={X1,Y1,_},V2={X2,Y2,_}, We) ->
     rotate_chart(-Deg,Center,We).
 
 -spec align_error(term()) -> no_return().
-align_error(Mode) when Mode==edge; Mode==vertex ->
-    wings_u:error_msg(?__(1,"Select two vertices or one edge"));
+align_error(vertex) ->
+    wings_u:error_msg(?__(1,"Select at least two vertices. One in each chart that must be aligned"));
 align_error(body) ->
     wings_u:error_msg(?__(2,"Select at least two charts to be aligned to each other")).
 
