@@ -30,6 +30,7 @@ endif
 MODULES= \
 	wpc_absolute_move \
 	wpc_absolute_scale \
+	wpc_align_to_axis \
 	wpc_ambocc \
 	wpc_arc_intersect \
 	wpc_bend \
