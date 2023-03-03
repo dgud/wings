@@ -1533,7 +1533,7 @@ m3x2_skew(X, Y, { M00, M10, M20, M01, M11, M21 })
 m3x2_combine(none,none) -> none;
 m3x2_combine(Mat,none) when is_tuple(Mat) -> Mat;
 m3x2_combine(none,Mat) when is_tuple(Mat) -> Mat;
-m3x2_combine(Mat1,Mat2) when is_tuple(Mat2) ->
+m3x2_combine(_Mat1,Mat2) when is_tuple(Mat2) ->
     Mat2.
     
 
