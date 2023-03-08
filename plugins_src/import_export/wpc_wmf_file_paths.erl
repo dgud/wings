@@ -102,12 +102,12 @@ do_import(Ask, _St) when is_atom(Ask) ->
     Dialog =
       [{hframe,[{label,?__(1,"Number of edge bisections")},
                 {text,DefBisect,[{key,bisections}]}]},
-       {hframe,[{label,?__(4,"Scale to 1") ++ ":"},
+       {hframe,[{label,?__(4,"Scale fraction") ++ ": 1 / "},
                 {text,SetScale,[{key,set_scale}]}]},
        {?__(5,"Automatic center"),true,[{key,auto_center}]},
        {?__(3,"Scale fit within view"),AutoScale,
            [{key,auto_scale_fit}, {hook, Hook_Auto_Scale},
-            {info, ?__(9,"Automatically rescale shapes to fit inside of the camera view.")}]},
+            {info, ?__(9,"Automatically rescale shapes to fit within the camera view.")}]},
        {?__(6,"Transforms in text file"),TransformsInTextFile,[
            {info, ?__(8,"Transforms in text file with same file name but .txt extension")},
            {key,transforms_in_txt_file}]},
@@ -130,17 +130,7 @@ do_import(List, St) when is_list(List) ->
         true -> Nsub = 1;
         false -> Nsub = Nsub_0
     end,
-    wpa:pref_set(?MODULE, wmf_bisections, Nsub),
-    wpa:pref_set(?MODULE, wmf_auto_scale, AutoScale),
-    wpa:pref_set(?MODULE, wmf_transforms_in_txt_file, TransformsInTextFile),
-    case parse_float_number_w_unit(SetScale_S, 0.0) of
-        {ScaleVal, ScaleUnit} when ScaleVal > 0.001 ->
-            wpa:pref_set(?MODULE, wmf_set_scale, SetScale_S),
-            SetScale = {ScaleVal, unit_atom(ScaleUnit)};
-        _Unk ->
-            SetScale = {100.0, pt}
-    end,
-    wpa:import(props(), import_fun(Nsub, AutoScale, SetScale, AutoCenter, TransformsInTextFile), St).
+    wpa:import(props(), import_fun(Nsub, AutoScale, SetScale_S, AutoCenter, TransformsInTextFile), St).
 props() ->
     [{extensions,
       [{".emf", "Enhanced Metafile"},
@@ -162,8 +152,18 @@ props() ->
     world_transform = {1.0, 0.0, 0.0, 1.0}
 }).
 
-import_fun(Nsub, AutoScale, SetScale, AutoCenter, TransformsInTextFile) ->
+import_fun(Nsub, AutoScale, SetScale_S, AutoCenter, TransformsInTextFile) ->
     fun(Filename) ->
+        wpa:pref_set(?MODULE, wmf_bisections, Nsub),
+        wpa:pref_set(?MODULE, wmf_auto_scale, AutoScale),
+        wpa:pref_set(?MODULE, wmf_transforms_in_txt_file, TransformsInTextFile),
+        case parse_float_number_w_unit(SetScale_S, 0.0) of
+            {ScaleVal, ScaleUnit} when ScaleVal > 0.001 ->
+                wpa:pref_set(?MODULE, wmf_set_scale, SetScale_S),
+                SetScale = {ScaleVal, unit_atom(ScaleUnit)};
+            _Unk ->
+                SetScale = {100.0, pt}
+        end,
         
         ShortFilename = filename:rootname(filename:basename(Filename)),
         
