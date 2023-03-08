@@ -167,11 +167,23 @@ info_button() ->
     Title = ?__(1,"SVG Import Information"),
     TextFun = fun () -> more_info() end,
     {help,Title,TextFun}.
+    
+-record(svg_importer_params, {
+    nsubdiv,
+    auto_scale,
+    set_scale,
+    use_viewbox_c,
+    set_viewbox_s,
+    auto_center,
+    remove_non_cls,
+    all_paths_invert,
+    transforms_in_layers
+}).
 
 command({file,{import,{svg,Ask}}}, _St) when is_atom(Ask) ->
     DefBisect = wpa:pref_get(wpc_svg_path, svg_bisections, 3),
     AutoScale = wpa:pref_get(wpc_svg_path, svg_auto_scale, false),
-    RemoveNonClosed = wpa:pref_get(wpc_svg_path, svg_remove_nonclosed, false),
+    RemoveNonClosed = wpa:pref_get(wpc_svg_path, svg_remove_nonclosed, true),
     AllPathsInvertOverlap = wpa:pref_get(wpc_svg_path, svg_all_paths_invert_overlap, false),
     TransformsInLayerNames = wpa:pref_get(wpc_svg_path, svg_transforms_in_layer_nms, false),
     
@@ -191,6 +203,7 @@ command({file,{import,{svg,Ask}}}, _St) when is_atom(Ask) ->
         wings_dialog:enable(set_viewbox_scale, Value =:= true, Store)
     end,
     Hook_Auto_Scale = fun(_Key, Value, Store) ->
+        wings_dialog:enable(use_viewbox_coords, Value =:= false, Store),
         case Value =:= true of true ->
             wings_dialog:enable(set_scale, Value =:= false, Store),
             wings_dialog:enable(set_viewbox_scale, Value =:= false, Store);
@@ -225,7 +238,7 @@ command({file,{import,{svg,Ask}}}, _St) when is_atom(Ask) ->
        {?__(5,"Scale fit within view"),AutoScale,
             [{key,auto_scale_fit},
              {hook, Hook_Auto_Scale},
-             {info,?__(16,"Automatically rescale shapes to fit inside of the camera view.")}]},
+             {info,?__(16,"Automatically rescale shapes to fit within the camera view.")}]},
        {?__(11,"Combine all paths"),AllPathsInvertOverlap,
             [{key,all_paths_invert_overlap},
              {hook,Hook_All_Paths_Invert}]},
@@ -248,18 +261,41 @@ command({file,{import, svg, List}}, St) when is_list(List) ->
     SetViewBoxScale = proplists:get_value(set_viewbox_scale, List, 0.010),
     
     AutoCenter = proplists:get_value(auto_center, List, true),
-    RemoveNonClosed = proplists:get_value(remove_nonclosed, List, false),
+    RemoveNonClosed = proplists:get_value(remove_nonclosed, List, true),
     AllPathsInvertOverlap = proplists:get_value(all_paths_invert_overlap, List, false),
     TransformsInLayerNames = proplists:get_value(transforms_in_layer_nms, List, false),
     Props = [{extensions,[
         {".svg",?__(4,".svg File")},
         {".svgz",?__(8,"Compressed .svg File")}]}],
-    wpa:pref_set(wpc_svg_path, svg_auto_scale, AutoScale),
-    wpa:pref_set(wpc_svg_path, svg_bisections, Nsub),
-    wpa:pref_set(wpc_svg_path, svg_remove_nonclosed, RemoveNonClosed),
-    wpa:pref_set(wpc_svg_path, svg_all_paths_invert_overlap, AllPathsInvertOverlap),
-    wpa:pref_set(wpc_svg_path, svg_transforms_in_layer_nms, TransformsInLayerNames),
     
+    wpa:import(Props, fun(F) ->
+        make_svg(F, #svg_importer_params{
+            nsubdiv=Nsub,
+            auto_scale=AutoScale,
+            set_scale=SetScale_S,
+            use_viewbox_c=UseViewboxCoords,
+            set_viewbox_s=SetViewBoxScale,
+            auto_center=AutoCenter,
+            remove_non_cls=RemoveNonClosed,
+            all_paths_invert=AllPathsInvertOverlap,
+            transforms_in_layers=TransformsInLayerNames
+        })
+    end, St);
+command(_, _) ->
+    next.
+
+make_svg(Name, #svg_importer_params{
+    nsubdiv=Nsubsteps,
+    auto_scale=AutoScale,
+    set_scale=SetScale_S,
+    use_viewbox_c=UseViewboxCoords,
+    set_viewbox_s=SetViewBoxScale,
+    auto_center=AutoCenter,
+    remove_non_cls=RemoveNonClosed,
+    all_paths_invert=AllPathsInvertOverlap,
+    transforms_in_layers=TransformsInLayerNames
+}=_)
+->
     case parse_float_number_w_unit(SetScale_S, 0.0) of
         {ScaleVal, ScaleUnit} when ScaleVal > 0.001 ->
             wpa:pref_set(wpc_svg_path, svg_set_scale, SetScale_S),
@@ -267,27 +303,21 @@ command({file,{import, svg, List}}, St) when is_list(List) ->
         _Unk ->
             SetScale = {100.0, pt}
     end,
-    wpa:import(Props, fun(F) ->
-        make_svg(F, Nsub, AutoScale, SetScale,
-            UseViewboxCoords, SetViewBoxScale,
-            AutoCenter, RemoveNonClosed, AllPathsInvertOverlap)
-    end, St);
-command(_, _) ->
-    next.
-
-make_svg(Name, Nsubsteps, AutoScale, SetScale,
-        UseViewboxCoords, SetViewBoxScale,
-        AutoCenter, RemoveNonClosed, AllPathsInvertOverlap)
-->
     case UseViewboxCoords of
         true  -> SetViewBoxScale_1 = SetViewBoxScale;
         false -> SetViewBoxScale_1 = false
     end,
     case catch try_import_svg(Name, Nsubsteps, AutoScale, SetScale,
         SetViewBoxScale_1, AutoCenter, RemoveNonClosed,
-        AllPathsInvertOverlap) of
+        AllPathsInvertOverlap, TransformsInLayerNames) of
     {ok, E3dFile} ->
-        wpa:pref_set(wpc_svg, svg_bisections, Nsubsteps),
+        wpa:pref_set(wpc_svg_path, svg_bisections, Nsubsteps),
+        wpa:pref_set(wpc_svg_path, svg_auto_scale, AutoScale),
+        wpa:pref_set(wpc_svg_path, svg_remove_nonclosed, RemoveNonClosed),
+        wpa:pref_set(wpc_svg_path, svg_all_paths_invert_overlap, AllPathsInvertOverlap),
+        wpa:pref_set(wpc_svg_path, svg_transforms_in_layer_nms, TransformsInLayerNames),
+        wpa:pref_set(wpc_svg_path, svg_use_viewbox_coords, UseViewboxCoords),
+        wpa:pref_set(wpc_svg_path, svg_viewbox_scale, SetViewBoxScale),
         {ok, E3dFile};
     {error,Reason} ->
         {error, ?__(1,"Inkscape .svg path import failed")++": " ++ Reason};
@@ -297,7 +327,8 @@ make_svg(Name, Nsubsteps, AutoScale, SetScale,
     end.
 
 try_import_svg(Name, Nsubsteps, AutoScale, SetScale, SetViewBoxScale_1,
-        AutoCenter, RemoveNonClosed, AllPathsInvertOverlap)
+        AutoCenter, RemoveNonClosed, AllPathsInvertOverlap,
+        TransformsInLayerNames)
 ->
     case read_file__svg(Name) of
     {ok,<<Rest/binary>>} ->
@@ -348,8 +379,12 @@ try_import_svg(Name, Nsubsteps, AutoScale, SetScale, SetViewBoxScale_1,
                 {error, "No paths found"};
                 
             Cntrs when length(Cntrs) > 0 -> %% io:format("Cntrs=~p~n~n", [Cntrs]),
+                ColTexs_1 = case TransformsInLayerNames of
+                    true -> ColTexs;
+                    false -> [ CoTx#coltex{ut=[]} || CoTx <- ColTexs]
+                end,
             
-                {Vs0,Efs,Tx,HEs} = try_import_svg_1(AllPathsInvertOverlap, Cntrs, ColTexs, Nsubsteps, TexList),
+                {Vs0,Efs,Tx,HEs} = try_import_svg_1(AllPathsInvertOverlap, Cntrs, ColTexs_1, Nsubsteps, TexList),
                 case AutoCenter of
                     true ->
                         Center = e3d_vec:average(e3d_vec:bounding_box(Vs0)),
@@ -388,7 +423,7 @@ try_import_svg_1(true, Cntrs, _ColTexs, Nsubsteps, TexList) ->
     Cntrs_1 = lists:append(Cntrs),
     Pas_0 = wpc_ai:findpolyareas(Cntrs_1),
     Pas_1 = wpc_ai:subdivide_pas(Pas_0,Nsubsteps),
-    Pas_2 = filter_polyareas_min_3_cedges(Pas_1),
+    [Pas_2] = filter_polyareas_min_3_cedges([Pas_1]),
     
     List = process_islands(Pas_2),
     
@@ -3473,8 +3508,8 @@ arc_path_cmd(ArcFromPoint, ArcToPoint, {XR_0,YR_0}, Angle_0, LargeArc, Sweep)
             %% program, only on out of range radii, which is more likely by
             %% hand made SVG arcs.
             SqrtA = math:sqrt(A),
-            XR_2 = XR_1 * 1.00002 * SqrtA, % A tiny fudge factor so math:acos's 
-            YR_2 = YR_1 * 1.00002 * SqrtA  %            input is never over 1.0
+            XR_2 = XR_1 * 1.00002 * SqrtA, % A tiny factor for math:acos's 
+            YR_2 = YR_1 * 1.00002 * SqrtA  % input to never go over 1.0
     end,
     
     %% Rescale the y-axis of the points so the ellipses that encircle the
