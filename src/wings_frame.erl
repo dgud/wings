@@ -19,7 +19,6 @@
 	 get_icon_images/0, get_colors/0, get_border/0, update_theme/0]).
 
 -export([start_link/0, forward_event/1]).
--export([create_internal_win/3]).  %% Main opengl init only
 
 %% Internal
 -behaviour(wx_object).
@@ -173,6 +172,7 @@ import_layout({Contained, Free}, St) ->
     Contained =/= [] andalso imp_layout(Contained, [], undefined, St),
     wx_object:call(?MODULE, {update_layout,Contained}),
     _ = [restore_window(Win, St) || Win <- Free],
+    wings_io:reset_video_mode_for_gl(0,0),
     ok.
 
 %% Remove "don't save" windows and the corresponding Splitter
@@ -322,11 +322,12 @@ init(_Opts) ->
 	wxWindow:connect(Frame, activate, [{skip, true}]),
         init_menubar(Frame),
         wxFrame:show(Frame),
-	Wins = #{frame=>Frame, ch=>Top#split{w1=Canvas}, szr=>Sizer,
-		 loose=>#{}, action=>undefined, op=>undefined},
+	Wins0 = #{frame=>Frame, ch=>Top#split{w1=Canvas}, szr=>Sizer,
+                  loose=>#{}, action=>undefined, op=>undefined},
 	Overlay = make_overlay(Frame),
         %% Init OpenGL from wings process
-        {Win, Info} = create_internal_win(win(Top), undefined, [top, {title, wings:geom_title(geom)}]),
+        Opts = [top, {title, wings:geom_title(geom)}],
+        {{Win, Info}, Wins} = create_internal_win(undefined, Opts, Wins0),
         wings ! {frame_created, Frame, Win, Info},
         receive opengl_initialized -> ok end,
 	{Frame, #state{toolbar=Toolbar, images=IconImgs, windows=Wins, overlay=Overlay}}
@@ -437,12 +438,13 @@ handle_event(_Ev, State) ->
 
 %%%%%%%%%%%%%%%%%%%%%%
 
-handle_call({make_win, Opts}, _From, State) ->
+handle_call({make_win, Opts}, _From, #state{windows=Wins0}=State) ->
     case proplists:get_value(internal, Opts, false) of
 	false ->
             {reply, create_external_win(?GET(top_frame), Opts), State};
 	WinProps  ->
-            {reply, create_internal_win(?GET(top_frame), WinProps, Opts), State}
+            {Reply, Wins} = create_internal_win(WinProps, Opts, Wins0),
+            {reply, Reply, State#state{windows=Wins}}
     end;
 
 handle_call({register_window, Window, Name, Ps}, _From,
@@ -454,22 +456,16 @@ handle_call({register_window, Window, Name, Ps}, _From,
     #win{frame = Frame} = Win0,
     Win = Win0#win{win=Window, name=Name},
     if External ->
-	    %% Frame = wx:typeCast(wxWindow:getParent(Window), useframe()),
-	    %% Win = Win0#win{frame=Frame, title=Title, ps=#{close=>true, move=>true}},
 	    wxFrame:show(Frame),
 	    {reply, ok, State#state{windows=Wins#{loose:=Loose#{Frame => Win}}}};
        Internal =/= false ->
-	    Ws = insert_internal_win(Internal, Win, Wins),
+	    Ws = insert_internal_win(Win, Wins),
 	    {reply, ok, State#state{windows=Ws}};
        IsGeom -> %% Specialcase for geom window
             #split{w1=Splash} = Top,
-	    %% Win1 = Win0#win{title=Title, ps=#{close=>false, move=>false}},
-            %% Win = make_internal_win(win(Top), Win1),
 	    wxSplitterWindow:replaceWindow(win(Top), Splash, Frame),
 	    wxWindow:destroy(Splash),
             layout_new_win(Win),
-            %% wxFrame:layout(TopFrame),
-            %% wxWindow:refresh(TopFrame),
 	    {reply, ok, State#state{windows=Wins#{ch:=Top#split{w1=Win}}}}
     end;
 
@@ -743,7 +739,7 @@ attach_floating(true, Overlay, #{op:=#{mwin:=Frame, mpath:=Path}, loose:=Loose}=
 	    State#{action:=undefined, op:=undefined};
 	#win{win=Win}=Window ->
 	    overlay_hide(Overlay),
-	    %% io:format("Attach window ~p ~p ~p~n",[Frame,Path,wxWindow:getClientSize(Window)]),
+	    %% ?dbg("Attach window ~p ~p ~p~n",[Frame,Path,Window]),
 	    St = State#{loose:=maps:remove(Frame,Loose), action:=undefined, op:=undefined},
 	    DoWhileLocked = fun() -> attach_window(Path, Frame, Window, St) end,
 	    After = fun() ->
@@ -762,14 +758,13 @@ attach_floating(_B, Overlay, State) ->
 attach_window({_,Path}=Split, WinFrame, NewWin, #{frame:=TopFrame, szr:=Szr, ch:=Child} = State) ->
     Attach = fun() ->
 		     {_,Pos} = preview_rect(Split, NewWin),
-		     Win = make_internal_win(win(Child), NewWin),
+                     MakeWin = fun(Parent) -> make_internal_win(Parent, NewWin) end,
+		     {Root, _NewWin} = split_win(Path, MakeWin, Child, Pos),
 		     wxWindow:destroy(WinFrame),
-		     Root = split_win(Path, Win, Child, Pos),
 		     case win(Root) =:= win(Child) of
 			 false -> wxSizer:replace(Szr, win(Child), win(Root));
 			 true  -> ignore
 		     end,
-		     %wxSizer:layout(Szr),
                      wxFrame:layout(TopFrame),
                      wxWindow:refresh(win(Root)),
 		     check_tree(Root, Child),
@@ -777,34 +772,35 @@ attach_window({_,Path}=Split, WinFrame, NewWin, #{frame:=TopFrame, szr:=Szr, ch:
 	     end,
     wings_io:batch(Attach).
 
-split_win([Dir], NewWin, Node, Pos0) ->
+split_win([Dir], MakeWin, Node, Pos0) ->
     {Mode, Which} = split(Dir),
     Pos = pos_from_permille(Pos0, Mode, win(Node)),
     case Node of
-	#split{mode=undefined, w1=Root} -> %% Top Window
-	    set_splitter(Which, Mode, Pos, Node, Root, NewWin);
+	#split{mode=undefined, w1=Root, obj=Splitter} -> %% Top Window
+            NewWin = MakeWin(Splitter),
+	    {set_splitter(Which, Mode, Pos, Node, Root, NewWin), NewWin};
 	_Leaf ->
 	    Parent = wxWindow:getParent(win(Node)),
 	    NewNode = make(Parent),
-	    reparent(NewWin, NewNode),
+	    NewWin = MakeWin(win(NewNode)),
 	    reparent(Node, NewNode),
-	    set_splitter(Which, Mode, Pos, NewNode, Node, NewWin)
+	    {set_splitter(Which, Mode, Pos, NewNode, Node, NewWin), NewWin}
     end;
-split_win([Which|Path], NewWin, #split{mode=Mode} = Node, Pos) ->
+split_win([Which|Path], MakeWin, #split{mode=Mode} = Node, Pos) ->
     {Child0, Child1} = child(Which, Node),
-    Child = split_win(Path, NewWin, Child0, Pos),
+    {Child, NewWin} = split_win(Path, MakeWin, Child0, Pos),
     wxSplitterWindow:replaceWindow(win(Node), win(Child0), win(Child)),
-    set_splitter(Which, Mode, false, Node, Child1, Child);
-split_win([_|Path], NewWin, Node, Pos0) ->
+    {set_splitter(Which, Mode, false, Node, Child1, Child), NewWin};
+split_win([_|Path], MakeWin, Node, Pos0) ->
     %% Something went wrong here a plugin or window we don't know about
     %% in this release was not created as it should so the path was incorrect
-    split_win(Path, NewWin, Node, Pos0).
+    split_win(Path, MakeWin, Node, Pos0).
 
 make(Parent) ->
     Style = case os:type() of
 		{unix, darwin} -> ?wxSP_3DSASH bor ?wxSP_LIVE_UPDATE;
 		{win32, _} -> ?wxSP_BORDER bor ?wxSP_LIVE_UPDATE;
-		_ -> ?wxSP_3D bor ?wxSP_LIVE_UPDATE
+		_ -> ?wxSP_3DBORDER bor ?wxSP_LIVE_UPDATE
 	    end,
     New = wxSplitterWindow:new(Parent, [{style, Style}]),
     wxSplitterWindow:setSashGravity(New, 0.5),
@@ -1024,7 +1020,11 @@ detach_window(#wxMouse{type=motion, leftDown=true, x=X,y=Y}, OldFrame,
 					  {Res, Root}
 				  end
 			  end,
-	    {NewWin, Root} = wings_io:lock(whereis(wings), WhileLocked),
+            DoAfter =  fun() ->
+                               timer:sleep(200), %% give wx time to update windows on X11
+                               wings_io:reset_video_mode_for_gl(0,0)
+                       end,
+	    {NewWin, Root} = wings_io:lock(whereis(wings), WhileLocked, DoAfter),
 	    check_tree(Root, maps:get(ch, State)),
 	    #win{frame=Frame,win=W1}=NewWin,
             inform_parent_changed(W1),
@@ -1192,14 +1192,38 @@ create_external_win(Parent, Ps) ->
     Win = #win{frame=Frame, title=Title, ps=#{close=>true, move=>true}},
     {Frame, [{gui_win, Win},external|Ps]}.
 
-create_internal_win(Parent, _Path, Ps) ->
+create_internal_win(PathPos, Ps, #{szr:=Szr, ch:=Root0} = State) ->
     Title = proplists:get_value(title, Ps),
     Win0  = case proplists:get_value(top, Ps) of
                 undefined -> #win{title=Title, ps=#{close=>true, move=>true}};
                 true -> #win{title=Title, ps=#{close=>false, move=>false}}
             end,
-    Win = make_internal_win(Parent, Win0),
-    {win(Win), [{gui_win, Win}|Ps]}.
+    case PathPos of
+        undefined ->
+            Win = make_internal_win(win(Root0), Win0),
+            {{win(Win), [{gui_win, Win}|Ps]}, State};
+        {Path, Pos} ->
+            MakeWin = fun(Parent) -> make_internal_win(Parent, Win0) end,
+            {Root, Win} = split_win(Path, MakeWin, Root0, {permille, Pos}),
+            case win(Root) =:= win(Root0) of
+                false -> wxSizer:replace(Szr, win(Root0), win(Root));
+                true  -> ignore
+            end,
+            check_tree(Root, Root0),
+            {{win(Win), [{gui_win, Win}|Ps]}, State#{ch:=Root}}
+    end.
+
+insert_internal_win(#win{frame=Frame} = Win, #{frame:=TopFrame, ch:=Root} = State) ->
+    layout_new_win(Win),
+    SetLabel = fun(#split{w1=W1}=Where, _Other, _Grand) when W1#win.frame=:=Frame ->
+                       {ok, Where#split{w1=Win}};
+                  (#split{w2=W2}=Where, _Other, _Grand) when W2#win.frame=:=Frame ->
+                       {ok, Where#split{w2=Win}}
+               end,
+    {ok, Tree} = update_win(Frame, Root, Root, SetLabel),
+    wxFrame:layout(TopFrame),
+    wxWindow:refresh(win(Root)),
+    State#{ch:=Tree}.
 
 layout_new_win(#win{frame=Frame, win=Win}) ->
     Sizer = wxWindow:getSizer(Frame),
@@ -1293,19 +1317,6 @@ useframe() ->
         {{_, linux}, Ver} when Ver > {3,0} ->  wxFrame;
         _ -> wxMiniFrame
     end.
-
-insert_internal_win({Path, Pos}, Win, #{frame:=TopFrame, szr:=Szr, ch:=Child} = State) ->
-    layout_new_win(Win),
-    Root = split_win(Path, Win, Child, {permille, Pos}),
-    case win(Root) =:= win(Child) of
-	false -> wxSizer:replace(Szr, win(Child), win(Root));
-	true  -> ignore
-    end,
-    %% wxSizer:layout(Szr),
-    wxFrame:layout(TopFrame),
-    wxWindow:refresh(win(Root)),
-    check_tree(Root, Child),
-    State#{ch:=Root}.
 
 export_loose(Windows) ->
     Exp = fun(#win{name=Name, win=Win, frame=Frame}) ->

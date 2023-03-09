@@ -74,7 +74,7 @@ maximize() ->
 reset_video_mode_for_gl(_W, _H) ->
     %% Needed on mac for some reason
     wxWindow:setFocus(?GET(gl_canvas)),
-    wings_gl:setCurrent(?GET(gl_canvas), ?GET(gl_context)),
+    wings_gl:setCurrent(?GET(gl_canvas), ?GET(gl_context), true),
     ok.
 
 set_title(Title) ->

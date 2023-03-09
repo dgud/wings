@@ -13,7 +13,8 @@
 
 -module(wings_gl).
 -export([init/1, window/4, attributes/0,
-         setCurrent/2, wxGLCanvas_new/3, %% new wx api variants
+         setCurrent/2, setCurrent/3,
+         wxGLCanvas_new/3, %% new wx api variants
 	 is_ext/1,is_ext/2,
 	 error_string/1]).
 
@@ -65,7 +66,8 @@ attributes() ->
      [?WX_GL_RGBA,
       ?WX_GL_MIN_RED,8,?WX_GL_MIN_GREEN,8,?WX_GL_MIN_BLUE,8,
       ?WX_GL_DEPTH_SIZE, 24,
-      ?WX_GL_DOUBLEBUFFER] ++
+      ?WX_GL_DOUBLEBUFFER
+     ] ++
          SB ++ [0]
     }.
 
@@ -191,13 +193,31 @@ forward_key(_) -> false.
 new_gl_api() ->
     wings_u:is_exported(wxGLCanvas, setCurrent, 2).
 
-setCurrent(GL,Context) ->
+setCurrent(GL, Context) ->
+    setCurrent(GL, Context, false).
+setCurrent(GL, Context0, Recreate0) ->
     SetCurrent = wings_u:id(setCurrent),
+    CreateSurface = wings_u:id(createSurface),
+    Recreate = case os:type() of
+                   {unix, darwin} -> false;
+                   {unix, _} -> Recreate0;
+                   {win32, _} -> false
+               end,
+
     case new_gl_api() of
         false -> wxGLCanvas:SetCurrent(GL);
-        true  -> true = wxGLCanvas:SetCurrent(GL,Context)
+        true when not Recreate ->
+            true = wxGLCanvas:SetCurrent(GL,Context0);
+        true when Recreate ->
+            try  %% EGL surface needs to recreated after reparent
+                true = wxGLCanvas:CreateSurface(GL),
+                Context = wxGLContext:new(GL, [{other, Context0}]),
+                ?SET(gl_context, Context),
+                true = wxGLCanvas:SetCurrent(GL,Context)
+            catch _:_ ->
+                    true = wxGLCanvas:SetCurrent(GL,Context0)
+            end
     end.
-
 
 wxGLCanvas_new(Parent, undefined, Ps) ->
     wxGLCanvas:new(Parent, Ps);
