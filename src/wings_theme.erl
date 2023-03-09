@@ -90,7 +90,6 @@ native_theme() ->
 	     ],
     OS = element(2, os:type()),
     Version = os:version(),
-    wx:new(),
     [native(Opt, OS, Version) || Opt <- UserIF] ++ [{flat_color_panels, true}| Workspace].
 
 %% Windows Versions

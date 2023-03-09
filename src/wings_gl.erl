@@ -101,6 +101,9 @@ window(Parent, Context0, Connect, Show) ->
     timer:sleep(200),
     wxWindow:disconnect(Parent, show),
     setCurrent(GL,Context),
+    io:format("~nVendor:     ~s~n",  [gl:getString(?GL_VENDOR)]),
+    io:format("Renderer:   ~s~n",    [gl:getString(?GL_RENDERER)]),
+    io:format("Version:    ~s~n~n",  [gl:getString(?GL_VERSION)]),
     GL.
 
 %% Event handling for OpenGL windows
@@ -192,7 +195,7 @@ setCurrent(GL,Context) ->
     SetCurrent = wings_u:id(setCurrent),
     case new_gl_api() of
         false -> wxGLCanvas:SetCurrent(GL);
-        true -> wxGLCanvas:SetCurrent(GL,Context)
+        true  -> true = wxGLCanvas:SetCurrent(GL,Context)
     end.
 
 
