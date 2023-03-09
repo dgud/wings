@@ -23,6 +23,8 @@
 -export([info_line/0, command_name/2]).
 -export([edit_menu/0, tools_menu/0, window_menu/0]).
 
+-export([geom_title/1]).
+
 -export([new_st/0]).
 
 -define(NEED_OPENGL, 1).
@@ -64,17 +66,20 @@ init(Env) ->
     wings_sel_cmd:init(),
     wings_file:init(),
     macosx_workaround(),
+    wings_text:init(),
     %% Ack that we are done, need to create top window now
     proc_lib:init_ack(self()),
-    Frame = receive {frame_created, Window} -> Window end,
-    is_fast_start(Args) andalso wxTopLevelWindow:iconize(Frame),
-    GeomGL = wings_gl:init(Frame),
-    wx_object:get_pid(Frame) ! opengl_initialized,
-    %% Wait for other mandatory processes to become initialized
-    receive supervisor_initialization_done -> ok end,
-    init_part2(Args, Frame, GeomGL).
+    receive
+        {frame_created, Frame, Window, Ps} ->
+            is_fast_start(Args) andalso wxTopLevelWindow:iconize(Frame),
+            GeomGL = wings_gl:init(Window),
+            wx_object:get_pid(Frame) ! opengl_initialized,
+            %% Wait for other mandatory processes to become initialized
+            receive supervisor_initialization_done -> ok end,
+            init_part2(Args, Frame, GeomGL, Ps)
+    end.
 
-init_part2(Args, Frame, GeomGL) ->
+init_part2(Args, Frame, GeomGL, GeomPs) ->
     St0 = new_st(),
     St1 = wings_sel:reset(St0),
     St2 = wings_undo:init(St1),
@@ -82,7 +87,8 @@ init_part2(Args, Frame, GeomGL) ->
 
     %% Needs to be initialized before make_geom_window
     %% and before the others that use gl functions
-    wings_text:init(),
+    wings_text:make_gl_font(),
+
     wings_wm:init(Frame),
     wings_develop:init(),
     check_requirements(),
@@ -102,7 +108,7 @@ init_part2(Args, Frame, GeomGL) ->
     wings_tweak:init(),
 
     is_fast_start(Args) orelse open_file(Args),
-    make_geom_window(GeomGL, St),
+    make_geom_window(GeomGL, GeomPs, St),
     is_fast_start(Args) orelse wings_file:init_autosave(),
     is_fast_start(Args) orelse restore_windows(St),
     case catch wings_wm:enter_event_loop() of
@@ -115,14 +121,14 @@ init_part2(Args, Frame, GeomGL) ->
 	    exit(Reason)
     end.
 
-make_geom_window(GeomGL, St) ->
+make_geom_window(GeomGL, GeomPs, St) ->
     Op = main_loop_noredraw(St),	%Replace crash handler
     Props = initial_properties(),        %with this handler.
     wings_wm:new(geom, GeomGL, Op),
     [wings_wm:set_prop(geom, K, V)|| {K,V} <- Props],
     wings_wm:set_dd(geom, geom_display_lists),
     set_drag_filter(geom),
-    wings_frame:register_win(GeomGL, geom, [top, {title, geom_title(geom)}]),
+    wings_frame:register_win(GeomGL, geom, GeomPs),
     GeomGL.
 
 %% Check minimum system requirements.

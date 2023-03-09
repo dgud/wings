@@ -34,7 +34,7 @@
 	]).
 
 %% Debugging.
--export([check_error/2]).
+-export([check_error/2, init_extensions/0]).
 
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").

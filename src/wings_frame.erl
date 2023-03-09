@@ -19,6 +19,7 @@
 	 get_icon_images/0, get_colors/0, get_border/0, update_theme/0]).
 
 -export([start_link/0, forward_event/1]).
+-export([create_internal_win/3]).  %% Main opengl init only
 
 %% Internal
 -behaviour(wx_object).
@@ -78,39 +79,10 @@ top_menus(WorkAround) ->
      |Tail].
 
 make_win(Title, Opts) ->
-    case proplists:get_value(internal, Opts, false) of
-	false -> {make_win(?GET(top_frame), Title, Opts), [external|Opts]};
-	_WinProps  -> {?GET(top_frame), [{title, Title}|Opts]}
-    end.
-
-make_win(Parent, Title, Ps) ->
-    FStyle = {style, ?wxCAPTION bor ?wxCLOSE_BOX bor ?wxRESIZE_BORDER},
-    {Size, MinSize} = case lists:keyfind(size, 1, Ps) of
-			  {size, Sz} -> {Sz, Sz};
-			  false  -> {false, {100, 100}}
-	   end,
-    Opts = case lists:keyfind(pos, 1, Ps) of
-	       {pos, Pos0} ->
-		   TopFrame = ?GET(top_frame),
-		   Pos1 = wxWindow:clientToScreen(TopFrame, Pos0),
-		   Pos  = validate_pos(Pos1, MinSize, wx_misc:displaySize()),
-		   [{pos,Pos}];
-	       false  ->
-		   []
-	   end,
-    Frame = (useframe()):new(Parent, ?wxID_ANY, Title, [FStyle|Opts]),
-    Size =/= false andalso wxWindow:setClientSize(Frame, Size),
-    Frame.
-
-useframe() ->
-    %% Miniframes can't be resized in gtk and wxWidgets 3.1
-    case {os:type(), {?wxMAJOR_VERSION, ?wxMINOR_VERSION}} of
-        {{_, linux}, Ver} when Ver > {3,0} ->  wxFrame;
-        _ -> wxMiniFrame
-    end.
+    wx_object:call(?MODULE, {make_win, [{title, Title}|Opts]}).
 
 register_win(Window, Name, Ps) ->
-    wx_object:call(?MODULE, {new_window, Window, Name, Ps}).
+    wx_object:call(?MODULE, {register_window, Window, Name, Ps}).
 
 reset_layout() ->
     {Contained, Free} = wx_object:call(?MODULE, get_windows),
@@ -354,7 +326,8 @@ init(_Opts) ->
 		 loose=>#{}, action=>undefined, op=>undefined},
 	Overlay = make_overlay(Frame),
         %% Init OpenGL from wings process
-        wings ! {frame_created, Frame},
+        {Win, Info} = create_internal_win(win(Top), undefined, [top, {title, wings:geom_title(geom)}]),
+        wings ! {frame_created, Frame, Win, Info},
         receive opengl_initialized -> ok end,
 	{Frame, #state{toolbar=Toolbar, images=IconImgs, windows=Wins, overlay=Overlay}}
     catch _:Reason:ST ->
@@ -464,32 +437,39 @@ handle_event(_Ev, State) ->
 
 %%%%%%%%%%%%%%%%%%%%%%
 
-handle_call({new_window, Window, Name, Ps}, _From,
-	    #state{windows=Wins=#{loose:=Loose, ch:=Top}}=State) ->
+handle_call({make_win, Opts}, _From, State) ->
+    case proplists:get_value(internal, Opts, false) of
+	false ->
+            {reply, create_external_win(?GET(top_frame), Opts), State};
+	WinProps  ->
+            {reply, create_internal_win(?GET(top_frame), WinProps, Opts), State}
+    end;
+
+handle_call({register_window, Window, Name, Ps}, _From,
+	    #state{windows=Wins=#{frame:=_TopFrame, loose:=Loose, ch:=Top}}=State) ->
     External = proplists:get_value(external, Ps),
     Internal = proplists:get_value(internal, Ps, false),
-    Geom = proplists:get_value(top, Ps),
-    Win0 = #win{win=Window, name=Name},
+    IsGeom = proplists:get_value(top, Ps),
+    Win0 = proplists:get_value(gui_win, Ps),
+    #win{frame = Frame} = Win0,
+    Win = Win0#win{win=Window, name=Name},
     if External ->
-	    Frame = wx:typeCast(wxWindow:getParent(Window), useframe()),
-	    Title = wxFrame:getTitle(Frame),
-	    Win = Win0#win{frame=Frame, title=Title, ps=#{close=>true, move=>true}},
-	    wxWindow:connect(Frame, move),
-	    wxWindow:connect(Frame, close_window),
+	    %% Frame = wx:typeCast(wxWindow:getParent(Window), useframe()),
+	    %% Win = Win0#win{frame=Frame, title=Title, ps=#{close=>true, move=>true}},
 	    wxFrame:show(Frame),
 	    {reply, ok, State#state{windows=Wins#{loose:=Loose#{Frame => Win}}}};
        Internal =/= false ->
-	    Title = proplists:get_value(title, Ps),
-	    Win = Win0#win{title=Title, ps=#{close=>true, move=>true}},
-	    Ws = make_internal_win(Internal, Win, Wins),
+	    Ws = insert_internal_win(Internal, Win, Wins),
 	    {reply, ok, State#state{windows=Ws}};
-       Geom -> %% Specialcase for geom window
-	    Title = proplists:get_value(title, Ps),
-	    #split{w1=Dummy} = Top,
-	    Win1 = Win0#win{title=Title, ps=#{close=>false, move=>false}},
-	    Win = make_internal_win(win(Top), Win1),
-	    wxSplitterWindow:replaceWindow(win(Top), Dummy, win(Win)),
-	    wxWindow:destroy(Dummy),
+       IsGeom -> %% Specialcase for geom window
+            #split{w1=Splash} = Top,
+	    %% Win1 = Win0#win{title=Title, ps=#{close=>false, move=>false}},
+            %% Win = make_internal_win(win(Top), Win1),
+	    wxSplitterWindow:replaceWindow(win(Top), Splash, Frame),
+	    wxWindow:destroy(Splash),
+            layout_new_win(Win),
+            %% wxFrame:layout(TopFrame),
+            %% wxWindow:refresh(TopFrame),
 	    {reply, ok, State#state{windows=Wins#{ch:=Top#split{w1=Win}}}}
     end;
 
@@ -1093,7 +1073,7 @@ do_detach_window(#win{frame=Container, win=Child, title=Label}=Win,
     PosSz = {X,Y,W,H},
     wxWindow:setSize(Container, {-1,-1,1,1}),
     wxWindow:reparent(Container, Top),
-    FrameW = make_external_win(Top, Child, PosSz, Label),
+    FrameW = detach_to_external_win(Top, Child, PosSz, Label),
     Frame = Win#win{frame=FrameW, bar=undefined},
     wxWindow:hide(Container),
     Sizer = wxWindow:getSizer(Container),
@@ -1133,8 +1113,8 @@ start_drag(DX, DY) ->
     (DX > wxSystemSettings:getMetric(?wxSYS_DRAG_X))
 	orelse (DY > wxSystemSettings:getMetric(?wxSYS_DRAG_Y)).
 
-make_external_win(Parent, Child, {X0,Y0, W, H} = _Dim, Label) ->
-    Frame = make_win(Parent, Label, [{pos, {X0,Y0}}, {size, {W,H}}]),
+detach_to_external_win(Parent, Child, {X0,Y0, W, H} = _Dim, Label) ->
+    {Frame,_} = create_external_win(Parent, [{title,Label}, {pos, {X0,Y0}}, {size, {W,H}}]),
     wxWindow:connect(Frame, move),
     wxWindow:connect(Frame, close_window),
     wxWindow:reparent(Child, Frame),
@@ -1189,34 +1169,57 @@ setup_timer(#{op:=Op} = St) ->
     {ok, TRef} = timer:send_after(200, check_stopped_move),
     St#{op:=Op#{mtimer=>TRef}}.
 
-make_internal_win({Path, Pos}, NewWin, #{frame:=TopFrame, szr:=Szr, ch:=Child} = State) ->
-    Win  = make_internal_win(win(Child), NewWin),
-    Root = split_win(Path, Win, Child, {permille, Pos}),
-    case win(Root) =:= win(Child) of
-	false -> wxSizer:replace(Szr, win(Child), win(Root));
-	true  -> ignore
-    end,
-    %% wxSizer:layout(Szr),
-    wxFrame:layout(TopFrame),
-    wxWindow:refresh(win(Root)),
-    check_tree(Root, Child),
-    State#{ch:=Root}.
+create_external_win(Parent, Ps) ->
+    FStyle = {style, ?wxCAPTION bor ?wxCLOSE_BOX bor ?wxRESIZE_BORDER},
+    {Size, MinSize} = case lists:keyfind(size, 1, Ps) of
+			  {size, Sz} -> {Sz, Sz};
+			  false  -> {false, {100, 100}}
+	   end,
+    Opts = case lists:keyfind(pos, 1, Ps) of
+	       {pos, Pos0} ->
+		   TopFrame = ?GET(top_frame),
+		   Pos1 = wxWindow:clientToScreen(TopFrame, Pos0),
+		   Pos  = validate_pos(Pos1, MinSize, wx_misc:displaySize()),
+		   [{pos,Pos}];
+	       false  ->
+		   []
+	   end,
+    Title = proplists:get_value(title, Ps),
+    Frame = (useframe()):new(Parent, ?wxID_ANY, Title, [FStyle|Opts]),
+    wxWindow:connect(Frame, move),
+    wxWindow:connect(Frame, close_window),
+    Size =/= false andalso wxWindow:setClientSize(Frame, Size),
+    Win = #win{frame=Frame, title=Title, ps=#{close=>true, move=>true}},
+    {Frame, [{gui_win, Win},external|Ps]}.
 
--define(WIN_BAR_HEIGHT, 16).
+create_internal_win(Parent, _Path, Ps) ->
+    Title = proplists:get_value(title, Ps),
+    Win0  = case proplists:get_value(top, Ps) of
+                undefined -> #win{title=Title, ps=#{close=>true, move=>true}};
+                true -> #win{title=Title, ps=#{close=>false, move=>false}}
+            end,
+    Win = make_internal_win(Parent, Win0),
+    {win(Win), [{gui_win, Win}|Ps]}.
 
-make_internal_win(Parent, #win{title=Label, win=Child, ps=#{close:=Close, move:=Move}}=WinC) ->
+layout_new_win(#win{frame=Frame, win=Win}) ->
+    Sizer = wxWindow:getSizer(Frame),
+    wxSizer:add(Sizer, Win,  [{proportion, 1}, {flag, ?wxEXPAND}, {border, 2}]),
+    wxWindow:layout(Frame).
+
+make_internal_win(Parent,#win{title=Label, win=Child, ps=#{close:=Close, move:=Move}}=WinC) ->
     Win = wxPanel:new(Parent, []),
     PBG = wings_color:rgb4bv(wings_pref:get_value(title_passive_color)),
     {Bar,ST} = Wins = make_bar(Win, PBG, Label, Close),
-    case os:type() of
-	{win32, _} ->  wxWindow:setDoubleBuffered(Bar, true);
-	_ -> ignore
-    end,
     Top = wxBoxSizer:new(?wxVERTICAL),
     wxSizer:add(Top, Bar, [{proportion, 0}, {flag, ?wxEXPAND}, {border, 2}]),
-    wxWindow:reparent(Child, Win), %% Send event here
-    wxSizer:add(Top, Child,  [{proportion, 1}, {flag, ?wxEXPAND}, {border, 2}]),
+    case Child =:= undefined of
+        true -> ok;
+        false ->
+            wxWindow:reparent(Child, Win), %% Send event here
+            wxSizer:add(Top, Child,  [{proportion, 1}, {flag, ?wxEXPAND}, {border, 2}])
+    end,
     wxWindow:setSizer(Win, Top),
+    wxWindow:layout(Win),
     wxWindow:connect(Bar, enter_window, [{userData, {win, Win}}]),
     case Move of
         true ->
@@ -1227,8 +1230,14 @@ make_internal_win(Parent, #win{title=Label, win=Child, ps=#{close:=Close, move:=
     end,
     WinC#win{frame=Win, bar=Wins}.
 
+-define(WIN_BAR_HEIGHT, 16).
+
 make_bar(Parent, BG, Label, Close) ->
     Bar = wxPanel:new(Parent, [{style, ?wxBORDER_NONE}, {size, {-1, ?WIN_BAR_HEIGHT}}]),
+    case os:type() of
+	{win32, _} -> wxWindow:setDoubleBuffered(Bar, true);
+	_ -> ignore
+    end,
     FG = wings_pref:get_value(title_text_color),
     #{size:=Sz} = FI0 = wings_text:get_font_info(?GET(system_font_wx)),
     FI = FI0#{size:=Sz-1, weight=>bold},
@@ -1277,6 +1286,26 @@ make_close_button(Parent, Bar, WBSz, H) ->
     %% io:format("SBM = ~p~n",[wxWindow:getSize(SBM)]),
     wxSizer:add(WBSz, SBM, [{flag, ?wxALIGN_CENTER}]),
     wxWindow:connect(SBM, command_button_clicked, [{callback, CB}]).
+
+useframe() ->
+    %% Miniframes can't be resized in gtk and wxWidgets 3.1
+    case {os:type(), {?wxMAJOR_VERSION, ?wxMINOR_VERSION}} of
+        {{_, linux}, Ver} when Ver > {3,0} ->  wxFrame;
+        _ -> wxMiniFrame
+    end.
+
+insert_internal_win({Path, Pos}, Win, #{frame:=TopFrame, szr:=Szr, ch:=Child} = State) ->
+    layout_new_win(Win),
+    Root = split_win(Path, Win, Child, {permille, Pos}),
+    case win(Root) =:= win(Child) of
+	false -> wxSizer:replace(Szr, win(Child), win(Root));
+	true  -> ignore
+    end,
+    %% wxSizer:layout(Szr),
+    wxFrame:layout(TopFrame),
+    wxWindow:refresh(win(Root)),
+    check_tree(Root, Child),
+    State#{ch:=Root}.
 
 export_loose(Windows) ->
     Exp = fun(#win{name=Name, win=Win, frame=Frame}) ->

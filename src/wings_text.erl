@@ -15,7 +15,7 @@
 -export([init/0,resize/0,width/0,width/1,height/0,render/3]).
 -export([font_cw_lh/1]).
 -export([break_lines/2]).
--export([make_wxfont/1, reload_font/2, get_font_info/1]).
+-export([make_wxfont/1, make_gl_font/0, reload_font/2, get_font_info/1]).
 
 -define(NEED_OPENGL, 1).
 -include("wings.hrl").
@@ -28,17 +28,20 @@ init() ->
     set_font_default(system_font),
     set_font_default(console_font),
 
-    Ranges = char_ranges(wings_pref:get_value(language)),
 
     WxSys = make_wxfont(wings_pref:get_value(system_font)),
-    {ok, Sys} = wings_glfont:load_font(WxSys, [{range, Ranges}]),
     WxCon = make_wxfont(wings_pref:get_value(console_font)),
     %% {ok, Console} = wings_glfont:load_font(WxCon, [{range, Ranges}]),
 
-    ?SET(system_font, Sys),
     ?SET(system_font_wx, WxSys),
-    %% ?SET(console_font, Console),
     ?SET(console_font_wx, WxCon),
+    ok.
+
+make_gl_font() ->
+    WxSys = ?GET(system_font_wx),
+    Ranges = char_ranges(wings_pref:get_value(language)),
+    {ok, Sys} = wings_glfont:load_font(WxSys, [{range, Ranges}]),
+    ?SET(system_font, Sys),
     ok.
 
 reload_font(PrefKey, FontInfo) ->

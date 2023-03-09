@@ -1352,5 +1352,6 @@ is_valid_prop(size) ->  false;
 is_valid_prop(pos) -> false;
 is_valid_prop(internal) -> false;
 is_valid_prop(external) -> false;
+is_valid_prop(gui_win) -> false;
 is_valid_prop(_) ->  true.
 
