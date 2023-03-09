@@ -47,6 +47,9 @@ load(Filename) ->
             case file:read(FH, 2) of
                 {ok, <<16#01, 16#DA>>} ->
                     load_1(FH);
+                {ok, _} ->
+                    file:close(FH),
+                    {error, wrong_format};
                 {error, Err} ->
                     file:close(FH),
                     {error, Err}

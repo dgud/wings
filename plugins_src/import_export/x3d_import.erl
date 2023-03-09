@@ -18,6 +18,7 @@
 
 -import(lists, [map/2,foldl/3,keydelete/3,keyreplace/4,sort/1]).
 
+-define(WPCWRL, wpc_wrl).
 
 -include_lib("wings/e3d/e3d.hrl").
 -include_lib("wings/e3d/e3d_image.hrl").
@@ -92,19 +93,27 @@ do_import(Ask, _St) when is_atom(Ask) ->
            end);
 do_import(Attr, St) ->
     wpa:import(props(), import_fun(Attr), St).
+    
+set_pref(KeyVals) ->
+    wpa:pref_set(?WPCWRL, KeyVals).
 
-import_fun(_Attr) ->
+import_transform(E3dFile, KeyVals) ->
+    Mat = wpa:import_matrix(KeyVals),
+    e3d_file:transform(E3dFile, Mat).
+
+import_fun(KeyVals) ->
     fun(Filename) ->
+        set_pref(KeyVals),
         ShortFilename = filename:rootname(filename:basename(Filename)),
         
-        FType = get_file_type(Filename), %% x3d or wrl
+        FType = get_file_type(Filename), % x3d or wrl
         ets:new(?MODULE, [named_table,public,ordered_set]),
         Return = try 
           {ok, ShapeList} = read_file_content(FType, Filename),
           ?DEBUG_FMT("ShapeList=~w~n", [ShapeList]),
           {ok, E3DObjects, MatsList} = shape_list_to_objects(ShortFilename, ShapeList, Filename),
           E3dFile = #e3d_file{objs=E3DObjects,mat=MatsList},
-          {ok,E3dFile}
+          {ok,import_transform(E3dFile, KeyVals)}
         catch _:Err:ST ->
           io:format(?__(1,"X3D Import Error: ~P in")++" ~p~n", [Err,30,ST]),
           {error, lists:flatten(?__(2,"VRML/X3D Import Error"))}
@@ -117,12 +126,11 @@ shape_list_to_objects(ShortFilename, ShapesList_0, X3DFullPath) ->
     %% Since the exporter exports objects in separate pieces based on
     %% materials, it makes sense to recombine the pieces for objects. 
     
-    ShapesList_1 = lists:filter(
-        fun (unimp_container) -> false; (_) -> true end,
-        ShapesList_0),
+    ShapesList_1 = [Shape || Shape <- ShapesList_0,
+                             Shape =/= unimp_container],
     
-    ShapesList = lists:filter(
-        fun (#lightsrc{}=_) -> false; (_) -> true end,
+    {_Lights, ShapesList} = lists:partition(
+        fun (#lightsrc{}=_) -> true; (_) -> false end,
         ShapesList_1),
     ShapePiecesList = combine_shape_pieces(ShapesList),
     E3DObjectsAndMats = [shape_to_object(ShortFilename, ShapePieces, X3DFullPath)
@@ -159,6 +167,9 @@ combine_shape_pieces_same({_,Coords1Set},#shape_piece{geometry=Geom2}=_) ->
 combine_shape_pieces_same_1(Coords1Set, Coords2) ->
     not sets:is_disjoint(Coords1Set, sets:from_list(Coords2)).
 
+fill_in_colorlist(Fs0, List) ->
+    fill_in_txlist(Fs0, List).
+
 fill_in_txlist(Fs0, []) ->
     fill_in_txlist(Fs0, none, []);
 fill_in_txlist(Fs0, B) ->
@@ -191,18 +202,19 @@ shape_to_object(ShortFilename, ShapePieces, X3DFullPath) ->
     ShapeId = "_" ++ integer_to_list(abs(erlang:unique_integer())),
     ObjectName = ShortFilename ++ ShapeId,
     
-    {Mat1_2, Vs_2, TxList_2, Fs0L_2, _,_} = lists:foldl(fun(Shape,
-        {Mat1_0, Vs_0, TxList_0, Fs0L_0, VsOffset,TxOffset})
+    {Mat1_2, Vs_2, Colors_2, TxList_2, Fs0L_2, _,_,_} = lists:foldl(fun(Shape,
+        {Mat1_0, Vs_0, Colors_0, TxList_0, Fs0L_0, VsOffset,TxOffset,ColOffset})
     ->
-        {Mat1_1, Vs_1, TxList_1, Fs0L_1, VsOffset_1, TxOffset_1} =
-            shape_piece_for_object(ObjectName, Shape, VsOffset, TxOffset, X3DFullPath),
-        {[Mat1_1|Mat1_0], [Vs_1|Vs_0], [TxList_1|TxList_0], [Fs0L_1|Fs0L_0],
-            VsOffset_1, TxOffset_1 }
-    end, {[],[],[],[],0,0}, ShapePieces),
+        {Mat1_1, Vs_1, Colors_1, TxList_1, Fs0L_1, VsOffset_1, TxOffset_1, ColOffset_1} =
+            shape_piece_for_object(ObjectName, Shape, VsOffset, TxOffset, ColOffset, X3DFullPath),
+        {[Mat1_1|Mat1_0], [Vs_1|Vs_0], [Colors_1|Colors_0], [TxList_1|TxList_0], [Fs0L_1|Fs0L_0],
+            VsOffset_1, TxOffset_1, ColOffset_1 }
+    end, {[],[],[],[],[],0,0,0}, ShapePieces),
     
     Mat1   = lists:reverse(lists:filter(
         fun(none) -> false; (_) -> true end, Mat1_2)),
     Vs     = lists:append(lists:reverse(Vs_2)),
+    Vc     = lists:append(lists:reverse(Colors_2)),
     TxList = lists:append(lists:reverse(TxList_2)),
     Fs0L   = lists:append(lists:reverse(Fs0L_2)),
     HEs = [],
@@ -210,19 +222,21 @@ shape_to_object(ShortFilename, ShapePieces, X3DFullPath) ->
     Efs = [ #e3d_face{
         vs=L,
         tx=LTx,
+        vc=C,
         mat=
             case MatName of
                 none -> [];
                 _ -> [MatName]
             end
-    } || {L, LTx, MatName} <- Fs0L],
+    } || {L, C, LTx, MatName} <- Fs0L],
     
     Mesh = #e3d_mesh{
         type=polygon,
         vs=Vs,
+        vc=Vc,
         fs=Efs,
         he=HEs,
-        tx=TxList }, % case TxList of none -> []; _ -> TxList end},
+        tx=TxList },
         
     ?DEBUG_FMT("Mesh=~p~n", [Mesh]),
     
@@ -231,7 +245,7 @@ shape_to_object(ShortFilename, ShapePieces, X3DFullPath) ->
 
 shape_piece_for_object(ObjectName,
     #shape_piece{appearance=Appearance,geometry=Geometry}=_Shape,
-    VsOffset, TxOffset, X3DFullPath)
+    VsOffset, TxOffset, ColOffset, X3DFullPath)
 ->
     case Appearance of
         #material{ material=MatPs, texture=Filename} ->
@@ -241,8 +255,18 @@ shape_piece_for_object(ObjectName,
             Mat1 = none
     end,
     #geometry{coords=Vs,coordIndices=Fs0_0,texCoords=TxList_0,
-        tcIndices=Fs0Tx_0,creaseAngle=_CreaseAngle} = Geometry,
+        tcIndices=Fs0Tx_0,colors=Colors_0,colIndices=ColIndices_0,
+        creaseAngle=_CreaseAngle} = Geometry,
     Fs0 = [ [F+VsOffset || F <- FL] || FL <- Fs0_0],
+    case Colors_0 of
+        none ->
+            Colors = [],
+            ColIndices = [];
+        _ ->
+            Colors = Colors_0,
+            ColIndices = [[C+ColOffset || C <- CL] || CL <- ColIndices_0]
+    end,
+    ColIndices_1 = fill_in_colorlist(Fs0, ColIndices),
     case TxList_0 of
         none -> TxList = [];
         _ ->    TxList = TxList_0
@@ -252,15 +276,15 @@ shape_piece_for_object(ObjectName,
     MatNames = fill_in_matname(Fs0, MatName),
     VsOffset_1 = length(Vs) + VsOffset,
     TxOffset_1 = length(TxList) + TxOffset,
-    {Mat1, Vs, TxList, zip_face_elems(Fs0, Fs0Tx, MatNames),
-        VsOffset_1,
-        TxOffset_1}.
+    ColOffset_1 = length(Colors) + ColOffset,
+    {Mat1, Vs, Colors, TxList, zip_face_elems(Fs0, ColIndices_1, Fs0Tx, MatNames),
+        VsOffset_1, TxOffset_1, ColOffset_1}.
     
-zip_face_elems(A,B,C) ->
-    zip_face_elems(A,B,C,[]).
-zip_face_elems([A|AR],[B|BR],[C|CR], O) ->
-    zip_face_elems(AR,BR,CR, [{A,B,C}|O]);
-zip_face_elems([],[],[], O) ->
+zip_face_elems(A,B,C,D) ->
+    zip_face_elems(A,B,C,D,[]).
+zip_face_elems([A|AR],[B|BR],[C|CR],[D|DR], O) ->
+    zip_face_elems(AR,BR,CR,DR, [{A,B,C,D}|O]);
+zip_face_elems([],[],[],[], O) ->
     lists:reverse(O).
     
     
@@ -307,10 +331,6 @@ load_texture_maps({image, Width, Height, NumComponents, ImageData}, _Id, _FullPa
 load_texture_maps(Filename_0, _Id, X3DFullPath) ->
     case get_bitmap(Filename_0, X3DFullPath) of
         {ok, E3DImage} ->
-            % {_, AtomFilename_0} = Filename_0,
-            % Unique = abs(erlang:unique_integer()),
-            % AtomFilename = filename:rootname(filename:basename(AtomFilename_0)),
-            % TexName = list_to_atom("material_" ++ AtomFilename ++ Id),
             Maps = {maps, [{diffuse, E3DImage}]},
             {ok, [Maps]};
         {error, Err} ->
@@ -324,7 +344,6 @@ load_texture_maps(Filename_0, _Id, X3DFullPath) ->
 %% Lines ordered from bottom to top
 pixel_image({image, Width, Height, NumComponents, ImageData}) ->
     TexName = "piximage" ++ integer_to_list(abs(erlang:unique_integer())) ++ ".bmp",
-io:format("ImageData=~p~n", [ImageData]),
     Blob = list_to_binary(pixel_image_scan_lines(Width,
         [pixel_image_to_rgba(NumComponents, round(P)) || P <- ImageData])),
     #e3d_image{
@@ -376,8 +395,8 @@ rgb_to_rgba({R,G,B}, Alpha) ->
     {R,G,B,Alpha}.
     
 
-dialog(Type) ->
-    [wpa:dialog_template(?MODULE, Type, [include_colors])].
+dialog(import) ->
+    [wpa:dialog_template(?WPCWRL, import, [include_colors])].
 
 
 get_file_type(FileName) ->
@@ -416,7 +435,7 @@ read_file_content(wrl, Filename) ->
 %% State file for xmerl sax.
 -record(x3dtk, {
     list = [],
-    inscene = false %% Is event inside the <Scene> tag
+    inscene = false  % Is event inside the <Scene> tag
 }).
 
 read_x3d_content(Bin_0) ->
@@ -641,8 +660,8 @@ parse_x3d_attr([{K, V} | A], List, NameDef, NameUse) ->
     parse_x3d_attr(A, [{K, V} | List], NameDef, NameUse).
 
 %% The X3D specification still distinguishes sub-nodes as part
-%% of a specific field of the parent node, so we will categorize
-%% the XML nodes into the X3D field values.
+%% of a specific field of the parent node as it did for VRML, so
+%% we will categorize the XML nodes into the X3D field values.
 %%
 categorize_xml_to_x3d_field(ContT, A) ->
     categorize_xml_to_x3d_field(ContT, A, []).
@@ -711,6 +730,7 @@ xml_x3d_fld(<<"LineProperties">>) -> {ndfield, <<"lineProperties">>};
 xml_x3d_fld(<<"PointProperties">>) -> {ndfield, <<"pointProperties">>};
 xml_x3d_fld(<<"X3DNormalNode">>) -> {ndfield, <<"normal">>};
 xml_x3d_fld(<<"X3DTextureCoordinateNode">>) -> {ndfield, <<"texCoord">>};
+xml_x3d_fld(<<"X3DColorNode">>) -> {ndfield, <<"color">>};
 xml_x3d_fld(A) ->
     %% Go up the subclasses of node types until we find
     %% a node type associated to a field.
@@ -821,11 +841,6 @@ x3d_sub_of(<<"TriangleStripSet">>) -> <<"X3DComposedGeometryNode">>;
 
 x3d_sub_of(_) -> root.
  
-
-
-
-
-
 
 
 
@@ -1205,7 +1220,7 @@ expected_field_type(<<"Inline">>, {word, F}) ->
 expected_field_type(<<"LOD">>, {word, F}) ->
     case F of
         <<"children">> -> {multival, container};
-        <<"level">> -> {multival, container}; %% VRML 97 version of LOD has children in level
+        <<"level">> -> {multival, container}; % VRML 97 version of LOD has children in level
         <<"center">> -> vec3;
         <<"range">> -> {multival, float};
         <<"metadata">> -> {multival, container};
@@ -2054,7 +2069,7 @@ trav_geom_elevationgrid(Fields) ->
     ZSpacing = value_from_field(<<"zSpacing">>, float, Fields, 1.0),
     
     {ok, set_ccw(to_bool(IsCCW), make_elevationgrid(
-        Heights, float(XDimension), float(ZDimension),
+        Heights, round(XDimension), round(ZDimension),
         float(XSpacing), float(ZSpacing), float(CreaseAngle),
         Colors, TexCoords))}.
     
@@ -2334,8 +2349,10 @@ delim_indexes_to_lists([N | List], OSList, OList) when N >= 0 ->
 %% Viewpoint {}
 %% WorldInfo {}
 %%
-%% Interpolators: ColorInterpolator, CoordinateInterpolator, NormalInterpolator, OrientationInterpolator, PositionInterpolator, ScalarInterpolator
-%% Sensors: CylinderSensor, PlaneSensor, ProximitySensor, SphereSensor, TimeSensor, TouchSensor, VisibilitySensor
+%% Interpolators: ColorInterpolator, CoordinateInterpolator, NormalInterpolator,
+%%            OrientationInterpolator, PositionInterpolator, ScalarInterpolator
+%% Sensors: CylinderSensor, PlaneSensor, ProximitySensor, SphereSensor, 
+%%          TimeSensor, TouchSensor, VisibilitySensor
 %%
 %% Unimplemented non polygon nodes:
 %% PointSet {}
@@ -2805,6 +2822,7 @@ read_default(FileName) ->
 %% Make indices clockwise if ccw is false, normally a VRML/X3D file
 %% has indices of all its objects counter clockwise.
 %%
+-spec set_ccw(boolean(), #geometry{}) -> #geometry{}.
 set_ccw(true, AlreadyCCW) ->
     AlreadyCCW;
 set_ccw(_, #geometry{coordIndices=CoordIndices,tcIndices=TCIndices}=Geom) ->
@@ -2816,6 +2834,7 @@ set_ccw(_, #geometry{coordIndices=CoordIndices,tcIndices=TCIndices}=Geom) ->
 %%% Simple Primitives
 %%%
 
+-spec make_box(float(),float(),float()) -> #geometry{}.
 make_box(X_0,Y_0,Z_0) ->
     X = X_0 / 2.0,
     Y = Y_0 / 2.0,
@@ -2844,6 +2863,8 @@ make_box(X_0,Y_0,Z_0) ->
         tcIndices=TCIndices,
         creaseAngle=0.0}.
 
+
+-spec make_cone(float(), float()) -> #geometry{}.
 make_cone(Radius, Height_0) ->
     Circle = make_circle(Radius),
     Height = Height_0 / 2.0,
@@ -2869,6 +2890,7 @@ make_cone(Radius, Height_0) ->
         tcIndices=TCIndices,
         creaseAngle=0.0}.
 
+-spec make_cylinder(float(), float()) -> #geometry{}.
 make_cylinder(Radius, Height_0) ->
     Circle = make_circle(Radius),
     Height = Height_0 / 2.0,
@@ -2896,6 +2918,7 @@ make_cylinder(Radius, Height_0) ->
         creaseAngle=0.0}.
 
 
+-spec make_sphere(float()) -> #geometry{}.
 make_sphere(Radius) ->
 
     TopTopCoordsSphere = [ {0.0, Radius * 1.0, 0.0} ],
@@ -2930,7 +2953,7 @@ make_sphere(Radius) ->
     
     Len = length(MidCoordsSphere),
     
-    CoordIndices_Row1 = [[N+Top1CoordsSphereOffset, w_num(N+1,Len)+Top1CoordsSphereOffset, TopTopCoordsSphereOffset] || N <- lists:seq(0, Len-1)], %% Top
+    CoordIndices_Row1 = [[N+Top1CoordsSphereOffset, w_num(N+1,Len)+Top1CoordsSphereOffset, TopTopCoordsSphereOffset] || N <- lists:seq(0, Len-1)], % Top
     CoordIndices_Row2T = [[N+Top2CoordsSphereOffset, w_num(N+1,Len)+Top2CoordsSphereOffset, w_num(N+1,Len)+Top1CoordsSphereOffset, N+Top1CoordsSphereOffset] || N <- lists:seq(0, Len-1)],
     
     CoordIndices_Row2 = [[N+MidCoordsSphereOffset, w_num(N+1,Len)+MidCoordsSphereOffset, w_num(N+1,Len)+Top2CoordsSphereOffset, N+Top2CoordsSphereOffset] || N <- lists:seq(0, Len-1)],
@@ -2938,7 +2961,7 @@ make_sphere(Radius) ->
     
     CoordIndices_Row3B = [[N+Bottom1CoordsSphereOffset, w_num(N+1,Len)+Bottom1CoordsSphereOffset, w_num(N+1,Len)+Bottom2CoordsSphereOffset, N+Bottom2CoordsSphereOffset] || N <- lists:seq(0, Len-1)],
     
-    CoordIndices_Row4 = [[N+Bottom1CoordsSphereOffset, BottomBottomCoordsSphereOffset, w_num(N+1,Len)+Bottom1CoordsSphereOffset] || N <- lists:seq(0, Len-1)], %% Bottom
+    CoordIndices_Row4 = [[N+Bottom1CoordsSphereOffset, BottomBottomCoordsSphereOffset, w_num(N+1,Len)+Bottom1CoordsSphereOffset] || N <- lists:seq(0, Len-1)], % Bottom
     
     CoordIndices_0 =
         CoordIndices_Row1 ++
@@ -2981,7 +3004,8 @@ w_num(N, _L) -> N.
 %%
 %% Elevation Grid
 %%
-
+-spec make_elevationgrid([float()], integer(), integer(), float(), float(), float(),
+    none | {boolean(), [tuple()]}, [{float(),float()}] | none) -> #geometry{}.
 make_elevationgrid(Heights, XDimension, ZDimension, XSpacing, ZSpacing, CreaseAngle, Colors, TexCoords_I) ->
     {Coords_Top, _, _} = lists:foldl(fun(_, {Coords_0, I, J}) ->
         C = {XSpacing * I, lists:nth(1 + I + J * XDimension, Heights), ZSpacing * J},
@@ -3011,18 +3035,21 @@ make_elevationgrid(Heights, XDimension, ZDimension, XSpacing, ZSpacing, CreaseAn
             Colors_1 = none,
             ColorIndices_1 = none;
         {false, Colors_0_F} ->
-            {Colors_1, ColorIndices_1} =
-                geom_per_face_colors(Colors_0_F, none, CoordIndices);
+            {Colors_1, ColorIndices_F_Top} =
+                geom_per_face_colors(Colors_0_F, none, CoordIndices_Top),
+            ColorIndices_1 = elev_color_indices(ColorIndices_F_Top, CoordIndices_Sides);
         {true, Colors_0_V} ->
-            {Colors_1, ColorIndices_1} =
-                geom_per_vertex_colors(Colors_0_V, none, CoordIndices)
+            {Colors_1, ColorIndices_V_Top} =
+                geom_per_vertex_colors(Colors_0_V, CoordIndices_Top, CoordIndices_Top),
+            ColorIndices_1 = elev_color_indices(ColorIndices_V_Top, CoordIndices_Sides)
     end,
     
     TexCoords = elev_fill_tex_coords(
         elev_generate_tex_coords(XDimension, ZDimension), TexCoords_I),
     TCIndices_Top = CoordIndices_Top,
-    TCIndices = TCIndices_Top ++ TCIndices_Top ++ 
+    TCIndices_0 = TCIndices_Top ++ TCIndices_Top ++ 
         elev_coordidx_for_height_sides(XDimension, ZDimension, 0),
+    TCIndices = [lists:reverse(L) || L <- TCIndices_0],
     #geometry{
         coords=Coords,
         coordIndices=CoordIndices,
@@ -3031,6 +3058,7 @@ make_elevationgrid(Heights, XDimension, ZDimension, XSpacing, ZSpacing, CreaseAn
         colors=Colors_1,
         colIndices=ColorIndices_1,
         creaseAngle=CreaseAngle}.
+
 
 elev_coordidx_for_height_sides(XDimension, ZDimension, Coords_Bottom_Offset) ->
     Side1 = [
@@ -3111,6 +3139,8 @@ elev_generate_tex_coords(XDimension, ZDimension) when XDimension > 0, ZDimension
     end, {[], 0, 0}, lists:seq(1, XDimension * ZDimension)),
     UVs.
 
+elev_fill_tex_coords(TexCoords_0, none) ->
+    elev_fill_tex_coords(TexCoords_0, []);
 elev_fill_tex_coords(TexCoords_0, TexCoords_I) ->
     elev_fill_tex_coords(TexCoords_0, TexCoords_I, []).
 elev_fill_tex_coords([_|R_0], [TC|R_I], OL) ->
@@ -3121,11 +3151,19 @@ elev_fill_tex_coords([], _, OL) ->
     lists:reverse(OL).
 
 
+elev_color_indices(ColorIndices_Top, CoordIndices_Sides) ->
+    ColorIndices_0 = ColorIndices_Top ++ ColorIndices_Top ++ 
+        [[0 || _ <- L] || L <- CoordIndices_Sides],
+    [lists:reverse(L) || L <- ColorIndices_0].
+
+
 
 %%
 %% Extrusions
 %% 
 
+-spec make_extrusion([{float(),float(),float()}], [{float(),float()}],
+    [{float(),float()}], [{float(),float(),float(),float()}], float()) -> #geometry{}.
 make_extrusion(Spine, CrossSections, Scales_0, Rotations_0, CreaseAngle) ->
     
     %% Fill in lists in case there are fewer than the spine
@@ -3176,7 +3214,7 @@ coords_from_extrusion(CrossSection, [{Point, Rotation, Scale, SCP} | RSegments],
     ExPoints = [
         begin
             {X2, Z2} = point_scale(Scale, C),
-            V_1 = {X2, 0.0, Z2},
+            V_1 = {float(X2), 0.0, float(Z2)},
             V_2 = e3d_mat:mul_point(RMat, V_1),
             V_3 = e3d_vec:add(V_2, Point),
             V_3
@@ -3192,7 +3230,7 @@ point_scale(Scale, Point) ->
 
 from_extrusion_rotate(Rotation) ->
     {XR, YR, ZR, AngR} = Rotation,
-    e3d_mat:rotate(AngR, {XR, YR, ZR}).
+    e3d_mat:rotate(float(AngR), {float(XR), float(YR), float(ZR)}).
 
 
 
@@ -3226,7 +3264,7 @@ coordidx_from_extrusion(CrossSection, Offset, [_ | RSegments], O) ->
 
 
 mat_from_axises(Axises, Mat_0) ->
-    {XAxis, YAxis, ZAxis} = Axises, %% TODO: Might need to test further
+    {_XAxis, YAxis, _ZAxis} = Axises, % TODO: Might need to test further
     Mat = build_mat_from_axis(YAxis, {0.0, 1.0, 0.0}, Mat_0),
         %    build_mat_from_axis(XAxis, {1.0, 0.0, 0.0},
         %        build_mat_from_axis(ZAxis, {0.0, 0.0, 1.0}, Mat_0))),
@@ -3271,9 +3309,10 @@ determine_scp_point(Spine_m_1, Spine_I, Spine_p_1, LastZ) ->
 %%
 
 geom_per_face_colors(Colors_0, none, CoordIndices) ->
-    {Colors_0, geom_per_face_colors_1(
-        lists:seq(0, length(Colors_0)-1),
-        CoordIndices)};
+    {lists:sublist(Colors_0, 1, length(CoordIndices)),
+        geom_per_face_colors_1(
+            lists:seq(0, length(Colors_0)-1),
+            CoordIndices)};
 geom_per_face_colors(Colors_0, ColorIndices_0, CoordIndices)
     when is_list(ColorIndices_0) ->
         {Colors_0, geom_per_face_colors_1(
@@ -3360,8 +3399,8 @@ scale_geometry({XS, YS, ZS}, #geometry{coords=Coords}=Geometry) ->
     }.
 
 rotate_geometry({0.0, 0.0, 1.0, 0.0}, Geometry) -> Geometry;
-rotate_geometry(RotateTuple, #geometry{coords=Coords}=Geometry) ->
-    Mat = rotate_mat(RotateTuple),
+rotate_geometry(RotateTup, #geometry{coords=Coords}=Geometry) ->
+    Mat = rotate_mat(RotateTup),
     Geometry#geometry{
         coords=[mul_point(Mat, {X, Y, Z}) || {X, Y, Z} <- Coords]
     }.
@@ -3373,12 +3412,11 @@ translate_geometry({TX, TY, TZ}, #geometry{coords=Coords}=Geometry) ->
     }.
     
 rotate_mat({XA, YA, ZA, Ang}) ->
-    %% TODO: e3d_mat:rotate(Ang, {XA, YA, ZA}),
-    {0}.
+    e3d_mat:rotate(float(Ang) * (180.0 / math:pi()),
+                   {float(XA), float(YA), float(ZA)}).
 
 mul_point(Mat, VPos) ->
-    %% TODO: e3d_mat:mul_point(Mat, VPos)
-    VPos.
+    e3d_mat:mul_point(Mat, VPos).
 
 
 %%
@@ -3416,6 +3454,7 @@ parse_skip_proto_curly([_ | Rest0], I) ->
 %%
 %%
 
+-spec to_bool(number()) -> boolean().
 to_bool(A) when A >= 1 ->
     true;
 to_bool(_) ->

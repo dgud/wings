@@ -134,7 +134,10 @@ export(WhichExt, File_name, Export, ExportN, Dir) ->
               ObjMesh = e3d_mesh:vertex_normals(Obj),
               Meshes = e3d_mesh:split_by_material(ObjMesh),
               Used_mats = all_shapes(WhichExt, fun(Mesh,UsedMats) ->
-                          export_object(fun(Indent, Data) -> to_io(WhichExt, F, Indent, Data) end, Mesh, Mat,
+                          export_object(
+                                fun(Indent, Data) ->
+                                    to_io(WhichExt, F, Indent, Data)
+                                end, Mesh, Mat,
                                 ExportN,
                                 UsedMats, Dir)
                       end, F, Used_mats0, Meshes),
@@ -148,7 +151,7 @@ export(WhichExt, File_name, Export, ExportN, Dir) ->
               Used_mats
           end, [], Objs)
     catch _:Err:ST ->
-        io:format(?__(1,"VRML Error: ~P in")++" ~p~n", [Err,30,ST])
+            io:format(?__(1,"VRML Error: ~P in")++" ~p~n", [Err,30,ST])
     end,
     case WhichExt of
         wrl -> ok;
@@ -163,7 +166,7 @@ export_transform(Contents, Attr) ->
     e3d_file:transform(Contents, Mat).
 
 export_object(Output, #e3d_mesh{fs=Fs0,ns=NTab,vs=VTab,tx=UVTab,vc=ColTab}, 
-          Mat_defs, ExportN, Used_mats0, Dir) ->
+              Mat_defs, ExportN, Used_mats0, Dir) ->
     Output(2, {start_tag, "Shape"}),
     Output(3, {after_attrs}),
     Fs = reorder(Fs0),
@@ -172,14 +175,14 @@ export_object(Output, #e3d_mesh{fs=Fs0,ns=NTab,vs=VTab,tx=UVTab,vc=ColTab},
     Output(3, {start_tag, "geometry", "IndexedFaceSet"}),
 
     if ExportN == true ->
-        Output(4, {tag_attr, "normalPerVertex", "TRUE"});
+            Output(4, {tag_attr, "normalPerVertex", "TRUE"});
        true -> ignore
     end,
     
     if
-    (ColTab == []) -> ignore;
-    true -> %% Use vertex colors
-        Output(4, {tag_attr, "colorPerVertex", "TRUE"})
+        (ColTab == []) -> ignore;
+        true -> %% Use vertex colors
+            Output(4, {tag_attr, "colorPerVertex", "TRUE"})
     end,
     WriteCoordIndex = fun (IdxIndent) ->
         %% Write vertex indices
@@ -216,30 +219,30 @@ export_object(Output, #e3d_mesh{fs=Fs0,ns=NTab,vs=VTab,tx=UVTab,vc=ColTab},
     Output(4, {only_wrl, [WriteCoordIndex]}),
 
     if ExportN ->
-        %% Write Normal vectors
-        Output(4, {start_tag, "normal", "Normal"}),
-        Output(5, {tag_attr_array, "vector", {W3,NTab}}),
-        Output(5, {after_attrs}),
-        Output(4, {close_tag, "Normal"}),
-        Output(4, {only_wrl, [WriteNormalIndex]});
+            %% Write Normal vectors
+            Output(4, {start_tag, "normal", "Normal"}),
+            Output(5, {tag_attr_array, "vector", {W3,NTab}}),
+            Output(5, {after_attrs}),
+            Output(4, {close_tag, "Normal"}),
+            Output(4, {only_wrl, [WriteNormalIndex]});
        true  -> ignore
     end,
 
     if 
-    ColTab /= []->                % Use vertex colors
-        Output(4, {start_tag, "color", "Color"}),
-        Output(5, {tag_attr_array, "color", {W3,ColTab}}),
-        Output(5, {after_attrs}),
-        Output(4, {close_tag, "Color"}),
-        Output(4, {only_wrl, [WriteColorIndex]});
-    UVTab /= [] ->                % Use UV-coords
-        Output(4, {start_tag, "texCoord", "TextureCoordinate"}),
-        Output(5, {tag_attr_array, "point", {W2,UVTab}}),
-        Output(5, {after_attrs}),
-        Output(4, {close_tag, "TextureCoordinate"}),
-        Output(4, {only_wrl, [WriteTexCoordIndex]});
-    true ->
-        ignore
+        ColTab /= []->                % Use vertex colors
+            Output(4, {start_tag, "color", "Color"}),
+            Output(5, {tag_attr_array, "color", {W3,ColTab}}),
+            Output(5, {after_attrs}),
+            Output(4, {close_tag, "Color"}),
+            Output(4, {only_wrl, [WriteColorIndex]});
+        UVTab /= [] ->                % Use UV-coords
+            Output(4, {start_tag, "texCoord", "TextureCoordinate"}),
+            Output(5, {tag_attr_array, "point", {W2,UVTab}}),
+            Output(5, {after_attrs}),
+            Output(4, {close_tag, "TextureCoordinate"}),
+            Output(4, {only_wrl, [WriteTexCoordIndex]});
+        true ->
+            ignore
     end,
     %% Close Shape and IndexedFaceSet
     Output(3, {close_tag, "IndexedFaceSet"}),
@@ -323,9 +326,9 @@ reorder(Fs0) ->
 reorder_face(F=#e3d_face{vs=[V|Vs],vc=Vc,tx=Tx,ns=Ns}) ->
     Min = min(Vs,1,0,V),
     F#e3d_face{vs=reorder_list([V|Vs],Min,[]),
-           vc=reorder_list(Vc,Min,[]),
-           tx=reorder_list(Tx,Min,[]),
-           ns=reorder_list(Ns,Min,[])}.
+               vc=reorder_list(Vc,Min,[]),
+               tx=reorder_list(Tx,Min,[]),
+               ns=reorder_list(Ns,Min,[])}.
 
 min([V|R],N,_,Min) when V < Min ->
     min(R,N+1,N,V);
@@ -371,20 +374,20 @@ clean_id(Id) when is_atom(Id) ->
     clean_id(atom_to_list(Id));
 clean_id([First|T]) ->
     case is_not_allowed_first_char(First) of
-    true ->
-        clean_id_rest([$W,First|T]);
-    false ->
-        [First|clean_id_rest(T)]
+        true ->
+            clean_id_rest([$W,First|T]);
+        false ->
+            [First|clean_id_rest(T)]
     end.
 
 clean_id_rest([]) ->
     [];
 clean_id_rest([H|T]) ->
     case is_not_allowed_char(H) of
-    true ->
-        fix_char(H)++clean_id_rest(T);
-    false ->
-        [H|clean_id_rest(T)]
+        true ->
+            fix_char(H)++clean_id_rest(T);
+        false ->
+            [H|clean_id_rest(T)]
     end.
 
 is_not_allowed_first_char(C) ->
@@ -392,8 +395,8 @@ is_not_allowed_first_char(C) ->
 
 is_not_allowed_char(C) ->
     (C =< 16#20) or lists:member(C, [16#22,16#23,16#27,16#2b,16#2c,
-                     16#2d,16#2e,16#5b,16#5c,16#5d,
-                     16#7b,16#7d,16#7f]).
+                                     16#2d,16#2e,16#5b,16#5c,16#5d,
+                                     16#7b,16#7d,16#7f]).
 fix_char($ ) ->
     "_";
 fix_char(C) ->
