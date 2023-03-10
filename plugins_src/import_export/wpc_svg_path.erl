@@ -72,12 +72,12 @@
      first_subpath=true   %first subpath of parse
      }).
     
--type rgba() :: {float(), float(), float(), float()}.
+-type rgb() :: {float(), float(), float()}.
 
 -record(style_colors,
     {
     scol :: none | inherit | opaque, %% Line color (either none, inherit or opaque)
-    fcol :: rgba() | inherit , %% Fill color (rgba tuple)
+    fcol :: rgb() | inherit , %% Fill color (rgba tuple)
     fopa :: float() | inherit %% Opacity
     }).
 
@@ -834,10 +834,7 @@ get_svg_tag_units_from_attrs([{_,_,AttrLName,Val}|R], DocUnit, Width, Height) ->
                     DocUnit_1 = DocUnit;
                 {NewWidth, UnitW} ->
                     Width_1 = NewWidth,
-                    DocUnit_1 = UnitW;
-                _          ->
-                    Width_1 = Width,
-                    DocUnit_1 = DocUnit
+                    DocUnit_1 = UnitW
             end;
         "height" ->
             Width_1 = Width,
@@ -847,10 +844,7 @@ get_svg_tag_units_from_attrs([{_,_,AttrLName,Val}|R], DocUnit, Width, Height) ->
                     DocUnit_1 = DocUnit;
                 {NewHeight, UnitH} ->
                     Height_1 = NewHeight,
-                    DocUnit_1 = UnitH;
-                _          ->
-                    Height_1 = Height,
-                    DocUnit_1 = DocUnit
+                    DocUnit_1 = UnitH
             end;
         _ ->
             DocUnit_1 = DocUnit,
@@ -1070,8 +1064,7 @@ svg_tok_attr_pair_g(AttrLName, Val)
 svg_tok_attr_pair_g(AttrLName, Val)
     when AttrLName =:= "transform" ->
     case parse_transform_attr(Val) of
-        {ok, Val_1} -> {transform, Val_1};
-        error -> unused
+        {ok, Val_1} -> {transform, Val_1}
     end;
 svg_tok_attr_pair_g(_AttrLName, _Val) ->
     unused.
@@ -1106,8 +1099,7 @@ svg_tok_attr_pair_path(StyleAttr, Val)
     -> svg_tok_color_attr(StyleAttr, Val);
 svg_tok_attr_pair_path("transform", Val) ->
     case parse_transform_attr(Val) of
-        {ok, Val_1} -> {transform, Val_1};
-        error -> unused
+        {ok, Val_1} -> {transform, Val_1}
     end;
 svg_tok_attr_pair_path("d", Val) ->
     {d, Val};
@@ -1128,8 +1120,7 @@ svg_tok_attr_pair_polyline("points", Val) ->
     {points, Val};
 svg_tok_attr_pair_polyline("transform", Val) ->
     case parse_transform_attr(Val) of
-        {ok, Val_1} -> {transform, Val_1};
-        error -> unused
+        {ok, Val_1} -> {transform, Val_1}
     end;
 svg_tok_attr_pair_polyline(_AttrLName, _Val) ->
     unused.
@@ -1148,8 +1139,7 @@ svg_tok_attr_pair_polygon("points", Val) ->
     {points, Val};
 svg_tok_attr_pair_polygon("transform", Val) ->
     case parse_transform_attr(Val) of
-        {ok, Val_1} -> {transform, Val_1};
-        error -> unused
+        {ok, Val_1} -> {transform, Val_1}
     end;
 svg_tok_attr_pair_polygon(_AttrLName, _Val) ->
     unused.
@@ -1186,8 +1176,7 @@ svg_tok_attr_pair_rect("rx", Val) ->
     {rx, Val_1};
 svg_tok_attr_pair_rect("transform", Val) ->
     case parse_transform_attr(Val) of
-        {ok, Val_1} -> {tranform, Val_1};
-        error -> unused
+        {ok, Val_1} -> {tranform, Val_1}
     end;
 svg_tok_attr_pair_rect(_AttrLName, _Val) ->
     unused.
@@ -1214,8 +1203,7 @@ svg_tok_attr_pair_circle("r", Val) ->
     {r, Val_1};
 svg_tok_attr_pair_circle("transform", Val) ->
     case parse_transform_attr(Val) of
-        {ok, Val_1} -> {transform, Val_1};
-        error -> unused
+        {ok, Val_1} -> {transform, Val_1}
     end;
 svg_tok_attr_pair_circle(_AttrLName, _Val) ->
     unused.
@@ -1244,8 +1232,7 @@ svg_tok_attr_pair_ellipse("ry", Val) ->
     {ry, Val_1};
 svg_tok_attr_pair_ellipse("transform", Val) ->
     case parse_transform_attr(Val) of
-        {ok, Val_1} -> {transform, Val_1};
-        error -> unused
+        {ok, Val_1} -> {transform, Val_1}
     end;
 svg_tok_attr_pair_ellipse(_AttrLName, _Val) ->
     unused.
@@ -1414,10 +1401,8 @@ parse_image_href(A) ->
             {ok, {abs, url_to_filepath(unesc_url(URL))}};
         
         %% Ignore remote URLs and unparseable URLs
-        {ok, _, _URL} ->
-            %% A remote image? we won't connect to it.
-            none; 
         _ ->
+            %% A remote image? we won't connect to it.
             none
     end.
 
@@ -1504,9 +1489,7 @@ parse_transform_attr(A) ->
         {ok, TransformList} ->
             Mat_0 = m3x2_mat(),
             Matrix = parse_transform_attr_1(TransformList, Mat_0),
-            {ok, Matrix};
-        _ ->
-            error
+            {ok, Matrix}
     end.
 parse_transform_attr_1(["matrix", open, A0,A1,A2,A3, A4,A5, close | R], _M) ->
     NewM = {float(A0), float(A1), float(A2), float(A3), float(A4), float(A5)},
@@ -1575,9 +1558,7 @@ m3x2_combine(_Mat1,Mat2) when is_tuple(Mat2) ->
 parse_image_transform(A) ->
     case parse_transform_attr(A) of
         {ok, {matrix, A0, A1, A2, A3, A4, A5}} ->
-            {ok, {matrix, float(A0), float(A1), float(A2), float(A3), float(A4), float(A5)}};
-        _ ->
-            error
+            {ok, {matrix, float(A0), float(A1), float(A2), float(A3), float(A4), float(A5)}}
     end.
 
 %%% Tokenize SVG attribute contents
