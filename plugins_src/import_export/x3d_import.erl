@@ -45,7 +45,7 @@
 
 -record(lightsrc, {
     light :: any(),
-    ison :: integer(),
+    ison :: boolean(),
     pos :: {float(),float(),float()},
     color :: {float(),float(),float()},
     intensity :: float(),
@@ -186,12 +186,8 @@ fill_in_txlist([], _, O) ->
 
 fill_in_matname(Fs0, B) ->
     fill_in_matname(Fs0, B, []).
-fill_in_matname([_F|[_|_]=Fs0], [A|[_|_]=B], O) ->
-    fill_in_matname(Fs0, B, [A|O]);
 fill_in_matname([_F|Fs0], none, O) ->
     fill_in_matname(Fs0, none, [default|O]);
-fill_in_matname([_F|Fs0], [A]=B, O) ->
-    fill_in_matname(Fs0, B, [A|O]);
 fill_in_matname([_F|Fs0], MatName=B, O) when is_atom(MatName) ->
     fill_in_matname(Fs0, B, [MatName|O]);
 fill_in_matname([], _, O) ->
@@ -2262,9 +2258,9 @@ trav_light_spotlight(Fields) ->
     %% SpotLight
     AmbientIntensity = value_from_field(<<"ambientIntensity">>, float, Fields, 0.0),
     {XA,YA,ZA} = value_from_field(<<"attenuation">>, vec3, Fields, {1.0, 0.0, 0.0}),
-    BeamWidth = value_from_field(<<"beamWidth">>, float, Fields, 1.570796),
+    BeamWidth = value_from_field(<<"beamWidth">>, float, Fields, 1.5),
     {R,G,B} = value_from_field(<<"color">>, color, Fields, {1.0, 1.0, 1.0}),
-    CutOffAngle = value_from_field(<<"cutOffAngle">>, float, Fields, 0.785398),
+    CutOffAngle = value_from_field(<<"cutOffAngle">>, float, Fields, 0.7),
     {XD,YD,ZD} = value_from_field(<<"direction">>, vec3, Fields, {0,0,-1}),
     Intensity = value_from_field(<<"intensity">>, float, Fields, 1.0),
     {X,Y,Z} = value_from_field(<<"location">>, vec3, Fields, {0,0,0}),
@@ -2680,10 +2676,8 @@ parse_image_href(A) ->
             {ok, {abs, url_to_filepath(unesc_url(URL))}};
         
         %% Ignore remote URLs and unparseable URLs
-        {ok, _, _URL} ->
-            %% A remote image? we won't connect to it.
-            none; 
         _ ->
+            %% A remote image? we won't connect to it.
             none
     end.
 
@@ -2776,12 +2770,7 @@ get_bitmap_by_ext(FilePath) ->
         _ ->
             F = fun read_default/1
     end,
-    case F of
-        none ->
-            {error, none};
-        _ ->
-            F(FilePath)
-    end.
+    F(FilePath).
 
 read_jpeg(FileName) ->
     BlockWxMsgs = wxLogNull:new(),
