@@ -2708,18 +2708,12 @@ unit_ratio(Unit1, px, DPI) ->
     (DPI / unit_scaled_pt(in)) * unit_scaled_pt(Unit1).
 
 %% User units
-conv_unit(Num, DocUnit, DPI) when is_float(Num) ->
-    conv_unit({Num, user}, DocUnit, DPI);
-conv_unit(Num, DocUnit, DPI) when is_integer(Num) ->
-    conv_unit({float(Num), user}, DocUnit, DPI);
 conv_unit({Num, user}, _, _DPI) when is_float(Num); is_integer(Num) ->
     Num * 1.0;
 
 
 conv_unit({Num, Unit}, DocUnit, DPI) when is_float(Num), is_atom(Unit), is_atom(DocUnit) ->
     Num * unit_ratio(Unit, DocUnit, DPI);
-conv_unit({Num, Unit}, DocUnit, DPI) when is_float(Num), is_list(Unit) ->
-    conv_unit({Num, unit_atom(Unit)}, DocUnit, DPI);
 conv_unit({Num, Unit}, DocUnit, DPI) when is_integer(Num) ->
     conv_unit({float(Num), Unit}, DocUnit, DPI).
 
