@@ -802,6 +802,9 @@ dispatch_event(#wx{obj=Obj, event=#wxFocus{type=kill_focus, win=New}}) ->
 dispatch_event(quit) ->
     foreach(fun(Name) -> send(Name, quit) end, gb_trees:keys(get(wm_windows))),
     true;
+dispatch_event(init_opengl) ->
+    foreach(fun(Name) -> send(Name, init_opengl) end, gb_trees:keys(get(wm_windows))),
+    true;
 dispatch_event({wm,WmEvent}) ->
     wm_event(WmEvent),
     true;
@@ -986,10 +989,6 @@ clear_background() ->
 
 init_opengl(Name, Canvas) ->
     wings_gl:setCurrent(Canvas, ?GET(gl_context)),
-    gl:clear(?GL_COLOR_BUFFER_BIT bor ?GL_DEPTH_BUFFER_BIT),
-    gl:pixelStorei(?GL_UNPACK_ALIGNMENT, 1),
-    {R,G,B} = wings_pref:get_value(background_color),
-    gl:clearColor(R, G, B, 1.0),
     send(Name, init_opengl).
 
 send_event(#win{z=Z}=Win, redraw) when Z < 0 ->

@@ -26,7 +26,8 @@
 	 get_process_option/0,set_process_option/1,
 
 	 batch/1, foreach/2,
-	 lock/1, unlock/2, lock/2, lock/3,
+	 lock/2, lock/3,
+         do_unlock/2,    %% Only to be used by wings_io_wx
 
 	 draw_bitmap/1,
 	 set_color/1]).
@@ -62,11 +63,11 @@ set_process_option(Opts) ->
 lock(Pid, Fun) ->
     lock(Pid, Fun, fun() -> ok end).
 
-lock(Pid, Fun, Other) when is_function(Fun), is_function(Other) ->
+lock(Pid, Fun, DoAfter) when is_function(Fun), is_function(DoAfter) ->
     lock(Pid),
-    try Fun()
-    after
-	unlock(Pid, Other)
+    try Fun()  %% In locking process
+    after %% Apply DoAfter in locked process before releasing it
+        Pid ! {unlock, self(), DoAfter}
     end.
 
 lock(Pid) when is_pid(Pid) ->
@@ -83,16 +84,28 @@ lock(Pid) when is_pid(Pid) ->
 			    {'DOWN',Monitor, _,_,_} ->
 				ok
 			after 2000 ->
-				io:format("~p: Can not lock ~p~n", [self(), Pid]),
+				?dbg("~p: Can not lock ~p~n", [self(), Pid]),
 				GetLock()
 			end
 		end,
 	    F()
     end.
 
-unlock(Pid, Fun) ->
-    Pid ! {unlock, self(), Fun},
-    ok.
+do_unlock(Fun, Eq0) ->
+    Fun(),
+    case self() =:= whereis(wings) of
+        false ->
+            Eq0;
+        true ->
+            %% Called from wings_io_wx event loop
+            %% Then we must be in recieve loop
+            %% which only happend when event queue
+            %% was empty, handle any events that where
+            %% added by 'Fun()'
+            Evs = queue:to_list(get(?EVENT_QUEUE)),
+            Add = fun(Ev, Q) -> queue:in_r(Ev, Q) end,
+            lists:foldl(Add, Eq0, Evs)
+    end.
 
 %% Batch processing
 foreach(Fun, List) ->
@@ -151,7 +164,9 @@ set_title(Title) ->
     wings_io_wx:set_title(Title).
 
 reset_video_mode_for_gl(W,H) ->
-    wings_io_wx:reset_video_mode_for_gl(W,H).
+    wings_io_wx:reset_video_mode_for_gl(W,H),
+    putback_event_once(init_opengl),
+    ok.
 
 version_info() ->
     wings_io_wx:version_info().

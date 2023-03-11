@@ -50,6 +50,8 @@
 -define(wxID_OSX_MENU_LAST, 5255).
 -endif.
 
+-define(GL_WAIT, 200).
+
 %% API  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 start_link() ->
@@ -142,7 +144,15 @@ update_theme() ->
     wx_object:call(?MODULE, update_theme).
 
 close(Win) ->
-    wx_object:call(?MODULE, {close, Win}).
+    case wx_object:call(?MODULE, {close, Win}) of
+        ignored ->
+            ok;
+        closed ->
+            timer:sleep(?GL_WAIT), %% give wx time to update windows on X11
+            wings_io:reset_video_mode_for_gl(0,0),
+            ok
+    end.
+
 
 set_focus(Win) ->
     wx_object:cast(?MODULE, {active, Win}).
@@ -172,6 +182,7 @@ import_layout({Contained, Free}, St) ->
     Contained =/= [] andalso imp_layout(Contained, [], undefined, St),
     wx_object:call(?MODULE, {update_layout,Contained}),
     _ = [restore_window(Win, St) || Win <- Free],
+    timer:sleep(?GL_WAIT),
     wings_io:reset_video_mode_for_gl(0,0),
     ok.
 
@@ -469,8 +480,9 @@ handle_call({register_window, Window, Name, Ps}, _From,
 	    {reply, ok, State#state{windows=Wins#{ch:=Top#split{w1=Win}}}}
     end;
 
-handle_call({close, Win}, _From, State) ->
-    {reply, ok, close_win(Win, State)};
+handle_call({close, Win}, _From, State0) ->
+    {Res, State} = close_win(Win, State0),
+    {reply, Res, State};
 
 handle_call(get_windows, _From, #state{windows=#{loose:=Loose, ch:=Top}}=State) ->
     Contained = export_contained(Top),
@@ -560,9 +572,17 @@ handle_info({close_window, Obj}, #state{windows=#{ch:=Root}} = State0) ->
 		false -> State0;
 		#win{win=Win, name=Name} ->
 		    try wx_object:get_pid(Win) of
-			_Pid  -> close_win(Win, State0)
-		    catch _:_ -> %% Geom window, let wings_wm handle it first
-			    wings_wm:psend(Name, close),
+			_Pid  ->
+                            After = fun() ->
+                                            %% give wx time to update windows on X11
+                                            timer:sleep(?GL_WAIT),
+                                            wings_io:reset_video_mode_for_gl(0,0)
+                                    end,
+                            Close = fun() -> close_win(Win, State0) end,
+                            {_, State1} = wings_io:lock(whereis(wings), Close, After),
+                            State1
+                    catch _:_ -> %% Geom window, let wings_wm handle it first
+                            wings_wm:psend(Name, close),
 			    State0
 		    end
 	    end,
@@ -743,7 +763,7 @@ attach_floating(true, Overlay, #{op:=#{mwin:=Frame, mpath:=Path}, loose:=Loose}=
 	    St = State#{loose:=maps:remove(Frame,Loose), action:=undefined, op:=undefined},
 	    DoWhileLocked = fun() -> attach_window(Path, Frame, Window, St) end,
 	    After = fun() ->
-			    timer:sleep(200), %% give wx time to update windows on X11
+			    timer:sleep(?GL_WAIT), %% give wx time to update windows on X11
 			    wings_io:reset_video_mode_for_gl(0,0),
                             inform_parent_changed(Win)
 		    end,
@@ -946,10 +966,9 @@ close_win(Win, #state{windows=#{frame:=TopFrame,ch:=Tree,loose:=Loose,szr:=Szr}=
 		#win{frame=Frame} = _Win ->
 		    wxFrame:destroy(Frame),
                     _ = wxWindow:findFocus(), %% Sync the destroy
-		    State#state{windows=Wins#{loose:=maps:remove(Frame, Loose)}};
+		    {closed, State#state{windows=Wins#{loose:=maps:remove(Frame, Loose)}}};
 		false ->
-		    %% wxWindow:destroy(Win),
-		    State
+                    {ignored, State}
 	    end;
 	#win{frame=Obj} ->
             Close = fun(Where, Other, GrandP) -> close_window(Obj, Where, Other, GrandP, Szr) end,
@@ -960,9 +979,7 @@ close_win(Win, #state{windows=#{frame:=TopFrame,ch:=Tree,loose:=Loose,szr:=Szr}=
                                     wxWindow:refresh(TopFrame),
                                     Root
                             end),
-            timer:sleep(200), %% give wx time to update windows on X11
-            wings_io:reset_video_mode_for_gl(0,0),
-	    State#state{windows=Wins#{ch:=Root}}
+	    {closed, State#state{windows=Wins#{ch:=Root}}}
     end.
 
 close_window(Delete, Split, Other, GrandP, Szr) ->
@@ -1021,7 +1038,7 @@ detach_window(#wxMouse{type=motion, leftDown=true, x=X,y=Y}, OldFrame,
 				  end
 			  end,
             DoAfter =  fun() ->
-                               timer:sleep(200), %% give wx time to update windows on X11
+                               timer:sleep(?GL_WAIT), %% give wx time to update windows on X11
                                wings_io:reset_video_mode_for_gl(0,0)
                        end,
 	    {NewWin, Root} = wings_io:lock(whereis(wings), WhileLocked, DoAfter),

@@ -25,6 +25,10 @@
 -import(lists, [foldl/3]).
 
 init() ->
+    gl:clear(?GL_COLOR_BUFFER_BIT bor ?GL_DEPTH_BUFFER_BIT),
+    gl:pixelStorei(?GL_UNPACK_ALIGNMENT, 1),
+    {R,G,B} = wings_pref:get_value(background_color),
+    gl:clearColor(R, G, B, 1.0),
     wings_pref:set_default(multisample, true),
     wings_pref:set_default(smooth_alpha, 0.850013),
     init_polygon_stipple().

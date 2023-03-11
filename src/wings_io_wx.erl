@@ -273,6 +273,18 @@ change_event_handler(?SDL_KEYUP, false) ->
 	Io -> put_state(Io#io{key_up=false})
     end.
 
+unlock_pid(Pid, Eq) ->
+    Pid ! {locked, self()},
+    F = fun GetUnlock () ->
+                receive {unlock, Pid, Fun} ->
+                        wings_io:do_unlock(Fun, Eq)
+                after 2000 ->
+                        ?dbg("~p: waiting for unlock from ~p~n", [self(), Pid]),
+                        GetUnlock()
+                end
+        end,
+    F().
+
 read_events(Eq0) ->
     case queue:is_empty(Eq0) of
         true ->
@@ -297,16 +309,8 @@ rec_events(Eq0, Prev, Wait) ->
 	{timeout,Ref,{event,Event}} when is_reference(Ref) ->
 	    q_in(Event, q_in(Prev, Eq0));
 	{lock, Pid} -> %% Order ?
-	    Pid ! {locked, self()},
-	    F = fun GetUnlock () ->
-			receive {unlock, Pid, Fun} -> Fun()
-			after 2000 ->
-				io:format("~p: waiting for unlock from ~p~n", [self(), Pid]),
-				GetUnlock()
-			end
-		end,
-	    F(),
-	    rec_events(Eq0, Prev, 0);
+            Eq = unlock_pid(Pid, Eq0),
+	    rec_events(Eq, Prev, 0);
         {'_wxe_error_', Op, Error} ->
             [{_,{M,F,A}}] = ets:lookup(wx_debug_info,Op),
 	    Msg = io_lib:format("~p in ~w:~w/~w", [Error, M, F, A]),
