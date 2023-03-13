@@ -118,7 +118,7 @@ is_kernel(_, _) ->
     false.
 
 compile_1(Files, Defs, CLI = #cli{cl=CL, device=Device, kernels=Kernels0}) ->
-    Dir = filename:join(code:lib_dir(wings),"shaders"),
+    Dir = filename:join(wings_util:lib_dir(wings),"shaders"),
     SrcBins = lists:map(fun(File) ->
 			     AbsFile = filename:join([Dir, File]),
 			     case file:read_file(AbsFile) of
