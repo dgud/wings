@@ -40,7 +40,7 @@
 
 %% Load an SGI raster image file
 %%
--spec load(filename:filename()) -> #e3d_image{} | {error, any()}.
+-spec load(file:name_all()) -> #e3d_image{} | {error, any()}.
 load(Filename) ->
     case file:open(Filename, [binary,read]) of
         {ok, FH} ->

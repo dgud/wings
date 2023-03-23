@@ -95,7 +95,7 @@ do_import(Attr, St) ->
     wpa:import(props(), import_fun(Attr), St).
     
 set_pref(KeyVals) ->
-    wpa:pref_set(?WPCWRL, KeyVals).
+    wpa:pref_set(?MODULE, KeyVals).
 
 import_transform(E3dFile, KeyVals) ->
     Mat = wpa:import_matrix(KeyVals),
@@ -141,7 +141,7 @@ shape_list_to_objects(ShortFilename, ShapesList_0, X3DFullPath) ->
 
 
 %% Go through ShapesList, and put in lists together of shapes that
-%% share vertice positions so they can be welded together into objects.
+%% share edges so they can be welded together into objects.
 %%
 combine_shape_pieces(ShapesList) ->
     combine_shape_pieces(ShapesList, []).
@@ -150,8 +150,9 @@ combine_shape_pieces([], Grp) ->
 combine_shape_pieces([Shapes], Grp) ->
     lists:reverse([[Shapes]|Grp]);
 combine_shape_pieces([#shape_piece{geometry=Geom1}=Shape1|ShapesList], Grp) ->
-    #geometry{coords=Coords1}=Geom1,
-    combine_shape_pieces_1({Shape1, sets:from_list(Coords1)}, ShapesList, [], [], Grp).
+    #geometry{coords=Coords1,coordIndices=Coords1I}=Geom1,
+    CoordPairs1 = reverse_coord_pairs(Coords1,Coords1I),
+    combine_shape_pieces_1({Shape1, sets:from_list(CoordPairs1)}, ShapesList, [], [], Grp).
 combine_shape_pieces_1(Shp1, [Shape2|ShapesList], SameShape, Other, Grp) ->
     case combine_shape_pieces_same(Shp1, Shape2) of
         true ->
@@ -162,10 +163,17 @@ combine_shape_pieces_1(Shp1, [Shape2|ShapesList], SameShape, Other, Grp) ->
 combine_shape_pieces_1({Shape1, _}, [], SameShape, Other, Grp) ->
     combine_shape_pieces(Other, [lists:reverse([Shape1|SameShape])|Grp]).
 combine_shape_pieces_same({_,Coords1Set},#shape_piece{geometry=Geom2}=_) ->
-    #geometry{coords=Coords2}=Geom2,
-    combine_shape_pieces_same_1(Coords1Set, Coords2).
-combine_shape_pieces_same_1(Coords1Set, Coords2) ->
-    not sets:is_disjoint(Coords1Set, sets:from_list(Coords2)).
+    #geometry{coords=Coords2,coordIndices=Coords2I}=Geom2,
+    combine_shape_pieces_same_1(Coords1Set, coord_pairs(Coords2, Coords2I)).
+combine_shape_pieces_same_1(Coords1Set, CoordsPair2) ->
+    not sets:is_disjoint(Coords1Set, sets:from_list(CoordsPair2)).
+    
+reverse_coord_pairs(Coords, Indices) ->
+    [{E2,E1} || {E1,E2} <- coord_pairs(Coords, Indices)].
+    
+coord_pairs(Coords, Indices) ->
+    Arr = array:from_list(Coords),
+    [{array:get(I1,Arr),array:get(I2,Arr)} || {I1,I2} <- all_edges(Indices)].
 
 fill_in_colorlist(Fs0, List) ->
     fill_in_txlist(Fs0, List).
@@ -213,7 +221,7 @@ shape_to_object(ShortFilename, ShapePieces, X3DFullPath) ->
     Vc     = lists:append(lists:reverse(Colors_2)),
     TxList = lists:append(lists:reverse(TxList_2)),
     Fs0L   = lists:append(lists:reverse(Fs0L_2)),
-    HEs = [],
+    HEs = all_edges([L || {L, _, _, _} <- Fs0L]),
     
     Efs = [ #e3d_face{
         vs=L,
@@ -283,6 +291,17 @@ zip_face_elems([A|AR],[B|BR],[C|CR],[D|DR], O) ->
 zip_face_elems([],[],[],[], O) ->
     lists:reverse(O).
     
+
+edge_pairs([E|_]=Fs) ->
+    edge_pairs(Fs, E, []).
+edge_pairs([E1|[E2|_]=Fs], E0, OL) ->
+    edge_pairs(Fs, E0, [{E1,E2}|OL]);
+edge_pairs([E1], E0, OL) ->
+    lists:reverse([{E1,E0}|OL]).
+
+all_edges(FL) ->
+    lists:append([edge_pairs(F) || F <- FL]).
+
     
 appearance_opengl(#materialprops{
     ambient_intensity=AmbInt,
