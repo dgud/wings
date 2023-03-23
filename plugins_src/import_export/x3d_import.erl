@@ -95,7 +95,7 @@ do_import(Attr, St) ->
     wpa:import(props(), import_fun(Attr), St).
     
 set_pref(KeyVals) ->
-    wpa:pref_set(?MODULE, KeyVals).
+    wpa:pref_set(?WPCWRL, KeyVals).
 
 import_transform(E3dFile, KeyVals) ->
     Mat = wpa:import_matrix(KeyVals),
