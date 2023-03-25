@@ -43,7 +43,7 @@ init() ->
 %% vertex positions, it starts with the vertices in Vs and
 %% may contain newly created vertices in the end.
 -spec triangulate(Normal, [Vs]) -> {[TriIndex], [VPos]}
-              when Normal :: e3d_vec:vertex(), Vs :: e3d_vec:point(),
+              when Normal :: e3d_vec:vector(), Vs :: e3d_vec:point(),
                    TriIndex :: {integer(),integer(),integer()}, VPos ::e3d_vec:point().
 triangulate(_Normal, _Vs) ->
     ?nif_stub.

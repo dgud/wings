@@ -880,14 +880,16 @@ e3d_to_wxImage_1(I = #e3d_image{bytes_pp=1, width=W, height=H}) ->
     wxImage:new(W,H,RGB);
 e3d_to_wxImage_1(I = #e3d_image{type=r32g32b32f, width=W, height=H}) ->
     #e3d_image{image=RGBf} = e3d_image:convert(I, r32g32b32f, 1, upper_left),
-    RGB8 = << <<(max(1.0, abs(C))*255)>> || <<C:32/float>> <= RGBf >>,
+    RGB8 = << << (trunc(max(1.0, abs(C))*255)) >> || <<C:32/float>> <= RGBf >>,
     wxImage:new(W,H,RGB8);
 e3d_to_wxImage_1(I = #e3d_image{type=r32g32b32a32f, width=W, height=H}) ->
     #e3d_image{image=RGBf} = e3d_image:convert(I, r32g32b32a32f, 1, upper_left),
-    RGB8 = << <<(max(1.0, abs(R))*255),(max(1.0, abs(G))*255),(max(1.0, abs(B))*255)>>
+    RGB8 = << << (trunc(max(1.0, abs(R))*255)),
+                 (trunc(max(1.0, abs(G))*255)),
+                 (trunc(max(1.0, abs(B))*255)) >>
               || <<R:32/float,G:32/float,B:32/float,_:32/float>> <= RGBf >>,
     Wx = wxImage:new(W,H,RGB8),
-    Alpha = << <<(max(1.0, abs(A))*255)>> || <<_:12/binary,A:32/float>> <= RGBf >>,
+    Alpha = << << (trunc(max(1.0, abs(A))*255)) >> || <<_:12/binary,A:32/float>> <= RGBf >>,
     wxImage:setAlpha(Wx, Alpha),
     Wx.
 

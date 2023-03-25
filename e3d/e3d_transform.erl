@@ -35,6 +35,8 @@
 
 -include("e3d.hrl").
 
+-export_type([transform/0]).
+
 -type transform() :: #e3d_transf{}.
 
 -type matrix() :: e3d_mat:matrix().
