@@ -238,7 +238,9 @@ new_resolve_z(Z) when is_integer(Z), Z >= 0-> Z.
 delete(Name) ->
     case wxwindow(Name) of
         undefined -> ignore;
-        Win -> wings_frame:close(Win)
+        Win ->
+            timer:sleep(200),
+            wings_frame:close(Win)
     end,
     Windows = delete_windows(Name, get(wm_windows)),
     put(wm_windows, Windows),
