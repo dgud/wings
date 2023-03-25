@@ -168,7 +168,7 @@ set_title(Title) ->
 
 reset_video_mode_for_gl(ReCreateCanvas) ->
     wings_io_wx:reset_video_mode_for_gl(ReCreateCanvas),
-    putback_event_once(init_opengl),
+    ReCreateCanvas andalso putback_event_once(init_opengl),
     ok.
 
 version_info() ->

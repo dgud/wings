@@ -1481,10 +1481,15 @@ reset_opengl(false) ->
 reset_opengl(true) ->
 %%    ?dbg("reset TRUE~n", []),
     case os:type() of
-        {unix, linux} ->
-            timer:sleep(?GL_WAIT); %% give wx time to realize windows on X11
+        {unix, darwin} ->
+            %% Mac doesn't need reinit any longer
+            wings_io:reset_video_mode_for_gl(false);
+        {unix, _} ->
+            %% give wx time to realize windows on X11
+            timer:sleep(?GL_WAIT),
+            wings_io:reset_video_mode_for_gl(true);
         _ ->
+            %% Win32 doesn't need this at all
             ok
     end,
-    wings_io:reset_video_mode_for_gl(true),
     ok.

@@ -195,14 +195,9 @@ new_gl_api() ->
 
 setCurrent(GL, Context) ->
     setCurrent(GL, Context, false).
-setCurrent(GL, Context0, Recreate0) ->
+setCurrent(GL, Context0, Recreate) ->
     SetCurrent = wings_u:id(setCurrent),
     CreateSurface = wings_u:id(createSurface),
-    Recreate = case os:type() of
-                   {unix, darwin} -> false;
-                   {unix, _} -> Recreate0;
-                   {win32, _} -> false
-               end,
 
     case new_gl_api() of
         false -> wxGLCanvas:SetCurrent(GL);
