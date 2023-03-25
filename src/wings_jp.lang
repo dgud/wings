@@ -4051,9 +4051,9 @@
     {1,"経線分割数"},
     % "Slices"
     {2,"横分割数"},
-    % "X Radial"
+    % "X Radius"
     {3,"半径(X方向)"},
-    % "Y Radial"
+    % "Y Radius"
     {4,"半径(Y方向)"}
    ]},
   {tetrahedron,
