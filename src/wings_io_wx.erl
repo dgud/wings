@@ -28,7 +28,7 @@
 -export([batch/1, foreach/2]).
 -export([change_event_handler/2, read_events/1]).
 -export([reset_grab/0,grab/1,ungrab/2,is_grabbed/0,warp/3]).
--export([reset_video_mode_for_gl/2]).
+-export([reset_video_mode_for_gl/1]).
 
 -export([make_key_event/1, scroll_event/2]).
 
@@ -71,10 +71,10 @@ is_maximized() ->
 maximize() ->
     wxTopLevelWindow:maximize(?GET(top_frame)).
 
-reset_video_mode_for_gl(_W, _H) ->
+reset_video_mode_for_gl(Bool) ->
     %% Needed on mac for some reason
     wxWindow:setFocus(?GET(gl_canvas)),
-    wings_gl:setCurrent(?GET(gl_canvas), ?GET(gl_context), true),
+    wings_gl:setCurrent(?GET(gl_canvas), ?GET(gl_context), Bool),
     ok.
 
 set_title(Title) ->

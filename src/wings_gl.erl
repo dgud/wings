@@ -214,7 +214,8 @@ setCurrent(GL, Context0, Recreate0) ->
                 Context = wxGLContext:new(GL, [{other, Context0}]),
                 ?SET(gl_context, Context),
                 true = wxGLCanvas:SetCurrent(GL,Context)
-            catch _:_ ->
+            catch _:_Reason:_ST ->
+                    %% ?dbg("ERROR: ~p in ~p~n", [_Reason, _ST]),
                     true = wxGLCanvas:SetCurrent(GL,Context0)
             end
     end.

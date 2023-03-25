@@ -17,7 +17,7 @@
 	 set_cursor/1,hourglass/0,eyedropper/0,
 	 info/1, info/3, version_info/0,
 
-	 is_maximized/0, maximize/0, set_title/1, reset_video_mode_for_gl/2,
+	 is_maximized/0, maximize/0, set_title/1, reset_video_mode_for_gl/1,
 	 change_event_handler/2,
 	 read_icons/0, set_icon/2,
 
@@ -26,7 +26,7 @@
 	 get_process_option/0,set_process_option/1,
 
 	 batch/1, foreach/2,
-	 lock/2, lock/3,
+	 lock/3,
          do_unlock/2,    %% Only to be used by wings_io_wx
 
 	 draw_bitmap/1,
@@ -60,14 +60,17 @@ get_process_option() ->
 set_process_option(Opts) ->
     wings_io_wx:set_process_option(Opts).
 
-lock(Pid, Fun) ->
-    lock(Pid, Fun, fun() -> ok end).
 
 lock(Pid, Fun, DoAfter) when is_function(Fun), is_function(DoAfter) ->
     lock(Pid),
-    try Fun()  %% In locking process
-    after %% Apply DoAfter in locked process before releasing it
-        Pid ! {unlock, self(), DoAfter}
+    try
+        Res = Fun(),  %% In locking process
+        %% Apply DoAfter in locked process before releasing it
+        Pid ! {unlock, self(), fun() -> DoAfter(Res) end},
+        Res
+    catch Class:Reason:StackT ->
+            Pid ! {unlock, self(), fun() -> ok end},
+            erlang:raise(Class,Reason,StackT)
     end.
 
 lock(Pid) when is_pid(Pid) ->
@@ -163,8 +166,8 @@ maximize() ->
 set_title(Title) ->
     wings_io_wx:set_title(Title).
 
-reset_video_mode_for_gl(W,H) ->
-    wings_io_wx:reset_video_mode_for_gl(W,H),
+reset_video_mode_for_gl(ReCreateCanvas) ->
+    wings_io_wx:reset_video_mode_for_gl(ReCreateCanvas),
     putback_event_once(init_opengl),
     ok.
 
