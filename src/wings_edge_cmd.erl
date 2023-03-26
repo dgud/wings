@@ -440,6 +440,8 @@ slide_mode(MinUp,MinDw) ->
     end.
 
 slide_units({absolute,_,false},_,_) -> [distance];
+slide_units({absolute,_Freeze,true},unknown,unknown) ->
+    [{distance, {-1.0, 1.0}}];
 slide_units({absolute,_Freeze,true},MinUp,MinDw) ->
     [{distance, {-MinUp, MinDw}}];
 slide_units({relative,_,false},_,_) -> [percent];
