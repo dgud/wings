@@ -884,7 +884,10 @@ build_dialog(AskType, Title, Qs) ->
 			     {Dialog, DialogData}
 		     catch Class:Reason:ST ->
 			     %% Try to clean up
-			     reset_dialog_parent(Dialog),
+			     case ?GET(dialog_parent) of
+			         [] -> ignore;
+			         _ -> reset_dialog_parent(Dialog)
+			     end,
 			     wxDialog:destroy(Dialog),
 			     erlang:raise(Class, Reason, ST)
 		     end
