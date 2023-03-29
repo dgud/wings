@@ -474,8 +474,7 @@ popup_event_handler({click, Id, Click, Ns}, {Parent,Owner}, Entries0) ->
             wings_wm:release_focus(),
             delete;
 	{submenu, Names, Menus, MagnetClick} ->
-	    {_, X,Y} = wings_io:get_mouse_state(),
-	    Entries = wx_popup_menu(Parent, {X,Y}, Names, Menus, MagnetClick, dialog_blanket),
+	    Entries = wx_popup_menu(Parent, wx_misc:getMousePosition(), Names, Menus, MagnetClick, dialog_blanket),
 	    {replace, fun(Ev) -> popup_event_handler(Ev, {Parent,Owner}, Entries) end}
     end;
 popup_event_handler(redraw,_,_) ->
