@@ -147,8 +147,9 @@ set_cursor(CursorId) ->
 
 get_mouse_state() ->
     wx:batch(fun() ->
+             {X,Y} = wx_misc:getMousePosition(),  %% Temporary to fix coordinate em multiple displays
 		     MS = wx_misc:getMouseState(),
-		     #wxMouseState{x=X, y=Y,  %% integer()
+		     #wxMouseState{%% x=X, y=Y,  %% integer()
 				   leftDown=Left,
 				   middleDown=Middle,
 				   rightDown=Right %% bool()
