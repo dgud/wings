@@ -522,12 +522,13 @@ x3d_tok(_Ev, _Loc, State) ->
     
 
 x3d_tok_attr_pair(LName_B, AttrLName, Val) ->
-    AttrLName_B = iolist_to_binary(AttrLName),
-    Val_B = iolist_to_binary(Val),
+    AttrLName_B = unicode:characters_to_nfc_binary(AttrLName),
+    Val_B = unicode:characters_to_nfc_binary(Val),
     x3d_tok_attr(LName_B, AttrLName_B, Val_B).
 
 x3d_tok_attr(_LName_B, AttrLName_B, Val_B)
-    when AttrLName_B =:= <<"DEF">>; AttrLName_B =:= <<"USE">> ->
+    when AttrLName_B =:= <<"DEF">>;
+         AttrLName_B =:= <<"USE">> ->
     {ok, [Token]} = tok(Val_B),
     {AttrLName_B, Token};
 x3d_tok_attr(LName_B, AttrLName_B, Val_B) ->
@@ -668,9 +669,11 @@ parse_x3d_attr(A) ->
 parse_x3d_attr([], List, NameDef, NameUse) ->
     {lists:reverse(List), NameDef, NameUse};
 parse_x3d_attr([{<<"DEF">>, {word, NameDef}} | A], List, _, NameUse) ->
-    parse_x3d_attr(A, List, NameDef, NameUse);
+    Variable_S = unicode:characters_to_list(NameDef, utf8),
+    parse_x3d_attr(A, List, Variable_S, NameUse);
 parse_x3d_attr([{<<"USE">>, {word, NameUse}} | A], List, NameDef, _) ->
-    parse_x3d_attr(A, List, NameDef, NameUse);
+    NameUse_S = unicode:characters_to_list(NameUse, utf8),
+    parse_x3d_attr(A, List, NameDef, NameUse_S);
 parse_x3d_attr([{K, V} | A], List, NameDef, NameUse) ->
     parse_x3d_attr(A, [{K, V} | List], NameDef, NameUse).
 
@@ -917,7 +920,8 @@ strip_comments(Content, AL) ->
     end.
 strip_comments_inside_string(Content) -> strip_comments_inside_string(Content, []).
 
-strip_comments_inside_string(<<>>, AL) -> {iolist_to_binary(lists:reverse(AL)), <<>>};
+strip_comments_inside_string(<<>>, AL) ->
+    {iolist_to_binary(lists:reverse(AL)), <<>>};
 strip_comments_inside_string(<<BS:8, EscChar:8, Rest/binary>>, AL) when BS =:= 92 ->
     strip_comments_inside_string(Rest, [EscChar,BS|AL]);
 strip_comments_inside_string(<<DQ:8, Rest/binary>>, AL) when DQ =:= 34 ->
@@ -977,12 +981,14 @@ tok(<<Char:8, Rest/binary>>, Current, Toks) ->
     tok(Rest, [Char|Current], Toks).
 
 
-tok_inside_string(A) -> tok_inside_string(A, []).
-tok_inside_string(<<>>, AL) -> {iolist_to_binary(lists:reverse(AL)), <<>>};
+tok_inside_string(A) ->
+    tok_inside_string(A, []).
+tok_inside_string(<<>>, AL) ->
+    {unicode:characters_to_list(iolist_to_binary(lists:reverse(AL)), utf8), <<>>};
 tok_inside_string(<<BS:8, EscChar:8, Rest/binary>>, AL) when BS =:= 92 ->
     tok_inside_string(Rest, [EscChar|AL]);
 tok_inside_string(<<DQ:8, Rest/binary>>, AL) when DQ =:= 34 ->
-    {iolist_to_binary(lists:reverse(AL)), Rest};
+    {unicode:characters_to_list(iolist_to_binary(lists:reverse(AL)), utf8), Rest};
 tok_inside_string(<<Char:8, Rest/binary>>, AL) ->
     tok_inside_string(Rest, [Char|AL]).
     
@@ -1088,17 +1094,23 @@ header(<<"#Inventor ", Rest_0/binary>>) ->
 header(_) ->
     error.
 
-header_version(<<A:8, R/binary>>) when A =:= 32; A =:= 9 -> header_version(R);
-header_version(A) -> header_version(A, []).
+header_version(<<A:8, R/binary>>) when A =:= 32; A =:= 9 ->
+    header_version(R);
+header_version(A) ->
+    header_version(A, []).
 header_version(<<A:8, R/binary>>, B) when A >= $A, A =< $Z; A >= $a, A =< $z; A >= $0, A =< $9; A =:= $. ->
     header_version(R, [A | B]);
-header_version(R, B) -> {ok, iolist_to_binary(lists:reverse(B)), R}.
+header_version(R, B) ->
+    {ok, iolist_to_binary(lists:reverse(B)), R}.
 
-header_encoding(<<A:8, R/binary>>) when A =:= 32; A =:= 9 -> header_encoding(R);
-header_encoding(A) -> header_encoding(A, []).
+header_encoding(<<A:8, R/binary>>) when A =:= 32; A =:= 9 ->
+    header_encoding(R);
+header_encoding(A) ->
+    header_encoding(A, []).
 header_encoding(<<A:8, R/binary>>, B) when A >= $A, A =< $Z; A >= $a, A =< $z; A >= $0, A =< $9 ->
     header_encoding(R, [A | B]);
-header_encoding(_, B) -> {ok, iolist_to_binary(lists:reverse(B))}.
+header_encoding(_, B) ->
+    {ok, iolist_to_binary(lists:reverse(B))}.
 
 
 %%
@@ -1117,7 +1129,8 @@ parse(T, Cont) ->
         [] -> {ok, lists:reverse(Cont)};
         [{word, <<"DEF">>}, {word, Variable}, {word, Word}, open_curly|Rest0] ->
             {ok, InnerContent, Rest1} = parse_container(Word, Rest0),
-            parse(Rest1, [{def, Variable, {Word, InnerContent}} | Cont]);
+            Variable_S = unicode:characters_to_list(Variable,utf8),
+            parse(Rest1, [{def, Variable_S, {Word, InnerContent}} | Cont]);
         [{word, Word}, open_curly|Rest0] ->
             {ok, InnerContent, Rest1} = parse_container(Word, Rest0),
             parse(Rest1, [{Word, InnerContent} | Cont]);
@@ -1139,16 +1152,20 @@ parse_container(ContainerType, T, Contents) ->
         [{word, <<"DEF">>}, {word, Variable}, {word, Word}, open_curly | Rest0] ->
             %% Named container.
             {ok, InnerContents, Rest1} = parse_container(Word, Rest0),
-            parse_container(ContainerType, Rest1, [{def, Variable, {Word, InnerContents}}|Contents]);
+            Variable_S = unicode:characters_to_list(Variable, utf8),
+            parse_container(ContainerType, Rest1,
+                [{def, Variable_S, {Word, InnerContents}}|Contents]);
         [{word, Word} |[open_curly|Rest0]] ->
             %% container.
             {ok, InnerContents, Rest1} = parse_container(Word, Rest0),
-            parse_container(ContainerType, Rest1, [{Word, InnerContents}|Contents]);
+            parse_container(ContainerType, Rest1,
+                [{Word, InnerContents}|Contents]);
         [FStart | Rest0] ->
             %% Field
             FieldType = expected_field_type(ContainerType, FStart),
             {ok, FA, Rest1} = parse_field(FieldType, FStart, Rest0),
-            parse_container(ContainerType, Rest1, [FA|Contents])
+            parse_container(ContainerType, Rest1,
+                [FA|Contents])
     end.
 
 %%
@@ -1653,11 +1670,14 @@ parse_field(FT, {word, Word}, [{word, <<"DEF">>}, {word, Variable}, {word, WordC
     when FT =:= any; FT =:= container; FT =:= {multival, container} ->
     %% Container as value
     {ok, InnerContents, Rest1} = parse_container(WordC, Rest0),
-    {ok, {{field, Word}, {def, Variable, singleval_wrap(FT, {container, WordC, InnerContents})}}, Rest1};
+    Variable_S = unicode:characters_to_list(Variable, utf8),
+    {ok, {{field, Word},
+          {def, Variable_S, singleval_wrap(FT, {container, WordC, InnerContents})}}, Rest1};
 parse_field(FT, {word, Word}, [{word, <<"USE">>}, {word, Variable} | Rest0])
     when FT =:= any; FT =:= container; FT =:= {multival, container} ->
     %% Container value recall
-    {ok, {{field, Word}, {use, Variable}}, Rest0};
+    Variable_S = unicode:characters_to_list(Variable, utf8),
+    {ok, {{field, Word}, {use, Variable_S}}, Rest0};
 parse_field(FT, {word, Word}, [{string, String} | Rest0])
     when FT =:= any; FT =:= string; FT =:= {multival, string} ->
     %% String
@@ -1717,9 +1737,11 @@ singleval_wrap(_, V) ->
 get_multival(FT, A) -> get_multival(FT, A, []).
 get_multival(FT, [{word,<<"DEF">>},{word, Variable} | Rest], Cont) ->
     {ok, {{field, _}, FA}, Rest_1} = parse_field(FT, {word, <<"_">>}, Rest),
-    get_multival(FT, Rest_1, [{def, Variable, FA} | Cont]);
+    Variable_S = unicode:characters_to_list(Variable, utf8),
+    get_multival(FT, Rest_1, [{def, Variable_S, FA} | Cont]);
 get_multival(FT, [{word,<<"USE">>},{word, Variable} | Rest], Cont) ->
-    get_multival(FT, Rest, [{use, Variable}|Cont]);
+    Variable_S = unicode:characters_to_list(Variable),
+    get_multival(FT, Rest, [{use, Variable_S}|Cont]);
 get_multival(FT, [comma | Rest], Cont) -> get_multival(FT, Rest, Cont);
 get_multival(FT, [{word, WordC}, open_curly |Rest0], Cont)
     when FT =:= any; FT =:= container ->
@@ -1769,19 +1791,19 @@ parse_image_data(0, _, Rest, Res) ->
 def_or_use_var({def, VarName, {container, <<"Material">>=A, AField}}) ->
     ContentValue = {container, A, [{Key, def_or_use_var_field(FVal)} || {Key, FVal} <- AField]},
     ets:insert(?MODULE, {{wrlvar, VarName}, {material, ContentValue}}),
-    io:format("X3D:def material ~s~n", [VarName]),
+    io:format("X3D:def material ~s~n", [to_iofmt(VarName)]),
     ContentValue;
 def_or_use_var({def, VarName, {container, A, AField}}) ->
     ContentValue = {container, A, [{Key, def_or_use_var_field(FVal)} || {Key, FVal} <- AField]},
     ets:insert(?MODULE, {{wrlvar, VarName}, {misc, ContentValue}}),
-    io:format("X3D:def ~s~n", [VarName]),
+    io:format("X3D:def ~s~n", [to_iofmt(VarName)]),
     ContentValue;
 def_or_use_var({def, VarName, A}) ->
     ets:insert(?MODULE, {{wrlvar, VarName}, {misc, A}}),
-    io:format("X3D:def ~s~n", [VarName]),
+    io:format("X3D:def ~s~n", [to_iofmt(VarName)]),
     A;
 def_or_use_var({use, VarName}) ->
-    io:format("X3D:use ~s~n", [VarName]),
+    io:format("X3D:use ~s~n", [to_iofmt(VarName)]),
     case ets:lookup(?MODULE, {wrlvar, VarName}) of
         [] ->
             none;
@@ -1799,6 +1821,10 @@ def_or_use_var_field({multival, List}) ->
     {multival, [def_or_use_var(Itm) || Itm <- List]};
 def_or_use_var_field(Itm) ->
     def_or_use_var(Itm).
+    
+to_iofmt(A) ->
+    %% io:format errors on >127 code point strings
+    unicode:characters_to_nfc_binary(A).
     
 
 %% At the top level we'll expect there to be Shape, Transform and Group nodes
@@ -1971,7 +1997,7 @@ trav_tex({container,<<"ImageTexture">>,Fields}) ->
     case proplists:get_value({field,<<"url">>}, Fields, none) of
         {multival, []} ->
             URL = "";
-        {multival, [{string, URL_0} | _]} ->
+        {multival, [{string, URL_0} | _]} when is_list(URL_0) ->
             {ok, URL} = parse_image_href(URL_0)
     end,
     {ok, URL};
@@ -2680,9 +2706,7 @@ v1trn_add_to_children(NewNode, V1S) ->
 %%% Read Image from URL
 %%%
 
-parse_image_href(A) when is_binary(A) ->
-    parse_image_href(binary_to_list(A));
-parse_image_href(A) ->
+parse_image_href(A) when is_list(A) ->
     case parse_image_href_scheme(A) of
         {ok, local, RelPath} ->
             %% A relative path to a local file
