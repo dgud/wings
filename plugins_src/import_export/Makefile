@@ -46,7 +46,7 @@ MODULES= \
 	wpc_rwx \
 	wpc_stl \
 	wpc_svg_path \
-	wpc_wmf_file_paths \
+	wpc_wmf_paths \
 	wpc_wrl \
 	wpc_x \
 	wpc_yafaray

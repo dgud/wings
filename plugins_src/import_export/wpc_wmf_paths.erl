@@ -9,10 +9,7 @@
 %%  and contributors
 %%
 
-%% TODO: Remove invisible bounding box rectangles
-%% TODO: (For .wmf) Choose transparent color (white)
-
--module(wpc_wmf_file_paths).
+-module(wpc_wmf_paths).
 
 -export([init/0,menu/2,command/2]).
 
