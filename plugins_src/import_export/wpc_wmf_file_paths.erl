@@ -171,7 +171,7 @@ import_fun(Nsub, AutoScale, SetScale_S, AutoCenter, TransformsInTextFile) ->
         {ok, CommandsList_0, DPI} = read_file(FType, Filename, Nsub),
         {ok, TIn} = read_txt_transforms_if_any(Filename, TransformsInTextFile),
         {CommandsList_1, TexturesList} = get_textures_list(ShortFilename, CommandsList_0),
-        CommandsList_2 = remove_double_path(exclusion(relpaths(FType, CommandsList_1))),
+        CommandsList_2 = remove_double_path(exclusion(into_paths(FType, CommandsList_1))),
         CommandsList_3 = remove_invisible_paths(FType, CommandsList_2),
         {ViewPortScaleX,ViewPortScaleY} = viewport_to_window(FType, CommandsList_3),
         ?DEBUG_FMT("Cmd=~p~n", [CommandsList_3]),
@@ -232,7 +232,6 @@ import_fun(Nsub, AutoScale, SetScale_S, AutoCenter, TransformsInTextFile) ->
                     he=HEs,
                     vc=[C || C <- Colors],
                     tx=Tx},
-                % ?DEBUG_FMT("Mesh=~w", [Mesh]),
                 Obj = #e3d_object{name=ShortFilename,obj=Mesh},
                 
                 {ok, #e3d_file{objs=[Obj],mat=TexturesList}}
@@ -350,20 +349,27 @@ remove_invisible_paths(_, CommandsList) ->
     w_origin = {0.0, 0.0},
     w_extent = {1.0, 1.0},
     v_origin = {0.0, 0.0},
-    v_extent = {1.0, 1.0}
+    v_extent = none
 }).
     
     
-viewport_to_window(wmf, _CommandList) ->
-    {1.0, 1.0};
+viewport_to_window(wmf, CommandList) ->
+    viewport_to_window_1(CommandList, #win_viewp{});
 viewport_to_window(emf, CommandList) ->
     viewport_to_window_1(CommandList, #win_viewp{}).
 viewport_to_window_1([], #win_viewp{
-    w_origin={_WX1,_WY1},
+    w_origin={WX1,WY1},
     w_extent={WX2,WY2},
-    v_origin={_VX1,_VY1},
+    v_origin=_,
+    v_extent=none}=_) ->
+    {num_sign(WX2 - WX1), num_sign(WY2 - WY1)};
+viewport_to_window_1([], #win_viewp{
+    w_origin={WX1,WY1},
+    w_extent={WX2,WY2},
+    v_origin={VX1,VY1},
     v_extent={VX2,VY2}}=_) ->
-    {VX2 / WX2, VY2 / WY2};
+    {(VX2 - VX1) / (WX2 - WX1),
+     (VY2 - VY1) / (WY2 - WY1)};
 viewport_to_window_1([{window, Which}|L], WinViewP) ->
     case Which of
         {origin, XY} -> viewport_to_window_1(L, WinViewP#win_viewp{w_origin=XY});
@@ -376,6 +382,11 @@ viewport_to_window_1([{viewport, Which}|L], WinViewP) ->
     end;
 viewport_to_window_1([_|L], WinViewP) ->
     viewport_to_window_1(L, WinViewP).
+
+num_sign(A) when A < 0.0 ->
+    -1.0;
+num_sign(_) ->
+    1.0.
 
 
 repeat_matlist_if_needed(MatList, Pas) ->
@@ -426,7 +437,6 @@ into_mesh_parts(
 
 to_uv({{DestX1,DestY1}, {DestX2,DestY2}, {_SrcX1,_SrcY1}, {_SrcX2,_SrcY2}}, X, Y) ->
     UV = {(X-DestX1) / (DestX2-DestX1), (Y-DestY1) / -(DestY2-DestY1)},
-    % ?DEBUG_FMT("UV=~p~n", [UV]),
     UV.
 
 transform_vs({X, Y, Z}, TL, {XC,YC,ZC}) ->
@@ -475,11 +485,13 @@ read_file(wmf, FileName, _NumDiv) ->
     read_wmf_file(FileName);
 read_file(emf, FileName, NumDiv) ->
     read_emf_file(FileName, NumDiv).
-    
-relpaths(wmf, CommandsList) ->
-    wmf_relpaths(CommandsList);
-relpaths(emf, CommandsList) ->
-    emf_relpaths(CommandsList).
+
+into_paths(FType, CommandsList) ->
+    remove_bad_paths(into_paths_1(FType, CommandsList)).
+into_paths_1(wmf, CommandsList) ->
+    wmf_into_paths(CommandsList);
+into_paths_1(emf, CommandsList) ->
+    emf_into_paths(CommandsList).
 
 
 cedge_realize(wmf, Commands) ->
@@ -650,13 +662,12 @@ emf_loop(Fp2, NumObj, NumDiv, Commands) ->
             file:close(Fp2),
             lists:reverse(Commands);
         _ ->
-            % ?DEBUG_FMT("command: ~w size: ~w~n", [Command, NumBytes]),
             NewCommand = case Command of
 
                 ?E_POLYBEZIER              -> emf_cmd_polybezier(Fp2, NumDiv);
                 ?E_POLYBEZIER16            -> emf_cmd_polybezier16(Fp2, NumDiv);
-                ?E_POLYBEZIERTO            -> emf_cmd_polybezierto(Fp2, last_rel_coordinate(Commands), NumDiv);
-                ?E_POLYBEZIERTO16          -> emf_cmd_polybezierto16(Fp2, last_rel_coordinate(Commands), NumDiv);
+                ?E_POLYBEZIERTO            -> emf_cmd_polybezierto(Fp2, last_linestart_coordinate(Commands), NumDiv);
+                ?E_POLYBEZIERTO16          -> emf_cmd_polybezierto16(Fp2, last_linestart_coordinate(Commands), NumDiv);
                 ?E_POLYDRAW                -> emf_cmd_polydraw(Fp2, NumDiv);
                 ?E_POLYDRAW16              -> emf_cmd_polydraw16(Fp2, NumDiv);
                 ?E_POLYGON                 -> emf_cmd_polygon(Fp2);
@@ -672,7 +683,7 @@ emf_loop(Fp2, NumObj, NumDiv, Commands) ->
                 ?E_MOVETOEX                -> emf_cmd_moveto(Fp2);
                 ?E_LINETO                  -> emf_cmd_lineto(Fp2);
                 ?E_CHORD                   -> emf_cmd_chord(Fp2);
-                ?E_CLOSEFIGURE             -> emf_cmd_closefigure(Fp2, last_relstart_coordinate(Commands));
+                ?E_CLOSEFIGURE             -> emf_cmd_closefigure(Fp2, last_linecontinue_coordinate(Commands));
                 
                 ?E_ANGLEARC                -> emf_cmd_anglearc(Fp2);
                 ?E_ARC                     -> emf_cmd_arc(Fp2);
@@ -751,23 +762,23 @@ emf_loop(Fp2, NumObj, NumDiv, Commands) ->
     end.
 
 
-last_rel_coordinate([]) -> {0,0};
-last_rel_coordinate([{relstart, Path} | _]) when length(Path) > 0 ->
+last_linestart_coordinate([]) -> {0,0};
+last_linestart_coordinate([{linestart, Path} | _]) when length(Path) > 0 ->
     [Coord={_X,_Y} | _] = lists:reverse(Path),
     Coord;
-last_rel_coordinate([{rel, Path} | _]) when length(Path) > 0 ->
+last_linestart_coordinate([{linecontinue, Path} | _]) when length(Path) > 0 ->
     [Coord={_X,_Y} | _] = lists:reverse(Path),
     Coord;
-last_rel_coordinate([_ | R]) ->
-    last_rel_coordinate(R).
+last_linestart_coordinate([_ | R]) ->
+    last_linestart_coordinate(R).
     
 
-last_relstart_coordinate([]) -> {0,0};
-last_relstart_coordinate([{relstart, Path} | _]) when length(Path) > 0 ->
+last_linecontinue_coordinate([]) -> {0,0};
+last_linecontinue_coordinate([{linestart, Path} | _]) when length(Path) > 0 ->
     [Coord={_X,_Y} | _] = lists:reverse(Path),
     Coord;
-last_relstart_coordinate([_ | R]) ->
-    last_relstart_coordinate(R).
+last_linecontinue_coordinate([_ | R]) ->
+    last_linecontinue_coordinate(R).
     
 
 emf_cmd_unknown(_  , 0) -> unused;
@@ -803,7 +814,6 @@ emf_cmd_restoredc(Fp2, NumBytes) ->
 
 emf_cmd_setmapmode(Fp2, 4) ->
     {ok, <<_Mode:32/?SINT>>} = file:read(Fp2, 4),
-    % ?DEBUG_FMT("MapMode=~p~n", [Mode]),
     unused.
 
 %% Viewports and window
@@ -860,16 +870,16 @@ emf_cmd_modifyworldtransform(Fp2, NumBytes) ->
     {world_transform, {{EM11, EM12, EM21, EM22}, {EDx, EDy}}}.
 
 
-emf_cmd_createpen(Fp2, NumBytes) -> % ?DEBUG_FMT(" Create ~n", []),
+emf_cmd_createpen(Fp2, NumBytes) ->
     {ok, << Index:32/?SINT >>} = file:read(Fp2, 4),
     emf_cmd_skip(Fp2, NumBytes-4),
     {alloc_color, {Index, ignore}}.
-emf_cmd_extcreatepen(Fp2, NumBytes) -> % ?DEBUG_FMT(" Create ~n", []),
+emf_cmd_extcreatepen(Fp2, NumBytes) ->
     {ok, << Index:32/?SINT >>} = file:read(Fp2, 4),
     emf_cmd_skip(Fp2, NumBytes-4),
     {alloc_color, {Index, ignore}}.
 
-emf_cmd_createbrushindirect(Fp2, 16) -> % ?DEBUG_FMT(" Create (brush) ~n", []),
+emf_cmd_createbrushindirect(Fp2, 16) ->
     {ok, << Index:32/?SINT,
             _Unk2:32/?SINT,
             Red:8/?UINT,
@@ -892,50 +902,50 @@ emf_cmd_selectobject(Fp2, 4) ->
 emf_cmd_selectobject(Fp2, NumBytes) -> emf_cmd_skip(Fp2, NumBytes).
     
 
-emf_cmd_moveto(Fp2) -> % ?DEBUG_FMT("Moveto~n",[]),
+emf_cmd_moveto(Fp2) ->
     {ok, << X1:32/?SINT,
             Y1:32/?SINT>>} = file:read(Fp2, 8),
-    {relstart, [{X1, Y1}]}.
+    {linestart, [{X1, Y1}]}.
 
-emf_cmd_lineto(Fp2) -> % ?DEBUG_FMT("Lineto~n",[]),
+emf_cmd_lineto(Fp2) ->
     {ok, << X1:32/?SINT,
             Y1:32/?SINT>>} = file:read(Fp2, 8),
-    {rel, [{X1, Y1}]}.
+    {linecontinue, [{X1, Y1}]}.
     
-emf_cmd_closefigure(_Fp2, FirstCoord) -> % ?DEBUG_FMT("Closefigure~n",[]),
-    {rel, [FirstCoord]}.
+emf_cmd_closefigure(_Fp2, FirstCoord) ->
+    {linecontinue, [FirstCoord]}.
     
 
 -define(EMF_FILLMODE_WINDING, 2).
 -define(EMF_FILLMODE_ALTERNATE, 1).
-emf_cmd_setpolyfillmode(Fp2) -> % ?DEBUG_FMT("SetPolyfillMode~n",[]),
+emf_cmd_setpolyfillmode(Fp2) ->
     {ok, << Mode:32/?SINT>>} = file:read(Fp2, 4),
     case Mode of
         ?EMF_FILLMODE_WINDING -> {fill_mode, winding};
         ?EMF_FILLMODE_ALTERNATE -> {fill_mode, alternate}
     end.
 
-emf_cmd_beginpath(_Fp2) -> % ?DEBUG_FMT("Beginpath~n",[]),
+emf_cmd_beginpath(_Fp2) ->
     beginpath.
 
-emf_cmd_strokeandfillpath(Fp2) -> % ?DEBUG_FMT("Strokeandfillpath~n",[]),
+emf_cmd_strokeandfillpath(Fp2) ->
     {ok, << _Unused1:32/?SINT,
             _Unused2:32/?SINT>>} = file:read(Fp2, 8),
     {ok, << _Unused3:32/?SINT,
             _Unused4:32/?SINT>>} = file:read(Fp2, 8),
     unused.
 
-emf_cmd_fillpath(Fp2, NumBytes) -> % ?DEBUG_FMT("Fillpath~n",[]),
+emf_cmd_fillpath(Fp2, NumBytes) ->
     emf_cmd_skip(Fp2, NumBytes).
     % {ok, << X1:32/?SINT,
     %         Y1:32/?SINT>>} = file:read(Fp2, 8),
-    % {rel, [{X1, Y1}]}.
+    % {linecontinue, [{X1, Y1}]}.
 
-emf_cmd_endpath(_Fp2) -> % ?DEBUG_FMT("Endpath~n",[]),
+emf_cmd_endpath(_Fp2) ->
     endpath.
 
 
-emf_cmd_polyline(Fp2) -> % ?DEBUG_FMT("Polyline~n",[]),
+emf_cmd_polyline(Fp2) ->
     {ok, << _BoundRectLeft:32/?SINT, _BoundRectTop:32/?SINT>>} = file:read(Fp2, 8), %% Bounding rectangle (can ignore)
     {ok, << _BoundRectRight:32/?SINT, _BoundRectBottom:32/?SINT>>} = file:read(Fp2, 8),
     {ok, << NumSeg:32/?SINT>>} = file:read(Fp2, 4),
@@ -946,7 +956,7 @@ emf_cmd_polyline_nextseg(Fp2, NumSeg, Coords) ->
             Y1:32/?SINT>>} = file:read(Fp2, 8),
     emf_cmd_polyline_nextseg(Fp2, NumSeg-1, [{X1,Y1}|Coords]).
 
-emf_cmd_polyline16(Fp2) -> %?DEBUG_FMT("Polyline~n",[]),
+emf_cmd_polyline16(Fp2) ->
     {ok, << _BoundRectLeft:32/?SINT, _BoundRectTop:32/?SINT>>} = file:read(Fp2, 8), %% Bounding rectangle (can ignore)
     {ok, << _BoundRectRight:32/?SINT, _BoundRectBottom:32/?SINT>>} = file:read(Fp2, 8),
     {ok, << NumSeg:32/?SINT>>} = file:read(Fp2, 4),
@@ -958,48 +968,48 @@ emf_cmd_polyline16_nextseg(Fp2, NumSeg, Coords) ->
     emf_cmd_polyline16_nextseg(Fp2, NumSeg-1, [{X1,Y1}|Coords]).
 
 
-emf_cmd_polylineto(Fp2) -> %?DEBUG_FMT("Polylineto~n",[]),
+emf_cmd_polylineto(Fp2) ->
     {ok, << _BoundRectLeft:32/?SINT, _BoundRectTop:32/?SINT>>} = file:read(Fp2, 8), %% Bounding rectangle (can ignore)
     {ok, << _BoundRectRight:32/?SINT, _BoundRectBottom:32/?SINT>>} = file:read(Fp2, 8),
     {ok, << NumSeg:32/?SINT>>} = file:read(Fp2, 4),
     emf_cmd_polylineto_nextseg(Fp2, NumSeg, []).
-emf_cmd_polylineto_nextseg(_, 0, Coords) -> {rel, lists:reverse(Coords)};
+emf_cmd_polylineto_nextseg(_, 0, Coords) -> {linecontinue, lists:reverse(Coords)};
 emf_cmd_polylineto_nextseg(Fp2, NumSeg, Coords) ->
     {ok, << X1:32/?SINT,
             Y1:32/?SINT >>} = file:read(Fp2, 8),
     emf_cmd_polylineto_nextseg(Fp2, NumSeg-1, [{X1,Y1}|Coords]).
 
-emf_cmd_polylineto16(Fp2) -> %?DEBUG_FMT("Polylineto~n",[]),
+emf_cmd_polylineto16(Fp2) ->
     {ok, <<_BoundRectLeft:32/?SINT, _BoundRectTop:32/?SINT>>} = file:read(Fp2, 8), %% Bounding rectangle (can ignore)
     {ok, <<_BoundRectRight:32/?SINT, _BoundRectBottom:32/?SINT>>} = file:read(Fp2, 8), %% 
     {ok, <<NumSeg:32/?UINT>>} = file:read(Fp2, 4),
     emf_cmd_polylineto16_nextseg(Fp2, NumSeg, []).
-emf_cmd_polylineto16_nextseg(_, 0, Coords) -> {rel, lists:reverse(Coords)};
+emf_cmd_polylineto16_nextseg(_, 0, Coords) -> {linecontinue, lists:reverse(Coords)};
 emf_cmd_polylineto16_nextseg(Fp2, NumSeg, Coords) ->
     {ok, << X1:16/?SINT,
             Y1:16/?SINT >>} = file:read(Fp2, 4),
     emf_cmd_polylineto16_nextseg(Fp2, NumSeg-1, [{X1,Y1}|Coords]).
 
 
-emf_cmd_polybezierto(Fp2, PrevCoord, NumDiv) -> %?DEBUG_FMT("Polybezierto~n",[]),
+emf_cmd_polybezierto(Fp2, PrevCoord, NumDiv) ->
     {ok, <<_BoundRectLeft:32/?SINT, _BoundRectTop:32/?SINT>>} = file:read(Fp2, 8), %% Bounding rectangle (can ignore)
     {ok, <<_BoundRectRight:32/?SINT, _BoundRectBottom:32/?SINT>>} = file:read(Fp2, 8), %% All ones
     {ok, <<NumSeg:32/?UINT>>} = file:read(Fp2, 4),
     emf_cmd_polybezierto_nextseg(Fp2, NumSeg, NumDiv, [PrevCoord]).
 emf_cmd_polybezierto_nextseg(_, 0, NumDiv, Coords) ->
-    {rel, emf_paths_from_bezier(lists:reverse(Coords), NumDiv)};
+    {linecontinue, emf_paths_from_bezier(lists:reverse(Coords), NumDiv)};
 emf_cmd_polybezierto_nextseg(Fp2, NumSeg, NumDiv, Coords) ->
     {ok, << X1:32/?SINT,
             Y1:32/?SINT >>} = file:read(Fp2, 8),
     emf_cmd_polybezierto_nextseg(Fp2, NumSeg-1, NumDiv, [{X1,Y1}|Coords]).
 
-emf_cmd_polybezierto16(Fp2, PrevCoord, NumDiv) -> %?DEBUG_FMT("Polybezierto~n",[]),
+emf_cmd_polybezierto16(Fp2, PrevCoord, NumDiv) ->
     {ok, <<_BoundRectLeft:32/?SINT, _BoundRectTop:32/?SINT>>} = file:read(Fp2, 8), %% Bounding rectangle (can ignore)
     {ok, <<_BoundRectRight:32/?SINT, _BoundRectBottom:32/?SINT>>} = file:read(Fp2, 8), %% All ones
     {ok, <<NumSeg:32/?UINT>>} = file:read(Fp2, 4),
     emf_cmd_polybezierto16_nextseg(Fp2, NumSeg, NumDiv, [PrevCoord]).
 emf_cmd_polybezierto16_nextseg(_, 0, NumDiv, Coords) ->
-    {rel, emf_paths_from_bezier(lists:reverse(Coords), NumDiv)};
+    {linecontinue, emf_paths_from_bezier(lists:reverse(Coords), NumDiv)};
 emf_cmd_polybezierto16_nextseg(Fp2, NumSeg, NumDiv, Coords) ->
     {ok, << X1:16/?SINT,
             Y1:16/?SINT >>} = file:read(Fp2, 4),
@@ -1015,7 +1025,7 @@ emf_cmd_anglearc(Fp2) ->
             
     NumPoints = round(abs(AngleDiff_0 / 180 * 10)),
     OPath = anglearc_points({XC, YC}, 0, NumPoints, StartAngle_0, AngleDiff_0, Radius, []),
-    {rel, OPath}.
+    {linecontinue, OPath}.
 anglearc_points({XC, YC}, I, NumPoints, StartAngle, AngleDiff, Radius, OPath) when I =:= NumPoints ->
     lists:reverse([anglearc_cos_sin({XC, YC}, StartAngle+AngleDiff, Radius)|OPath]);
 anglearc_points({XC, YC}=Coord, I, NumPoints, StartAngle, AngleDiff, Radius, OPath) when I < NumPoints ->
@@ -1061,7 +1071,7 @@ emf_cmd_arcto(Fp2) ->
     YC = Y1 + (Y2 - Y1) / 2,
     Ang1 = radial_lines_to_angle(XC, YC, XR1, YR1),
     Ang2 = radial_lines_to_angle(XC, YC, XR2, YR2),
-    {rel, paths_arcto_open(X1, Y1, X2, Y2, Ang1, Ang2, [])}.
+    {linecontinue, paths_arcto_open(X1, Y1, X2, Y2, Ang1, Ang2, [])}.
 
 emf_cmd_ellipse(Fp2) ->
     {ok, << X1:32/?SINT,
@@ -1112,7 +1122,7 @@ emf_cmd_roundrect(Fp2) ->
     {set, paths_round_rect(X1,Y1,X2,Y2,WR,HR)}.
 
 
-emf_cmd_polybezier(Fp2, NumDiv) -> %?DEBUG_FMT("Polybezier~n",[]),
+emf_cmd_polybezier(Fp2, NumDiv) ->
     {ok, <<_BoundRectLeft:32/?SINT, _BoundRectTop:32/?SINT>>} = file:read(Fp2, 8), %% Bounding rectangle (can ignore)
     {ok, <<_BoundRectRight:32/?SINT, _BoundRectBottom:32/?SINT>>} = file:read(Fp2, 8), %% Bounding rectangle
     {ok, <<NumSeg:32/?UINT>>} = file:read(Fp2, 4),
@@ -1126,7 +1136,7 @@ emf_cmd_polybezier_nextseg(Fp2, NumSeg, NumDiv, Coords) ->
 
 
 
-emf_cmd_polybezier16(Fp2, NumDiv) -> %?DEBUG_FMT("Polybezier~n",[]),
+emf_cmd_polybezier16(Fp2, NumDiv) ->
     {ok, <<_BoundRectLeft:32/?SINT, _BoundRectTop:32/?SINT>>} = file:read(Fp2, 8), %% Bounding rectangle (can ignore)
     {ok, <<_BoundRectRight:32/?SINT, _BoundRectBottom:32/?SINT>>} = file:read(Fp2, 8), %% Bounding rectangle
     {ok, <<NumSeg:32/?UINT>>} = file:read(Fp2, 4),
@@ -1139,7 +1149,7 @@ emf_cmd_polybezier16_nextseg(Fp2, NumSeg, NumDiv, Coords) ->
     emf_cmd_polybezier16_nextseg(Fp2, NumSeg-1, NumDiv, [{X1, Y1}|Coords]).
 
 
-emf_cmd_polydraw(Fp2, NumDiv) -> %?DEBUG_FMT("Polydraw~n",[]),
+emf_cmd_polydraw(Fp2, NumDiv) ->
     {ok, <<_BoundRectLeft:32/?SINT, _BoundRectTop:32/?SINT>>} = file:read(Fp2, 8), %% Bounding rectangle (can ignore)
     {ok, <<_BoundRectRight:32/?SINT, _BoundRectBottom:32/?SINT>>} = file:read(Fp2, 8), %% Bounding rectangle
     {ok, <<NumSeg:32/?UINT>>} = file:read(Fp2, 4),
@@ -1167,7 +1177,7 @@ emf_cmd_polydraw_padbytes(Fp2, NumSeg) ->
 
 
 
-emf_cmd_polydraw16(Fp2, NumDiv) -> %?DEBUG_FMT("Polydraw~n",[]),
+emf_cmd_polydraw16(Fp2, NumDiv) ->
     {ok, <<_BoundRectLeft:32/?SINT, _BoundRectTop:32/?SINT>>} = file:read(Fp2, 8), %% Bounding rectangle (can ignore)
     {ok, <<_BoundRectRight:32/?SINT, _BoundRectBottom:32/?SINT>>} = file:read(Fp2, 8), %% Bounding rectangle
     {ok, <<NumSeg:32/?UINT>>} = file:read(Fp2, 4),
@@ -1203,7 +1213,7 @@ emf_paths_poly_draw(Paths, PathTypes, NumDiv) ->
 emf_paths_poly_draw([], [], _NumDiv, OPaths) ->
     lists:reverse(OPaths);
 emf_paths_poly_draw([{X1,Y1} | _Paths], [], NumDiv, OPaths) ->
-    emf_paths_poly_draw([], [], NumDiv, [{rel, [{X1,Y1}]} | OPaths]);
+    emf_paths_poly_draw([], [], NumDiv, [{linecontinue, [{X1,Y1}]} | OPaths]);
 emf_paths_poly_draw(
     [{X2,Y2}, {X3,Y3}, {X4,Y4}| Paths],
     [?POLY_DRAW_PT_BEZIERTO, ?POLY_DRAW_PT_BEZIERTO, ?POLY_DRAW_PT_BEZIERTO | PathTypes], NumDiv,
@@ -1211,28 +1221,28 @@ emf_paths_poly_draw(
     [{X1,Y1} | _] = lists:reverse(PrevPath),
     emf_paths_poly_draw(
         [{X4,Y4} | Paths], PathTypes, NumDiv,
-        [{rel, lists:reverse(paths_bezier_4_points({X1,Y1}, {X2,Y2}, {X3,Y3}, {X4,Y4}, NumDiv))} | OPaths]);
+        [{linecontinue, lists:reverse(paths_bezier_4_points({X1,Y1}, {X2,Y2}, {X3,Y3}, {X4,Y4}, NumDiv))} | OPaths]);
 emf_paths_poly_draw([{X1,Y1} | Paths], [?POLY_DRAW_PT_MOVETO | PathTypes], NumDiv, OPaths) ->
     emf_paths_poly_draw(
         Paths, PathTypes, NumDiv,
-        [{relstart, [{X1,Y1}]} | OPaths]);
+        [{linestart, [{X1,Y1}]} | OPaths]);
 emf_paths_poly_draw([{X1,Y1} | Paths], [?POLY_DRAW_PT_LINETO | PathTypes], NumDiv, OPaths) ->
     emf_paths_poly_draw(
         Paths, PathTypes, NumDiv,
-        [{rel, [{X1,Y1}]} | OPaths]);
+        [{linecontinue, [{X1,Y1}]} | OPaths]);
 emf_paths_poly_draw([{X1,Y1} | Paths], [?POLY_DRAW_PT_CLOSEFIGURE | PathTypes], NumDiv, OPaths) ->
     emf_paths_poly_draw(
         Paths, PathTypes, NumDiv,
-        [{rel, [{X1,Y1}]} | OPaths]);
+        [{linecontinue, [{X1,Y1}]} | OPaths]);
 emf_paths_poly_draw([{X1,Y1} | Paths], [_ | PathTypes], NumDiv, OPaths) ->
     %% Just draw a line if we're not sure
     emf_paths_poly_draw(
         Paths, PathTypes, NumDiv,
-        [{rel, [{X1,Y1}]} | OPaths]).
+        [{linecontinue, [{X1,Y1}]} | OPaths]).
     
 
 
-emf_cmd_polygon(Fp2) -> %?DEBUG_FMT("Polygon~n",[]),
+emf_cmd_polygon(Fp2) ->
     {ok, << _BoundRectLeft:32/?SINT, _BoundRectTop:32/?SINT>>} = file:read(Fp2, 8), %% Bounding rectangle (can ignore)
     {ok, << _BoundRectRight:32/?SINT, _BoundRectBottom:32/?SINT>>} = file:read(Fp2, 8),
     {ok, << NumSeg:32/?SINT>>} = file:read(Fp2, 4),
@@ -1243,7 +1253,7 @@ emf_cmd_polygon_nextseg(Fp2, NumSeg, Coords) ->
             Y1:32/?SINT>>} = file:read(Fp2, 8),
     emf_cmd_polygon_nextseg(Fp2, NumSeg-1, [{X1,Y1}|Coords]).
 
-emf_cmd_polygon16(Fp2) -> %?DEBUG_FMT("Polygon~n",[]),
+emf_cmd_polygon16(Fp2) ->
     {ok, <<_BoundRectLeft:32/?SINT, _BoundRectTop:32/?SINT>>} = file:read(Fp2, 8), %% Bounding rectangle (can ignore)
     {ok, <<_BoundRectRight:32/?SINT, _BoundRectBottom:32/?SINT>>} = file:read(Fp2, 8), %% Bounding rectangle
     {ok, <<NumSeg:32/?UINT>>} = file:read(Fp2, 4),
@@ -1255,7 +1265,7 @@ emf_cmd_polygon16_nextseg(Fp2, NumSeg, Coords) ->
     emf_cmd_polygon16_nextseg(Fp2, NumSeg-1, [{X1,Y1}|Coords]).
 
 
-emf_cmd_polypolygon(Fp2) -> %?DEBUG_FMT("Polypolygon~n",[]),
+emf_cmd_polypolygon(Fp2) ->
     {ok, <<_BoundRectLeft:32/?SINT, _BoundRectTop:32/?SINT>>} = file:read(Fp2, 8), %% Bounding rectangle (can ignore)
     {ok, <<_BoundRectRight:32/?SINT, _BoundRectBottom:32/?SINT>>} = file:read(Fp2, 8), %% Bounding rectangle
     %% First: Number of polygons
@@ -1280,7 +1290,7 @@ emf_cmd_polypolygon_nextseg(Fp2, NumSeg, Coords) ->
 
 
 
-emf_cmd_polypolygon16(Fp2) -> %?DEBUG_FMT("Polypolygon~n",[]),
+emf_cmd_polypolygon16(Fp2) ->
     {ok, <<_BoundRectLeft:32/?SINT, _BoundRectTop:32/?SINT>>} = file:read(Fp2, 8), %% Bounding rectangle (can ignore)
     {ok, <<_BoundRectRight:32/?SINT, _BoundRectBottom:32/?SINT>>} = file:read(Fp2, 8), %% Bounding rectangle
     %% First: Number of polygons
@@ -1304,7 +1314,7 @@ emf_cmd_polypolygon16_nextseg(Fp2, NumSeg, Coords) ->
     emf_cmd_polypolygon16_nextseg(Fp2, NumSeg-1, [{X1, Y1}|Coords]).
 
 
-emf_cmd_polypolyline(Fp2) -> %?DEBUG_FMT("Polypolyline~n",[]),
+emf_cmd_polypolyline(Fp2) ->
     {ok, <<_BoundRectLeft:32/?SINT, _BoundRectTop:32/?SINT>>} = file:read(Fp2, 8), %% Bounding rectangle (can ignore)
     {ok, <<_BoundRectRight:32/?SINT, _BoundRectBottom:32/?SINT>>} = file:read(Fp2, 8), %% Bounding rectangle
     %% First: Number of polygons
@@ -1328,7 +1338,7 @@ emf_cmd_polypolyline_nextseg(Fp2, NumSeg, Coords) ->
     emf_cmd_polypolyline_nextseg(Fp2, NumSeg-1, [{X1, Y1}|Coords]).
 
 
-emf_cmd_polypolyline16(Fp2) -> %?DEBUG_FMT("Polypolyline~n",[]),
+emf_cmd_polypolyline16(Fp2) ->
     {ok, <<_BoundRectLeft:32/?SINT, _BoundRectTop:32/?SINT>>} = file:read(Fp2, 8), %% Bounding rectangle (can ignore)
     {ok, <<_BoundRectRight:32/?SINT, _BoundRectBottom:32/?SINT>>} = file:read(Fp2, 8), %% Bounding rectangle
     %% First: Number of polygons
@@ -1383,97 +1393,97 @@ paths_bezier_4_points({X1,Y1}=XY1, {XC1,YC1}=XY2, {XC2,YC2}=XY3, {X2,Y2}=XY4, Pa
 paths_bezier_4_points(_, _, _, _, Path, _, _) -> Path.
 
 
-emf_relpaths(Commands) when is_list(Commands) -> emf_relpaths(Commands, [], []).
-emf_relpaths([], OCommands, []) -> lists:reverse(OCommands);
-emf_relpaths([], OCommands, RelPaths) -> emf_relpaths([], [{path, [RelPaths]}|OCommands], []);
-emf_relpaths([Ignored|Commands], OCommands, RelPaths) 
+emf_into_paths(Commands) when is_list(Commands) -> emf_into_paths(Commands, [], []).
+emf_into_paths([], OCommands, []) -> lists:reverse(OCommands);
+emf_into_paths([], OCommands, RelPaths) -> emf_into_paths([], [{path, [RelPaths]}|OCommands], []);
+emf_into_paths([Ignored|Commands], OCommands, RelPaths) 
     when Ignored =:= todo; Ignored =:= unused; Ignored =:= endpath ->
-        emf_relpaths(Commands, OCommands, RelPaths);
-emf_relpaths([A|Commands], OCommands, []) ->
+        emf_into_paths(Commands, OCommands, RelPaths);
+emf_into_paths([A|Commands], OCommands, []) ->
     case A of
         beginpath        ->
             %% Begin an actual path
-            {ok, Commands_1, OCommands2} = emf_relpaths_inpath(Commands),
-            emf_relpaths(Commands_1, OCommands2 ++ OCommands, []);
-        {rel, List}      -> emf_relpaths(Commands, OCommands, List);
-        {relstart, List} -> emf_relpaths(Commands, OCommands, List);
+            {ok, Commands_1, OCommands2} = emf_into_paths_inpath(Commands),
+            emf_into_paths(Commands_1, OCommands2 ++ OCommands, []);
+        {linecontinue, List}      -> emf_into_paths(Commands, OCommands, List);
+        {linestart, List} -> emf_into_paths(Commands, OCommands, List);
         
         %% Other drawing commands that are self contained
-        {path, _}         -> emf_relpaths(Commands, [A | OCommands], []);
+        {path, _}         -> emf_into_paths(Commands, [A | OCommands], []);
         {Atm, _}
             when Atm =:= fill_mode; Atm =:= world_transform; Atm =:= window; Atm =:= viewport;
                 Atm =:= save_dc; Atm =:= restore_dc; Atm =:= selectclippath;
                 Atm =:= tex_bitmap; Atm =:= alloc_color; Atm =:= select_object ->
-            emf_relpaths(Commands, [A | OCommands], []);
-        {set, Path} when length(Path) > 0 -> emf_relpaths(Commands, [{path, [emf_close_poly(Path)]} | OCommands], []);
-        {set, []}        -> emf_relpaths(Commands, OCommands, [])
+            emf_into_paths(Commands, [A | OCommands], []);
+        {set, Path} when length(Path) > 0 -> emf_into_paths(Commands, [{path, [emf_close_poly(Path)]} | OCommands], []);
+        {set, []}        -> emf_into_paths(Commands, OCommands, [])
     end;
-emf_relpaths([A|Commands], OCommands, RelPaths) when length(RelPaths) > 0 ->
+emf_into_paths([A|Commands], OCommands, RelPaths) when length(RelPaths) > 0 ->
     case A of
         beginpath        ->
             %% Begin an actual path
-            {ok, Commands_1, OCommands2} = emf_relpaths_inpath(Commands),
-            emf_relpaths(Commands_1, OCommands2 ++ OCommands, RelPaths);
-        {rel, List}      -> emf_relpaths(Commands, OCommands, RelPaths ++ List);
-        {relstart, List} -> emf_relpaths(Commands, [{path, [emf_close_poly(RelPaths)]}|OCommands], List);
+            {ok, Commands_1, OCommands2} = emf_into_paths_inpath(Commands),
+            emf_into_paths(Commands_1, OCommands2 ++ OCommands, RelPaths);
+        {linecontinue, List}      -> emf_into_paths(Commands, OCommands, RelPaths ++ List);
+        {linestart, List} -> emf_into_paths(Commands, [{path, [emf_close_poly(RelPaths)]}|OCommands], List);
         
         %% Other drawing commands that are self contained
-        {path, _}        -> emf_relpaths(Commands, [A | OCommands], RelPaths);
+        {path, _}        -> emf_into_paths(Commands, [A | OCommands], RelPaths);
         {Atm, _}
             when Atm =:= fill_mode; Atm =:= world_transform; Atm =:= window; Atm =:= viewport;
                 Atm =:= save_dc; Atm =:= restore_dc; Atm =:= selectclippath;
                 Atm =:= tex_bitmap; Atm =:= alloc_color; Atm =:= select_object ->
-            emf_relpaths(Commands, [A | OCommands], RelPaths);
-        {set, Path} when length(Path) > 0 -> emf_relpaths(Commands, [{path, [emf_close_poly(Path)]}, {path, [emf_close_poly(RelPaths)]}|OCommands], []);
-        {set, []}        -> emf_relpaths(Commands, OCommands, RelPaths)
+            emf_into_paths(Commands, [A | OCommands], RelPaths);
+        {set, Path} when length(Path) > 0 -> emf_into_paths(Commands, [{path, [emf_close_poly(Path)]}, {path, [emf_close_poly(RelPaths)]}|OCommands], []);
+        {set, []}        -> emf_into_paths(Commands, OCommands, RelPaths)
     end.
 
-emf_relpaths_inpath(Commands) ->
-    emf_relpaths_inpath(Commands, [], [], []).
+emf_into_paths_inpath(Commands) ->
+    emf_into_paths_inpath(Commands, [], [], []).
 
 %% OCommands - commands that showed up inside beginpath ... endpath but are full
 %%             commands that aren't part of the current path.
 %% RelPaths  - current list of coordinates
 %% PathList  - There can be more than one closing polygon in beginpath ... endpath.
-emf_relpaths_inpath([Ignored|Commands], OCommands, RelPaths, PathList) 
+emf_into_paths_inpath([Ignored|Commands], OCommands, RelPaths, PathList) 
     when Ignored =:= todo; Ignored =:= unused; Ignored =:= beginpath ->
-        emf_relpaths_inpath(Commands, OCommands, RelPaths, PathList);
-emf_relpaths_inpath([endpath|Commands], OCommands, [], []) ->
+        emf_into_paths_inpath(Commands, OCommands, RelPaths, PathList);
+emf_into_paths_inpath([endpath|Commands], OCommands, [], []) ->
     {ok, Commands, OCommands};
-emf_relpaths_inpath([A|Commands], OCommands, [], PathList) ->
+emf_into_paths_inpath([A|Commands], OCommands, [], PathList) ->
     case A of
         endpath          ->
             {ok, Commands, [{path, lists:reverse(PathList)} | OCommands]};
         
-        {rel, List}      -> emf_relpaths_inpath(Commands, OCommands, List, PathList);
-        {relstart, List} -> emf_relpaths_inpath(Commands, OCommands, List, PathList);
+        {linecontinue, List}      -> emf_into_paths_inpath(Commands, OCommands, List, PathList);
+        {linestart, List} -> emf_into_paths_inpath(Commands, OCommands, List, PathList);
         
         %% Other drawing commands not part of path.
         {Atm, _}
             when Atm =:= fill_mode; Atm =:= world_transform; Atm =:= window; Atm =:= viewport;
                 Atm =:= save_dc; Atm =:= restore_dc; Atm =:= selectclippath;
                 Atm =:= tex_bitmap; Atm =:= alloc_color; Atm =:= select_object ->
-            emf_relpaths_inpath(Commands, [A | OCommands], [], PathList);
-        {path, _}        -> emf_relpaths_inpath(Commands, [A | OCommands], [], PathList);
-        {set, Path} when length(Path) > 0 -> emf_relpaths_inpath(Commands, [{path, [Path]} | OCommands], [], PathList);
-        {set, []}        -> emf_relpaths_inpath(Commands, OCommands, [], PathList)
+            emf_into_paths_inpath(Commands, [A | OCommands], [], PathList);
+        {path, _}        -> emf_into_paths_inpath(Commands, [A | OCommands], [], PathList);
+        {set, Path} when length(Path) > 0 -> emf_into_paths_inpath(Commands, [{path, [Path]} | OCommands], [], PathList);
+        {set, []}        -> emf_into_paths_inpath(Commands, OCommands, [], PathList)
     end;
-emf_relpaths_inpath([A|Commands], OCommands, RelPaths, PathList) when length(RelPaths) > 0 ->
+emf_into_paths_inpath([A|Commands], OCommands, RelPaths, PathList) when length(RelPaths) > 0 ->
     case A of
         endpath          ->
             {ok, Commands, [{path, lists:reverse([RelPaths | PathList])} | OCommands]};
         
-        {rel, List}      -> emf_relpaths_inpath(Commands, OCommands, RelPaths ++ List, PathList);
-        {relstart, List} -> emf_relpaths_inpath(Commands, OCommands, List, [RelPaths | PathList]);
+        {linecontinue, List}      -> emf_into_paths_inpath(Commands, OCommands, RelPaths ++ List, PathList);
+        {linestart, List} -> emf_into_paths_inpath(Commands, OCommands, List, [RelPaths | PathList]);
         
         %% Other drawing commands not part of path.
-        {path, _}        -> emf_relpaths_inpath(Commands, [A | OCommands], RelPaths, PathList);
+        {path, _}        -> emf_into_paths_inpath(Commands, [A | OCommands], RelPaths, PathList);
         {Atm, _} when Atm =:= fill_mode; Atm =:= world_transform; Atm =:= window; Atm =:= viewport;
             Atm =:= save_dc; Atm =:= restore_dc; Atm =:= selectclippath;
             Atm =:= tex_bitmap; Atm =:= alloc_color; Atm =:= select_object ->
-            emf_relpaths_inpath(Commands, [A | OCommands], RelPaths, PathList);
-        {set, Path} when length(Path) > 0 -> emf_relpaths_inpath(Commands, [{path, [Path]}|OCommands], RelPaths, PathList);
-        {set, []}        -> emf_relpaths_inpath(Commands, OCommands, RelPaths, PathList)
+            emf_into_paths_inpath(Commands, [A | OCommands], RelPaths, PathList);
+        {set, Path} when length(Path) > 0 -> emf_into_paths_inpath(Commands, [{path, [Path]}|OCommands], RelPaths, PathList);
+        {set, []}        -> emf_into_paths_inpath(Commands, OCommands, RelPaths, PathList)
     end.
 
 
@@ -1680,6 +1690,8 @@ emf_cmd_stretchdibits(Fp2, NumBytes_0) ->
 -define(W_SETROP2, 16#0104).
 -define(W_SETWINDOWEXT, 16#020C).
 -define(W_SETWINDOWORG, 16#020B).
+-define(W_SETVIEWPORTEXT, 16#020E).
+-define(W_SETVIEWPORTORG, 16#020D).
 -define(W_CREATEBRUSHINDIRECT, 16#02FC).
 -define(W_CREATEFONTINDIRECT, 16#02FB).
 -define(W_CREATEPENINDIRECT, 16#02FA).
@@ -1694,8 +1706,6 @@ emf_cmd_stretchdibits(Fp2, NumBytes_0) ->
 -define(W_CREATEPALETTE, 16#00F7).   %% Not implemented
 
 % Unimplemented
--define(W_SETVIEWPORTEXT, 16#020E).
--define(W_SETVIEWPORTORG, 16#020D).
 -define(W_ABORTDOC, 16#0052).
 -define(W_ENDDOC, 16#005E).
 -define(W_ENDPAGE, 16#0050).
@@ -1807,8 +1817,6 @@ wmf_loop(Fp2, NumObj, MaxRecordSize, Commands) ->
             file:close(Fp2),
             lists:reverse(Commands);
         _ ->
-            % {ok, Pos} = file:position(Fp2, cur),
-            % ?DEBUG_FMT("command: pos=~w  cmd=~w  size=~w~n", [Pos, Command, NumParams]),
             NewCommand = case Command of
                 ?W_POLYGON               -> wmf_cmd_polyline(Fp2);
                 ?W_POLYLINE              -> wmf_cmd_polyline(Fp2);
@@ -1829,9 +1837,11 @@ wmf_loop(Fp2, NumObj, MaxRecordSize, Commands) ->
                 ?W_RESTOREDC             -> wmf_cmd_skip(Fp2, NumParams);
                 ?W_CREATEBRUSHINDIRECT   -> wmf_cmd_createbrushindirect(Fp2, NumParams);
                 ?W_SETBKMODE             -> wmf_cmd_skip(Fp2, NumParams);
-                ?W_SETWINDOWEXT          -> wmf_cmd_skip(Fp2, NumParams);
-                ?W_SETWINDOWORG          -> wmf_cmd_skip(Fp2, NumParams);
-                ?W_SETMAPMODE            -> wmf_cmd_skip(Fp2, NumParams);
+                ?W_SETWINDOWEXT          -> wmf_cmd_setwindowext(Fp2, NumParams);
+                ?W_SETWINDOWORG          -> wmf_cmd_setwindoworg(Fp2, NumParams);
+                ?W_SETVIEWPORTEXT        -> wmf_cmd_setviewportext(Fp2, NumParams);
+                ?W_SETVIEWPORTORG        -> wmf_cmd_setviewportorg(Fp2, NumParams);
+                ?W_SETMAPMODE            -> wmf_cmd_setmapmode(Fp2, NumParams);
                 ?W_CREATEPENINDIRECT     -> wmf_cmd_createpen(Fp2, NumParams);
                 ?W_SELECTOBJECT          -> wmf_cmd_selectobject(Fp2, NumParams);
                 ?W_DELETEOBJECT          -> wmf_cmd_deleteobject(Fp2, NumParams);
@@ -1891,7 +1901,6 @@ wmf_loop(Fp2, NumObj, MaxRecordSize, Commands) ->
     end.
     
 
-
 wmf_cmd_unknown(_  , 0) -> unused;
 wmf_cmd_unknown(Fp2, NumParams) ->
     {ok, <<_Param:16/?SINT>>} = file:read(Fp2, 2),
@@ -1902,6 +1911,31 @@ wmf_cmd_skip(_  , 0) -> unused;
 wmf_cmd_skip(Fp2, NumParams) ->
     {ok, <<_Param:16/?SINT>>} = file:read(Fp2, 2),
     wmf_cmd_skip(Fp2, NumParams-1).
+
+
+wmf_cmd_setwindowext(Fp2, 2) ->
+    {ok, <<Y1:16/?SINT>>} = file:read(Fp2, 2),
+    {ok, <<X1:16/?SINT>>} = file:read(Fp2, 2),
+    {window, {extent, {float(X1),float(Y1)}}}.
+
+wmf_cmd_setwindoworg(Fp2, 2) ->
+    {ok, <<Y1:16/?SINT>>} = file:read(Fp2, 2),
+    {ok, <<X1:16/?SINT>>} = file:read(Fp2, 2),
+    {window, {origin, {float(X1),float(Y1)}}}.
+
+wmf_cmd_setviewportext(Fp2, 2) ->
+    {ok, <<Y1:16/?SINT>>} = file:read(Fp2, 2),
+    {ok, <<X1:16/?SINT>>} = file:read(Fp2, 2),
+    {viewport, {extent, {float(X1),float(Y1)}}}.
+
+wmf_cmd_setviewportorg(Fp2, 2) ->
+    {ok, <<Y1:16/?SINT>>} = file:read(Fp2, 2),
+    {ok, <<X1:16/?SINT>>} = file:read(Fp2, 2),
+    {viewport, {origin, {float(X1),float(Y1)}}}.
+
+wmf_cmd_setmapmode(Fp2, 1) ->
+    {ok, <<_MapMode:16/?SINT>>} = file:read(Fp2, 2),
+    unused.
 
 
 wmf_cmd_selectobject(Fp2, 1) ->
@@ -1933,8 +1967,7 @@ wmf_cmd_createpen(Fp2, NumParams) ->
     {alloc_color, ignore}.
 
 
-
-wmf_cmd_polypolygon(Fp2) -> %?DEBUG_FMT("Polypolygon~n",[]),
+wmf_cmd_polypolygon(Fp2) ->
     %% Not in reverse order.
     %% First: Number of polygons
     {ok, <<NumPolys:16/?UINT>>} = file:read(Fp2, 2),
@@ -1955,7 +1988,7 @@ wmf_cmd_polypolygon_nextseg(Fp2, NumSeg, Coords) ->
             Y1:16/?SINT >>} = file:read(Fp2, 4),
     wmf_cmd_polypolygon_nextseg(Fp2, NumSeg-1, [{X1, Y1}|Coords]).
     
-wmf_cmd_polyline(Fp2) -> %?DEBUG_FMT("Polyline~n",[]),
+wmf_cmd_polyline(Fp2) ->
     {ok, <<NumSeg:16/?UINT>>} = file:read(Fp2, 2),
     wmf_cmd_polyline_nextseg(Fp2, NumSeg, []).
 wmf_cmd_polyline_nextseg(_, 0, Coords) -> {set, wmf_close_poly(lists:reverse(Coords))};
@@ -1964,20 +1997,20 @@ wmf_cmd_polyline_nextseg(Fp2, NumSeg, Coords) ->
             Y1:16/?SINT >>} = file:read(Fp2, 4),
     wmf_cmd_polyline_nextseg(Fp2, NumSeg-1, [{X1, Y1}|Coords]).
 
-wmf_cmd_moveto(Fp2) -> %?DEBUG_FMT("Moveto~n",[]),
+wmf_cmd_moveto(Fp2) ->
     {ok, << Y1:16/?SINT,
             X1:16/?SINT>>} = file:read(Fp2, 4),
-    {relstart, [{X1, Y1}]}.
+    {linestart, [{X1, Y1}]}.
 
-wmf_cmd_lineto(Fp2) -> %?DEBUG_FMT("Lineto~n",[]),
+wmf_cmd_lineto(Fp2) ->
     {ok, << Y1:16/?SINT,
             X1:16/?SINT>>} = file:read(Fp2, 4),
-    {rel, [{X1, Y1}]}.
+    {linecontinue, [{X1, Y1}]}.
     
 
 -define(WMF_FILLMODE_WINDING, 2).
 -define(WMF_FILLMODE_ALTERNATE, 1).
-wmf_cmd_setpolyfillmode(Fp2, Size) -> %?DEBUG_FMT("SetPolyfillmode~n",[]),
+wmf_cmd_setpolyfillmode(Fp2, Size) ->
     case Size of
         2 ->
             {ok, << Mode:16/?SINT,
@@ -2000,6 +2033,12 @@ wmf_cmd_arc(Fp2) ->
             X2:16/?SINT,
             Y1:16/?SINT,
             X1:16/?SINT>>} = file:read(Fp2, 16),
+    wmf_cmd_arc(X1,Y1,X2,Y2,XR1,YR1,XR2,YR2).
+wmf_cmd_arc(X1,Y1,X2,Y2,XR1,YR1,XR2,YR2) when Y2 < Y1 ->
+    wmf_cmd_arc(X1,Y2,X2,Y1,XR1,YR1,XR2,YR2);
+wmf_cmd_arc(X1,Y1,X2,Y2,XR1,YR1,XR2,YR2) when X2 < X1 ->
+    wmf_cmd_arc(X2,Y1,X1,Y2,XR1,YR1,XR2,YR2);
+wmf_cmd_arc(X1,Y1,X2,Y2,XR1,YR1,XR2,YR2) ->
     XC = X1 + (X2 - X1) / 2,
     YC = Y1 + (Y2 - Y1) / 2,
     Ang1 = radial_lines_to_angle(XC, YC, XR1, YR1),
@@ -2013,6 +2052,12 @@ wmf_cmd_ellipse(Fp2) ->
             X2:16/?SINT,
             Y1:16/?SINT,
             X1:16/?SINT>>} = file:read(Fp2, 8),
+    wmf_cmd_ellipse(X1,Y1,X2,Y2).
+wmf_cmd_ellipse(X1,Y1,X2,Y2) when Y2 < Y1 ->
+    wmf_cmd_ellipse(X1,Y2,X2,Y1);
+wmf_cmd_ellipse(X1,Y1,X2,Y2) when X2 < X1 ->
+    wmf_cmd_ellipse(X2,Y1,X1,Y2);
+wmf_cmd_ellipse(X1,Y1,X2,Y2) ->
     {set, paths_round_rect(X1,Y1,X2,Y2,(X2-X1)/2.0,(Y2-Y1)/2.0)}.
 
 wmf_cmd_rectangle(Fp2) ->
@@ -2020,6 +2065,12 @@ wmf_cmd_rectangle(Fp2) ->
             X2:16/?SINT,
             Y1:16/?SINT,
             X1:16/?SINT>>} = file:read(Fp2, 8),
+    wmf_cmd_rectangle(X1,Y1,X2,Y2).
+wmf_cmd_rectangle(X1,Y1,X2,Y2) when Y2 < Y1 ->
+    wmf_cmd_rectangle(X1,Y2,X2,Y1);
+wmf_cmd_rectangle(X1,Y1,X2,Y2) when X2 < X1 ->
+    wmf_cmd_rectangle(X2,Y1,X1,Y2);
+wmf_cmd_rectangle(X1,Y1,X2,Y2) ->
     {set, [{X1, Y1}, {X2, Y1}, {X2, Y2}, {X1, Y2}, {X1, Y1}]}.
 
 wmf_cmd_roundrect(Fp2) ->
@@ -2029,6 +2080,12 @@ wmf_cmd_roundrect(Fp2) ->
             X2:16/?SINT,
             Y1:16/?SINT,
             X1:16/?SINT>>} = file:read(Fp2, 12),
+    wmf_cmd_roundrect(X1,Y1,X2,Y2,RH,RW).
+wmf_cmd_roundrect(X1,Y1,X2,Y2,RH,RW) when Y2 < Y1 ->
+    wmf_cmd_roundrect(X1,Y2,X2,Y1,RH,RW);
+wmf_cmd_roundrect(X1,Y1,X2,Y2,RH,RW) when X2 < X1 ->
+    wmf_cmd_roundrect(X2,Y1,X1,Y2,RH,RW);
+wmf_cmd_roundrect(X1,Y1,X2,Y2,RH,RW) ->
     {set, paths_round_rect(X1,Y1,X2,Y2,RW,RH)}.
     
 wmf_cmd_pie(Fp2) ->
@@ -2040,6 +2097,12 @@ wmf_cmd_pie(Fp2) ->
             X2:16/?SINT,
             Y1:16/?SINT,
             X1:16/?SINT>>} = file:read(Fp2, 16),
+    wmf_cmd_pie(X1,Y1,X2,Y2,XR1,YR1,XR2,YR2).
+wmf_cmd_pie(X1,Y1,X2,Y2,XR1,YR1,XR2,YR2) when Y2 < Y1 ->
+    wmf_cmd_pie(X1,Y2,X2,Y1,XR1,YR1,XR2,YR2);
+wmf_cmd_pie(X1,Y1,X2,Y2,XR1,YR1,XR2,YR2) when X2 < X1 ->
+    wmf_cmd_pie(X2,Y1,X1,Y2,XR1,YR1,XR2,YR2);
+wmf_cmd_pie(X1,Y1,X2,Y2,XR1,YR1,XR2,YR2) ->
     XC = X1 + (X2 - X1) / 2,
     YC = Y1 + (Y2 - Y1) / 2,
     Ang1 = radial_lines_to_angle(XC, YC, XR1, YR1),
@@ -2057,6 +2120,12 @@ wmf_cmd_chord(Fp2) ->
             X2:16/?SINT,
             Y1:16/?SINT,
             X1:16/?SINT>>} = file:read(Fp2, 16),
+    wmf_cmd_chord(X1,Y1,X2,Y2,XR1,YR1,XR2,YR2).
+wmf_cmd_chord(X1,Y1,X2,Y2,XR1,YR1,XR2,YR2) when Y2 < Y1 ->
+    wmf_cmd_chord(X1,Y2,X2,Y1,XR1,YR1,XR2,YR2);
+wmf_cmd_chord(X1,Y1,X2,Y2,XR1,YR1,XR2,YR2) when X2 < X1 ->
+    wmf_cmd_chord(X2,Y1,X1,Y2,XR1,YR1,XR2,YR2);
+wmf_cmd_chord(X1,Y1,X2,Y2,XR1,YR1,XR2,YR2) ->
     XC = X1 + (X2 - X1) / 2,
     YC = Y1 + (Y2 - Y1) / 2,
     Ang1 = radial_lines_to_angle(XC, YC, XR1, YR1),
@@ -2065,41 +2134,41 @@ wmf_cmd_chord(Fp2) ->
     {set, [C] ++ R ++ [C]}.
 
 
-wmf_relpaths(Commands) when is_list(Commands) -> wmf_relpaths(Commands, [], []).
-wmf_relpaths([], OCommands, []) -> lists:reverse(OCommands);
-wmf_relpaths([], OCommands, RelPaths) -> wmf_relpaths([], [{path, [RelPaths]}|OCommands], []);
-wmf_relpaths([Ignored|Commands], OCommands, RelPaths)
+wmf_into_paths(Commands) when is_list(Commands) -> wmf_into_paths(Commands, [], []).
+wmf_into_paths([], OCommands, []) -> lists:reverse(OCommands);
+wmf_into_paths([], OCommands, RelPaths) -> wmf_into_paths([], [{path, [RelPaths]}|OCommands], []);
+wmf_into_paths([Ignored|Commands], OCommands, RelPaths)
     when Ignored =:= unused ->
-        wmf_relpaths(Commands, OCommands, RelPaths);
-wmf_relpaths([A|Commands], OCommands, []) ->
+        wmf_into_paths(Commands, OCommands, RelPaths);
+wmf_into_paths([A|Commands], OCommands, []) ->
     case A of
-        {rel, List}      -> wmf_relpaths(Commands, OCommands, List);
-        {relstart, List} -> wmf_relpaths(Commands, OCommands, List);
+        {linecontinue, List}      -> wmf_into_paths(Commands, OCommands, List);
+        {linestart, List} -> wmf_into_paths(Commands, OCommands, List);
         
         %% Other drawing commands that are self contained
-        {path, _}          -> wmf_relpaths(Commands, [A | OCommands], []);
-        {fill_mode, _}     -> wmf_relpaths(Commands, [A | OCommands], []);
-        {tex_bitmap, _}    -> wmf_relpaths(Commands, [A | OCommands], []);
-        {alloc_color, _}   -> wmf_relpaths(Commands, [A | OCommands], []);
-        {select_object, _} -> wmf_relpaths(Commands, [A | OCommands], []);
-        {delete_object, _} -> wmf_relpaths(Commands, [A | OCommands], []);
-        {set, Path} when length(Path) > 0 -> wmf_relpaths(Commands, [{path, [wmf_close_poly(Path)]} | OCommands], []);
-        {set, []}        -> wmf_relpaths(Commands, OCommands, [])
+        {path, _}          -> wmf_into_paths(Commands, [A | OCommands], []);
+        {Atm, _}
+            when Atm =:= fill_mode; Atm =:= world_transform; Atm =:= window; Atm =:= viewport;
+                Atm =:= save_dc; Atm =:= restore_dc; Atm =:= selectclippath; Atm =:= delete_object;
+                Atm =:= tex_bitmap; Atm =:= alloc_color; Atm =:= select_object ->
+            wmf_into_paths(Commands, [A | OCommands], []);
+        {set, Path} when length(Path) > 0 -> wmf_into_paths(Commands, [{path, [wmf_close_poly(Path)]} | OCommands], []);
+        {set, []}        -> wmf_into_paths(Commands, OCommands, [])
     end;
-wmf_relpaths([A|Commands], OCommands, RelPaths) when length(RelPaths) > 0 ->
+wmf_into_paths([A|Commands], OCommands, RelPaths) when length(RelPaths) > 0 ->
     case A of
-        {rel, List}      -> wmf_relpaths(Commands, OCommands, RelPaths ++ List);
-        {relstart, List} -> wmf_relpaths(Commands, [{path, [wmf_close_poly(RelPaths)]}|OCommands], List);
+        {linecontinue, List}      -> wmf_into_paths(Commands, OCommands, RelPaths ++ List);
+        {linestart, List} -> wmf_into_paths(Commands, [{path, [wmf_close_poly(RelPaths)]}|OCommands], List);
         
         %% Other drawing commands that are self contained
-        {path, _}        -> wmf_relpaths(Commands, [A | OCommands], RelPaths);
-        {fill_mode, _}    -> wmf_relpaths(Commands, [A | OCommands], RelPaths);
-        {tex_bitmap, _}  -> wmf_relpaths(Commands, [A | OCommands], []);
-        {alloc_color, _} -> wmf_relpaths(Commands, [A | OCommands], []);
-        {select_object, _} -> wmf_relpaths(Commands, [A | OCommands], []);
-        {delete_object, _} -> wmf_relpaths(Commands, [A | OCommands], []);
-        {set, Path} when length(Path) > 0 -> wmf_relpaths(Commands, [{path, [wmf_close_poly(Path)]}, {path, [wmf_close_poly(RelPaths)]}|OCommands], []);
-        {set, []}        -> wmf_relpaths(Commands, OCommands, RelPaths)
+        {path, _}        -> wmf_into_paths(Commands, [A | OCommands], RelPaths);
+        {Atm, _}
+            when Atm =:= fill_mode; Atm =:= world_transform; Atm =:= window; Atm =:= viewport;
+                Atm =:= save_dc; Atm =:= restore_dc; Atm =:= selectclippath; Atm =:= delete_object;
+                Atm =:= tex_bitmap; Atm =:= alloc_color; Atm =:= select_object ->
+            wmf_into_paths(Commands, [A | OCommands], []);
+        {set, Path} when length(Path) > 0 -> wmf_into_paths(Commands, [{path, [wmf_close_poly(Path)]}, {path, [wmf_close_poly(RelPaths)]}|OCommands], []);
+        {set, []}        -> wmf_into_paths(Commands, OCommands, RelPaths)
     end.
 
 wmf_cedge_realize(Commands) ->
@@ -2289,7 +2358,7 @@ paths_round_rect(X1, Y1, X2, Y2, RW, RH) when X1 < X2, Y1 < Y2 ->
     Path_4.
 
 
-radial_lines_to_angle(X1, Y1, XR1, YR1) -> %?DEBUG_FMT("~w ~w ~w ~w~n", [X1, Y1, XR1, YR1]),
+radial_lines_to_angle(X1, Y1, XR1, YR1) ->
     case float(XR1 - X1) == 0.0 of
         true ->
             case YR1 > Y1 of
@@ -2369,7 +2438,6 @@ exclusion([{path, _}=Paths|Commands], FillMode, OCommands) ->
     NewPaths = fill_mode_path(Paths, FillMode),
     exclusion(Commands, FillMode, NewPaths ++ OCommands);
 exclusion([Cmd|Commands], FillMode, OCommands) ->
-    %?DEBUG_FMT("Cmd=~w~n",[Cmd]),
     exclusion(Commands, FillMode, [Cmd|OCommands]).
     
 coord_same({X1,Y1}, {X2, Y2}) ->
@@ -2415,7 +2483,6 @@ remove_repeat_coords([Point1, Point2 | R], OPath) ->
 
 %% Use smallest to get the behaviour of fill mode alternate
 uncouple_shape(R, alternate) ->
-    % ?DEBUG_FMT("R=~w~n~n", [R]),
     case uncouple_shape_1(R, []) of
         [] ->
             %% Simple shape
@@ -2597,12 +2664,7 @@ line_intersect(L1A1={L1A1_X,L1A1_Y}, L1A2={L1A2_X,L1A2_Y}, L2A1={L2A1_X,L2A1_Y},
                     D = L2B1_Y - (L2B1_X * B),
                     MX = L1B1_X,
                     MY = B * MX + D,
-                    case MY >= LeastY2 andalso MY =< MostY2 of
-                    true ->
-                        {MX, MY};
-                    false ->
-                        false
-                    end;
+                    line_intersect_y_bound({MX, MY}, LeastY1, MostY1, LeastY2, MostY2);
                 false ->
                     false
                 end
@@ -2614,12 +2676,7 @@ line_intersect(L1A1={L1A1_X,L1A1_Y}, L1A2={L1A2_X,L1A2_Y}, L2A1={L2A1_X,L2A1_Y},
                 C = L1B1_Y - (L1B1_X * A),
                 MX = L2B1_X,
                 MY = A * MX + C,
-                case MY >= LeastY1 andalso MY =< MostY1 of
-                true ->
-                    {MX, MY};
-                false ->
-                    false
-                end;
+                line_intersect_y_bound({MX, MY}, LeastY1, MostY1, LeastY2, MostY2);
             false ->
                 false
             end;
@@ -2636,15 +2693,20 @@ line_intersect(L1A1={L1A1_X,L1A1_Y}, L1A2={L1A2_X,L1A2_Y}, L2A1={L2A1_X,L2A1_Y},
                 MX = (D - C) / (A - B),
                 MY = A * MX + C,
                 
-                case MX > L1B1_X andalso MX < L1B2_X andalso MX > L2B1_X andalso MX < L2B2_X andalso MY >= LeastY1 andalso MY =< MostY1 andalso MY >= LeastY2 andalso MY =< MostY2 of
+                case MX > L1B1_X andalso MX < L1B2_X andalso MX > L2B1_X andalso MX < L2B2_X of
                 true ->
-                    {MX, MY};
+                    line_intersect_y_bound({MX, MY}, LeastY1, MostY1, LeastY2, MostY2);
                 false ->
                     false
                 end
             end
         end
     end.
+line_intersect_y_bound({_, MY}=Point, LeastY1, MostY1, LeastY2, MostY2)
+    when MY >= LeastY2 andalso MY =< MostY2 andalso MY >= LeastY1 andalso MY =< MostY1 ->
+    Point;
+line_intersect_y_bound(_, _, _, _, _) ->
+    false.
 
 
 %%%
@@ -3015,7 +3077,6 @@ twmf_list_2(FH, CL) ->
     end.
 
 t_2(FType, FileN) ->
-    % ?DEBUG_FMT(" F:~s~n", [FileN]),
     MaxWidth = 260,
     MaxHeight = 200,
     NumDiv = 4,
@@ -3024,7 +3085,7 @@ t_2(FType, FileN) ->
     {ok, Fp3} = file:open("debug.mvg", [write]),
     file:write(Fp3, "push graphic-context\n"),
     file:write(Fp3, "viewbox 0 0 624 624\nfill white\nstroke black\n"),
-    mvg_realize(FType, Fp3, rescale({0.1,0.1}, exclusion(relpaths(FType, CommandsList)))),
+    mvg_realize(FType, Fp3, rescale({0.1,0.1}, exclusion(into_paths(FType, CommandsList)))),
     file:write(Fp3, "pop graphic-context\n"),
     file:close(Fp3),
     os:cmd("magick convert mvg:debug.mvg debug.png").
