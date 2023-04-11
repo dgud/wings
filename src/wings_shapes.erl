@@ -300,8 +300,8 @@ sphere(Ask, St) when is_atom(Ask) ->
     Q = [{label_column, [
 	    {?STR(sphere,1,"Sections"), {text,16,[{range,{3,infinity}}]}},
 	    {?STR(sphere,2,"Slices"), {text,8,[{range,{3,infinity}}]}},
-	    {?STR(sphere,3,"X Radial"), {text,2.0,[{range,{0.0,infinity}}]}},
-	    {?STR(sphere,4,"Y Radial"), {text,2.0,[{range,{0.0,infinity}}]}}
+	    {?STR(sphere,3,"X Radius"), {text,2.0,[{range,{0.0,infinity}}]}},
+	    {?STR(sphere,4,"Y Radius"), {text,2.0,[{range,{0.0,infinity}}]}}
     	 ]},
 	 transform_obj_dlg()],
     ask(sphere, Ask, Q, St);
