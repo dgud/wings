@@ -390,8 +390,6 @@ popup_events(MenuData, Magnet, Previous, Ns, Owner) ->
 		    wings_wm:psend(Owner, {click, Id, {mouse_button(Ev), MagnetClick}, Ns})
 	    end;
         cancel ->
-            {BG,FG} = maps:get(colors, MenuData),
-            setup_colors(Previous, BG, FG),
             wings_wm:psend(Owner, cancel);
         {move, Pos} ->
             Frame = maps:get(frame, MenuData),
@@ -399,8 +397,6 @@ popup_events(MenuData, Magnet, Previous, Ns, Owner) ->
             wings_wm:psend(Owner, redraw),
             popup_events(MenuData, Magnet, Previous, Ns, Owner);
         #wx{event=#wxShow{show=false}} ->
-            {BG,FG} = maps:get(colors, MenuData),
-            setup_colors(Previous, BG, FG),
             wings_wm:psend(Owner, cancel);
 	_Ev ->
 	    %% ?dbg("Got Ev ~p ~n", [_Ev]),
