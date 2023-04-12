@@ -318,12 +318,13 @@ make_svg(Name, #svg_importer_params{
         wpa:pref_set(wpc_svg_path, svg_use_viewbox_coords, UseViewboxCoords),
         wpa:pref_set(wpc_svg_path, svg_viewbox_scale, SetViewBoxScale),
         {ok, E3dFile};
-    E ->
-        io:format("File Import Error Report:\n ~p\n",[E]),
-        {error, ?__(2,"Inkscape .svg path import internal error")}
+    {error, Reason} ->
+        {error, ?__(1,"Inkscape .svg path import failed")++": " ++ Reason}
     catch
-        error:Reason ->
-            {error, ?__(1,"Inkscape .svg path import failed")++": " ++ Reason}
+        EClass:E:ST ->
+            io:format("File Import Error Report:\n ~p: ~p\nstack trace: ~p~n",
+                [EClass, E, ST]),
+            {error, ?__(2,"Inkscape .svg path import internal error")}
     end.
 
 try_import_svg(Name, Nsubsteps, AutoScale, SetScale, SetViewBoxScale_1,
