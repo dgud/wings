@@ -294,8 +294,7 @@ make_svg(Name, #svg_importer_params{
     remove_non_cls=RemoveNonClosed,
     all_paths_invert=AllPathsInvertOverlap,
     transforms_in_layers=TransformsInLayerNames
-}=_)
-->
+  }=_) ->
     case parse_float_number_w_unit(SetScale_S, 0.0) of
         {ScaleVal, ScaleUnit} when ScaleVal > 0.001 ->
             wpa:pref_set(wpc_svg_path, svg_set_scale, SetScale_S),
@@ -307,7 +306,7 @@ make_svg(Name, #svg_importer_params{
         true  -> SetViewBoxScale_1 = SetViewBoxScale;
         false -> SetViewBoxScale_1 = false
     end,
-    case catch try_import_svg(Name, Nsubsteps, AutoScale, SetScale,
+    try try_import_svg(Name, Nsubsteps, AutoScale, SetScale,
         SetViewBoxScale_1, AutoCenter, RemoveNonClosed,
         AllPathsInvertOverlap, TransformsInLayerNames) of
     {ok, E3dFile} ->
@@ -319,17 +318,17 @@ make_svg(Name, #svg_importer_params{
         wpa:pref_set(wpc_svg_path, svg_use_viewbox_coords, UseViewboxCoords),
         wpa:pref_set(wpc_svg_path, svg_viewbox_scale, SetViewBoxScale),
         {ok, E3dFile};
-    {error,Reason} ->
-        {error, ?__(1,"Inkscape .svg path import failed")++": " ++ Reason};
     E ->
         io:format("File Import Error Report:\n ~p\n",[E]),
         {error, ?__(2,"Inkscape .svg path import internal error")}
+    catch
+        error:Reason ->
+            {error, ?__(1,"Inkscape .svg path import failed")++": " ++ Reason}
     end.
 
 try_import_svg(Name, Nsubsteps, AutoScale, SetScale, SetViewBoxScale_1,
-        AutoCenter, RemoveNonClosed, AllPathsInvertOverlap,
-        TransformsInLayerNames)
-->
+               AutoCenter, RemoveNonClosed, AllPathsInvertOverlap,
+               TransformsInLayerNames) ->
     case read_file__svg(Name) of
     {ok,<<Rest/binary>>} ->
     
@@ -349,7 +348,6 @@ try_import_svg(Name, Nsubsteps, AutoScale, SetScale, SetViewBoxScale_1,
         case {AutoScale, SetViewBoxScale_1} of
             {true, _} ->
                 [CamDist] = wpa:camera_info([distance_to_aim]),
-                io:format("Camera Distance=~p~n", [CamDist]),
                 Rescale = calculate_rescale_amount(CamDist, CamDist, pathop_to_simple_list(Closedpaths_0)),
                 RescaleW = Rescale,
                 RescaleH = Rescale;
@@ -362,7 +360,6 @@ try_import_svg(Name, Nsubsteps, AutoScale, SetScale, SetViewBoxScale_1,
                 RescaleW = VWSc / DocUnitRescale,
                 RescaleH = VHSc / DocUnitRescale
         end,
-        io:format("Rescale: ~p,~p ~n~n", [RescaleW,RescaleH]),
         RescalePair = {RescaleW,RescaleH},
         Closedpaths = rescale(RescalePair, Closedpaths_0),
         TexList = rescale_tex(RescalePair, TexList_0),
@@ -480,8 +477,7 @@ into_mesh_parts([], _, _, _, _, _, Vs_L, Fs_L, Tx_L, He_L) ->
      lists:append(lists:reverse(Tx_L)),
      lists:append(lists:reverse(He_L))};
 into_mesh_parts([{Vs,Fs0,He0} | Objs], [#coltex{tex=Tex1,ut=T} | ColTex], TexList,
-    ColorIdx, VsOffset, TxOffset, Vs_L, Fs_L, Tx_L, He_L)
-->
+                ColorIdx, VsOffset, TxOffset, Vs_L, Fs_L, Tx_L, He_L) ->
     case Tex1 of
         none ->
             Tx = [],
@@ -589,7 +585,6 @@ read_file__svg(Name) ->
 
 
 parse_bin_svg(Bin, FullFilename, ShortFilename) ->
-    io:format("New SVG~n", []),
     {ok, PathsList_0, DocumentSt} = read_svg_content(Bin, FullFilename, ShortFilename),
     
     %% Split out texture information from paths here
@@ -615,9 +610,8 @@ parse_chars([], #pstate{objects=[]}) ->
 parse_chars([], #pstate{objects=Objs,objects_tex=OTex}) ->
     lists:zip(Objs, OTex);
 parse_chars([{path, #path_tag_r{d=Path_0,id=_Id,style=Style,
-    texture=Texture,ta=TA,ut=T}=_, _Unused} | Rest],
-    #pstate{objects=Objs,objects_tex=OTex_0})
-->
+            texture=Texture,ta=TA,ut=T}=_, _Unused} | Rest],
+            #pstate{objects=Objs,objects_tex=OTex_0}) ->
     Path = substitute_commands(tok_svgp(Path_0)),
     #pstate{osubpaths=OSubpaths_1} = Pst = parse_path(Path, 1.0, #pstate{osubpaths=[],first_subpath=true}),
     %% Add style and texture information for the new paths added.
@@ -990,22 +984,18 @@ svg_tok_attr_pair(_LName, _AttrLName, _Val) ->
 %% <clipPath> elements
 %%
 svg_tok_attr_pair_clippath(AttrLName, Val)
-    when AttrLName =:= "id"
-->
+  when AttrLName =:= "id" ->
     {id, Val};
 svg_tok_attr_pair_clippath(AttrLName, Val)
-    when AttrLName =:= "clippathunits"
-->
+  when AttrLName =:= "clippathunits" ->
     {clipPathUnits, Val};
 svg_tok_attr_pair_clippath(_AttrLName, _Val) ->
     unused.
 svg_tok_attr_pair_mask(AttrLName, Val)
-    when AttrLName =:= "id"
-->
+  when AttrLName =:= "id" ->
     {id, Val};
 svg_tok_attr_pair_mask(AttrLName, Val)
-    when AttrLName =:= "maskunits"
-->
+  when AttrLName =:= "maskunits" ->
     {clipPathUnits, Val};
 svg_tok_attr_pair_mask(_AttrLName, _Val) ->
     unused.
@@ -1013,20 +1003,20 @@ svg_tok_attr_pair_mask(_AttrLName, _Val) ->
 %% <image> elements
 %%
 svg_tok_attr_pair_image(AttrLName, Val)
-    when AttrLName =:= "clip-path";
-         AttrLName =:= "mask" ->
+  when AttrLName =:= "clip-path";
+       AttrLName =:= "mask" ->
     {ok, ClipPathId} = parse_clip_path(Val),
     {clippath, ClipPathId};
 svg_tok_attr_pair_image(AttrLName, Val)
-    when AttrLName =:= "x" ->
+  when AttrLName =:= "x" ->
     Val_1 = parse_float_number_w_unit(Val, 0.0),
     {x, Val_1};
 svg_tok_attr_pair_image(AttrLName, Val)
-    when AttrLName =:= "y" ->
+  when AttrLName =:= "y" ->
     Val_1 = parse_float_number_w_unit(Val, 0.0),
     {y, Val_1};
 svg_tok_attr_pair_image(AttrLName, Val)
-    when AttrLName =:= "href" ->
+  when AttrLName =:= "href" ->
     case parse_image_href(Val) of
         {ok, ImageContent} ->
             {data, ImageContent};
@@ -1034,35 +1024,35 @@ svg_tok_attr_pair_image(AttrLName, Val)
             unused
     end;
 svg_tok_attr_pair_image(AttrLName, Val)
-    when AttrLName =:= "width" ->
+  when AttrLName =:= "width" ->
     Val_1 = parse_float_number_w_unit(Val, 0.0),
     {width, Val_1};
 svg_tok_attr_pair_image(AttrLName, Val)
-    when AttrLName =:= "height" ->
+  when AttrLName =:= "height" ->
     Val_1 = parse_float_number_w_unit(Val, 0.0),
     {height, Val_1};
 svg_tok_attr_pair_image(AttrLName, Val)
-    when AttrLName =:= "transform" ->
+  when AttrLName =:= "transform" ->
     {ok, Transform_1} = parse_image_transform(Val),
     {transform, Transform_1};
 svg_tok_attr_pair_image(AttrLName, Val)
-    when AttrLName =:= "id" ->
+  when AttrLName =:= "id" ->
     {id, Val};
 svg_tok_attr_pair_image(AttrLName, Val)
-    when AttrLName =:= "preserveAspectRatio" ->
+  when AttrLName =:= "preserveAspectRatio" ->
     {preserve_aspect_ratio, Val};
 svg_tok_attr_pair_image(_AttrLName, _Val) ->
     unused.
 
 %% <g> elements
 svg_tok_attr_pair_g(AttrLName, Val)
-    when AttrLName =:= "id" ->
+  when AttrLName =:= "id" ->
     {id, Val};
 svg_tok_attr_pair_g(AttrLName, Val)
-    when AttrLName =:= "label" ->
+  when AttrLName =:= "label" ->
     {label, Val};
 svg_tok_attr_pair_g(AttrLName, Val)
-    when AttrLName =:= "transform" ->
+  when AttrLName =:= "transform" ->
     case parse_transform_attr(Val) of
         {ok, Val_1} -> {transform, Val_1}
     end;
@@ -1092,11 +1082,11 @@ svg_tok_color_attr("fill-opacity", FVal) ->
 svg_tok_attr_pair_path("id", Val) ->
     {id, Val};
 svg_tok_attr_pair_path(StyleAttr, Val)
-    when StyleAttr =:= "style";
-         StyleAttr =:= "stroke";
-         StyleAttr =:= "fill";
-         StyleAttr =:= "fill-opacity"
-    -> svg_tok_color_attr(StyleAttr, Val);
+  when StyleAttr =:= "style";
+       StyleAttr =:= "stroke";
+       StyleAttr =:= "fill";
+       StyleAttr =:= "fill-opacity" ->
+    svg_tok_color_attr(StyleAttr, Val);
 svg_tok_attr_pair_path("transform", Val) ->
     case parse_transform_attr(Val) of
         {ok, Val_1} -> {transform, Val_1}
@@ -1111,11 +1101,11 @@ svg_tok_attr_pair_path(_AttrLName, _Val) ->
 svg_tok_attr_pair_polyline("id", Val) ->
     {id, Val};
 svg_tok_attr_pair_polyline(StyleAttr, Val)
-    when StyleAttr =:= "style";
-         StyleAttr =:= "stroke";
-         StyleAttr =:= "fill";
-         StyleAttr =:= "fill-opacity"
-    -> svg_tok_color_attr(StyleAttr, Val);
+  when StyleAttr =:= "style";
+       StyleAttr =:= "stroke";
+       StyleAttr =:= "fill";
+       StyleAttr =:= "fill-opacity" ->
+     svg_tok_color_attr(StyleAttr, Val);
 svg_tok_attr_pair_polyline("points", Val) ->
     {points, Val};
 svg_tok_attr_pair_polyline("transform", Val) ->
@@ -1130,11 +1120,11 @@ svg_tok_attr_pair_polyline(_AttrLName, _Val) ->
 svg_tok_attr_pair_polygon("id", Val) ->
     {id, Val};
 svg_tok_attr_pair_polygon(StyleAttr, Val)
-    when StyleAttr =:= "style";
-         StyleAttr =:= "stroke";
-         StyleAttr =:= "fill";
-         StyleAttr =:= "fill-opacity"
-    -> svg_tok_color_attr(StyleAttr, Val);
+  when StyleAttr =:= "style";
+       StyleAttr =:= "stroke";
+       StyleAttr =:= "fill";
+       StyleAttr =:= "fill-opacity" ->
+    svg_tok_color_attr(StyleAttr, Val);
 svg_tok_attr_pair_polygon("points", Val) ->
     {points, Val};
 svg_tok_attr_pair_polygon("transform", Val) ->
@@ -1147,11 +1137,11 @@ svg_tok_attr_pair_polygon(_AttrLName, _Val) ->
 %% <rect> elements
 %%
 svg_tok_attr_pair_rect(StyleAttr, Val)
-    when StyleAttr =:= "style";
-         StyleAttr =:= "stroke";
-         StyleAttr =:= "fill";
-         StyleAttr =:= "fill-opacity"
-    -> svg_tok_color_attr(StyleAttr, Val);
+  when StyleAttr =:= "style";
+       StyleAttr =:= "stroke";
+       StyleAttr =:= "fill";
+       StyleAttr =:= "fill-opacity" ->
+    svg_tok_color_attr(StyleAttr, Val);
 svg_tok_attr_pair_rect("id", Val) ->
     {id, Val};
 svg_tok_attr_pair_rect("width", Val) ->
@@ -1185,11 +1175,11 @@ svg_tok_attr_pair_rect(_AttrLName, _Val) ->
 %% <circle> elements
 %%
 svg_tok_attr_pair_circle(StyleAttr, Val)
-    when StyleAttr =:= "style";
-         StyleAttr =:= "stroke";
-         StyleAttr =:= "fill";
-         StyleAttr =:= "fill-opacity"
-    -> svg_tok_color_attr(StyleAttr, Val);
+  when StyleAttr =:= "style";
+       StyleAttr =:= "stroke";
+       StyleAttr =:= "fill";
+       StyleAttr =:= "fill-opacity" ->
+    svg_tok_color_attr(StyleAttr, Val);
 svg_tok_attr_pair_circle("id", Val) ->
     {id, Val};
 svg_tok_attr_pair_circle("cx", Val) ->
@@ -1211,11 +1201,11 @@ svg_tok_attr_pair_circle(_AttrLName, _Val) ->
 %% <ellipse> elements
 %%
 svg_tok_attr_pair_ellipse(StyleAttr, Val)
-    when StyleAttr =:= "style";
-         StyleAttr =:= "stroke";
-         StyleAttr =:= "fill";
-         StyleAttr =:= "fill-opacity"
-    -> svg_tok_color_attr(StyleAttr, Val);
+  when StyleAttr =:= "style";
+       StyleAttr =:= "stroke";
+       StyleAttr =:= "fill";
+       StyleAttr =:= "fill-opacity" ->
+    svg_tok_color_attr(StyleAttr, Val);
 svg_tok_attr_pair_ellipse("id", Val) ->
     {id, Val};
 svg_tok_attr_pair_ellipse("cx", Val) ->
@@ -1238,7 +1228,7 @@ svg_tok_attr_pair_ellipse(_AttrLName, _Val) ->
     unused.
 
 -spec style_to_tuple([{string(),any()}]) -> {ok, #style_colors{}}.
-style_to_tuple(Styles) -> %% io:format("Styles=~p~n", [Styles]),
+style_to_tuple(Styles) ->
     DCol = 220 / 255.0,
     case orddict:find("stroke", Styles) of
         {ok, [InhSCol]} when InhSCol =:= "inherit"; InhSCol =:= "initial"; InhSCol =:= "unset" ->
@@ -1293,9 +1283,9 @@ style_to_tuple(Styles) -> %% io:format("Styles=~p~n", [Styles]),
 %% Parse hex colors
 %%
 parse_fill_color([$#, HexR, HexG, HexB])
-    when ?IS_HEX_DIGIT(HexR),
-         ?IS_HEX_DIGIT(HexG),
-         ?IS_HEX_DIGIT(HexB) ->
+  when ?IS_HEX_DIGIT(HexR),
+       ?IS_HEX_DIGIT(HexG),
+       ?IS_HEX_DIGIT(HexB) ->
     %% 'Small' hex notation of three hex digits
     R = ((hex_to_dec(HexR) bsl 4) + hex_to_dec(HexR)) / 255.0,
     G = ((hex_to_dec(HexG) bsl 4) + hex_to_dec(HexG)) / 255.0,
@@ -1306,8 +1296,8 @@ parse_fill_color(A) ->
 parse_fill_color([$# | R], []) -> 
     parse_fill_color(R, []);
 parse_fill_color([A0, A1 | R], Hexs)
-    when ?IS_HEX_DIGIT(A0),
-         ?IS_HEX_DIGIT(A1) ->
+  when ?IS_HEX_DIGIT(A0),
+       ?IS_HEX_DIGIT(A1) ->
     CChn = (hex_to_dec(A0) bsl 4) + hex_to_dec(A1),
     parse_fill_color(R, [CChn / 255.0 | Hexs]);
 parse_fill_color(_, [B, G, R | _ ]) ->
@@ -1352,7 +1342,7 @@ parse_style([$: | R], SName, List) ->
     {ok, StyleVal, R_1} = tok_svg_attr(R, [], []),
     parse_style(R_1, [], [{lists:reverse(SName), StyleVal} | List]);
 parse_style([A | R], SName, List)
-    when A =/= $: , A =/= $; ->
+  when A =/= $: , A =/= $; ->
     parse_style(R, [A | SName], List).
 
 %%%
@@ -1411,7 +1401,7 @@ parse_image_href(A) ->
     (DriveLetter >= $A andalso DriveLetter =< $Z))).
 
 parse_image_href_scheme([C1,C2,C3 | _]=R)
-    when ?DRIVE_LETTER_RANGE(C1), C2 =:= $:, (C3 =:= $/ orelse C3 =:= $\\) ->
+  when ?DRIVE_LETTER_RANGE(C1), C2 =:= $:, (C3 =:= $/ orelse C3 =:= $\\) ->
     {ok, dospath, R};
 parse_image_href_scheme([C | _]=R) when C =:= $/ orelse C =:= $\\ orelse C =:= $. ->
     {ok, local, R};
@@ -1445,11 +1435,11 @@ parse_image_href_data_enctype([], _List) ->
     error.
 
 url_to_filepath("///" ++ [DriveLetter,C | Path])
-    when C =:= $: orelse C =:= $| , ?DRIVE_LETTER_RANGE(DriveLetter) ->
+  when C =:= $: orelse C =:= $| , ?DRIVE_LETTER_RANGE(DriveLetter) ->
     %% PC style local URL
     DriveLetter ++ ":" ++ Path;
 url_to_filepath("//" ++ [DriveLetter,C | Path])
-    when C =:= $: orelse C =:= $| , ?DRIVE_LETTER_RANGE(DriveLetter) ->
+  when C =:= $: orelse C =:= $| , ?DRIVE_LETTER_RANGE(DriveLetter) ->
     DriveLetter ++ ":" ++ Path;
 url_to_filepath("///" ++ Path) ->
     "/" ++ Path;
@@ -1534,18 +1524,18 @@ m3x2_mat() ->
     { 1.0, 0.0, 0.0,
       1.0, 0.0, 0.0 }.
 m3x2_translate(X, Y, { M00, M10, M20, M01, M11, M21 })
-    when is_float(X), is_float(Y) ->
+  when is_float(X), is_float(Y) ->
     { M00, M10, M20, M01, M11+X, M21+Y }.
 m3x2_scale(X, Y, { M00, M10, M20, M01, M11, M21 })
-    when is_float(X), is_float(Y) ->
+  when is_float(X), is_float(Y) ->
     { X*M00, Y*M10, M20, M01, M11, M21 }.
 m3x2_rotate(A, PX, PY, { M00, M10, M20, M01, M11, M21 })
-    when is_float(PX), is_float(PY) ->
+  when is_float(PX), is_float(PY) ->
     RX = math:cos(A),
     RY = math:sin(A),
     { RX*M00, RY*M01, -RY*M10, RX*M11, M20, M21 }.
 m3x2_skew(X, Y, { M00, M10, M20, M01, M11, M21 })
-    when is_float(X), is_float(Y) ->
+  when is_float(X), is_float(Y) ->
     { M00, M10, X+M20, Y+M01, M11, M21 }.
     
 m3x2_combine(none,none) -> none;
@@ -1574,7 +1564,7 @@ tok_svg_attr([], Part2, List) when length(Part2) > 0 ->
 tok_svg_attr([], [], List) ->
     {ok, lists:reverse(List), []};
 tok_svg_attr([Op | _]=R, Part2, List)
-    when length(Part2) > 0,
+  when length(Part2) > 0,
         ( Op =:= ?CHR_SPACE orelse Op =:= $, orelse
           Op =:= $; orelse Op =:= ?CHR_DQUOT orelse
           Op =:= $' orelse Op =:= $( orelse
@@ -1599,7 +1589,7 @@ tok_svg_attr([$' | R], [], List) ->
     tok_svg_attr(R_1, [], [StringVal | List]);
 
 tok_svg_attr([A | R], Part2, List)
-    when A =/= $: , A =/= $; ->
+  when A =/= $: , A =/= $; ->
     tok_svg_attr(R, [A | Part2], List).
 
 %% Tokenizing inside a double quote string that could
@@ -1743,7 +1733,6 @@ svgtags_enter_layer(Attr) ->
     Label = proplists:get_value(label, Attr, ""),
     STrn = proplists:get_value(transforms, Attr, none),
     {T, LayerName} = layerdir(Label),
-    io:format("Label=~s~n", [Label]),
     {layer_s, T, LayerName, STrn}.
 
 svgtags_exit_layer() ->
@@ -1813,7 +1802,7 @@ svgtags([Cmd|CmdLst], DocSt, OCmdLst) ->
 
 shape_element(Fun, #document_s{fullfilename=FullFilename,units=Units,docsz=DocSz,viewbox=ViewBox}=_DocSt, Attr, CmdLst, OCmdLst) ->
     case determine_hidden_element(Attr) of
-        false -> %    io:format("Attr=~p~n", [Attr]),
+        false ->
             {ok, PathCmd, CmdLst_1} = Fun(#svgtag_s{attr=Attr,fullfilename=FullFilename,units=Units,docsz=DocSz,viewbox=ViewBox}, CmdLst),
             {CmdLst_1, [PathCmd|OCmdLst]};
         true ->
@@ -2107,7 +2096,6 @@ svgtags_rect(#svgtag_s{attr=Attr,units=Units,docsz=_DocSz,viewbox=_ViewBox}=SVT,
                 style = Style,
                 ta = STrn
             },
-            %%io:format("PathCmd=~p~n~n", [PathCmd]),
             {ok, {path, PathCmd, lists:reverse(OCmdLst)}, CmdLst};
         
         {s,"image",Attr1} ->
@@ -2138,7 +2126,6 @@ svgtags_circle(#svgtag_s{attr=Attr,units=Units,docsz=_DocSz,viewbox=_ViewBox}=SV
                 style = Style,
                 ta = STrn
             },
-            %%io:format("PathCmd=~p~n~n", [PathCmd]),
             {ok, {path, PathCmd, lists:reverse(OCmdLst)}, CmdLst};
         
         {s,"image",Attr1} ->
@@ -2170,7 +2157,6 @@ svgtags_ellipse(#svgtag_s{attr=Attr,units=Units,docsz=_DocSz,viewbox=_ViewBox}=S
                 style = Style,
                 ta = STrn
             },
-            %%io:format("PathCmd=~p~n~n", [PathCmd]),
             {ok, {path, PathCmd, lists:reverse(OCmdLst)}, CmdLst};
         
         {s,"image",Attr1} ->
@@ -2196,13 +2182,13 @@ assign_transforms([], _Transforms, OCmdLst) ->
 assign_transforms([Cmd|CmdLst], TrnList, OCmdLst) ->
     case Cmd of
         {layer_s, UserTransforms, LayerName, STrn} ->
-            %% io:format("Layer start~n", []),
+            %% Layer start
             assign_transforms(CmdLst,
                 [{UserTransforms, LayerName, STrn} | TrnList], OCmdLst);
         {layer_e} ->
             case TrnList of
                 [_|TrnList_1] ->
-                    %% io:format("Layer end~n", []),
+                    %% Layer end
                     assign_transforms(CmdLst, TrnList_1, OCmdLst);
                 [] ->
                     assign_transforms(CmdLst, TrnList, OCmdLst)
@@ -2336,7 +2322,6 @@ retr_d_svg_paths(Definitions, [Cmd|CmdLst], ShortFilename, OCmdLst) ->
         {image,#image_tag_r{clip_path=ClipPath}=ImageInfo,_ImageSubCmds} when ClipPath =/= none ->
             %% A clipped image, get the corresponding paths.
             {_, PathCmds} = orddict:fetch(ClipPath, Definitions),
-            %% io:format("~w~n~n", [PathCmds]),
             Atom = list_to_atom("svg_tex_" ++ integer_to_list(abs(erlang:unique_integer()))),
             Cmds_1 = [ {path, A#path_tag_r{texture={tex, Atom}}, B} || {path, A, B} <- PathCmds],
             %% Attach information about the texture, with Atom as its texture name
@@ -2376,28 +2361,25 @@ tok_svgp([], [], O) ->
 tok_svgp([], W, O) ->
     tok_svgp([], [], [lists:reverse(W)|O]);
 tok_svgp([Chr | Rest], W, O)
-    when Chr >= $A, Chr =< $D;
-         Chr >= $a, Chr =< $d;
-         Chr >= $F, Chr =< $Z;
-         Chr >= $f, Chr =< $z
-    ->
+  when Chr >= $A, Chr =< $D;
+       Chr >= $a, Chr =< $d;
+       Chr >= $F, Chr =< $Z;
+       Chr >= $f, Chr =< $z ->
     tok_svgp(Rest, [Chr|W], O);
 tok_svgp([WSp | Rest], W, O)
-    when WSp =:= ?CHR_SPACE;
-         WSp =:= 7;
-         WSp =:= 9;
-         WSp =:= 10;
-         WSp =:= 13; WSp =:= $,
-    ->
+  when WSp =:= ?CHR_SPACE;
+       WSp =:= 7;
+       WSp =:= 9;
+       WSp =:= 10;
+       WSp =:= 13; WSp =:= $,  ->
     case W of
         [] -> tok_svgp(Rest, [], O);
         _  -> tok_svgp(Rest, [], [lists:reverse(W) | O])
     end;
 tok_svgp([Chr | _]=Num, W, O)
-    when (Chr >= $0 andalso Chr =< $9);
-         Chr =:= $.; Chr =:= $-;
-         Chr =:= $e; Chr =:= $E
-    ->
+  when (Chr >= $0 andalso Chr =< $9);
+        Chr =:= $.; Chr =:= $-;
+        Chr =:= $e; Chr =:= $E ->
     case W of
         [] ->
             {ok, Rest_1, Number} = tok_svgp_num_initial(Num),
@@ -2411,22 +2393,20 @@ tok_svgp([Chr | _]=Num, W, O)
 %% we add a zero before the dot.
 %%
 tok_svgp_num_initial([Min, Dot | Rest])
-    when Min =:= $-, Dot =:= $. ->
+  when Min =:= $-, Dot =:= $. ->
     tok_svgp_num_initial([Min, $0, Dot | Rest]);
 tok_svgp_num_initial([Dot | Rest])
-    when Dot =:= $. ->
+  when Dot =:= $. ->
     tok_svgp_num_initial([$0, Dot | Rest]);
 tok_svgp_num_initial([Chr | Rest])
-    when Chr >= $0, Chr =< $9;
-         Chr =:= $.; Chr =:= $-;
-         Chr =:= $e; Chr =:= $E
-    ->
+  when Chr >= $0, Chr =< $9;
+       Chr =:= $.; Chr =:= $-;
+       Chr =:= $e; Chr =:= $E ->
     tok_svgp_num(Rest, [Chr]).
 tok_svgp_num([Chr | Rest], W)
-    when Chr >= $0, Chr =< $9;
-         Chr =:= $.;
-         Chr =:= $e; Chr =:= $E
-    ->
+  when Chr >= $0, Chr =< $9;
+       Chr =:= $.;
+       Chr =:= $e; Chr =:= $E ->
     tok_svgp_num(Rest, [Chr|W]);
 tok_svgp_num(NotNumber, W) ->
     {ok, NotNumber, lists:reverse(W)}.
@@ -2915,7 +2895,7 @@ substitute_commands([Op | Rest], O, CurrPos) when Op =:= "a" ->
 %% to substitute the needed arguments of the other commands correctly.
 %%
 substitute_commands([Op,X,Y | Rest], O, CurrPos)
-    when Op =:= "M" ->
+  when Op =:= "M" ->
     CurrPos_1 = CurrPos#subst_curv_pos{
         curr_cmd = lineto_abs,
         x_abs = subst_str_to_flt(X),
@@ -2923,9 +2903,8 @@ substitute_commands([Op,X,Y | Rest], O, CurrPos)
     },
     substitute_commands(Rest, [Y,X,Op| O], CurrPos_1);
 substitute_commands([Op,DX,DY | Rest], O,
-    #subst_curv_pos{x_abs=XAbs,y_abs=YAbs}=CurrPos)
-    when Op =:= "m"
-->
+                    #subst_curv_pos{x_abs=XAbs,y_abs=YAbs}=CurrPos)
+  when Op =:= "m" ->
     CurrPos_1 = CurrPos#subst_curv_pos{
         curr_cmd = lineto_rel,
         x_abs = XAbs + subst_str_to_flt(DX),
@@ -2933,7 +2912,7 @@ substitute_commands([Op,DX,DY | Rest], O,
     },
     substitute_commands(Rest, [DY,DX,Op| O], CurrPos_1);
 substitute_commands([Op,X,Y | Rest], O, CurrPos)
-    when Op =:= "L" ->
+  when Op =:= "L" ->
     CurrPos_1 = CurrPos#subst_curv_pos{
         curr_cmd = lineto_abs,
         x_abs = subst_str_to_flt(X),
@@ -2941,9 +2920,8 @@ substitute_commands([Op,X,Y | Rest], O, CurrPos)
     },
     substitute_commands(Rest, [Y,X,Op| O], CurrPos_1);
 substitute_commands([Op,DX,DY | Rest], O,
-    #subst_curv_pos{x_abs=XAbs,y_abs=YAbs}=CurrPos)
-    when Op =:= "l"
-->
+                    #subst_curv_pos{x_abs=XAbs,y_abs=YAbs}=CurrPos)
+  when Op =:= "l" ->
     CurrPos_1 = CurrPos#subst_curv_pos{
         curr_cmd = lineto_rel,
         x_abs = XAbs + subst_str_to_flt(DX),
@@ -2951,7 +2929,7 @@ substitute_commands([Op,DX,DY | Rest], O,
     },
     substitute_commands(Rest, [DY,DX,Op| O], CurrPos_1);
 substitute_commands([Op,X1,Y1,X2,Y2,X,Y | Rest], O, CurrPos)
-    when Op =:= "C" ->
+  when Op =:= "C" ->
     CurrPos_1 = CurrPos#subst_curv_pos{
         curr_cmd = curveto_abs,
         x_abs = subst_str_to_flt(X),
@@ -2960,9 +2938,8 @@ substitute_commands([Op,X1,Y1,X2,Y2,X,Y | Rest], O, CurrPos)
     },
     substitute_commands(Rest, [Y,X,Y2,X2,Y1,X1,Op| O], CurrPos_1);
 substitute_commands([Op,DX1,DY1,DX2,DY2,DX,DY | Rest], O,
-    #subst_curv_pos{x_abs=XAbs,y_abs=YAbs}=CurrPos)
-    when Op =:= "c"
-->
+                    #subst_curv_pos{x_abs=XAbs,y_abs=YAbs}=CurrPos)
+  when Op =:= "c" ->
     CurrPos_1 = CurrPos#subst_curv_pos{
         curr_cmd = curveto_rel,
         x_abs = XAbs + subst_str_to_flt(DX),
@@ -2973,27 +2950,24 @@ substitute_commands([Op,DX1,DY1,DX2,DY2,DX,DY | Rest], O,
     substitute_commands(Rest, [DY,DX,DY2,DX2,DY1,DX1,Op| O], CurrPos_1);
     
 substitute_commands([[NumDigit|_]=X,Y | Rest], O,
-    #subst_curv_pos{curr_cmd=lineto_abs}=CurrPos)
-    when ?IS_DIGIT(NumDigit)
-->
+                    #subst_curv_pos{curr_cmd=lineto_abs}=CurrPos)
+  when ?IS_DIGIT(NumDigit) ->
     CurrPos_1 = CurrPos#subst_curv_pos{
         x_abs = subst_str_to_flt(X),
         y_abs = subst_str_to_flt(Y)
     },
     substitute_commands(Rest, [Y,X| O], CurrPos_1);
 substitute_commands([[NumDigit|_]=DX,DY | Rest], O,
-    #subst_curv_pos{x_abs=XAbs,y_abs=YAbs,curr_cmd=lineto_rel}=CurrPos)
-    when ?IS_DIGIT(NumDigit)
-->
+                    #subst_curv_pos{x_abs=XAbs,y_abs=YAbs,curr_cmd=lineto_rel}=CurrPos)
+  when ?IS_DIGIT(NumDigit) ->
     CurrPos_1 = CurrPos#subst_curv_pos{
         x_abs = XAbs + subst_str_to_flt(DX),
         y_abs = YAbs + subst_str_to_flt(DY)
     },
     substitute_commands(Rest, [DY,DX| O], CurrPos_1);
 substitute_commands([[NumDigit|_]=X1,Y1,X2,Y2,X,Y | Rest], O,
-    #subst_curv_pos{curr_cmd=curveto_abs}=CurrPos)
-    when ?IS_DIGIT(NumDigit)
-->
+                    #subst_curv_pos{curr_cmd=curveto_abs}=CurrPos)
+  when ?IS_DIGIT(NumDigit) ->
     CurrPos_1 = CurrPos#subst_curv_pos{
         x_abs = subst_str_to_flt(X),
         y_abs = subst_str_to_flt(Y),
@@ -3001,9 +2975,8 @@ substitute_commands([[NumDigit|_]=X1,Y1,X2,Y2,X,Y | Rest], O,
     },
     substitute_commands(Rest, [Y,X,Y2,X2,Y1,X1| O], CurrPos_1);
 substitute_commands([[NumDigit|_]=DX1,DY1,DX2,DY2,DX,DY | Rest], O,
-    #subst_curv_pos{x_abs=XAbs,y_abs=YAbs,curr_cmd=curveto_rel}=CurrPos)
-    when ?IS_DIGIT(NumDigit)
-->
+                    #subst_curv_pos{x_abs=XAbs,y_abs=YAbs,curr_cmd=curveto_rel}=CurrPos)
+  when ?IS_DIGIT(NumDigit) ->
     CurrPos_1 = CurrPos#subst_curv_pos{
         x_abs = XAbs + subst_str_to_flt(DX),
         y_abs = YAbs + subst_str_to_flt(DY),
@@ -3012,12 +2985,12 @@ substitute_commands([[NumDigit|_]=DX1,DY1,DX2,DY2,DX,DY | Rest], O,
     },
     substitute_commands(Rest, [DY,DX,DY2,DX2,DY1,DX1| O], CurrPos_1);
 substitute_commands([Op | Rest], O, CurrPos)
-    when Op =/= "H" andalso Op =/= "h" andalso
-         Op =/= "V" andalso Op =/= "v" andalso
-         Op =/= "S" andalso Op =/= "s" andalso
-         Op =/= "Q" andalso Op =/= "q" andalso 
-         Op =/= "T" andalso Op =/= "t" andalso
-         Op =/= "A" andalso Op =/= "a" ->
+  when Op =/= "H" andalso Op =/= "h" andalso
+       Op =/= "V" andalso Op =/= "v" andalso
+       Op =/= "S" andalso Op =/= "s" andalso
+       Op =/= "Q" andalso Op =/= "q" andalso 
+       Op =/= "T" andalso Op =/= "t" andalso
+       Op =/= "A" andalso Op =/= "a" ->
     substitute_commands(Rest, [Op | O], CurrPos);
 substitute_commands([], O, _) ->
     lists:reverse(O).
@@ -3029,9 +3002,8 @@ substitute_commands([], O, _) ->
 substitute_linehorz_abs(List, CurrPos) ->
     substitute_linehorz_abs(List, [], CurrPos).
 substitute_linehorz_abs([[NumDigit|_]=X | Rest], O,
-    #subst_curv_pos{y_abs=YAbs}=CurrPos)
-    when ?IS_DIGIT(NumDigit)
-->
+                        #subst_curv_pos{y_abs=YAbs}=CurrPos)
+  when ?IS_DIGIT(NumDigit) ->
     CurrY = subst_flt_to_str(YAbs),
     NewLineTos = [X, CurrY],
     CurrPos_1 = CurrPos#subst_curv_pos{
@@ -3044,9 +3016,8 @@ substitute_linehorz_abs(Rest, O, CurrPos) ->
 substitute_linehorz_rel(List, CurrPos) ->
     substitute_linehorz_rel(List, [], CurrPos).
 substitute_linehorz_rel([[NumDigit|_]=DX | Rest], O,
-    #subst_curv_pos{x_abs=XAbs}=CurrPos)
-    when ?IS_DIGIT(NumDigit)
-->
+                        #subst_curv_pos{x_abs=XAbs}=CurrPos)
+  when ?IS_DIGIT(NumDigit) ->
     CurrY = subst_flt_to_str(0.0),
     NewLineTos = [DX, CurrY],
     CurrPos_1 = CurrPos#subst_curv_pos{
@@ -3062,9 +3033,8 @@ substitute_linehorz_rel(Rest, O, CurrPos) ->
 substitute_linevert_abs(List, CurrPos) ->
     substitute_linevert_abs(List, [], CurrPos).
 substitute_linevert_abs([[NumDigit|_]=Y | Rest], O,
-    #subst_curv_pos{x_abs=XAbs}=CurrPos)
-    when ?IS_DIGIT(NumDigit)
-->
+                        #subst_curv_pos{x_abs=XAbs}=CurrPos)
+  when ?IS_DIGIT(NumDigit) ->
     CurrX = subst_flt_to_str(XAbs),
     NewLineTos = [CurrX, Y],
     CurrPos_1 = CurrPos#subst_curv_pos{
@@ -3077,9 +3047,8 @@ substitute_linevert_abs(Rest, O, CurrPos) ->
 substitute_linevert_rel(List, CurrPos) ->
     substitute_linevert_rel(List, [], CurrPos).
 substitute_linevert_rel([[NumDigit|_]=DY | Rest], O,
-    #subst_curv_pos{y_abs=YAbs}=CurrPos)
-    when ?IS_DIGIT(NumDigit)
-->
+                        #subst_curv_pos{y_abs=YAbs}=CurrPos)
+  when ?IS_DIGIT(NumDigit) ->
     CurrX = subst_flt_to_str(0.0),
     NewLineTos = [CurrX, DY],
     CurrPos_1 = CurrPos#subst_curv_pos{
@@ -3095,9 +3064,8 @@ substitute_linevert_rel(Rest, O, CurrPos) ->
 substitute_cubicshort_abs(List, CurrPos) ->
     substitute_cubicshort_abs(List, [], CurrPos).
 substitute_cubicshort_abs([[NumDigit|_]=X2, Y2, X, Y | Rest], O,
-    #subst_curv_pos{x_abs=X_O,y_abs=Y_O,cp2={CX2_0,CY2_0}}=CurrPos)
-    when ?IS_DIGIT(NumDigit)
-->
+                          #subst_curv_pos{x_abs=X_O,y_abs=Y_O,cp2={CX2_0,CY2_0}}=CurrPos)
+  when ?IS_DIGIT(NumDigit) ->
     %% Reflect the control point with X,Y being the origin
     {CX2,CY2} = subst_bezier_reflect_point_abs(CX2_0,CY2_0, X_O, Y_O),
     X1 = subst_flt_to_str(CX2),
@@ -3115,9 +3083,8 @@ substitute_cubicshort_abs(Rest, O, CurrPos) ->
 substitute_cubicshort_rel(List, CurrPos) ->
     substitute_cubicshort_rel(List, [], CurrPos).
 substitute_cubicshort_rel([[NumDigit|_]=DX2, DY2, DX, DY | Rest], O,
-    #subst_curv_pos{x_abs=XAbs,y_abs=YAbs}=CurrPos)
-    when ?IS_DIGIT(NumDigit)
-->
+                          #subst_curv_pos{x_abs=XAbs,y_abs=YAbs}=CurrPos)
+  when ?IS_DIGIT(NumDigit) ->
     %% Reflect the control point with X,Y being the origin
     {DCX2,DCY2} = subst_bezier_reflect_point_rel(CurrPos),
     DX1 = subst_flt_to_str(DCX2),
@@ -3153,9 +3120,8 @@ quadratic_cubic_endpoints(X1, Y1, X, Y, OX, OY) ->
 substitute_quadratic_abs(List, CurrPos) ->
     substitute_quadratic_abs(List, [], CurrPos).
 substitute_quadratic_abs([[NumDigit|_]=X1, Y1, X, Y | Rest], O,
-    #subst_curv_pos{x_abs=O_X,y_abs=O_Y}=CurrPos)
-    when ?IS_DIGIT(NumDigit)
-->
+                         #subst_curv_pos{x_abs=O_X,y_abs=O_Y}=CurrPos)
+  when ?IS_DIGIT(NumDigit) ->
     {C_X1,C_Y1,C_X2,C_Y2} = quadratic_cubic_endpoints(
         subst_str_to_flt(X1),
         subst_str_to_flt(Y1),
@@ -3181,9 +3147,8 @@ substitute_quadratic_abs(Rest, O, CurrPos) ->
 substitute_quadratic_rel(List, CurrPos) ->
     substitute_quadratic_rel(List, [], CurrPos).
 substitute_quadratic_rel([[NumDigit|_]=DX1, DY1, DX, DY | Rest], O,
-    #subst_curv_pos{x_abs=O_X,y_abs=O_Y}=CurrPos)
-    when ?IS_DIGIT(NumDigit)
-->
+                         #subst_curv_pos{x_abs=O_X,y_abs=O_Y}=CurrPos)
+  when ?IS_DIGIT(NumDigit) ->
     {C_DX1,C_DY1,C_DX2,C_DY2} = quadratic_cubic_endpoints(
         subst_str_to_flt(DX1) + O_X,
         subst_str_to_flt(DY1) + O_Y,
@@ -3213,9 +3178,8 @@ substitute_quadratic_rel(Rest, O, CurrPos) ->
 substitute_quadshort_abs(List, CurrPos) ->
     substitute_quadshort_abs(List, [], CurrPos).
 substitute_quadshort_abs([[NumDigit|_]=X, Y | Rest], O,
-    #subst_curv_pos{x_abs=O_X,y_abs=O_Y,cp2={CX2_0,CY2_0}}=CurrPos)
-    when ?IS_DIGIT(NumDigit)
-->
+                         #subst_curv_pos{x_abs=O_X,y_abs=O_Y,cp2={CX2_0,CY2_0}}=CurrPos)
+  when ?IS_DIGIT(NumDigit) ->
     %% Reflect the control point with X,Y being the origin
     {CX2,CY2} = subst_bezier_reflect_point_abs(CX2_0,CY2_0, O_X, O_Y),
     {C_X1,C_Y1,C_X2,C_Y2} = quadratic_cubic_endpoints(
@@ -3243,9 +3207,8 @@ substitute_quadshort_abs(Rest, O, CurrPos) ->
 substitute_quadshort_rel(List, CurrPos) ->
     substitute_quadshort_rel(List, [], CurrPos).
 substitute_quadshort_rel([[NumDigit|_]=DX, DY | Rest], O,
-    #subst_curv_pos{x_abs=O_X,y_abs=O_Y}=CurrPos)
-    when ?IS_DIGIT(NumDigit)
-->
+                         #subst_curv_pos{x_abs=O_X,y_abs=O_Y}=CurrPos)
+  when ?IS_DIGIT(NumDigit) ->
     %% Reflect the control point with DX,DY being the origin
     
     {DCX2,DCY2} = subst_bezier_reflect_point_rel(CurrPos),
@@ -3293,10 +3256,9 @@ subst_flt_to_str(F) ->
 substitute_arcs_to_lineto_abs(List, CurrPos) ->
     substitute_arcs_to_lineto_abs(List, [], CurrPos).
 substitute_arcs_to_lineto_abs([[NumDigit|_]=RX, RY, XAxisRotation,
-    LargeArcFlag, SweepFlag, X, Y | Rest], O,
-    #subst_curv_pos{x_abs=CurrX,y_abs=CurrY}=CurrPos)
-    when ?IS_DIGIT(NumDigit)
-->
+                              LargeArcFlag, SweepFlag, X, Y | Rest], O,
+                              #subst_curv_pos{x_abs=CurrX,y_abs=CurrY}=CurrPos)
+  when ?IS_DIGIT(NumDigit) ->
     RX_Num = subst_str_to_flt(RX),
     RY_Num = subst_str_to_flt(RY),
     XAxisRotation_Num = subst_str_to_flt(XAxisRotation),
@@ -3320,10 +3282,9 @@ substitute_arcs_to_lineto_abs(Rest, O, CurrPos) ->
 substitute_arcs_to_lineto_rel(List, CurrPos) ->
     substitute_arcs_to_lineto_rel(List, [], CurrPos).
 substitute_arcs_to_lineto_rel([[NumDigit|_]=RX, RY, XAxisRotation,
-    LargeArcFlag, SweepFlag, DX, DY | Rest], O,
-    #subst_curv_pos{x_abs=CurrX,y_abs=CurrY}=CurrPos)
-    when ?IS_DIGIT(NumDigit)
-->
+                              LargeArcFlag, SweepFlag, DX, DY | Rest], O,
+                              #subst_curv_pos{x_abs=CurrX,y_abs=CurrY}=CurrPos)
+  when ?IS_DIGIT(NumDigit) ->
     RX_Num = subst_str_to_flt(RX),
     RY_Num = subst_str_to_flt(RY),
     XAxisRotation_Num = subst_str_to_flt(XAxisRotation),
@@ -3351,7 +3312,7 @@ subst_str_to_bool(Str) ->
     end.
 
 arc_path(RX, RY, _Rotation, _LargeArcFlag, _SweepFlag, _P1, {X,Y})
-    when abs(RX) =:= 0.0; abs(RY) =:= 0.0 ->
+  when abs(RX) =:= 0.0; abs(RY) =:= 0.0 ->
     %% If rx = 0 or ry = 0, we just make a line
     [{X,Y}];
 arc_path(RX, RY, Rotation, LargeArc, Sweep, P1, P2) ->
@@ -3461,7 +3422,7 @@ get_radius_to_range_ratio({X1, Y1}, {X2, Y2}, {XR_1, YR_1}, Angle) ->
 -spec arc_path_cmd({float(), float()}, {float(),float()}, {float(),float()},
     float(), boolean(), boolean()) -> any().
 arc_path_cmd(ArcFromPoint, ArcToPoint, {XR_0,YR_0}, Angle_0, LargeArc, Sweep)
-    when is_float(YR_0), YR_0 =/= 0.0 ->
+  when is_float(YR_0), YR_0 =/= 0.0 ->
     %% By making ellipses of the same radius and angle at the start and end point of
     %% the segment, we get two intersection points. At those two intersection points
     %% are the center of the two possible ellipses that can draw an arc for our arc path.
@@ -3578,10 +3539,8 @@ remove_double_paths_merge_id(Id_1, Id_2) ->
         _      -> Id_1
     end.
 -spec remove_double_paths_merge_style(#style_colors{}, #style_colors{}) -> #style_colors{}.
-remove_double_paths_merge_style(
-    #style_colors{scol=S1,fcol=F1,fopa=A1}=_Style_1,
-    #style_colors{scol=S2,fcol=F2,fopa=A2}=_Style_2)
-->
+remove_double_paths_merge_style(#style_colors{scol=S1,fcol=F1,fopa=A1}=_Style_1,
+                                #style_colors{scol=S2,fcol=F2,fopa=A2}=_Style_2) ->
     #style_colors{
         scol=whichever_not_none(S1, S2),
         fcol=whichever_not_none(F1, F2),
@@ -3604,11 +3563,9 @@ remove_double_paths_merge_tex(Texture_1, _) ->
 %%
 remove_double_objs(PathsList) ->
     remove_double_objs(PathsList, []).
-remove_double_objs([
-    {SubPaths1, {Col1,Tex1}},
-    {SubPaths2, {Col2,Tex2}}|R], O)
-    when length(SubPaths1) =:= length(SubPaths2)
-->
+remove_double_objs([{SubPaths1, {Col1,Tex1}},
+                    {SubPaths2, {Col2,Tex2}}|R], O)
+  when length(SubPaths1) =:= length(SubPaths2) ->
     case similar_subpaths(SubPaths1, SubPaths2) of
         true ->
             Col3 = remove_double_paths_merge_style(Col1, Col2),
@@ -3623,8 +3580,7 @@ remove_double_objs([], O) ->
     lists:reverse(O).
 
 similar_subpaths([CEdge1|R1],[CEdge2|R2])
-    when length(CEdge1) =:= length(CEdge2)
-->
+  when length(CEdge1) =:= length(CEdge2) ->
     case similar_cedge_list(CEdge1, CEdge2) of
         true ->
             similar_subpaths(R1, R2);
@@ -3677,8 +3633,11 @@ process_islands(Plas) ->
         lists:foldr(fun(Pla, Acc) ->
             %% it was noticed during the tests that some files may contain data that causes
             %% wpc_tt crashes with a key_exists error. We ignore that path definition and go on
-            case catch process_islands_1(Pla) of
-                {'EXIT',{{key_exists,_},_}} ->
+            try process_islands_1(Pla) of
+                {Vs,Fs,He}=Res when is_list(Vs), is_list(Fs), is_list(He) ->
+                    [Res|Acc]
+            catch
+                error:{key_exists,_} ->
                     %% While the shape is skipped, mention something in the console for
                     %% the user so they can find out why a shape is missing.
                     io:format(?__(1, "SVG Import error on skipped shape~n"), []),
@@ -3686,11 +3645,9 @@ process_islands(Plas) ->
                         "~p: NOTE: A shape has been skipped due to key_exists "
                         "error in wpc_ai:polyareas_to_faces~n"), [?MODULE]),
                     Acc;
-                {'EXIT',Err} ->
+                error:Err ->
                     %% Something else went wrong, send an error.
-                    erlang:error({error, Err});
-                {Vs,Fs,He}=Res when is_list(Vs), is_list(Fs), is_list(He) ->
-                    [Res|Acc]
+                    erlang:error({error, Err})
             end
         end, [], Plas),
     Objs.
