@@ -129,6 +129,9 @@ make_geom_window(GeomGL, GeomPs, St) ->
     wings_wm:set_dd(geom, geom_display_lists),
     set_drag_filter(geom),
     wings_frame:register_win(GeomGL, geom, GeomPs),
+    io:format("~nVendor:     ~s~n",  [gl:getString(?GL_VENDOR)]),
+    io:format("Renderer:   ~s~n",    [gl:getString(?GL_RENDERER)]),
+    io:format("Version:    ~s~n~n",  [gl:getString(?GL_VERSION)]),
     GeomGL.
 
 %% Check minimum system requirements.
