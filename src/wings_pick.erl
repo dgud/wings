@@ -106,37 +106,37 @@ get_hilite_event(HL) ->
 
 handle_hilite_event(redraw,#hl{redraw=#st{sel=[]}=St,prev=Prev}=Hl) when is_tuple(Prev) ->
     case Prev of
-      {_,_} ->
-        {{SelMode,Where,{Obj,Elem}},_} = Prev;
-      _ -> {SelMode,Where,{Obj,Elem}} = Prev
+        {_,_} ->
+            {{SelMode,Where,{Obj,Elem}},_} = Prev;
+        _ -> {SelMode,Where,{Obj,Elem}} = Prev
     end,
     Mode = case SelMode of
-      vertex -> ?__(4,"Vertex");
-      edge -> ?__(5,"Edge");
-      face -> ?__(6,"Face");
-      body -> none
-    end,
+               vertex -> ?__(4,"Vertex");
+               edge -> ?__(5,"Edge");
+               face -> ?__(6,"Face");
+               body -> none
+           end,
     Info = case Where of
-      original ->
-        case SelMode of
-            body ->
-                wings_util:format("~ts #~p", [?__(3,"Object"),Obj]);
-            _Other ->
-                Str = wings_util:format("~ts #~p, ~ts #~p",
-                                        [?__(3,"Object"),Obj,Mode,Elem]),
-                enhanced_hl_info(Str,Hl)
-        end;
-      mirror ->
-        case SelMode of
-          body ->
-                wings_util:format("~ts #~p ~ts",
-                                  [?__(3,"Object"), Obj,?__(2,"(in mirror)")]);
-          _Other ->
-                Str = wings_util:format("~ts #~p, ~ts #~p ~ts",
-                                        [?__(3,"Object"),Obj,Mode,Elem,?__(2,"(in mirror)")]),
-                enhanced_hl_info(Str,Hl)
-        end
-      end,
+               original ->
+                   case SelMode of
+                       body ->
+                           wings_util:format("~ts #~p", [?__(3,"Object"),Obj]);
+                       _Other ->
+                           Str = wings_util:format("~ts #~p, ~ts #~p",
+                                                   [?__(3,"Object"),Obj,Mode,Elem]),
+                           enhanced_hl_info(Str,Hl)
+                   end;
+               mirror ->
+                   case SelMode of
+                       body ->
+                           wings_util:format("~ts #~p ~ts",
+                                             [?__(3,"Object"), Obj,?__(2,"(in mirror)")]);
+                       _Other ->
+                           Str = wings_util:format("~ts #~p, ~ts #~p ~ts",
+                                                   [?__(3,"Object"),Obj,Mode,Elem,?__(2,"(in mirror)")]),
+                           enhanced_hl_info(Str,Hl)
+                   end
+           end,
     wings:redraw(Info, St),
     keep;
 handle_hilite_event(redraw, #hl{redraw=#st{}=St}) ->
@@ -164,12 +164,12 @@ handle_hilite_event(#mousemotion{x=X,y=Y}, #hl{prev={_,_}=PH}=HL0) ->
 		true ->
 		    wings_wm:dirty(),
 		    case tweak_vector() of
-		      true ->
-		        insert_tweak_vector(SelHit, PointHit, St),
-		        HL = HL0#hl{prev=Hit};
-		      _ ->
-		        insert_hilite_dl(SelHit, St),
-		        HL = HL0#hl{prev=SelHit}
+                        true ->
+                            insert_tweak_vector(SelHit, PointHit, St),
+                            HL = HL0#hl{prev=Hit};
+                        _ ->
+                            insert_hilite_dl(SelHit, St),
+                            HL = HL0#hl{prev=SelHit}
 		    end,
 		    wings_draw:refresh_dlists(St),
 		    get_hilite_event(HL);
@@ -204,22 +204,22 @@ handle_hilite_event(#mousemotion{x=X,y=Y}, #hl{prev=PrevHit}=HL0) ->
 	    get_hilite_event(HL0#hl{prev=none});
 	Hit ->
 	    case accept_hl(Accept, Hit) of
-	    true ->
-	        wings_wm:dirty(),
-	        case tweak_vector() of
-	          true ->
-	            Hit0 = tweak_hilite(X, Y, St),
-	            insert_tweak_vector(Hit, Hit0, St);
-	          _ ->
-	            insert_hilite_dl(Hit, St)
-	        end,
-	        wings_draw:refresh_dlists(St),
-	        get_hilite_event(HL0#hl{prev=Hit});
-	    false ->
-	        wings_wm:dirty(),
-	        insert_hilite_dl(none, St),
-	        wings_draw:refresh_dlists(St),
-	        get_hilite_event(HL0#hl{prev=none})
+                true ->
+                    wings_wm:dirty(),
+                    case tweak_vector() of
+                        true ->
+                            Hit0 = tweak_hilite(X, Y, St),
+                            insert_tweak_vector(Hit, Hit0, St);
+                        _ ->
+                            insert_hilite_dl(Hit, St)
+                    end,
+                    wings_draw:refresh_dlists(St),
+                    get_hilite_event(HL0#hl{prev=Hit});
+                false ->
+                    wings_wm:dirty(),
+                    insert_hilite_dl(none, St),
+                    wings_draw:refresh_dlists(St),
+                    get_hilite_event(HL0#hl{prev=none})
 	    end
     end;
 handle_hilite_event(init_opengl, #hl{st=St}) ->
@@ -370,35 +370,13 @@ hilite_draw_sel_fun(body, _, #dlo{vab=#vab{}=Vab}=D) ->
 
 enhanced_hl_info(Base,#hl{redraw=#st{sel=[],shapes=Shs},prev=Prev}) when is_tuple(Prev) ->
     case Prev of
-      {_,_} ->
-        {{SelMode,_,{Obj,Elem}},_} = Prev;
-      _ -> {SelMode,_,{Obj,Elem}} = Prev
+        {_,_} ->
+            {{SelMode,_,{Obj,Elem}},_} = Prev;
+        _ -> {SelMode,_,{Obj,Elem}} = Prev
     end,
     %% Mouseover info text for temp hilited selection
     We = gb_trees:get(Obj, Shs),
     case SelMode of
-      vertex ->
-        {X,Y,Z} = wings_vertex:pos(Elem, We),
-        [Base|io_lib:format(?__(1,". Position <~s  ~s  ~s>"),
-                            [wings_util:nice_float(X),
-                             wings_util:nice_float(Y),
-                             wings_util:nice_float(Z)])];
-      edge -> 
-        #edge{vs=Va,ve=Vb} = array:get(Elem, We#we.es),
-        {Xa,Ya,Za} = wings_vertex:pos(Va, We),
-        {Xb,Yb,Zb} = wings_vertex:pos(Vb, We),
-        Length = e3d_vec:dist({Xa,Ya,Za}, {Xb,Yb,Zb}),
-        {X,Y,Z} = e3d_vec:average({Xa,Ya,Za}, {Xb,Yb,Zb}),
-        [Base|io_lib:format(?__(3,". Midpoint <~s  ~s  ~s>\nLength ~s") ++
-                            "  <~s  ~s  ~s>",
-                            [wings_util:nice_float(X),
-                             wings_util:nice_float(Y),
-                             wings_util:nice_float(Z),
-                             wings_util:nice_float(Length),
-                             wings_util:nice_float(Xb - Xa),
-                             wings_util:nice_float(Yb - Ya),
-                             wings_util:nice_float(Zb - Za)])];
-      face ->
         {X,Y,Z} = wings_face:center(Elem, We),
         Area = area_info(Elem, We),
         Mat = wings_facemat:face(Elem, We),
@@ -408,6 +386,28 @@ enhanced_hl_info(Base,#hl{redraw=#st{sel=[],shapes=Shs},prev=Prev}) when is_tupl
                              wings_util:nice_float(Y),
                              wings_util:nice_float(Z),
                              Mat])]
+        vertex ->
+            {X,Y,Z} = wings_vertex:pos(Elem, We),
+            [Base|io_lib:format(?__(1,". Position <~s  ~s  ~s>"),
+                                [wings_util:nice_float(X),
+                                 wings_util:nice_float(Y),
+                                 wings_util:nice_float(Z)])];
+        edge -> 
+            #edge{vs=Va,ve=Vb} = array:get(Elem, We#we.es),
+            {Xa,Ya,Za} = wings_vertex:pos(Va, We),
+            {Xb,Yb,Zb} = wings_vertex:pos(Vb, We),
+            Length = e3d_vec:dist({Xa,Ya,Za}, {Xb,Yb,Zb}),
+            {X,Y,Z} = e3d_vec:average({Xa,Ya,Za}, {Xb,Yb,Zb}),
+            [Base|io_lib:format(?__(3,". Midpoint <~s  ~s  ~s>\nLength ~s") ++
+                                    "  <~s  ~s  ~s>",
+                                [wings_util:nice_float(X),
+                                 wings_util:nice_float(Y),
+                                 wings_util:nice_float(Z),
+                                 wings_util:nice_float(Length),
+                                 wings_util:nice_float(Xb - Xa),
+                                 wings_util:nice_float(Yb - Ya),
+                                 wings_util:nice_float(Zb - Za)])];
+        face ->
     end.
 
 area_info(Face, We) ->
