@@ -178,7 +178,7 @@ handle_hilite_event(#mousemotion{x=X,y=Y}, #hl{prev={_,_}=PH}=HL0) ->
 		    insert_hilite_dl(none, St),
 		    wings_draw:refresh_dlists(St),
 		    get_hilite_event(HL0#hl{prev=none})
-		end
+            end
     end;
 handle_hilite_event(#mousemotion{x=X,y=Y}, #hl{prev=PrevHit}=HL0) ->
     #hl{always_dirty=Dirty,st=St,filter=Accept}=HL0,
@@ -377,15 +377,6 @@ enhanced_hl_info(Base,#hl{redraw=#st{sel=[],shapes=Shs},prev=Prev}) when is_tupl
     %% Mouseover info text for temp hilited selection
     We = gb_trees:get(Obj, Shs),
     case SelMode of
-        {X,Y,Z} = wings_face:center(Elem, We),
-        Area = area_info(Elem, We),
-        Mat = wings_facemat:face(Elem, We),
-        [Base|io_lib:format(?__(4,". Midpoint <~s  ~s  ~s> \nMaterial ~ts.")
-                            ++ Area,
-                            [wings_util:nice_float(X),
-                             wings_util:nice_float(Y),
-                             wings_util:nice_float(Z),
-                             Mat])]
         vertex ->
             {X,Y,Z} = wings_vertex:pos(Elem, We),
             [Base|io_lib:format(?__(1,". Position <~s  ~s  ~s>"),
@@ -408,6 +399,15 @@ enhanced_hl_info(Base,#hl{redraw=#st{sel=[],shapes=Shs},prev=Prev}) when is_tupl
                                  wings_util:nice_float(Yb - Ya),
                                  wings_util:nice_float(Zb - Za)])];
         face ->
+            {X,Y,Z} = wings_face:center(Elem, We),
+            Area = area_info(Elem, We),
+            Mat = wings_facemat:face(Elem, We),
+            Info = io_lib:format(?__(4,". Midpoint <~s  ~s  ~s> \nMaterial ~ts."),
+                                 [wings_util:nice_float(X),
+                                  wings_util:nice_float(Y),
+                                  wings_util:nice_float(Z),
+                                  Mat]),
+            [Base,Info,Area]
     end.
 
 area_info(Face, We) ->
