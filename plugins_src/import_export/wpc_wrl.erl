@@ -113,23 +113,26 @@ export(WhichExt, File_name, Export, ExportN, Dir) ->
         x3d ->
             BaseName = filename:basename(File_name),
             ExportedFrom = io_lib:format("Exported from ~s", [Creator]),
+            BaseName_1 = unicode:characters_to_nfc_binary(BaseName),
             io:format(F, "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n", []),
             io:format(F, "<!DOCTYPE X3D PUBLIC \"ISO//Web3D//DTD X3D 3.0//EN\"\n", []),
             io:format(F, "  \"http://www.web3d.org/specifications/x3d-3.0.dtd\">\n", []),
             io:format(F, "<X3D version=\"3.0\" profile=\"Interchange\">\n", []),
             io:format(F, "  <head>\n", []),
-            io:format(F, "    <meta name=\"filename\" content=\"~s\"/>\n", [BaseName]),
-            io:format(F, "    <meta name=\"generator\" content=\"~s\" />\n", [ExportedFrom]),
+            io:format(F, "    <meta name=\"filename\" content=\"~s\"/>\n", [BaseName_1]),
+            io:format(F, "    <meta name=\"generator\" content=\"~s\"/>\n", [ExportedFrom]),
             io:format(F, "  </head>\n", []),
             io:format(F, "  <Scene>\n", [])
     end,
     try foldl(fun(#e3d_object{name = Name, obj=Obj}, Used_mats0) ->
               case WhichExt of
                 wrl ->
-                  io:format(F, "DEF ~s Transform {\n",[clean_id(Name)]),
+                  Name_1 = unicode:characters_to_nfc_binary(clean_id(Name)),
+                  io:format(F, "DEF ~s Transform {\n",[Name_1]),
                   io:format(F, "  children [\n",[]);
                 x3d ->
-                  io:format(F, "    <Transform DEF=\"~s\">\n", [clean_id(Name)])
+                  Name_1 = unicode:characters_to_nfc_binary(clean_id(Name)),
+                  io:format(F, "    <Transform DEF=\"~s\">\n", [Name_1])
               end,
               ObjMesh = e3d_mesh:vertex_normals(Obj),
               Meshes = e3d_mesh:split_by_material(ObjMesh),
@@ -298,12 +301,11 @@ def_material(Output, Name, Mat0, Dir) ->
                            end,
                     Output(4, {start_tag, "texture", "ImageTexture"}),
                     Output(5, {tag_attr_string, "url", File}),
-                    Output(5, {after_attrs}),
-                    Output(4, {close_tag, "ImageTexture"});
-        _ ->
-            ignore
-        end;
-    _ -> ignore
+                    Output(4, {close_tag_no_content, "ImageTexture"});
+                _ ->
+                    ignore
+            end;
+        _ -> ignore
     end,
     Output(3, {close_tag, "Appearance"}).
     
@@ -422,17 +424,22 @@ to_io(wrl, F, Indent, Data) ->
         {raw, Str} ->
             io:format(F, "~s",[Str]);
         {attr_use, OntoAttr, _Tag, Id} ->
-            io:format(F, "~s~s USE ~s\n",[ ?INDENTSPC(Indent), OntoAttr, Id]);
+            Id_1 = unicode:characters_to_nfc_binary(Id),
+            io:format(F, "~s~s USE ~s\n",[ ?INDENTSPC(Indent), OntoAttr, Id_1]);
         {start_tag_defined, OntoAttr, Tag, Id} ->
-            io:format(F, "~s~s DEF ~s ~s {\n",[ ?INDENTSPC(Indent), OntoAttr, Id, Tag]);
+            Id_1 = unicode:characters_to_nfc_binary(Id),
+            io:format(F, "~s~s DEF ~s ~s {\n",[ ?INDENTSPC(Indent), OntoAttr, Id_1, Tag]);
         {close_tag, _Tag} ->
+            io:format(F, "~s}\n", [ ?INDENTSPC(Indent) ]);
+        {close_tag_no_content, _Tag} ->
             io:format(F, "~s}\n", [ ?INDENTSPC(Indent) ]);
         {after_attrs} ->
             ok;
         {tag_attr, AttrName, AttrValue} ->
             io:format(F, "~s~s ~s\n", [ ?INDENTSPC(Indent), AttrName, AttrValue]);
         {tag_attr_string, AttrName, AttrValue} ->
-            io:format(F, "~s~s ~p\n", [ ?INDENTSPC(Indent), AttrName, AttrValue]);
+            AttrValue_1 = binary_to_list(unicode:characters_to_nfc_binary(AttrValue)),
+            io:format(F, "~s~s ~p\n", [ ?INDENTSPC(Indent), AttrName, AttrValue_1]);
         {tag_attr_array, AttrName, {WF, List}} ->
             io:format(F, "~s~s [\n", [ ?INDENTSPC(Indent), AttrName]),
             all(WF,F,List),
@@ -453,19 +460,22 @@ to_io(x3d, F, Indent, Data) ->
         {raw, Str} ->
             io:format(F, "~s",[Str]);
         {attr_use, _OntoAttr, Tag, Id} ->
-            io:format(F, "~s<~s USE=\"~s\"/>\n",[ ?INDENTSPC(Indent), Tag, Id]);
+            Id_1 = unicode:characters_to_nfc_binary(Id),
+            io:format(F, "~s<~s USE=\"~s\"/>\n",[ ?INDENTSPC(Indent), Tag, Id_1]);
         {start_tag_defined, _OntoAttr, Tag, Id} ->
-            io:format(F, "~s<~s DEF=\"~s\" \n",[ ?INDENTSPC(Indent), Tag, Id]);
+            Id_1 = unicode:characters_to_nfc_binary(Id),
+            io:format(F, "~s<~s DEF=\"~s\" \n",[ ?INDENTSPC(Indent), Tag, Id_1]);
         {close_tag, Tag} ->
             io:format(F, "~s</~s>\n", [ ?INDENTSPC(Indent), Tag ]);
+        {close_tag_no_content, _Tag} ->
+            io:format(F, "~s/>\n", [ ?INDENTSPC(Indent) ]);
         {after_attrs} ->
             io:format(F, "~s>\n", [ ?INDENTSPC(Indent) ]);
         {tag_attr, AttrName, AttrValue} ->
             io:format(F, "~s~s=\"~s\"\n", [ ?INDENTSPC(Indent), AttrName, AttrValue]);
         {tag_attr_string, AttrName, AttrValue} ->
-            [Str_1] = string:tokens(lists:flatten(
-                io_lib:format("~p", [AttrValue])), [34]),
-            io:format(F, "~s~s=\"'~s'\"\n", [ ?INDENTSPC(Indent), AttrName, Str_1]);
+            Str_1 = unicode:characters_to_nfc_binary(AttrValue),
+            io:format(F, "~s~s=\"~s\"\n", [ ?INDENTSPC(Indent), AttrName, Str_1]);
         {tag_attr_array, AttrName, {WF, List}} ->
             io:format(F, "~s~s=\"\n", [ ?INDENTSPC(Indent), AttrName]),
             all(WF,F,List),
