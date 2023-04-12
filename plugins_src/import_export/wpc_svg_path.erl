@@ -85,7 +85,7 @@
 
 -record(image_tag_r,
     {
-    clip_path :: string(),
+    clip_path :: string() | none,
     x :: float(),
     y :: float(),
     width :: float(),
