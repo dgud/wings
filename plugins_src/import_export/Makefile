@@ -48,7 +48,9 @@ MODULES= \
 	wpc_svg_path \
 	wpc_wrl \
 	wpc_x \
-	wpc_yafaray
+	wpc_yafaray \
+	x3d_import \
+	x3d_import__sgi
 
 TARGET_FILES= $(MODULES:%=$(EBIN)/%.beam)
 
