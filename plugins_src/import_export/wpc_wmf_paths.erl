@@ -61,8 +61,8 @@ command(_, _) ->
 more_info() ->
     [?__(1,"<b>Automatic center</b>\n"
     "Automatically center the imported shape.\n\n"
-    "<b>Scale to 1</b>\n"
-    "Set the scale ratio of 1 unit in wings to the units set in the meta-file. "
+    "<b>Scale fraction</b>\n"
+    "Set the scale ratio of 1 unit in wings to the units in the metafile. "
     "If set to 100pt, then 100pt is the same as 1 unit in wings. Available "
     "units include pt, pc, cm, mm, and in.\n\n"
     "<b>Scale fit within view</b>\n"
