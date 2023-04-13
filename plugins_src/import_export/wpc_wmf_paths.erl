@@ -1,13 +1,18 @@
 %%
-%%  wpc_wmf_paths.erl
+%%  wpc_wmf_paths.erl --
 %%
-%%  Copyright 2022-2023 Edward Blake
+%%     EMF and WMF path importer.
 %%
-%%  Import EMF and WMF files
+%%  Copyright (c) 2022-2023 Edward Blake
 %%
+%%  See the file "license.terms" for information on usage and redistribution
+%%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+%%
+%%     $Id$
+%%
+
 %%  This plugin uses some of the wpc_ai functions by Howard Trickey
 %%  and contributors
-%%
 
 -module(wpc_wmf_paths).
 
@@ -138,7 +143,7 @@ props() ->
 
 %% The following record is used to communicate with wpc_ai's functions
 %%
--record(cedge,% polyarea and cedge records must match definitions in wpc_ai.erl
+-record(cedge, % polyarea and cedge records must match definitions in wpc_ai.erl
         {vs,cp1=nil,cp2=nil,ve}).    %all are {x,y} pairs
 
 %%
@@ -2803,7 +2808,7 @@ line_intersect_y_bound(_, _, _, _, _) ->
 
 
 %%%
-%%% Unit conversion (for EMF)
+%%% Unit conversion
 %%%
 
 unit_atom(Unit) when is_atom(Unit) -> Unit;
