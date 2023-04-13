@@ -173,7 +173,7 @@ screenshot([SaveView,Name], St) ->
       true -> wings_view:command({views,{save,[Name]}},St);
       false -> St
     end;
-screenshot(Name, St) ->
+screenshot([Name], St) ->
     viewport_screenshot(Name),
     St.
 
