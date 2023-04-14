@@ -34,6 +34,7 @@ MODULES= \
 	wpc_image \
 	wpc_knot \
 	wpc_ncube \
+	wpc_oblong \
 	wpc_plane \
 	wpc_spiral \
 	wpc_torus \
