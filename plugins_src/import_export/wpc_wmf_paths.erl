@@ -940,11 +940,15 @@ emf_cmd_fillpath(Fp2, NumBytes) ->
 emf_cmd_endpath(_Fp2) ->
     endpath.
 
+read_emf_bbox(Fp2) ->
+    {ok, << BoundRectLeft:32/?SINT, BoundRectTop:32/?SINT>>} = file:read(Fp2, 8),
+    {ok, << BoundRectRight:32/?SINT, BoundRectBottom:32/?SINT>>} = file:read(Fp2, 8),
+    {BoundRectLeft, BoundRectTop, BoundRectRight, BoundRectBottom}.
+    
 
 emf_cmd_polyline(Fp2) ->
     %% Bounding rectangle (can ignore)
-    {ok, << _BoundRectLeft:32/?SINT, _BoundRectTop:32/?SINT>>} = file:read(Fp2, 8),
-    {ok, << _BoundRectRight:32/?SINT, _BoundRectBottom:32/?SINT>>} = file:read(Fp2, 8),
+    read_emf_bbox(Fp2),
     %% Number of segments
     {ok, << NumSeg:32/?SINT>>} = file:read(Fp2, 4),
     emf_cmd_polyline_nextseg(Fp2, NumSeg, []).
@@ -956,8 +960,7 @@ emf_cmd_polyline_nextseg(Fp2, NumSeg, Coords) ->
 
 emf_cmd_polyline16(Fp2) ->
     %% Bounding rectangle (can ignore)
-    {ok, << _BoundRectLeft:32/?SINT, _BoundRectTop:32/?SINT>>} = file:read(Fp2, 8),
-    {ok, << _BoundRectRight:32/?SINT, _BoundRectBottom:32/?SINT>>} = file:read(Fp2, 8),
+    read_emf_bbox(Fp2),
     %% Number of segments
     {ok, << NumSeg:32/?SINT>>} = file:read(Fp2, 4),
     emf_cmd_polyline16_nextseg(Fp2, NumSeg, []).
@@ -970,8 +973,7 @@ emf_cmd_polyline16_nextseg(Fp2, NumSeg, Coords) ->
 
 emf_cmd_polylineto(Fp2) ->
     %% Bounding rectangle (can ignore)
-    {ok, << _BoundRectLeft:32/?SINT, _BoundRectTop:32/?SINT>>} = file:read(Fp2, 8),
-    {ok, << _BoundRectRight:32/?SINT, _BoundRectBottom:32/?SINT>>} = file:read(Fp2, 8),
+    read_emf_bbox(Fp2),
     %% Number of segments
     {ok, << NumSeg:32/?SINT>>} = file:read(Fp2, 4),
     emf_cmd_polylineto_nextseg(Fp2, NumSeg, []).
@@ -983,8 +985,7 @@ emf_cmd_polylineto_nextseg(Fp2, NumSeg, Coords) ->
 
 emf_cmd_polylineto16(Fp2) ->
     %% Bounding rectangle (can ignore)
-    {ok, <<_BoundRectLeft:32/?SINT, _BoundRectTop:32/?SINT>>} = file:read(Fp2, 8),
-    {ok, <<_BoundRectRight:32/?SINT, _BoundRectBottom:32/?SINT>>} = file:read(Fp2, 8),
+    read_emf_bbox(Fp2),
     %% Number of segments
     {ok, <<NumSeg:32/?UINT>>} = file:read(Fp2, 4),
     emf_cmd_polylineto16_nextseg(Fp2, NumSeg, []).
@@ -997,9 +998,7 @@ emf_cmd_polylineto16_nextseg(Fp2, NumSeg, Coords) ->
 
 emf_cmd_polybezierto(Fp2, PrevCoord, NumDiv) ->
     %% Bounding rectangle (can ignore)
-    {ok, <<_BoundRectLeft:32/?SINT, _BoundRectTop:32/?SINT>>} = file:read(Fp2, 8),
-    %% All ones
-    {ok, <<_BoundRectRight:32/?SINT, _BoundRectBottom:32/?SINT>>} = file:read(Fp2, 8),
+    read_emf_bbox(Fp2),
     %% Number of segments
     {ok, <<NumSeg:32/?UINT>>} = file:read(Fp2, 4),
     emf_cmd_polybezierto_nextseg(Fp2, NumSeg, NumDiv, [PrevCoord]).
@@ -1012,9 +1011,7 @@ emf_cmd_polybezierto_nextseg(Fp2, NumSeg, NumDiv, Coords) ->
 
 emf_cmd_polybezierto16(Fp2, PrevCoord, NumDiv) ->
     %% Bounding rectangle (can ignore)
-    {ok, <<_BoundRectLeft:32/?SINT, _BoundRectTop:32/?SINT>>} = file:read(Fp2, 8),
-    %% All ones
-    {ok, <<_BoundRectRight:32/?SINT, _BoundRectBottom:32/?SINT>>} = file:read(Fp2, 8),
+    read_emf_bbox(Fp2),
     %% Number of segments
     {ok, <<NumSeg:32/?UINT>>} = file:read(Fp2, 4),
     emf_cmd_polybezierto16_nextseg(Fp2, NumSeg, NumDiv, [PrevCoord]).
@@ -1136,8 +1133,7 @@ emf_cmd_roundrect(Fp2) ->
 
 emf_cmd_polybezier(Fp2, NumDiv) ->
     %% Bounding rectangle (can ignore)
-    {ok, <<_BoundRectLeft:32/?SINT, _BoundRectTop:32/?SINT>>} = file:read(Fp2, 8),
-    {ok, <<_BoundRectRight:32/?SINT, _BoundRectBottom:32/?SINT>>} = file:read(Fp2, 8),
+    read_emf_bbox(Fp2),
     %% Number of segments
     {ok, <<NumSeg:32/?UINT>>} = file:read(Fp2, 4),
     emf_cmd_polybezier_nextseg(Fp2, NumSeg, NumDiv, []).
@@ -1152,8 +1148,7 @@ emf_cmd_polybezier_nextseg(Fp2, NumSeg, NumDiv, Coords) ->
 
 emf_cmd_polybezier16(Fp2, NumDiv) ->
     %% Bounding rectangle (can ignore)
-    {ok, <<_BoundRectLeft:32/?SINT, _BoundRectTop:32/?SINT>>} = file:read(Fp2, 8),
-    {ok, <<_BoundRectRight:32/?SINT, _BoundRectBottom:32/?SINT>>} = file:read(Fp2, 8),
+    read_emf_bbox(Fp2),
     %% Number of segments
     {ok, <<NumSeg:32/?UINT>>} = file:read(Fp2, 4),
     emf_cmd_polybezier16_nextseg(Fp2, NumSeg, NumDiv, []).
@@ -1167,8 +1162,7 @@ emf_cmd_polybezier16_nextseg(Fp2, NumSeg, NumDiv, Coords) ->
 
 emf_cmd_polydraw(Fp2, NumDiv) ->
     %% Bounding rectangle (can ignore)
-    {ok, <<_BoundRectLeft:32/?SINT, _BoundRectTop:32/?SINT>>} = file:read(Fp2, 8),
-    {ok, <<_BoundRectRight:32/?SINT, _BoundRectBottom:32/?SINT>>} = file:read(Fp2, 8),
+    read_emf_bbox(Fp2),
     %% Number of segments
     {ok, <<NumSeg:32/?UINT>>} = file:read(Fp2, 4),
     Paths = emf_cmd_polydraw_nextseg(Fp2, NumSeg, []),
@@ -1197,8 +1191,7 @@ emf_cmd_polydraw_padbytes(Fp2, NumSeg) ->
 
 emf_cmd_polydraw16(Fp2, NumDiv) ->
     %% Bounding rectangle (can ignore)
-    {ok, <<_BoundRectLeft:32/?SINT, _BoundRectTop:32/?SINT>>} = file:read(Fp2, 8),
-    {ok, <<_BoundRectRight:32/?SINT, _BoundRectBottom:32/?SINT>>} = file:read(Fp2, 8),
+    read_emf_bbox(Fp2),
     %% Number of segments
     {ok, <<NumSeg:32/?UINT>>} = file:read(Fp2, 4),
     Paths = emf_cmd_polydraw16_nextseg(Fp2, NumSeg, []),
@@ -1267,8 +1260,7 @@ emf_paths_poly_draw([{X1,Y1} | Paths], [_ | PathTypes], NumDiv, OPaths) ->
 
 emf_cmd_polygon(Fp2) ->
     %% Bounding rectangle (can ignore)
-    {ok, << _BoundRectLeft:32/?SINT, _BoundRectTop:32/?SINT>>} = file:read(Fp2, 8),
-    {ok, << _BoundRectRight:32/?SINT, _BoundRectBottom:32/?SINT>>} = file:read(Fp2, 8),
+    read_emf_bbox(Fp2),
     %% Number of segments
     {ok, << NumSeg:32/?SINT>>} = file:read(Fp2, 4),
     emf_cmd_polygon_nextseg(Fp2, NumSeg, []).
@@ -1280,8 +1272,7 @@ emf_cmd_polygon_nextseg(Fp2, NumSeg, Coords) ->
 
 emf_cmd_polygon16(Fp2) ->
     %% Bounding rectangle (can ignore)
-    {ok, <<_BoundRectLeft:32/?SINT, _BoundRectTop:32/?SINT>>} = file:read(Fp2, 8),
-    {ok, <<_BoundRectRight:32/?SINT, _BoundRectBottom:32/?SINT>>} = file:read(Fp2, 8),
+    read_emf_bbox(Fp2),
     %% Number of segments
     {ok, <<NumSeg:32/?UINT>>} = file:read(Fp2, 4),
     emf_cmd_polygon16_nextseg(Fp2, NumSeg, []).
@@ -1294,8 +1285,7 @@ emf_cmd_polygon16_nextseg(Fp2, NumSeg, Coords) ->
 
 emf_cmd_polypolygon(Fp2) ->
     %% Bounding rectangle (can ignore)
-    {ok, <<_BoundRectLeft:32/?SINT, _BoundRectTop:32/?SINT>>} = file:read(Fp2, 8),
-    {ok, <<_BoundRectRight:32/?SINT, _BoundRectBottom:32/?SINT>>} = file:read(Fp2, 8),
+    read_emf_bbox(Fp2),
     %% First: Number of polygons
     {ok, <<NumPolys:32/?UINT>>} = file:read(Fp2, 4),
     {ok, <<_NumSegTotal:32/?UINT>>} = file:read(Fp2, 4),
@@ -1320,8 +1310,7 @@ emf_cmd_polypolygon_nextseg(Fp2, NumSeg, Coords) ->
 
 emf_cmd_polypolygon16(Fp2) ->
     %% Bounding rectangle (can ignore)
-    {ok, <<_BoundRectLeft:32/?SINT, _BoundRectTop:32/?SINT>>} = file:read(Fp2, 8),
-    {ok, <<_BoundRectRight:32/?SINT, _BoundRectBottom:32/?SINT>>} = file:read(Fp2, 8),
+    read_emf_bbox(Fp2),
     %% First: Number of polygons
     {ok, <<NumPolys:32/?UINT>>} = file:read(Fp2, 4),
     {ok, <<_NumSegTotal:32/?UINT>>} = file:read(Fp2, 4),
@@ -1345,8 +1334,7 @@ emf_cmd_polypolygon16_nextseg(Fp2, NumSeg, Coords) ->
 
 emf_cmd_polypolyline(Fp2) ->
     %% Bounding rectangle (can ignore)
-    {ok, <<_BoundRectLeft:32/?SINT, _BoundRectTop:32/?SINT>>} = file:read(Fp2, 8),
-    {ok, <<_BoundRectRight:32/?SINT, _BoundRectBottom:32/?SINT>>} = file:read(Fp2, 8),
+    read_emf_bbox(Fp2),
     %% First: Number of polygons
     {ok, <<NumPolys:32/?UINT>>} = file:read(Fp2, 4),
     {ok, <<_NumSegTotal:32/?UINT>>} = file:read(Fp2, 4),
@@ -1370,8 +1358,7 @@ emf_cmd_polypolyline_nextseg(Fp2, NumSeg, Coords) ->
 
 emf_cmd_polypolyline16(Fp2) ->
     %% Bounding rectangle (can ignore)
-    {ok, <<_BoundRectLeft:32/?SINT, _BoundRectTop:32/?SINT>>} = file:read(Fp2, 8),
-    {ok, <<_BoundRectRight:32/?SINT, _BoundRectBottom:32/?SINT>>} = file:read(Fp2, 8),
+    read_emf_bbox(Fp2),
     %% First: Number of polygons
     {ok, <<NumPolys:32/?UINT>>} = file:read(Fp2, 4),
     {ok, <<_NumSegTotal:32/?UINT>>} = file:read(Fp2, 4),
