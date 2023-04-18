@@ -46,11 +46,24 @@
 -endif.
 
 init(Parent) ->
+    check_if_intel_gpu(Parent),
     GL = window(Parent, undefined, true, false),
     init_extensions(),
     GL.
 
+%%% Intel GPUs have been crashing Wings3D on start.
+%%% To avoid that we need to not enable the MSAA for this GPU card.
+check_if_intel_gpu(Parent) ->
+    Style = ?wxFULL_REPAINT_ON_RESIZE bor ?wxWANTS_CHARS bor wings_frame:get_border(),
+    GL = wxGLCanvas_new(Parent, undefined, [{style, Style}]),
+    Context = wxGLContext_new(GL),
+    true = wxGLCanvas:setCurrent(GL,Context),
+    ?SET(gl_msaa_available, wings_util:upper(gl:getString(?GL_VENDOR)) =/= "INTEL"),
+    wxGLContext:destroy(Context),
+    wxGLCanvas:destroy(GL).
+
 attributes() ->
+    MSAA = ?GET(gl_msaa_available),
     SB = case os:type() of
              {unix, Os} when Os =/= darwin ->
                  %% Sample buffers does not currently work on Wayland
@@ -68,7 +81,7 @@ attributes() ->
       ?WX_GL_DEPTH_SIZE, 24,
       ?WX_GL_DOUBLEBUFFER
      ] ++
-         SB ++ [0]
+         if MSAA -> SB ++ [0]; true -> [0] end
     }.
 
 window(Parent, Context0, Connect, Show) ->
