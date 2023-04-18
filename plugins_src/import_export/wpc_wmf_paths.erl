@@ -18,13 +18,6 @@
 
 -export([init/0,menu/2,command/2]).
 
--export([
-    paths_round_rect/6,
-    radial_lines_to_angle/4,
-    paths_arcto_open/7
-    ]).
-
--export([exclusion/1]).
 
 -import(lists, [map/2,foldl/3,keydelete/3,keyreplace/4,sort/1]).
 
@@ -43,7 +36,6 @@
 -define(FLT,  little-float).
 
 init() ->
-    wpa:pref_set_default(?MODULE, swap_y_z, true),
     true.
 
 menu({file,import}, Menu) ->
@@ -51,7 +43,7 @@ menu({file,import}, Menu) ->
 menu(_, Menu) -> Menu.
 
 menu_entry(Menu) ->
-    Menu ++ [{?__(1,"Windows Metafile Paths (.emf|.wmf)..."),wmf_paths,[option]}].
+    Menu ++ [{?__(1,"WMF/EMF Paths (.emf|.wmf)..."),wmf_paths,[option]}].
 
 
 command({file,{import,{wmf_paths,Ask}}}, St) ->
@@ -93,7 +85,7 @@ info_button() ->
 do_import(Ask, _St) when is_atom(Ask) ->
     DefBisect = wpa:pref_get(?MODULE, wmf_bisections, 3),
     AutoScale = wpa:pref_get(?MODULE, wmf_auto_scale, false),
-    TransformsInTextFile = wpa:pref_get(wpc_svg_path, wmf_transforms_in_txt_file, false),
+    TransformsInTextFile = wpa:pref_get(?MODULE, wmf_transforms_in_txt_file, false),
     %% Force SetScale to be text
     case wpa:pref_get(?MODULE, wmf_set_scale, "100pt") of
         Number when is_float(Number); is_integer(Number) ->
@@ -159,9 +151,6 @@ props() ->
 
 import_fun(Nsub, AutoScale, SetScale_S, AutoCenter, TransformsInTextFile) ->
     fun(Filename) ->
-        wpa:pref_set(?MODULE, wmf_bisections, Nsub),
-        wpa:pref_set(?MODULE, wmf_auto_scale, AutoScale),
-        wpa:pref_set(?MODULE, wmf_transforms_in_txt_file, TransformsInTextFile),
         case parse_float_number_w_unit(SetScale_S, 0.0) of
             {ScaleVal, ScaleUnit} when ScaleVal > 0.001 ->
                 wpa:pref_set(?MODULE, wmf_set_scale, SetScale_S),
@@ -169,76 +158,90 @@ import_fun(Nsub, AutoScale, SetScale_S, AutoCenter, TransformsInTextFile) ->
             _Unk ->
                 SetScale = {100.0, pt}
         end,
-        
-        ShortFilename = filename:rootname(filename:basename(Filename)),
-        
-        FType = get_file_type(Filename), %% emf or wmf
-        {ok, CommandsList_0, DPI} = read_file(FType, Filename, Nsub),
-        {ok, TIn} = read_txt_transforms_if_any(Filename, TransformsInTextFile),
-        {CommandsList_1, TexturesList} = get_textures_list(ShortFilename, CommandsList_0),
-        CommandsList_2 = remove_double_path(exclusion(into_paths(FType, CommandsList_1))),
-        CommandsList_3 = remove_invisible_paths(FType, CommandsList_2),
-        {ViewPortScaleX,ViewPortScaleY} = viewport_to_window(FType, CommandsList_3),
-        
-        CommandsList_4 = remove_bad_paths(CommandsList_3),
-        
-        case AutoScale of
-            true ->
-                [CamDist] = wpa:camera_info([distance_to_aim]),
-                Rescale_0 = calculate_rescale_amount(CamDist, CamDist, CommandsList_4),
-                RescaleX = Rescale_0,
-                RescaleY = Rescale_0;
-            _ ->
-                Rescale_Denom = conv_unit(SetScale, px, DPI),
-                RescaleX = ViewPortScaleX / Rescale_Denom,
-                RescaleY = ViewPortScaleY / Rescale_Denom
-        end,
-        {ok, CEdges, Colors, MatList} = cedge_realize(FType, rescale({RescaleX,RescaleY}, CommandsList_4)),
-        
-        ShapeTransforms = assign_transforms_to_shapes(CEdges, TIn),
-        MatTrnList = lists:zip(MatList, ShapeTransforms),
-        
-        case CEdges of
-            [] ->
-                {error, "No paths found"};
-                
-            Cntrs when length(Cntrs) > 0 ->
-                
-                %% NOTE: Coordinate values in #cedge.vs and #cedge.ve have to
-                %%       be of type floating point or the polyareas_to_faces
-                %%       function doesn't work (change integers to floats).
-                %%
-                
-                %% This is borrowed from the other path plugins
-                %% (wpc_ps, wpc_svg) to maintain a similar behaviour
-                %% for the polygon subdivision.
-                %%
-                Pas = [wpc_ai:findpolyareas(Cntr) || Cntr <- Cntrs],
-                MatTrnList_1 = repeat_matlist_if_needed(MatTrnList, Pas),
-                Pas1 = lists:append(Pas),
-                List = process_islands(Pas1),
-                {Vs0,Efs,Tx,HEs} = into_mesh_parts(List, MatTrnList_1),
-                
-                case AutoCenter of
-                    true ->
-                        Center = e3d_vec:average(e3d_vec:bounding_box(Vs0)),
-                        Vec = e3d_vec:sub(e3d_vec:zero(),Center),
-                        Vs = [ e3d_vec:add(V,Vec) || V <- Vs0];
-                    _ ->
-                        Vs = Vs0
-                end,
-                
-                Mesh = #e3d_mesh{
-                    type=polygon,
-                    vs=Vs,
-                    fs=Efs,
-                    he=HEs,
-                    vc=[C || C <- Colors],
-                    tx=Tx},
-                Obj = #e3d_object{name=ShortFilename,obj=Mesh},
-                
-                {ok, #e3d_file{objs=[Obj],mat=TexturesList}}
-            end
+        try try_import(Filename, Nsub, AutoScale, SetScale, AutoCenter, TransformsInTextFile) of
+            {ok, E3DFile} ->
+                wpa:pref_set(?MODULE, wmf_bisections, Nsub),
+                wpa:pref_set(?MODULE, wmf_auto_scale, AutoScale),
+                wpa:pref_set(?MODULE, wmf_transforms_in_txt_file, TransformsInTextFile),
+                {ok, E3DFile};
+            {error, Reason} ->
+                {error, ?__(1,"wmf/emf path import failed")++": " ++ Reason}
+        catch EClass:E:ST ->
+            io:format("File Import Error Report:\n ~p: ~p\nstack trace: ~p~n",
+                [EClass, E, ST]),
+            {error, ?__(2,"wmf/emf path import internal error")}
+        end
+    end.
+    
+try_import(Filename, Nsub, AutoScale, SetScale, AutoCenter, TransformsInTextFile) ->
+    ShortFilename = filename:rootname(filename:basename(Filename)),
+    
+    FType = get_file_type(Filename), %% emf or wmf
+    {ok, CommandsList_0, DPI} = read_file(FType, Filename, Nsub),
+    {ok, TIn} = read_txt_transforms_if_any(Filename, TransformsInTextFile),
+    {CommandsList_1, TexturesList} = get_textures_list(ShortFilename, CommandsList_0),
+    CommandsList_2 = remove_double_path(exclusion(into_paths(FType, CommandsList_1))),
+    CommandsList_3 = remove_invisible_paths(FType, CommandsList_2),
+    {ViewPortScaleX,ViewPortScaleY} = viewport_to_window(FType, CommandsList_3),
+    
+    CommandsList_4 = remove_bad_paths(CommandsList_3),
+    
+    case AutoScale of
+        true ->
+            [CamDist] = wpa:camera_info([distance_to_aim]),
+            Rescale_0 = calculate_rescale_amount(CamDist, CamDist, CommandsList_4),
+            RescaleX = Rescale_0,
+            RescaleY = Rescale_0;
+        _ ->
+            Rescale_Denom = conv_unit(SetScale, px, DPI),
+            RescaleX = ViewPortScaleX / Rescale_Denom,
+            RescaleY = ViewPortScaleY / Rescale_Denom
+    end,
+    {ok, CEdges, Colors, MatList} = cedge_realize(FType, rescale({RescaleX,RescaleY}, CommandsList_4)),
+    
+    ShapeTransforms = assign_transforms_to_shapes(CEdges, TIn),
+    MatTrnList = lists:zip(MatList, ShapeTransforms),
+    
+    case CEdges of
+        [] ->
+            {error, "No paths found"};
+            
+        Cntrs when length(Cntrs) > 0 ->
+            
+            %% NOTE: Coordinate values in #cedge.vs and #cedge.ve have to
+            %%       be of type floating point or the polyareas_to_faces
+            %%       function doesn't work (change integers to floats).
+            %%
+            
+            %% This is borrowed from the other path plugins
+            %% (wpc_ps, wpc_svg) to maintain a similar behaviour
+            %% for the polygon subdivision.
+            %%
+            Pas = [wpc_ai:findpolyareas(Cntr) || Cntr <- Cntrs],
+            MatTrnList_1 = repeat_matlist_if_needed(MatTrnList, Pas),
+            Pas1 = lists:append(Pas),
+            List = process_islands(Pas1),
+            {Vs0,Efs,Tx,HEs} = into_mesh_parts(List, MatTrnList_1),
+            
+            case AutoCenter of
+                true ->
+                    Center = e3d_vec:average(e3d_vec:bounding_box(Vs0)),
+                    Vec = e3d_vec:sub(e3d_vec:zero(),Center),
+                    Vs = [ e3d_vec:add(V,Vec) || V <- Vs0];
+                _ ->
+                    Vs = Vs0
+            end,
+            
+            Mesh = #e3d_mesh{
+                type=polygon,
+                vs=Vs,
+                fs=Efs,
+                he=HEs,
+                vc=[C || C <- Colors],
+                tx=Tx},
+            Obj = #e3d_object{name=ShortFilename,obj=Mesh},
+            
+            {ok, #e3d_file{objs=[Obj],mat=TexturesList}}
     end.
 
 get_textures_list(Filename, Cmds) when is_binary(Filename) ->
