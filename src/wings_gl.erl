@@ -45,12 +45,40 @@
 -define(WX_GL_SAMPLES,18).         %% 4 for 2x2 antialiasing supersampling on most graphics cards
 -endif.
 
+%%
+%% A call to is_msaa_available(true) must be followed by a call to working()
+%% just after the OpenGL window be created
+%%
 init(Parent) ->
+    is_msaa_available(true),
     GL = window(Parent, undefined, true, false),
+    working(),
     init_extensions(),
     GL.
 
+%%% Intel GPUs have been crashing Wings3D on start. It's related to MSAA has
+%%% been turned off on Intel Control Panel.
+%%% To avoid that we cannot initialize GLCanvas with MSAA in case it fail.
+is_msaa_available(Write) ->
+    case file:read_file_info(temp_file()) of
+        {ok, _} ->
+            wings_pref:set_value(gl_msaa, false),
+            io:format("Multisampling (MSAA) not available~n",[]);
+        {error,_} ->
+            wings_pref:set_value(gl_msaa, true)
+    end,
+    Write andalso file:write_file(temp_file(), <<"Delete me if MSAA is working">>).
+
+%% Call me if OpenGL initiation with MSAA enabled worked as expected
+working() ->
+    _ = wings_pref:get_value(gl_msaa) andalso file:delete(temp_file()),
+    ok.
+
+temp_file() ->
+    filename:join(wings_u:basedir(user_cache), "mass_tmp.txt").
+
 attributes() ->
+    MSAA = wings_pref:get_value(gl_msaa, true),
     SB = case os:type() of
              {unix, Os} when Os =/= darwin ->
                  %% Sample buffers does not currently work on Wayland
@@ -68,7 +96,7 @@ attributes() ->
       ?WX_GL_DEPTH_SIZE, 24,
       ?WX_GL_DOUBLEBUFFER
      ] ++
-         SB ++ [0]
+         if MSAA -> SB ++ [0]; true -> [0] end
     }.
 
 window(Parent, Context0, Connect, Show) ->
