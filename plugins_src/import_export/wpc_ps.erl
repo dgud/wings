@@ -769,7 +769,9 @@ finishrop(obj,#pstate{objects=Objs0,objects_coltex=ColTex0,curobjs=CObjs,curobj_
   when CObjs =/= [] ->
     case DrawOp of
         fill ->
-            ColTex = [#coltex{fcol={1.0,1.0,1.0},tex=Tex}|ColTex0];
+            %% Change the color depending on if there is a texture
+            Col1 = case Tex of none -> Col; _ -> {1.0,1.0,1.0} end,
+            ColTex = [#coltex{fcol=Col1,tex=Tex}|ColTex0];
         _ ->
             ColTex = [#coltex{scol=Col,tex=Tex}|ColTex0]
     end,
@@ -1153,7 +1155,7 @@ partition_emb_imgs_hex(Cont, S1, ALn, NextImg) ->
 %% after a word (sometimes it is image, but can be a macro word), which we need
 %% to find first after the close of the image properties block.
 -spec seek_img_start(binary()) -> binary().
-seek_img_start(Cont) -> io:format("Cont=~p~n", [Cont]),
+seek_img_start(Cont) ->
     ALn = byte_size(Cont),
     {S1, _} = binary:match(Cont, <<">>">>), %% Close of image properties
     {S2_0, S2_L} = binary:match(Cont, [<<"\r\n">>,<<"\n">>,<<"\r">>], [{scope, {S1, ALn-S1}}]),
