@@ -138,16 +138,29 @@ props() ->
 -record(cedge, % polyarea and cedge records must match definitions in wpc_ai.erl
         {vs,cp1=nil,cp2=nil,ve}).    %all are {x,y} pairs
 
+-type color() :: {float(),float(),float()}.
+
+-type texcoord() :: {
+        {float(),float()},
+        {float(),float()},
+        {float(),float()},
+        {float(),float()}}.
+
+-type texinfo_image() :: {integer(), integer(), binary()}.
+
+-type texinfo() :: {texcoord(), texinfo_image()}.
+
 %%
 %%
 -record(rpaths, {
-    path_list = [],
-    color_list = [],
-    mat_list = [],
-    current_color = {0.9,0.9,0.9},
-    current_tex = none,
-    world_transform = {1.0, 0.0, 0.0, 1.0}
+    path_list = [] :: [[#cedge{}]],
+    color_list = [] :: [color()],
+    mat_list = [] :: [texinfo()],
+    current_color = {0.9,0.9,0.9} :: color(),
+    current_tex = none :: texinfo() | none,
+    world_transform = {1.0, 0.0, 0.0, 1.0} :: {float(),float(),float(),float()}
 }).
+
 
 import_fun(Nsub, AutoScale, SetScale_S, AutoCenter, TransformsInTextFile) ->
     fun(Filename) ->
@@ -351,10 +364,10 @@ remove_invisible_paths(_, CommandsList) ->
     
 
 -record(win_viewp, {
-    w_origin = {0.0, 0.0},
-    w_extent = {1.0, 1.0},
-    v_origin = {0.0, 0.0},
-    v_extent = none
+    w_origin = {0.0, 0.0} :: {float(),float()},
+    w_extent = {1.0, 1.0} :: {float(),float()},
+    v_origin = {0.0, 0.0} :: {float(),float()},
+    v_extent = none       :: {float(),float()} | none
 }).
     
     
