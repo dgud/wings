@@ -39,22 +39,26 @@
          x3=0.0,
          y3=0.0}).
 
+-type m3x2() :: {float(),float(),float(),float(),float(),float()}.
+
+-type texinfo() :: {m3x2(), integer()}.
+
+-record(coltex,
+        {fcol=none :: {float(),float(),float()} | none,
+         scol=none :: {float(),float(),float()} | none,
+         tex=none  :: texinfo() | none
+        }).
+
 -record(pstate,
-        {curpath=#path{},               %current path
-         objects=[],                    %object list (paths)
-         objects_coltex=[],
-         curobjs=[],                    %current object been processed
-         curobj_col=none,
-         curobj_clip=[],
+        {curpath=#path{}   :: #path{},    %current path
+         objects=[]        :: [[#path{}]],     %object list (paths)
+         objects_coltex=[] :: [#coltex{}],
+         curobjs=[]        :: [#path{}],       %current object been processed
+         curobj_col=none   :: {float(),float(),float()} | none,
+         curobj_clip=[]    :: [[#path{}]],
          ctm=[],
          ctms=[]                        % Stack of CTMs
          }).
-
--record(coltex,
-        {fcol=none,
-         scol=none,
-         tex=none
-        }).
 
 
 init() -> true.
@@ -644,7 +648,7 @@ call_next(CP,CM,Val,Pst,FAtm,F) ->
 
 %% check if C is a no-arg path operation, and if so, return a modified Pst,
 %% otherwise return original Pst
-ps_dopathop0(CP,_CM,#pstate{curpath=P}=Pst)
+ps_dopathop0(CP,_CM,#pstate{curpath=#path{}=P}=Pst)
   when CP=:="closepath" ->
     Pst#pstate{curpath=P#path{close=true}};
 ps_dopathop0(CP,_CM,#pstate{ctm=CTM,ctms=CTMS0}=Pst)
@@ -654,8 +658,8 @@ ps_dopathop0(CP,_CM,#pstate{ctms=[CTM|CTMS0]}=Pst)
   when CP=:="grestore" ->
     Pst#pstate{ctm=CTM,ctms=CTMS0};
 %% we use the clip path to get clipping shapes if they aren't bounding boxes.
-ps_dopathop0(CP,_CM,#pstate{curpath=P,curobjs=CObjs0,curobj_clip=Clip0}=Pst)
-  when CP=:="clip" ->
+ps_dopathop0(CP,_CM,#pstate{curpath=#path{}=P,curobjs=CObjs0,curobj_clip=Clip0}=Pst)
+  when CP=:="clip"; CP=:="eoclip" ->
     CObjs = add_path(CObjs0, P),
     Pst#pstate{curobjs=[],curpath=#path{},curobj_clip=[CObjs|Clip0]};
 ps_dopathop0(CP,CM,Pst) ->
@@ -687,7 +691,11 @@ ps_dopathop2(MT,{_,Idx0}, _, #pstate{curobjs=[],curobj_clip=Clip0,ctm=[CTM0|_]}=
         {_, Clip1} -> Clip = lists:append(Clip1)
     end,
     TexInfo = {{M1,M2,M3,M4,M5,M6}, TexIdx},
-    finishrop(obj,Pst#pstate{curpath=#pathop{},curobjs=Clip,curobj_clip=[]},fill,TexInfo);
+    finishrop(obj,Pst#pstate{curpath=#path{},curobjs=Clip,curobj_clip=[]},fill,TexInfo);
+ps_dopathop2(MT,{_,_Idx0}, _, #pstate{curobjs=_,curobj_clip=_Clip0,ctm=_CTMs}=Pst)
+  when MT=:=?W3DEMBEDIMG ->
+    %% This path clip isn't using a matrix, it might be using scaling and translation
+    Pst#pstate{curpath=#path{},curobj_clip=[]};
 ps_dopathop2(MT,Val, CM, Pst) ->
     call_next(MT,CM,Val,Pst,f2, fun (NextCall, Val1) ->
         ps_dopathop2(NextCall,Val1,CM,Pst)
@@ -798,6 +806,7 @@ add_path(Objs,#path{ops=Ops}=P)
 add_path(Objs,#path{ops=Ops}=_)
   when Ops =:= [] ->
     Objs.
+
 
 
 %% Do fixes based on quirks details
