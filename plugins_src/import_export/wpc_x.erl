@@ -26,12 +26,17 @@
 init() ->
     true.
 
+
+menu({file,import}, Menu) ->
+    menu_entry(Menu);
 menu({file, export}, Menu) ->
     menu_entry(Menu);
 menu({file, export_selected}, Menu) ->
     menu_entry(Menu);
 menu(_, Menu) -> Menu.
 
+command({file,{import,{x,Ask}}}, St) ->
+    x_import:do_import(Ask, St);
 command({file,{export,{x,Ask}}}, St) ->
     Exporter = fun(Ps, Fun) -> wpa:export(Ps, Fun, St) end,
     do_export(Ask, export, Exporter, St);
