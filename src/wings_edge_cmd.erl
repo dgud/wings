@@ -381,6 +381,7 @@ hardness(hard, St) ->
 %%% The Slide command.
 %%%
 
+slide(#st{sel=[]}=St) -> St;
 slide(St0) ->
     Mode = wings_pref:get_value(slide_mode, relative),
     Stop = wings_pref:get_value(slide_stop, false),
