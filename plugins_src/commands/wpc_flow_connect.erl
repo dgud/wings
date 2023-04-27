@@ -34,7 +34,7 @@ parse([Elem|Rest], NewMenu, Found) ->
     parse(Rest, [Elem|NewMenu], Found).
 
 flow_connect() ->
-    {?__(1,"Flow Connect"),{flow_connect, flow_connect_fun()},
+    {?__(1,"Flow Connect"),flow_connect_fun(),
      {?__(2,"Connect edges with respect to the surrounding geometry"),[],
       ?__(3,"Flow Connect and move edges into place")},[]}.
 
