@@ -181,7 +181,7 @@ command(put_on, St) ->
 command(clone_on, St) ->
     clone_on(St);
 command(collapse, St) ->
-    {save_state,wings_collapse:collapse(St)};
+    {save_state, wings_collapse:collapse(dissolve(St))};
 command({material,Cmd}, St) ->
     wings_material:command(Cmd, St);
 command({move,Type}, St) ->
