@@ -181,7 +181,7 @@ command(put_on, St) ->
 command(clone_on, St) ->
     clone_on(St);
 command(collapse, St) ->
-    {save_state,wings_collapse:collapse(St)};
+    {save_state,collapse(St)};
 command({material,Cmd}, St) ->
     wings_material:command(Cmd, St);
 command({move,Type}, St) ->
@@ -1439,6 +1439,14 @@ clone_on_targets(#st{selmode=Mode}=St) ->
          end,
     RF = fun erlang:'++'/2,
     wings_sel:dfold(MF, RF, [], St).
+
+%%%
+%%% Collapse Faces
+%%%
+
+collapse(St0) ->
+    St = dissolve(St0),
+    wings_collapse:collapse(St).
 
 %%%
 %%% Hide/Unhide Faces
