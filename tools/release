@@ -15,8 +15,8 @@
 -include_lib("kernel/include/file.hrl").
 
 %% Change these when compiler version is changed on windows
--define(WIN32_VCREDIST_VERSION, "14.28.29334.0").
--define(WIN64_VCREDIST_VERSION, "14.28.29334.0").
+-define(WIN32_VCREDIST_VERSION, "14.29.30139.0").
+-define(WIN64_VCREDIST_VERSION, "14.29.30139.0").
 
 main(_) ->
     try
@@ -131,7 +131,7 @@ unix_release(BuildRoot, WingsVsn) ->
 win_release(Root, WingsVsn) ->
     BitSize = case is_wslcross() of
                   true ->  %% We use the native erlang to decide bitsize
-                      WsStr = os:cmd("erl.exe -eval \"erlang:display(erlang:system_info(wordsize))\" -run erlang halt"),
+                      WsStr = os_erl("-eval \"erlang:display(erlang:system_info(wordsize))\" -run erlang halt"),
                       {WS, _} = string:to_integer(WsStr),
                       WS*8;
                   _ ->
@@ -232,18 +232,20 @@ release_otp(TargetDir0, BitSize) ->
     ok.
 
 copy_erts(TargetDir) ->
-    VDeps = case erlang:system_info(otp_release) of
-		"18" -> ["child_setup"];
-		_ -> ["erl_child_setup"]
-	    end,
+    WinDeps =
+        case os_erl("\"erlang:display(erlang:system_info(otp_release))\"") of
+            "24" -> ["werl"];
+            "25" -> ["werl"];
+            _ -> []
+        end,
     Files = case os_type() of
 		{unix,_} ->
 		    %% Do not copy to erts-VSN/bin, then the start scripts must find
 		    %% erts-VSN in start script
-		    {["beam.smp","erlexec","inet_gethost","escript"|VDeps], []};
+		    {["beam.smp","erlexec","inet_gethost","escript", "erl_child_setup"], []};
 		{win32,nt} ->
 		    %% To get Windows working without install, erts-VSN must exist
-		    {["erl.exe", "werl.exe", "escript.exe"],
+		    {["erl.exe", "escript.exe"|WinDeps],
 		     ["erlexec.dll", "beam.smp.dll","inet_gethost.exe"]}
 	    end,
     copy_erts(TargetDir, Files).
@@ -251,14 +253,14 @@ copy_erts(TargetDir) ->
 copy_erts(TargetDir, {BinExecFiles, ErtsExecFiles}) ->
     Root = case is_wslcross() of
                true ->
-                   WinPath = os:cmd("erl.exe -eval  \"erlang:display(code:root_dir())\" -run erlang halt"),
+                   WinPath = os_erl("-eval  \"erlang:display(code:root_dir())\" -run erlang halt"),
                    string:chomp(os:cmd("wslpath -u " ++ WinPath));
                false -> code:root_dir()
            end,
     ErtsPath0 = filename:join([Root,"erts-*"]),
     ErtsPath  = filelib:wildcard(ErtsPath0),
 
-    %% Hard code erts version 0 so that we do not need to figure 
+    %% Hard code erts version 0 so that we do not need to figure
     %% that out in installer package
     TargetBin = filename:join(TargetDir, "bin"),
     TargetErts = filename:join([TargetDir, "erts-0", "bin"]),
@@ -469,8 +471,8 @@ fatal(Format, Args) ->
 lib_dir(App) ->
     case is_wslcross() of
         true when App /= wings, App /= cl ->
-            Str = io_lib:format("erl.exe -eval  \"erlang:display(code:lib_dir(~s))\" -run erlang halt", [App]),
-            WinPath = os:cmd(lists:flatten(Str)),
+            Str = io_lib:format("-eval  \"erlang:display(code:lib_dir(~s))\" -run erlang halt", [App]),
+            WinPath = os_erl(lists:flatten(Str)),
             string:chomp(os:cmd("wslpath -u " ++ WinPath));
         _ ->
             case code:lib_dir(App) of
@@ -481,4 +483,12 @@ lib_dir(App) ->
                     end;
                 Dir -> Dir
             end
+    end.
+
+os_erl(Str) ->
+    case is_wslcross() of
+        true ->
+            os:cmd("erl.exe -noshell " ++ lists:flatten(Str));
+        false ->
+            os:cmd("erl -noshell " ++ lists:flatten(Str))
     end.

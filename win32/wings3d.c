@@ -66,29 +66,36 @@ WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR szCmdLine, int sw)
   pref_dir[0] = L'\0';
   SHGetFolderPathW(NULL,	CSIDL_APPDATA|CSIDL_FLAG_CREATE, NULL, 0, pref_dir);
 
-  _snwprintf(cmd_line, 3*MAX_PATH, L"\"%s\\bin\\werl.exe\" -smp enable", install_dir);
+#ifdef USE_WERL
+  _snwprintf(cmd_line, 3*MAX_PATH, L"\"%s\\bin\\werl.exe\"", install_dir);
+#else
+  _snwprintf(cmd_line, 3*MAX_PATH, L"\"%s\\bin\\erl.exe\"", install_dir);
+#endif
+
   i=0;
-  if ((argc > 1 && wcscmp(argv[1], L"--debug") == 0)) {
-      i++;
-      _snwprintf(cmd_line+wcslen(cmd_line), 3*MAX_PATH,  L" -run wings_start start");
+
+  siStartInfo.cb = sizeof(STARTUPINFO);
+
+  if((argc > 1 && wcscmp(argv[1], L"--debug") == 0)) {
+    i++;
+    _snwprintf(cmd_line+wcslen(cmd_line), 3*MAX_PATH,  L" -run wings_start start");
   } else {
-      _snwprintf(cmd_line+wcslen(cmd_line), 3*MAX_PATH,  L" -detached");
-      _snwprintf(cmd_line+wcslen(cmd_line), 3*MAX_PATH,  L" -run wings_start start_halt");
+    siStartInfo.wShowWindow = SW_MINIMIZE;
+    siStartInfo.dwFlags = STARTF_USESHOWWINDOW;
+    _snwprintf(cmd_line+wcslen(cmd_line), 3*MAX_PATH,  L" -detached");
+    _snwprintf(cmd_line+wcslen(cmd_line), 3*MAX_PATH,  L" -run wings_start start_halt");
   }
 
-  if (argc > (1+i)) {
+  if(argc > (1+i)) {
       _snwprintf(cmd_line+wcslen(cmd_line), 3*MAX_PATH, L" \"%s\"", argv[1+i]);
   }
 
   // fprintf(stderr, "Cmd %S\r\n", cmd_line);
-  siStartInfo.cb = sizeof(STARTUPINFO); 
-  siStartInfo.wShowWindow = SW_MINIMIZE;
-  siStartInfo.dwFlags = STARTF_USESHOWWINDOW;
 
-  ok = CreateProcessW(NULL, 
-		      cmd_line, 
-		      NULL, 
-		      NULL, 
+  ok = CreateProcessW(NULL,
+		      cmd_line,
+		      NULL,
+		      NULL,
 		      FALSE,
 		      0,
 		      NULL,
