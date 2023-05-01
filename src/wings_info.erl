@@ -146,10 +146,8 @@ measure_es([{_E0,Pos0A,Pos0B},{_E1,Pos1A,Pos1B}]) ->
 measure_es(_) -> [].
 
 measure_fs([{_,Center,_,Mat,Area}]) ->
-    io_lib:format(?__(1,". Midpoint ~s\n"
-                      "Material ~ts.") ++ Area,
-                  [wings_util:nice_vector(Center),
-                   Mat]);
+    io_lib:format(?__(1,". Midpoint ~s\n Material ~ts. ~s"),
+                  [wings_util:nice_vector(Center), Mat, Area]);
 measure_fs([{_,_,N0,_,_},{_,_,N1,_,_}]) ->
     Angle = e3d_vec:degrees(N0, N1),
     io_lib:format(?__(2,". Angle ~s") ++ "~c",

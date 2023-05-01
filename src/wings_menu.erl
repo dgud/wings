@@ -709,20 +709,20 @@ tooltip(HelpL, "", "", Magnet, _) ->
     {str_clean(HelpL) ++ magnet_help(tip, Magnet),
      wings_msg:join(HelpL,magnet_help(str, Magnet))};
 tooltip(HelpL, HelpM, "", Magnet, HK) ->
-    {io_lib:format(?__(1, "Left mouse button") ++ ": ~ts" ++ tooltip_hk(1,HK) ++ "~n" ++
-		       ?__(2, "Middle mouse button") ++ ": ~ts" ++ tooltip_hk(2,HK),
-		   [HelpL, HelpM]) ++ magnet_help(tip, Magnet),
+    {io_lib:format(?__(1, "Left mouse button") ++ ": ~ts~ts~n" ++
+		       ?__(2, "Middle mouse button") ++ ": ~ts~ts",
+		   [HelpL, tooltip_hk(1,HK), HelpM, tooltip_hk(2,HK)]) ++ magnet_help(tip, Magnet),
      wings_msg:join(wings_msg:button_format(HelpL, HelpM, ""),magnet_help(str, Magnet))};
 tooltip(HelpL, "", HelpR, Magnet, HK) ->
-    {io_lib:format(?__(1, "Left mouse button") ++ ": ~ts" ++ tooltip_hk(1,HK) ++ "~n" ++
-		       ?__(3, "Right mouse button") ++ ": ~ts" ++ tooltip_hk(3,HK),
-		   [HelpL, HelpR]) ++ magnet_help(tip, Magnet),
+    {io_lib:format(?__(1, "Left mouse button") ++ ": ~ts~ts~n" ++
+		       ?__(3, "Right mouse button") ++ ": ~ts~ts",
+		   [HelpL, tooltip_hk(1,HK), HelpR, tooltip_hk(3,HK)]) ++ magnet_help(tip, Magnet),
      wings_msg:join(wings_msg:button_format(HelpL, "", HelpR), magnet_help(str, Magnet))};
 tooltip(HelpL, HelpM, HelpR, Magnet, HK) ->
-    {io_lib:format(?__(1, "Left mouse button") ++ ": ~ts" ++ tooltip_hk(1,HK) ++ "~n" ++
-		       ?__(2, "Middle mouse button") ++ ": ~ts" ++ tooltip_hk(2,HK) ++ "~n" ++
-		       ?__(3, "Right mouse button") ++ ": ~ts" ++ tooltip_hk(3,HK),
-		   [HelpL, HelpM, HelpR]) ++ magnet_help(tip, Magnet),
+    {io_lib:format(?__(1, "Left mouse button") ++ ": ~ts~ts~n" ++
+		       ?__(2, "Middle mouse button") ++ ": ~ts~ts~n" ++
+		       ?__(3, "Right mouse button") ++ ": ~ts~ts",
+		   [HelpL, tooltip_hk(1,HK), HelpM, tooltip_hk(2,HK), HelpR, tooltip_hk(3,HK)]) ++ magnet_help(tip, Magnet),
      wings_msg:join(wings_msg:button_format(HelpL, HelpM, HelpR), magnet_help(str, Magnet))}.
 
 tooltip_hk(Mb, HK) ->
