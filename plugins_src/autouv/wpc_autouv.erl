@@ -453,7 +453,9 @@ command_menu(edge, X, Y) ->
 	    {?__(643,"Distribute"),
 	     {equal,
 	      [{?__(25,"Horizontal"),horizontal,?__(644,"Distribute horizontally")},
-	       {?__(27,"Vertical"),vertical,?__(645,"Distribute vertically")}]},
+	       {?__(27,"Vertical"),vertical,?__(645,"Distribute vertically")},
+           separator,
+           {?__(647,"Proportional"),proportional,?__(648,"Proportionally distributes the vertices on loop to match the proportions on the object")}]},
 	     ?__(646,"Distribute vertices evenly")},
 	    separator,
 	    {?__(66,"Stitch"), stitch, ?__(67,"Stitch edges/charts")},
@@ -1156,6 +1158,27 @@ mag_vertex_tighten(Vs0, We, Magnet) ->
     Vs = [V || V <- gb_sets:to_list(Vs0), not_bordering(V, Vis, We)],
     wings_vertex_cmd:tighten_vs(Vs, We, Magnet).
 
+equal_length(Op,#st{bb=Uvs}=St) when Op == proportional ->
+    #uvstate{st=#st{shapes=Shs0},id=Id} = Uvs,
+    #we{es=Etab} = We = gb_trees:get(Id, Shs0),
+    wings_sel:map(fun(Es, #we{name=#ch{emap=Emap}}=UvWe) ->
+                EuvToEwe = [{E,auv_segment:map_edge(E,Emap)} || E <- gb_sets:to_list(Es)],
+                UvLinks = wings_edge_loop:edge_links(Es,UvWe),
+                PickVs = fun(E) ->
+                            #edge{vs=Vs,ve=Ve} = array:get(E, Etab),
+                            {E,Vs,Ve}
+                         end,
+                WeVs = ordsets:from_list([PickVs(E) || {_,E} <- EuvToEwe]),
+                RemapVs = fun(E0) ->
+                        E = proplists:get_value(E0,EuvToEwe),
+                        {_,Ve,Vs} = lists:keyfind(E,1,WeVs),
+                        %% we use the edge id from island instead of the real object one
+                        {E0,Ve,Vs}
+                    end,
+                %% sync edge loops from the island with the edges on real object
+                WeLinks = [[RemapVs(E) || {E,_,_} <- UvLink] || UvLink <- UvLinks],
+                make_proportional(UvLinks,UvWe,WeLinks,We)
+          end, St);
 equal_length(Op,St) ->
     wings_sel:map(fun(Es, We) ->
 			  Links = wings_edge_loop:edge_links(Es,We),
@@ -1188,6 +1211,115 @@ make_equal(Op,[Link0|R],We = #we{vp=Vtab}) ->
 	    make_equal(Op,R,We#we{vp=Vt})
     end;
 make_equal(_,[],We) -> We.
+
+make_proportional([[_]|R], We, [_|RObj], WeObj) ->
+    %% avoiding single edge selections
+    make_proportional(R,We,RObj,WeObj);
+make_proportional([Link0|R],We = #we{vp=Vtab1}, [LinkObj0|RObj], WeObj = #we{vp=VtabObj}) ->
+    case length(Link0) of
+        X when X < 2 -> make_proportional(R,We,RObj,WeObj);
+        _No ->
+            {Link,LinkObj} =
+                case Link0 of
+                   [{_,A,_},{_,_,A}|_] -> {Link0,LinkObj0};
+                   [{_,_,A},{_,A,_}|_] -> {reverse(Link0),reverse(LinkObj0)}
+                end,
+            %% get the edge loop and edges length from the real object
+            {LinkObjLen,EsObjLen} =
+                lists:foldl(fun({E,Ve,Vs}, {Len,Acc}) ->
+                                ELen = e3d_vec:dist(array:get(Ve,VtabObj),
+                                                    array:get(Vs,VtabObj)),
+                                {Len+ELen,[{E,ELen}|Acc]}
+                            end,{0.0,[]},LinkObj),
+            %% get the edge loop and edges length from the UV island
+            {LinkLen,EsLen0} =
+                lists:foldl(fun({_E,Ve,Vs}=E, {Len,Acc}) ->
+                                {Xd,Yd,_} = e3d_vec:sub(array:get(Ve,Vtab1),
+                                                        array:get(Vs,Vtab1)),
+                                ELen = e3d_vec:len({Xd,Yd,0.0}),
+                                Dir = if (ELen =:= 0.0) -> none;
+                                      true -> e3d_vec:norm({Xd,Yd,0.0})
+                                      end,
+                                {Len+ELen,[{E,Dir}|Acc]}
+                            end,{0.0,[]},Link),
+            EsLen = validate_dir(EsLen0,[]),
+            %% computing original loop information (BB, Length and rotation)
+            [{{_,Ve0,_},_}|_] = EsLen,
+            [{{_,_,Vs0},_}|_] = lists:reverse(EsLen),
+            IsLoop = Ve0=:=Vs0,
+            V0e = array:get(Ve0,Vtab1),
+            V0s = array:get(Vs0,Vtab1),
+            Es = [Ve || {{_,Ve,_},_} <- EsLen],
+            if not IsLoop ->
+                Mid0 = e3d_vec:average(V0e,V0s);
+            true ->
+                Mid0 = e3d_vec:average([array:get(V,Vtab1) || V <- Es])
+            end,
+            Vec0 = e3d_vec:sub(V0e,V0s),
+            D0 = e3d_vec:len(Vec0),
+            %% computing the new vertices location
+            Vtab0 =
+                lists:foldr(fun({{E,Ve,Vs},Dir0}, Acc) ->
+                                EObjLen = proplists:get_value(E,EsObjLen),
+                                if LinkObjLen =/= 0.0 -> Prc = EObjLen/LinkObjLen;
+                                true -> Prc = 1.0
+                                end,
+                                ELen = Prc*LinkLen,
+                                Dir = e3d_vec:mul(Dir0,ELen),
+                                Pos = e3d_vec:add(array:get(Vs,Acc),Dir),
+                                array:set(Ve,Pos,Acc)
+                            end,Vtab1,EsLen),
+            %% computing new loop information (BB, Length and rotation)
+            V1e = array:get(Ve0,Vtab0),
+            V1s = array:get(Vs0,Vtab0),
+            if not IsLoop ->
+                Mid1 = e3d_vec:average(V1e,V1s);
+            true ->
+                Mid1 = e3d_vec:average([array:get(V,Vtab0) || V <- Es])
+            end,
+            Vec1 = e3d_vec:sub(V1e,V1s),
+            D1 = e3d_vec:len(Vec1),
+
+            %% making the new loop arrangement fit in the old BB length and alignment
+            if D1 =/= 0.0 -> Scl = round((D0/D1)*100.0)/100.0;
+            true -> Scl = 1.0
+            end,
+            {_,_,RotSide} = e3d_vec:norm(e3d_vec:cross(Vec1,Vec0)),
+            Rot = round(e3d_vec:degrees(Vec1,Vec0)*10.0)/10.0*RotSide,
+            MToOri = e3d_mat:translate(e3d_vec:neg(Mid1)),
+            if (Rot=/=0.0) or (Scl=/=1.0) ->
+                %% preparing transform matrices
+                MRot = e3d_mat:rotate(Rot,wings_util:make_vector(z)),
+                MScl = e3d_mat:scale({Scl,Scl,1.0}),
+                MToDst = e3d_mat:translate(Mid0),
+                M2 = e3d_mat:mul(MScl,MToOri),
+                M1 = e3d_mat:mul(MRot,M2),
+                M0 = e3d_mat:mul(MToDst,M1);
+            true ->
+                MToDst = e3d_mat:translate(Mid0),
+                M0 = e3d_mat:mul(MToDst,MToOri)
+            end,
+
+            Vtab =
+                lists:foldr(fun(V, Acc) ->
+                                Pos = e3d_mat:mul_point(M0,array:get(V,Acc)),
+                                array:set(V,Pos,Acc)
+                            end,Vtab0,Es),
+            make_proportional(R,We#we{vp=Vtab},RObj,WeObj)
+    end;
+make_proportional([],We,_,_) -> We.
+
+%% ensuring the 0 length segments are going to have a valid direction
+validate_dir([{_,none}], [{_,none}|Acc]) -> lists:reverse(Acc);
+validate_dir([{E,none}], [{_,Dir}|_]=Acc) ->
+    validate_dir([{E,Dir}],Acc);
+validate_dir([E0], Acc) -> lists:reverse([E0|Acc]);
+validate_dir([{E,none}|[{_,Dir}|_]=Es], Acc) when Dir =/= none ->
+    validate_dir(Es, [{E,Dir}|Acc]);
+validate_dir([{_,Dir}=E0,{E,none}], Acc) when Dir =/= none ->
+    validate_dir([{E,Dir}], [E0|Acc]);
+validate_dir([E0|Es], Acc) ->
+    validate_dir(Es, [E0|Acc]).
 
 calc_areas(We,OWe,{TA2D,TA3D,L}) ->
     Fs = wings_we:visible(We),
