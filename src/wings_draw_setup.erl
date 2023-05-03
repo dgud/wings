@@ -823,14 +823,11 @@ add_ts([P1,P2,P3], [{U1,V1},{U2,V2},{U3,V3}], N, Vs, {Ts,F2V}) ->
     S2 = U3-U1,
     T1 = V2-V1,
     T2 = V3-V1,
-    try 
+    try
 	F = 1.0 / (S1*T2 - S2*T1),
 	Tangent = {F*(T2*X1-T1*X2), F*(T2*Y1-T1*Y2), F*(T2*Z1-T1*Z2)},
 	BiTangent = {F*(S1*X2-S2*X1), F*(S1*Y2-S2*Y1), F*(S1*Z2-S2*Z1)},
-	H = case e3d_vec:dot(e3d_vec:cross(N, Tangent), BiTangent) < 0.0 of
-		true  -> 1;
-		false -> -1
-	    end,
+	H = tangent_dir(N,Tangent,BiTangent),
 	{add_tangent(Vs, Tangent, BiTangent, Ts), [{N,H,Vs}|F2V]}
     catch _:badarith ->
 	    {Ts, [{N,0,Vs}|F2V]}
@@ -873,14 +870,16 @@ add_tangents1([V|Vs], Ts, H0, N, Prev, Bin0) ->
 	    {Tan = {X,Y,Z}, H} = get_tangent(Prev, BiT, H0, N),
 	    Bin = <<Bin0/binary, X:?F32,Y:?F32,Z:?F32, H:?F32>>,
 	    add_tangents1(Vs, Ts, H, N, Tan, Bin);
-	{Tan = {X,Y,Z}, _} when H0 /= 0 ->
-	    Bin = <<Bin0/binary, X:?F32,Y:?F32,Z:?F32, H0:?F32>>,
+	{Tan = {X,Y,Z}, BiT} when H0 /= 0 ->
+            Bin = case tangent_dir(N,Tan,BiT) =:= H0 of
+                      true ->
+                          <<Bin0/binary, X:?F32,Y:?F32,Z:?F32, H0:?F32>>;
+                      false ->
+                          <<Bin0/binary, -X:?F32,-Y:?F32,-Z:?F32, H0:?F32>>
+                  end,
 	    add_tangents1(Vs, Ts, H0, N, Tan, Bin);
 	{Tan = {X,Y,Z}, BiT} ->
-	    H = case e3d_vec:dot(e3d_vec:cross(N, Tan), BiT) < 0.0 of
-		    true  -> 1;
-		    false -> -1
-		end,
+	    H = tangent_dir(N,Tan,BiT),
 	    Bin = <<Bin0/binary, X:?F32,Y:?F32,Z:?F32, H:?F32>>,
 	    add_tangents1(Vs, Ts, H, N, Tan, Bin)
     end;
@@ -891,18 +890,26 @@ get_tangent(undefined, {0.0,0.0,0.0}, H0, N) ->
     {cross_axis(N), H};
 get_tangent(undefined, BiT, 0, N) ->
     T = e3d_vec:cross(BiT, N),
-    H = case e3d_vec:dot(e3d_vec:cross(N, T), BiT) < 0.0 of
-	    true  -> 1;
-	    false -> -1
-	end,
+    H = tangent_dir(N,T,BiT),
     {T, H};
 get_tangent(undefined, BiT, H, N) ->
-    {e3d_vec:cross(BiT, N), H};
+    Tan = e3d_vec:cross(BiT, N),
+    Vec = case tangent_dir(N,Tan,BiT) =:= H of
+              true -> Tan;
+              false -> e3d_vec:neg(Tan)
+          end,
+    {Vec, H};
 get_tangent(Prev, _, H, _) ->
     {Prev, H}.
 
+tangent_dir(N,Tan,BiT) ->
+    case e3d_vec:dot(e3d_vec:cross(N, Tan), BiT) < 0.0 of
+        true  -> 1;
+        false -> -1
+    end.
+
 cross_axis(N = {NX,NY,NZ}) ->
-    try 
+    try
 	V2 = case abs(NX) > abs(NY) of
 		 true ->
 		     ILen = 1.0 / math:sqrt(NX*NX+NZ*NZ),
@@ -913,7 +920,7 @@ cross_axis(N = {NX,NY,NZ}) ->
 	     end,
 	e3d_vec:cross(N, V2)
     catch _:badarith ->
-	    {1.0, 0.0,0.0}
+	    {1.0, 0.0, 0.0}
     end.
 
 %%%
