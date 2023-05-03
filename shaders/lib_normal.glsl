@@ -13,7 +13,7 @@ varying vec4 ws_tangent;
 vec3 get_normal() {
     vec3 T = ws_tangent.xyz;
     float backface = (2.0 * float(gl_FrontFacing) - 1.0);
-    if(UseNormalMap == 0 || dot(T,T) < 0.1)
+    if(UseNormalMap == 0 || dot(T,T) < 0.0001)
 	return backface*normalize(ws_normal); // No normal-map or Tangents
     // Calc Bumped normal
     T = normalize(T);
