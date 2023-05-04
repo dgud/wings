@@ -2697,10 +2697,11 @@ intersects_in_path(Point1, Point2, [Point3, Point4 | R], InbetweenPath) ->
     end.
 
 %% If any of the lines have points in common they don't intersect
-line_intersect(_L1A1, L2A1_L1A2_Same, L2A1_L1A2_Same, _L2A2) -> false;
-line_intersect(L2A1_L1A1_Same, _L1A2, L2A1_L1A1_Same, _L2A2) -> false;
-line_intersect(L2A2_L1A1_Same, _L1A2, _L2A1, L2A2_L1A1_Same) -> false;
-line_intersect(_L1A1, L2A2_L1A2_Same, _L1A2, L2A2_L1A2_Same) -> false;
+line_intersect(_, L2A1_L1A2_Same, L2A1_L1A2_Same, _) -> false;
+line_intersect(L2A1_L1A1_Same, _, L2A1_L1A1_Same, _) -> false;
+line_intersect(L2A2_L1A1_Same, _, _, L2A2_L1A1_Same) -> false;
+line_intersect(_, L2A2_L1A2_Same, _, L2A2_L1A2_Same) -> false;
+%% Check if two lines intersect at a point.
 line_intersect(L1A1={L1A1_X,L1A1_Y}, L1A2={L1A2_X,L1A2_Y}, L2A1={L2A1_X,L2A1_Y}, L2A2={L2A2_X,L2A2_Y}) ->
     case (L1A1_Y < L1A2_Y) of
     true ->
