@@ -2489,7 +2489,7 @@ aroundCos(I, RH, Max) ->
 aroundSin(I, RH, Max) ->
     RH * math:sin(((I / Max) * math:pi() * 0.5)).
     
-stepped_curve(Start, End, Acc, F) -> stepped_curve(Start, End, Acc, F, 0).
+stepped_curve(Start, End, Acc, F) -> stepped_curve(Start, End, Acc, F, Start).
 stepped_curve(Start, End, Acc, F, I) when I >= Start andalso I < End ->
     Acc_2 = F(I, Acc),
     stepped_curve(Start, End, Acc_2, F, I+1);
@@ -2532,9 +2532,9 @@ paths_round_rect(X1, Y1, X2, Y2, RW, RH)
     RSW = (X2 - X1) - RW,
     RSH = (Y2 - Y1) - RH,
     %% Add a point to start at that isn't the closing point
-    Path_0 = [{X1 + RW - aroundSin(-0.01, RW, Max),
-               Y1 + RH - aroundCos(-0.01, RH, Max)}],
-    Path_1_1 = stepped_curve(0, Max+1, Path_0, fun(I, Paths) ->
+    Path_0 = [{X1 + RSW + aroundSin(0, RW, Max),
+               Y1 + (RH - aroundCos(0, RH, Max))}],
+    Path_1_1 = stepped_curve(1, Max+1, Path_0, fun(I, Paths) ->
         XA = X1 + RSW + aroundSin(I, RW, Max),
         YA = Y1 + (RH - aroundCos(I, RH, Max)),
         XCA = X1 + RSW + aroundSin(I - 0.5, RW, Max),
