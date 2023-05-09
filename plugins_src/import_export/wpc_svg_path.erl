@@ -376,7 +376,7 @@ try_import_svg(Name, Nsubsteps, AutoScale, SetScale, SetViewBoxScale_1,
             [] ->
                 {error, "No paths found"};
                 
-            Cntrs when length(Cntrs) > 0 -> %% io:format("Cntrs=~p~n~n", [Cntrs]),
+            Cntrs when length(Cntrs) > 0 ->
                 ColTexs_1 = case TransformsInLayerNames of
                     true -> ColTexs;
                     false -> [ CoTx#coltex{ut=[]} || CoTx <- ColTexs]
@@ -2404,6 +2404,9 @@ tok_svgp_num_initial([Chr | Rest])
        Chr =:= $.; Chr =:= $-;
        Chr =:= $e; Chr =:= $E ->
     tok_svgp_num(Rest, [Chr]).
+tok_svgp_num([Chr,$- | Rest], W)
+  when Chr =:= $e; Chr =:= $E ->
+    tok_svgp_num(Rest, [$-,Chr|W]);
 tok_svgp_num([Chr | Rest], W)
   when Chr >= $0, Chr =< $9;
        Chr =:= $.;
@@ -2467,9 +2470,13 @@ svg_path_of_ellipse(CX,CY,RX,RY) ->
 %%
 wr_svg_path([]) -> [];
 wr_svg_path([{X,Y}|R]) ->
+    "M" ++ lists:flatten(io_lib:format("~p,~p", [X,Y])) ++ " " ++ wr_svg_path_2(R);
+wr_svg_path([{X,Y,_,_}|R]) ->
     "M" ++ lists:flatten(io_lib:format("~p,~p", [X,Y])) ++ " " ++ wr_svg_path_2(R).
 wr_svg_path_2([]) ->
-    "z";
+    "Z";
+wr_svg_path_2([{X,Y,{XC1,YC1},{XC2,YC2}}|R]) ->
+    "C" ++ lists:flatten(io_lib:format("~p,~p ~p,~p ~p,~p", [XC1,YC1,XC2,YC2,X,Y])) ++ " " ++ wr_svg_path_2(R);
 wr_svg_path_2([{X,Y}|R]) ->
     "L" ++ lists:flatten(io_lib:format("~p,~p", [X,Y])) ++ " " ++ wr_svg_path_2(R).
     
@@ -2477,13 +2484,13 @@ wr_svg_path_2([{X,Y}|R]) ->
 %% Rounded rectangles and circles
 %% Same functions as found in wpc_wmf_file_paths.erl
 %%
-aroundCos(I, RH) ->
-    RH * math:cos(((I / 10.0) * math:pi() * 0.5)).
-aroundSin(I, RH) ->
-    RH * math:sin(((I / 10.0) * math:pi() * 0.5)).
+aroundCos(I, RH, Max) ->
+    RH * math:cos(((I / Max) * math:pi() * 0.5)).
+aroundSin(I, RH, Max) ->
+    RH * math:sin(((I / Max) * math:pi() * 0.5)).
     
 stepped_curve(Start, End, Acc, F) -> stepped_curve(Start, End, Acc, F, 0).
-stepped_curve(Start, End, Acc, F, I) when I >= Start andalso I =< End ->
+stepped_curve(Start, End, Acc, F, I) when I >= Start andalso I < End ->
     Acc_2 = F(I, Acc),
     stepped_curve(Start, End, Acc_2, F, I+1);
 stepped_curve(_, _, Acc, _, _) -> Acc.
@@ -2497,7 +2504,15 @@ paths_rect(X1, Y1, X2, Y2) when Y1 > Y2 ->
     paths_rect(X1, Y2, X2, Y1);
 paths_rect(X1, Y1, X2, Y2) ->
     [{X1,Y1}, {X2,Y1}, {X2,Y2}, {X1,Y2}].
-    
+
+%% When paths_round_rect is making a shape with a radius that
+%% makes the shape a ellipse (the amount of space between round
+%% corners is very close to zero), remove the last point.
+%%
+paths_round_rect_middle([_|P],X) when X < 0.001 ->
+    P;
+paths_round_rect_middle(P,_) ->
+    P.
 
 paths_round_rect(X1, Y1, X2, Y2, _RW, _RH) when X1 =:= X2; Y1 =:= Y2 ->
     [];
@@ -2509,31 +2524,65 @@ paths_round_rect(X1, Y1, X2, Y2, RW, RH) when RW*2.0 > (X2-X1) ->
     paths_round_rect(X1, Y1, X2, Y2, X2-X1, RH);
 paths_round_rect(X1, Y1, X2, Y2, RW, RH) when RH*2.0 > (Y2-Y1) ->
     paths_round_rect(X1, Y1, X2, Y2, RW, Y2-Y1);
-paths_round_rect(X1, Y1, X2, Y2, RW, RH) ->
+paths_round_rect(X1, Y1, X2, Y2, RW, RH)
+  when X1 < X2, Y1 < Y2 ->
+    Max = 4,
+    %% A small bump outward of control points so it is rounder
+    BumpUp = 1.0 + math:pow(0.3, Max),
     RSW = (X2 - X1) - RW,
     RSH = (Y2 - Y1) - RH,
-    Path_0 = [{X1 + RW,Y1}],
-    Path_1 = stepped_curve(0, 10, Path_0, fun(I, Paths) ->
-        XA = X1 + RSW + aroundSin(I, RW),
-        YA = Y1 + (RH - aroundCos(I, RH)),
-        [{XA, YA}|Paths]
+    %% Add a point to start at that isn't the closing point
+    Path_0 = [{X1 + RW - aroundSin(-0.01, RW, Max),
+               Y1 + RH - aroundCos(-0.01, RH, Max)}],
+    Path_1_1 = stepped_curve(0, Max+1, Path_0, fun(I, Paths) ->
+        XA = X1 + RSW + aroundSin(I, RW, Max),
+        YA = Y1 + (RH - aroundCos(I, RH, Max)),
+        XCA = X1 + RSW + aroundSin(I - 0.5, RW, Max),
+        YCA = Y1 + (RH - aroundCos(I - 0.5, RH * BumpUp, Max)),
+        XDA = X1 + RSW + aroundSin(I - 0.5, RW * BumpUp, Max),
+        YDA = Y1 + (RH - aroundCos(I - 0.5, RH, Max)),
+        C1 = {XCA, YCA},
+        C2 = {XDA, YDA},
+        [{XA, YA, C1, C2}|Paths]
     end),
-    Path_2 = stepped_curve(0, 10, Path_1, fun(I, Paths) ->
-        XA = X1 + RSW + aroundCos(I, RW),
-        YA = Y1 + RSH + aroundSin(I, RH),
-        [{XA, YA}|Paths]
+    Path_1 = paths_round_rect_middle(Path_1_1, RSH - RH),
+    Path_2_1 = stepped_curve(0, Max+1, Path_1, fun(I, Paths) ->
+        XA = X1 + RSW + aroundCos(I, RW, Max),
+        YA = Y1 + RSH + aroundSin(I, RH, Max),
+        XCA = X1 + RSW + aroundCos(I - 0.5, RW * BumpUp, Max),
+        YCA = Y1 + RSH + aroundSin(I - 0.5, RH, Max),
+        XDA = X1 + RSW + aroundCos(I - 0.5, RW, Max),
+        YDA = Y1 + RSH + aroundSin(I - 0.5, RH * BumpUp, Max),
+        C1 = {XCA, YCA},
+        C2 = {XDA, YDA},
+        [{XA, YA, C1, C2}|Paths]
     end),
-    Path_3 = stepped_curve(0, 10, Path_2, fun(I, Paths) ->
-        XA = X1 + RW - aroundSin(I, RW),
-        YA = Y1 + RSH + aroundCos(I, RH),
-        [{XA, YA}|Paths]
+    Path_2 = paths_round_rect_middle(Path_2_1, RSW - RW),
+    Path_3_1 = stepped_curve(0, Max+1, Path_2, fun(I, Paths) ->
+        XA = X1 + RW - aroundSin(I, RW, Max),
+        YA = Y1 + RSH + aroundCos(I, RH, Max),
+        XCA = X1 + RW - aroundSin(I - 0.5, RW, Max),
+        YCA = Y1 + RSH + aroundCos(I - 0.5, RH * BumpUp, Max),
+        XDA = X1 + RW - aroundSin(I - 0.5, RW * BumpUp, Max),
+        YDA = Y1 + RSH + aroundCos(I - 0.5, RH, Max),
+        C1 = {XCA, YCA},
+        C2 = {XDA, YDA},
+        [{XA, YA, C1, C2}|Paths]
     end),
-    Path_4 = stepped_curve(0, 10, Path_3, fun(I, Paths) ->
-        XA = X1 + RW - aroundSin(10 - I, RW),
-        YA = Y1 + RH - aroundCos(10 - I, RH),
-        [{XA, YA}|Paths]
+    Path_3 = paths_round_rect_middle(Path_3_1, RSH - RH),
+    Path_4 = stepped_curve(0, Max+1, Path_3, fun(I, Paths) ->
+        XA = X1 + RW - aroundSin(Max - I, RW, Max),
+        YA = Y1 + RH - aroundCos(Max - I, RH, Max),
+        XCA = X1 + RW - aroundSin(Max - (I - 0.5), RW * BumpUp, Max),
+        YCA = Y1 + RH - aroundCos(Max - (I - 0.5), RH, Max),
+        XDA = X1 + RW - aroundSin(Max - (I - 0.5), RW, Max),
+        YDA = Y1 + RH - aroundCos(Max - (I - 0.5), RH * BumpUp, Max),
+        C1 = {XCA, YCA},
+        C2 = {XDA, YDA},
+        [{XA, YA, C1, C2}|Paths]
     end),
-    Path_4.
+    lists:reverse(Path_4).
+
 
 %%
 %% List of X11 web color names, in case the color is not a hex color.
@@ -3630,27 +3679,61 @@ filter_polyareas_min_3_cedges(Pas_1) ->
 %%% All of the following functions come from wpc_ps
 %%%
 process_islands(Plas) ->
-    Objs =
-        lists:foldr(fun(Pla, Acc) ->
-            %% it was noticed during the tests that some files may contain data that causes
-            %% wpc_tt crashes with a key_exists error. We ignore that path definition and go on
-            try process_islands_1(Pla) of
-                {Vs,Fs,He}=Res when is_list(Vs), is_list(Fs), is_list(He) ->
-                    [Res|Acc]
-            catch
-                error:{key_exists,_} ->
-                    %% While the shape is skipped, mention something in the console for
-                    %% the user so they can find out why a shape is missing.
-                    io:format(?__(1, "SVG Import error on skipped shape~n"), []),
-                    io:format(?__(2, 
-                        "~p: NOTE: A shape has been skipped due to key_exists "
-                        "error in wpc_ai:polyareas_to_faces~n"), [?MODULE]),
-                    Acc;
-                error:Err ->
-                    %% Something else went wrong, send an error.
-                    erlang:error({error, Err})
-            end
-        end, [], Plas),
-    Objs.
+    lists:foldr(fun(Pla, Acc) ->
+        %% it was noticed during the tests that some files may contain data that causes
+        %% wpc_tt crashes with a key_exists error. We ignore that path definition and go on
+        try process_islands_1(Pla) of
+            {Vs,Fs,He}=Res when is_list(Vs), is_list(Fs), is_list(He) ->
+                [Res|Acc]
+        catch
+            error:{key_exists,_} ->
+                %% While the shape is skipped, mention something in the console for
+                %% the user so they can find out why a shape is missing.
+                io:format(?__(1, "SVG Import error on skipped shape~n"), []),
+                io:format(?__(2, 
+                    "~p: NOTE: A shape has been skipped due to key_exists "
+                    "error in wpc_ai:polyareas_to_faces~n"), [?MODULE]),
+                Acc;
+            error:Err:StT ->
+                %% Something else went wrong, send an error.
+                io:format(?__(3, 
+                    "~p: ERROR: an error occurred within wpc_ai:polyareas_to_faces: "
+                    "~p~nstack trace: ~p~n"), [?MODULE, Err, StT]),
+                erlang:error({error, Err})
+        end
+    end, [], Plas).
 process_islands_1(Pla) ->
+    try wpc_ai:polyareas_to_faces([Pla]) of
+        Res -> Res
+    catch
+        error:{key_exists,_} ->
+            %% Likely a key_exists error may have happened because a point is
+            %% too close or even the same coordinate to another adjacent point.
+            %% Try to remove them and try again.
+            io:format(?__(1, 
+                "~p: NOTE: A first key_exists error, trying to fix path "
+                "and trying again.~n"), [?MODULE]),
+            Pla_1 = remove_repeat_cedge(Pla),
+            process_islands_again(Pla_1)
+    end.
+process_islands_again(Pla) ->
     wpc_ai:polyareas_to_faces([Pla]).
+
+
+%% Remove #cedge{} if the vs and ve are very similar, as this can
+%% cause weird meshes to be created from wpc_ai, as well as cause 
+%% also key_exists errors.
+%%
+-define(SAME_POINT(V1,V2), (round(V1*1.0e3) =:= round(V2*1.0e3))).
+remove_repeat_cedge({polyarea,CEdgesC,CEdgesHL}) ->
+    {polyarea,
+        remove_repeat_cedge(CEdgesC, []),
+        [remove_repeat_cedge(CEdges, []) || CEdges <- CEdgesHL]}.
+remove_repeat_cedge([#cedge{vs={X1,Y1}=_,cp1=nil,cp2=nil,ve={X2,Y2}=_}=_|L],OL)
+  when ?SAME_POINT(X1,X2) andalso ?SAME_POINT(Y1,Y2) ->
+    remove_repeat_cedge(L, OL);
+remove_repeat_cedge([Edge|L],OL) ->
+    remove_repeat_cedge(L, [Edge|OL]);
+remove_repeat_cedge([],OL) ->
+    lists:reverse(OL).
+
