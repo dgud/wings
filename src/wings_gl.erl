@@ -65,25 +65,18 @@ check_for_msaa() ->
     not MSAA andalso io:format("Multisampling (MSAA) not available~n").
 
 attributes() ->
-    MSAA = wings_pref:get_value(gl_msaa, true),
-    SB = case os:type() of
-             {unix, Os} when Os =/= darwin ->
-                 %% Sample buffers does not currently work on Wayland
-                 case os:getenv("XDG_SESSION_TYPE") of
-                     "x11" -> [?WX_GL_SAMPLE_BUFFERS,1, ?WX_GL_SAMPLES,4];
-                     "X11" -> [?WX_GL_SAMPLE_BUFFERS,1, ?WX_GL_SAMPLES,4];
-                     _ -> []
-                 end;
-             _ ->
-                 [?WX_GL_SAMPLE_BUFFERS,1, ?WX_GL_SAMPLES,4]
-         end,
+    %% init Sample buffers attributes if multisampling available
+    SB =
+        case wings_pref:get_value(gl_msaa, true) of
+            true -> [?WX_GL_SAMPLE_BUFFERS,1, ?WX_GL_SAMPLES,4, 0];
+            false -> [0]
+        end,
     {attribList,
      [?WX_GL_RGBA,
       ?WX_GL_MIN_RED,8,?WX_GL_MIN_GREEN,8,?WX_GL_MIN_BLUE,8,
       ?WX_GL_DEPTH_SIZE, 24,
       ?WX_GL_DOUBLEBUFFER
-     ] ++
-         if MSAA -> SB ++ [0]; true -> [0] end
+     ] ++ SB
     }.
 
 window(Parent, Context0, Connect, Show) ->
