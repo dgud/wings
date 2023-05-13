@@ -21,17 +21,18 @@
 -include_lib("wings/e3d/e3d_image.hrl").
 -include_lib("wings/intl_tools/wings_intl.hrl").
 
--define(SCALEFAC, 0.01).		% amount to scale PS coords by
+%%%
+%%%
 
 -record(cedge,% polyarea and cedge records must match definitions in wpc_ai.erl
-        {vs,cp1=nil,cp2=nil,ve}).	%all are {x,y} pairs
+        {vs,cp1=nil,cp2=nil,ve}).   %all are {x,y} pairs
 
 -record(path,
-        {ops=[],			%list of pathops
-         close=false}).		%true or false
+        {ops=[],            %list of pathops
+         close=false}).     %true or false
 
 -record(pathop,
-        {opkind,			%pmoveto, plineto, or pcurveto
+        {opkind,            %pmoveto, plineto, or pcurveto
          x1=0.0,
          y1=0.0,
          x2=0.0,
@@ -56,10 +57,12 @@
          curobjs=[]        :: [#path{}],       %current object been processed
          curobj_col=none   :: {float(),float(),float()} | none,
          curobj_clip=[]    :: [[#path{}]],
-         ctm=[],
+         ctm = {1.0,0.0,0.0,1.0,0.0,0.0},
          ctms=[]                        % Stack of CTMs
          }).
 
+%%%
+%%%
 
 init() -> true.
 
@@ -68,30 +71,96 @@ menu({file,import}, Menu) ->
 menu(_, Menu) -> Menu.
 
 command({file,{import,{ps,Ask}}}, _St) when is_atom(Ask) ->
-    DefBisect = wpa:pref_get(wpc_ps, ps_bisections, 0),
-    wpa:ask(Ask, ?__(4,"PS/EPS Import Options"),
-            [{?__(2,"Number of edge bisections"), DefBisect}],
+    DefBisect = wpa:pref_get(?MODULE, ps_bisections, 0),
+    AutoScale = wpa:pref_get(?MODULE, ps_auto_scale, false),
+    %% Force SetScale to be text
+    case wpa:pref_get(?MODULE, ps_set_scale, "100pt") of
+        Number when is_float(Number); is_integer(Number) ->
+            SetScale = lists:flatten(io_lib:format("~p", [Number]));
+        Str when is_list(Str) ->
+            SetScale = Str
+    end,
+    Hook_Auto_Scale = fun(_Key, Value, Store) ->
+        wings_dialog:enable(set_scale, Value =:= false, Store)
+    end,
+    Dialog =
+        [{hframe,[{label,?__(2,"Number of edge bisections")},
+                  {text,DefBisect,[{key,bisections}]}]},
+         {hframe,[{label,?__(7,"Scale fraction") ++ ": 1 / "},
+                  {text,SetScale,[{key,set_scale}]}]},
+         {?__(8,"Automatic center"),true,[{key,auto_center}]},
+         {?__(9,"Scale fit within view"),AutoScale,
+             [{key,auto_scale_fit}, {hook, Hook_Auto_Scale},
+              {info, ?__(10,"Automatically rescale shapes to fit within the camera view.")}]}
+         ],
+    wpa:dialog(Ask, ?__(4,"PS/EPS Import Options"), Dialog,
             fun(Res) -> {file,{import, ps, Res}} end);
-command({file,{import, ps, [Nsub]}}, St) ->
+command({file,{import, ps, Attr}}, St) ->
+    Nsub_0 = proplists:get_value(bisections, Attr, 1),
+    AutoScale = proplists:get_value(auto_scale_fit, Attr, false),
+    SetScale_S = proplists:get_value(set_scale, Attr, "100pt"),
+    AutoCenter = proplists:get_value(auto_center, Attr, true),
+    case Nsub_0 < 0 of
+        true -> Nsub = 0;
+        false -> Nsub = Nsub_0
+    end,
     Props = [{extensions,[{".ps",?__(5,"PostScript File")},
                           {".eps",?__(6,"Encapsulated PostScript File")}]}],
-    wpa:import(Props, fun(F) -> make_ps(F, Nsub) end, St);
+    wpa:import(Props, fun(F) -> make_ps(F, Nsub, AutoScale, SetScale_S, AutoCenter) end, St);
 
 command(_, _) ->
     next.
+    
 
+-record(epq, {
+    s,        %% String to find
+    comment,  %% Comment about the quirks entry
+    id,       %% Id atom
+    coordsys, %% Coordinate direction
+    fixes,    %% List of fixes
+    split     %% Split function
+}).
 
 %% Built-in quirks table for different EPS creators
 %%
 default_quirks() ->
     [
-        {{str,"ADOBE"},       "Adobe",             adobe,        {1.0, -1.0}, [adobe_cmds]},
-        {{str,"LIBREOFFICE"}, "LibreOffice",       libre_office, {1.0, -1.0}, [libreoff_cmds]},
-        {{str,"CAIRO"},       "InkScape",          inkscape,     {1.0, -1.0}, [fix_close,inkscape_cmds]},
-        {{str,"SCRIBUS"},     "Scribus (partial)", scribus,      {1.0,  1.0}, [scribus_cmds]}
+        #epq{ s={str,"ADOBE"},        comment="Adobe",
+                                      id=adobe,
+                                      coordsys={1.0, 1.0},
+                                      fixes=[adobe_cmds],
+                                      split=fun split_at_page1/1},
+                                      
+        #epq{ s={str,"LIBREOFFICE"},  comment="LibreOffice",
+                                      id=libre_office,
+                                      coordsys={1.0, 1.0},
+                                      fixes=[libreoff_cmds],
+                                      split=fun split_at_page1/1},
+                                      
+        #epq{ s={str,"CAIRO"},        comment="InkScape",
+                                      id=inkscape,
+                                      coordsys={1.0, 1.0},
+                                      fixes=[fix_close,inkscape_cmds],
+                                      split=fun split_at_page1/1},
+                                      
+        #epq{ s={str,"SCRIBUS"},      comment="Scribus (partial)",
+                                      id=scribus,
+                                      coordsys={1.0, 1.0},
+                                      fixes=[scribus_cmds],
+                                      split=fun split_at_page1/1},
         
         %% Cairo is used by both inkscape and ipe, the eps output looks the same
+
+        %% An .eps file with "generic" in its creator ID will be assumed to have simple commands
+        #epq{ s={str,"GENERIC"},      comment="Generic",
+                                      id=generic,
+                                      coordsys={1.0, 1.0},
+                                      fixes=[],
+                                      split=fun no_split_in_eps/1}
     ].
+
+%%%
+%%%
 
 %% Quirks details for the given EPS file being imported.
 -record(quirksdetails, {
@@ -103,10 +172,18 @@ default_quirks() ->
 -define(W3DEMBEDIMG, "w3dembedimg*").
 
 
-make_ps(Filename, Nsubsteps) ->
-    try try_import_ps(Filename, Nsubsteps) of
+make_ps(Filename, Nsubsteps, AutoScale, SetScale_S, AutoCenter) ->
+    case parse_float_number_w_unit(SetScale_S, 0.0) of
+        {ScaleVal, ScaleUnit} when ScaleVal > 0.001 ->
+            wpa:pref_set(?MODULE, ps_set_scale, SetScale_S),
+            SetScale = {ScaleVal, unit_atom(ScaleUnit)};
+        _Unk ->
+            SetScale = {100.0, pt}
+    end,
+    try try_import_ps(Filename, Nsubsteps, AutoScale, SetScale, AutoCenter) of
         {ok, E3dFile} ->
-            wpa:pref_set(wpc_ps, ps_bisections, Nsubsteps),
+            wpa:pref_set(?MODULE, ps_bisections, Nsubsteps),
+            wpa:pref_set(?MODULE, ps_auto_scale, AutoScale),
             {ok, E3dFile};
         {error,Reason} ->
             {error, ?__(1,"PS import failed")++": " ++ Reason}
@@ -116,30 +193,36 @@ make_ps(Filename, Nsubsteps) ->
             {error, ?__(2,"PS import internal error")}
     end.
 
-try_import_ps(Filename, Nsubsteps) ->
+try_import_ps(Filename, Nsubsteps, AutoScale, SetScale, AutoCenter) ->
+
     QuirksTab = default_quirks(),
-    case file:read_file(Filename) of
-        {ok,<<"%!PS-Adobe",Rest0/binary>>} ->
+    case read_ps_content(Filename) of
+        {ok,<<"%!PS-Adobe",Rest/binary>>} ->
             ShortFilename = filename:rootname(filename:basename(Filename)),
             
-            %% Split the postscript from the image data early on so tokenize_bin_ps
-            %% doesn't have to tokenize through the encoded images.
-            {ImgList, Rest} = get_emb_images(Rest0),
             case tokenize_bin_ps(Rest, QuirksTab) of
-                {{error,no_token}, Creator, _} ->
+                {{error,no_token}, Creator} ->
                     {error, Creator ++ "\n"++?__(2,"File doesn't have a valid token structure")};
-                {{error,unsupported}, Creator, _} ->
+                {{error,unsupported}, Creator} ->
                     {error, Creator ++ "\n"++?__(3,"File creator unsupported")};
-                {Objs0, Creator, {QuirksDetails, ColTex}} ->
+                {{ok, Objs0, ImgList, {QuirksDetails, ColTex0}}, Creator} ->
                     Objs = break_grouped_moveto(Objs0),
-                    Closedpaths = [[P || P <- Obj, P#path.close == true, length(P#path.ops) > 2] || Obj <- Objs, Obj=/=[]],
+                    {Closedpaths, ColTex} = lists:unzip(
+                        [{[P || P <- Obj, P#path.close == true, length(P#path.ops) > 2], CoTx}
+                            || {Obj,CoTx} <- lists:zip(Objs,ColTex0), Obj=/=[]]),
+                    
                     case Closedpaths of
                         [] -> {error, Creator ++ "\n"++?__(4,"File mismatch or doesn't have valid paths")};
                         _ ->
-                            Scale = ?SCALEFAC, %% We need to rescale both the UV and contours.
-                            Colors = [fill_color(C) || #coltex{fcol=C}=_ <- ColTex],
-                            TexList = [tex_atom(TexInfo, ShortFilename, ImgList, Scale)
-                                         || #coltex{tex=TexInfo} <- ColTex],
+                            case AutoScale of
+                                true ->
+                                    [CamDist] = wpa:camera_info([distance_to_aim]),
+                                    Scale = calculate_rescale_amount(CamDist, CamDist, Closedpaths);
+                                _ ->
+                                    Rescale_Denom = conv_unit(SetScale, pt),
+                                    Scale = 1.0 / Rescale_Denom
+                            end,
+                            %Scale = ?SCALEFAC, %% We need to rescale both the UV and contours.
                             Closedpaths0 = do_fixes(QuirksDetails, Closedpaths),
                             Cntrs0 = getcontours(QuirksDetails, Scale, Closedpaths0),
                             Cntrs = reverse_def(Cntrs0),
@@ -153,12 +236,21 @@ try_import_ps(Filename, Nsubsteps) ->
                             MatList = materials_for_imglist(ShortFilename, ImgList),
                             Pas0 = [ wpc_ai:findpolyareas(Cntr) || Cntr <- Cntrs],
                             Pas1 = [ wpc_ai:subdivide_pas(Pa,Nsubsteps) || Pa <- Pas0],
+                            ColTex1 = repeat_coltex_if_needed(ColTex, Pas1),
                             Pas2 = lists:append(Pas1),
                             List = process_islands(Pas2),
+                            Colors = [fill_color(C) || #coltex{fcol=C}=_ <- ColTex1],
+                            TexList = [tex_atom(TexInfo, ShortFilename, ImgList, Scale)
+                                         || #coltex{tex=TexInfo} <- ColTex1],
                             {Vs0,Efs,Tx,HEs} = into_mesh_parts(List, TexList),
-                            Center = e3d_vec:average(e3d_vec:bounding_box(Vs0)),
-                            Vec = e3d_vec:sub(e3d_vec:zero(),Center),
-                            Vs = lists:reverse(center_object(Vec,Vs0)),
+                            case AutoCenter of
+                                true ->
+                                    Center = e3d_vec:average(e3d_vec:bounding_box(Vs0)),
+                                    Vec = e3d_vec:sub(e3d_vec:zero(),Center),
+                                    Vs = lists:reverse(center_object(Vec,Vs0));
+                                _ ->
+                                    Vs = Vs0
+                            end,
                             Mesh = #e3d_mesh{type=polygon,vs=Vs,fs=Efs,tx=Tx,vc=Colors,he=HEs},
                             Obj = #e3d_object{name=ShortFilename,obj=Mesh,mat=MatList},
                             {ok, #e3d_file{objs=[Obj]}}
@@ -170,25 +262,123 @@ try_import_ps(Filename, Nsubsteps) ->
             {error,file:format_error(Reason)}
     end.
 
+
+read_ps_content(Filename) ->
+    case file:read_file(Filename) of
+        %% Binary wrapped
+        {ok, <<16#C5,16#D0,16#D3,16#C6,_/binary>>=Cont} ->
+            find_sig(bin_wrapper(Cont));
+
+        %% Postscript text
+        {ok, Cont} ->
+            find_sig(Cont);
+        
+        {error, Err} ->
+            {error, Err}
+    end.
+
+
+%% The signature should be near the beginning, 
+%% allowing for some new lines
+find_sig(<<C,R/binary>>)
+  when C =:= 10; C =:= 13; C =:= 32 ->
+    find_sig(R);
+find_sig(<<"%!PS",_/binary>>=Cont) ->
+    %% Signature found, return with the contents
+    {ok, Cont};
+find_sig(_) ->
+    {error, no_signature}.
+
+
+%% Bundled encapsulated postscript and preview image wrapper
+-define(UINTLE, little-unsigned-integer).
+bin_wrapper(<<16#C5,16#D0,16#D3,16#C6,R1/binary>>=Bin) ->
+    <<
+      OffsetStart:32/?UINTLE, % Start offset of postscript
+      OffsetEnd:32/?UINTLE,   % End offset of postscript
+      _Reserved1:32/?UINTLE,  % Usually all zeros
+      _Reserved2:32/?UINTLE,  % Usually all zeros
+      _PrvOffset:32/?UINTLE,  % Start offset of preview image
+      _PrvLength:32/?UINTLE,  % End offset of preview image
+      16#FF,16#FF,            % End marker
+      _/binary>> = R1,
+    binary:part(Bin, {OffsetStart, OffsetEnd-8}).
+
+
 %%% put the object definition in reverse order to build taces with valid normals
 reverse_def(Contours) ->
     [[lists:reverse(Cntr) || Cntr <- Cntrs] || Cntrs <- Contours, Cntrs=/=[[]]].
 
 process_islands(Plas) ->
-    Objs =
-        lists:foldr(fun(Pla, Acc) ->
-            %% it was noticed during the tests that some files may contain data that causes
-            %% wpc_tt crashes with a key_exists error. We ignore that path definition and go on
-            try process_islands_1(Pla) of
-                {Vs,Fs,He}=Res when is_list(Vs), is_list(Fs), is_list(He) ->
-                    [Res|Acc]
-            catch error:{key_exists,_} ->
-                Acc
-            end
-        end, [], Plas),
-    Objs. % fix_slands_vertices(Objs).
+    lists:foldr(fun(Pla, Acc) ->
+        %% it was noticed during the tests that some files may contain data that causes
+        %% wpc_tt crashes with a key_exists error. We ignore that path definition and go on
+        try process_islands_1(Pla) of
+            {Vs,Fs,He}=Res when is_list(Vs), is_list(Fs), is_list(He) ->
+                [Res|Acc]
+        catch
+            error:{key_exists,_} ->
+                %% While the shape is skipped, mention something in the console for
+                %% the user so they can find out why a shape is missing.
+                io:format(?__(1, "PS/EPS Import error on skipped shape~n"), []),
+                io:format(?__(2,
+                    "~p: NOTE: A shape has been skipped due to key_exists error "
+                    "in wpc_ai:polyareas_to_faces~n"), [?MODULE]),
+                Acc;
+            error:Err:StT ->
+                %% Something else went wrong, send an error.
+                io:format(?__(3, 
+                    "~p: ERROR: an error occurred within wpc_ai:polyareas_to_faces: "
+                    "~p~nstack trace: ~p~n"), [?MODULE, Err, StT]),
+                erlang:error({error, Err})
+        end
+    end, [], Plas).
 process_islands_1(Pla) ->
+    try wpc_ai:polyareas_to_faces([Pla]) of
+        Res -> Res
+    catch
+        error:{key_exists,_} ->
+            %% Likely a key_exists error may have happened because a point is
+            %% too close or even the same coordinate to another adjacent point.
+            %% Try to remove them and try again.
+            io:format(?__(1, 
+                "~p: NOTE: A first key_exists error, trying to fix path "
+                "and trying again.~n"), [?MODULE]),
+            Pla_1 = remove_repeat_cedge(Pla),
+            process_islands_again(Pla_1)
+    end.
+process_islands_again(Pla) ->
     wpc_ai:polyareas_to_faces([Pla]).
+
+
+%% Remove #cedge{} if the vs and ve are very similar, as this can
+%% cause weird meshes to be created from wpc_ai, as well as cause 
+%% also key_exists errors.
+%%
+-define(SAME_POINT(V1,V2), (round(V1*1.0e3) =:= round(V2*1.0e3))).
+remove_repeat_cedge({polyarea,CEdgesC,CEdgesHL}) ->
+    {polyarea,
+        remove_repeat_cedge(CEdgesC, []),
+        [remove_repeat_cedge(CEdges, []) || CEdges <- CEdgesHL]}.
+remove_repeat_cedge([#cedge{vs={X1,Y1}=_,cp1=nil,cp2=nil,ve={X2,Y2}=_}=_|L],OL)
+  when ?SAME_POINT(X1,X2) andalso ?SAME_POINT(Y1,Y2) ->
+    remove_repeat_cedge(L, OL);
+remove_repeat_cedge([Edge|L],OL) ->
+    remove_repeat_cedge(L, [Edge|OL]);
+remove_repeat_cedge([],OL) ->
+    lists:reverse(OL).
+
+%%%
+%%%
+
+repeat_coltex_if_needed(MatList, Pas) ->
+    repeat_coltex_if_needed(MatList, Pas, []).
+repeat_coltex_if_needed([], [], O) ->
+    lists:append(lists:reverse(O));
+repeat_coltex_if_needed([M|MatList], [P|Pas], O) ->
+    M_1 = [M || _I <- lists:seq(1, length(P))],
+    repeat_coltex_if_needed(MatList, Pas, [M_1|O]).
+
 
 %%% fixes the vertex number relative to the entire object to be created.
 
@@ -312,47 +502,53 @@ center_object(Vec,Vs) ->
     end,[],Vs).
 
 tokenize_bin_ps(Bin, QuirksTab) ->
-    CommandMap0 = parse_prolog_ps(Bin),
-    {Creator, Chars} = after_end_setup_ps(Bin, "Undefined"),
-    case get_creator(Creator, QuirksTab) of
-        {ok, ID, QuirksDetails} ->
+    {Bin1, Creator, SplitFun} = find_creator_ps(Bin, "Undefined", QuirksTab),
+    
+    %% Split the postscript from the image data early on so tokenize_bin_ps
+    %% doesn't have to tokenize through the encoded images.
+    {ImgList, Bin2} = get_emb_images(Bin1),
+
+    {BeforePageSetup, Chars} = after_end_setup_ps(Bin2, SplitFun),
+    
+    CommandMap0 = parse_prolog_ps(BeforePageSetup),
+    case get_eps_fixes(Creator, QuirksTab) of
+        {ok, _CreatorID, QuirksDetails} ->
             CommandMap = add_commands(CommandMap0, QuirksDetails),
             Toks = tokenize(Chars, []), % seems to be the same as what is needed for .ps
+            
             case Toks of
                 [] ->
-                    Objs = {error,no_token},
-                    ColTex = [];
+                    Return = {error,no_token};
                 _ ->
-                    put({?MODULE,eps_creator}, ID),
                     case parse_tokens_ps(Toks, CommandMap) of
                         {[], _} ->
-                            Objs = {error,no_token},
-                            ColTex = [];
+                            Return = {error,no_token};
                         {Objs0, ColTex0} ->
-                            set_var(eps_scale,{1.0,1.0}),
-                            set_var(eps_translate,{0.0,0.0}),
                             %% remove duplicated items since some files may
                             %% contain the fill and strock data for the same path definition
-                            {Objs, ColTex} = merge_duplicates(Objs0, ColTex0)
+                            {Objs, ColTex} = merge_duplicates(Objs0, ColTex0),
+                            Return = {ok, Objs, ImgList, {QuirksDetails, ColTex}}
                     end
             end;
         false ->
-            QuirksDetails = none,
-            Objs = {error,unsupported},
-            ColTex = []
+            Return = {error,unsupported}
     end,
-    {Objs, Creator, {QuirksDetails, ColTex}}.
+    {Return, Creator}.
 
 add_commands(CommandMap, #quirksdetails{fixes=Fixes}=_QuirksDetails) ->
     add_commands_1(CommandMap, Fixes).
 add_commands_1(CommandMap0, [inkscape_cmds|Fixes]) ->
     CommandMap = add_commands_if_absent(CommandMap0#{
         %% 're' means rectangle for Inkscape file. we translate it to regular operations and close the path
-        "re" => {f4, fun({X1,Y1,W1,H1},Pst) ->
+        "re" => {f4, fun({IX,IY,IW,IH},#pstate{ctm=CTM}=Pst) ->
+            {X1,Y1} = ctm_appl(CTM, {IX,IY}),
+            {X2,Y2} = ctm_appl(CTM, {IX,IY+IH}),
+            {X3,Y3} = ctm_appl(CTM, {IX+IW,IY+IH}),
+            {X4,Y4} = ctm_appl(CTM, {IX+IW,IY}),
             Pst0 = finishpop(#pathop{opkind=pmoveto,x1=X1,y1=Y1},Pst),
-            Pst1 = finishpop(#pathop{opkind=plineto,x1=X1,y1=Y1+H1}, Pst0),
-            Pst2 = finishpop(#pathop{opkind=plineto,x1=X1+W1,y1=Y1+H1}, Pst1),
-            Pst3 = finishpop(#pathop{opkind=plineto,x1=X1+W1,y1=Y1}, Pst2),
+            Pst1 = finishpop(#pathop{opkind=plineto,x1=X2,y1=Y2}, Pst0),
+            Pst2 = finishpop(#pathop{opkind=plineto,x1=X3,y1=Y3}, Pst1),
+            Pst3 = finishpop(#pathop{opkind=plineto,x1=X4,y1=Y4}, Pst2),
             finishrop(true,Pst3)
         end},
         "cm" => {f6, fun({M1,M2,M3,M4,M5,M6}, Pst) ->
@@ -376,8 +572,11 @@ add_commands_1(CommandMap0, [inkscape_cmds|Fixes]) ->
     add_commands_1(CommandMap, Fixes);
 add_commands_1(CommandMap0, [libreoff_cmds|Fixes]) ->
     CommandMap = add_commands_if_absent(CommandMap0#{
-        "ct" => {f6, fun({X1,Y1,X2,Y2,X3,Y3},Pst) ->
-            finishpop(#pathop{opkind=pcurveto,x1=X1,y1=-Y1,x2=X2,y2=-Y2,x3=X3,y3=-Y3},Pst)
+        "ct" => {f6, fun({IX1,IY1,IX2,IY2,IX3,IY3},#pstate{ctm=CTM}=Pst) ->
+            {X1,Y1} = ctm_appl(CTM, {IX1,-IY1}),
+            {X2,Y2} = ctm_appl(CTM, {IX2,-IY2}),
+            {X3,Y3} = ctm_appl(CTM, {IX3,-IY3}),
+            finishpop(#pathop{opkind=pcurveto,x1=X1,y1=Y1,x2=X2,y2=Y2,x3=X3,y3=Y3},Pst)
         end},
         "pc" => "closepath"
     }, [
@@ -447,8 +646,7 @@ add_commands_if_absent(CommandMap0, List) ->
 
 
 %% Parse the prolog part of the file
-parse_prolog_ps(Bin) ->
-    [Bin1 | _] = string:split(Bin, <<"%%Page: ">>),
+parse_prolog_ps(Bin1) ->
     Chars = binary_to_list(Bin1),
     Toks = tokenize(Chars, []),
     CommandMap = parse_pl(Toks, unassigned, maps:new()),
@@ -472,48 +670,77 @@ parse_pl([_|T], BDef, CommandMap) ->
     parse_pl(T, BDef, CommandMap).
 
 
-%% Get the creator from the quirks table
+
+%% Get the split function from the quirks table
 %%
-get_creator(Creator0, QuirksTab) ->
+get_split_fun(Creator0, QuirksTab) ->
+    get_split_fun_1(string:to_upper(Creator0), QuirksTab).
+get_split_fun_1(Creator, [#epq{s={str, StrComp},split=SplitFun}|QuirksTab]) ->
+    Idx = string:str(Creator, StrComp),
+    if Idx > 0 ->
+            {ok, SplitFun};
+        true ->
+            get_split_fun_1(Creator, QuirksTab)
+    end;
+get_split_fun_1(_Creator, []) ->
+    {ok, fun no_split_in_eps/1}.
+
+
+%% Get the creator and quirk fixes from the quirks table
+%%
+get_eps_fixes(Creator0, QuirksTab) ->
     Creator = string:to_upper(Creator0),
     io:format("~w: EPS Creator: ~p\n",[?MODULE, Creator]),
-    get_creator_1(Creator, QuirksTab).
-get_creator_1(Creator, [{{str, StrComp},_Comment,ID,CDir,Fixes}|QuirksTab]) ->
+    get_eps_fixes_1(Creator, QuirksTab).
+get_eps_fixes_1(Creator, [#epq{s={str, StrComp},id=ID,coordsys=CDir,fixes=Fixes}|QuirksTab]) ->
     Idx = string:str(Creator, StrComp),
     if Idx > 0 ->
             {ok, ID, #quirksdetails{direction=CDir,fixes=Fixes}};
         true ->
-            get_creator_1(Creator, QuirksTab)
+            get_eps_fixes_1(Creator, QuirksTab)
     end;
-get_creator_1(_Creator, []) ->
+get_eps_fixes_1(_Creator, []) ->
     false.
 
 
-
-%% used to ensure the value is stored once - no overwrite if any other
-%% scale and translate tags are found
-set_var(Var, Value) when is_atom(Var) ->
-    case get(Var) of
-        undefined -> put({?MODULE,Var}, Value);
-        _ -> ignore
-    end.
-
-%% skip until after %%Page: 1 1 line, as we currently use nothing before that,
-%% then convert rest of binary to list of characters
-after_end_setup_ps(<<"%%Page: 1 1",Rest1/binary>>, Creator) ->
-    Rest0 = re:replace(Rest1, " \\.", " 0\\.", [global,{return,list}]),
-    Rest = re:replace(Rest0, "\n\\.", "\n0\\.", [global,{return,list}]),
-    {Creator, Rest};
-after_end_setup_ps(<<"%%Creator:",Rest/binary>>, _) ->
+%% Split content on the <<"%%Page: 1 1">> line,
+%% then convert commands part of binary to list of characters
+find_creator_ps(<<"%%Creator:",Rest/binary>>, _, QuirksTab) ->
     <<Line1:255/binary,_/binary>> = Rest,
     Line0 = binary_to_list(Line1),
     Idx = string:str(Line0, "%"),
     Line = string:sub_string(Line0, 1, Idx-1),
     Creator = string:strip(string:strip(string:strip(Line, right, $\n), right, $\r), both),
-    after_end_setup_ps(Rest, string:to_upper(Creator));
-after_end_setup_ps(<<_,Rest/binary>>, Creator) ->
-    after_end_setup_ps(Rest, Creator);
-after_end_setup_ps(_, Creator) -> {Creator, []}.
+    case get_split_fun(Creator, QuirksTab) of
+        {ok, SplitFun} ->
+            {Rest, string:to_upper(Creator), SplitFun}
+    end;
+find_creator_ps(<<_,Rest/binary>>, Creator, QuirksTab) ->
+    find_creator_ps(Rest, Creator, QuirksTab);
+find_creator_ps(_, Creator, _QuirksTab) -> {Creator, []}.
+
+after_end_setup_ps(Bin, SplitFun) ->
+    %% Split the content along "Page: 1 1" or something else depending
+    %% on the function used.
+    {BeforePageSetup, Rest1} = SplitFun(Bin),
+    Rest0 = re:replace(Rest1, " \\.", " 0\\.", [global,{return,list}]),
+    Rest = re:replace(Rest0, "\n\\.", "\n0\\.", [global,{return,list}]),
+    Commands = Rest,
+    {BeforePageSetup, Commands}.
+
+
+%% Split used by creators that use a standard Page comment
+split_at_page1(Cont) ->
+    {Idx,_} = binary:match(Cont, <<"%%Page: 1 1">>),
+    { binary:part(Cont, {0, Idx}),
+      binary:part(Cont, {Idx, byte_size(Cont) - Idx}) }.
+
+%% No split, used by generic EPS
+no_split_in_eps(Cont) ->
+    {Cont, Cont}.
+
+
+
 
 %% tokenize first list (characters from file) into list of tokens
 %% (accumulated reversed in second list, reversed at end).
@@ -669,22 +896,33 @@ ps_dopathop0(CP,CM,Pst) ->
 
 ps_dopathop1(MT,{Val}, _, Pst) when MT=:="setgray" ->
     Pst#pstate{curobj_col={Val,Val,Val}};
+ps_dopathop1(MT,{Angle}, _, Pst) when MT=:="rotate" ->
+    {M1,M2,M3,M4,M5,M6} = ctm_rotation(Angle),
+    finishpop(#pathop{opkind=concat,x1=M1,y1=M2,x2=M3,y2=M4,x3=M5,y3=M6},Pst);
 ps_dopathop1(MT,Val, CM, Pst) ->
     call_next(MT,CM,Val,Pst,f1, fun (NextCall, Val1) ->
         ps_dopathop1(NextCall,Val1,CM,Pst)
     end).
 
-ps_dopathop2(MT,{X1,Y1}, _, Pst) when MT=:="moveto" ->
+ps_dopathop2(MT,{_X,_Y}=Point, _, #pstate{ctm=CTM}=Pst)
+  when MT=:="moveto" ->
+    {X1,Y1} = ctm_appl(CTM, Point),
     finishpop(#pathop{opkind=pmoveto,x1=X1,y1=Y1},Pst);
-ps_dopathop2(LT,{X1,Y1}, _, Pst) when LT=:="lineto" ->
+ps_dopathop2(LT,{_X,_Y}=Point, _, #pstate{ctm=CTM}=Pst)
+  when LT=:="lineto" ->
+    {X1,Y1} = ctm_appl(CTM, Point),
     finishpop(#pathop{opkind=plineto,x1=X1,y1=Y1},Pst);
-ps_dopathop2(MT,{X1,Y1}, _, Pst) when MT=:="scale" ->
-    finishpop(#pathop{opkind=scale,x1=X1,y1=Y1},Pst);
-ps_dopathop2(MT,{X1,Y1}, _, Pst) when MT=:="translate" ->
-    finishpop(#pathop{opkind=translate,x1=X1,y1=Y1},Pst);
-ps_dopathop2(MT,{_,Idx0}, _, #pstate{curobjs=[],curobj_clip=Clip0,ctm=[CTM0|_]}=Pst)
+ps_dopathop2(MT,{X1,Y1}, _, Pst)
+  when MT=:="scale" ->
+    {M1,M2,M3,M4,M5,M6} = ctm_scale(X1, Y1),
+    finishpop(#pathop{opkind=concat,x1=M1,y1=M2,x2=M3,y2=M4,x3=M5,y3=M6},Pst);
+ps_dopathop2(MT,{X1,Y1}, _, Pst)
+  when MT=:="translate" ->
+    {M1,M2,M3,M4,M5,M6} = ctm_translate(X1, Y1),
+    finishpop(#pathop{opkind=concat,x1=M1,y1=M2,x2=M3,y2=M4,x3=M5,y3=M6},Pst);
+ps_dopathop2(MT,{_,Idx0}, _, #pstate{curobjs=[],curobj_clip=Clip0,ctm=CTM0}=Pst)
   when MT=:=?W3DEMBEDIMG ->
-    #pathop{x1=M1,y1=M2,x2=M3,y2=M4,x3=M5,y3=M6}=CTM0,
+    {M1,M2,M3,M4,M5,M6}=CTM0,
     TexIdx = round(Idx0),
     case lists:partition(fun is_path_rectangle/1, Clip0) of
         {[Clip|_], []} -> Clip;
@@ -692,10 +930,6 @@ ps_dopathop2(MT,{_,Idx0}, _, #pstate{curobjs=[],curobj_clip=Clip0,ctm=[CTM0|_]}=
     end,
     TexInfo = {{M1,M2,M3,M4,M5,M6}, TexIdx},
     finishrop(obj,Pst#pstate{curpath=#path{},curobjs=Clip,curobj_clip=[]},fill,TexInfo);
-ps_dopathop2(MT,{_,_Idx0}, _, #pstate{curobjs=_,curobj_clip=_Clip0,ctm=_CTMs}=Pst)
-  when MT=:=?W3DEMBEDIMG ->
-    %% This path clip isn't using a matrix, it might be using scaling and translation
-    Pst#pstate{curpath=#path{},curobj_clip=[]};
 ps_dopathop2(MT,Val, CM, Pst) ->
     call_next(MT,CM,Val,Pst,f2, fun (NextCall, Val1) ->
         ps_dopathop2(NextCall,Val1,CM,Pst)
@@ -720,7 +954,10 @@ ps_dopathop4(RT,Val,CM,Pst) ->
         ps_dopathop4(NextCall,Val1,CM,Pst)
     end).
 
-ps_dopathop6(CT,{X1,Y1,X2,Y2,X3,Y3},_,Pst) when CT=:="curveto" ->
+ps_dopathop6(CT,{IX1,IY1,IX2,IY2,IX3,IY3},_,#pstate{ctm=CTM}=Pst) when CT=:="curveto" ->
+    {X1,Y1} = ctm_appl(CTM, {IX1,IY1}),
+    {X2,Y2} = ctm_appl(CTM, {IX2,IY2}),
+    {X3,Y3} = ctm_appl(CTM, {IX3,IY3}),
     finishpop(#pathop{opkind=pcurveto,x1=X1,y1=Y1,x2=X2,y2=Y2,x3=X3,y3=Y3},Pst);
 ps_dopathop6(CT,Val,CM,Pst) ->
     call_next(CT,CM,Val,Pst,f6, fun(NextCall, Val1) ->
@@ -734,6 +971,30 @@ ps_dopathopmtx(CT,Val,CM,Pst) ->
         ps_dopathopmtx(NextCall,Val1,CM,Pst)
     end).
 
+ctm_translate(X, Y) ->
+    {1.0, 0.0, 0.0, 1.0, X, Y}.
+ctm_scale(X, Y) ->
+    {X, 0.0, 0.0, Y, 0.0, 0.0}.
+ctm_rotation(Ang) ->
+    {math:cos(Ang), -math:sin(Ang), math:sin(Ang), math:cos(Ang), 0.0, 0.0}.
+
+ctm_mat() ->
+    {1.0,0.0,0.0,1.0,0.0,0.0}.
+ctm_concat(L) ->
+    lists:foldl(fun (M1, A) -> ctm_mul(M1, A) end, ctm_mat(), L).
+ctm_mul({A11,A21,A12,A22,A13,A23}=_MA,{B11,B21,B12,B22,B13,B23}=_MB) ->
+    B31=B32=0.0, % _A31=_A32=
+    B33=1.0, % _A33=
+    {C11,C12,C31,C21,C22,C32} = %,_C13,_C23,_C33} =
+    {A11*B11 + A12*B21 + A13*B31 , A11*B12 + A12*B22 + A13*B32 , A11*B13 + A12*B23 + A13*B33 ,
+     A21*B11 + A22*B21 + A23*B31 , A21*B12 + A22*B22 + A23*B32 , A21*B13 + A22*B23 + A23*B33 },
+    {C11,C21,C12,C22,C31,C32}.
+
+ctm_appl({A11,A21,A12,A22,A13,A23}, {X, Y}) ->
+    { A11*X + A12*Y + A13 ,
+      A21*X + A22*Y + A23 }.
+
+
 %% finish job of dopathop[2,6] by putting arg pathop onto curpath's ops list
 %% and returning Pst with modified curpath
 finishpop(#pathop{opkind=pmoveto}=Pop, #pstate{curpath=#path{ops=[]}}=Pst) ->
@@ -741,14 +1002,8 @@ finishpop(#pathop{opkind=pmoveto}=Pop, #pstate{curpath=#path{ops=[]}}=Pst) ->
 finishpop(#pathop{opkind=pmoveto}=Pop, #pstate{curpath=#path{ops=[#pathop{opkind=pmoveto}]}=P}=Pst) ->
     %% note: only one pmoveto is accept by path, so ignore a second one found in Inkscape's files
     Pst#pstate{curpath=P#path{ops=[Pop]}};
-finishpop(#pathop{opkind=scale,x1=XS,y1=YS}, Pst) ->
-    set_var(eps_scale,{XS,YS}),
-    Pst;
-finishpop(#pathop{opkind=translate,x1=XT,y1=YT}, Pst) ->
-    set_var(eps_translate,{XT,YT}),
-    Pst;
-finishpop(#pathop{opkind=concat}=Pop, #pstate{ctm=CTM0}=Pst) ->
-    Pst#pstate{ctm=[Pop|CTM0]};
+finishpop(#pathop{opkind=concat,x1=M1,y1=M2,x2=M3,y2=M4,x3=M5,y3=M6}, #pstate{ctm=CTM0}=Pst) ->
+    Pst#pstate{ctm=ctm_concat([CTM0,{M1,M2,M3,M4,M5,M6}])};
 finishpop(_, #pstate{curpath=#path{ops=[]}}=Pst) ->
     Pst;    % note: only pmoveto's can start path, so ignore others
 finishpop(Pop, #pstate{curpath=#path{ops=Ops}=P}=Pst) ->
@@ -836,9 +1091,8 @@ fix_inkscape(#path{ops=[#pathop{opkind=pmoveto,x1=X,y1=Y}|Ops0]=Ops}=Path) ->
 
 
 getcontours(#quirksdetails{direction={XDir,YDir}}, Scale, Ps) ->
-    {XS,YS} = get({?MODULE,eps_scale}),
-    S = {XS*Scale*XDir,YS*Scale*YDir},
-    T = get({?MODULE,eps_translate}),
+    S = {Scale*XDir,Scale*YDir},
+    T = {0.0,0.0},
     Ps0 = [lists:map(fun getcedges/1, P) || P <- Ps],
     lists:map(fun(CEs) ->
                 lists:foldl(fun(CE, Acc) ->
@@ -899,6 +1153,159 @@ merge_duplicates_coltex(#coltex{fcol=FCol1,scol=SCol1,tex=Tex1}=C1,#coltex{fcol=
     }.
 whichever_not_none(none, A) -> A;
 whichever_not_none(A, _) -> A.
+
+
+%%%
+%%%
+
+
+%% Calculate a scale to fit the max width and height
+%%
+calculate_rescale_amount(MaxWidth, MaxHeight, Objs) ->
+    calculate_rescale_amount(MaxWidth, MaxHeight, Objs, 1.0).
+calculate_rescale_amount(_, _, [], Rescale) -> Rescale;
+calculate_rescale_amount(MaxWidth, MaxHeight, [List|Objs], Rescale) ->
+    Rescale_2 = lists:foldl(fun (SubPath, Rescale_1) ->
+        fit(MaxWidth, MaxHeight, SubPath, Rescale_1)
+    end, Rescale, List),
+    calculate_rescale_amount(MaxWidth, MaxHeight, Objs, Rescale_2).
+
+fit(MaxWidth, MaxHeight, #path{ops=Ops}, LowestRescale) ->
+    WidthFound_0 = 1.0,
+    HeightFound_0 = 1.0,
+    {WidthFound, HeightFound} = fit_size(Ops, WidthFound_0, HeightFound_0),
+    Rescale_0 = MaxWidth / max(WidthFound, 1.0),
+    Rescale = case MaxHeight < (HeightFound*Rescale_0) of
+        true -> MaxHeight / max(HeightFound, 1.0);
+        _    -> Rescale_0
+    end,
+    min(Rescale, LowestRescale).
+
+fit_size([], WidthFound, HeightFound) ->
+    {WidthFound, HeightFound};
+fit_size([#pathop{opkind=Kind,x1=X,y1=Y}|Ops0], WidthFound_0, HeightFound_0)
+  when Kind =:= pmoveto; Kind =:= plineto; Kind =:= pcurveto ->
+    WidthFound = max(X, WidthFound_0),
+    HeightFound = max(Y, HeightFound_0),
+    fit_size(Ops0, WidthFound, HeightFound);
+fit_size([_|Ops0], WidthFound, HeightFound) ->
+    fit_size(Ops0, WidthFound, HeightFound).
+
+
+
+%%%
+%%% Unit conversion
+%%%
+
+unit_atom(Unit) when is_atom(Unit) -> Unit;
+unit_atom(Unit) when is_list(Unit) ->
+    case string:to_lower(Unit) of
+        "pt" -> pt;
+        "pc" -> pc;
+        "mm" -> mm;
+        "cm" -> cm;
+        "in" -> in;
+        "em" -> em;
+        "ex" -> ex;
+
+        _ -> pt  %% The default for user unit is points.
+    end.
+
+unit_scaled_pt(pt) -> 1.0;
+unit_scaled_pt(pc) -> (1.0 / 6.0) * unit_scaled_pt(in);
+unit_scaled_pt(mm) -> 0.03937008 * unit_scaled_pt(in);
+unit_scaled_pt(cm) -> 10.0   * unit_scaled_pt(mm);
+unit_scaled_pt(em) -> 12.0;
+unit_scaled_pt(ex) -> 8.0;
+unit_scaled_pt(in) -> 72.0.
+
+%% 1.0 if it is the same unit.
+unit_ratio(Unit1, Unit2)
+  when Unit1 =:= Unit2 ->
+    1.0;
+
+%% Use pt for the physical units on the document unit side.
+unit_ratio(Unit1, Unit2)
+  when Unit2 =/= px, Unit2 =/= pt ->
+    unit_ratio(Unit1, pt) / unit_scaled_pt(Unit2);
+
+%% Physical units on both side
+unit_ratio(Unit1, pt)
+  when Unit1 =/= px ->
+    unit_scaled_pt(Unit1).
+
+%% User units
+conv_unit({Num, user}, _)
+  when is_float(Num); is_integer(Num) ->
+    Num * 1.0;
+
+
+conv_unit({Num, Unit}, DocUnit)
+  when is_float(Num), is_atom(Unit), is_atom(DocUnit) ->
+    Num * unit_ratio(Unit, DocUnit);
+conv_unit({Num, Unit}, DocUnit)
+  when is_integer(Num) ->
+    conv_unit({float(Num), Unit}, DocUnit).
+
+number_val_unit(Val, "") ->
+    Val;
+number_val_unit(Val, Unit) ->
+    {Val, Unit}.
+parse_float_number_w_unit(Num_S, DVal) ->
+    case parse_float_number_w_unit_1(Num_S) of
+        NotNum when is_list(NotNum) -> {DVal, user};
+        {Num_I, Unit} when is_integer(Num_I) -> {Num_I * 1.0, Unit};
+        {Num_F, Unit} when is_float(Num_F) -> {Num_F, Unit};
+        {Num_I, ""} when is_integer(Num_I) -> {Num_I * 1.0, user};
+        {Num_F, ""} when is_float(Num_F) -> {Num_F, user};
+        Num_I when is_integer(Num_I) -> {Num_I * 1.0, user};
+        Num_F when is_float(Num_F) -> {Num_F, user};
+        _ -> {DVal, user}
+    end.
+parse_float_number_w_unit_1([$.|R]) ->
+    parse_float_number_w_unit_1([$0,$.|R]);
+parse_float_number_w_unit_1([A0 | _] = Num_S)
+  when (A0 >= $0 andalso A0 =< $9) orelse A0 =:= $- ->
+    case string:split(Num_S, "e") of
+        [LExpNum_S, RExpNum_S] ->
+            LExpNum = case string:to_float(LExpNum_S) of
+                {error, no_float} -> 
+                    case string:to_integer(LExpNum_S) of
+                        {error, _} -> none;
+                        {Num_1, ""} -> Num_1;
+                        {_, _} -> none
+                    end;
+                {Num_1, _} -> Num_1
+            end,
+            {RExpNum, Unit} = case string:to_float(RExpNum_S) of
+                {error, no_float} -> 
+                    case string:to_integer(RExpNum_S) of
+                        {error, _}      -> {none, none};
+                        {Num_2, Unit_S} -> {Num_2, Unit_S}
+                    end;
+                {Num_2, Unit_S} -> {Num_2, Unit_S}
+            end,
+            case LExpNum =:= none orelse RExpNum =:= none of
+                true -> Num_S;
+                _ ->
+                    Val = LExpNum * math:pow(10, RExpNum),
+                    number_val_unit(Val, Unit)
+            end;
+        [_NoExponent] ->
+            case string:to_float(Num_S) of
+                {error, no_float} -> 
+                    case string:to_integer(Num_S) of
+                        {error, _} -> Num_S;
+                        {Num_1, Unit_S} ->
+                            number_val_unit(Num_1, Unit_S)
+                    end;
+                {Num_1, Unit_S} ->
+                    number_val_unit(Num_1, Unit_S)
+            end
+    end;
+parse_float_number_w_unit_1(NotNumber) ->
+    NotNumber.
+
 
 %%%
 %%%
@@ -1037,18 +1444,42 @@ partition_emb_imgs(Cont, OL, A, ALn) ->
             %% images
             {OL, Cont};
         {S1, _} ->
-            %% We found an image property, we'll need to find out the encoding
-            %% to find out the closing delimiter. The closing delimiter depends
-            %% on the encoding.
-            {_, Enc, FileType, Hdr} = find_file_type(Cont, A, S1),
-            case partition_emb_imgs_enc(Enc, Cont, S1, ALn, length(OL)) of
-                nomatch ->
-                    {OL, Cont};
-                {Enc_1, BinAtt, Cont_3} ->
-                    Img = #emb_image{encoding=Enc_1,filetype=FileType,decheader=Hdr,psenc=BinAtt},
-                    partition_emb_imgs(Cont_3, [Img|OL], A, byte_size(Cont_3))
+            %% Look for "/ImageType"
+            case is_image_properties_dictionary(Cont, A, S1) of
+                true ->
+                    partition_emb_imgs_1(Cont, OL, A, ALn, S1);
+                false ->
+                    {OL, Cont}
             end
     end.
+partition_emb_imgs_1(Cont, OL, A, ALn, S1) ->
+    %% We found an image property, we'll need to find out the encoding
+    %% to find out the closing delimiter. The closing delimiter depends
+    %% on the encoding.
+    {_, Enc, FileType, Hdr} = find_file_type(Cont, A, S1),
+    case partition_emb_imgs_enc(Enc, Cont, S1, ALn, length(OL)) of
+        nomatch ->
+            {OL, Cont};
+        {Enc_1, BinAtt, Cont_3} ->
+            Img = #emb_image{encoding=Enc_1,filetype=FileType,decheader=Hdr,psenc=BinAtt},
+            partition_emb_imgs(Cont_3, [Img|OL], A, byte_size(Cont_3))
+    end.
+
+%% Find out if there is an ImageType
+is_image_properties_dictionary(Cont, A, S1) ->
+    ALn = byte_size(Cont),
+    case binary:match(Cont, <<">>">>, [{scope, {S1, ALn-S1}}]) of
+        nomatch ->
+            false;
+        {S2, _} ->
+            case binary:match(Cont, <<"/ImageType">>, [{scope, {A, S2-A}}]) of
+                nomatch ->
+                    false;
+                {_, _} ->
+                    true
+            end
+    end.
+
 
 %% Try to find the encoding for the embedded image, it is needed
 %% as the delimiter is different for ASCIIHexDecode and ASCII85Decode.
@@ -1290,5 +1721,4 @@ parse_image_header([_|R],OL) ->
     parse_image_header(R, OL);
 parse_image_header([], OL) ->
     lists:reverse(OL).
-
 
