@@ -1365,36 +1365,6 @@ to_epq(Custom) ->
 
 %% TODO: Custom bind map files can also be added in in plugin preferences > "Adobe PostScript Paths"
 
--ifdef(TEST).
-t() ->
-    ps_cfg_cmts(<<
-      "\r\n"
-      "%%\r\n"
-      "%%Match: (XFIG)\r\n"
-      "%%Comment: (Xfig)\r\n"
-      "%%\r\n"
-      "%%etc\r\n"
-      "\r\n"
-    >>).
-t2() ->
-    X = ps_cfg_p([
-    %% Fixes:
-        {tlitname, "flag"}, {tname, "fix"},
-        {tlitname, "curveto_invy"}, {tlitname, "ct"}, {tname, "fix"},
-        {tlitname, "rect"}, {tlitname, "re"}, {tname, "fix"},
-    %% Coordinate system direction:
-        {num, 1.0}, {num, 1.0}, {tname,"coordsys"},
-    %% Split mode:
-        {tlitname, "begin_at_page1"}, {tname, "beginmode"},
-    %% Bind defs
-        {tlitname, "m"}, {tname, "{"}, {tname, "moveto"}, {tname, "}"}, {tname, "bind"}, {tname, "def"},
-        {tlitname, "l"}, {tname, "{"}, {tname, "neg"}, {tname, "lineto"}, {tname, "}"}, {tname, "bind"}, {tname, "def"},
-        {tlitname, "m"}, {tlitname, "moveto"}, {tname, "load"}, {tname, "def"},
-        {tlitname, "l"}, {tlitname, "lineto"}, {tname, "load"}, {tname, "def"}
-    ]),
-    io:format("~p~n", [X]),
-    ok.
--endif().
 
 ps_cfg_cmts(Bin) ->
     ps_cfg_cmts(Bin, []).
