@@ -70,6 +70,79 @@ menu({file,import}, Menu) ->
     Menu ++ [{"Adobe PostScript (.ps|.eps)...", ps, [option]}];
 menu(_, Menu) -> Menu.
 
+more_info() ->
+    [?__(1,"<b>Automatic center</b>\n"
+    "Automatically center the imported shape.\n\n"
+    "<b>Scale fraction</b>\n"
+    "Set the scale ratio of 1 unit in wings to the units in the EPS. "
+    "If set to 100pt, then 100pt is the same as 1 unit in wings. Available "
+    "units include pt, pc, cm, mm, and in.\n\n"
+    "<b>Scale fit within view</b>\n"
+    "Rescale the shape to fit in view. "
+    "This means the scaling based on document units is ignored.\n\n"
+    "<b>Choose custom bind map file</b>\n"
+    "When checked, two file choosers will appear, the first is for choosing "
+    "the bind map file, and the second for the .eps itself. "
+    "An explanation of the bind map file and why they might be useful are "
+    "explained further below.\n\n"
+    "<b>Custom Bind Map Files:</b>\n\n"
+    "Custom bind maps is a file that can be made in a text editor that ends "
+    "with the file extension .bindmap. It can be used to help the EPS path importer "
+    "to understand the commands in a EPS file. The file contains bind "
+    "definitions that maps custom commands (bind def) and also has commands "
+    "that set fixes flags and options of the importer.\n\n"
+    "The beginning of the file should look like this:\n\n"
+    "%%Match: (XFIG)\n"
+    "%%Comment: (Xfig)\n"
+    "\n"
+    "The first line is for the importer to match to the EPS creator string, "
+    "this string should be in uppercase and contain a keyword from the EPS "
+    "Creator comment line. The second line is just a comment and isn't "
+    "currently used. Both lines the strings must be inside parenthesis.\n\n"
+    "<b>Define commands from other commands</b>\n\n"
+    "Forms recognized:\n\n"
+    "/cmd { actualcommand } bind def\n"
+    "/cmd { neg actualcommand } bind def\n"
+    "/cmd/actualcommand load def\n"
+    "\n"
+    "Examples:\n\n"
+    "/m/moveto load def\n"
+    "/l { lineto } bind def\n"
+    "/cv { curveto } bind def\n"
+    "\n"
+    "<b>Fix flags</b>\n\n"
+    "The importer can be configured to make special commands available using "
+    "the fix command, they follow the following form:\n\n"
+    "/flag fix\n"
+    "/flag /parameter fix\n"
+    "\n"
+    "If you want to add a inverted Y curveto command called 'ct', use:\n\n"
+    "/curveto_invy /ct fix\n"
+    "\n"
+    "If you want to add a rectangle command called 're', use:\n\n"
+    "/rect /re fix\n"
+    "\n"
+    "<b>Coordinate system direction:</b>\n\n"
+    "If you want to invert the Y axis of the importer, use:\n"
+    "1.0 -1.0 coordsys\n"
+    "\n"
+    "<b>Split mode:</b>\n"
+    "\n"
+    "Some files may not use a specific keyword or comment to note where the commands start. If so, use:\n\n"
+    "/whole_eps beginmode\n"
+    "\n"
+    "If the file uses a %%Page: 1 1 comment to note where the commands start, use:\n\n"
+    "/begin_at_page1 beginmode\n"
+    "\n")].
+
+
+
+
+info_button() ->
+    Title = ?__(1,"EPS/PS Import Information"),
+    TextFun = fun () -> more_info() end,
+    {help,Title,TextFun}.
+
 command({file,{import,{ps,Ask}}}, _St) when is_atom(Ask) ->
     DefBisect = wpa:pref_get(?MODULE, ps_bisections, 0),
     AutoScale = wpa:pref_get(?MODULE, ps_auto_scale, false),
@@ -91,7 +164,14 @@ command({file,{import,{ps,Ask}}}, _St) when is_atom(Ask) ->
          {?__(8,"Automatic center"),true,[{key,auto_center}]},
          {?__(9,"Scale fit within view"),AutoScale,
              [{key,auto_scale_fit}, {hook, Hook_Auto_Scale},
-              {info, ?__(10,"Automatically rescale shapes to fit within the camera view.")}]}
+              {info, ?__(10,"Automatically rescale shapes to fit within the camera view.")}]},
+         {?__(11, "Choose custom bind map file"), false,
+             [{key, custom_bind_map},
+              {info, ?__(12,"Choose a custom path import profile (a second file chooser will appear)")}]},
+         panel,
+         {hframe,[info_button()]},
+         {hframe,[{label,?__(13,"Importing an EPS from an unsupported EPS creator might require \n"
+                                "creating a bind map file, read help for more info.")}]}
          ],
     wpa:dialog(Ask, ?__(4,"PS/EPS Import Options"), Dialog,
             fun(Res) -> {file,{import, ps, Res}} end);
@@ -100,17 +180,36 @@ command({file,{import, ps, Attr}}, St) ->
     AutoScale = proplists:get_value(auto_scale_fit, Attr, false),
     SetScale_S = proplists:get_value(set_scale, Attr, "100pt"),
     AutoCenter = proplists:get_value(auto_center, Attr, true),
+    UseCustomBindMap = proplists:get_value(custom_bind_map, Attr, false),
     case Nsub_0 < 0 of
         true -> Nsub = 0;
         false -> Nsub = Nsub_0
     end,
     Props = [{extensions,[{".ps",?__(5,"PostScript File")},
                           {".eps",?__(6,"Encapsulated PostScript File")}]}],
-    wpa:import(Props, fun(F) -> make_ps(F, Nsub, AutoScale, SetScale_S, AutoCenter) end, St);
+    bind_map_chooser(UseCustomBindMap,
+        fun(ConfFilename) ->
+            wpa:import(Props,
+                fun(F) ->
+                    make_ps(F, Nsub, AutoScale, SetScale_S, AutoCenter, ConfFilename)
+                end, St)
+        end);
 
 command(_, _) ->
     next.
-    
+
+
+%% Show a file chooser for a bind map if the option is enabled.
+%%
+bind_map_chooser(false, Fun) ->
+    Fun(none);
+bind_map_chooser(true, Fun) ->
+    Props = [{extensions,[{".bindmap",?__(2,"Path Importer Bind Map File")}]},
+             {title,?__(1,"Choose bind map file")}],
+    wpa:import_filename(Props, fun (ConfFilename) ->
+        Fun(ConfFilename)
+    end).
+
 
 -record(epq, {
     s,        %% String to find
@@ -129,34 +228,40 @@ default_quirks() ->
                                       id=adobe,
                                       coordsys={1.0, 1.0},
                                       fixes=[adobe_cmds],
-                                      split=fun split_at_page1/1},
-                                      
+                                      split=begin_at_page1},
+        
+        #epq{ s={str,"AFFINITY"},     comment="Affinity",
+                                      id=affinity,
+                                      coordsys={1.0, 1.0},
+                                      fixes=[affinity_cmds],
+                                      split=whole_eps},
+        
         #epq{ s={str,"LIBREOFFICE"},  comment="LibreOffice",
                                       id=libre_office,
                                       coordsys={1.0, 1.0},
-                                      fixes=[libreoff_cmds],
-                                      split=fun split_at_page1/1},
-                                      
+                                      fixes=[libreoff_cmds, {curveto_invy, "ct"}],
+                                      split=begin_at_page1},
+        
         #epq{ s={str,"CAIRO"},        comment="InkScape",
                                       id=inkscape,
                                       coordsys={1.0, 1.0},
-                                      fixes=[fix_close,inkscape_cmds],
-                                      split=fun split_at_page1/1},
-                                      
-        #epq{ s={str,"SCRIBUS"},      comment="Scribus (partial)",
+                                      fixes=[fix_close,inkscape_cmds,{concat_nobrackets, "cm"},{rect,"re"}],
+                                      split=begin_at_page1},
+        
+        #epq{ s={str,"SCRIBUS"},      comment="Scribus",
                                       id=scribus,
                                       coordsys={1.0, 1.0},
                                       fixes=[scribus_cmds],
-                                      split=fun split_at_page1/1},
+                                      split=begin_at_page1},
         
         %% Cairo is used by both inkscape and ipe, the eps output looks the same
-
+        
         %% An .eps file with "generic" in its creator ID will be assumed to have simple commands
         #epq{ s={str,"GENERIC"},      comment="Generic",
                                       id=generic,
                                       coordsys={1.0, 1.0},
                                       fixes=[],
-                                      split=fun no_split_in_eps/1}
+                                      split=whole_eps}
     ].
 
 %%%
@@ -172,7 +277,7 @@ default_quirks() ->
 -define(W3DEMBEDIMG, "w3dembedimg*").
 
 
-make_ps(Filename, Nsubsteps, AutoScale, SetScale_S, AutoCenter) ->
+make_ps(Filename, Nsubsteps, AutoScale, SetScale_S, AutoCenter, ConfFilename) ->
     case parse_float_number_w_unit(SetScale_S, 0.0) of
         {ScaleVal, ScaleUnit} when ScaleVal > 0.001 ->
             wpa:pref_set(?MODULE, ps_set_scale, SetScale_S),
@@ -180,7 +285,7 @@ make_ps(Filename, Nsubsteps, AutoScale, SetScale_S, AutoCenter) ->
         _Unk ->
             SetScale = {100.0, pt}
     end,
-    try try_import_ps(Filename, Nsubsteps, AutoScale, SetScale, AutoCenter) of
+    try try_import_ps(Filename, Nsubsteps, AutoScale, SetScale, AutoCenter, ConfFilename) of
         {ok, E3dFile} ->
             wpa:pref_set(?MODULE, ps_bisections, Nsubsteps),
             wpa:pref_set(?MODULE, ps_auto_scale, AutoScale),
@@ -193,11 +298,20 @@ make_ps(Filename, Nsubsteps, AutoScale, SetScale_S, AutoCenter) ->
             {error, ?__(2,"PS import internal error")}
     end.
 
-try_import_ps(Filename, Nsubsteps, AutoScale, SetScale, AutoCenter) ->
+setup_quirks_table(none) ->
+    %% No custom file, use default quirks table
+    default_quirks();
+setup_quirks_table(ConfFilename)
+  when is_list(ConfFilename) ->
+    %% Add custom fixes to the start of the default quirks table
+    {ok, Custom} = read_custom_conf(ConfFilename),
+    [to_epq(Custom)|default_quirks()].
 
-    QuirksTab = default_quirks(),
+try_import_ps(Filename, Nsubsteps, AutoScale, SetScale, AutoCenter, ConfFilename) ->
+
+    QuirksTab = setup_quirks_table(ConfFilename),
     case read_ps_content(Filename) of
-        {ok,<<"%!PS-Adobe",Rest/binary>>} ->
+        {ok,<<"%!PS-Adobe",_/binary>>=Rest} ->
             ShortFilename = filename:rootname(filename:basename(Filename)),
             
             case tokenize_bin_ps(Rest, QuirksTab) of
@@ -222,7 +336,6 @@ try_import_ps(Filename, Nsubsteps, AutoScale, SetScale, AutoCenter) ->
                                     Rescale_Denom = conv_unit(SetScale, pt),
                                     Scale = 1.0 / Rescale_Denom
                             end,
-                            %Scale = ?SCALEFAC, %% We need to rescale both the UV and contours.
                             Closedpaths0 = do_fixes(QuirksDetails, Closedpaths),
                             Cntrs0 = getcontours(QuirksDetails, Scale, Closedpaths0),
                             Cntrs = reverse_def(Cntrs0),
@@ -502,12 +615,12 @@ center_object(Vec,Vs) ->
     end,[],Vs).
 
 tokenize_bin_ps(Bin, QuirksTab) ->
-    {Bin1, Creator, SplitFun} = find_creator_ps(Bin, "Undefined", QuirksTab),
+    {Bin1, Creator, SplitFun} = find_creator_ps(Bin, "Generic", QuirksTab),
     
     %% Split the postscript from the image data early on so tokenize_bin_ps
     %% doesn't have to tokenize through the encoded images.
     {ImgList, Bin2} = get_emb_images(Bin1),
-
+    
     {BeforePageSetup, Chars} = after_end_setup_ps(Bin2, SplitFun),
     
     CommandMap0 = parse_prolog_ps(BeforePageSetup),
@@ -537,10 +650,10 @@ tokenize_bin_ps(Bin, QuirksTab) ->
 
 add_commands(CommandMap, #quirksdetails{fixes=Fixes}=_QuirksDetails) ->
     add_commands_1(CommandMap, Fixes).
-add_commands_1(CommandMap0, [inkscape_cmds|Fixes]) ->
-    CommandMap = add_commands_if_absent(CommandMap0#{
+add_commands_1(CommandMap0, [{rect,Command}|Fixes]) ->
+    CommandMap = CommandMap0#{
         %% 're' means rectangle for Inkscape file. we translate it to regular operations and close the path
-        "re" => {f4, fun({IX,IY,IW,IH},#pstate{ctm=CTM}=Pst) ->
+        Command => {f4, fun({IX,IY,IW,IH},#pstate{ctm=CTM}=Pst) ->
             {X1,Y1} = ctm_appl(CTM, {IX,IY}),
             {X2,Y2} = ctm_appl(CTM, {IX,IY+IH}),
             {X3,Y3} = ctm_appl(CTM, {IX+IW,IY+IH}),
@@ -550,11 +663,31 @@ add_commands_1(CommandMap0, [inkscape_cmds|Fixes]) ->
             Pst2 = finishpop(#pathop{opkind=plineto,x1=X3,y1=Y3}, Pst1),
             Pst3 = finishpop(#pathop{opkind=plineto,x1=X4,y1=Y4}, Pst2),
             finishrop(true,Pst3)
-        end},
-        "cm" => {f6, fun({M1,M2,M3,M4,M5,M6}, Pst) ->
+        end}
+    },
+    add_commands_1(CommandMap, Fixes);
+add_commands_1(CommandMap0, [{concat_nobrackets, Command}|Fixes]) ->
+    CommandMap = CommandMap0#{
+        Command => {f6, fun({M1,M2,M3,M4,M5,M6}, Pst) ->
             finishpop(#pathop{opkind=concat,x1=M1,y1=M2,x2=M3,y2=M4,x3=M5,y3=M6},Pst)
         end}
-    }, [
+    },
+    add_commands_1(CommandMap, Fixes);
+add_commands_1(CommandMap0, [{curveto_invy, Command}|Fixes]) ->
+    CommandMap = CommandMap0#{
+        Command => {f6, fun({IX1,IY1,IX2,IY2,IX3,IY3},#pstate{ctm=CTM}=Pst) ->
+            {X1,Y1} = ctm_appl(CTM, {IX1,-IY1}),
+            {X2,Y2} = ctm_appl(CTM, {IX2,-IY2}),
+            {X3,Y3} = ctm_appl(CTM, {IX3,-IY3}),
+            finishpop(#pathop{opkind=pcurveto,x1=X1,y1=Y1,x2=X2,y2=Y2,x3=X3,y3=Y3},Pst)
+        end}
+    },
+    add_commands_1(CommandMap, Fixes);
+add_commands_1(CommandMap0, [{merge_cmds, Map}|Fixes]) ->
+    CommandMap = maps:merge(CommandMap0, Map),
+    add_commands_1(CommandMap, Fixes);
+add_commands_1(CommandMap0, [inkscape_cmds|Fixes]) ->
+    CommandMap = add_commands_if_absent(CommandMap0, [
         %% These will be added if they weren't already by bind def
         {"q", "gsave"},
         {"Q", "grestore"},
@@ -571,15 +704,7 @@ add_commands_1(CommandMap0, [inkscape_cmds|Fixes]) ->
     ]),
     add_commands_1(CommandMap, Fixes);
 add_commands_1(CommandMap0, [libreoff_cmds|Fixes]) ->
-    CommandMap = add_commands_if_absent(CommandMap0#{
-        "ct" => {f6, fun({IX1,IY1,IX2,IY2,IX3,IY3},#pstate{ctm=CTM}=Pst) ->
-            {X1,Y1} = ctm_appl(CTM, {IX1,-IY1}),
-            {X2,Y2} = ctm_appl(CTM, {IX2,-IY2}),
-            {X3,Y3} = ctm_appl(CTM, {IX3,-IY3}),
-            finishpop(#pathop{opkind=pcurveto,x1=X1,y1=Y1,x2=X2,y2=Y2,x3=X3,y3=Y3},Pst)
-        end},
-        "pc" => "closepath"
-    }, [
+    CommandMap = add_commands_if_absent(CommandMap0#{"pc" => "closepath"}, [
         %% These will be added if they weren't already by bind def
         {"l", {neg, "lineto"}},
         {"rl", {neg, "rlineto"}},
@@ -592,6 +717,24 @@ add_commands_1(CommandMap0, [libreoff_cmds|Fixes]) ->
         {"p", "closepath"},
         {"ef", "eofill"},
         {"ps", "stroke"}
+    ]),
+    add_commands_1(CommandMap, Fixes);
+add_commands_1(CommandMap0, [scribus_cmds|Fixes]) ->
+    CommandMap = add_commands_if_absent(CommandMap0, [
+        %% These will be added if they weren't already by bind def
+        {"cmyk", "setcmykcolor"},
+        {"m", "moveto"},
+        {"l", "lineto"},
+        {"li", "lineto"},
+        {"cu", "curveto"},
+        {"cl", "closepath"},
+        {"gs", "gsave"},
+        {"gr", "grestore"},
+        {"tr", "translate"},
+        {"ro", "rotate"},
+        {"sc", "scale"},
+        {"fi", "fill"},
+        {"st", "stroke"}
     ]),
     add_commands_1(CommandMap, Fixes);
 add_commands_1(CommandMap0, [adobe_cmds|Fixes]) ->
@@ -614,25 +757,14 @@ add_commands_1(CommandMap0, [adobe_cmds|Fixes]) ->
         {"ct", "concat"}
     ]),
     add_commands_1(CommandMap, Fixes);
-add_commands_1(CommandMap0, [scribus_cmds|Fixes]) ->
+add_commands_1(CommandMap0, [affinity_cmds|Fixes]) ->
     CommandMap = add_commands_if_absent(CommandMap0, [
-        %% These will be added if they weren't already by bind def
-        {"cmyk", "setcmykcolor"},
         {"m", "moveto"},
         {"l", "lineto"},
-        {"li", "lineto"},
-        {"cu", "curveto"},
-        {"cl", "closepath"},
-        {"gs", "gsave"},
-        {"gr", "grestore"},
-        {"tr", "translate"},
-        {"ro", "rotate"},
-        {"sc", "scale"},
-        {"fi", "fill"},
-        {"st", "stroke"}
+        {"c", "curveto"},
+        {"setcolor", "setrgbcolor"}
     ]),
     add_commands_1(CommandMap, Fixes);
-    
     
 add_commands_1(CommandMap, [_|Fixes]) ->
     add_commands_1(CommandMap, Fixes);
@@ -655,10 +787,14 @@ parse_prolog_ps(Bin1) ->
 %% Map bind definitions into a CommandMap
 parse_pl([],_BDef,CommandMap) -> % done
     CommandMap;
+parse_pl([{tlitname,ShortName},{tlitname,CallName},{tname,"load"},{tname,"def"}|T], BDef, CommandMap) ->
+    parse_pl(T,BDef,CommandMap#{ShortName => CallName});
 parse_pl([{tlitname,ShortName},{tname,"{"},{tname,CallName},{tname,"}"},{tname,"bind"},{tname,"def"}|T], BDef, CommandMap) ->
     parse_pl(T,BDef,CommandMap#{ShortName => CallName});
 parse_pl([{tlitname,ShortName},{tname,"{"},{tname,CallName},{tname,"}"},{tname,BDef}|T], BDef, CommandMap) ->
     parse_pl(T,BDef,CommandMap#{ShortName => CallName});
+parse_pl([{tlitname,ShortName},{tname,"{"},{tname,"neg"},{tname,CallName},{tname,"}"},{tname,"bind"},{tname,"def"}|T], BDef, CommandMap) ->
+    parse_pl(T,BDef,CommandMap#{ShortName => {neg, CallName}});
 parse_pl([{tlitname,ShortName},{tname,"{"},{tname,"neg"},{tname,CallName},{tname,"}"},{tname,BDef}|T], BDef, CommandMap) ->
     parse_pl(T,BDef,CommandMap#{ShortName => {neg, CallName}});
 
@@ -678,12 +814,12 @@ get_split_fun(Creator0, QuirksTab) ->
 get_split_fun_1(Creator, [#epq{s={str, StrComp},split=SplitFun}|QuirksTab]) ->
     Idx = string:str(Creator, StrComp),
     if Idx > 0 ->
-            {ok, SplitFun};
+            {ok, split_function_from_atom(SplitFun)};
         true ->
             get_split_fun_1(Creator, QuirksTab)
     end;
 get_split_fun_1(_Creator, []) ->
-    {ok, fun no_split_in_eps/1}.
+    {ok, split_function_from_atom(whole_eps)}.
 
 
 %% Get the creator and quirk fixes from the quirks table
@@ -710,14 +846,46 @@ find_creator_ps(<<"%%Creator:",Rest/binary>>, _, QuirksTab) ->
     Line0 = binary_to_list(Line1),
     Idx = string:str(Line0, "%"),
     Line = string:sub_string(Line0, 1, Idx-1),
-    Creator = string:strip(string:strip(string:strip(Line, right, $\n), right, $\r), both),
+    Creator0 = string:strip(string:strip(string:strip(Line, right, $\n), right, $\r), both),
+    case remove_parenthesis(Creator0) of
+        "" ->
+            Creator = "Generic";
+        _ ->
+            Creator = Creator0
+    end,
+    Rest1 = find_creator_ps_after_nl(Rest),
+    find_creator_ps_1(Rest1, Creator, QuirksTab);
+find_creator_ps(<<NL,Rest/binary>>, Creator, QuirksTab)
+  when NL =:= 10; NL =:= 13 ->
+    find_creator_ps(Rest, Creator, QuirksTab);
+find_creator_ps(<<CmtChr,Rest/binary>>, Creator, QuirksTab)
+  when CmtChr =:= $% ->
+    Rest1 = find_creator_ps_after_nl(Rest),
+    find_creator_ps(Rest1, Creator, QuirksTab);
+find_creator_ps(Rest, Creator, QuirksTab) ->io:format("Bin=~p~n", [Rest]),
+    %% Went through all the comments and did not see a creator comment
+    find_creator_ps_1(Rest, Creator, QuirksTab).
+
+find_creator_ps_1(Rest, Creator, QuirksTab) ->
     case get_split_fun(Creator, QuirksTab) of
         {ok, SplitFun} ->
             {Rest, string:to_upper(Creator), SplitFun}
-    end;
-find_creator_ps(<<_,Rest/binary>>, Creator, QuirksTab) ->
-    find_creator_ps(Rest, Creator, QuirksTab);
-find_creator_ps(_, Creator, _QuirksTab) -> {Creator, []}.
+    end.
+
+
+find_creator_ps_after_nl(<<"\r\n",Rest/binary>>) ->
+    Rest;
+find_creator_ps_after_nl(<<NL,Rest/binary>>)
+  when NL =:= 10; NL =:= 13 ->
+    Rest;
+find_creator_ps_after_nl(<<_,Rest/binary>>) ->
+    find_creator_ps_after_nl(Rest).
+
+
+remove_parenthesis(A0) ->
+    A1 = lists:append(string:replace(A0, "(", "")),
+    lists:append(string:replace(A1, ")", "")).
+
 
 after_end_setup_ps(Bin, SplitFun) ->
     %% Split the content along "Page: 1 1" or something else depending
@@ -728,6 +896,11 @@ after_end_setup_ps(Bin, SplitFun) ->
     Commands = Rest,
     {BeforePageSetup, Commands}.
 
+
+split_function_from_atom(begin_at_page1) ->
+    fun split_at_page1/1;
+split_function_from_atom(whole_eps) ->
+    fun no_split_in_eps/1.
 
 %% Split used by creators that use a standard Page comment
 split_at_page1(Cont) ->
@@ -1158,6 +1331,183 @@ whichever_not_none(A, _) -> A.
 %%%
 %%%
 
+read_custom_conf(ConfFilename) ->
+    case file:read_file(ConfFilename) of
+        {ok, Cont} ->
+            {Dict1, Cont1} = ps_cfg_cmts(Cont),
+            Toks = tokenize(binary_to_list(Cont1), []),
+            {Dict2_0, BindPassToks} = ps_cfg_p(Toks),
+            CommandMap = parse_pl(BindPassToks, unassigned, maps:new()),
+            Dict2 = orddict:append_list(fix, [{merge_cmds, CommandMap}], Dict2_0),
+            {ok, orddict:merge(fun(_,_,A) -> A end, Dict1, Dict2)}
+    end.
+orddict_get_value(K, D, DV) ->
+    case orddict:find(K, D) of
+        {ok, R} ->
+            R;
+        error ->
+            DV
+    end.
+to_epq(Custom) ->
+    Match = orddict_get_value(match, Custom, "Unknown"),
+    Comment = orddict_get_value(comment, Custom, ""),
+    [CoordSys|_] = orddict_get_value(coordsys, Custom, [{1.0,1.0}]),
+    [BeginMode|_] = orddict_get_value(beginmode, Custom, [begin_at_page1]),
+    Fixes = orddict_get_value(fix, Custom, []),
+    #epq{
+        s={str, Match},
+        comment=Comment,
+        id=custom,
+        coordsys=CoordSys,
+        fixes=Fixes,
+        split=BeginMode
+    }.
+
+%% TODO: Custom bind map files can also be added in in plugin preferences > "Adobe PostScript Paths"
+
+-ifdef(TEST).
+t() ->
+    ps_cfg_cmts(<<
+      "\r\n"
+      "%%\r\n"
+      "%%Match: (XFIG)\r\n"
+      "%%Comment: (Xfig)\r\n"
+      "%%\r\n"
+      "%%etc\r\n"
+      "\r\n"
+    >>).
+t2() ->
+    X = ps_cfg_p([
+    %% Fixes:
+        {tlitname, "flag"}, {tname, "fix"},
+        {tlitname, "curveto_invy"}, {tlitname, "ct"}, {tname, "fix"},
+        {tlitname, "rect"}, {tlitname, "re"}, {tname, "fix"},
+    %% Coordinate system direction:
+        {num, 1.0}, {num, 1.0}, {tname,"coordsys"},
+    %% Split mode:
+        {tlitname, "begin_at_page1"}, {tname, "beginmode"},
+    %% Bind defs
+        {tlitname, "m"}, {tname, "{"}, {tname, "moveto"}, {tname, "}"}, {tname, "bind"}, {tname, "def"},
+        {tlitname, "l"}, {tname, "{"}, {tname, "neg"}, {tname, "lineto"}, {tname, "}"}, {tname, "bind"}, {tname, "def"},
+        {tlitname, "m"}, {tlitname, "moveto"}, {tname, "load"}, {tname, "def"},
+        {tlitname, "l"}, {tlitname, "lineto"}, {tname, "load"}, {tname, "def"}
+    ]),
+    io:format("~p~n", [X]),
+    ok.
+-endif().
+
+ps_cfg_cmts(Bin) ->
+    ps_cfg_cmts(Bin, []).
+ps_cfg_cmts(<<"\r\n", R/binary>>, OL) ->
+    ps_cfg_cmts(R, OL);
+ps_cfg_cmts(<<NL, R/binary>>, OL)
+  when NL =:= 10; NL =:= 13 ->
+    ps_cfg_cmts(R, OL);
+ps_cfg_cmts(<<"%%Match:", R/binary>>, OL) ->
+    {A0, R_1} = ps_cfg_cmts_to_nl(R),
+    case ps_cfg_cmts_in_parenthesis(A0) of
+        {ok, A} ->
+            ps_cfg_cmts(R_1, [{match, A} | OL])
+    end;
+ps_cfg_cmts(<<"%%Comment:", R/binary>>, OL) ->
+    {A0, R_1} = ps_cfg_cmts_to_nl(R),
+    case ps_cfg_cmts_in_parenthesis(A0) of
+        {ok, A} ->
+            ps_cfg_cmts(R_1, [{comment, A} | OL])
+    end;
+ps_cfg_cmts(<<"%", R/binary>>, OL) ->
+    {_, R_1} = ps_cfg_cmts_to_nl(R),
+    ps_cfg_cmts(R_1, OL);
+ps_cfg_cmts(Bin, OL) ->
+    {orddict:from_list(OL), Bin}.
+
+
+ps_cfg_cmts_to_nl(L) ->
+    ps_cfg_cmts_to_nl(L, []).
+ps_cfg_cmts_to_nl(<<"\r\n", R/binary>>, OL) ->
+    {lists:reverse(OL), R};
+ps_cfg_cmts_to_nl(<<NL, R/binary>>, OL)
+  when NL =:= 10; NL =:= 13 ->
+    {lists:reverse(OL), R};
+ps_cfg_cmts_to_nl(<<C, R/binary>>, OL) ->
+    ps_cfg_cmts_to_nl(R, [C|OL]).
+
+
+ps_cfg_cmts_in_parenthesis([SC | R])
+  when SC =:= 32; SC =:= 9 ->
+    ps_cfg_cmts_in_parenthesis(R);
+ps_cfg_cmts_in_parenthesis([$( | R]) ->
+    ps_cfg_cmts_in_parenthesis_1(R, []);
+ps_cfg_cmts_in_parenthesis(_) ->
+    {error, not_parenthesis}.
+ps_cfg_cmts_in_parenthesis_1([$) | _],OL) ->
+    {ok, lists:reverse(OL)};
+ps_cfg_cmts_in_parenthesis_1("\\" ++ [C | R],OL) ->
+    ps_cfg_cmts_in_parenthesis_1(R, [C|OL]);
+ps_cfg_cmts_in_parenthesis_1([C | R],OL) ->
+    ps_cfg_cmts_in_parenthesis_1(R, [C|OL]);
+ps_cfg_cmts_in_parenthesis_1([],_) ->
+    {error, parenthesis_incomplete}.
+
+
+
+-record(pscfgstate, {
+    toks = [],
+    in_curly = 0,
+    bindpass = []
+}).
+
+ps_cfg_p(L) ->
+    ps_cfg_p(L, #pscfgstate{}, orddict:new()).
+
+ps_cfg_p([{num, _}=A|R], #pscfgstate{toks=TL}=PS, OL) ->
+    ps_cfg_p(R, PS#pscfgstate{toks=[A|TL]}, OL);
+ps_cfg_p([{tlitname, _}=A|R], #pscfgstate{toks=TL}=PS, OL) ->
+    ps_cfg_p(R, PS#pscfgstate{toks=[A|TL]}, OL);
+ps_cfg_p([{tname, "{"}=A|R], #pscfgstate{toks=TL,in_curly=Crl}=PS, OL) ->
+    ps_cfg_p(R, PS#pscfgstate{toks=[A|TL],in_curly=Crl+1}, OL);
+ps_cfg_p([{tname, "}"}=A|R], #pscfgstate{toks=TL,in_curly=Crl}=PS, OL) ->
+    ps_cfg_p(R, PS#pscfgstate{toks=[A|TL],in_curly=Crl-1}, OL);
+ps_cfg_p([{tname, BindStr}=C1,{tname, "def"}=C2|R], #pscfgstate{bindpass=BP0,toks=TL,in_curly=0}=PS, OL)
+  when BindStr =:= "bind"; BindStr =:= "load" ->
+    TL1 = lists:reverse([C2,C1|TL]),
+    ps_cfg_p(R, PS#pscfgstate{bindpass=[TL1|BP0],toks=[]}, OL);
+ps_cfg_p([{tname, Str}|R], #pscfgstate{toks=TL,in_curly=0}=PS, OL) ->
+    case ps_cfg_c(Str, lists:reverse(TL)) of
+        none ->
+            OL1 = OL;
+        {A1,A2} ->
+            OL1 = orddict:append_list(A1, [A2], OL)
+    end,
+    ps_cfg_p(R, PS#pscfgstate{toks=[]}, OL1);
+ps_cfg_p([{tname, _}=A|R], #pscfgstate{toks=TL,in_curly=Crl}=PS, OL)
+  when Crl > 0 ->
+    ps_cfg_p(R, PS#pscfgstate{toks=[A|TL]}, OL);
+ps_cfg_p([], #pscfgstate{bindpass=BindPass}=_, OL) ->
+    {OL, lists:append(lists:reverse(BindPass))}.
+
+
+ps_cfg_c("fix", [{tlitname, Arg1}]) ->
+    {fix, list_to_atom(Arg1)};
+ps_cfg_c("fix", [{tlitname, Arg1} | [_|_]=List]) ->
+    List1 = [ps_cfg_arg(A) || A <- List],
+    {fix, list_to_tuple([list_to_atom(Arg1) | List1])};
+ps_cfg_c("coordsys", [{num, X}, {num, Y}]) ->
+    {coordsys, {X, Y}};
+ps_cfg_c("beginmode", [{tlitname, Str}]) ->
+    {beginmode, list_to_atom(Str)};
+ps_cfg_c(_, _) ->
+    none.
+
+ps_cfg_arg({tlitname, Str}) ->
+    Str;
+ps_cfg_arg({num, Num}) ->
+    Num.
+
+
+%%%
+%%%
+
 
 %% Calculate a scale to fit the max width and height
 %%
@@ -1226,19 +1576,12 @@ unit_ratio(Unit1, Unit2)
 
 %% Use pt for the physical units on the document unit side.
 unit_ratio(Unit1, Unit2)
-  when Unit2 =/= px, Unit2 =/= pt ->
+  when Unit2 =/= pt ->
     unit_ratio(Unit1, pt) / unit_scaled_pt(Unit2);
 
 %% Physical units on both side
-unit_ratio(Unit1, pt)
-  when Unit1 =/= px ->
+unit_ratio(Unit1, pt) ->
     unit_scaled_pt(Unit1).
-
-%% User units
-conv_unit({Num, user}, _)
-  when is_float(Num); is_integer(Num) ->
-    Num * 1.0;
-
 
 conv_unit({Num, Unit}, DocUnit)
   when is_float(Num), is_atom(Unit), is_atom(DocUnit) ->
@@ -1253,14 +1596,14 @@ number_val_unit(Val, Unit) ->
     {Val, Unit}.
 parse_float_number_w_unit(Num_S, DVal) ->
     case parse_float_number_w_unit_1(Num_S) of
-        NotNum when is_list(NotNum) -> {DVal, user};
+        NotNum when is_list(NotNum) -> {DVal, pt};
         {Num_I, Unit} when is_integer(Num_I) -> {Num_I * 1.0, Unit};
         {Num_F, Unit} when is_float(Num_F) -> {Num_F, Unit};
-        {Num_I, ""} when is_integer(Num_I) -> {Num_I * 1.0, user};
-        {Num_F, ""} when is_float(Num_F) -> {Num_F, user};
-        Num_I when is_integer(Num_I) -> {Num_I * 1.0, user};
-        Num_F when is_float(Num_F) -> {Num_F, user};
-        _ -> {DVal, user}
+        {Num_I, ""} when is_integer(Num_I) -> {Num_I * 1.0, pt};
+        {Num_F, ""} when is_float(Num_F) -> {Num_F, pt};
+        Num_I when is_integer(Num_I) -> {Num_I * 1.0, pt};
+        Num_F when is_float(Num_F) -> {Num_F, pt};
+        _ -> {DVal, pt}
     end.
 parse_float_number_w_unit_1([$.|R]) ->
     parse_float_number_w_unit_1([$0,$.|R]);
@@ -1426,13 +1769,13 @@ unscramble_jpg_find(Content, I) when I =< 75 ->
     end;
 unscramble_jpg_find(_, I) when I > 75 ->
     false.
-    
+
 unscramble_jpg_reverse(<<B:4/binary-unit:8,Cont/binary>>, OL) ->
     unscramble_jpg_reverse(Cont, [B|OL]);
 unscramble_jpg_reverse(<<>>, OL) ->
     iolist_to_binary(OL).
 
-    
+
 %% Look for embedded images and partition them out of the EPS source.
 -spec partition_emb_imgs(binary()) -> {[#emb_image{}], binary()}.
 partition_emb_imgs(Cont) ->
@@ -1619,7 +1962,7 @@ seek_img_start_mv_after_blank(Cont, S2) ->
     end.
 
 
-    
+
 img_to_bin(hex, Cont) ->
     %% Remove delimiter
     Cont1 = binary:part(Cont, 0, byte_size(Cont)-1),
@@ -1683,7 +2026,7 @@ dchex(<<H1,H2,Cont/binary>>, OL)
     dchex(Cont, [N|OL]);
 dchex(<<>>, OL) ->
     iolist_to_binary(lists:reverse(OL)).
-    
+
 dchex_1(A) when A >= $A, A =< $F ->
     A - $A + 10;
 dchex_1(A) when A >= $a, A =< $f ->
