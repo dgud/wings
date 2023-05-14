@@ -862,7 +862,7 @@ find_creator_ps(<<CmtChr,Rest/binary>>, Creator, QuirksTab)
   when CmtChr =:= $% ->
     Rest1 = find_creator_ps_after_nl(Rest),
     find_creator_ps(Rest1, Creator, QuirksTab);
-find_creator_ps(Rest, Creator, QuirksTab) ->io:format("Bin=~p~n", [Rest]),
+find_creator_ps(Rest, Creator, QuirksTab) ->
     %% Went through all the comments and did not see a creator comment
     find_creator_ps_1(Rest, Creator, QuirksTab).
 
