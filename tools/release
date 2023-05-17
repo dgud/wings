@@ -233,7 +233,7 @@ release_otp(TargetDir0, BitSize) ->
 
 copy_erts(TargetDir) ->
     WinDeps =
-        case os_erl("\"erlang:display(erlang:system_info(otp_release))\"") of
+        case os_erl("-eval \"erlang:display(erlang:system_info(otp_release))\" -run erlang halt") of
             "24" -> ["werl"];
             "25" -> ["werl"];
             _ -> []
