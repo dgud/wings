@@ -728,17 +728,21 @@ preview_rect({Obj, Path}, Frame) ->
     end.
 
 make_overlay(Parent) ->
-    Flags =
+    Flags0 =
         ?wxFRAME_TOOL_WINDOW bor
 	?wxFRAME_NO_TASKBAR bor
-	%% ?wxNO_BORDER bor
         ?wxSTAY_ON_TOP,
     Overlay = wxFrame:new(),
-    case {os:type(), {?wxMAJOR_VERSION, ?wxMINOR_VERSION}} of
-        {{_, linux}, Ver} when Ver >= {3,0} ->
-            wxFrame:setBackgroundStyle(Overlay, ?wxBG_STYLE_TRANSPARENT);
-        _ -> ok
-    end,
+    Flags = case {os:type(), {?wxMAJOR_VERSION, ?wxMINOR_VERSION}} of
+                {{_, linux}, Ver} when Ver >= {3,2} ->
+                    wxFrame:setBackgroundStyle(Overlay, ?wxBG_STYLE_TRANSPARENT),
+                    Flags0 bor ?wxNO_BORDER;
+                {{_, linux}, Ver} when Ver >= {3,0} ->
+                    wxFrame:setBackgroundStyle(Overlay, ?wxBG_STYLE_TRANSPARENT),
+                    Flags0;
+                _ ->
+                    Flags0 bor ?wxNO_BORDER
+            end,
     true = wxFrame:create(Overlay, Parent, -1, "", [{style, Flags}, {size, {300,300}}]),
     wxFrame:setBackgroundColour(Overlay, {95,138,255,200}),
     Panel = wxPanel:new(Overlay),
