@@ -17,6 +17,7 @@
 	 rgb_to_hsv/1,rgb_to_hsv/3,hsv_to_rgb/1,hsv_to_rgb/3,
 	 rgba_to_rgb/1, rgb3bv/1, rgb4bv/1, rgb3fv/1, rgb4fv/1,
          srgb_to_linear/1,
+	 hsb_to_rgb/3, lab_to_rgb/3, cmyk_to_rgb/4,
 	 def_palette/0
 	]).
 
@@ -226,6 +227,108 @@ col_to_linear(X)
 col_to_linear(X)
   when is_float(X) ->
     math:pow((X+0.055)/1.055, 2.4).
+
+
+%% hsb_to_rgb
+%% The colors of this function differ a little bit from the hsv one
+%% example: Hue:160 Sat:0.5 Brightness:1.0 -> R:0.5 G:1 B:0.83
+%%
+hsb_to_rgb(H, S, V) when S < 0.0 ->
+    hsb_to_rgb(H, 0, V);
+hsb_to_rgb(H, S, V) when S > 1.0 ->
+    hsb_to_rgb(H, 1.0, V);
+hsb_to_rgb(H, S, V) when V < 0.0 ->
+    hsb_to_rgb(H, S, 0.0);
+hsb_to_rgb(H, S, V) when V > 1.0 ->
+    hsb_to_rgb(H, S, 1.0);
+hsb_to_rgb(H, S, V) when H >= 360.0; H < 0.0 ->
+    hsb_to_rgb(0.0, S, V);
+hsb_to_rgb(H_0, S, V) ->
+    H = H_0 / 60.0,
+    I = floor(H),
+    F = H - I,
+    P = V * (1.0 - S),
+    Q = V * (1.0 - (S * F)),
+    T = V * (1.0 - (S * (1.0 - F))),
+    %% Returns: {R,G,B}
+    case I of
+        0 -> {V,T,P};
+        1 -> {Q,V,P};
+        2 -> {P,V,T};
+        3 -> {P,Q,V};
+        4 -> {T,P,V};
+        5 -> {V,P,Q}
+    end.
+
+
+%% Convert D50 L*a*b to sRGB values
+%%
+lab_to_rgb(L, A, B) ->
+    cie_lab(L, A, B).
+adjust_srgb(V) ->
+    %% Gamma companding.
+    if V =< 0.0031308 ->
+            12.92 * V;
+        true ->
+            1.055 * math:pow(V, 0.41666) - 0.055
+    end.
+cie_lab(L0, A0, B0) ->
+    {X,Y,Z} = cie_lab_to_cie_xyz(L0, A0, B0),
+
+    %% XYZ D50 to sRGB
+    RR =  (3.1338561 * X) - (1.6168667 * Y) - (0.4906146 * Z),
+    GG = (-0.9787684 * X) + (1.9161415 * Y) + (0.0334540 * Z),
+    BB =  (0.0719453 * X) - (0.2289914 * Y) + (1.4052427 * Z),
+
+    CR = max(0.0, min(1.0, adjust_srgb(RR))),
+    CG = max(0.0, min(1.0, adjust_srgb(GG))),
+    CB = max(0.0, min(1.0, adjust_srgb(BB))),
+
+    {CR, CG, CB}.
+cie_lab_to_cie_xyz(L, A, B) ->
+    %% Illuminant D50 reference white normalized to 1.0
+    XN = 0.964212,
+    YN = 1.0,
+    ZN = 0.825188,
+
+    %% L: 0 to 100.0
+    %% A: -128 to 127
+    %% B: -128 to 127
+    
+    L_16_116 = (L + 16.0) / 116.0,
+    if L_16_116 > 0.206893 ->
+            Y1 = math:pow(L_16_116, 3.0);
+        true ->
+            Y1 = (L_16_116 - (4.0 / 29.0)) / 7.787037
+    end,
+    
+    FX = L_16_116 + (A / 500.0),
+    if  FX > 0.206893 ->
+            X1 = math:pow(FX, 3.0);
+        true ->
+            X1 = (FX - (4.0 / 29.0)) / 7.787037
+    end,
+
+    FZ = L_16_116 - (B / 200.0),
+    if  FZ > 0.206893 ->
+            Z1 = math:pow(FZ, 3.0);
+        true ->
+            Z1 = (FZ - (4.0 / 29.0)) / 7.787037
+    end,
+    
+    X2 = X1 * XN,
+    Y2 = Y1 * YN,
+    Z2 = Z1 * ZN,
+    {X2, Y2, Z2}.
+
+
+%% An approximate CMYK
+%%
+cmyk_to_rgb(C,M,Y,K) ->
+    R = (1.0 - C) * (1.0 - (0.07 * M)) * (1.0 - (0.86 * K)),
+    G = (1.0 - (0.32 * C)) * (1.00 - M) * (1.0 - (0.05 * Y)) * (1.0 - (0.89 * K)),
+    B = (1.0 - (0.06 * C)) * (1.0 - (0.45 * M)) * (1.0 - Y) * (1.0 - (0.87 * K)),
+    {R,G,B}.
 
 %%%
 %%% Local functions for color chooser.

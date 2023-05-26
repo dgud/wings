@@ -98,6 +98,8 @@ forward_event({apply, ReturnSt, Fun}, Window, St0) ->
 	false ->
 	    Fun(St0)
     end;
+forward_event({new_state, #st{}}=_, _Window, _) ->
+    keep;
 forward_event(Ev, Window, _) ->
     wx_object:cast(Window, Ev),
     keep.
@@ -128,7 +130,18 @@ get_all_colors(#st{pal=Pal}) ->
     end.
 
 
-do_menu(Win, Id, Pos, Cols) ->
+popup_event(Ev, Win, Id, Cols) ->
+    case wings_menu:is_popup_event(Ev) of
+	{yes, GlobalPos} ->
+	    wings_wm:psend(palette, {apply, false, fun(_) -> do_menu(Win, Id, GlobalPos, Cols) end});
+	_ ->
+	    %% io:format("Ignored ~p~n",[Ev]),
+	    ok
+    end.
+
+do_menu(Win, none, Pos, _Cols) ->
+    do_menu_1(Win, Pos, [], []);
+do_menu(Win, Id, Pos, Cols) when Id =/= none ->
     Menu = [{?__(1,"Edit"),{'VALUE',{edit,Id}},?__(2,"Edit color")}],
     Smooth = case lists:nth(Id, Cols) of
 		 none ->
@@ -136,14 +149,29 @@ do_menu(Win, Id, Pos, Cols) ->
 		       ?__(4,"Interpolate Empty Colors")}];
 		 _ -> []
 	     end,
-    Rest = [separator,
+    do_menu_1(Win, Pos, Menu, Smooth ++ [separator]).
+do_menu_1(Win, Pos, Menu, Smooth) ->
+    Rest0 = [
 	    {?__(5,"Clear All"), clear_all,?__(6,"Clear palette")},
 	    {?__(7,"Compact"), compact,?__(8,"Compact Palette")},
 	    {?__(9,"Scan Colors"), scan_all, ?__(10,"Scan colors from selection")},
 	    separator,
-	    {?__(11,"Export"), export,?__(12,"Export palette to file")},
-	    {?__(13,"Import"), import,?__(14,"Import palette from file")}],
+	    {?__(11,"Export"), {export,[
+	        {?__(15,"Wings3D Palette (.wpal)"), wpal,?__(12,"Export palette to file")}
+	    ]}},
+	    {?__(13,"Import"), {import,[
+	        {?__(16,"Wings3D Palette (.wpal)"), wpal,?__(14,"Import palette from file")}
+	    ]}}],
+    Modules = [wings_palette_imports],
+    Rest = add_menus(Modules, Rest0),
     wings_menu:popup_menu(Win,Pos,palette,Menu ++ Smooth ++ Rest).
+
+add_menus([], Menu) ->
+    Menu;
+add_menus([M|Modules], Menu) ->
+    Menu1 = M:palette_menu(Menu),
+    add_menus(Modules, Menu1).
+
 
 write_file(Name, Cols) ->
     case file:open(Name, [write]) of
@@ -274,6 +302,7 @@ init([Frame, {W,_}, _Ps, Cols0]) ->
 	wxScrolledWindow:setScrollRate(Win, 0, ?BOX_H+?BORD),
 	wxWindow:connect(Win, size, [{skip, true}]),
 	wxWindow:connect(Win, enter_window, [{userData, {win, Win}}]),
+	wxWindow:connect(Win, right_up, [{skip, false}]),
 	wings_status:message(palette, help()),
 	{Win, #state{self=self(), win=Win, sz=Sz,
 		     cols=Cols, bsz=BSz, empty=Empty}}
@@ -331,14 +360,13 @@ handle_event(#wx{id=Id, event=#wxMouse{type=left_up}}, #state{cols=Cols} = State
 	    {noreply, State}
     end;
 
+handle_event(Ev=#wx{obj=Win, event=#wxMouse{type=right_up}}, #state{cols=Cols, win=Win}=State) ->
+    %% When right clicking on anywhere but a palette square
+    popup_event(Ev, Win, none, Cols),
+    {noreply, State};
 handle_event(Ev=#wx{id=Id, event=#wxMouse{}}, #state{cols=Cols, win=Win}=State) ->
-    case wings_menu:is_popup_event(Ev) of
-	{yes, GlobalPos} ->
-	    wings_wm:psend(palette, {apply, false, fun(_) -> do_menu(Win, Id, GlobalPos, Cols) end});
-	_ ->
-	    %% io:format("Ignored ~p~n",[Ev]),
-	    ok
-    end,
+    %% When right clicking on a palette square
+    popup_event(Ev, Win, Id, Cols),
     {noreply, State};
 
 handle_event(#wx{event=#wxSize{size=Sz}}, #state{timer=TRef} = State) ->
@@ -406,20 +434,28 @@ handle_cast({action, {palette, scan_all}}, #state{cols=Cols}=State) ->
     wings_wm:psend(palette, {apply, true, Scan}),
     {noreply, State};
 
-handle_cast({action, {palette, import}}, #state{cols=Cols} = State) ->
+handle_cast({action, {palette, {import, wpal}}}, #state{cols=Cols} = State) ->
     Import = fun(St) -> import(St, Cols) end,
     wings_wm:psend(palette, {apply, false, Import}),
     {noreply, State};
 
-handle_cast({action, {palette, export}}, #state{cols=Cols} = State) ->
+handle_cast({action, {palette, {export, wpal}}}, #state{cols=Cols} = State) ->
     Export = fun(_) -> export(Cols) end,
     wings_wm:psend(palette, {apply, false, Export}),
     {noreply, State};
 
-handle_cast({new_state, Cols}, #state{cols=Cols}=State) ->
+%% This should be after other palette menu commands, these
+%% commands only need #st{} and don't need the wings_palette state.
+handle_cast({action, {palette, _}=Cmd}, State) ->
+    Modules = [wings_palette_imports],
+    Command = fun(St) -> other_command(St, Cmd, Modules) end,
+    wings_wm:psend(palette, {apply, false, Command}),
+    {noreply, State};
+
+handle_cast({new_state, Cols}, #state{cols=Cols}=State) when is_list(Cols) ->
     {noreply, State};
 handle_cast({new_state, StColors},
-	    #state{sz=Sizer, cols=OldCs, empty=Empty, win=Win}=State) ->
+	    #state{sz=Sizer, cols=OldCs, empty=Empty, win=Win}=State) when is_list(StColors) ->
     %% io:format("NewState ~p ~p~n",[length(StColors), length(OldCs)]),
     NewSz = length(StColors),
     OldSz = length(OldCs),
@@ -661,3 +697,22 @@ interpolate(N,R,G,B,{PR,PG,PB},Acc) ->
 color(none) -> {1.0,1.0,1.0};
 color({_,_,_}=C) -> C;
 color({R,G,B,_}) -> {R,G,B}.
+
+%%
+%%
+
+other_command(_St, _, []) ->
+    keep;
+other_command(St, Cmd, [M|Modules]) ->
+    case M:command(Cmd, St) of
+        next ->
+            other_command(St, Cmd, Modules);
+        St ->
+            keep;
+        #st{}=St1 ->
+            wings_wm:send(geom, {new_state,St1}),
+            keep;
+        keep ->
+            keep
+    end.
+

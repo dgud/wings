@@ -88,6 +88,7 @@ MODULES= \
 	wings_obj \
 	wings_outliner \
 	wings_palette \
+	wings_palette_imports \
 	wings_pb \
 	wings_pick \
 	wings_pick_nif \
