@@ -1256,7 +1256,7 @@ style_to_tuple(Styles) ->
                 [$# | _] ->
                     {ok, FillColor} = parse_fill_color(FillColor_1);
                 [Ch | _] when Ch >= $a, Ch =< $z; Ch >= $A, Ch =< $Z ->
-                    case x11_color_names(Ch) of
+                    case x11_color_names(FillColor_1) of
                         {X11R, X11G, X11B} ->
                             FillColor = {X11R / 255.0, X11G / 255.0, X11B / 255.0};
                         _ ->
