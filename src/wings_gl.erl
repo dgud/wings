@@ -46,29 +46,37 @@
 -endif.
 
 init(Parent) ->
+    check_for_msaa(),
     GL = window(Parent, undefined, true, false),
     init_extensions(),
     GL.
 
+%%% Intel GPUs have been crashing Wings3D on start. It's related to MSAA management
+%%% by the driver has been turned off on Intel Control Panel.
+%%% To avoid that we cannot initialize GLCanvas with MSAA in case it's not available.
+check_for_msaa() ->
+    MSAA = 
+        try
+            wxGLCanvas:isDisplaySupported ([?WX_GL_SAMPLE_BUFFERS,1,  ?WX_GL_SAMPLES,4, 0])
+        catch _:_Reason:_ST ->
+            false
+        end,
+    wings_pref:set_value(gl_msaa, MSAA),
+    not MSAA andalso io:format("Multisampling (MSAA) not available~n").
+
 attributes() ->
-    SB = case os:type() of
-             {unix, Os} when Os =/= darwin ->
-                 %% Sample buffers does not currently work on Wayland
-                 case os:getenv("XDG_SESSION_TYPE") of
-                     "x11" -> [?WX_GL_SAMPLE_BUFFERS,1, ?WX_GL_SAMPLES,4];
-                     "X11" -> [?WX_GL_SAMPLE_BUFFERS,1, ?WX_GL_SAMPLES,4];
-                     _ -> []
-                 end;
-             _ ->
-                 [?WX_GL_SAMPLE_BUFFERS,1, ?WX_GL_SAMPLES,4]
-         end,
+    %% init Sample buffers attributes if multisampling available
+    SB =
+        case wings_pref:get_value(gl_msaa, true) of
+            true -> [?WX_GL_SAMPLE_BUFFERS,1, ?WX_GL_SAMPLES,4, 0];
+            false -> [0]
+        end,
     {attribList,
      [?WX_GL_RGBA,
       ?WX_GL_MIN_RED,8,?WX_GL_MIN_GREEN,8,?WX_GL_MIN_BLUE,8,
       ?WX_GL_DEPTH_SIZE, 24,
       ?WX_GL_DOUBLEBUFFER
-     ] ++
-         SB ++ [0]
+     ] ++ SB
     }.
 
 window(Parent, Context0, Connect, Show) ->
