@@ -26,8 +26,6 @@ export EMU
 export ROOTDIR
 export BINDIR
 export PROGNAME
-GDK_BACKEND=x11
-export GDK_BACKEND
 exec $BINDIR/erlexec -noinput -smp -run wings_start start_halt ${1+"$@"}
 EOF
 
@@ -44,8 +42,6 @@ export EMU
 export ROOTDIR
 export BINDIR
 export PROGNAME
-GDK_BACKEND=x11
-export GDK_BACKEND
 exec "$BINDIR/erlexec" ${1+"$@"}
 EOF
 
