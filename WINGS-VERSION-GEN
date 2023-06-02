@@ -1,7 +1,7 @@
 #!/bin/sh
 
 WVF=vsn.mk
-DEF_VER=v1.2.x.y.WINGS
+DEF_VER=v2.3.x.y.WINGS
 
 WINGS_BRANCH=''
 
