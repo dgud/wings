@@ -71,6 +71,11 @@ lang: intl_tools src plugins_src
 vsn.mk: .FORCE-WINGS-VERSION-FILE
 	@./WINGS-VERSION-GEN
 
+
+.PHONY: dialyze
+dialyze: opt intl_tools
+	$(ESCRIPT) tools/dialyze.escript --verbose
+
 -include vsn.mk
 
 WINGS_TARNAME=wings-$(WINGS_VSN)
