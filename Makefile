@@ -72,9 +72,13 @@ vsn.mk: .FORCE-WINGS-VERSION-FILE
 	@./WINGS-VERSION-GEN
 
 
+#
+# Dialyze wings and plugins (requires erlang-26)
+#
+
 .PHONY: dialyze
 dialyze: opt intl_tools
-	$(ESCRIPT) tools/dialyze.escript --verbose
+	$(ESCRIPT) tools/dialyze.escript
 
 -include vsn.mk
 
