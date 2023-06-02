@@ -16,7 +16,7 @@
 	 get_matrices/2, geom_windows/0,
 	 yes_no/2,yes_no/3,yes_no_cancel/3,
 	 win_crash/1,win_crash/2,crash_log/2,crash_log/3,
-	 pretty_filename/1,relative_path_name/2,caption/1,
+	 pretty_filename/1,relative_path_name/2,caption/1,version/0,
          basedir/1, win32_special_folder/2, is_exported/3, id/1]).
 
 -define(NEED_OPENGL, 1).
@@ -39,6 +39,10 @@ message(Message) ->
 	  [{label,Message}],
 	  [{buttons,[ok]}]},
     wings_dialog:dialog("", Qs, fun(_) -> ignore end).
+
+-spec version() -> string().
+version() ->
+    ?wings_version.
 
 geom_windows() ->
     geom_windows_1(wings_wm:windows()).
@@ -90,7 +94,7 @@ crash_log(WinName, Reason, StackTrace) ->
     LogName = filename:absname("wings_crash.dump", LogFileDir),
     F = open_log_file(LogName),
     io:format("Internal Error~n",[]),
-    [io:format(Fd, "Version: ~s\n", [?WINGS_VERSION]) || Fd <- [F, group_leader()]],
+    [io:format(Fd, "Version: ~s\n", [?wings_version]) || Fd <- [F, group_leader()]],
     [io:format(Fd, "Window: ~p\n", [WinName])  || Fd <- [F, group_leader()]],
     [io:format(Fd, "Reason: ~P\n\n", [Reason,20]) || Fd <- [F, group_leader()]],
     report_stacktrace(F, StackTrace),

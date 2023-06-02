@@ -408,7 +408,7 @@ is_plugin(Name) ->
     end.
 
 plugin_dir() ->
-    filename:join([wings_u:basedir(user_data), ?WINGS_VERSION, "plugins"]).
+    filename:join([wings_u:basedir(user_data), wings_u:version(), "plugins"]).
 
 %%%
 %%% Plug-in manager.

@@ -31,7 +31,7 @@ export(Exporter, Name, Ps, St) ->
     Objs = wings_obj:dfold(MF, RF, [], St),
     wings_pb:start(?__(1,"exporting")),
     wings_pb:update(0.01,?__(2,"preparing")),
-    Creator = "Wings 3D " ++ ?WINGS_VERSION,
+    Creator = "Wings 3D " ++ wings_u:version(),
 
     Mat0 = wings_material:used_materials(St),
     Mat = mat_images(Mat0),

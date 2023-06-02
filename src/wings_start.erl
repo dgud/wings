@@ -76,7 +76,7 @@ disable_patches() ->
 
 patch_dir() ->
     Dir = wings_u:basedir(user_data),
-    filename:join([Dir, ?WINGS_VERSION, "patches"]).
+    filename:join([Dir, wings_u:version(), "patches"]).
 
 
 

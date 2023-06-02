@@ -621,5 +621,5 @@ popup_console() ->
 
 %% Return version string.
 version() ->
-    ?WINGS_VERSION.
+    wings_u:version().
 

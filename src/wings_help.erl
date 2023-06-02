@@ -480,7 +480,7 @@ redraw(#wx{obj=TopPanel, userData=Img}, Obj) ->
     Font1 = wxFont:new(11, ?wxDEFAULT, ?wxNORMAL, ?wxFONTWEIGHT_BOLD),
     wxGraphicsContext:setFont(GC, Font1, {200,200,200}),
     {_,H0,_,_} = wxGraphicsContext:getTextExtent(GC, "v2"),
-    wxGraphicsContext:drawText(GC, "v" ++ ?WINGS_VERSION, ?lblVerX, ?lblVerY-H0),
+    wxGraphicsContext:drawText(GC, "v" ++ wings_u:version(), ?lblVerX, ?lblVerY-H0),
     wxFont:destroy(Font1),
 
     %% Drawing Wings3D description

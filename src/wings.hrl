@@ -30,8 +30,6 @@
 
 -include_lib("wx/include/wx.hrl").
 
--define(WINGS_VERSION, ?wings_version).
-
 -define(CHAR_HEIGHT, wings_text:height()).
 -define(CHAR_WIDTH, wings_text:width()).
 

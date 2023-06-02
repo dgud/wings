@@ -41,7 +41,7 @@ load() ->
             ok;
         PrefFile ->
             io:format("wings-~s\nReading preferences from: ~ts\n",
-                [?WINGS_VERSION, PrefFile]),
+                      [wings_u:version(), PrefFile]),
             case local_consult(PrefFile) of
                 {ok,List0} ->
                     List = clean(List0),
