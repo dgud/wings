@@ -201,8 +201,8 @@ scan_file(Filename, Out) ->
 	    io:format("~p: Missing or wrong version of abstract format.\n",
 		      [Mod]),
 	    no_strings;
-	{error,{Mod,Error}} ->
-	    io:format("~p: Problems: ~p\n", [Mod,Error]),
+	{error, _, Error} ->
+	    io:format("~p: Problems: ~p\n", [Filename,Error]),
 	    no_strings
     end.
 
