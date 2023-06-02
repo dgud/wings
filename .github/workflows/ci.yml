@@ -1,0 +1,40 @@
+on:
+    push:
+    pull_request:
+
+concurrency:
+  group: ci-${{github.actor}}-${{github.head_ref || github.run_number}}-${{github.ref}}-build
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      # Fetch the commits and hopefully get nice version via git describe
+      - uses: actions/checkout@v3
+        with:
+         fetch-depth: 0
+
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: '26.0'
+          rebar3-version: '3.20'
+
+      - name: Install OpenCL deps
+        run: sudo apt-get update && sudo apt-get install -y ocl-icd-opencl-dev
+
+      - name: Wings build
+        run:
+          MAKEFLAGS=-j$(($(nproc) + 2)) make
+
+      - name: Dialyze
+        run: make dialyze
+
+      - name: Build installer
+        run: make unix
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: wings
+          path: |
+            wings-*.bzip2.run
