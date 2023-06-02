@@ -16,9 +16,7 @@
 -export([help/0,wh/0,
 	 wx/0,wxe/0,wxu/1,wxu/3,wxunref/0,wxundef/0,wxcs/0,
 	 wxc/1,wxq/1,
-	 dialyze/0,dialyze/1,
 	 wldiff/1]).
--export([diana/0]).
 
 -import(lists, [foldl/3,foreach/2,flatmap/2]).
 
@@ -32,8 +30,6 @@ help() ->
     ok.
 
 wh() ->
-    p("dialyze() -- dialyze Wings\n"),
-    p("diana()   -- show the result of the latest analysis again\n"),
     p("** Xref for Wings modules **\n"),
     p("wx()       -- collect xref information\n"),
     p("wxe()      -- add xref information for wx\n"),
@@ -169,52 +165,6 @@ make_query(Format, Args) ->
     %%io:format("~p\n", [R]),
     R.
 
-%%%
-%%% Dialyzer support.
-%%%
-dialyze() ->
-    dialyze([core,plugins]).
-
-dialyze(all) ->
-    dialyze([core,wx,cl,plugins]);
-dialyze(Atom) when is_atom(Atom) ->
-    dialyze([Atom]);
-dialyze(Dirs0) when is_list(Dirs0) ->
-    Dirs = flatmap(fun(core) ->
-			   WingsLib = code:lib_dir(wings),
-			   [filename:join(WingsLib, "ebin")];
-		      (wx) ->
-			   [filename:dirname(code:which(wx))];
-		      (cl) ->
-			   [filename:dirname(code:which(cl))];
-		      (plugins) ->
-			   get_plugin_dirs()
-		   end, Dirs0),
-    case dialyzer:run([{files,Dirs}, {warnings, [no_improper_lists]}]) of
-	{ok,Ws} -> dialyze_1(Ws);
-	{ok,Ws,_} -> dialyze_1(Ws);
-	Other -> dialyze_1(Other)
-    end.
-
-dialyze_1(Ws) ->
-    File = dump_file(),
-    file:write_file(File, term_to_binary(Ws)),
-    diana().
-
-diana() ->
-    {ok,B} = file:read_file(dump_file()),
-    case binary_to_term(B) of
-	Ws when is_list(Ws) ->
-	    diana_1(lists:keysort(2, Ws))
-    end.
-
-diana_1([W|Ws]) ->
-    io:format("~s", [dialyzer:format_warning(W)]),
-    diana_1(Ws);
-diana_1([]) -> ok.
-
-dump_file() ->
-    filename:join(code:lib_dir(wings), "dialyzer_warnings.raw").
 
 %%%
 %%% Language support.
