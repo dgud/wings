@@ -2393,19 +2393,29 @@ paths_to_cedge_list(C0, [{X1,Y1},{X2,Y2}=Second|R]) ->
 %% Rounding and Arcs
 %%
 
-aroundCos(I, RH) ->
-    RH * math:cos(((I / 10.0) * math:pi() * 0.5)).
-aroundSin(I, RH) ->
-    RH * math:sin(((I / 10.0) * math:pi() * 0.5)).
+aroundCos(I, RH, Max) ->
+    RH * math:cos(((I / Max) * math:pi() * 0.5)).
+aroundSin(I, RH, Max) ->
+    RH * math:sin(((I / Max) * math:pi() * 0.5)).
     
 stepped_curve(Start, End, Acc, F) ->
-    stepped_curve(Start, End, Acc, F, 0).
+    stepped_curve(Start, End, Acc, F, Start).
 stepped_curve(Start, End, Acc, F, I)
-  when I >= Start andalso I =< End ->
+  when I >= Start andalso I < End ->
     Acc_2 = F(I, Acc),
     stepped_curve(Start, End, Acc_2, F, I+1);
 stepped_curve(_, _, Acc, _, _) -> Acc.
-    
+
+
+%% When paths_round_rect is making a shape with a radius that
+%% makes the shape a ellipse (the amount of space between round
+%% corners is very close to zero), remove the last point.
+%%
+paths_round_rect_middle([_|P],X) when X < 0.001 ->
+    P;
+paths_round_rect_middle(P,_) ->
+    P.
+
 
 paths_round_rect(X1, Y1, X2, Y2, _RW, _RH)
   when X1 =:= X2; Y1 =:= Y2 ->
@@ -2424,29 +2434,34 @@ paths_round_rect(X1, Y1, X2, Y2, RW, RH)
     paths_round_rect(X1, Y1, X2, Y2, RW, Y2-Y1);
 paths_round_rect(X1, Y1, X2, Y2, RW, RH)
   when X1 < X2, Y1 < Y2 ->
+    Max = 10,
     RSW = (X2 - X1) - RW,
     RSH = (Y2 - Y1) - RH,
     Path_0 = [{X1 + RW,Y1}],
-    Path_1 = stepped_curve(0, 10, Path_0, fun(I, Paths) ->
-        XA = X1 + RSW + aroundSin(I, RW),
-        YA = Y1 + (RH - aroundCos(I, RH)),
+    Path_1_1 = stepped_curve(0, Max+1, Path_0, fun(I, Paths) ->
+        XA = X1 + RSW + aroundSin(I, RW, Max),
+        YA = Y1 + (RH - aroundCos(I, RH, Max)),
         [{XA, YA}|Paths]
     end),
-    Path_2 = stepped_curve(0, 10, Path_1, fun(I, Paths) ->
-        XA = X1 + RSW + aroundCos(I, RW),
-        YA = Y1 + RSH + aroundSin(I, RH),
+    Path_1 = paths_round_rect_middle(Path_1_1, RSH - RH),
+    Path_2_1 = stepped_curve(0, Max+1, Path_1, fun(I, Paths) ->
+        XA = X1 + RSW + aroundCos(I, RW, Max),
+        YA = Y1 + RSH + aroundSin(I, RH, Max),
         [{XA, YA}|Paths]
     end),
-    Path_3 = stepped_curve(0, 10, Path_2, fun(I, Paths) ->
-        XA = X1 + RW - aroundSin(I, RW),
-        YA = Y1 + RSH + aroundCos(I, RH),
+    Path_2 = paths_round_rect_middle(Path_2_1, RSW - RW),
+    Path_3_1 = stepped_curve(0, Max+1, Path_2, fun(I, Paths) ->
+        XA = X1 + RW - aroundSin(I, RW, Max),
+        YA = Y1 + RSH + aroundCos(I, RH, Max),
         [{XA, YA}|Paths]
     end),
-    Path_4 = stepped_curve(0, 10, Path_3, fun(I, Paths) ->
-        XA = X1 + RW - aroundSin(10 - I, RW),
-        YA = Y1 + RH - aroundCos(10 - I, RH),
+    Path_3 = paths_round_rect_middle(Path_3_1, RSH - RH),
+    Path_4_1 = stepped_curve(0, Max+1, Path_3, fun(I, Paths) ->
+        XA = X1 + RW - aroundSin(Max - I, RW, Max),
+        YA = Y1 + RH - aroundCos(Max - I, RH, Max),
         [{XA, YA}|Paths]
     end),
+    Path_4 = paths_round_rect_middle(Path_4_1, RSW - RW),
     Path_4.
 
 
@@ -2697,10 +2712,11 @@ intersects_in_path(Point1, Point2, [Point3, Point4 | R], InbetweenPath) ->
     end.
 
 %% If any of the lines have points in common they don't intersect
-line_intersect(_L1A1, L2A1_L1A2_Same, L2A1_L1A2_Same, _L2A2) -> false;
-line_intersect(L2A1_L1A1_Same, _L1A2, L2A1_L1A1_Same, _L2A2) -> false;
-line_intersect(L2A2_L1A1_Same, _L1A2, _L2A1, L2A2_L1A1_Same) -> false;
-line_intersect(_L1A1, L2A2_L1A2_Same, _L1A2, L2A2_L1A2_Same) -> false;
+line_intersect(_, L2A1_L1A2_Same, L2A1_L1A2_Same, _) -> false;
+line_intersect(L2A1_L1A1_Same, _, L2A1_L1A1_Same, _) -> false;
+line_intersect(L2A2_L1A1_Same, _, _, L2A2_L1A1_Same) -> false;
+line_intersect(_, L2A2_L1A2_Same, _, L2A2_L1A2_Same) -> false;
+%% Check if two lines intersect at a point.
 line_intersect(L1A1={L1A1_X,L1A1_Y}, L1A2={L1A2_X,L1A2_Y}, L2A1={L2A1_X,L2A1_Y}, L2A2={L2A2_X,L2A2_Y}) ->
     case (L1A1_Y < L1A2_Y) of
     true ->
@@ -3159,25 +3175,61 @@ remove_double_path([], _PrevPath, O) ->
 %%% All of the following functions come from wpc_ps
 %%%
 process_islands(Plas) ->
-    Objs =
-        lists:foldr(fun(Pla, Acc) ->
-            %% it was noticed during the tests that some files may contain data that causes
-            %% wpc_tt crashes with a key_exists error. We ignore that path definition and go on
-            try process_islands_1(Pla) of
-                {Vs,Fs,He}=Res when is_list(Vs), is_list(Fs), is_list(He) ->
-                    [Res|Acc]
-            catch
-                error:{key_exists,_} ->
-                    %% While the shape is skipped, mention something in the console for
-                    %% the user so they can find out why a shape is missing.
-                    io:format(?__(1, "EMF/WMF Import error on skipped shape~n"), []),
-                    io:format(?__(2,
-                        "~p: NOTE: A shape has been skipped due to key_exists error "
-                        "in wpc_ai:polyareas_to_faces~n"), [?MODULE]),
-                    Acc
-            end
-        end, [], Plas),
-    Objs.
+    lists:foldr(fun(Pla, Acc) ->
+        %% it was noticed during the tests that some files may contain data that causes
+        %% wpc_tt crashes with a key_exists error. We ignore that path definition and go on
+        try process_islands_1(Pla) of
+            {Vs,Fs,He}=Res when is_list(Vs), is_list(Fs), is_list(He) ->
+                [Res|Acc]
+        catch
+            error:{key_exists,_} ->
+                %% While the shape is skipped, mention something in the console for
+                %% the user so they can find out why a shape is missing.
+                io:format(?__(1, "EMF/WMF Import error on skipped shape~n"), []),
+                io:format(?__(2,
+                    "~p: NOTE: A shape has been skipped due to key_exists error "
+                    "in wpc_ai:polyareas_to_faces~n"), [?MODULE]),
+                Acc;
+            error:Err:StT ->
+                %% Something else went wrong, send an error.
+                io:format(?__(3, 
+                    "~p: ERROR: an error occurred within wpc_ai:polyareas_to_faces: "
+                    "~p~nstack trace: ~p~n"), [?MODULE, Err, StT]),
+                erlang:error({error, Err})
+        end
+    end, [], Plas).
 process_islands_1(Pla) ->
+    try wpc_ai:polyareas_to_faces([Pla]) of
+        Res -> Res
+    catch
+        error:{key_exists,_} ->
+            %% Likely a key_exists error may have happened because a point is
+            %% too close or even the same coordinate to another adjacent point.
+            %% Try to remove them and try again.
+            io:format(?__(1, 
+                "~p: NOTE: A first key_exists error, trying to fix path "
+                "and trying again.~n"), [?MODULE]),
+            Pla_1 = remove_repeat_cedge(Pla),
+            process_islands_again(Pla_1)
+    end.
+process_islands_again(Pla) ->
     wpc_ai:polyareas_to_faces([Pla]).
+
+
+%% Remove #cedge{} if the vs and ve are very similar, as this can
+%% cause weird meshes to be created from wpc_ai, as well as cause 
+%% also key_exists errors.
+%%
+-define(SAME_POINT(V1,V2), (round(V1*1.0e3) =:= round(V2*1.0e3))).
+remove_repeat_cedge({polyarea,CEdgesC,CEdgesHL}) ->
+    {polyarea,
+        remove_repeat_cedge(CEdgesC, []),
+        [remove_repeat_cedge(CEdges, []) || CEdges <- CEdgesHL]}.
+remove_repeat_cedge([#cedge{vs={X1,Y1}=_,cp1=nil,cp2=nil,ve={X2,Y2}=_}=_|L],OL)
+  when ?SAME_POINT(X1,X2) andalso ?SAME_POINT(Y1,Y2) ->
+    remove_repeat_cedge(L, OL);
+remove_repeat_cedge([Edge|L],OL) ->
+    remove_repeat_cedge(L, [Edge|OL]);
+remove_repeat_cedge([],OL) ->
+    lists:reverse(OL).
 
