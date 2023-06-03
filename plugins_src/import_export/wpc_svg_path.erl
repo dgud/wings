@@ -580,7 +580,7 @@ read_file__svg(Name) ->
     id :: string(), %% id from svg
     style,          %% Color styles
     texture = none, %% Textures
-    ta = none,      %% SVG transform attribute
+    ta = [],        %% SVG transform attribute (tag nested)
     ut = []         %% User vertex transforms
     }).
 
@@ -758,21 +758,25 @@ getcedges([_|_],_,_,_) ->
 
 %% Apply transforms within SVG coordinate system to path
 %%
-apply_path_transform(OSubpaths, TA) ->
-    [Path#path{ops=[ begin
-        {X1,Y1} = vs_m3x2({X1_0,Y1_0},TA),
-        {X2,Y2} = vs_m3x2({X2_0,Y2_0},TA),
-        {X3,Y3} = vs_m3x2({X3_0,Y3_0},TA),
-        PathOp#pathop{x1=X1,y1=Y1,x2=X2,y2=Y2,x3=X3,y3=Y3}
-       end
-        || #pathop{x1=X1_0,y1=Y1_0,x2=X2_0,y2=Y2_0,x3=X3_0,y3=Y3_0}=PathOp <- Ops_0]}
-        || #path{ops=Ops_0}=Path <- OSubpaths].      
+apply_path_transform(OSubpaths0, TAL) ->
+    lists:foldr(fun (TA, OSubpaths) ->
+        [Path#path{ops=[ begin
+            {X1,Y1} = vs_m3x2({X1_0,Y1_0},TA),
+            {X2,Y2} = vs_m3x2({X2_0,Y2_0},TA),
+            {X3,Y3} = vs_m3x2({X3_0,Y3_0},TA),
+            PathOp#pathop{x1=X1,y1=Y1,x2=X2,y2=Y2,x3=X3,y3=Y3}
+           end
+            || #pathop{x1=X1_0,y1=Y1_0,x2=X2_0,y2=Y2_0,x3=X3_0,y3=Y3_0}=PathOp <- Ops_0]}
+            || #path{ops=Ops_0}=Path <- OSubpaths]
+    end, OSubpaths0, TAL).
 -spec vs_m3x2({float(),float()}, 'none' | m3x2()) -> {float(), float()}.
 vs_m3x2({X,Y}, none) ->
     {X,Y};
-vs_m3x2({X,Y}, {matrix, M00,M10,M20, M01,M11,M21}) ->
-    { M00*X + M20*Y + M11,
-      M10*Y + M01*Y + M21 }.
+vs_m3x2({X,Y0}, {matrix, M00,M10,M20, M01,TX,TY}) ->
+    Y = -Y0,
+    { M00*X + M20*Y + TX,
+      -(M10*X + M01*Y + TY) }.
+
 
 %%
 %% New xmerl parsing section for SVG files.
@@ -1167,7 +1171,7 @@ svg_tok_attr_pair_rect("rx", Val) ->
     {rx, Val_1};
 svg_tok_attr_pair_rect("transform", Val) ->
     case parse_transform_attr(Val) of
-        {ok, Val_1} -> {tranform, Val_1}
+        {ok, Val_1} -> {transform, Val_1}
     end;
 svg_tok_attr_pair_rect(_AttrLName, _Val) ->
     unused.
@@ -1479,72 +1483,89 @@ parse_transform_attr(A) ->
     case tok_svg_attr(A) of
         {ok, TransformList} ->
             Mat_0 = m3x2_mat(),
-            Matrix = parse_transform_attr_1(TransformList, Mat_0),
+            Matrix = parse_transform_attr_1(TransformList, [Mat_0]),
             {ok, Matrix}
     end.
-parse_transform_attr_1(["matrix", open, A0,A1,A2,A3, A4,A5, close | R], _M) ->
+parse_transform_attr_1(["matrix", open, A0,A1,A2,A3, A4,A5, close | R], M) ->
     NewM = {float(A0), float(A1), float(A2), float(A3), float(A4), float(A5)},
-    parse_transform_attr_1(R, NewM);
-    
+    parse_transform_attr_1(R, [NewM|M]);
+
 % translate(<x> [<y>])
 parse_transform_attr_1(["translate", open, X, close | R], M) ->
-    parse_transform_attr_1(R, m3x2_translate(float(X), 0.0, M));
+    parse_transform_attr_1(R, [m3x2_translate(float(X), 0.0)|M]);
 parse_transform_attr_1(["translate", open, X,Y, close | R], M) ->
-    parse_transform_attr_1(R, m3x2_translate(float(X), float(Y), M));
+    parse_transform_attr_1(R, [m3x2_translate(float(X), float(Y))|M]);
 
 % scale(<x> [<y>])
 parse_transform_attr_1(["scale", open, X, close | R], M) ->
-    parse_transform_attr_1(R, m3x2_scale(float(X), float(X), M));
+    parse_transform_attr_1(R, [m3x2_scale(float(X), float(X))|M]);
 parse_transform_attr_1(["scale", open, X,Y, close | R], M) ->
-    parse_transform_attr_1(R, m3x2_scale(float(X), float(Y), M));
+    parse_transform_attr_1(R, [m3x2_scale(float(X), float(Y))|M]);
 
 % rotate(<a> [<x> <y>])
 parse_transform_attr_1(["rotate", open, A, close | R], M) ->
     parse_transform_attr_1(R,
-        m3x2_rotate(float(A) / 180.0 * math:pi(), 0.0, 0.0, M));
+        [ m3x2_rotate(-float(A) / 180.0 * math:pi()) | M]);
 parse_transform_attr_1(["rotate", open, A,X, close | R], M) ->
     parse_transform_attr_1(R,
-        m3x2_rotate(float(A) / 180.0 * math:pi(), float(X), 0.0, M));
+        [ m3x2_translate(-float(X), 0.0),
+          m3x2_rotate(-float(A) / 180.0 * math:pi()),
+          m3x2_translate(float(X), 0.0) | M]);
 parse_transform_attr_1(["rotate", open, A,X,Y, close | R], M) ->
     parse_transform_attr_1(R,
-        m3x2_rotate(float(A) / 180.0 * math:pi(), float(X), float(Y), M));
+        [ m3x2_translate(-float(X), -float(Y)),
+          m3x2_rotate(-float(A) / 180.0 * math:pi()),
+          m3x2_translate(float(X), float(Y)) | M]);
 
 parse_transform_attr_1(["skewX", open, X, close | R], M) ->
-    parse_transform_attr_1(R, m3x2_skew(float(X), 0.0, M));
+    parse_transform_attr_1(R, [m3x2_skew(float(X) / 180.0 * math:pi(), 0.0)|M]);
 parse_transform_attr_1(["skewY", open, Y, close | R], M) ->
-    parse_transform_attr_1(R, m3x2_skew(0.0, float(Y), M));
+    parse_transform_attr_1(R, [m3x2_skew(0.0, float(Y) / 180.0 * math:pi())|M]);
 
 parse_transform_attr_1([_Unknown | R], M) ->
     parse_transform_attr_1(R, M);
-    
-parse_transform_attr_1([], {A0,A1,A2, A3,A4,A5}) ->
+
+parse_transform_attr_1([], MList) ->
+    {A0,A1,A2, A3,A4,A5} = m3x2_concat(MList),
     {matrix, float(A0), float(A1), float(A2), float(A3), float(A4), float(A5)}.
 
 %% 3x2 Matrix transformations
 m3x2_mat() ->
     { 1.0, 0.0, 0.0,
       1.0, 0.0, 0.0 }.
-m3x2_translate(X, Y, { M00, M10, M20, M01, M11, M21 })
+m3x2_translate(X, Y)
   when is_float(X), is_float(Y) ->
-    { M00, M10, M20, M01, M11+X, M21+Y }.
-m3x2_scale(X, Y, { M00, M10, M20, M01, M11, M21 })
+    {1.0, 0.0, 0.0, 1.0, X, Y }.
+m3x2_scale(X, Y)
   when is_float(X), is_float(Y) ->
-    { X*M00, Y*M10, M20, M01, M11, M21 }.
-m3x2_rotate(A, PX, PY, { M00, M10, M20, M01, M11, M21 })
-  when is_float(PX), is_float(PY) ->
-    RX = math:cos(A),
-    RY = math:sin(A),
-    { RX*M00, RY*M01, -RY*M10, RX*M11, M20, M21 }.
-m3x2_skew(X, Y, { M00, M10, M20, M01, M11, M21 })
+    {X, 0.0, 0.0, Y, 0.0, 0.0}.
+m3x2_rotate(Ang)
+  when is_float(Ang) ->
+    {math:cos(Ang), -math:sin(Ang), math:sin(Ang), math:cos(Ang), 0.0, 0.0}.
+m3x2_skew(X, Y)
   when is_float(X), is_float(Y) ->
-    { M00, M10, X+M20, Y+M01, M11, M21 }.
-    
-m3x2_combine(none,none) -> none;
-m3x2_combine(Mat,none) when is_tuple(Mat) -> Mat;
-m3x2_combine(none,Mat) when is_tuple(Mat) -> Mat;
-m3x2_combine(_Mat1,Mat2) when is_tuple(Mat2) ->
-    Mat2.
-    
+    {1.0, math:tan(Y), math:tan(X), 1.0, 0.0, 0.0}.
+
+m3x2_combine(L,[Mat]) ->
+    m3x2_combine(L,Mat);
+m3x2_combine(L,Mat) ->
+    m3x2_combine_1([M || M <- L, M =/= none],Mat).
+m3x2_combine_1([],none) -> [];
+m3x2_combine_1([],Mat) when is_tuple(Mat) -> [Mat];
+m3x2_combine_1(L,none) when is_list(L) -> L;
+m3x2_combine_1(L,Mat2) -> L ++ [Mat2].
+
+m3x2_concat(L) ->
+    lists:foldl(fun (M1, A) -> m3x2_mul(M1, A) end, m3x2_mat(), L).
+m3x2_mul({A11,A21,A12,A22,A13,A23}=_MA,{B11,B21,B12,B22,B13,B23}=_MB) ->
+    B31=B32=0.0,
+    B33=1.0,
+    {C11,C12,C31,C21,C22,C32} =
+        {A11*B11 + A12*B21 + A13*B31 , A11*B12 + A12*B22 + A13*B32 , A11*B13 + A12*B23 + A13*B33 ,
+         A21*B11 + A22*B21 + A23*B31 , A21*B12 + A22*B22 + A23*B32 , A21*B13 + A22*B23 + A23*B33 },
+    {C11,C21,C12,C22,C31,C32}.
+
+
 
 parse_image_transform(A) ->
     case parse_transform_attr(A) of
@@ -1732,7 +1753,7 @@ path_definitions_clippath([Cmd|CmdLst_1], Which, DocSt, OCmds) ->
 
 svgtags_enter_layer(Attr) ->
     Label = proplists:get_value(label, Attr, ""),
-    STrn = proplists:get_value(transforms, Attr, none),
+    STrn = proplists:get_value(transform, Attr, none),
     {T, LayerName} = layerdir(Label),
     {layer_s, T, LayerName, STrn}.
 
@@ -2005,7 +2026,7 @@ svgtags_path(#svgtag_s{attr=Attr}=SVT, [Cmd|CmdLst], OCmdLst) ->
                 d = D,
                 id = Id,
                 style = Style,
-                ta = STrn
+                ta = [STrn]
             },
             {ok, {path, PathCmd, lists:reverse(OCmdLst)}, CmdLst};
         
@@ -2033,7 +2054,7 @@ svgtags_polyline(#svgtag_s{attr=Attr}=SVT, [Cmd|CmdLst], OCmdLst) ->
                 d = svg_path_of_polyline(Points),
                 id = Id,
                 style = Style,
-                ta = STrn
+                ta = [STrn]
             },
             {ok, {path, PathCmd, lists:reverse(OCmdLst)}, CmdLst};
         
@@ -2060,7 +2081,7 @@ svgtags_polygon(#svgtag_s{attr=Attr}=SVT, [Cmd|CmdLst], OCmdLst) ->
                 d = svg_path_of_polygon(Points),
                 id = Id,
                 style = Style,
-                ta = STrn
+                ta = [STrn]
             },
             {ok, {path, PathCmd, lists:reverse(OCmdLst)}, CmdLst};
         
@@ -2095,7 +2116,7 @@ svgtags_rect(#svgtag_s{attr=Attr,units=Units,docsz=_DocSz,viewbox=_ViewBox}=SVT,
                 d = svg_path_of_rect(X, Y, Width, Height, RX, RY),
                 id = Id,
                 style = Style,
-                ta = STrn
+                ta = [STrn]
             },
             {ok, {path, PathCmd, lists:reverse(OCmdLst)}, CmdLst};
         
@@ -2125,7 +2146,7 @@ svgtags_circle(#svgtag_s{attr=Attr,units=Units,docsz=_DocSz,viewbox=_ViewBox}=SV
                 d = svg_path_of_ellipse(CX, CY, R, R),
                 id = Id,
                 style = Style,
-                ta = STrn
+                ta = [STrn]
             },
             {ok, {path, PathCmd, lists:reverse(OCmdLst)}, CmdLst};
         
@@ -2156,7 +2177,7 @@ svgtags_ellipse(#svgtag_s{attr=Attr,units=Units,docsz=_DocSz,viewbox=_ViewBox}=S
                 d = svg_path_of_ellipse(CX, CY, RX, RY),
                 id = Id,
                 style = Style,
-                ta = STrn
+                ta = [STrn]
             },
             {ok, {path, PathCmd, lists:reverse(OCmdLst)}, CmdLst};
         
@@ -2196,9 +2217,11 @@ assign_transforms([Cmd|CmdLst], TrnList, OCmdLst) ->
             end;
         {path, #path_tag_r{ut=List,ta=STrn_0}=PathTagR, B} ->
             case TrnList of
-                [{UserTransforms, _LayerName, STrn_1}|_] ->
-                    Cmd_1 = {path, PathTagR#path_tag_r{ut=List++UserTransforms,
-                        ta=m3x2_combine(STrn_1, STrn_0)}, B};
+                [_ |_] ->
+                    STrnL = lists:reverse([STrn_1 || {_, _LayerName, STrn_1} <- TrnList]),
+                    UTrnL = lists:reverse([UserTransforms || {UserTransforms, _LayerName, _} <- TrnList]),
+                    Cmd_1 = {path, PathTagR#path_tag_r{ut=List++lists:append(UTrnL),
+                        ta=m3x2_combine(STrnL, STrn_0)}, B};
                 [] ->
                     Cmd_1 = Cmd
             end,
