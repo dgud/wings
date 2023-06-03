@@ -58,6 +58,7 @@ def_envmap() ->
 init() ->
     wings_pref:set_default(show_bg, false),
     wings_pref:set_default(show_bg_blur, 0.5),
+    wings_pref:set_default(show_bg_rotate, 0.0),
     wings_pref:set_default(bg_image, def_envmap()),
     EnvImgRec = load_env_file(wings_pref:get_value(bg_image)),
     init(false, EnvImgRec).
