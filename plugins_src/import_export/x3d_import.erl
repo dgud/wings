@@ -2184,8 +2184,6 @@ trav_geom_indexedfaceset(Fields) ->
     IsCCW = value_from_field(<<"ccw">>, float, Fields, 1),
     _IsConvex = value_from_field(<<"convex">>, float, Fields, 1),
     case proplists:get_value({field,<<"coordIndex">>}, Fields, none) of
-        %none ->
-        %    CoordIndices = [];
         {multival, Vals_CI} ->
             CoordIndices = delim_indexes_to_lists([ N || {float,N} <- Vals_CI ])
     end,
@@ -2207,8 +2205,10 @@ trav_geom_indexedfaceset(Fields) ->
     _IsSolid = value_from_field(<<"solid">>, float, Fields, 1),
     
     case proplists:get_value({field,<<"texCoordIndex">>}, Fields, none) of
-        none ->
+        none when TexCoords =:= none ->
             TCIndices = none;
+        none when TexCoords =/= none ->
+            TCIndices = CoordIndices;
         {multival, Vals_TC} ->
             TCIndices = delim_indexes_to_lists([ E || {float, E} <- Vals_TC])
     end,
