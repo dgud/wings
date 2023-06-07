@@ -26,7 +26,8 @@
 	 mapsfind/3,
 	 wxequal/2, wxset_pid/2, min_wx/1,
 	 nice_float/1,nice_vector/1,nice_abs_vector/1,
-         string_to_float/1,
+	 nonzero/1,
+	 string_to_float/1,
 	 unique_name/2,
 	 is_name_masked/2,
 	 lib_dir/1,
@@ -214,6 +215,10 @@ simplify_float_1("0."++_=F) -> F;
 simplify_float_1("0"++F) -> simplify_float_1(F);
 simplify_float_1(F) -> F.
 
+nonzero(Value) ->
+    if abs(Value) < ?EPSILON -> ?EPSILON;
+    true -> Value
+    end.
 
 string_to_float("NaN") -> 0.0;
 string_to_float(Str) ->

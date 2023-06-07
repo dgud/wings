@@ -1192,7 +1192,7 @@ calc_scale([{Face,[{Id1,P1},{Id2,P2},{Id3,P3}]}|R], Ovs, A2D, A3D,F2A,F2OVs) ->
     A3 = area3d(Q1,Q2,Q3),
     calc_scale(R,Ovs,A2+A2D,A3+A3D,[{Face,A3}|F2A],[{Face,{Q1,Q2,Q3}}|F2OVs]);
 calc_scale([],_Ovs,A2D,A3D,F2A,F2OVs) ->
-    {math:sqrt(A3D/A2D), 
+    {math:sqrt(A3D/wings_util:nonzero(A2D)),
      gb_trees:from_orddict(lists:sort(F2A)), 
      gb_trees:from_orddict(lists:sort(F2OVs))}.
 

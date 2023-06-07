@@ -796,7 +796,7 @@ vertex_dots_and_sqlens(Vecs, [VecB|_], Dot, Sq) ->
     vertex_dots_and_sqlens(Vecs++[VecB], [], Dot, Sq);
 vertex_dots_and_sqlens(_Other, _More, Dot, Sq) -> {Dot,Sq}.
 
--define(EPSILON, 1.0E-5).
+-define(TOLERANCE, 1.0E-5).
 compare(A, B) ->
     %% Comparison with a relative tolerance for large
     %% values and an absolute tolerance for small values
@@ -804,7 +804,7 @@ compare(A, B) ->
     %% http://realtimecollisiondetection.net/blog/?p=89
     %% and in his book "Real-Time Collision Detection".
     %%
-    abs(A-B) =< ?EPSILON*max(1.0, max(abs(A), abs(B))).
+    abs(A-B) =< ?TOLERANCE*max(1.0, max(abs(A), abs(B))).
 
 %%
 %% Select Random.
