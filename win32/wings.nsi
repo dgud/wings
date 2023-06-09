@@ -84,12 +84,12 @@ InstallDirRegKey HKLM "SOFTWARE\Wings 3D\${WINGS_VERSION}" ""
 Section "Microsoft redistributable libraries." SecMSRedist
 
   	SetOutPath "$INSTDIR"
-	File /r vcredist_x86.exe
-  
+	File /r ${REDIST_INSTALLER}
+
 ; Set back verbosity...
   	!verbose 1
-; Run the setup program  
-  	ExecWait '"$INSTDIR\vcredist_x86.exe"'
+; Run the setup program
+  	ExecWait '"$INSTDIR\${REDIST_INSTALLER}"'
 
   	!verbose 1
 SectionEnd ; MSRedist

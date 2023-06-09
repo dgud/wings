@@ -27,14 +27,14 @@ main(_) ->
     catch
 	throw:{fatal,Reason} ->
 	    io:put_chars(Reason),
-	    init:stop(1);
+	    erlang:halt(10);
 	Class:Error:Stk ->
 	    io:format("~p:~p in ~p\n", [Class,Error,Stk]),
-	    init:stop(2)
+	    erlang:halt(20)
     end.
 
 release() ->
-    ok = file:set_cwd(lib_dir(wings)),
+    set_cwd(lib_dir(wings)),
     WingsVsn = get_vsn("vsn.mk", "WINGS_VSN"),
     Build = filename:absname("build"),
     run("rm", ["-rf",Build]),
@@ -64,7 +64,7 @@ mac_release(BuildRoot, WingsVsn) ->
     ok = filelib:ensure_dir(Script),
     {ok,_} = file:copy(filename:join(MacDir, "Wings3D.sh"), Script),
     ok = file:write_file_info(Script, #file_info{mode=8#555}),
-    ok = file:set_cwd(MacDir),
+    set_cwd(MacDir),
     create_info_plist(WingsVsn),
     copy("Info.plist", Contents),
     ResourceFiles = ["wings3d.icns","wings_doc.icns"],
@@ -72,7 +72,7 @@ mac_release(BuildRoot, WingsVsn) ->
     copy("InfoPlist.strings", filename:join(Resources, "English.lproj")),
     release_otp(Resources, undefined),
     convert_script(Resources),
-    ok = file:set_cwd(lib_dir(wings)),
+    set_cwd(lib_dir(wings)),
     codesign(Root),
     MakeDmg = filename:join([lib_dir(wings),"macosx","make_dmg"]),
     run(MakeDmg, ["wings-"++WingsVsn++"-macosx.dmg",Root,
@@ -114,7 +114,7 @@ unix_release(BuildRoot, WingsVsn) ->
     Name = "wings-" ++ WingsVsn ++ "-" ++ atom_to_list(Flavor),
     Root = filename:join(BuildRoot, Name),
     release_otp(Root, undefined),
-    ok = file:set_cwd(UnixDir),
+    set_cwd(UnixDir),
     copy("wings.appdata.xml", Root),
 
     {ok,Install0} = file:read_file(filename:join(UnixDir, "install_wings.src")),
@@ -124,7 +124,7 @@ unix_release(BuildRoot, WingsVsn) ->
     ok = file:write_file_info(Installer, #file_info{mode=8#555}),
     MakeSelf = filename:join(UnixDir, "makeself.sh"),
     convert_script(Root),
-    ok = file:set_cwd(lib_dir(wings)),
+    set_cwd(lib_dir(wings)),
     run(MakeSelf, ["--bzip2",Root,Name++".bzip2.run","Wings3D","./install_wings"]),
     ok.
 
@@ -138,37 +138,41 @@ win_release(Root, WingsVsn) ->
                       erlang:system_info(wordsize)*8
               end,
     release_otp(Root, BitSize),
-    VcVersion = setup_vcredist(BitSize, Root),
+    {VcFile, VcVersion} = setup_vcredist(BitSize, Root),
     WinDir = filename:join(lib_dir(wings), "win32"),
-    ok = file:set_cwd(WinDir),
+    set_cwd(WinDir),
     WinFiles = [nsi_file(BitSize), "Wings3D.exe", "wings.ico",
 		"install.ico", "uninstall.ico"],
     [copy(File, Root) || File <- WinFiles],
     check_build_target("Wings3D.exe", BitSize),
     convert_script(Root),
-    ok = file:set_cwd(Root),
+    set_cwd(Root),
     run("makensis.exe", ["/DREDIST_DLL_VERSION="++VcVersion,
+                         "/DREDIST_INSTALLER="++VcFile,
                          "/DWINGS_VERSION="++WingsVsn,
                          nsi_file(BitSize)]),
     ok.
 
 setup_vcredist(BitSize, Root) ->
-    {File, Vsn} = case BitSize of
-		      32 -> {"vcredist_x86.exe", ?WIN32_VCREDIST_VERSION};
-		      64 -> {"vcredist_x64.exe", ?WIN64_VCREDIST_VERSION}
-		  end,
+    Vsn = case BitSize of
+              32 -> ?WIN32_VCREDIST_VERSION;
+              64 -> ?WIN64_VCREDIST_VERSION
+          end,
 
     VCRedistEnv = os:getenv("WINGS_VCREDIST"),
-    VCRedist0 = case VCRedistEnv of
-                    false ->
-                        case os:getenv("VCToolsRedistDir") of
-                            false -> fatal("No WINGS_VCREDIST in env", []);
-                            RedistDir -> filename:join(RedistDir, File)
-                        end;
-                    _ -> VCRedistEnv
-                end,
+    VCRedist0 =
+        case VCRedistEnv of
+            false ->
+                case os:getenv("VCToolsRedistDir") of
+                    false -> fatal("No WINGS_VCREDIST in env", []);
+                    RedistDir -> select_redist(RedistDir, BitSize)
+                end;
+            _ -> VCRedistEnv
+        end,
+
     (ok == file:set_cwd(filename:dirname(VCRedist0))) orelse
 	fatal("dirname(WINGS_VCREDIST) failed: ~ts~n",[VCRedist0]),
+    File = filename:basename(VCRedist0),
 
     Quoted = case is_wslcross() of
                  true ->
@@ -185,11 +189,37 @@ setup_vcredist(BitSize, Root) ->
              end,
     CMD = "wmic.exe datafile where name=" ++ Quoted ++ " get version",
     Res0 = os:cmd(CMD),
-    %% io:format("VMIC: ~p~n\t~p~n",[CMD,Res0]),
-    VcVsn = [list_to_integer(V) || V <- tl(string:tokens(Res0, ".\s\r\n"))],
-    redist_version_ok(VcVsn, [list_to_integer(V) || V <- string:tokens(Vsn, ".")]),
+    %% io:format("VMIC: ~ts~n\t~ts~n",[CMD,Res0]),
+    VcVsn = [V || V <- tl(string:tokens(Res0, ".\s\r\n"))],
+    VsnInts = [list_to_integer(V) || V <- VcVsn],
+
+    %% We don't have any possibility to control C compiler of erlang and wings in the cloud
+    %% so just ignore the check and hope htey work together
+    case os:getenv("WINGS_VCREDIST_IGNORE_VSN") of
+        false -> redist_version_ok(VsnInts, [list_to_integer(V) || V <- string:tokens(Vsn, ".")]);
+        _ -> ok
+    end,
     copy(File, Root),
-    Vsn.
+    {File, lists:flatten(lists:join(".", VcVsn))}.
+
+select_redist(Dir, BitSize) ->
+    Files = case BitSize of
+                32 -> ["vcredist_x86.exe", "vc_redist.x86.exe"];
+                64 -> ["vcredist_x64.exe", "vc_redist.x64.exe"]
+            end,
+    Check = fun(FileName, Fs) ->
+                    File = filename:join(Dir, FileName),
+                    case filelib:is_file(File) of
+                        true -> [File|Fs];
+                        false -> Fs
+                    end
+            end,
+    case lists:foldl(Check, [], Files) of
+        [] ->
+            fatal("None of ~ts could be found in: ~ts~n",[Files, Dir]);
+        [AbsFile|_] ->
+            AbsFile
+    end.
 
 redist_version_ok([Major, Minor, Release, Build], [Major, Minor, ReqRel, ReqBuild])
   when (Release =:= ReqRel andalso Build >= ReqBuild); (Release > ReqRel) ->
@@ -212,7 +242,7 @@ wsl_path([]) ->
     [].
 
 convert_script(Root) ->
-    ok = file:set_cwd(filename:join(lib_dir(wings), src)),
+    set_cwd(filename:join(lib_dir(wings), src)),
     copy("wings_convert.escript", Root),
     {Escript, Convert} =
         case os_type() of
@@ -257,20 +287,21 @@ copy_erts(TargetDir, {BinExecFiles, ErtsExecFiles}) ->
                    string:chomp(os:cmd("wslpath -u " ++ WinPath));
                false -> code:root_dir()
            end,
-    ErtsPath0 = filename:join([Root,"erts-*"]),
-    ErtsPath  = filelib:wildcard(ErtsPath0),
+
+    ErtsDirWithVersion = filename:basename(lib_dir(erts)),
+    ErtsPath = filename:join([Root,ErtsDirWithVersion]),
 
     %% Hard code erts version 0 so that we do not need to figure
     %% that out in installer package
     TargetBin = filename:join(TargetDir, "bin"),
     TargetErts = filename:join([TargetDir, "erts-0", "bin"]),
 
-    ok = file:set_cwd(filename:join(ErtsPath, "bin")),
+    set_cwd(filename:join(ErtsPath, "bin")),
     %% To WINGS/erts-0/bin
     [copy(File, TargetErts) || File <- ErtsExecFiles],
     %% To WINGS/bin
     [copy(File, TargetBin) || File <- BinExecFiles],
-    ok = file:set_cwd(filename:join(Root, "bin")),
+    set_cwd(filename:join(Root, "bin")),
     copy("start.boot", TargetBin),
     copy("no_dot_erlang.boot", TargetBin),
     ok.
@@ -278,8 +309,8 @@ copy_erts(TargetDir, {BinExecFiles, ErtsExecFiles}) ->
 copy_app(App0, Lib, BitSize) ->
     AppDir = lib_dir(App0),
     io:format("\r\nCOPY ~p from ~p\r\n",[App0, AppDir]),
-    ok = file:set_cwd(AppDir),
-    ok = file:set_cwd(".."),
+    set_cwd(AppDir),
+    set_cwd(".."),
     App = list_to_atom(filename:basename(AppDir)),
     Wcs = [["ebin","*.{beam,bundle,png,lang,app}"],
 	   ["plugins","**","*.{beam,so,dll,lang}"],
@@ -340,6 +371,15 @@ copy(Source, Target0, BitSize) ->
     end,
     ok.
 
+
+set_cwd(Path) ->
+    case file:set_cwd(Path) of
+        ok -> ok;
+        Err ->
+            io:format("Error: ~p in ~p~n", [Err, process_info(self(), current_stacktrace)]),
+            fatal("Could not 'cwd' to ~ts~n", [Path])
+    end.
+
 %% WSLcross have no idea about file-modes explicit check extensions
 ext(".beam") -> {binary, beam};
 ext(".png")  -> {image, png};
@@ -364,7 +404,7 @@ fix_app_version(App0, Lib) ->
 	App ->
 	    VsnVar = string:to_upper(App) ++ "_VSN",
 	    Vsn = get_vsn(filename:join(AppDir, "vsn.mk"), VsnVar),
-	    ok = file:set_cwd(Lib),
+	    set_cwd(Lib),
 	    case file:rename(App, App++"-"++Vsn) of
 		ok -> ok;
 		Error ->
