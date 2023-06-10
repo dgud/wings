@@ -200,6 +200,8 @@ disallow_bind(#keyboard{unicode=UC}) when UC =/= 0 -> false;
 disallow_bind(#keyboard{sym=Sym}) when ?SDLK_F1 =< Sym, Sym =< ?SDLK_F15 -> false;
 disallow_bind(#keyboard{sym=Sym}) when ?SDLK_KP0 =< Sym, Sym =< ?SDLK_KP_EQUALS -> false;
 disallow_bind(#keyboard{sym=Sym}) when ?SDLK_HOME =< Sym, Sym =< ?SDLK_PAGEDOWN -> false;
+disallow_bind(#keyboard{sym=?SDLK_DELETE, mod=Mod}) when Mod band ?CTRL_BITS =:= 0 -> false;
+disallow_bind(#keyboard{sym=?SDLK_INSERT, mod=Mod}) when Mod band ?CTRL_BITS =:= 0 -> false;
 disallow_bind(_) -> true.
 
 do_unbind(Action) ->
