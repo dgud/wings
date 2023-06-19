@@ -1525,7 +1525,7 @@ displace_edges([{_,{Id,Edge1,{Vs1,Ve1}},{Id,_,{Vs2,Ve2}}}|Eds], Sh) ->
 	    displace_edges(Eds,Sh);
 	_ ->
 	    %% What Direction should we displace the verts?
-	    [Move1,Move2] = displace_dirs(0.0000001,Edge1,We),
+	    [Move1,Move2] = displace_dirs(?EPSILON,Edge1,We),
 	    %% Make the move
 	    Vpos = foldl(fun({V1,V2},VpIn) ->
 				 Pos1 = e3d_vec:add(Move1,array:get(V1,Vpos0)),
@@ -1549,9 +1549,9 @@ displace_charts([{_,{Id1,_,_},{Id2,_,_}}|Eds], Moved, Sh) ->
 	    We0 = #we{vp=Vpos0} = gb_trees:get(Id1,Sh),
 	    C1 = wings_vertex:center(We0),
 	    C2 = wings_vertex:center(gb_trees:get(Id2,Sh)),
-	    Disp0 = e3d_vec:mul(e3d_vec:norm(e3d_vec:sub(C1,C2)),0.0000001),
+	    Disp0 = e3d_vec:mul(e3d_vec:norm(e3d_vec:sub(C1,C2)),?EPSILON),
 	    Move = case Disp0 of
-		       {0.0,0.0,0.0} -> {0.0,0.0000001,0.0};
+		       {0.0,0.0,0.0} -> {0.0,?EPSILON,0.0};
 		       Disp -> Disp
 		   end,
 	    Vpos= [{V,e3d_vec:add(Pos,Move)} || 

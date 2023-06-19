@@ -11,6 +11,10 @@
 %%     $Id$
 %%
 
+-ifndef(EPSILON).
+-define(EPSILON, 1.0e-7).
+-endif.
+
 %% Types for e3d_bv
 -define(E3D_INFINITY, 3.402823e+38).  %% 32 bits float max
 -type e3d_bbox() :: {e3d_vec:point(), e3d_vec:point()}.

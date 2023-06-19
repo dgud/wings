@@ -54,7 +54,6 @@
 -define(I32, 32/signed-native).
 -define(U32, 32/unsigned-native).
 
--define(EPSILON, 1.0e-7).
 -define(IsLeaf(NodeData), ((NodeData) band 16#80000000) > 1).
 -define(GetSkipIndex(NodeData), ((NodeData) band 16#7fffffff)).
 -define(ENTRY_SZ, 8*4).

@@ -1226,7 +1226,7 @@ l2({S1,T1}, {S2,T2}, {S3,T3},
     T23 = T2-T3,    T31 = T3-T1,    T12 = T1-T2,
     S32 = S3-S2,    S13 = S1-S3,    S21 = S2-S1,
     case S21*T31-S13*T12 of
-	DoubleArea when DoubleArea > 0.00000001 ->
+	DoubleArea when DoubleArea > ?EPSILON ->
 	    SX = Q1x*T23+Q2x*T31+Q3x*T12,
 	    SY = Q1y*T23+Q2y*T31+Q3y*T12,
 	    SZ = Q1z*T23+Q2z*T31+Q3z*T12,
@@ -1244,7 +1244,7 @@ l2({S1,T1}, {S2,T2}, {S3,T3},
 
 l8(P1,P2,P3,Q1,Q2,Q3) ->  %% Worst stretch value
     A2 = area2d2(P1,P2,P3),
-    if A2 > 0.00000001 ->
+    if A2 > ?EPSILON ->
 	    SS = ss(P1,P2,P3,Q1,Q2,Q3,A2),
 	    ST = st(P1,P2,P3,Q1,Q2,Q3,A2),
 	    A = e3d_vec:dot(SS,SS),
