@@ -67,7 +67,7 @@ do_export(Attr, _Op, Exporter, _St) when is_list(Attr) ->
     Ps = [{include_uvs,Uvs},%% {units,Units},
           {tesselation, triangulate},
           {include_hard_edges, true},
-	  {subdivisions,SubDivs}|props()],
+          {subdivisions,SubDivs}|props(proplists:get_value(file_type, Attr))],
     Exporter(Ps, export_fun(Attr)),
     keep.
 
@@ -83,10 +83,12 @@ dialog(Type) ->
      %% wpa:dialog_template(?MODULE, units), panel,
      wpa:dialog_template(?MODULE, Type, [include_colors, include_normals])].
 
-props() ->
-    [{extensions,
-      [{".glb",  "gltf binary"},
-       {".gltf", "gl Transmission Format"}]}].
+props(Type) ->
+    Ext = case Type of
+              glb -> {".glb",  "gltf binary"};
+              gltf -> {".gltf", "gl Transmission Format"}
+          end,
+    [{extensions, [Ext]}].
 
 set_pref(KeyVals) ->
     wpa:pref_set(?MODULE, KeyVals).
