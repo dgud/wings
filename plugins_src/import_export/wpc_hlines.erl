@@ -230,172 +230,199 @@ dialog() ->
 
 
     Svg_render_type = get_pref( svg_render_type, ?DEF_SVG_RENDER_TYPE),
-    [
-     {hframe, [
-	       {label, ?__(200,"File type") },
-	       {menu, [
-		       {file_type(file_eps), file_eps},
-		       {file_type(file_svg), file_svg},
-		       {file_type(file_test_svg), file_test_svg}
-		      ], File_type, [{key, file_type}]}
-	      ]},
+    GeneralOpt =
+        {vframe, [
+            {label_column, [
+                {?__(200,"File type"), {menu, [{file_type(file_eps), file_eps},
+                                                {file_type(file_svg), file_svg},
+                                                {file_type(file_test_svg), file_test_svg}], File_type,
+                                         [{key, file_type}]}}
+            ]},
+            {hframe,[
+                {label_column, [
+                    {?__(100,"Width"), {text, BB_width, [{key, bb_width}]}}
+                ],[{margin,false}]},
+                {label_column, [
+                    {?__(101,"Height"), {text, BB_height, [{key, bb_height}]}}
+                ],[{margin,false}]},
+                {label, IntlPT},
+                panel,
+                {label_column, [
+                    {?__(102,"Proportional Effect"), {?__(103,"Enable"), Scale_prop, [{key, scale_prop}]}}
+                ]}
+            ], [{title, ?__(201,"Bounding box") }]},
 
-     {vframe, [
-	       {hframe,[
-			{label, ?__(100,"Width")},
-			{text, BB_width, [{key, bb_width}]},
-			{label, ?__(101,"Height")},
-			{text, BB_height, [{key, bb_height}]},
-			{label, IntlPT},
-			{label, ?__(102,"Proportional Effect")},
-			{ ?__(103,"Enable"), Scale_prop, [{key, scale_prop}
-							 ]}
-		       ]}
-	      ], [{title, ?__(201,"Bounding box") }]},
+            {hframe, [
+                {label_column, [
+                    {?__(104,"Subdiv Steps"), {text,SubDiv,[{key,subdivisions},{range,0,4}]}}
+                ],[{margin,false}]},
+                {label_column, [
+                    {?__(105,"Overlap push"), {text,Z_dist_offset,[{key,z_dist_offset},{range,0,10}]}}
+                ],[{margin,false}]}
+            ], [{title, ?__(106,"Pre-rendering")}]},
 
-     {vframe, [
-	       {hframe, [
-			 {label,?__(104,"Subdiv Steps")},
-			 {text,SubDiv,[{key,subdivisions},{range,0,4}]},
-			 {label,?__(105,"Overlap push")},
-			 {text,Z_dist_offset,[{key,z_dist_offset},{range,0,10}]}
-			]}
+            {hframe, [
+                { menu, [
+                    { ?__(107,"Scene (made many sliced,and file size larger)"), scene},
+                    { ?__(108,"Path  (divided nicely,but messed if overlap areas)"), path}
+                ], Division_priority, [{key, division_priority }]}
+            ], [{title, ?__(109,"Surface division Priorities")}]}
+        ]},
 
-	      ], [{title, ?__(106,"Pre-rendering") }]},
+    ExportOpt =
+        {hframe, [
+            {vradio, [
+                {?__(110,"Both"), both},
+                {?__(111,"Edge"), edge_only},
+                {?__(112,"Face"), face_only}
+            ], Draw_mode, [{key, draw_mode}, {title, ?__(113 ,"Export")}]},
+            {label, " "},
+            {vframe, [
+                {hframe, [
+                    {label_column, [
+                        {?__(114,"CSS"), {menu, [{?__(115,"Use Attribute"), attribute},
+                                                  {?__(116,"Use ClassName"), css_class},
+                                                  {?__(117,"Use AttrCompd"), compound}], Svg_attb_type,
+                                           [{key, svg_attb_type}]}}
+                    ],[{margin,false}]},
+                    panel,
+                    {label_column, [
+                        {?__(118,"Shape-rendering"), {menu, [{?__(119,"Auto"), none},
+                                                             {?__(120,"Smooth"), smooth_fill},
+                                                             {?__(121,"Jaggy line"), jaggy_line}], Svg_render_type,
+                                                      [{key, svg_render_type}]}}
+                    ],[{margin,false}]}
+                ]},
+                {vframe, [
+                    {label_column, [
+                        {?__(122,"NPR:Fill"),
+                         {hframe, [{menu, define_svg_filter(ui, 0), Svg_art_fill_type, [{key, svg_art_fill_type}]},
+                                   {label, " "}, {?__(123,"Responsive"), Responsive, [{key, responsive}]}
+                         ],[{margin,false}]}},
+                        {?__(124,"NPR:Line"),
+                         {hframe, [{menu, define_svg_filter(ui, 0), Svg_art_line_type, [{key, svg_art_line_type}]},
+                                   {label, " "}, {?__(125,"VarStroke"), Var_stroke, [{key, var_stroke}]}
+                         ],[{margin,false}]}},
+                        {?__(126,"Shading"),
+                         {hframe, [{menu, define_fill_type() , Fill_shade_type, [{key, fill_shade_type}]},
+                                   panel,
+                                   {label, ?__(127,"Lighting")  ++ " "},
+                                   {menu, define_light_pos() , Light_pos, [{key, light_pos}]}
+                         ],[{margin,false}]}},
+                        {?__(128,"Color interpolation"),
+                         {menu, [{"sRGB", 0}, {"linearRGB", 1}, {"auto", 2}], Svg_color_int, [{key, svg_color_int}]}}
+                        ],[{margin,false}]}
+                ]}
+            ], [{margin,false},{title, ?__(202,"SVG Export Options")}]}
+        ]},
 
+    EdgeLineOpt =
+        {vframe, [
+            {hframe, [
+                {hradio, [
+                    {?__(130,"All "), all_edges},
+                    {?__(131,"Hard"), hard_edges},
+                    {?__(132,"Others"), no_edges}
+                ], Edge_mode, [{key, edge_mode}, {title, ?__(133,"Show edges")}]},
+                {label," "},
+                {hframe, [
+                    {slider,
+                     {text, Crease_angle, [{key, crease_angle}, {range, {0, 180}}]}
+                    }
+                ], [{margin,false},{title, ?__(134,"Crease angle(Exclude if exceed an angle.)")}]}
+            ],[{margin,false}]},
 
-     {hframe, [
-	       { menu, [
-			{ ?__(107,"Scene (made many sliced,and file size larger)")     , scene},
-			{ ?__(108,"Path  (divided nicely,but messed if overlap areas)"), path }
-		       ], Division_priority, [{key, division_priority }]}
-	      ]
-     , [{title, ?__(109,"Surface division Priorities") }]},
+            {vframe, [
+                {label_column, [
+                    {?__(135, "Outline "),
+                     {hframe, [
+                         {text, Edge_width_outline, [{key, edge_width_outline}, {range, {0.0, ?BIG}}]},
+                         {label, IntlPT},
+                         {label, " "}, {color, Outl_color, [{key, outl_color}]},
+                         {label, " "}, {menu, define_dot_styles(), Outl_pattern, [{key, outl_pattern}]}
+                     ], [{margin,false}]}}
+                ],[{margin,false}]},
 
-     {hframe, [
-	       {vradio, [
-			 {?__(110,"Both"), both },
-			 {?__(111,"Edge"), edge_only },
-			 {?__(112,"Face"), face_only }
-			], Draw_mode, [{key, draw_mode}, {title, ?__(113 ,"Export") }]},
+                separator,
 
+                {label_column, [
+                    {?__(136,"Hard"),
+                     {hframe, [
+                         {text, Edge_width_hard, [{key, edge_width_hard}, {range, {0.0, ?BIG}}]},
+                         {label, IntlPT},
+                         {label, " "}, {color, Hard_color, [{key, hard_color}]},
+                         {label, " "}, {menu, define_dot_styles(), Hard_pattern, [{key, hard_pattern}]}
+                     ], [{margin,false}]}},
+                    {?__(137,"Crease"),
+                     {hframe, [
+                         {text, Edge_width_crease, [{key, edge_width_crease}, {range, {0.0, ?BIG}}]},
+                         {label, IntlPT},
+                         {label, " "}, {color,  Crea_color, [{key, crea_color}]},
+                         {label, " "}, {menu, define_dot_styles(), Crea_pattern, [{key, crea_pattern}]}
+                     ], [{margin,false}]}},
+                    {?__(138,"Material"),
+                     {hframe, [
+                         {text, Edge_width_material, [{key, edge_width_material}, {range, {0.0, ?BIG}}]},
+                         {label, IntlPT},
+                         {label, " "}, {color,  Matl_color, [{key, matl_color}]},
+                         {label, " "}, {menu, define_dot_styles(), Matl_pattern, [{key, matl_pattern}]}
+                     ], [{margin,false}]}},
+                    {?__(139,"Lucent"),
+                     {hframe, [
+                         {text, Edge_width_lucent, [{key, edge_width_lucent}, {range, {0.0, ?BIG}}]},
+                         {label, IntlPT},
+                         {label, " "}, {color,  Lcnt_color, [{key, lcnt_color}]},
+                         {label, " "}, {menu, define_dot_styles(), Lcnt_pattern, [{key, lcnt_pattern}]}
+                     ], [{margin,false}]}}
+                ],[{margin,false}]},
 
-	       {vframe, [
-			 {hframe, [ {label, ?__(114,"CSS:") },
-				    {menu, [
-					    {?__(115,"Use Attribute"), attribute},
-					    {?__(116,"Use ClassName"), css_class},
-					    {?__(117,"Use AttrCompd"), compound }
-					   ], Svg_attb_type, [{key, svg_attb_type}]},
-				    {label, ?__(118,"Shape-rendering") },
-				    {menu, [
-					    { ?__(119,"Auto")      , none  },
-					    { ?__(120,"Smooth")    , smooth_fill },
-					    { ?__(121,"Jaggy line"), jaggy_line  }
-					   ], Svg_render_type, [{key, svg_render_type}]}
-				  ]},
-			 {vframe, [
-				   {hframe, [ {label, ?__(122,"NPR:Fill") }, {menu, define_svg_filter(ui, 0), Svg_art_fill_type, [{key, svg_art_fill_type}]},  {?__(123,"Responsive"), Responsive, [{key, responsive}]}  ]},
-				   {hframe, [ {label, ?__(124,"NPR:Line") }, {menu, define_svg_filter(ui, 0), Svg_art_line_type, [{key, svg_art_line_type}]},  {?__(125,"VarStroke"), Var_stroke, [{key, var_stroke}]}   ]},
-				   {hframe, [ {label, ?__(126,"Shading ") }, {menu, define_fill_type() , Fill_shade_type,        [{key, fill_shade_type}]}  ,
-					      {label, ?__(127,"Lighting") }, {menu, define_light_pos() , Light_pos,              [{key, light_pos}]}  ]},
-				   {hframe, [ {label, ?__(128,"Color interpolation")},  { menu, [{ "sRGB", 0 }, { "linearRGB", 1 }, { "auto", 2 } ], Svg_color_int, [{key, svg_color_int} ]}  ]}
-				  ]}
-			], [{title, ?__(202,"SVG Export Options") }]}
+                separator,
 
-	      ]},
-     separator,
-     {vframe, [  {label, ?__(129,"Edge display Options")} ]},
+                {label_column, [
+                    {?__(140,"Regular "),
+                     {hframe, [
+                         {text, Edge_width_regular, [{key, edge_width_regular}, {range, {0.0, ?BIG}}]},
+                         {label, IntlPT},
+                         {label, " "}, {color, Regl_color, [{key, regl_color}]},
+                         {label, " "}, {menu, define_dot_styles(), Regl_pattern, [{key, regl_pattern}]},
+                         {label, " "}, {?__(141,"All") , Edge_one_width_for_all, [{key, edge_one_width_for_all}]}
+                     ], [{margin,false}]}}
+                ],[{margin,false}]}
 
-     {hframe, [
-	       {hradio, [
-			 {?__(130,"All ")  , all_edges},
-			 {?__(131,"Hard")  , hard_edges},
-			 {?__(132,"Others"), no_edges}
-			], Edge_mode, [{key, edge_mode},
-				       {title, ?__(133,"Show edges") }]},
+            ], [{margin,false}, {title, ?__(142,"Edge width,Color,dashed style")}]},
 
-	       {hframe, [
-			 {slider,
-			  {text, Crease_angle, [
-						{key, crease_angle}, {range, {0, 180}}
-					       ]}}
-			], [{title, ?__(134,"Crease angle(Exclude if exceed an angle.)") }]}
+            {hframe, [
+                {vradio, [
+                    {?__(143,"Butt")  , 0},
+                    {?__(144,"Round") , 1},
+                    {?__(145,"Square"), 2}
+                ], Line_cap, [{key, line_cap}, {title, ?__(146,"Line caps") }]},
+                {label," "},
+                {vframe, [
+                    { ?__(147,"Merge"), Optimize, [{key, optimize}]},
+                    {label_column, [
+                        {?__(148,"Angle"),
+                         {hframe, [
+                             {text, Coll_angle, [{key, coll_angle}, {range, {0.0, 90.0}}]},
+                             {label, " "}, {label, [176]}
+                         ], [{margin,false}]}},
+                        {?__(149,"Distance"),
+                         {hframe, [
+                             {text, Coll_dist, [{key, coll_dist}, {range, {0.0, ?BIG}}]},
+                             {label, IntlPT}
+                         ], [{margin,false}]}}
+                    ],[{margin,false}]}
+                ], [{margin,false},{title, ?__(150,"Collinear lines") }]}
+            ], [{margin,false}]}
+        ]},
 
-	      ]},
-
-     {vframe, [
-	       {hframe,  [ {label, ?__(135, "Outline ") }, {text, Edge_width_outline,  [{key, edge_width_outline}, {range, {0.0, ?BIG}}]}, {label, IntlPT},
-			   {color,  Outl_color, [{key, outl_color}] },  { menu, define_dot_styles(), Outl_pattern, [{key, outl_pattern }]}
-			 ]},separator,
-
-	       {hframe, [
-			 {vframe, [
-				   {label, ?__(136,"Hard") },
-				   {label, ?__(137,"Crease") },
-				   {label, ?__(138,"Material") },
-				   {label, ?__(139,"Lucent") }
-				  ]},
-			 {vframe, [
-				   {text, Edge_width_hard,  [{key, edge_width_hard}, {range, {0.0, ?BIG}}]},
-				   {text, Edge_width_crease, [{key, edge_width_crease}, {range, {0.0, ?BIG}}]},
-				   {text, Edge_width_material, [{key, edge_width_material}, {range, {0.0, ?BIG}}]},
-				   {text, Edge_width_lucent, [{key, edge_width_lucent}, {range, {0.0, ?BIG}}]}
-				  ]},
-			 {vframe, [
-				   {hframe,  [      {label, IntlPT}, {color,  Hard_color, [{key, hard_color}] }  ]},
-				   {hframe,  [      {label, IntlPT}, {color,  Crea_color, [{key, crea_color}] }  ]},
-				   {hframe,  [      {label, IntlPT}, {color,  Matl_color, [{key, matl_color}] }  ]},
-				   {hframe,  [      {label, IntlPT}, {color,  Lcnt_color, [{key, lcnt_color}] }  ]}
-				  ]},
-			 {vframe, [
-				   {hframe,  [    { menu, define_dot_styles(), Hard_pattern, [{key, hard_pattern }]} ]},
-				   {hframe,  [    { menu, define_dot_styles(), Crea_pattern, [{key, crea_pattern }]} ]},
-				   {hframe,  [    { menu, define_dot_styles(), Matl_pattern, [{key, matl_pattern }]} ]},
-				   {hframe,  [    { menu, define_dot_styles(), Lcnt_pattern, [{key, lcnt_pattern }]} ]}
-				  ]}
-			]},
-	       separator,
-	       {hframe,  [   {label, ?__(140,"Regular ") } ,  {text, Edge_width_regular, [{key, edge_width_regular}, {range, {0.0, ?BIG}} ]},
-			     {label, IntlPT}, {color, Regl_color, [{key, regl_color}] } ,
-			     { menu, define_dot_styles(), Regl_pattern, [{key, regl_pattern }]} ,
-			     {?__(141,"All") , Edge_one_width_for_all, [{key, edge_one_width_for_all}]}
-			 ]}
-
-	      ], [{title, ?__(142,"Edge width,Color,dashed style") }]},
-
-
-     {hframe, [
-	       {vradio, [
-			 {?__(143,"Butt")  , 0},
-			 {?__(144,"Round") , 1},
-			 {?__(145,"Square"), 2}
-			], Line_cap, [{key, line_cap}, {title, ?__(146,"Line caps") }]},
-
-	       {vframe, [
-			 { ?__(147,"Merge"), Optimize, [{key, optimize}]},
-			 {hframe, [
-				   {vframe, [
-					     {label, ?__(148,"Angle") },
-					     {label, ?__(149,"Distance") }
-					    ]},
-				   {vframe, [
-					     {text, Coll_angle, [
-								 {key, coll_angle}, {range, {0.0, 90.0}}
-								]},
-					     {text, Coll_dist, [
-								{key, coll_dist}, {range, {0.0, ?BIG}}
-							       ]}
-					    ]},
-				   {vframe, [
-					     {label, [176]},
-					     {label, IntlPT}
-					    ]}
-				  ]}
-			], [{title, ?__(150,"Collinear lines") }]}
-
-	      ]}
-    ].
+    [{vframe, [
+        {oframe, [
+            {?__(160,"General Options"), GeneralOpt},
+            {?__(161,"Export Style"), ExportOpt},
+            {?__(129,"Edge Display Options"), EdgeLineOpt}
+        ], 1, [{style, buttons}]}
+    ]}].
 
 get_pref(Key, Def) ->
     wpa:pref_get(?MODULE, Key, Def).
