@@ -1,3 +1,60 @@
+--- 2.3 --------------------------------------------
+
+- Added option to rotate the environment map. [micheus]
+
+- Fixed misplaced context menu in a multiple display setup. [micheus]
+
+- Fixed Align command in AutoUV editor that was not working properly. [micheus]
+
+- Added Proportional option to the Distribution command in AutoUV editor. [micheus]
+
+- Replaced the label 'Radial' by 'Radius' in Sphere primitive dialog.
+  Thanks to e.m.hobo for the suggestion. [micheus]
+
+- Fixed a crash when closing a window with the context menu active. Thanks to markie. [dgud]
+
+- Fixed a crash when renaming screenshots. Thanks to markie. [micheus]
+
+- Fixed the Connect RMB command that was entering in slide mode after no
+  connection has been done. [micheus]
+
+- Fixed a soft crash caused by selectiong MMB for Flow Connect command [micheus]
+
+- Fixed the Collapse command that was creating wrong topolgy in
+  face mode. Thanks to ptoing. [micheus]
+
+- Fixed NormalMap rendering, thanks Markie. [dgud]
+
+- Updated the splash screen image whth the one choosen in the contest.
+  Congrats to user chosetec. [micheus]
+
+- Fixed a crash which happened during start on some Intel GPUs when MSAA was
+  disabled in a PC setup. [Micheus]
+
+- Fixed the bind DELETE key after it has been unbound. Thanks to ptoing. [micheus]
+
+- Added more import and export features to palette window. Fixed right
+  click when outside palette square. Thanks tkbd and micheus for
+  suggestions and testing. [Edward Blake]
+
+- Fixed a division by zero crash in AutoUV when very tiny islands
+  exists. Thanks tkbd [micheus]
+
+- The file type in the file dialog now is in accordance with the glTF type
+  choosen in the option dialog. Thanks to markie [micheus]
+
+- Rewrote OpenGL window handling to make it work with EGL on linux,
+  and various other linux fixes. [dgud]
+
+- Fixed a bug in transparency rendering. [dgud] 
+
+- Lots of improvements in various Importers/Exporters by Edward Blake.
+   Import DirectX (.x) files.
+   Added X3D export, adding X3D and VRML import.
+   SVG additions and improvments.
+   Added WMF and EMF path import plugin.
+   Improved Adode Postscript support.
+
 --- 2.2.9 --------------------------------------------
 
 - Drag and drop file feature was not importing files with uppercase file

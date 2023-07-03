@@ -53,18 +53,6 @@ Fetch a prebuilt package of Erlang or build it.
 
 Build Erlang/OTP according to the instructions in the README file.
 
-I recommend running "configure" with the following options:
-
-	./configure --enable-threads --disable-hipe
-
-Threads must be enabled to make sure that Erlang emulator is linked with
-reentrant libraries. (--enable-threads is default on *most* platforms nowadays,
-but better safe than sorry.)
-
-HiPE is not used by Wings; but the reason I recommend disabling it is
-that disabling HiPE also disables the use of floating point exceptions.
-Floating point exceptions have caused Wings to crash occasionally.
-
 When you have built Erlang/OTP, modify the PATH environment variable
 so that the "erl" and "erlc" programs can be started from a shell prompt.
 

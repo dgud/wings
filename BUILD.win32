@@ -13,7 +13,7 @@ The following software is needed:
 
 - The Wings source @ http://www.wings3d.com or git
 
-- WSL or (Msys2 or WSL) for make and bash scripts
+- WSL for make and bash scripts
 
 - Erlang/Otp 26.0 or later. http://www.erlang.org
   Include the vcredist packaged with Erlang, in your installation.
@@ -128,7 +128,7 @@ Or add the source directory to ERL_LIBS environment variable.
 
 Example:
 
-$ werl.exe -pa /Users/username/src/wings/ebin -run wings_start start_halt
+$ erl.exe -pa /Users/username/src/wings/ebin -run wings_start start_halt
 $
 
 An Erlang console should appear, followed by the Wings window.
