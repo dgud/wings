@@ -179,14 +179,14 @@ bevel_min_limit([{_Edge,[{O1,D1},{O2,D2}]}|Tail], We, Min0) ->
 	Z when Z < (0.01*?DEFAULT_EXTRUDE_DIST*?DEFAULT_EXTRUDE_DIST) ->
 	    %% There is no intersection between the lines.
 	    case e3d_vec:len(O2MinusO1) of
-		Odist when Odist < 0.000001 ->
+		Odist when Odist < ?EPSILON ->
 		    %% As the vertices are already near each other,
 		    %% we will assume that they will be moving apart.
 		    bevel_min_limit(Tail, We, Min0);
 		Odist ->
 		    D1Len = e3d_vec:len(D1),
 		    case e3d_vec:dist(e3d_vec:mul(D1, Odist/D1Len), O2MinusO1) of
-			Dist when Dist < 0.000001 ->
+			Dist when Dist < ?EPSILON ->
 			    %% The vertices will be moved directly towards each
 			    %% others.
 			    S = Odist / (2*D1Len),
@@ -213,7 +213,7 @@ bevel_min_limit([{{Va,Vb},[{_,D1}]}|Tail], #we{vp=Vtab}=We, Min0) ->
     VaPos = array:get(Va, Vtab),
     VbPos = array:get(Vb, Vtab),
     case e3d_vec:len(D1) of
-	DLen when DLen < 0.000001 ->
+	DLen when DLen < ?EPSILON ->
 	    bevel_min_limit(Tail, We, 0.0);
 	DLen ->
 	    case e3d_vec:len(e3d_vec:sub(VaPos, VbPos)) / DLen of

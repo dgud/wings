@@ -16,8 +16,6 @@
 
 -export([init/0,menu/2,command/2]).
 
--define(EPSILON,0.0000005).
-
 %%%
 %%% plugin interface
 %%%

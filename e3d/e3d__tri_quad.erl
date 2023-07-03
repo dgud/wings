@@ -31,9 +31,9 @@
 -define(ANGFAC, 1.0).
 -define(DEGFAC, 10.0).
 -define(GTHRESH, 75).
--define(TOL, 0.0000001).
+-define(TOL, ?EPSILON).
 
-						% Triangulate an entire mesh.
+%% Triangulate an entire mesh.
 triangulate(#e3d_mesh{type=triangle}=Mesh) -> Mesh;
 triangulate(#e3d_mesh{type=polygon,fs=Fs0,vs=Vs}=Mesh) ->
     Fs = triangulate(Fs0, list_to_tuple(Vs), []),

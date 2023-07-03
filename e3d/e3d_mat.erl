@@ -44,8 +44,6 @@
 
 -spec identity() -> compact_matrix().
 
--define(EPSILON, 1.0e-06).
-    
 identity() ->
     Zero = 0.0,
     One = 1.0,

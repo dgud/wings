@@ -888,7 +888,7 @@ handle_command_1({scale,normalize}, St0) -> %% Normalize chart sizes
 				      end, {0.0,0.0,[]}, St0),
     TScale = TA2D/TA3D,
     Scale = fun({A2D,A3D,We0 = #we{id=WId}},Sh) ->
-		    Scale = math:sqrt(TScale * A3D/A2D),
+		    Scale = math:sqrt(TScale * A3D/wings_util:nonzero(A2D)),
 		    Center = wings_vertex:center(We0),
 		    T0 = e3d_mat:translate(e3d_vec:neg(Center)),
 		    SM = e3d_mat:scale(Scale, Scale, 1.0),
@@ -1525,7 +1525,7 @@ displace_edges([{_,{Id,Edge1,{Vs1,Ve1}},{Id,_,{Vs2,Ve2}}}|Eds], Sh) ->
 	    displace_edges(Eds,Sh);
 	_ ->
 	    %% What Direction should we displace the verts?
-	    [Move1,Move2] = displace_dirs(0.0000001,Edge1,We),
+	    [Move1,Move2] = displace_dirs(?EPSILON,Edge1,We),
 	    %% Make the move
 	    Vpos = foldl(fun({V1,V2},VpIn) ->
 				 Pos1 = e3d_vec:add(Move1,array:get(V1,Vpos0)),
@@ -1549,9 +1549,9 @@ displace_charts([{_,{Id1,_,_},{Id2,_,_}}|Eds], Moved, Sh) ->
 	    We0 = #we{vp=Vpos0} = gb_trees:get(Id1,Sh),
 	    C1 = wings_vertex:center(We0),
 	    C2 = wings_vertex:center(gb_trees:get(Id2,Sh)),
-	    Disp0 = e3d_vec:mul(e3d_vec:norm(e3d_vec:sub(C1,C2)),0.0000001),
+	    Disp0 = e3d_vec:mul(e3d_vec:norm(e3d_vec:sub(C1,C2)),?EPSILON),
 	    Move = case Disp0 of
-		       {0.0,0.0,0.0} -> {0.0,0.0000001,0.0};
+		       {0.0,0.0,0.0} -> {0.0,?EPSILON,0.0};
 		       Disp -> Disp
 		   end,
 	    Vpos= [{V,e3d_vec:add(Pos,Move)} || 
@@ -1964,7 +1964,7 @@ stretch(Dir,We) ->
     [{X1,Y1,_},{X2,Y2,_}] = wings_vertex:bounding_box(We),
     Center = {CX,CY,CZ} = {X1+(X2-X1)/2, Y1+(Y2-Y1)/2, 0.0},
     T0 = e3d_mat:translate(e3d_vec:neg(Center)),
-    SX0 = 1.0/(X2-X1), SY0= 1.0/(Y2-Y1),
+    SX0 = 1.0/wings_util:nonzero(X2-X1), SY0= 1.0/wings_util:nonzero(Y2-Y1),
     {SX,SY} = case Dir of
                 max_x -> {SX0, 1.0};
                 max_y -> {1.0, SY0};
@@ -2246,4 +2246,3 @@ geom2auv_edges(Es, #we{name=#ch{emap=Emap0}}) ->
 		      {value,Hits} -> Hits ++ Acc
 		  end
 	  end, [], Es).
-    

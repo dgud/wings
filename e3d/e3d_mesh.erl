@@ -158,7 +158,7 @@ add_hard_edges(_, _, _, _, _, Acc) ->
     Acc.
 
 is_equal_v(N,N) -> true;
-is_equal_v(N1,N2) -> e3d_vec:dist_sqr(N1,N2) < 0.00001.
+is_equal_v(N1,N2) -> e3d_vec:dist_sqr(N1,N2) < ?EPSILON.
 
 %%%
 %%% Mesh triangulation.

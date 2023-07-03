@@ -28,6 +28,8 @@
 	 rotate_s_to_t/2,
 	 vec_rotate/2]).
 
+-include("e3d.hrl").
+
 -compile(inline).
 
 %% Multiplicative identity
@@ -53,7 +55,7 @@ norm(Q = {{Qx,Qy,Qz},Qw})
   when is_float(Qx),is_float(Qy),is_float(Qz),is_float(Qw) ->
     M = magnitude(Q),
     if M =:= 1.0 -> Q;
-       M < 0.00001 -> {{0.0,0.0,0.0},0.0};
+       M < ?EPSILON -> {{0.0,0.0,0.0},0.0};
        true -> 
 	    IM = 1/M,
 	    {{Qx*IM,Qy*IM,Qz*IM},Qw*IM}
@@ -78,7 +80,7 @@ slerp(Q0={{X0,Y0,Z0},W0}, {{X1,Y1,Z1},W1}, T)
        true ->
 	    HalfTheta = math:acos(HalfCosTheta),
 	    HalfSinTheta = math:sin(HalfTheta),
-	    if abs(HalfSinTheta) < 0.00001 ->
+	    if abs(HalfSinTheta) < ?EPSILON ->
 		    R0 = 1.0 - T,
 		    R1 = T,
 		    {{X0*R0+X1*R1, Y0*R0+Y1*R1, Z0*R0+Z1*R1},W0*R0+W1*R1};
