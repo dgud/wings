@@ -232,197 +232,197 @@ dialog() ->
     Svg_render_type = get_pref( svg_render_type, ?DEF_SVG_RENDER_TYPE),
     GeneralOpt =
         {vframe, [
-            {label_column, [
-                {?__(200,"File type"), {menu, [{file_type(file_eps), file_eps},
-                                                {file_type(file_svg), file_svg},
-                                                {file_type(file_test_svg), file_test_svg}], File_type,
-                                         [{key, file_type}]}}
-            ]},
-            {hframe,[
-                {label_column, [
-                    {?__(100,"Width"), {text, BB_width, [{key, bb_width}]}}
-                ],[{margin,false}]},
-                {label_column, [
-                    {?__(101,"Height"), {text, BB_height, [{key, bb_height}]}}
-                ],[{margin,false}]},
-                {label, IntlPT},
-                panel,
-                {label_column, [
-                    {?__(102,"Proportional Effect"), {?__(103,"Enable"), Scale_prop, [{key, scale_prop}]}}
-                ]}
-            ], [{title, ?__(201,"Bounding box") }]},
+                  {label_column, [
+                                  {?__(200,"File type"), {menu, [{file_type(file_eps), file_eps},
+                                                                 {file_type(file_svg), file_svg},
+                                                                 {file_type(file_test_svg), file_test_svg}], File_type,
+                                                          [{key, file_type}]}}
+                                 ]},
+                  {hframe,[
+                           {label_column, [
+                                           {?__(100,"Width"), {text, BB_width, [{key, bb_width}]}}
+                                          ],[{margin,false}]},
+                           {label_column, [
+                                           {?__(101,"Height"), {text, BB_height, [{key, bb_height}]}}
+                                          ],[{margin,false}]},
+                           {label, IntlPT},
+                           panel,
+                           {label_column, [
+                                           {?__(102,"Proportional Effect"), {?__(103,"Enable"), Scale_prop, [{key, scale_prop}]}}
+                                          ]}
+                          ], [{title, ?__(201,"Bounding box") }]},
 
-            {hframe, [
-                {label_column, [
-                    {?__(104,"Subdiv Steps"), {text,SubDiv,[{key,subdivisions},{range,0,4}]}}
-                ],[{margin,false}]},
-                {label_column, [
-                    {?__(105,"Overlap push"), {text,Z_dist_offset,[{key,z_dist_offset},{range,0,10}]}}
-                ],[{margin,false}]}
-            ], [{title, ?__(106,"Pre-rendering")}]},
+                  {hframe, [
+                            {label_column, [
+                                            {?__(104,"Subdiv Steps"), {text,SubDiv,[{key,subdivisions},{range,0,4}]}}
+                                           ],[{margin,false}]},
+                            {label_column, [
+                                            {?__(105,"Overlap push"), {text,Z_dist_offset,[{key,z_dist_offset},{range,0,10}]}}
+                                           ],[{margin,false}]}
+                           ], [{title, ?__(106,"Pre-rendering")}]},
 
-            {hframe, [
-                { menu, [
-                    { ?__(107,"Scene (made many sliced,and file size larger)"), scene},
-                    { ?__(108,"Path  (divided nicely,but messed if overlap areas)"), path}
-                ], Division_priority, [{key, division_priority }]}
-            ], [{title, ?__(109,"Surface division Priorities")}]}
-        ]},
+                  {hframe, [
+                            { menu, [
+                                     { ?__(107,"Scene (made many sliced,and file size larger)"), scene},
+                                     { ?__(108,"Path  (divided nicely,but messed if overlap areas)"), path}
+                                    ], Division_priority, [{key, division_priority }]}
+                           ], [{title, ?__(109,"Surface division Priorities")}]}
+                 ]},
 
     ExportOpt =
         {hframe, [
-            {vradio, [
-                {?__(110,"Both"), both},
-                {?__(111,"Edge"), edge_only},
-                {?__(112,"Face"), face_only}
-            ], Draw_mode, [{key, draw_mode}, {title, ?__(113 ,"Export")}]},
-            {label, " "},
-            {vframe, [
-                {hframe, [
-                    {label_column, [
-                        {?__(114,"CSS"), {menu, [{?__(115,"Use Attribute"), attribute},
-                                                  {?__(116,"Use ClassName"), css_class},
-                                                  {?__(117,"Use AttrCompd"), compound}], Svg_attb_type,
-                                           [{key, svg_attb_type}]}}
-                    ],[{margin,false}]},
-                    panel,
-                    {label_column, [
-                        {?__(118,"Shape-rendering"), {menu, [{?__(119,"Auto"), none},
-                                                             {?__(120,"Smooth"), smooth_fill},
-                                                             {?__(121,"Jaggy line"), jaggy_line}], Svg_render_type,
-                                                      [{key, svg_render_type}]}}
-                    ],[{margin,false}]}
-                ]},
-                {vframe, [
-                    {label_column, [
-                        {?__(122,"NPR:Fill"),
-                         {hframe, [{menu, define_svg_filter(ui, 0), Svg_art_fill_type, [{key, svg_art_fill_type}]},
-                                   {label, " "}, {?__(123,"Responsive"), Responsive, [{key, responsive}]}
-                         ],[{margin,false}]}},
-                        {?__(124,"NPR:Line"),
-                         {hframe, [{menu, define_svg_filter(ui, 0), Svg_art_line_type, [{key, svg_art_line_type}]},
-                                   {label, " "}, {?__(125,"VarStroke"), Var_stroke, [{key, var_stroke}]}
-                         ],[{margin,false}]}},
-                        {?__(126,"Shading"),
-                         {hframe, [{menu, define_fill_type() , Fill_shade_type, [{key, fill_shade_type}]},
-                                   panel,
-                                   {label, ?__(127,"Lighting")  ++ " "},
-                                   {menu, define_light_pos() , Light_pos, [{key, light_pos}]}
-                         ],[{margin,false}]}},
-                        {?__(128,"Color interpolation"),
-                         {menu, [{"sRGB", 0}, {"linearRGB", 1}, {"auto", 2}], Svg_color_int, [{key, svg_color_int}]}}
-                        ],[{margin,false}]}
-                ]}
-            ], [{margin,false},{title, ?__(202,"SVG Export Options")}]}
-        ]},
+                  {vradio, [
+                            {?__(110,"Both"), both},
+                            {?__(111,"Edge"), edge_only},
+                            {?__(112,"Face"), face_only}
+                           ], Draw_mode, [{key, draw_mode}, {title, ?__(113 ,"Export")}]},
+                  {label, " "},
+                  {vframe, [
+                            {hframe, [
+                                      {label_column, [
+                                                      {?__(114,"CSS"), {menu, [{?__(115,"Use Attribute"), attribute},
+                                                                               {?__(116,"Use ClassName"), css_class},
+                                                                               {?__(117,"Use AttrCompd"), compound}], Svg_attb_type,
+                                                                        [{key, svg_attb_type}]}}
+                                                     ],[{margin,false}]},
+                                      panel,
+                                      {label_column, [
+                                                      {?__(118,"Shape-rendering"), {menu, [{?__(119,"Auto"), none},
+                                                                                           {?__(120,"Smooth"), smooth_fill},
+                                                                                           {?__(121,"Jaggy line"), jaggy_line}], Svg_render_type,
+                                                                                    [{key, svg_render_type}]}}
+                                                     ],[{margin,false}]}
+                                     ]},
+                            {vframe, [
+                                      {label_column, [
+                                                      {?__(122,"NPR:Fill"),
+                                                       {hframe, [{menu, define_svg_filter(ui, 0), Svg_art_fill_type, [{key, svg_art_fill_type}]},
+                                                                 {label, " "}, {?__(123,"Responsive"), Responsive, [{key, responsive}]}
+                                                                ],[{margin,false}]}},
+                                                      {?__(124,"NPR:Line"),
+                                                       {hframe, [{menu, define_svg_filter(ui, 0), Svg_art_line_type, [{key, svg_art_line_type}]},
+                                                                 {label, " "}, {?__(125,"VarStroke"), Var_stroke, [{key, var_stroke}]}
+                                                                ],[{margin,false}]}},
+                                                      {?__(126,"Shading"),
+                                                       {hframe, [{menu, define_fill_type() , Fill_shade_type, [{key, fill_shade_type}]},
+                                                                 panel,
+                                                                 {label, ?__(127,"Lighting")  ++ " "},
+                                                                 {menu, define_light_pos() , Light_pos, [{key, light_pos}]}
+                                                                ],[{margin,false}]}},
+                                                      {?__(128,"Color interpolation"),
+                                                       {menu, [{"sRGB", 0}, {"linearRGB", 1}, {"auto", 2}], Svg_color_int, [{key, svg_color_int}]}}
+                                                     ],[{margin,false}]}
+                                     ]}
+                           ], [{margin,false},{title, ?__(202,"SVG Export Options")}]}
+                 ]},
 
     EdgeLineOpt =
         {vframe, [
-            {hframe, [
-                {hradio, [
-                    {?__(130,"All "), all_edges},
-                    {?__(131,"Hard"), hard_edges},
-                    {?__(132,"Others"), no_edges}
-                ], Edge_mode, [{key, edge_mode}, {title, ?__(133,"Show edges")}]},
-                {label," "},
-                {hframe, [
-                    {slider,
-                     {text, Crease_angle, [{key, crease_angle}, {range, {0, 180}}]}
-                    }
-                ], [{margin,false},{title, ?__(134,"Crease angle(Exclude if exceed an angle.)")}]}
-            ],[{margin,false}]},
+                  {hframe, [
+                            {hradio, [
+                                      {?__(130,"All "), all_edges},
+                                      {?__(131,"Hard"), hard_edges},
+                                      {?__(132,"Others"), no_edges}
+                                     ], Edge_mode, [{key, edge_mode}, {title, ?__(133,"Show edges")}]},
+                            {label," "},
+                            {hframe, [
+                                      {slider,
+                                       {text, Crease_angle, [{key, crease_angle}, {range, {0, 180}}]}
+                                      }
+                                     ], [{margin,false},{title, ?__(134,"Crease angle(Exclude if exceed an angle.)")}]}
+                           ],[{margin,false}]},
 
-            {vframe, [
-                {label_column, [
-                    {?__(135, "Outline "),
-                     {hframe, [
-                         {text, Edge_width_outline, [{key, edge_width_outline}, {range, {0.0, ?BIG}}]},
-                         {label, IntlPT},
-                         {label, " "}, {color, Outl_color, [{key, outl_color}]},
-                         {label, " "}, {menu, define_dot_styles(), Outl_pattern, [{key, outl_pattern}]}
-                     ], [{margin,false}]}}
-                ],[{margin,false}]},
+                  {vframe, [
+                            {label_column, [
+                                            {?__(135, "Outline "),
+                                             {hframe, [
+                                                       {text, Edge_width_outline, [{key, edge_width_outline}, {range, {0.0, ?BIG}}]},
+                                                       {label, IntlPT},
+                                                       {label, " "}, {color, Outl_color, [{key, outl_color}]},
+                                                       {label, " "}, {menu, define_dot_styles(), Outl_pattern, [{key, outl_pattern}]}
+                                                      ], [{margin,false}]}}
+                                           ],[{margin,false}]},
 
-                separator,
+                            separator,
 
-                {label_column, [
-                    {?__(136,"Hard"),
-                     {hframe, [
-                         {text, Edge_width_hard, [{key, edge_width_hard}, {range, {0.0, ?BIG}}]},
-                         {label, IntlPT},
-                         {label, " "}, {color, Hard_color, [{key, hard_color}]},
-                         {label, " "}, {menu, define_dot_styles(), Hard_pattern, [{key, hard_pattern}]}
-                     ], [{margin,false}]}},
-                    {?__(137,"Crease"),
-                     {hframe, [
-                         {text, Edge_width_crease, [{key, edge_width_crease}, {range, {0.0, ?BIG}}]},
-                         {label, IntlPT},
-                         {label, " "}, {color,  Crea_color, [{key, crea_color}]},
-                         {label, " "}, {menu, define_dot_styles(), Crea_pattern, [{key, crea_pattern}]}
-                     ], [{margin,false}]}},
-                    {?__(138,"Material"),
-                     {hframe, [
-                         {text, Edge_width_material, [{key, edge_width_material}, {range, {0.0, ?BIG}}]},
-                         {label, IntlPT},
-                         {label, " "}, {color,  Matl_color, [{key, matl_color}]},
-                         {label, " "}, {menu, define_dot_styles(), Matl_pattern, [{key, matl_pattern}]}
-                     ], [{margin,false}]}},
-                    {?__(139,"Lucent"),
-                     {hframe, [
-                         {text, Edge_width_lucent, [{key, edge_width_lucent}, {range, {0.0, ?BIG}}]},
-                         {label, IntlPT},
-                         {label, " "}, {color,  Lcnt_color, [{key, lcnt_color}]},
-                         {label, " "}, {menu, define_dot_styles(), Lcnt_pattern, [{key, lcnt_pattern}]}
-                     ], [{margin,false}]}}
-                ],[{margin,false}]},
+                            {label_column, [
+                                            {?__(136,"Hard"),
+                                             {hframe, [
+                                                       {text, Edge_width_hard, [{key, edge_width_hard}, {range, {0.0, ?BIG}}]},
+                                                       {label, IntlPT},
+                                                       {label, " "}, {color, Hard_color, [{key, hard_color}]},
+                                                       {label, " "}, {menu, define_dot_styles(), Hard_pattern, [{key, hard_pattern}]}
+                                                      ], [{margin,false}]}},
+                                            {?__(137,"Crease"),
+                                             {hframe, [
+                                                       {text, Edge_width_crease, [{key, edge_width_crease}, {range, {0.0, ?BIG}}]},
+                                                       {label, IntlPT},
+                                                       {label, " "}, {color,  Crea_color, [{key, crea_color}]},
+                                                       {label, " "}, {menu, define_dot_styles(), Crea_pattern, [{key, crea_pattern}]}
+                                                      ], [{margin,false}]}},
+                                            {?__(138,"Material"),
+                                             {hframe, [
+                                                       {text, Edge_width_material, [{key, edge_width_material}, {range, {0.0, ?BIG}}]},
+                                                       {label, IntlPT},
+                                                       {label, " "}, {color,  Matl_color, [{key, matl_color}]},
+                                                       {label, " "}, {menu, define_dot_styles(), Matl_pattern, [{key, matl_pattern}]}
+                                                      ], [{margin,false}]}},
+                                            {?__(139,"Lucent"),
+                                             {hframe, [
+                                                       {text, Edge_width_lucent, [{key, edge_width_lucent}, {range, {0.0, ?BIG}}]},
+                                                       {label, IntlPT},
+                                                       {label, " "}, {color,  Lcnt_color, [{key, lcnt_color}]},
+                                                       {label, " "}, {menu, define_dot_styles(), Lcnt_pattern, [{key, lcnt_pattern}]}
+                                                      ], [{margin,false}]}}
+                                           ],[{margin,false}]},
 
-                separator,
+                            separator,
 
-                {label_column, [
-                    {?__(140,"Regular "),
-                     {hframe, [
-                         {text, Edge_width_regular, [{key, edge_width_regular}, {range, {0.0, ?BIG}}]},
-                         {label, IntlPT},
-                         {label, " "}, {color, Regl_color, [{key, regl_color}]},
-                         {label, " "}, {menu, define_dot_styles(), Regl_pattern, [{key, regl_pattern}]},
-                         {label, " "}, {?__(141,"All") , Edge_one_width_for_all, [{key, edge_one_width_for_all}]}
-                     ], [{margin,false}]}}
-                ],[{margin,false}]}
+                            {label_column, [
+                                            {?__(140,"Regular "),
+                                             {hframe, [
+                                                       {text, Edge_width_regular, [{key, edge_width_regular}, {range, {0.0, ?BIG}}]},
+                                                       {label, IntlPT},
+                                                       {label, " "}, {color, Regl_color, [{key, regl_color}]},
+                                                       {label, " "}, {menu, define_dot_styles(), Regl_pattern, [{key, regl_pattern}]},
+                                                       {label, " "}, {?__(141,"All") , Edge_one_width_for_all, [{key, edge_one_width_for_all}]}
+                                                      ], [{margin,false}]}}
+                                           ],[{margin,false}]}
 
-            ], [{margin,false}, {title, ?__(142,"Edge width,Color,dashed style")}]},
+                           ], [{margin,false}, {title, ?__(142,"Edge width,Color,dashed style")}]},
 
-            {hframe, [
-                {vradio, [
-                    {?__(143,"Butt")  , 0},
-                    {?__(144,"Round") , 1},
-                    {?__(145,"Square"), 2}
-                ], Line_cap, [{key, line_cap}, {title, ?__(146,"Line caps") }]},
-                {label," "},
-                {vframe, [
-                    { ?__(147,"Merge"), Optimize, [{key, optimize}]},
-                    {label_column, [
-                        {?__(148,"Angle"),
-                         {hframe, [
-                             {text, Coll_angle, [{key, coll_angle}, {range, {0.0, 90.0}}]},
-                             {label, " "}, {label, [176]}
-                         ], [{margin,false}]}},
-                        {?__(149,"Distance"),
-                         {hframe, [
-                             {text, Coll_dist, [{key, coll_dist}, {range, {0.0, ?BIG}}]},
-                             {label, IntlPT}
-                         ], [{margin,false}]}}
-                    ],[{margin,false}]}
-                ], [{margin,false},{title, ?__(150,"Collinear lines") }]}
-            ], [{margin,false}]}
-        ]},
+                  {hframe, [
+                            {vradio, [
+                                      {?__(143,"Butt")  , 0},
+                                      {?__(144,"Round") , 1},
+                                      {?__(145,"Square"), 2}
+                                     ], Line_cap, [{key, line_cap}, {title, ?__(146,"Line caps") }]},
+                            {label," "},
+                            {vframe, [
+                                      { ?__(147,"Merge"), Optimize, [{key, optimize}]},
+                                      {label_column, [
+                                                      {?__(148,"Angle"),
+                                                       {hframe, [
+                                                                 {text, Coll_angle, [{key, coll_angle}, {range, {0.0, 90.0}}]},
+                                                                 {label, " "}, {label, [176]}
+                                                                ], [{margin,false}]}},
+                                                      {?__(149,"Distance"),
+                                                       {hframe, [
+                                                                 {text, Coll_dist, [{key, coll_dist}, {range, {0.0, ?BIG}}]},
+                                                                 {label, IntlPT}
+                                                                ], [{margin,false}]}}
+                                                     ],[{margin,false}]}
+                                     ], [{margin,false},{title, ?__(150,"Collinear lines") }]}
+                           ], [{margin,false}]}
+                 ]},
 
     [{vframe, [
-        {oframe, [
-            {?__(160,"General Options"), GeneralOpt},
-            {?__(161,"Export Style"), ExportOpt},
-            {?__(129,"Edge Display Options"), EdgeLineOpt}
-        ], 1, [{style, buttons}]}
-    ]}].
+               {oframe, [
+                         {?__(160,"General Options"), GeneralOpt},
+                         {?__(161,"Export Style"), ExportOpt},
+                         {?__(129,"Edge Display Options"), EdgeLineOpt}
+                        ], 1, [{style, buttons}]}
+              ]}].
 
 get_pref(Key, Def) ->
     wpa:pref_get(?MODULE, Key, Def).
@@ -594,8 +594,7 @@ do_export(Props, File_name, #e3d_file{objs=Objs, mat=Mats}) ->
 	    Edge_type_fun =
 		case get_pref(edge_one_width_for_all, ?DEF_EDGE_ONE_WIDTH_FOR_ALL) of
 		    false ->
-			fun edge_type_group/6
-			    ;
+			fun edge_type_group/6;
 		    true ->
 			fun edge_type_copy/6
 		end,
@@ -637,8 +636,7 @@ do_export(Props, File_name, #e3d_file{objs=Objs, mat=Mats}) ->
 					{VC_tree_acc, ME_dict, Face_tree_acc} =
 					    add_trimesh(incr(TMFs, VI_incr),
 							Is_open, Frustum, Frustum_planes, Front_face, Side_face,
-							VC_tree_acc0, dict:new(), Face_tree_acc0)
-					    ;
+							VC_tree_acc0, dict:new(), Face_tree_acc0);
 				    true ->
 
 
@@ -706,8 +704,7 @@ do_export(Props, File_name, #e3d_file{objs=Objs, mat=Mats}) ->
 					 {Is_transparent, _RGBA} = hd(dict__fetch(hd(Mat), Mats_dict)),
 					 case Is_transparent of
 					     true ->
-						 O_qtree_acc0
-						     ;
+						 O_qtree_acc0;
 					     false ->
 						 FVCs = ctree__get(FVIs, VC_tree),
 						 Fzmax = face_zmax(FVCs),
@@ -738,15 +735,21 @@ do_export(Props, File_name, #e3d_file{objs=Objs, mat=Mats}) ->
 		      end,
 		      {dict__new(), 0 },
 		      [{Line_code, {  Line_width,  Edges, Line_color, Line_pattern } } ||
-			  {Edge_type1, Line_code, Line_width, Line_color, Line_pattern } <- [
-											     {outline,  "Outline", get_pref(edge_width_outline,  ?DEF_EDGE_WIDTH_OUTLINE) , get_pref( outl_color, ?DEF_OUTL_COLOR), get_pref( outl_pattern, ?DEF_OUTL_PATTERN) },
-											     {hard,     "Hadedge", get_pref(edge_width_hard,     ?DEF_EDGE_WIDTH_HARD)    , get_pref( hard_color, ?DEF_HARD_COLOR), get_pref( hard_pattern, ?DEF_HARD_PATTERN) },
-											     {crease,   "Crease" , get_pref(edge_width_crease,   ?DEF_EDGE_WIDTH_CREASE)  , get_pref( crea_color, ?DEF_CREA_COLOR), get_pref( crea_pattern, ?DEF_CREA_PATTERN) },
-											     {material, "Materia", get_pref(edge_width_material, ?DEF_EDGE_WIDTH_MATERIAL), get_pref( matl_color, ?DEF_MATL_COLOR), get_pref( matl_pattern, ?DEF_MATL_PATTERN) },
-											     {regular,  "Regular", get_pref(edge_width_regular,  ?DEF_EDGE_WIDTH_REGULAR) , get_pref( regl_color, ?DEF_REGL_COLOR), get_pref( regl_pattern, ?DEF_REGL_PATTERN) },
-											     {transp, "Trans_hide", get_pref(edge_width_lucent,  ?DEF_EDGE_WIDTH_LUCENT)  , get_pref( lcnt_color, ?DEF_LCNT_COLOR), get_pref( lcnt_pattern, ?DEF_LCNT_PATTERN) }
-
-											    ],% Add Line Group code (Aboid the bug when same width size setting in dictionary)
+			  {Edge_type1, Line_code, Line_width, Line_color, Line_pattern }
+                              <- [
+                                  {outline,  "Outline", get_pref(edge_width_outline,  ?DEF_EDGE_WIDTH_OUTLINE) ,
+                                   get_pref( outl_color, ?DEF_OUTL_COLOR), get_pref( outl_pattern, ?DEF_OUTL_PATTERN) },
+                                  {hard,     "Hadedge", get_pref(edge_width_hard,     ?DEF_EDGE_WIDTH_HARD)    ,
+                                   get_pref( hard_color, ?DEF_HARD_COLOR), get_pref( hard_pattern, ?DEF_HARD_PATTERN) },
+                                  {crease,   "Crease" , get_pref(edge_width_crease,   ?DEF_EDGE_WIDTH_CREASE)  ,
+                                   get_pref( crea_color, ?DEF_CREA_COLOR), get_pref( crea_pattern, ?DEF_CREA_PATTERN) },
+                                  {material, "Materia", get_pref(edge_width_material, ?DEF_EDGE_WIDTH_MATERIAL),
+                                   get_pref( matl_color, ?DEF_MATL_COLOR), get_pref( matl_pattern, ?DEF_MATL_PATTERN) },
+                                  {regular,  "Regular", get_pref(edge_width_regular,  ?DEF_EDGE_WIDTH_REGULAR) ,
+                                   get_pref( regl_color, ?DEF_REGL_COLOR), get_pref( regl_pattern, ?DEF_REGL_PATTERN) },
+                                  {transp, "Trans_hide", get_pref(edge_width_lucent,  ?DEF_EDGE_WIDTH_LUCENT)  ,
+                                   get_pref( lcnt_color, ?DEF_LCNT_COLOR), get_pref( lcnt_pattern, ?DEF_LCNT_PATTERN) }
+                                 ],% Add Line Group code (Aboid the bug when same width size setting in dictionary)
 			  {Edge_type2, Edges  } <- Edge_dict,
 			  Edge_type1 =:= Edge_type2]),
 
@@ -818,8 +821,7 @@ do_export(Props, File_name, #e3d_file{objs=Objs, mat=Mats}) ->
 								    {Ls_acc, Edge_count_acc} =
 									case clip_z(EVCt, View_port) of
 									    nil ->
-										{Ls_acc0, Edge_count_acc0}
-										    ;
+										{Ls_acc0, Edge_count_acc0};
 									    LVCt ->
 										LV2Ct = Proj(LVCt),
 										{Ls_acc0 ++ line_segment(EVIt, LVCt, LV2Ct,
@@ -832,8 +834,7 @@ do_export(Props, File_name, #e3d_file{objs=Objs, mat=Mats}) ->
 									    Percent = Edge_count_acc / Edges_total,
 									    wings_pb:update(Percent * 0.69 + 0.3,
 											    integer_to_list(round(Percent * 100.0)) ++ "%"),
-									    wings_pb:pause()
-										;
+									    wings_pb:pause();
 									true ->
 									    ok
 								    end,
@@ -847,8 +848,7 @@ do_export(Props, File_name, #e3d_file{objs=Objs, mat=Mats}) ->
 					       Dthr = get_pref(coll_dist, ?DEF_COLL_DIST),
 					       lstree_to_list(lists:foldl(fun(L, Ls_acc) ->
 										  lstree_insert(L, Ls_acc, Athr, Dthr)
-									  end, lstree_empty(), Ls1))
-						   ;
+									  end, lstree_empty(), Ls1));
 					   false ->
 					       Ls1
 				       end,
@@ -908,7 +908,7 @@ incr(A, Incr) -> A + Incr.
 %%  [9, 2, 5, 3] -> [{9, 2}, {2, 5}, {5, 3}, {3, 9}]
 %%
 pair(L) when is_list(L) -> pair(hd(L), L).
-%pair(_, []) -> [];
+                                                %pair(_, []) -> [];
 pair(H, [E]) -> [{E, H}];
 pair(H, [E | T]) -> [{E, hd(T)} | pair(H, T)].
 
@@ -919,7 +919,7 @@ normalize({P, Q})            -> {P, Q}.
 %%  [9, 2, 5, 3] -> [{2, 9}, {2, 5}, {3, 5}, {3, 9}]
 %%
 npair(L) when is_list(L) -> npair(hd(L), L).
-%npair(_, []) -> [];
+                                                %npair(_, []) -> [];
 npair(H, [E]) -> [normalize({E, H})];
 npair(H, [E | T]) -> [normalize({E, hd(T)}) | npair(H, T)].
 
@@ -943,8 +943,7 @@ is_open(#e3d_mesh{fs = Fs}) ->
 			     foldl(fun(EVIt, FE_acc) ->
 					   case dict:find(EVIt, FE_acc) of
 					       {ok, Count} ->
-						   dict:store(EVIt, Count + 1, FE_acc)
-						       ;
+						   dict:store(EVIt, Count + 1, FE_acc);
 					       error ->
 						   dict:store(EVIt, 1, FE_acc)
 					   end
@@ -958,8 +957,7 @@ has_transp_faces([], _) -> false;
 has_transp_faces([#e3d_face{mat = Mat} | T], Mats_dict) ->
     case hd(dict__fetch(hd(Mat), Mats_dict)) of
         {true, _RGBA} ->
-            true
-		;
+            true;
         _ ->
             has_transp_faces(T, Mats_dict)
     end.
@@ -998,8 +996,7 @@ add_edges(FVIs, FVCs, Frustum, FN, Is_FF, Is_SF, Mat, Edge_dict0) ->
 		  case cull(EVCt, Frustum) of
 		      true ->
 			  Face_type = face_type(Is_FF, Is_SF),
-			  dict:append(EVIt, {Face_type, FN, Mat}, Edge_dict_acc0)
-			      ;
+			  dict:append(EVIt, {Face_type, FN, Mat}, Edge_dict_acc0);
 		      false ->
 			  Edge_dict_acc0
 		  end
@@ -1011,14 +1008,12 @@ add_poly(FVIs0, FP, Mat, Frustum, Frustum_planes, VC_tree0, Face_tree0) ->
     case inside(FVCs, Frustum) of
         true ->
             Face_tree = tree__insert({FVIs0, FP, Mat}, Face_tree0),
-            {VC_tree0, Face_tree}
-		;
+            {VC_tree0, Face_tree};
         false ->
             case splitpoly__clip(Frustum_planes, FVIs0, VC_tree0) of
                 {FVIs, VC_tree} ->
                     Face_tree = tree__insert({FVIs, FP, Mat}, Face_tree0),
-                    {VC_tree, Face_tree}
-			;
+                    {VC_tree, Face_tree};
                 _ ->
                     {VC_tree0, Face_tree0}
             end
@@ -1035,21 +1030,18 @@ add_face(FVIs, FVCs, {FN, _FD} = FP, Mat, Is_open, Frustum, Frustum_planes,
 				   Is_FF, Is_SF, Mat, Edges_dict0),
             {VC_tree, Face_tree} = if
 				       Is_SF ->
-					   {VC_tree0, Face_tree0}
-					       ;
+					   {VC_tree0, Face_tree0};
 				       true ->
 					   case Is_FF of
 					       true ->
 						   add_poly(FVIs, FP, Mat, Frustum, Frustum_planes,
-							    VC_tree0, Face_tree0)
-						       ;
+							    VC_tree0, Face_tree0);
 					       false ->
 						   add_poly(lists:reverse(FVIs), flip(FP), Mat,
 							    Frustum, Frustum_planes, VC_tree0, Face_tree0)
 					   end
 				   end,
-            {VC_tree, Edges_dict, Face_tree}
-		;
+            {VC_tree, Edges_dict, Face_tree};
         false ->
             case Is_FF of
                 true ->
@@ -1057,8 +1049,7 @@ add_face(FVIs, FVCs, {FN, _FD} = FP, Mat, Is_open, Frustum, Frustum_planes,
 					   Is_FF, false, Mat, Edges_dict0),
                     {VC_tree, Face_tree} = add_poly(FVIs, FP, Mat, Frustum,
 						    Frustum_planes, VC_tree0, Face_tree0),
-                    {VC_tree, Edges_dict, Face_tree}
-			;
+                    {VC_tree, Edges_dict, Face_tree};
                 false ->
                     {VC_tree0, Edges_dict0, Face_tree0}
             end
@@ -1074,8 +1065,7 @@ add_trimesh(TMFs, Is_open, Frustum, Frustum_planes, Front_face, Side_face,
 			  TP = plane(list_to_tuple(TVCs)),
 			  add_face(TVIs, TVCs, TP, Mat, Is_open,
 				   Frustum, Frustum_planes, Front_face, Side_face,
-				   VC_tree_acc0, Edge_dict_acc0, Face_tree_acc0)
-			      ;
+				   VC_tree_acc0, Edge_dict_acc0, Face_tree_acc0);
 		      false ->
 			  {VC_tree_acc0, Edge_dict_acc0, Face_tree_acc0}
 		  end
@@ -1116,8 +1106,7 @@ add_mesh(MFs, VCs, _Eps, % need VCs for e3d_mesh:triangulate_face
 				  FP0 ={ FN, FD-FD*0.001*(Z_offset*DP_factor) }, % Overlap faces offset : Overlap factor of Front and Back polygon fighting (push -  2   + pull  )
 				  add_face(FVIs, FVCs, FP0, Mat, Is_open,
 					   Frustum, Frustum_planes, Front_face, Side_face,
-					   VC_tree_acc0, Edge_dict_acc0, Face_tree_acc0)
-				      ;
+					   VC_tree_acc0, Edge_dict_acc0, Face_tree_acc0);
 			      false ->
 				  lists:foldl(fun(#e3d_face{vs=TVIs},
 						  {VC_tree_acc1, Edge_dict_acc1, Face_tree_acc1} ) ->
@@ -1131,8 +1120,7 @@ add_mesh(MFs, VCs, _Eps, % need VCs for e3d_mesh:triangulate_face
 					      end,
 					      {VC_tree_acc0, Edge_dict_acc0, Face_tree_acc0}, TFs)
 			  end
-
-			      ;
+;
 		      false ->
 			  {VC_tree_acc0, Edge_dict_acc0, Face_tree_acc0}
 		  end
@@ -1202,8 +1190,7 @@ is_material_transp(_,_,_,_) -> false.
 is_transparent(Mat_name ,Mats_dict) ->
     Data =  case  hd(dict__fetch( hd(Mat_name), Mats_dict))  of
 		{false, _RGBA} ->
-		    false
-			;
+		    false;
 		_ ->
 		    true
 	    end,
@@ -1218,33 +1205,27 @@ edge_type_group(EVIt, AFs, ThreshCosA, HardEdge_set, Edge_set,Mats_dict) ->
         true ->
             case is_outline(AFs) of
                 true ->
-                    outline
-			;
+                    outline;
                 false ->
 		    case gb_sets:is_member(EVIt, HardEdge_set) of
 			true ->
-			    hard
-				;
+			    hard;
 			false ->
 			    case is_material_transp(EVIt,AFs, ThreshCosA, Mats_dict) of
 				true ->
-				    transp
-					;
+				    transp;
 				false ->
 				    case is_crease(EVIt, AFs, ThreshCosA) of
 					true ->
-					    crease
-						;
+					    crease;
 					false ->
 					    case is_material(AFs) of
 						true ->
-						    material
-							;
+						    material;
 						false ->
 						    case gb_sets:is_member(EVIt, Edge_set) of
 							true ->
-							    regular
-								;
+							    regular;
 							false ->
 							    none
 						    end
@@ -1252,8 +1233,7 @@ edge_type_group(EVIt, AFs, ThreshCosA, HardEdge_set, Edge_set,Mats_dict) ->
 				    end
 			    end
 		    end
-            end
-		;
+            end;
         false ->
             none
     end.
@@ -1270,8 +1250,7 @@ edge_type_copy(EVIt, AFs, ThreshCosA, HardEdge_set, Edge_set,Mats_dict) ->
 		 orelse gb_sets:is_member(EVIt, Edge_set))
     of
         true ->
-            regular
-		;
+            regular;
         false ->
             none
     end.
@@ -1281,8 +1260,7 @@ group_edges(ThreshCosA, HardEdge_set, Edge_set, Edge_type_fun,
     dict:fold(fun(EVIt, AFs, Es_dict_acc0) ->
 		      case Edge_type_fun(EVIt, AFs, ThreshCosA, HardEdge_set, Edge_set,Mats_dict) of
 			  none ->
-			      Es_dict_acc0
-				  ;
+			      Es_dict_acc0;
 			  Edge_type ->
 			      dict__append(Edge_type, EVIt, Es_dict_acc0)
 		      end
@@ -1311,7 +1289,7 @@ neg({X, Y}) -> {-X, -Y}.
 mul({X, Y, Z}, S) -> {X * S, Y * S, Z * S};
 mul({X, Y}, S) -> {X * S, Y * S}.
 
-%divide({X, Y, Z}, S) -> {X / S, Y / S, Z / S};
+                                                %divide({X, Y, Z}, S) -> {X / S, Y / S, Z / S};
 divide({X, Y}, S) -> {X / S, Y / S}.
 
 cross({X1, Y1, Z1}, {X2, Y2, Z2}) ->
@@ -1381,8 +1359,7 @@ outcode({X, Y, Z}, {HSx, HSy, Zmin, Zmax, Zf}) ->
 			       {if X < -Rx -> 0; true -> 1 end,
 				if X > Rx -> 0; true -> 2 end,
 				if Y < -Ry -> 0; true -> 4 end,
-				if Y > Ry -> 0; true -> 8 end}
-				   ;
+				if Y > Ry -> 0; true -> 8 end};
 			   true ->
 			       {if X < -Rx -> 1; true -> 0 end,
 				if X > Rx -> 2; true -> 0 end,
@@ -1421,18 +1398,15 @@ clip({LC1, LC2}, Box) ->
     C2 = outcode(LC2, Box),
     if
         C1 band C2 /= 0 ->
-            nil
-		;
+            nil;
         C1 bor C2 /= 0 ->
             D = sub(LC2, LC1),
             case C1 /= 0 of
                 true  ->
-                    clip({to_boundary(LC1, D, Box), LC2}, Box)
-			;
+                    clip({to_boundary(LC1, D, Box), LC2}, Box);
                 false ->
                     clip({LC1, to_boundary(LC2, D, Box)}, Box)
-            end
-		;
+            end;
         true ->
             {LC1, LC2}
     end.
@@ -1442,30 +1416,24 @@ clip_z({LC1, LC2}, View_port) when size(View_port) =:= 2 ->
     {{_, _, Zvp_min}, {_, _, Zvp_max}} = View_port,
     if
         Z1 >= Zvp_min, Z1 =< Zvp_max, Z2 >= Zvp_min, Z2 =< Zvp_max ->
-            {LC1, LC2}
-		;
+            {LC1, LC2};
         ((Z1 < Zvp_min) and (Z2 < Zvp_min))
 	or ((Z1 > Zvp_max) and (Z2 > Zvp_max)) ->
-            nil
-		;
+            nil;
         true ->
             {if
 		 Z1 < Zvp_min ->
-		     to_boundary(LC1, sub(LC2, LC1), Zvp_min)
-			 ;
+		     to_boundary(LC1, sub(LC2, LC1), Zvp_min);
 		 Z1 > Zvp_max ->
-		     to_boundary(LC1, sub(LC2, LC1), Zvp_max)
-			 ;
+		     to_boundary(LC1, sub(LC2, LC1), Zvp_max);
 		 true ->
 		     LC1
 	     end,
 	     if
 		 Z2 < Zvp_min ->
-		     to_boundary(LC2, sub(LC2, LC1), Zvp_min)
-			 ;
+		     to_boundary(LC2, sub(LC2, LC1), Zvp_min);
 		 Z2 > Zvp_max ->
-		     to_boundary(LC2, sub(LC2, LC1), Zvp_max)
-			 ;
+		     to_boundary(LC2, sub(LC2, LC1), Zvp_max);
 		 true ->
 		     LC2
 	     end}
@@ -1525,8 +1493,7 @@ line_segment(LVIt, {LVC1, LVC2} = LVCt, {LV2C1, LV2C2} = LV2Ct,
     of
         true  ->
             line_segment(LVIt, LVCt, LV2Ct, T, VC_tree,
-			 Proj, Is_ortho, Eps)
-		;
+			 Proj, Is_ortho, Eps);
         false ->
             {FN, FD} = FP,
             L1D = dot(LVC1, FN),
@@ -1540,8 +1507,7 @@ line_segment(LVIt, {LVC1, LVC2} = LVCt, {LV2C1, LV2C2} = LV2Ct,
             of
                 true  ->
                     line_segment(LVIt, LVCt, LV2Ct, T, VC_tree,
-				 Proj, Is_ortho, Eps)
-			;
+				 Proj, Is_ortho, Eps);
                 false ->
                     FDp = FD + EpsD,
                     L1_behind = L1D =< FDp,
@@ -1552,8 +1518,7 @@ line_segment(LVIt, {LVC1, LVC2} = LVCt, {LV2C1, LV2C2} = LV2Ct,
                             L2_in = inside_poly(LV2C2, FV2Cs, Eps),
                             if
                                 L1_behind, L2_behind, L1_in, L2_in ->
-                                    []
-					;
+                                    [];
                                 true ->
                                     case
                                         divide_segment(LVCt, LV2Ct,
@@ -1564,8 +1529,7 @@ line_segment(LVIt, {LVC1, LVC2} = LVCt, {LV2C1, LV2C2} = LV2Ct,
                                         {LA, LA} ->
                                             line_segment(LVIt, LA, T,
 							 VC_tree,
-							 Proj, Is_ortho, Eps)
-						;
+							 Proj, Is_ortho, Eps);
                                         {LA, LB} ->
                                             line_segment(LVIt, LA, T,
 							 VC_tree,
@@ -1574,8 +1538,7 @@ line_segment(LVIt, {LVC1, LVC2} = LVCt, {LV2C1, LV2C2} = LV2Ct,
 								VC_tree,
 								Proj, Is_ortho, Eps)
                                     end
-                            end
-				;
+                            end;
                         true ->
                             line_segment(LVIt, LVCt, LV2Ct, T,
 					 VC_tree,
@@ -1599,8 +1562,7 @@ divide_segment({{_X1, _Y1, Z1} = LVC1, {_X2, _Y2, Z2} = LVC2} = LVCt,
         L_behind ->
             {if
 		 L2_in, S > 0.0 + ?EPS2 ->
-		     {LVC1, L}
-			 ;
+		     {LVC1, L};
 		 true ->
 		     if
 			 L1_behind -> nil;
@@ -1609,23 +1571,20 @@ divide_segment({{_X1, _Y1, Z1} = LVC1, {_X2, _Y2, Z2} = LVC2} = LVCt,
 	     end,
 	     if
 		 L1_in, S < 1.0 - ?EPS2 ->
-		     {L, LVC2}
-			 ;
+		     {L, LVC2};
 		 true ->
 		     if
 			 L2_behind -> nil;
 			 true -> {ip(Del, FP), LVC2}
 		     end
-	     end}
-		;
+	     end};
         true ->
             {if
 		 L2_in, S > 0.0 + ?EPS2 ->
 		     if
 			 L2_behind -> {LVC1, ip(Del, FP)};
 			 true -> {LVC1, LVC2}
-		     end
-			 ;
+		     end;
 		 true ->
 		     nil
 	     end,
@@ -1634,8 +1593,7 @@ divide_segment({{_X1, _Y1, Z1} = LVC1, {_X2, _Y2, Z2} = LVC2} = LVCt,
 		     if
 			 L1_behind -> {ip(Del, FP), LVC2};
 			 true -> {LVC1, LVC2}
-		     end
-			 ;
+		     end;
 		 true ->
 		     nil
 	     end}
@@ -1660,8 +1618,7 @@ divide_segment({{_X1, _Y1, Z1} = LVC1, {_X2, _Y2, Z2} = LVC2} = LVCt,
     {Smin, Smax} = find_section(false, Del2, FV2Cs),
     {Lmin, Lmax} = if
 		       Is_ortho ->
-			   {param(Del, Smin), param(Del, Smax)}
-			       ;
+			   {param(Del, Smin), param(Del, Smax)};
 		       true ->
 			   Rz = Z1 / Z2,
 			   Rmin = Rz * Smin,
@@ -1677,8 +1634,7 @@ divide_segment({{_X1, _Y1, Z1} = LVC1, {_X2, _Y2, Z2} = LVC2} = LVCt,
 		     if
 			 Smin > 0.0 + ?EPS2 -> {LVC1, Lmin};
 			 true -> nil
-		     end
-			 ;
+		     end;
 		 true ->
 		     {LVC1, ip(Del, FP)}
 	     end,
@@ -1687,12 +1643,10 @@ divide_segment({{_X1, _Y1, Z1} = LVC1, {_X2, _Y2, Z2} = LVC2} = LVCt,
 		     if
 			 Smax < 1.0 - ?EPS2 -> {Lmax, LVC2};
 			 true -> nil
-		     end
-			 ;
+		     end;
 		 true ->
 		     {ip(Del, FP), LVC2}
-	     end}
-		;
+	     end};
         true ->
             {LVCt, LVCt}
     end.
@@ -1713,22 +1667,18 @@ find_section(Smin, Smax, Find_one, {LVC1, DL} = Del, [{EVC1, EVC2} | T]) ->
                         Find_one ->
                             if
                                 S > 0.0 + ?EPS2, S < 1.0 - ?EPS2 ->
-                                    {S, S}
-					;
+                                    {S, S};
                                 true ->
                                     find_section(get_min(S, Smin), get_max(S, Smax),
 						 Find_one, Del, T)
-                            end
-				;
+                            end;
                         true ->
                             find_section(get_min(S, Smin), get_max(S, Smax),
 					 Find_one, Del, T)
-                    end
-			;
+                    end;
                 _ ->
                     find_section(Smin, Smax, Find_one, Del, T)
-            end
-		;
+            end;
         _ ->
             find_section(Smin, Smax, Find_one, Del, T)
     end.
@@ -1767,8 +1717,7 @@ qtree__insert(QE, QEmid, {QEs, Cons, Q1, Q2, Q3, Q4}, Depth) ->
 						%io:format("C1=~w C2=~w C3=~w C4=~w~n", [C1, C2, C3, C4]),
     if
         Depth > ?MAXDEPTH - 1; not (F1 or F2 or F3 or F4) ->
-            {[QE | QEs], Cons, Q1, Q2, Q3, Q4}
-		;
+            {[QE | QEs], Cons, Q1, Q2, Q3, Q4};
         true ->
             N1 = qtree__insert(F1, QE, QEmid, C1, Q1, Depth),
             N2 = qtree__insert(F2, QE, QEmid, C2, Q2, Depth),
@@ -1802,8 +1751,7 @@ qtree__get_quad_objs(_LBB, []) -> [];
 qtree__get_quad_objs(LBB, [{_Obj, OBB, _Ozmax} = QE | T]) ->
     case outside_bb(LBB, OBB) of
         true ->
-            qtree__get_quad_objs(LBB, T)
-		;
+            qtree__get_quad_objs(LBB, T);
         false ->
             [QE | qtree__get_quad_objs(LBB, T)]
     end.
@@ -1812,8 +1760,7 @@ qtree__do_get_objs(_LBB,  nil) -> [];
 qtree__do_get_objs(LBB, {QEs, {_CBB, Clim, _Cmid}, Q1, Q2, Q3, Q4}) ->
     case outside_bb(LBB, Clim) of
         true ->
-            []
-		;
+            [];
         false ->
             qtree__get_quad_objs(LBB, QEs)
                 ++ qtree__do_get_objs(LBB, Q1)
@@ -1843,8 +1790,7 @@ inside({X, Y, Z}, {HSx, HSy, Zmin, Zmax, Zf}) ->
     Ry = HSy * R,
     (if
 	 Z >= 0.0 ->
-	     (X >= Rx) andalso (Y >= Ry) andalso (X =< -Rx) andalso (Y =< -Ry)
-		 ;
+	     (X >= Rx) andalso (Y >= Ry) andalso (X =< -Rx) andalso (Y =< -Ry);
 	 true ->
 	     (X >= -Rx) andalso (Y >= -Ry) andalso (X =< Rx) andalso (Y =< Ry)
      end) andalso (Z >= Zmin) andalso (Z =< Zmax).
@@ -1887,7 +1833,7 @@ translate(BB, Offset, Scale, [LVCt0 | T]) ->
         nil -> translate(BB, Offset, Scale, T);
         {LVC1, LVC2} ->
             [{mul(add(LVC1, Offset), Scale), mul(add(LVC2, Offset), Scale)}
-	     | translate(BB, Offset, Scale, T)]
+            | translate(BB, Offset, Scale, T)]
     end.
 
 
@@ -1912,13 +1858,11 @@ merge(LS1, {{Xmin_1, Ymin_1}, {Xmax_1, Ymax_1}} = BB1, [LS2 | T], Dthr) ->
             {LS11, _LS12} = LS1,
             LS = if
 		     LS11 =:= {Xmin_1, Ymin_1}; LS11 =:= {Xmax_1, Ymax_1} ->
-			 {{Xmin, Ymin}, {Xmax, Ymax}}
-			     ;
+			 {{Xmin, Ymin}, {Xmax, Ymax}};
 		     true ->
 			 {{Xmin, Ymax}, {Xmax, Ymin}}
 		 end,
-            merge(LS, BB, T, Dthr)
-		;
+            merge(LS, BB, T, Dthr);
         false ->
             [LS2 | merge(LS1, BB1, T, Dthr)]
     end.
@@ -1939,11 +1883,9 @@ lstree_insert(U0, LS0, {{U, _, _, _, _} = LS_tree, Small, Big}, Athr, Dthr) ->
     Cos = dot(U0, U),
     if
         Sin < -Athr, Cos > Athr; Sin > Athr, Cos < -Athr ->
-            {LS_tree, lstree_insert(U0, LS0, Small, Athr, Dthr), Big}
-		;
+            {LS_tree, lstree_insert(U0, LS0, Small, Athr, Dthr), Big};
         Sin > Athr, Cos >= -Athr; Sin < -Athr, Cos =< Athr->
-            {LS_tree, Small, lstree_insert(U0, LS0, Big, Athr, Dthr)}
-		;
+            {LS_tree, Small, lstree_insert(U0, LS0, Big, Athr, Dthr)};
         true ->
             {lstree_insert1(U0, mid(LS0), LS0, LS_tree, Dthr), Small, Big}
     end.
@@ -1959,12 +1901,10 @@ lstree_insert1(U0, Mid_LS0, LS0, {U, Mid_LS, LSs, Small, Big}, Dthr) ->
     if
         D < -Dthr ->
             {U, Mid_LS, LSs,
-	     lstree_insert1(U0, Mid_LS0, LS0, Small, Dthr), Big}
-		;
+	     lstree_insert1(U0, Mid_LS0, LS0, Small, Dthr), Big};
         D > Dthr ->
             {U, Mid_LS, LSs,
-	     Small, lstree_insert1(U0, Mid_LS0, LS0, Big, Dthr)}
-		;
+	     Small, lstree_insert1(U0, Mid_LS0, LS0, Big, Dthr)};
         true ->
 	    {U, Mid_LS, merge(LS0, LSs, Dthr), Small, Big}
     end.
@@ -1983,8 +1923,7 @@ unit_2d({{X1, Y1}, {X2, Y2}}, Dthr) ->
     UY0 = Y2 - Y1,
     if
         (abs(UX0) < Dthr) and (abs(UY0) < Dthr) ->
-            nil
-		;
+            nil;
         true ->
             D = math:sqrt(UX0 * UX0 + UY0 * UY0),
             {UX0 / D, UY0 / D}
@@ -2174,14 +2113,14 @@ define_fill_type() ->
 %% Light_positon            Name {Lx, Ly, Lz, Illuminence Factor}
 define_light_pos() ->
     [
-      { ?__(1,"Up to Down") , {-480,-512, 500,0.00096} },
-      { ?__(2,"Down to Up") , {-480, 512, 500,0.00096} },
-      { ?__(3,"Down to Up2"), {   1, 512, 256,0.00108} },
-      { ?__(4,"Contrast")   , {-480,-512, 512,0.00108} },
-      { ?__(5,"Overlight")  , {   1,-999, 300,0.00186} },
-      { ?__(6,"From Right") , {-700,-400, 600,0.0005} },
-      { ?__(7,"From Left")  , { 600,-400, 700,0.0005} },
-      { ?__(8,"Center")     , {-400,-400,-400,0.0001} }
+     { ?__(1,"Up to Down") , {-480,-512, 500,0.00096} },
+     { ?__(2,"Down to Up") , {-480, 512, 500,0.00096} },
+     { ?__(3,"Down to Up2"), {   1, 512, 256,0.00108} },
+     { ?__(4,"Contrast")   , {-480,-512, 512,0.00108} },
+     { ?__(5,"Overlight")  , {   1,-999, 300,0.00186} },
+     { ?__(6,"From Right") , {-700,-400, 600,0.0005} },
+     { ?__(7,"From Left")  , { 600,-400, 700,0.0005} },
+     { ?__(8,"Center")     , {-400,-400,-400,0.0001} }
 
     ].
 
@@ -2744,8 +2683,7 @@ dict__new() -> [].
 dict__append_list(Key0, Values0, KVs) ->
     case keysearch(Key0, 1, KVs) of
         {value, {_Key, Values}} ->
-            keyreplace(Key0, 1, KVs, {Key0, Values ++ Values0})
-		;
+            keyreplace(Key0, 1, KVs, {Key0, Values ++ Values0});
         false ->
             [{Key0, Values0} | KVs]
     end.
@@ -2753,8 +2691,7 @@ dict__append_list(Key0, Values0, KVs) ->
 dict__append(Key0, Value, KVs) ->
     case keysearch(Key0, 1, KVs) of
         {value, {_Key, Values}} ->
-            keyreplace(Key0, 1, KVs, {Key0, [Value | Values]})
-		;
+            keyreplace(Key0, 1, KVs, {Key0, [Value | Values]});
         false ->
             [{Key0, [Value]} | KVs]
     end.
@@ -2762,8 +2699,7 @@ dict__append(Key0, Value, KVs) ->
 dict__store(Key0, Value, KVs) ->
     case keymember(Key0, 1, KVs) of
         true ->
-            keyreplace(Key0, 1, KVs, {Key0, [Value]})
-		;
+            keyreplace(Key0, 1, KVs, {Key0, [Value]});
         false ->
             [{Key0, [Value]} | KVs]
     end.
@@ -2879,24 +2815,20 @@ splitpoly__do_find({PN, _PD} = P, PDt,
 						%io:format("\tV_cur=~w~n\tV_next=~w~n\tT=~w~n\tSVs0=~w~n\tVDp=~w~n\tVDc=~w~n\tVDn=~w~n\tPDt=~w~n~n", [V_cur, V_next, T, SVs0, VD_prev, VD_cur, VD_next, PDt]),
     case splitpoly__position(VD_prev, VD_cur, VD_next, PDt) of
         undef ->
-            splitpoly__do_find(P, PDt, T, [V_cur | SVs0], VDt, VC_tree0)
-		;
+            splitpoly__do_find(P, PDt, T, [V_cur | SVs0], VDt, VC_tree0);
         {vertex, Pos} ->
-            {Pos, T, V_cur, SVs0, VDt}
-		;
+            {Pos, T, V_cur, SVs0, VDt};
         {point, Pos} ->
             VC_cur = splitpoly__get_vc(V_cur, VC_tree0),
             VC_new = ip(VC_cur, VC_next, P),
-            {Pos, T, VC_new, [V_cur | SVs0], VDt}
-		;
+            {Pos, T, VC_new, [V_cur | SVs0], VDt};
         Pos -> Pos
     end.
 
 splitpoly__find(P, PDt, Hs, Vs0, VDt0, VC_tree) ->
     case splitpoly__do_find(P, PDt, Vs0, [], VDt0, VC_tree) of
         {V_last, SVs, VDt} ->
-            splitpoly__do_find(P, PDt, [V_last | Hs], SVs, VDt, VC_tree)
-		;
+            splitpoly__do_find(P, PDt, [V_last | Hs], SVs, VDt, VC_tree);
         R -> R
     end.
 
@@ -2934,13 +2866,11 @@ splitpoly__do_split({PN, PD} = P, [V1, V2 | _] = Vs0, VC_tree) ->
             case splitpoly__find(P, PDt, Hs, Vs1, VDt1, VC_tree) of
                 {Pos2, Vs2, IP2, SVs2, _VDt2} ->
 						%io:format("Pos2=~w~nHs=~w~nVs2=~w~nIP2=~w~nSVs2=~w~n~n~n", [Pos2, Hs, Vs2, IP2, SVs2]),
-                    splitpoly__combine(Pos1, IP1, SVs1, Pos2, IP2, SVs2, Vs2, Hs)
-			;
+                    splitpoly__combine(Pos1, IP1, SVs1, Pos2, IP2, SVs2, Vs2, Hs);
                 Pos2 ->
 						%io:format("miss2=~w~n~n", [Pos2]),
                     Pos2
-            end
-		;
+            end;
         Pos1 ->
 						%io:format("miss1=~w~n~n", [Pos1]),
             Pos1
@@ -2951,8 +2881,7 @@ splitpoly__split(P, VIs0, VC_tree0) ->
         {IP1, IP2, FFVs, BFVs} ->
             {IPI1, VC_tree1} = splitpoly__insert_vc(IP1, VC_tree0),
             {IPI2, VC_tree} = splitpoly__insert_vc(IP2, VC_tree1),
-            {[IPI1 | FFVs] ++ [IPI2], [IPI2 | BFVs] ++ [IPI1], VC_tree}
-		;
+            {[IPI1 | FFVs] ++ [IPI2], [IPI2 | BFVs] ++ [IPI1], VC_tree};
         R -> R
     end.
 
@@ -3094,8 +3023,7 @@ bspt__insert(FI0, {FVIs0, FP0, Mat0} = F0, FZt0,
 			bspt__insert(nil, {Back_VIs, FP0, Mat0}, {0.0, 0.0}, Back_bspt0, VC_tree),
 		    {Front_bspt, VC_tree2} =
 			bspt__insert(nil, {Front_VIs, FP0, Mat0}, {0.0, 0.0}, Front_bspt0, VC_tree1),
-		    {{FI, F, FZt, Back_bspt, Front_bspt}, VC_tree2}
-			;
+		    {{FI, F, FZt, Back_bspt, Front_bspt}, VC_tree2};
                 false ->
                     {Back_bspt, VC_tree1} =
                         bspt__insert(FI0, {Back_VIs, FP0, Mat0}, {0.0, 0.0}, Back_bspt0, VC_tree),
@@ -3103,13 +3031,11 @@ bspt__insert(FI0, {FVIs0, FP0, Mat0} = F0, FZt0,
                         bspt__insert(FI0, {Front_VIs, FP0, Mat0}, {0.0, 0.0}, Front_bspt0, VC_tree1),
                     {{FI, F, FZt, Back_bspt, Front_bspt}, VC_tree2}
             end
-
-		;
+;
         back ->
             {Back_bspt, VC_tree} =
                 bspt__insert(FI0, F0, FZt0, Back_bspt0, VC_tree0),
-            {{FI, F, FZt, Back_bspt, Front_bspt0}, VC_tree}
-		;
+            {{FI, F, FZt, Back_bspt, Front_bspt0}, VC_tree};
         front ->
             {Front_bspt, VC_tree} =
                 bspt__insert(FI0, F0, FZt0, Front_bspt0, VC_tree0),
@@ -3134,8 +3060,7 @@ bspt__to_list(Bspt) ->
 			   case gb_sets:is_member(FI, Dup_set_acc0) of
 			       true ->
 						%io:format("Removed: FI=~w~n", [FI]),
-				   {FEs_acc0, Dup_set_acc0}
-				       ;
+				   {FEs_acc0, Dup_set_acc0};
 			       false ->
 				   Dup_set_acc = gb_sets:insert(FI, Dup_set_acc0),
 				   {[FE | FEs_acc0], Dup_set_acc}
@@ -3162,8 +3087,7 @@ is_convex(V12, [FVC2 | T], Dir0) ->
 
     if
         Dir =/= Dir0 ->
-            false
-		;
+            false;
         true ->
             is_convex(V23, T, Dir)
     end.
