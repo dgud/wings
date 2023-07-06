@@ -496,6 +496,7 @@ enter_dialog(true, PreviewType, Dialog, Fields, Fun) ->
     {TopW,TopH} = wings_wm:top_size(),
     wings_wm:new(dialog_blanket, {0,0,highest}, {TopW,TopH}, Op),
     wxDialog:connect(Dialog, destroy),
+    wxDialog:connect(Dialog, activate),
     wings_wm:grab_focus(dialog_blanket),
     keep.
 
@@ -567,7 +568,7 @@ event_handler(#wx{id=Result, event=#wxCommand{}}=_Ev,
     delete;
 event_handler(preview, Eh0) ->
     Eh = reset_timer(Eh0),
-    New = wings_wm:set_timer(150, preview_exec),
+    New = wings_wm:set_timer(250, preview_exec),
     {replace, fun(Ev) -> event_handler(Ev, Eh#eh{timer=New}) end};
 event_handler(preview_exec, #eh{fs=Fields, apply=Fun, owner=Owner}=Eh0) ->
     Eh = reset_timer(Eh0),
@@ -602,8 +603,11 @@ event_handler(user_attention, #eh{dialog=Dialog}) ->
     keep;
 event_handler(#wx{event=#wxWindowDestroy{}}, Eh0) ->
     cancel_dialog(Eh0);
+event_handler(lost_focus, #eh{dialog=Dialog}) ->
+    wxWindow:setFocus(Dialog),
+    keep;
 event_handler(_Ev, _) ->
-    %%?dbg("unhandled Ev ~p~n",[_Ev]),
+    %% ?dbg("unhandled Ev ~P~n",[_Ev, 20]),
     keep.
 
 reset_timer(#eh{timer=undefined} = Eh) ->
