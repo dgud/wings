@@ -14,7 +14,7 @@
 
 -module(wpc_bend).
 
--export([init/0,menu/2,command/2]).
+-export([init/0,menu/2,command/2,setup/2]).
 -import(lists, [foldl/3]).
 -include_lib("wings/src/wings.hrl").
 
@@ -107,6 +107,10 @@ adv_submenu_clamped(Button, NS) ->
 %%
 %%  Respond to commands
 %%
+
+%%% Called from wpc_autouv
+setup({Mode,Data}, St) ->
+    bend_cmd({Mode,Data}, St).
 
 bend_cmd({Mode, {'ASK',Ask}}, St) ->
     wings:ask(Ask, St, fun (AskResult, St0) ->
