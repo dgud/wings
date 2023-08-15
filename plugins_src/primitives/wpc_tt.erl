@@ -256,7 +256,7 @@ trygen(File, Text, Idx, Nsubsteps, Size) ->
         [_|_] ->
             {CX,_CY,CZ} = e3d_vec:average(tuple_to_list(e3d_bv:box(Vs0))),
             Vs = [{X-CX,Y,Z-CZ} || {X,Y,Z} <- Vs0],
-            {new_shape,"text: " ++ Text,Fs,Vs,He};
+            {new_shape,"text_" ++ Text,Fs,Vs,He};
         [] ->
             keep
     end.
