@@ -34,6 +34,8 @@ MODULES= \
 	wpc_bzw \
 	wpc_collada \
 	collada_import \
+	wpc_fbx_p \
+	fbx_p_import \
 	wpc_gltf \
 	wpc_hlines \
 	wpc_jscad \
