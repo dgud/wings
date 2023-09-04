@@ -52,7 +52,12 @@ props() ->
     [{ext, ".x"},{ext_desc, ?__(1,"DirectX File")}].
 
 do_export(Ask, Op, _Exporter, _St) when is_atom(Ask) ->
-    wpa:dialog(Ask, ?__(1,"DirectX Export Options"), dialog(export),
+    DefHandedness = wpa:pref_get(?MODULE, handedness, lhand),
+    Dialog = dialog(export) ++ [
+        {hradio,[{?__(3,"Left-handed"),lhand},{?__(4,"Right-handed"),rhand}],DefHandedness,
+            [{key,handedness},{title,?__(2,"Handedness")}]}
+    ],
+    wpa:dialog(Ask, ?__(1,"DirectX Export Options"), Dialog,
 	       fun(Res) ->
 		       {file,{Op,{x,Res}}}
 	       end);
@@ -84,8 +89,10 @@ export(File_name, Export0, Attr) ->
     Dir = filename:dirname(File_name),
     Filetype = proplists:get_value(default_filetype, Attr, ".png"),
     ExportN  = proplists:get_value(include_normals, Attr, true),
+    Handedness = proplists:get_value(handedness, Attr, lhand),
     Export1 = wpa:save_images(Export0, Dir, Filetype),
-    Export = export_transform(Export1, Attr),
+    Export2 = export_transform(Export1, Attr),
+    Export = handedness_transform(Export2, Handedness),
     #e3d_file{objs=Objs,mat=Mat,creator=Creator} = Export,
     {ok,F} = file:open(File_name, [write]),
     io:format(F, "xof 0303txt 0064\r\n", []), % a standard directx header
@@ -110,6 +117,25 @@ export(File_name, Export0, Attr) ->
 export_transform(Contents, Attr) ->
     Mat = wpa:export_matrix(Attr),
     e3d_file:transform(Contents, Mat).
+
+
+handedness_transform(Contents, rhand) ->
+    Contents;
+handedness_transform(#e3d_file{objs=Objs0}=Contents, lhand) ->
+    Objs = [handedness_transform_1(O) || O <- Objs0],
+    Contents#e3d_file{objs=Objs}.
+handedness_transform_1(#e3d_object{obj=#e3d_mesh{vs=VsList_0,fs=FsList_0}=Mesh}=Obj) ->
+    VsList = lists:map(fun ({X,Y,Z}) -> {float(X),float(Y),-float(Z)} end, VsList_0),
+    FsList = lists:map(fun (#e3d_face{vs=FV,ns=NS,tx=Tx,vc=Vc}=F) ->
+                 F#e3d_face{
+                    vs=lists:reverse(FV),
+                    ns=lists:reverse(NS),
+                    tx=lists:reverse(Tx),
+                    vc=lists:reverse(Vc)
+                 }
+             end, FsList_0),
+    Obj#e3d_object{obj=Mesh#e3d_mesh{vs=VsList,fs=FsList}}.
+
 
 export_object(F, #e3d_mesh{fs=Fs0,ns=NTab,vs=VTab,tx=UVTab}, 
 	      Mat_defs, ExportN) ->
