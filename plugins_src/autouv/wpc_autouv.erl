@@ -466,11 +466,11 @@ command_menu(vertex, X, Y) ->
     Scale = scale_directions(true),
     Move = move_directions(true),
     Align =
-	[{?__(70,"Free"),free,?__(71,"Rotate selection freely"), [magnet]},
-	 {?__(72,"Chart to X"), align_x,
-	  ?__(73,"Rotate chart to align (imaginary) edge joining selected verts to X-axis")},
-	 {?__(74,"Chart to Y"), align_y,
-	  ?__(75,"Rotate chart to align (imaginary) edge joining selected verts to Y-axis")}],
+        [{?__(70,"Free"),free,?__(71,"Rotate selection freely"), [magnet]},
+        {?__(72,"Chart to X"), align_x,
+        ?__(73,"Rotate chart to align (imaginary) edge joining selected verts to X-axis")},
+        {?__(74,"Chart to Y"), align_y,
+        ?__(75,"Rotate chart to align (imaginary) edge joining selected verts to Y-axis")}],
 
     Menu = [{?__(77,"Move"),{move,Move},?__(78,"Move selected vertices"),[magnet]},
 	    {?__(79,"Scale"),{scale,Scale},?__(80,"Scale selected vertices"), [magnet]},
@@ -481,6 +481,7 @@ command_menu(vertex, X, Y) ->
                                  {"Y", y, ?__(85,"Flatten vertically")}]},
 	     ?__(86,"Flatten selected vertices")},
         align_menu(),
+        {?__(76,"Bend"),bend_submenu_items(),?__(93,"Plastic Bend")},
 	    {?__(87,"Tighten"),tighten,
 	     ?__(88,"Move UV coordinates towards average midpoint"),
 	     [magnet]},
@@ -534,6 +535,12 @@ align_menu() ->
        {?__(19,"Left"), left, ?__(97,"Align to left")},
        {?__(21,"Right"), right, ?__(98,"Align to right")}
       ]}, ?__(94,"Align charts relative each other")}.
+
+bend_submenu_items() ->
+    {bend,{plastic_bend,noclamp},
+             {'ASK',{[{point, ?__(1,"Pick rod center")},
+                      {point, ?__(2,"Pick rod top")},
+                      {axis,  ?__(3,"Pick bend normal")}],[],[]}}}.
 
 max_uniform() ->
     fun
@@ -943,6 +950,12 @@ handle_command_1({align,Dir}, #st{selmode=Mode,sel=Sel}=St0) when Mode == body; 
                 update_selected_uvcoords(St1)
         end,
     get_event(St);
+handle_command_1({bend,Type,{'ASK',Ask}}, St) ->
+    wings:ask(Ask, St, fun(B,St0) ->
+                    do_drag(wpc_bend:setup({Type,B}, St0))
+               end);
+handle_command_1({bend,{Type,Param}}, St) ->
+    wpc_bend:setup({Type,Param}, St);
 handle_command_1({flip,horizontal}, St0) ->
     St1 = wpa:sel_map(fun(_, We) -> flip_horizontal(We) end, St0),
     St = update_selected_uvcoords(St1),
