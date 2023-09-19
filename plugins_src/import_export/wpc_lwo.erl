@@ -14,37 +14,44 @@
 -module(wpc_lwo).
 -export([init/0, menu/2, command/2, export/1]).
 -include_lib("wings/e3d/e3d.hrl").
+-include_lib("wings/intl_tools/wings_intl.hrl").
 
 init() ->
     true.
 
 menu({file, import}, Menu) ->
-    menu_entry(Menu);
+    menu_entry(import, Menu);
 menu({file, export}, Menu) ->
-    menu_entry(Menu);
+    menu_entry(export, Menu);
 menu({file, export_selected}, Menu) ->
-    menu_entry(Menu);
+    menu_entry(export, Menu);
 menu(_, Menu) -> Menu.
 
 command({file, {import, lwo}}, St) ->
-    Props = props2(),
+    Props = props(import),
     wpa:import(Props, fun lwo_import/1, St);
 command({file, {export, lwo}}, St) ->
-    Props = props(),
+    Props = props(export),
     wpa:export(Props, fun export/2, St);
 command({file, {export_selected, lwo}}, St) ->
-    Props = props(),
+    Props = props(export),
     wpa:export_selected(Props, fun export/2, St);
 command(_, _) -> next.
 
-menu_entry(Menu) ->
-    Menu ++ [{"LightWave or Modo (.lwo|.lxo)...", lwo}].
+menu_entry(import, Menu) ->
+    Menu ++ [{"LightWave / Modo (.lwo|.lxo)...", lwo}];
 
-props() ->
-    [{ext, ".lwo"},{ext_desc, "LightWave or Modo File"}].
+menu_entry(export, Menu) ->
+    Menu ++ [{"LightWave (.lwo)...", lwo}].
 
-props2() ->
-    [{ext, ".lwo"},{ext_desc, "LightWave or Modo File"}].
+props(import) ->
+    [{extensions,
+      [{".lwo", ?__(1,"LightWave File")},
+       {".lxo", ?__(2,"Modo File")}]}];
+
+props(export) ->
+    [{ext, ".lwo"},{ext_desc, ?__(1,"LightWave File")}].
+
 
 %%% ===============================
 %%% === LightWave Export (LWO2) ===
@@ -308,7 +315,7 @@ read_header(Data) ->
     FormId = <<"FORM">>,
     case (FormType == <<"LWO2">>) or (FormType == <<"LXOB">>) of
 	true -> Rest;
-	false -> wings_u:error_msg("LWO files in v5.5 format are not supported.")
+	false -> wings_u:error_msg(?__(1,"LWO files in v5.5 format are not supported."))
     end.
 
 read_tags(Data) ->
@@ -331,8 +338,8 @@ read_pols(<<"FACE",Rest/binary>>) ->
 read_pols(<<"PTCH",Rest/binary>>) ->
     read_point_idxs(Rest);
 read_pols(<<"SUBD",_/binary>>) ->
-    wings_u:error_msg("LWO files containing \"SUBD\" sub-forms in "
-		  "\"POLS\" not supported.").
+    wings_u:error_msg(?__(1,"LWO files containing \"SUBD\" sub-forms in "
+		  "\"POLS\" not supported.")).
 
 read_point_idxs(<<>>) -> [];
 read_point_idxs(Data) ->
