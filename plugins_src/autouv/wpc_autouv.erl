@@ -1915,6 +1915,8 @@ align_chart(Dir, V1={X1,Y1,_},V2={X2,Y2,_}, We) ->
 -spec align_error(term()) -> no_return().
 align_error(vertex) ->
     wings_u:error_msg(?__(1,"Select at least two vertices. One in each chart that must be aligned"));
+align_error(edge) ->
+    wings_u:error_msg(?__(3,"Select only one edge in each chart that must be aligned"));
 align_error(body) ->
     wings_u:error_msg(?__(2,"Select at least two charts to be aligned to each other")).
 
