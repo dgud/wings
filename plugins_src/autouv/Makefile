@@ -44,7 +44,7 @@ TARGET_FILES= $(MODULES:%=$(EBIN)/%.beam)
 # ----------------------------------------------------
 # FLAGS
 # ----------------------------------------------------
-ERL_COMPILE_FLAGS += -Werror -pa $(WINGS_INTL) -I $(WINGS_TOP) $(TYPE_FLAGS) +debug_info
+ERL_COMPILE_FLAGS += +nowarn_match_float_zero -Werror -pa $(WINGS_INTL) -I $(WINGS_TOP) $(TYPE_FLAGS) +debug_info
 
 # ----------------------------------------------------
 # Targets
