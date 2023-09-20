@@ -1,50 +1,44 @@
-%%                     -*- erlang -*-
-%%  wings_it.lang --
-%%
-%%     Italian language strings.
-%%
-%%  Copyright (c) 2004 Riccardo Venier
-%%
-%%  See the file "license.terms" for information on usage and redistribution
-%%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
-%%
-%%     $Id$
-%%
-
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
 {wings,
  [
   {cannot_repeat,
-   [{1,"Impossibile ripetere"}]},
-  {crash_handler,
-   [{1,"Errore interno - registro scritto in"},
-    {2,"Premi un pulsante del mouse per continuare a lavorare"},
-    {3,"Continua il lavoro"}]},
+   [
+    {1,"Impossibile ripetere"}
+   ]},
+  {crash_dialog,
+   [
+    {1,"Errore interno - log salvato in"},
+    {2,"\nQuesto potrebbe essere il momento buono per salvare il tuo lavoro e riavviare Wings3D"}
+   ]},
   {define_command,
-   [{1,"Ha voglia di definire"},
-    {2,"come un comando predefinito"}]},
+   [
+    {1,"Vuoi definire"},
+    {2,"come comando predefinito"}
+   ]},
   {edit_menu,
-   [{1,"Cancellare gli stati di annullamento ragguagliando memoria"},
-    {3,"Annulla/Ripeti"},
-    {4,"Annulla o ripete l' ultimo comando"},
-    {5,"Ripeti"},
-    {6,"Ripete l' ultimo comando annullato"},
+   [
+    {1,"Cancella la Storia di Annulla per recuperare memoria (non sarà più possibile annullare gli ultimi comandi)"},
+    {3,"Annulla/Ripristina"},
+    {4,"Annulla o Ripristina l'ultimo comando"},
+    {5,"Ripristina"},
+    {6,"Ripete l'ultimo comando annullato"},
     {7,"Annulla"},
-    {8,"Annulla l' ultimo comando"},
+    {8,"Annulla l'ultimo comando"},
     {9,"Ripeti"},
     {10,"Ripeti Argomenti"},
     {11,"Ripeti Trascina"},
-    {12,"Preferenze Moduli"},
-    {13,"Pulisci la memoria di annullamento"}]},
+    {12,"Preferenze Plug-In"},
+    {13,"Elimina la cronologia di Annulla"}
+   ]},
   {geom_title,
-   [{1,"Geometrie"},
-    {2,"Geometrie #"}]},
-  {halt_loop,
-   [{1,"Errore interno fatale - verbale scritto in ~s\n"},
-    {2,"<Nome Finestra Sconosciuto>"},
-    {3,"Errore interno fatale - verbale scritto in ~s\n"}]},
+   [
+    {1,"Geometria"},
+    {2,"Geometria #"}
+   ]},
   {handle_drop_1,
-   [{1,"Nessuna selezione"},
-    {2,"Cancella l'operazione di scarico"},
+   [
+    {1,"Nessuna selezione"},
+    {2,"Cancella l'operazione di download"},
     {3,"Assegna il materiale alle facce selezionate"},
     {4,"Assegna il materiale \""},
     {5,"\" solo alle facce selezionate"},
@@ -53,296 +47,518 @@
     {8,"\" a tutte le facce negli oggetti selezionati"},
     {9,"Assegna il materiale a tutte le facce"},
     {10,"Assegna il materiale \""},
-    {11,"\" a tutte le facce negli oggetti selezionati"}]},
-  {handle_event_3,
-   [{1,"Seleziona"},
-    {2,"Menu contestuale"}]},
-  {info_1,
-   [{1,"Hai scelto il vertice numero ~p"},
-    {2,"Vertici"},
-    {3,"Scelti ~p vertici"},
-    {4,"Hai scelto lo spigolo numero ~p"},
-    {5,"Spigoli"},
-    {6,"~p spigoli scelti"},
-    {7,"Hai scelto la faccia numero ~p"},
-    {8,"Facce"},
-    {9,"~p facce scelte"},
-    {10,"~p vertici scelti in ~p oggetti"},
-    {11,"~p spigoli scelti in ~p oggetti"},
-    {12,"~p facce scelte in ~p oggetti"}]},
-  {init_menubar,
-   [{1,"Archivio"},
-    {2,"Modifica"},
-    {3,"Viste"},
-    {4,"Selezione"},
-    {5,"Strumenti"},
-    {6,"Finestre"},
-    {7,"Aiuto"}]},
-  {item_list,
-   [{1," scelto"}]},
-  {measure,
-   [{1,". Posizione ~s ~s ~s"},
-    {2,". Distanza ~s"},
-    {3,". P.Medio ~s ~s ~s. Lunghezza ~s"},
-    {4,". P.Medio ~s ~s ~s.\nMateriale ~s"}]},
+    {11,"\" a tutte le facce negli oggetti selezionati"}
+   ]},
+  {info_line,
+   [
+    {1,"Seleziona"},
+    {2,"Mostra menu"},
+    {3,"Menu Ritocco"}
+   ]},
+  {object_info,
+   [
+    {1,"#"},
+    {2,"Nome"},
+    {3,"Area"},
+    {4,"Perimetro"},
+    {5,"Volume"},
+    {6,"Spigoli"},
+    {7,"Facce"},
+    {8,"Vertici"},
+    {9,"Nessun oggetto nella scena"},
+    {10,"Info Scena: "}
+   ]},
+  {open_file,
+   [
+    {1,"Wings3D ha rilevato un file non salvato."},
+    {2,"Vuoi salvarlo?"}
+   ]},
   {patches,
-   [{1,"Usa "}]},
+   [
+    {1,"Usa "}
+   ]},
   {purge_undo,
-   [{1,"Stati di annullamento: "},
-    {2,"Stati di ripristino: "},
-    {3,"Nulla da rimuovere"},
-    {4,"Rimuovi tutti gli stati (NON annullabile)?"}]},
-  {shape_info,
-   [{object_info,
-     "L'oggetto ~p \"~s\" ha ~p poligoni, ~p spigoli, ~p vertici.\n"
-     "Il modo e' ~s"},
-    {2,"~p oggetti, ~p facce, ~p spigoli, ~p vertici"}]},
+   [
+    {1,"Stati di annullamento: "},
+    {2,"Stati di ripristino: "}
+   ]},
+  {tool_dirs,
+   [
+    {1,"Allinea due o più oggetti lungo l'asse dato in base ai rispettivi centri di selezione"},
+    {2,"Centra gli oggetti selezionati lungo l'asse dato in base al loro centro di selezione globale"}
+   ]},
   {tools_menu,
-   [{8,"Allinea"},
+   [
+    {8,"Allinea"},
     {9,"Centra"},
-    {10,"Salva Contenitore Circoscritto"},
-    {11,"Scala al CC salvato"},
-    {12,"Scala proporzionalmente al CC salvato"},
-    {13,"Sposta sul CC salvato"},
-    {14,"Imposta assi predefiniti"},
-    {15,"Definisci e immagazzina assi (con punti di rif.) per usi successivi con ogni "},
+    {10,"Salva Bounding Box"},
+    {11,"Scala al BB salvato"},
+    {12,"Scala proporzionalmente al BB salvato"},
+    {13,"Sposta nel BB salvato"},
+    {14,"Imposta Asse Predefinito"},
+    {15,"Definisce e immagazzina assi (con punti di rif.) per usi successivi con ogni "},
     {16,"\"Asse predefinito\" comando (esempio Scala|Asse predefinito)"},
     {17,"Simmetria Virtuale"},
     {18,"Crea"},
-    {19,"Scelta una faccia, fa una simmetria virtuale complanare ad essa"},
+    {19,"Scelta una faccia, crea una simmetria virtuale complanare ad essa"},
     {20,"Rompi"},
     {21,"Elimina le simmetrie virtuali per ogni oggetto"},
     {22,"Congela"},
-    {23,"Rende fissa la simmetria virtuale"},
-    {24,"Fotografa"},
-    {25,"Crea un' immagine dello schermo (esportarla dalla fin. schematiche)"}]},
-  {undo_info,
-   [{1,"Non ci sono stati di annullamento"},
-    {2,"c'e' un solo stato"},
-    {3,"ci sono ~p stati di annullamento"},
-    {4,"; un' operazione puo' essere ripetuta"},
-    {5,"; ~p operazioni possono essere ripetute"}]},
+    {23,"Rende reale la simmetria virtuale"},
+    {24,"Istantanea..."},
+    {25,"Crea un'immagine dello schermo (Esportata dalla finestra Struttura)"},
+    {26,"Informazioni Scena"},
+    {27,"Calcola area e volume di ogni oggetto nella scena"},
+    {28,"Appoggia a terra"},
+    {29,"Posiziona gli oggetti selezionati sul piano di terra"},
+    {30,"Uniforma"},
+    {31,"Ridimensiona gli oggetti selezionati per adattarli all'interno di una sfera unitaria e li sposta all'origine degli assi"},
+    {32,"Sposta BB alla selezione"},
+    {33,"Scala BB alla selezione"},
+    {34,"Imposta Asse e Punto"},
+    {35,"Imposta Asse"},
+    {36,"Imposta Punto"},
+    {37,"Bounding Box"},
+    {38,"I Bounding Box sono utili per ridimensionare o allineare gli oggetti"},
+    {39,"Crea un Bounding Box intorno alla selezione corrente"},
+    {40,"Ritocco"},
+    {41,"Apre il menu Ritocco"}
+   ]},
+  {update_menus,
+   [
+    {1,"Ripeti"},
+    {2,"Ripeti Argomenti"},
+    {3,"Ripeti Trascinamento"}
+   ]},
   {window_menu,
-   [{1,"Grafico delle geometrie"},
-    {2,"Grafico delle geometrie #"},
-    {3,"Schematiche"},
-    {4,"Apre la finestra schematiche (mostrando materiali e oggetti)"},
-    {5,"Apre una finestra del grafico delle geometrie (mostrando oggetti)"},
+   [
+    {1,"Oggetti"},
+    {2,"Oggetti #"},
+    {3,"Struttura"},
+    {4,"Apre la finestra Struttura (che contiene materiali e oggetti)"},
+    {5,"Apre una finestra degli oggetti (che contiene gli oggetti presenti in Geometria)"},
     {6,"Tavolozza"},
     {7,"Apre la finestra della tavolozza dei colori"},
-    {8,"Nuova finestra delle geometrie"},
-    {9,"Apre una nuova finestra delle geometrie"},
-    {10,"Terminale"},
-    {11,"Apre una finestra di terminale per i messaggi di informazione"}]}
-  ]}.
-
+    {8,"Nuova finestra Geometria"},
+    {9,"Apre una nuova finestra Geometria"},
+    {10,"Console"},
+    {11,"Apre la finestra Console per i messaggi di informazione"},
+    {12,"Gestione Ritocco"},
+    {13,"Apre le finestre da cui è possibile selezionare gli strumenti di ritocco o associarli a tasti modificatori"},
+    {14,"Impostazioni di Visualizzazione"},
+    {15,"Apre la finestra delle impostazioni di visualizzazione"}
+   ]}
+ ]}.
 {wings_body,
- [{arealight_conv,
-   [{2,"Converte la luce d'Area in un oggetto"},
-    {4,"Converte gli oggetti selezionati in una luce d' Area"}]},
+ [
+  {arealight_conv,
+   [
+    {1,"Da Luce Area a Oggetto"},
+    {2,"Converte la luce Area in un oggetto"},
+    {3,"Da oggetto a Luce Area"},
+    {4,"Converte gli oggetti selezionati in una luce d'Area"}
+   ]},
+  {arealight_edit,
+   [
+    {16,"Modifica Luce Area..."},
+    {17,"Modifica le Proprietà della Luce"}
+   ]},
   {auto_smooth,
-   [{1,"Parametri di arrotondamento automatico"},
-    {2,"Angolo della piega"}]},
+   [
+    {1,"Parametri di arrotondamento automatico"},
+    {2,"Angolo della piega"}
+   ]},
   {clean_isolated_vertices,
-   [{1,"Rimosso un vertice isolato\n"},
-    {2,"~p vertici isolati rimossi\n"}]},
+   [
+    {1,"Rimosso 1 vertice isolato\n"},
+    {2,"Rimossi ~p vertici isolati\n"}
+   ]},
   {cleanup,
-   [{1,"Spigoli corti"},
+   [
+    {1,"Spigoli Corti"},
     {2,"Tolleranza"},
-    {3,"Vertici isolati"},
-    {4,"Pulisci"}]},
+    {3,"Vertici Isolati"},
+    {4,"Pulisci"}
+   ]},
   {cleanup_rep_1,
-   [{1,"Il vertice ~p e' ripetuto nella faccia ~p\n"}]},
+   [
+    {1,"Il vertice ~p è ripetuto nella faccia ~p\n"}
+   ]},
   {cleanup_waists_1,
-   [{1,"Rimossi i vertici in eccesso: ~p\n"}]},
+   [
+    {1,"Rimossi i vertici in eccesso: ~p\n"}
+   ]},
   {color_material,
-   [{1,"colore_"}]},
+   [
+    {1,"color_"}
+   ]},
   {delete_2edged_faces_1,
-   [{1,"La faccia "},
-    {2," ha solo uno spigolo."}]},
-  {mat_col_conv,
-   [{1,"Colori in materiali"},
-    {2,"Converte i colori dei vertici in materiali"},
-    {3,"Materiali in colori"},
-    {4,"Converte i materiali in colori sui vertici"}]},
+   [
+    {1,"La faccia "},
+    {2," ha un solo spigolo."}
+   ]},
+  {flip_ask,
+   [
+    {1,"Selezionare l'asse lungo il quale capovolgere l'oggetto"},
+    {2,"Selezionare il punto lungo l'asse scelto per capovolgere l'oggetto"}
+   ]},
+  {flip_str,
+   [
+    {1,"[Alt]+clic per duplicare l'oggetto"}
+   ]},
   {menu,
-   [{1,"Operazioni con gli oggetti"},
+   [
     {2,"Sposta"},
-    {3,"Speculare"},
-    {5,"Inverte l' oggetto rispetto"},
+    {3,"Specchia..."},
     {10,"Inverti"},
-    {11,"Inverte tutte le normali, rivoltando l' oggetto"},
-    {12,"Stringi"},
+    {11,"Inverte tutte le normali, rivoltando l'oggetto"},
+    {12,"Restringi"},
     {13,"Sposta i vertici rispetto al punto medio"},
-    {14,"Arrotonda"},
-    {15,"Suddivide tutte le facce per dare all'oggetto una forma piu' arrotondata"},
+    {14,"Leviga"},
+    {15,"Suddivide le facce per dare all'oggetto una forma più arrotondata"},
     {16,"Combina"},
-    {17,"Combina piu' oggetti in un unico solido"},
+    {17,"Combina più oggetti in un unico solido"},
     {18,"Separa"},
     {19,"Separa un oggetto combinato nelle sue componenti"},
     {20,"Salda"},
-    {21,"Unisce paia di facce che sono quasi coincidenti"},
+    {21,"Unisce coppie di facce che sono quasi coincidenti"},
     {22,"Pulisci"},
     {23,"Rimuove vari difetti"},
-    {24,"Auto-Arrotonda"},
-    {25,"Sceglie la durezza degli spigoli in base all' angolo tra le facce"},
+    {24,"Auto-Smusso"},
+    {25,"Imposta la rigidità degli spigoli in base all'angolo tra le facce"},
     {26,"Duplica"},
     {27,"Elimina"},
     {28,"Elimina gli oggetti scelti"},
     {29,"Rinomina"},
-    {30,"Rinomina gli oggetti scelti"}]},
+    {30,"Rinomina gli oggetti scelti"},
+    {32,"Mostra tutte le facce di questo oggetto"},
+    {33,"Attributi del Vertice"},
+    {34,"Capovolge l'oggetto lungo l'asse ~s"},
+    {35,"Seleziona il punto di capovolgimento dell'oggetto lungo l'asse ~s"},
+    {36,"Capovolge l'oggetto lungo l'asse globale ~s"},
+    {37,"Scegli"},
+    {38,"Scegli l'asse su cui capovolgere l'oggetto"},
+    {39,"Scegli l'asse e il punto di capovolgimento dell'oggetto"},
+    {40,"Scegli l'asse globale di capovolgimento dell'oggetto"},
+    {41,"Da Colori a Materiali"},
+    {42,"Converte i colori dei vertici in materiali"},
+    {43,"Da Materiali a Colori"},
+    {44,"Converte i materiali in colori dei vertici"},
+    {45,"Rimuovi colori"},
+    {46,"Rimuove tutti i colori dei vertici"},
+    {47,"Rimuovi coordinate UV"},
+    {48,"Rimuove tutte le coordinate UV"},
+    {49,"Rimuovi tutti gli attributi"},
+    {50,"Rimuovi tutti i colori dei vertici e le coordinate UV"},
+    {51,"Aggiungi un prefisso comune a ciascun oggetto selezionato"},
+    {52,"Mostra Facce"},
+    {53,"Suddivide tutte le facce dell'oggetto"},
+    {200,"Booleane *TEST*"},
+    {201,"Unione"},
+    {202,"Somma le parti di oggetti che si intersecano"},
+    {203,"Interseca"},
+    {204,"Crea oggetti dalle intersezioni"},
+    {205,"Differenza"},
+    {206,"Sottrae oggetti dalla selezione secondaria"}
+   ]},
   {rename_1,
-   [{1,"Rinomina"}]},
-  {unify_modes,
-   [{1,"Gli oggetti con colori sui vertici non possono essere combinati con oggetti con materiali."}]},
+   [
+    {1,"Rinomina"}
+   ]},
+  {rename_prefix,
+   [
+    {1,"Prefisso Oggetti Selezionati"}
+   ]},
   {vertex_color_item,
-   [{1,"Colori dei vertici"}]},
+   [
+    {1,"Colore dei Vertici"},
+    {3,"Applica i colori dei vertici agli oggetti selezionati"}
+   ]},
   {weld,
-   [{1,"Tolleranza"},
-    {2,"Salda"}]},
-  {weld_1,
-   [{1,"Nessuna faccia da saldare."}]}]}.
+   [
+    {1,"Tolleranza"},
+    {2,"Salda"}
+   ]},
+  {weld_error,
+   [
+    {1,"Non è stato possibile eseguire la saldatura"}
+   ]},
+  {weld_objects,
+   [
+    {1,"Non ho trovato facce da saldare"}
+   ]}
+ ]}.
+{wings_bool,
+ [
+  {do_bool,
+   [
+    {1,"Selezionare due oggetti"}
+   ]},
+  {make_vmap,
+   [
+    {1,"Al momento non possono essere gestite le facce complanari"}
+   ]},
+  {sub,
+   [
+    {1,"Selezionare l'oggetto da sottrarre"}
+   ]},
+  {sub_ask,
+   [
+    {1,"Scegliere l'oggetto da sottrarre dalla selezione originale"},
+    {2,"Selezionare un oggetto che non sia la selezione originale"}
+   ]}
+ ]}.
 {wings_camera,
- [{desc,
-   [{1,"Uno"},
+ [
+  {desc,
+   [
+    {1,"Uno"},
     {2,"Due"},
-    {3,"Tre"}]},
+    {3,"Tre"}
+   ]},
   {help,
-   [{1,"Camera di avvio"}]},
+   [
+    {1,"Avvia rotazione camera"}
+   ]},
   {info,
-   [{1,"Nota: Solo la modalita' Nendo per la camera puo' essere usata con un mouse ad un solo bottone"},
-    {2,"Nota: Solo le modalita' Nendo e Blender per la camera possono essere usate con un mouse a due bottoni"},
-    {3,"Nota: La modalita' "},
-    {4," necessita almeno 2 bottoni del mouse"},
-    {5,"Nota: La modalita' "},
-    {6," necessita 3 bottoni del mouse"}]},
+   [
+    {1,"Nota: Con un mouse ad un solo pulsante può essere usata solo la modalità Nendo"},
+    {2,"Nota: Con un mouse a due pulsanti possono essere usate solo le modalità Nendo e Blender"},
+    {3,"Nota: La modalità "},
+    {4," necessita almeno di un mouse a 2 pulsanti"},
+    {5,"Nota: La modalità "},
+    {6," necessita di un mouse a 3 pulsanti"}
+   ]},
   {message,
-   [{2,"Trascina per ingrandire"},
+   [
+    {2,"Trascina per effetto Dolly"},
     {3,"Sposta il mouse per muovere la camera"},
     {4,"[Q]"},
     {5,"Sposta il mouse per ruotare la camera"},
     {6,"Annulla/Ripristina vista"},
-    {7,"Ripristina vista"}]},
+    {7,"Ripristina vista"},
+	{8,"Muovi il mouse per il Pan"}
+   ]},
   {mode_help,
-   [{1,"Spostamento"},
-    {2,"Ingrandimento"},
-    {3,"Rotazione"}]},
+   [
+    {1,"Spostamento"},
+    {2,"Dolly"},
+    {3,"Rotazione"},
+    {4,"Scroll: Dolly"}
+   ]},
   {prefs,
-   [{1,"Bottoni del mouse"},
-    {2,"Impostazioni telecamera"},
-    {3,"Velocita' spostamento"},
-    {4,"La ruota ingrandisce"},
-    {5,"In avanti, ingrandimento"},
-    {6,"In avanti, rimpicciolimento"},
-    {7,"Ingrandimento"},
-    {9,"Ruota del mouse"}]}]}.
+   [
+    {1,"Pulsanti del mouse"},
+    {2,"Impostazione Camera"},
+    {3,"Velocità di spostamento"},
+    {4,"Zoom con rotellina"},
+    {7,"Fattore di Zoom"},
+    {9,"Rotella di scorrimento"},
+    {10,"Fattore fine di Zoom (Alt+Scroll)"},
+    {11,"La rotella ruota e brandeggia"},
+    {12,"Velocità di Panning"},
+    {13,"Passo di rotazione in gradi"},
+    {15,"Camera Unidirezionale"},
+    {16,"Velocità di Panning con Tasti Freccia"},
+    {17,"Mostra la riga con le informazioni di aiuto"},
+    {19,"Velocità di rotazione"},
+    {20,"Zoom con bersaglio"}
+   ]},
+  {scroll_help,
+   [
+    {1,"  [Ctrl](+[Alt])+Scroll: Pan  [Shift](+[Alt])+Scroll: Ruota"}
+   ]}
+ ]}.
+{wings_cc,
+ [
+  {cl_setup,
+   [
+    {1,"Impossibile configurare OpenCL, disabilitando il proxy smooth."}
+   ]},
+  {decrease_level,
+   [
+    {1,"Impossibile acquisire la memoria necessaria, scendo al livello inferiore ~p~n"}
+   ]},
+  {gen_vab,
+   [
+    {1,"Subd OpenCL non riuscito: richiesto ~pMB SOLO ~pMB disponibili~n"}
+   ]}
+ ]}.
 {wings_collapse,
- [{check_consistency,
-   [{1,"Collassare creerebbe una struttura inconsistente."}]},
+ [
+  {check_consistency,
+   [
+    {1,"Collassa creerebbe una struttura inconsistente."}
+   ]},
   {check_vertices_1,
-   [{1,"Vertici non collassabili ("},
-    {2,") - lascerebbero rusco(pattume, schifezza).\n"}]}]}.
+   [
+    {1,"Vertici non collassabili"},
+    {2,"lascerebbero residui.\n"}
+   ]}
+ ]}.
 {wings_color,
- [{choose_1,
-   [{1,"Scegli colore"}]}]}.
+ [
+  {choose_1,
+   [
+    {1,"Scelta colore"}
+   ]}
+ ]}.
 {wings_console,
- [{do_window,
-   [{1,"Terminale "},
-    {2,"x"}]},
-  {handle_action,
-   [{1,"Scrivi"},
-    {3,"Documento di testo"},
-    {4,"Errore di scrittura: ~w"}]},
-  {popup_menu,
-   [{1,"Scrivi in un documento"},
-    {2,"Scrivi il contenuto del terminale in un documento"}]},
+ [
   {server_loop,
-   [{1,":~w Ricevuto sconosciuto: ~p~n"}]}]}.
+   [
+    {1,":~w Ricevuto sconosciuto: ~p~n"}
+   ]},
+  {wc_open_window,
+   [
+    {1,"Log di Wings3D"}
+   ]}
+ ]}.
 {wings_deform,
- [{check_range,
-   [{1,"L' asse di estensione "},
-    {2,"e' troppo corto"}]},
+ [
+  {check_range,
+   [
+    {1,"L'estensione lungo l'asse "},
+    {2,"è troppo corta."}
+   ]},
   {crumple_dirs,
-   [{1,"Casuale"},
+   [
+    {1,"Casuale"},
     {2,"in una direzione casuale"},
     {4,"sua normale"},
     {8,"Sposta ogni vertice ad una distanza casuale rispetto"}
-    ]},
+   ]},
   {dir,
-   [{1,"Attorciglia i vertici scelti attorno all'asse "},
+   [
+    {1,"Attorciglia i vertici scelti attorno all'asse "},
     {2," che passa sul centro della selezione"},
-    {3," che passa sull' origine"}]},
+    {3," che passa sull'origine"}
+   ]},
   {inflate_fun,
-   [{1,"Scegliere centro e raggio"},
+   [
+    {1,"Scegliere centro e raggio"},
     {2,"Gonfia elementi"},
     {3,"Scegliere il centro"},
-    {4,"Scegliere un punto per definire il raggio"}]},
+    {4,"Scegliere un punto per definire il raggio"}
+   ]},
   {sub_menu,
-   [{1,"Gonfia elementi"},
+   [
+    {1,"Gonfia elementi"},
     {2,"Scegli centro e raggio"},
-    {3,"Ruga"},
+    {3,"Corruga"},
     {4,"Muove vertici in maniera casuale"},
-    {5,"Gonfiare"},
-    {6,"Rastremare"},
-    {7,"Torcere"},
-    {8,"Torcere(generale)"}]},
+    {5,"Gonfia"},
+    {6,"Rastrema"},
+    {7,"Attorciglia"},
+    {8,"Torci"}
+   ]},
   {taper_item,
-   [{1,"Rastremare sull'asse "},
+   [
+    {1,"Rastrema sull'asse "},
     {2," (con effetto su "},
     {3,")"},
-    {4,"Scegliere l' asse d'azione"},
+    {4,"Scegliere l'asse d'azione"},
     {5,"Scegliere il centro dell'azione"},
-    {6,"Scegliere l' origine della rastrematura"},
-    {7,"Effetto su "}]}]}.
+    {6,"Scegliere l'origine della rastrematura"},
+    {7,"Effetto su "}
+   ]}
+ ]}.
 {wings_dissolve,
  [
   {dissolve_1,
-   [{1,"Se dissolvessi, la struttura risulterebbe inconsistente."}]}
+   [
+    {1,"Se dissolvessi, la struttura risulterebbe inconsistente."}
+   ]}
  ]}.
 {wings_drag,
  [
+  {drag_help,
+   [
+    {1,"Sposta lungo la normale dello schermo "},
+    {2,"Scala"},
+    {3,"Regola il 2° valore"},
+    {4,"Ruota"},
+    {5,"Regola il 3° valore"},
+    {6,"Regola il 4° valore"}
+   ]},
   {help_message,
-   [{1,"Per inserire numero"}]},
+   [
+    {1,"Inserimento valore numerico"},
+    {2,"Cambia set di Vincoli"}
+   ]},
   {make_query_1,
-   [{2,"A"}]},
+   [
+    {2,"A"}
+   ]},
   {numeric_input,
-   [{1,"Inserisci numero"}]},
+   [
+    {1,"Inserisci numero"}
+   ]},
+  {plus_drag_string,
+   [
+    {1,"+Drag: "}
+   ]},
   {qstr,
-   [{1,"Dx"},
+   [
+    {1,"D"},
     {2,"Dx"},
     {3,"Dy"},
     {4,"Dz"},
     {5,"R"},
-    {6,"A"}]},
+    {6,"A"}
+   ]},
   {standard_mode_fun,
-   [{1,"[Shift] e/o [Ctrl] Vincola"},
-    {2,"[+] o [-] Varia raggio"}]},
-  {zmove_help,
-   [{1,"Trascina per muovere sull' asse Z"},
-    {2,"Trascina per variare il terzo parametro"}]}]}.
+   [
+    {1,"[Shift] e/o [Ctrl] e/o [Alt] Vincola"},
+    {2,"[+] o [-] Varia raggio"}
+   ]},
+  {switch,
+   [
+    {1," (Utilizza Vincoli Alternativi)"}
+   ]}
+ ]}.
 {wings_edge,
  [
-  {dissolve_edge_2,
-   [{1,"Dissolvere causerebbe la formazione di una faccia malposta."}]}
+  {dissolve_edges,
+   [
+     {1,"Dissolvi creerebbe una faccia malformata."}
+   ]}
  ]}.
 {wings_edge_cmd,
  [
+  {command,
+   [
+    {1,"Segmenti"}
+   ]},
+  {cut_ask_entry,
+   [
+    {1,"Taglia in <N> segmenti"},
+    {2,"Inserisci un numero..."}
+   ]},
   {cut_command,
    [
     {1,"Taglia"}
    ]},
   {cut_entry,
-   [{1,"Taglia in "},
-    {2," spigoli di uguale lunghezza"}]},
+   [
+    {1,"Taglia in "},
+    {2," spigoli di uguale lunghezza"}
+   ]},
   {cut_fun,
-   [{1,"Taglia in spigoli di uguale lunghezza"},
-    {2,"Taglia ad una posizione arbitraria"}]},
+   [
+    {1,"Taglia in spigoli di uguale lunghezza"},
+    {2,"Taglia in una posizione arbitraria"}
+   ]},
   {cut_pick_error,
-   [{1,"Ad una posizione arbitraria puo' essere tagliato solo uno spigolo."}]},
+   [
+    {1,"In una posizione arbitraria può essere tagliato solo uno spigolo."}
+   ]},
   {loop_cut,
-   [{1,"Gli spigoli selezionati non dividono ~p in due o piu' parti."}]},
+   [
+    {1,"Gli spigoli selezionati non dividono #~p in due o più parti."}
+   ]},
   {menu,
-   [{1,"Operazioni sugli spigoli"},
+   [
     {2,"Sposta"},
     {3,"Scorri"},
     {4,"Fa scorrere gli spigoli sugli spigoli vicini"},
@@ -350,307 +566,608 @@
     {6,"Connetti"},
     {7,"Crea un nuovo spigolo connettendo i punti medi degli spigoli selezionati"},
     {8,"Smussa"},
-    {9,"Arrotonda gli spigoli scelti"},
+    {9,"Smussa gli spigoli scelti"},
     {10,"Dissolvi"},
     {11,"Elimina gli spigoli selezionati"},
     {12,"Collassa"},
     {13,"Cancella gli spigoli, sostituendoli con vertici"},
-    {14,"Durezza"},
+    {14,"Rigidità"},
     {15,"Morbido"},
-    {16,"Duro"},
-    {17,"Taglio circolare"},
-    {18,"Taglia in due oggetti sullo spigolo che circonda i due pezzi"},
-    {19,"Colore ai vertici"},
-    {20,"Applica il colore ai vertici degli spigoli selezionati"}]},
+    {16,"Rigido"},
+    {17,"Taglia Loop"},
+    {18,"Divide l'oggetto in due parti distinte lungo il loop di spigoli"},
+    {19,"Colore Vertici"},
+    {20,"Applica il colore ai vertici degli spigoli selezionati"},
+    {21,"Elimina gli spigoli, sostituendoli con vertici e rimuove gli eventuali vertici isolati creati"},
+    {22,"Piega"},
+    {23,"Estrusione comunemente usata per aggiungere grinze ai modelli organici"},
+    {24,"Inverti"},
+    {25,"Crea un nuovo spigolo e lo fa scorrere lungo gli spigoli adiacenti"},
+    {50,"Elimina gli spigoli selezionati e rimuove i vertici isolati rimanenti"}
+   ]},
   {plain_cut_menu,
-   [{2,"Taglia in spigoli di uguale lunghezza"}]},
+   [
+    {2,"Taglia in spigoli di uguale lunghezza"}
+   ]},
   {slide_help_mode,
-   [{1,"Assoluto"},
+   [
+    {1,"Assoluto"},
     {2,"Relativo"},
     {3,"Congela direzione"},
-    {4,"Sciogli direzione"},
+    {4,"Scongela direzione"},
     {5,"Fermati agli altri spigoli"},
-    {6,"Continua oltre gli altri spigoli"}]}]}.
+    {6,"Continua oltre gli altri spigoli"}
+   ]}
+ ]}.
 {wings_export,
- [{export,
-   [{1,"sto esportando"},
+ [
+  {export,
+   [
+    {1,"sto esportando"},
     {2,"in preparazione"},
-    {4,"Il modulo di esportazione e' morto"}]}]}.
+    {4,"Errore sul modulo di esportazione"},
+    {5," vedere la finestra della console per i dettagli"}
+   ]}
+ ]}.
 {wings_extrude_edge,
- [{bevel_faces,
-   [{1,"L'oggetto e' troppo piccolo per essere smussato."}]}
+ [
+  {bevel_faces,
+   [
+    {1,"L'oggetto è troppo piccolo per essere smussato."}
+   ]},
+  {extrude_problem,
+   [
+    {1,"Impossibile estrudere/smussare; probabilmente due o più vertici sono troppo vicini tra loro.\nProvare il comando Pulisci."}
+   ]}
  ]}.
 {wings_face_cmd,
- [{bridge,
-   [{1,"Le facce devono avere lo stesso numero di vertici."},
-    {2,"Le normali alle facce non devono avere verso e direzioni uguali."},
-    {3,"Le facce non devono essere vicine."}]},
+ [
+  {bridge_1,
+   [
+    {2,"Le facce non devono puntare nella stessa direzione."}
+   ]},
   {bridge_error,
-   [{1,"Devono essere scelte esattamente due facce."}]},
-  {clone_on,
-   [{1,"Deve essere selezionata solo una faccia."}]},
+   [
+    {2,"Devono essere selezionate esattamente due regioni di facce."}
+   ]},
+  {bridge_error_neighbors,
+   [
+    {1,"Le facce non devono essere adiacenti."}
+   ]},
+  {bridge_selection,
+   [
+    {1,"Selezionare un singolo vertice come riferimento da ciascuna faccia selezionata o regione di spigoli ."},
+    {2,"Niente di selezionato."},
+    {3,"È necessario selezionare un vertice in ciascuna faccia/regione."}
+   ]},
   {clone_on_selection,
-   [{1,"Scegliere gli elementi sui quali porre i cloni"}]},
+   [
+    {1,"Scegliere gli elementi sui quali posizionare i cloni"}
+   ]},
+  {create_hole_1,
+   [
+    {1,"Un foro non può comprendere tutte le facce di un oggetto."}
+   ]},
+  {intrude,
+   [
+    {1,"L'intrusione non funziona con tutte le facce selezionate."}
+   ]},
   {lift_check_selection,
-   [{1,"Le selezioni faccia-spigolo non corrispondono."},
-    {2,"Le selezioni faccia-vertice non corrispondono."}]},
+   [
+    {1,"Le selezioni faccia-spigolo non corrispondono."},
+    {2,"Le selezioni faccia-vertice non corrispondono."}
+   ]},
   {lift_fun,
-   [{1,"Eleva, ruotando la faccia attorno allo spigolo o al vertice"},
-    {2,"Eleva, sulle direzioni standard"}]},
+   [
+    {1,"Lift, ruota una faccia intorno a uno spigolo o a un vertice"},
+    {2,"Lift, ruota nelle direzioni standard."}
+   ]},
   {lift_sel_mismatch,
-   [{1,"Le selezioni faccia-spigolo non corrispondono."}]},
+   [
+    {1,"Le selezioni faccia-spigolo non corrispondono."}
+   ]},
   {lift_selection,
-   [{1,"Scegliere un vertice o uno spigolo che funga da cardine"}]},
+   [
+    {1,"Scegliere un vertice o uno spigolo che funga da cardine"}
+   ]},
   {lift_vtx_sel_mismatch,
-   [{1,"Le selezioni faccia-vertice non corrispondono."}]},
+   [
+    {1,"Le selezioni faccia-vertice non corrispondono."}
+   ]},
   {menu,
-   [{1,"Operazioni sulle facce"},
+   [
     {2,"Sposta"},
     {3,"Estrudi"},
-    {4,"Estrudi regione"},
-    {5,"Estrai regione"},
-    {6,"Inserto"},
-    {7,"Crea e scala una nuova faccia sulla faccia data"},
     {8,"Intrudi"},
-    {9,"Scava l' interno dell' oggetto trasformando le facce selezionate in buchi"},
+    {9,"Scava l'interno dell'oggetto trasformando le facce selezionate in fori"},
     {10,"Smussa"},
-    {11,"Arrotonda gli spigoli delle facce date"},
+    {11,"Arrotonda gli spigoli delle facce selezionate"},
     {12,"Ponte"},
-    {13,"Crea un ponte o tunnel tra due facce"},
-    {14,"Bozzo"},
-    {15,"Crea un bozzo sulle facce scelte"},
-    {16,"Eleva"},
-    {17,"Poni sopra"},
-    {18,"Sposta e ruota l' oggetto allineando la faccia scelta ad un altro elemento"},
-    {19,"Clona l' oggetto su uno o piu' elementi"},
-    {20,"Simmetria"},
-    {21,"Esegue una simmetria rispetto alle facce selezionate e la aggiunge all' oggetto"},
+    {13,"Crea un ponte o un tunnel tra due facce"},
+    {14,"Rilievo"},
+    {15,"Crea un rilievo sulle facce selezionate"},
+    {16,"Incardina"},
+    {17,"Metti su..."},
+    {18,"Sposta e ruota un oggetto allineando la faccia scelta ad un altro elemento"},
+    {19,"Clona l'oggetto su uno o più elementi"},
+    {20,"Specchia"},
+    {21,"Esegue una simmetria rispetto alle facce selezionate e la aggiunge all'oggetto"},
     {22,"Esegue una simmetria e separa gli oggetti"},
     {23,"Dissolvi"},
-    {24,"Elimina tutti gli spigoli nelle facce scelte"},
+    {24,"Elimina tutti gli spigoli nelle facce selezionate"},
     {25,"Collassa"},
     {26,"Cancella le facce, sostituendole con vertici"},
     {27,"Arrotonda"},
     {28,"Suddivide le facce selezionate per arrotondarle (Metodo Catmull-Clark)"},
     {29,"Tassella"},
-    {30,"Colore vertici"},
-    {31,"Applica il colore ai vertici delle facce scelte"}]},
-  {put_on,
-   [{1,"Deve essere selezionata solo una faccia."}]},
+    {30,"Colore Vertici"},
+    {31,"Applica il colore ai vertici delle facce selezionate"},
+    {32,"Nascondi"},
+    {33,"Nasconde le facce selezionate"},
+    {34,"Elimina le facce selezionate e rimuove i vertici isolati rimanenti"},
+    {35,"Estrai"},
+    {36,"Estrusione Guscio"},
+    {37,"Fora"},
+    {38,"Crea un foro"},
+    {39,"Rimuove i fori adiacenti alle facce selezionate"},
+    {40," o regioni di facce"},
+    {41,"Scopre le facce adiacenti alla selezione"},
+    {42,"Suddivide le facce selezionate"},
+    {43,"Crea un ponte o un tunnel dai vertici di riferimento"}
+   ]},
+  {put_clone_only_one,
+   [
+    {1,"Deve essere selezionata una sola faccia."}
+   ]},
   {put_on_check_selection,
-   [{1,"La selezione non deve essere sullo stesso oggetto."},
-    {2,"Scegliere soltanto un elemento."}]},
+   [
+    {1,"La selezione non deve essere sullo stesso oggetto."},
+    {2,"Scegliere soltanto un elemento."},
+    {3,"Bisogna selezionare un elemento di destinazione."}
+   ]},
   {put_on_selection,
-   [{1,"Scegliere l' elemento bersaglio sul quale porre l' oggetto sorgente"}]},
+   [
+    {1,"Scegliere l'elemento bersaglio sul quale porre l'oggetto sorgente"}
+   ]},
   {smooth,
-   [{1,"arrotondando"}]},
-  {unify_modes,
-   [{1,"Un oggetto con i colori ai vertici non puo' essere unito ad un oggetto con i materiali."}]}]}.
+   [
+    {1,"arrotondamento"}
+   ]},
+  {subdiv,
+   [
+    {1,"suddivisione"}
+   ]}
+ ]}.
 {wings_ff_ndo,
- [{check_size,
-   [{1,"L'oggetto \""},
-    {2,"\" non puo' essere esportato "},
-    {3,"al formato di Nendo (troppi spigoli)."}]},
+ [
+  {check_size,
+   [
+    {1,"L'oggetto \""},
+    {2,"\" non può essere esportato "},
+    {3,"nel formato Nendo (troppi spigoli)."}
+   ]},
   {clean_bad_edges,
-   [{1,"Brutto spigolo: ~w\n"}]},
+   [
+    {1,"Spigolo errato: ~w\n"}
+   ]},
   {import,
-   [{1,"Non so leggere i documenti Nendo 1.0"},
-    {2,"non e' un documento di Nendo"}]},
-  {import_1,
-   [{1,"~w oggetto(i)\n"}]},
-  {read_edges,
-   [{1," spigoli ~w\n"}]},
-  {read_object_1,
-   [{1,"~w: ~s: vis=~p sensitivita'=~p\n"}]},
+   [
+    {1,"File Nendo 1.0 non supportato"},
+    {2,"non è un file Nendo"}
+   ]},
   {read_objects,
-   [{1,"  ~w oggetto(i) vuoto(i)\n"},
-    {2,"  rusco(pattume,spazzatura): ~w\n"}]},
-  {read_vertices,
-   [{1," vertici ~w\n"}]},
-  {skip_faces,
-   [{1," facce ~w\n"}]}]}.
+   [
+    {2,"  spazzatura: ~w\n"}
+   ]}
+ ]}.
 {wings_ff_wings,
- [{export,
-   [{1,"salvando"},
+ [
+  {export,
+   [
+    {1,"salvando"},
     {2,"luci"},
     {3,"rinumerando"},
     {4,"oggetti"},
     {5,"comprimendo"},
-    {6,"scrivendo il documento"}]},
+    {6,"scrivendo il documento"}
+   ]},
   {import,
-   [{1,"apro il documento wings"},
-    {2,"leggo il documento wings"}]},
+   [
+    {1,"apertura del documento Wings"},
+    {2,"lettura del documento Wings"}
+   ]},
   {import_1,
-   [{1,"converto dal formato binario"},
-    {2,"Ho disimparato a leggere i formati di wings versioni pre-0.80."},
-    {3,"Ho disimparato a leggere pure i formati di wings pre-0.92."},
+   [
+    {1,"converto dal formato binario"},
+    {2,"Impossibile leggere i formati di wings versioni pre-0.80."},
+    {3,"Impossibile leggere pure i formati di wings pre-0.92."},
     {4,"formato di wings sconosciuto"},
     {5,"documento di wings corrotto"},
-    {6,"non e' un documento di wings (o e in un vecchio formato che non so piu' leggere)"}]},
+    {6,"non è un documento di wings (o e in un vecchio formato non leggibile)"}
+   ]},
   {import_image,
-   [{1,"immagine senza nome"},
-    {2,"Immagine sbagliata: ~p\n"}]},
-  {import_object_mode,
-   [{1,"Il modo indefinito e' stato cambiato in materiale\n"}]},
+   [
+    {1,"immagine senza nome"},
+    {2,"Immagine sbagliata: ~ts\n"}
+   ]},
   {import_props,
-   [{1,"<Selezione salvata>"}]},
+   [
+    {1,"<Selezione salvata>"}
+   ]},
   {import_vsn2,
-   [{1,"immagini e materiali"},
-    {2,"oggetti"}]},
+   [
+    {1,"immagini e materiali"},
+    {2,"oggetti"}
+   ]},
+  {import_vsn2_dlg,
+   [
+    {1,"elaborazione delle opzioni di unione..."},
+    {3,"conversione binaria"},
+    {4,"Esterno"}
+   ]},
+  {make_dlg_item,
+   [
+    {1,"Nome elemento"}
+   ]},
+  {make_dlg_opt_mrg0,
+   [
+    {1,"Cosa unire"},
+    {2,"Definisce quale/i elemento/i unire alla scena corrente"}
+   ]},
+  {make_dlg_opt_mrg0_0,
+   [
+    {1,"Tutto"},
+    {2,"Utilizzato solo da qualsiasi materiale"},
+    {3,"Nessuno"},
+    {4,"Selezionato"},
+    {5,"Utilizzato dagli oggetti scelti"}
+   ]},
+  {make_dlg_opt_mrg1,
+   [
+    {1,"Azione con lo stesso nome"},
+    {2,"Definisce cosa fare se c'è un altro elemento con lo stesso nome nella scena corrente"},
+    {3,"Rinomina nuovo"},
+    {4,"Sostituisce elemento corrente"}
+   ]},
+  {make_merge_dlg,
+   [
+    {1,"Oggetti"},
+    {2,"Luci"},
+    {3,"Materiali"},
+    {4,"Immagini"},
+    {5,"Selezione Gruppi"},
+    {6,"Viste Salvate"},
+    {7,"Sblocca gli elementi bloccati"},
+    {8,"Sblocca gli elementi nascosti"},
+    {9,"Unisci tavolozza"},
+    {10,"Ignora"},
+    {11,"Aggiungi a corrente"},
+    {12,"Sostituisci a corrente"},
+    {13,"Opzioni di selezione"},
+    {14,"Definisce cosa fare con le selezioni presenti nel file da unire"},
+    {15,"Crea una nuova selezione"},
+    {16,"Assegna a tutti i nuovi elementi selezionati le seguenti opzioni"},
+    {17,"Unisci le impostazioni di rendering"}
+   ]},
+  {merge,
+   [
+    {1,"apertura del file wings"},
+    {2,"lettura del file"}
+   ]},
   {translate_map_images_2,
-   [{1,"Materiale ~p, tessitura ~p: riferimento ad un immagine inesistente ~p\n"}]}]}.
+   [
+    {1,"Materiale ~p, texture ~p: riferimento ad un immagine inesistente ~p\n"}
+   ]}
+ ]}.
 {wings_file,
- [{autosave,
-   [{1,"Salvataggio automatico di \"~s\" fallito: ~s"}]},
+ [
+  {autosave,
+   [
+    {1,"Autosalvataggio \"~s\" fallito: ~s"}
+   ]},
   {command,
-   [{1,"Ripristino fallito: "},
+   [
     {2,"Esporta"},
-    {3,"Esporta selezione"},
-    {4,"Vorresti salvare i cambiamenti prima di uscire?"},
-    {5,"Questo documento e' stato spostato o eliminato."}]},
+    {3,"Esporta Selezionati"},
+    {4,"Vuoi salvare le modifiche prima di uscire?"},
+    {5,"Questo file è stato spostato o eliminato."}
+   ]},
   {confirmed_open,
-   [{1,"Lettura fallita: "}]},
+   [
+    {1,"Lettura fallita: "}
+   ]},
   {confirmed_open_dialog,
-   [{1,"Apri"}]},
-  {export_filename,
-   [{1,"Esporta"}]},
-  {import_filename,
-   [{1,"Importa"}]},
+   [
+    {1,"Apri"}
+   ]},
+  {confirmed_revert,
+   [
+    {1,"Ripristino fallito: "}
+   ]},
+  {export_filename_1,
+   [
+    {1,"Esporta"}
+   ]},
+  {file_add_all,
+   [
+    {1,"Tutti i Formati"}
+   ]},
+  {file_filters,
+   [
+    {1,"File Wings"},
+    {2,"Tutti i File"}
+   ]},
+  {import_filename_1,
+   [
+    {1,"Importa"}
+   ]},
   {import_image,
-   [{1,"Apertura di \"~ts\" fallita: ~ts\n"}]},
+   [
+    {1,"Caricamento fallito"},
+    {2,"L'immagine non può essere caricata.~nFile: \"~ts\"~n GLU Errore: ~p - ~s~n"}
+   ]},
   {import_ndo,
-   [{1,"Importazione fallita: "}]},
+   [
+    {1,"Importazione fallita: "}
+   ]},
   {install_plugin,
-   [{1,"Aggiungi modulo"},
-    {2,"Documento compresso con GZip"},
-    {3,"Documento Tar"},
-    {4,"Documento Tar compresso"},
-    {5,"Documento Beam"}]},
+   [
+    {1,"Installazione Plug-In"},
+    {2,"File compresso GZip"},
+    {3,"File Tar"},
+    {4,"File compresso Tar"},
+    {5,"File Beam"}
+   ]},
   {menu,
-   [{3,"Nuovo"},
+   [
+    {3,"Nuovo"},
     {4,"Crea una nuova scena vuota"},
     {5,"Apri..."},
     {6,"Apre una scena salvata in precedenza"},
-    {7,"Integra..."},
-    {8,"Integra una scena precedentemente salvata nella scena in uso"},
+    {7,"Unisci..."},
+    {8,"Inserisce gli elementi di una scena precedentemente salvata nella scena in uso"},
     {9,"Salva"},
     {10,"Salva la scena in uso"},
-    {11,"Salva come..."},
+    {11,"Salva con nome..."},
     {12,"Salva la scena in uso con un nuovo nome"},
-    {13,"Salva selezione..."},
+    {13,"Salva Selezione..."},
     {14,"Salva soltanto gli oggetti o le facce selezionate"},
-    {15,"Salva incrementalmente"},
-    {16,"Ripristina"},
-    {17,"Ritorna all' ultima versione salvata"},
+    {15,"Salva Incrementale"},
+    {16,"Ripristina Ultimo Salvataggio"},
+    {17,"Torna all'ultima versione salvata del file corrente."},
     {18,"Importa"},
     {19,"Esporta"},
     {20,"Esporta selezione"},
-    {21,"Importa immagine..."},
-    {22,"Importa un documento contenente un' immagine"},
-    {23,"Resa"},
-    {24,"Aggiungi modulo"},
-    {25,"Esci"}]},
+    {21,"Importa Immagine..."},
+    {22,"Importa un file di immagine"},
+    {23,"Render"},
+    {24,"Installa Plug-in o Patch"},
+    {25,"Esci"},
+    {26,"Genera un nuovo nome file aggiungendo un numero progressivo e salva"},
+    {27,"Installa un plug-in o un file patch di Wings"},
+    {28,"Esce da Wings 3D"},
+    {29,"Salva Materiali Inutilizzati"},
+    {30,"Include  i materiali non utilizzati nel salvataggio del file della scena"},
+    {31,"Salva Sottoinsieme di Preferenze..."},
+    {32,"Salva un sottoinsieme di preferenze contenente le impostazioni correnti"},
+    {33,"Carica Sottoinsieme di Preferenze"},
+    {35,"Carica..."},
+    {36,"Carica un sottoinsieme di preferenze salvato in precedenza"}
+   ]},
   {merge,
-   [{1,"Integra"},
-    {2,"Non riesco a leggere: "}]},
+   [
+    {1,"Integra"},
+    {2,"Lettura fallita: "}
+   ]},
+  {recent_files,
+   [
+    {1,"Apre un file utilizzato recentemente"}
+   ]},
   {save_as,
-   [{1,"Salva"}]},
+   [
+    {1,"Salva"}
+   ]},
   {save_now,
-   [{1,"Salvataggio fallito: "}]},
+   [
+    {1,"Salva fallito: "}
+   ]},
   {save_selected,
-   [{1,"Questo comando necessita di una selezione."},
-    {2,"Salva selezione"}]},
+   [
+    {1,"Questo comando necessita di una selezione."},
+    {2,"Salva selezione"}
+   ]},
   {str_save_changes,
-   [{1,"Vorresti salvare i cambiamenti?"}]},
+   [
+    {1,"Vuoi salvare i cambiamenti?"}
+   ]},
   {use_autosave_1,
-   [{1,"Esiste un documento autosalvato piu' recente di quello salvato; vorresti invece aprire il documento autosalvato?"}]}]}.
+   [
+    {1,"Esiste un documento salvato automaticamente più recente di quello salvato; vuoi aprire il documento salvato automaticamente?"}
+   ]},
+  {wings_prop,
+   [
+    {1,"File Wings"}
+   ]}
+ ]}.
+{wings_frame,
+ [
+  {preview_attach,
+   [
+    {1,"Tenere premuto MAIUSC per non collegare la finestra"}
+   ]},
+  {top_menus,
+   [
+    {1,"File"},
+    {2,"Modifica"},
+    {3,"Vista"},
+    {4,"Selezione"},
+    {5,"Strumenti"},
+    {6,"Finestre"},
+    {7,"Aiuto"},
+    {16,"Finestre"}
+   ]}
+ ]}.
+{wings_geom_win,
+ [
+  {create_folder,
+   [
+    {1,"Esiste già una cartella con questo nome"}
+   ]},
+  {create_folder_dialog,
+   [
+    {1,"Scegli un Nome cartella"},
+    {2,"Crea Cartella"}
+   ]},
+  {do_menu,
+   [
+    {1,"Duplica"},
+    {2,"Duplica gli oggetti selezionati"},
+    {3,"Elimina"},
+    {4,"Elimina gli oggetti selezionati"},
+    {5,"Rinomina"},
+    {6,"Rinomina gli oggetti selezionati"},
+    {14,"Rinomina tutti gli oggetti selezionati"},
+    {15,"Rinomina gli oggetti utilizzando Cerca e sostituisci"}
+   ]},
+  {folder_menu,
+   [
+    {7,"Crea Cartella"},
+    {8,"Rinomina Cartella"},
+    {9,"Elimina cartella"},
+    {10,"Elimina la cartella e il suo contenuto"},
+    {11,"Sposta nella cartella"},
+    {12,"Sposta gli oggetti selezionati in questa cartella"},
+    {13,"Cartella vuota"}
+   ]},
+  {help,
+   [
+    {1,"Operazioni Attiva/Disattiva"},
+    {2,"Attiva/disattiva tutti gli oggetti visibili o mostra il menu"},
+    {3,"Attiva/disattiva gli oggetti in tutte le cartelle"}
+   ]},
+  {object_menu,
+   [
+    {7,"Crea Cartella"},
+    {17,"Rimuovi dalla cartella"}
+   ]},
+  {rename_filtered_dialog,
+   [
+    {1,"Ricerca"},
+    {2,"Scegli Nome"},
+    {3,"Sostituisci"},
+    {4,"Oggetti corrispondenti da rinominare. Gli * possono essere usati come caratteri jolly"},
+    {5,"Nuovo nome. Usare % per indicare gli oggetti numerati e %number% per l'avvio del contatore"},
+    {6,"Oggetti selezionati"},
+    {7,"Cerca"},
+    {8,"Applica a"}
+   ]},
+  {rename_folder_dialog,
+   [
+    {1,"Scegli Nome cartella"},
+    {2,"Rinomina cartella"}
+   ]},
+  {title,
+   [
+    {1,"Oggetti"},
+    {2,"Oggetti #"}
+   ]},
+  {update_folders,
+   [
+    {1,"Oggetti"}
+   ]}
+ ]}.
 {wings_help,
- [{advanced_menus,
-   [{1,"Nel menu "},
-    {4," C'e' un bottone per attivare i \"Menu Avanzati\"."},
-    {5,"Attivare i menu avanzati permette di disporre di funzioni addizionali:"},
-    {6,"Nuovi comandi: "},
-    {7,"Faccia"},
-    {8,"Poni sopra"},
-    {9," e "},
-    {10,"Faccia"},
-    {11,"Eleva"},
-    {12,"Operazioni basate sui vettori. Si puo' specificare un asse o un vettore libero scelto in sostituzione di quello predefinito dell' operazione (ad esempio si puo' scegliere la normale di un vertice come vettore spostamento di una faccia nel comando sposta)."},
-    {13,"Operazioni con magneti: un' abilita' che permette di applicare modificazioni/transizioni graduali agli oggetti geometrici circostanti durante l'operato di ogni strumento valido. Il tipo di magnete e il raggio di influenza permettono di avere un maggiore controllo sul risultato finale."},
-    {14,"Le operazioni vettoriali e quelle con magneti possono essere combinate."},
-    {15,"Con i menu avanzati attivati, molti comandi dei menu fanno cose diversese invocati con differenti bottoni del mouse."},
-    {16,"Per esempio, facendo click con il tasto destro sul comando Ruota, permette di specificare un asse (o vettore libero) attorno al quale ruotare la selezione, mentre il pulsante centrale permette di definire un asse - e un nuovo punto attraverso il quale questo asse passera'. (Non e' necessario che un vettore sia parallelo agli assi x,y,z)"},
-    {17,"Quando vengono usati i menu avanzati e' fortemente raccomandato di leggere sulla barra di informazioni."}]},
+ [
+  {about,
+   [
+    {1,"Informazioni su Wings 3D"}
+   ]},
   {def_commands,
-   [{1,"Nel menu "},
-    {4," si puo' attivare \"Comandi predefiniti\"."},
-    {5,"Due comandi predefiniti possono essere definiti. Per salvare il comando precedente eseguito basta scegliere una tra le seguenti combinazioni:"},
+   [
+    {1,"Nel menu "},
+    {4," si possono attivare i \"Comandi predefiniti\"."},
+    {5,"Possono essere definiti due comandi. Per salvare un comando appena eseguito basta scegliere una tra le seguenti combinazioni:"},
     {8,"Per usare un comando definito in questo modo, invece basta usare:"},
-    {11,"Nota: quando si usa le modalita' "},
+    {11,"Nota: quando si usano le modalità "},
     {13," o "},
-    {15," il secondo comando predefinito non puo' essere usato."}]},
+    {15," il secondo comando predefinito non può essere usato."}
+   ]},
   {def_hotkeys,
-   [{1,"Ad ogni comando che appare in un menu puo' essere assegnata una scorciatoia da tastiera."},
+   [
+    {1,"Ad ogni comando che appare in un menu può essere assegnata una scorciatoia da tastiera."},
     {4,"Per assegnare una scorciatoia ad un comando:"},
-    {6,"1. Premere il tasto ~ts o ~ts"},
-    {5,"2. Aprire il menu contenente il comando e sceglierel (con il bottone del mouse corretto) il comando"},
-    {8,"3. La barra di informazioni chiede di premere il tasto che il comando deve essere assegnato."},
-    {9,"Per eliminare una scorciatoria, analogamente, si prema il tasto ~ts oppure ~ts  e si evidenzi il comando in un menu."
-     "Apparirà una finestra di dialogo elenco di tutti i tasti associati al comando."
-     "Controllare tutti i tasti di scelta rapida che si desidera eliminare."}]},
+    {5,"2. Aprire il menu contenente il comando e sceglierel (con il pulsante del mouse corretto) il comando"},
+    {6,"1. Premere il tasto ~ts or ~ts key."},
+    {8,"3. La barra delle informazioni chiede di premere il tasto cui il comando deve essere assegnato."},
+    {9,"Per eliminare una scorciatoria, analogamente, premere il tasto ~ts oppure ~ts  ed evidenziare il comando in un menu. Apparirà una finestra di dialogo che elenca tutti i tasti associati al comando. Selezionare i tasti di scelta rapida che si desidera eliminare."}
+   ]},
   {edit_prefs,
-   [{1,"Modifica"},
-    {2,"Preferenze"}]},
+   [
+    {1,"Modifica"},
+    {2,"Preferenze"}
+   ]},
   {getting_started,
-   [{1,"Mentre si impara ad usare Wings, e' bene tenere d' occhio la barra informazioni sulla parte inferiore dello schermo. Generalmente mostra cosa i pulsanti del mouse fanno al momento."},
-    {2,"Le azioni vengono segnalate, con"},
-    {two_a,"seguite da una combinazione di tasti."},
-    {7," Generalmente, L (bottone sinistro del mouse) e' usato per scegliere e accettare, M (bottone centrale) per operare sulla camera, e R (bottone destro) per accedere ai menu contestuali."},
-    {left_def,"bottone sinistro"},
-    {middle_def,"bottone centrale"},
-    {right_def,"bottone destro"}]},
-  {help_window,
-   [{1,"Nessun aiuto"}]},
-  {international,
-   [{1,"Sfortunatamente, sulle tastiere tedesche e francesi (e possibilmente altre), i comandi di annullamento e ripetizione non possono essere collegati al tasto [Z] (Questo verra' cambiato nelle future edizioni di Wings)"},
-    {2,"Nella tastiera francese, i comandi annulla e ripeti sono richiamabili con il tasto [W] ([Ctrl]+[W], [Ctrl]+[Alt]+[W] ecc.)."},
-    {3,"Nelle tastiere tedesche i comandi annulla e rimuovi sono richiamabili con il tasto [Y] ([Ctrl]+[Y], [Ctrl]+[Alt]+[Y] ecc.)."}]},
-  {lights,
-   [{1,"1.Creare luci usando il comando luci nel menu delle primitive (premere il tasto destro del mouse quando non e' selezionato nulla nella finestra Geometrie)."},
-    {2,"2. Scegliere una luce tramite il pulsante sinistro del mouse. Quando una luce e' selezionata un menu speciale Luci apparira' se viene premuto il tasto destro del mouse."},
-    {3,"3. Per dire a Wings di usare realmente le luci che sono state create bisogna usare il menu "},
-    {4,"Viste"},
-    {5,"Luci di scena"},
-    {6,[]}]},
+   [
+    {1,"Mentre si impara ad usare Wings, è bene tenere d'occhio la barra delle informazioni nella parte inferiore dello schermo che mostra, generalmente, l'azione assegnata al momento ai pulsanti del mouse."},
+    {2,"Le azioni dei pulsanti del mouse sono indicate per prime, indicate con "},
+    {7," Generalmente, L (pulsante sinistro del mouse) è usato per scegliere e accettare, M (pulsante centrale) per operare sulla camera, e R (pulsante destro) per accedere ai menu contestuali."},
+    {8,"Si noti che è possibile utilizzare i diversi tasti del mouse nei menu a comparsa per scegliere diverse varianti di un comando. Generalmente, il modo più comune per eseguire il comando si trova sul tasto sinistro del mouse, mentre i comandi più avanzati sono sui tasti centrale e destro del mouse."},
+    {left_def,"pulsante sinistro"},
+    {middle_def,"pulsante centrale o rotella di scorrimento"},
+    {right_def,"pulsante destro"},
+    {two_a,"seguite da una combinazione di tasti."}
+   ]},
   {header,
-   [{1,"Come iniziare"},
-    {2,"Usare un mouse con uno o due bottoni"},
+   [
+    {1,"Come iniziare"},
+    {2,"Usare un mouse con uno o due pulsanti"},
     {3,"Tastiere francesi o tedesche"},
-    {4,"Combinazioni di tasti definite"},
+    {4,"Combinazioni di tasti predefinite"},
     {5,"Come definire combinazioni di tasti"},
-    {6,"Nozioni d'illuminazione"},
-    {7,"Menu avanzati"},
+    {6,"Nozioni di base sulle luci"},
     {8,"Comandi predefiniti"},
     {9,"Suggerimenti per le prestazioni"},
     {10,"Informazioni OpenGL"},
-    {11,"Su Wings3D"}]},
-  {message,
-   [{1,"Chiude la finestra aiuti"}]},
+    {11,"Informazioni su Wings3D"},
+    {12,"Ritocco"}
+   ]},
+  {help_window,
+   [
+    {1,"Nessun testo di aiuto"}
+   ]},
+  {international,
+   [
+    {1,"Sfortunatamente, sulle tastiere tedesche e francesi (e probabilmente altre), i comandi di annullamento e ripetizione non possono essere collegati al tasto [Z] (Questo comportamento verrà cambiato nelle future edizioni di Wings)"},
+    {2,"Nelle tastiere francesi, i comandi annulla e ripeti sono richiamabili con il tasto [W] ([Ctrl]+[W], [Ctrl]+[Alt]+[W] ecc.)."},
+    {3,"Nelle tastiere tedesche i comandi annulla e rimuovi sono richiamabili con il tasto [Y] ([Ctrl]+[Y], [Ctrl]+[Alt]+[Y] ecc.)."}
+   ]},
+  {lights,
+   [
+    {1,"1. Creare luci usando il comando Luci nel menu delle primitive (premere il tasto destro del mouse quando non è selezionato nulla nella finestra Geometria)."},
+    {2,"2. Scegliere una luce tramite il pulsante sinistro del mouse. Quando è selezionata una luce apparirà un menu speciale Luci se viene premuto il tasto destro del mouse."},
+    {3,"3. Perché Wings usi realmente le luci che sono state create bisogna usare il menu "},
+    {4,"Vista"},
+    {5,"Luci di scena"},
+    {6,"."}
+   ]},
   {one_or_two,
-   [{1,"Si noti che soltanto le modalita' "},
-    {2," e "},
-    {3," Possono essere usate con un mouse a due bottoni. Solo la modalita' "},
-    {4," puo' essere usata con un mouse ad un solo bottone."}]},
+   [
+    {1,"Note that only the "},
+    {2," and "},
+    {3," modes can be used with a two-button mouse. Only the "},
+    {4," mode can be used with an one-button mouse."}
+   ]},
   {opengl_info,
-   [{1,"Venditore: "},
-    {2,"Pittore: "},
+   [
+    {1,"Venditore: "},
+    {2,"Scheda: "},
     {3,"Versione: "},
     {4,"N-upla di Versione: "},
     {5,"Bits rossi"},
     {6,"Bits verdi"},
     {7,"Bits blu"},
     {8,"Bits trasparenza"},
-    {9,"Bits profondita'"},
+    {9,"Bits profondità"},
     {10,"Bits stampino"},
     {11,"Bits rossi accum."},
     {12,"Bits verdi accum."},
@@ -658,122 +1175,167 @@
     {14,"Bits di trasparenza accum."},
     {15,"Numero massimo di luci"},
     {16,"Numero massimo di piani clip"},
-    {17,"Profondita' massima della pila di visualizzazione dei modelli"},
-    {18,"Profondita' massima della pila delle proiezioni"},
-    {19,"Profondita' massima della pila dei tessuti"},
+    {17,"Profondità massima della pila di visualizzazione dei modelli"},
+    {18,"Profondità massima della pila delle proiezioni"},
+    {19,"Profondità massima della pila dei tessuti"},
     {20,"Bits dei sottopixel"},
     {21,"Grandezza massima di una tessuto 3d"},
     {22,"Grandezza massima tessuti"},
     {23,"Tabella dei pixel massima"},
-    {24,"Profondita' massima della pila dei nomi"},
+    {24,"Profondità massima della pila dei nomi"},
     {25,"Annidamento massimo della lista delle chiamate video"},
     {26,"Ordine massimo del valutatore polinomiale"},
     {27,"Dimensioni massime dello spazio visualizzato"},
-    {28,"Profondita' massima della pila attributi"},
-    {29,"Profondita' massima della pila attributi figli"},
-    {30,"Numero dei serbatoi(buffer) ausiliari"},
+    {28,"Profondità massima della pila attributi"},
+    {29,"Profondità massima della pila attributi figli"},
+    {30,"Numero dei buffer ausiliari"},
     {31,"Color buffers store RGBA"},
     {32,"Color buffers store indices"},
-    {33,"Double buffering"},
-    {34,"Stereo buffers"},
+    {33,"Doppio buffering"},
+    {34,"Buffers Stereo "},
     {35,"Range of aliased point sizes"},
     {36,"Range of antialised point sizes"},
     {37,"Range of aliased line widths"},
     {38,"Range of antialised line widths"},
-    {39,"Recommended max number of indices for drawRangeElement()"},
-    {40,"Recommended max number of vertices for drawRangeElement()"},
-    {41,"Max number of texturing units"},
-    {42,"Number of compression formats"},
-    {43,"Max number of vertex units"},
-    {44,"OpenGL Extensions"}]},
+    {39,"Nunero massimo di indici raccomandato per drawRangeElement()"},
+    {40,"Nunero massimo di vertici raccomandato per drawRangeElement()"},
+    {41,"Nunero massimo di unità di testurizzazione"},
+    {42,"Numero di formati di compressione"},
+    {43,"Nunero massimo di unità di vertice"},
+    {44,"OpenGL Extensions"},
+    {45,"Sample buffers"},
+    {400,"2D-API:"}
+   ]},
   {performance_tips,
-   [{1,"Le prestazioni di Wings dipendono da molti fattori, come ad esempio"},
-    {2,"la velocita' dell' unita' centrale di calcolo"},
-    {3,"il tipo e la grandezza della memoria sull' ucc"},
-    {4,"quantita' e velocita' della memoria ad accesso casuale"},
-    {5,"tipo della scheda grafica"},
-    {6,"quantita' di memoria sulla scheda grafica"},
-    {7,"le fasi lunari"},
-    {8,"Percio' e' difficile dare qualunque consiglio su come migliorare le prestazioni di Wings. Gli aiuti seguenti POTREBBERO migliorare le prestazioni:"},
-    {9,"Provare diversi numeri di colori e diverse risoluzioni dello schermo. Specialmente se la scheda grafica non ha molta memoria, molti colori e/o alte risoluzioni possono ridurre drasticamente le prestazioni. Potrebbe anche aiutare l'utilizzo di una finestra piu' piccola per Wings (non massimizzata)."},
+   [
+    {1,"Le prestazioni di Wings dipendono da molti fattori, come ad esempio"},
+    {2,"la velocità dell'unità centrale di calcolo"},
+    {3,"il tipo e la quantità di memoria del PC"},
+    {4,"quantità e velocità della RAM"},
+    {5,"modello di scheda grafica"},
+    {6,"quantità di memoria sulla scheda grafica"},
+    {7,"le fasi lunari. "},
+    {8," Perciò è difficile dare qualunque consiglio su come migliorare le prestazioni di Wings. Gli aiuti seguenti POTREBBERO migliorare le prestazioni:"},
+    {9,"Provare a cambiare numero di colori e risoluzione dello schermo. Specialmente se la scheda grafica non ha molta memoria, molti colori e/o alte risoluzioni possono ridurre drasticamente le prestazioni. Potrebbe anche aiutare l'utilizzo di una finestra più piccola per Wings (non massimizzata)."},
     {10,"Chiudere tutte le finestre non necessarie in Wings."},
-    {11,"Assicurarsi che le finestre delle geometrie non si sovrappongano."},
-    {12,"Usare meno luci (attive) possibile. Piu' luci significa meno velocita' nella maggior parte delle schede grafiche."},
+    {11,"Assicurarsi che le finestre Geometria non si sovrappongano."},
+    {12,"Usare meno luci (attive) possibile. Più luci significa meno velocità nella maggior parte delle schede grafiche."},
     {13,"Se possibile, usare il comando "},
     {14,"Strumenti"},
     {15,"Simmetria Virtuale"},
     {16,[]},
-    {17,"Nascondere i modelli sui quali non si sta lavorando per il momento."},
+    {17,"Nascondere i modelli sui quali non si sta al momento lavorando."},
     {18,"Usare il comando "},
-    {19,"Viste"},
+    {19,"Vista"},
     {20,"Mostra colori"},
     {21," per disattivare la visualizzazione dei colori sui vertici se il modello usato ha colori sui vertici."},
     {22,"Usare il comando "},
-    {23,"Viste"},
-    {24,"Mostra tessiture"},
-    {25," per disattivare le tessiture mentre si modella."},
+    {23,"Vista"},
+    {24,"Mostra Textures"},
+    {25," per disattivare le texture mentre si modella."},
     {26,"Lavorare nel modo intelaiatura."},
     {27,"Alcune schede grafiche disegnano gli spigoli lentamente. Disattivare la visualizzazione degli spigoli tramite il comando "},
-    {28,"Viste"},
-    {29,"Mostra spigoli"},
-    {30," puo' fornire un miglioramento."}]},
+    {28,"Vista"},
+    {29,"Mostra Spigoli"},
+    {30," può fornire un miglioramento."},
+    {31,"Usare meno livelli Annulla. L'impostazione su 4 o meno (predefinito 32) consente di lavorare su modelli con quasi 8 volte il dettaglio. In questo caso, è consigliabile utilizzare un periodo di salvataggio automatico più breve (predefinito 10 minuti)."}
+   ]},
   {splash_contents,
-   [{1,"Wings 3D e' un programma di modellazione per suddivisione ispirato "},
+   [
+    {1,"Wings 3D è un programma di modellazione per suddivisione ispirato "},
     {2,"a Nendo e Mirai della IZware."},
-    {3,"Wings 3D e' rilasciato assolutamente senza garanzie,"},
-    {4,"ma e' completamente gratis per ogni tipo di utilizzo"},
+    {3,"Wings 3D è rilasciato assolutamente senza garanzie,"},
+    {4,"ma è completamente gratis per ogni tipo di utilizzo"},
     {5,"(incluso quello commerciale)."},
     {6,"Copyright"},
-    {8,"Libreria JPEG: Copyright"}]},
+    {7," e Altri"}
+   ]},
   {use_one_or_two,
-   [{1,"Per usare mice con solo uno o due bottoni, bisogna informare Wings su quanti bottoni ha il tuo mouse nel menu "},
-    {2,"."}]}]}.
+   [
+    {1,"Per usare un mouse con solo uno o due pulsanti, bisogna informare Wings su quanti tasti ha il mouse nel menu "},
+    {2,"."}
+   ]}
+ ]}.
 {wings_hotkey,
- [{keyname,
-   [{1,"Indietro"},
+ [
+  {command,
+   [
+    {1,"Selezionare una voce di menu per associare/disassociare un tasto di scelta rapida"}
+   ]},
+  {event_handler,
+   [
+    {1,"Questo tasto è già associato a un"},
+    {2," comando. Vuoi ridefinirlo?"},
+    {3,"Questo comando è già associato a"},
+    {4," tasto di scelta rapida. Vuoi ridefinirlo?"}
+   ]},
+  {hotkey_delete_dialog,
+   [
+    {1,"Elimina i tasti di scelta rapida"}
+   ]},
+  {hotkey_key_message,
+   [
+    {1,"Premere il tasto per associargli il \""},
+    {2,"\" comando."}
+   ]},
+  {keyname,
+   [
+    {1,"BackSpace"},
     {2,"Tab"},
     {3,"Spazio"},
-    {4,"Maiusc.+"}]},
+    {4,"Maiusc.+"}
+   ]},
   {list_header,
-   [{1,"Combinazioni in ogni modalita'"},
-    {2,"Combinazioni in modalita' corpi"},
-    {3,"Combinazioni in modalita' spigoli"},
-    {4,"Combinazioni in modalita' facce"},
-    {5,"Combinazioni per le luci"},
-    {6,"Combinazioni per i vertici"}]},
+   [
+    {1,"Combinazioni in ogni Modalità"},
+    {2,"Combinazioni in Modalità Oggetto"},
+    {3,"Combinazioni in modalità Spigoli"},
+    {4,"Combinazioni in modalità Facce"},
+    {5,"Combinazioni per le Luci"},
+    {6,"Combinazioni per i Vertici"}
+   ]},
   {list_keys,
-   [{1," (definite dall'utente)"},
-    {2," (definite dal modulo)"}]},
+   [
+    {1," (definite dall'utente)"},
+    {2," (definite dal plug-in)"}
+   ]},
+  {mk_dialog,
+   [
+    {1,"Seleziona tutti i tasti di scelta rapida da eliminare."}
+   ]},
   {vkeyname,
-   [{1,"Indietro"},
+   [
+    {1,"BackSpace"},
     {2,"Tab"},
-    {3,"A Capo"},
+    {3,"Invio"},
     {4,"Pausa"},
     {5,"Esc"},
     {6,"Spazio"},
     {7,"Cancella"},
     {8,"Canc"},
-    {9,"Div"},
-    {10,"Mul"},
+    {9,"/"},
+    {10,"*"},
     {11,"-"},
     {12,"+"},
     {13,"Invio"},
     {14,"="},
     {15,"Su"},
-    {16,"Giu'"},
+    {16,"Giù"},
     {17,"Destra"},
     {18,"Sinistra"},
-    {19,"Inserisci"},
-    {20,"Casa"},
+    {19,"Ins"},
+    {20,"Home"},
     {21,"Fine"},
     {22,"Pagina Su"},
-    {23,"Pagina Giu'"},
-    {24,"UKEY"}]}]}.
+    {23,"Pagina Giù"}
+   ]}
+ ]}.
 {wings_image,
- [{create_default,
-   [{1,"~p Non riconosco il tipo ~p; ignoro\n"}]},
+ [
   {create_image,
-   [{1,"Larghezza"},
+   [
+    {0,"Importa"},
+    {1,"Larghezza"},
     {2,"Altezza"},
     {3,"Campione"},
     {4,"Griglia"},
@@ -782,67 +1344,153 @@
     {7,"Barre orizzontali"},
     {8,"Bianco"},
     {9,"Nero"},
-    {10,"Crea immagine"}]},
-  {event,
-   [{1,"Mostra menu"}]},
-  {event_1,
-   [{1,"Mostra in grandezza naturale"}]},
+    {10,"Crea immagine"}
+   ]},
   {screenshot,
-   [{1,"<<Fotografia schermo>>"}]},
-  {window_params,
-   [{1,"Immagine: ~s [~wx~wx~w]"}]}]}.
-{wings_init,
- [{display_actual_mode,
-   [{1,"Vero: RGBA: ~p ~p ~p ~p Profondita': ~p Stampino: ~p Accum: ~p ~p ~p ~p\n"}]},
-  {try_video_modes,
-   [{1,"Sto provando le modalita' disponibili per OpenGL\n"}]},
-  {video_mode_failure,
-   [{2,"Ho fallito, non trovo nessun modo OpenGL indossabile.\n\n"},
-    {3,"Assicurarsi che i programmi guida per OpenGL siano installati.\n\n"},
-    {5,"Non ho trovato nessuna modalita' usabile per OpenGL (i programmi di gestione OpenGL sono installati?)"}]}]}.
+   [
+    {1,"Istantanea"},
+    {3,"Aggiungi la vista corrente alle Viste salvate"},
+    {4,"Nome"}
+   ]}
+ ]}.
+{wings_image_viewer,
+ [
+  {new,
+   [
+    {1,"Immagine: ~ts [~wx~w] ~s"}
+   ]}
+ ]}.
+{wings_info,
+ [
+  {area_info,
+   [
+    {40," Area ~s"}
+   ]},
+  {deep_object_info_1,
+   [
+    {new_object_info,"L'oggetto ~p \"~ts\" ha ~p poligoni, ~p spigoli, ~p vertici~s~s."},
+    {new_object_info2,"L'oggetto ~p \"~ts\" ha ~p poligoni, ~~~p spigoli, ~~~p vertici~s~s."}
+   ]},
+  {enhanced_info_1,
+   [
+    {41,"Spigolo~s ~s"},
+    {42,"\nDistanza ~s"},
+    {43,"Oggetto~s"},
+    {45,"Differenza ~s"},
+    {48,"Faccia~s"}
+   ]},
+  {hole_info,
+   [
+    {1,"foro"},
+    {2,"fori"}
+   ]},
+  {measure_es,
+   [
+    {1,"Punto medio ~s>\nLunghezza ~s"},
+    {2,". Angolo ~s"}
+   ]},
+  {measure_fs,
+   [
+    {1,". Punto medio ~s\nMateriale ~ts."},
+    {2,". Angolo ~s"}
+   ]},
+  {measure_vs,
+   [
+    {1,". Posizione ~s"},
+    {2,". Distanza ~s  ~s"}
+   ]},
+  {str,
+   [
+    {1,"Vertice ~p selezionato"},
+    {2,"Vertici ~s selezionati"},
+    {3,"~p vertici selezionati"},
+    {4,"~p vertici selezionati in ~p oggetti"},
+    {5,"Spigolo ~p selezionato"},
+    {6,"Spigoli ~s selezionati"},
+    {7,"~p spigoli selezionati"},
+    {8,"~p spigoli selezionati in ~p objects"},
+    {9,"Faccia ~p selezionata"},
+    {10,"Facce ~s selezionate"},
+    {11,"~p facce selezionate"},
+    {12,"~p facce selezionate in ~p oggetti"}
+   ]},
+  {summary_object_info,
+   [
+    {2,"~p oggetti, ~p facce, ~p spigoli, ~p vertici"}
+   ]},
+  {vtx_attributes,
+   [
+    {1,"attributi vertici"}
+   ]}
+ ]}.
 {wings_light,
- [{attenuation,
-   [{1,"Non e' una luce puntiforme ne' un occhio di bue."}]},
+ [
+  {attenuation,
+   [
+    {1,"Non è una luce puntiforme ne' una luce spot."}
+   ]},
   {color,
-   [{1,"Scegliere solo una luce."}]},
+   [
+    {1,"Scegliere solo una luce."}
+   ]},
   {edit,
-   [{1,"Selezionare soltanto una luce"},
-    {2,"Proprieta' luce ambientale"},
-    {3,"Proprieta' luce"}]},
+   [
+    {1,"Selezionare soltanto una luce"},
+    {2,"Proprietà luce ambientale"},
+    {3,"Proprietà luce"},
+    {4,"Selezionare una luce area."}
+   ]},
   {edit_ambient_dialog,
-   [{1,"Ambientale"},
-    {2,"Colore"},
-    {3,"Si'"}]},
+   [
+    {1,"Ambiente"},
+    {2,"Colore"}
+   ]},
   {edit_dialog,
-   [{1,"Diffusione"},
-    {2,"Ambientale"},
+   [
+    {1,"Diffusione"},
     {3,"Speculare"},
-    {4,"Colori"},
-    {5,"Si'"}]},
+    {4,"Colori"}
+   ]},
   {export_camera_lights,
-   [{1,"Ambientale"},
-    {2,"Infinita"},
-    {3,"Infinita1"},
-    {4,"Infinita2"}]},
+   [
+    {1,"Ambiente"},
+    {2,"Infinito"},
+    {3,"Infinito1"},
+    {4,"Infinito2"}
+   ]},
   {info,
-   [{1,"Luce ~ts"},
-    {2,": Pos ~s"}]},
+   [
+    {1,"Luce ~ts"},
+    {2,": Pos ~s"}
+   ]},
   {info_1,
-   [{1,". Punta ~s. Dir ~s"},
-    {2,". Angolo ~s~c"}]},
+   [
+    {1,". Bersaglio ~s. Dir ~s"},
+    {2,". Angolo ~s~c"}
+   ]},
+  {init,
+   [
+    {1,"Impossibile inizializzare OpenCL: illuminazione ambiente limitata ~n"}
+   ]},
   {light_types,
-   [{1,"Infinita"},
-    {2,"Crea una luce direzionale lontana lontana (come ad esempio quella solare)"},
+   [
+    {1,"Infinita"},
+    {2,"Crea una luce direzionale lto lontana (come, ad esempio, quella solare)"},
     {3,"Puntiforme"},
-    {4,"Crea una luce che irradia in ogni direzione"},
-    {5,"Occhio di bue"},
-    {6,"Crea una luce conica (come l' Occhio di Bue)"},
+    {4,"Crea una luce che si irradia in ogni direzione"},
+    {5,"Spot"},
+    {6,"Crea una luce conica (come uno Spot)"},
     {7,"Ambientale"},
-    {8,"Crea una sorgente di luce ambientale"},
+    {8,"Crea una sorgente di luce diffusa in tutto l'ambiente"},
     {9,"Area"},
-    {10,"Crea un solido che irradia luce"}]},
+    {10,"Crea un'area che irradia luce"}
+   ]},
+  {make_envmap_1,
+   [
+    {1,"Costruzione mappe ambientali"}
+   ]},
   {menu,
-   [{1,"Operazioni sulle luci"},
+   [
     {2,"Sposta"},
     {3,"Puntamento"},
     {4,"Cambia il puntamento o la posizione della luce"},
@@ -850,201 +1498,327 @@
     {6,"Varia interattivamente colore,toni e saturazione"},
     {7,"Attenuazione"},
     {8,"Lineare"},
-    {9,"Varia interattivamente la quantita' di luce che si disperde con l'allontanamento dalla sorgente (fattore lineare)"},
+    {9,"Varia interattivamente la quantità di luce che si disperde con l'allontanamento dalla sorgente (fattore lineare)"},
     {10,"Quadratica"},
-    {11,"Varia in modo interattivo la quantita' di luce dispersa con l'allontanamento dalla sorgente (fattore quadratico)"},
+    {11,"Varia in modo interattivo la quantità di luce dispersa con l'allontanamento dalla sorgente (fattore quadratico)"},
     {12,"Angolo"},
-    {13,"Varia interattivamente l' angolo del cono dell' occhio di bue"},
+    {13,"Varia interattivamente l'angolo del cono dello spot"},
     {14,"Attenuazione"},
-    {15,"Varia interattivamente la quantita' di luce che si disperde con l'allontanarsi dalla sorgente"},
-    {16,"Modifica proprieta'..."},
-    {17,"Modifica proprieta' luci"},
+    {15,"Varia interattivamente la quantità di luce che si disperde con l'allontanarsi dalla sorgente"},
+    {16,"Modifica proprietà..."},
+    {17,"Modifica proprietà luci"},
     {18,"Duplica"},
     {19,"Duplica e sposta le luci selezionate"},
     {20,"Elimina"},
-    {21,"Elimina le luci selezionate"}]},
+    {21,"Elimina le luci selezionate"}
+   ]},
   {plugin_results,
-   [{1,"Il modulo di modifica luci ha lasciato del rusco(pattume, eccetera):~n    ~P~n"},
-    {2,"Il/i modulo/i ha/hanno lasciato del rusco:"}]},
+   [
+    {1,"Il plugin di modifica luci ha lasciato residui(pattume, eccetera):~n    ~P~n"},
+    {2,"Il/i plugin/s ha/hanno lasciato residui:"}
+   ]},
   {qs_att,
-   [{1,"Lineare"},
+   [
+    {1,"Lineare"},
     {2,"Quadratica"},
-    {3,"Attenuazione"}]},
+    {3,"Attenuazione"}
+   ]},
   {qs_specific,
-   [{1,"Angolo"},
-    {2,"Attenuazione"},
-    {3,"Parametri dell' Occhio"}]},
+   [
+    {1,"Angolo"},
+    {2,"Decadimento"},
+    {3,"Parametri dello Spot"}
+   ]},
   {selected_light,
-   [{1,"Selezionare solo una luce."}]},
+   [
+    {1,"Selezionare solo una luce."}
+   ]},
   {spot_angle,
-   [{1,"Non e' un occhio di bue."}]},
+   [
+    {1,"Non è una luce spot."}
+   ]},
   {spot_falloff,
-   [{1,"Non e' un occhio di bue."}]}]}.
+   [
+    {1,"Non è una luce spot."}
+   ]}
+ ]}.
 {wings_magnet,
- [{check_radius,
-   [{1,"Raggio di influenza troppo corto."}]},
+ [
+  {check_radius,
+   [
+    {1,"Raggio di influenza troppo corto."}
+   ]},
   {common_dialog,
-   [{4,"Percorso di distanza"}]},
+   [
+    {4,"Percorso di distanza"}
+   ]},
   {dialog,
-   [{1,"Opzioni per i magneti"},
+   [
+    {1,"Opzioni Magnete"},
     {2,"Raggio di influenza"},
-    {3,"Opzioni per il magnete"}]},
+    {3,"Opzioni Magnete"}
+   ]},
   {drag_help,
-   [{1,"[+] o [-] Varia il raggio  "}]},
+   [
+    {1,"[+] o [-] Varia il raggio  "}
+   ]},
   {info_string,
-   [{1,"Percorso magnete:"}]},
+   [
+    {1,"Percorso magnete:"}
+   ]},
   {magnet_route,
-   [{shortest,"Il piu' corto"},
-    {midpoint,"P.medio"},
-    {surface,"Superficie"}]}
+   [
+    {shortest,"Il più corto"},
+    {midpoint,"Punto medio"},
+    {surface,"Superficie"}
+   ]},
+  {magnet_shape_str,
+   [
+    {bell,"Campana"},
+    {dome,"Tondo"},
+    {spike,"Punta"},
+    {straight,"Lineare"}
+   ]}
  ]}.
 {wings_material,
- [{edit,
-   [{1,"Proprieta' del materiale: "}]},
+ [
+  {edit,
+   [
+    {1,"Proprietà del Materiale: "}
+   ]},
   {edit_dialog,
-   [{1,"Diffusione"},
-    {2,"Ambientale"},
-    {3,"Speculare"},
+   [
+    {1,"Colore Base"},
     {4,"Emissione"},
-    {5,"Brillantezza"},
-    {6,"Opacita'"},
-    {7,"Si'"}]},
+    {6,"Opacità"},
+    {7,"Lucentezza"},
+    {8,"Ruvidezza"}
+   ]},
   {load_map_1,
-   [{1,"Lettura fallita per \"~s\": ~s\n"}]},
+   [
+    {1,"Caricamento fallito"}
+   ]},
   {material_fun,
-   [{1,"Assegna il materiale esistente alla selezione"},
-    {2,"Crea e assegna un nuovo materiale"}]},
+   [
+    {1,"Assegna un materiale esistente alla selezione"},
+    {2,"Crea e assegna un nuovo materiale"},
+    {3,"Modifica il materiale assegnato alla selezione"}
+   ]},
   {material_menu,
-   [{1,"Materiale"},
-    {2,"Nuovo..."},
-    {3,"Crea un nuovo materiale e lo assegna alle facce selezionate"},
-    {4,"Materiale"}]},
+   [
+    {4,"Materiale"}
+   ]},
   {new_1,
-   [{1,"Nuovo materiale"},
+   [
+    {1,"Nuovo materiale"},
     {2,"Nome materiale"},
-    {3,"Nuovo materiale"}]},
+    {3,"Nuovo materiale"}
+   ]},
+  {plugin_dlg_menu,
+   [
+    {1,"Seleziona..."},
+    {2,"Disponibile"},
+    {3,"Modifica proprietà..."},
+    {4,"Plugins"}
+   ]},
   {plugin_results,
-   [{1,"Il modulo di modifica dei materiali ha lasciato del rusco:~n    ~P~n"},
-    {2,"Il modulo/i ha lasciato del rusco."}]},
+   [
+    {1,"Il plugin di modifica luci ha lasciato dei residui indesiderati:~n    ~P~n"},
+    {2,"Il plugin ha lasciato residui"}
+   ]},
   {rename,
-   [{1,"Rinomina"}]},
-  {show_map,
-   [{1,"~p: <immagine eliminata>"},
-    {2,"~p: ~p [~px~px~p]"},
-    {3,"Elimina"}]},
-  {show_maps,
-   [{1,"Tessiture"}]}]}.
+   [
+    {1,"Rinomina"}
+   ]}
+ ]}.
 {wings_menu,
- [{get_hotkey,
-   [{1,"Premere anche la combinazione alla quale abbinare il comando."}]},
-  {handle_key_event,
-   [{1,"Questa combinazione e' gia' abbinata al comando "},
-    {2," hai voglia di ri-abbinarla?"}]},
-  {help_text_1,
-   [{1," sottomenu"}]},
+ [
   {magnet_help,
-   [{2,"]+Clic per i magneti"}]}]}.
+   [
+    {2,"Click per il Magnete"}
+   ]},
+  {opt_help,
+   [
+    {1,"Apre la finestra delle opzioni"}
+   ]},
+  {setup_popup,
+   [
+    {1," submenu"}
+   ]},
+  {tooltip,
+   [
+    {1,"Tasto sinistro del mouse"},
+    {2,"Tasto centrale del mouse"},
+    {3,"Tasto destro del mouse"}
+   ]}
+ ]}.
 {wings_menu_util,
- [{adv_scale_1,
-   [{1,"Scala uniformemente"},
-    {2,"Scala, asse"},
-    {3,"Scala, radiale"}]},
-  {basic_scale,
-   [{1,"Scala"}]},
+ [
+  {adv_scale_1,
+   [
+    {1,"Scala Uniformemente"},
+    {2,"Scala Asse"},
+    {3,"Scala Radiale"}
+   ]},
   {dir_help,
-   [{3,"l' ultimo asse"},
-    {4,"l' asse predefinito"},
+   [
+    {3,"l'ultimo asse"},
+    {4,"l'asse predefinito"},
     {7,"rispetto"},
     {10,"rispetto alla normale"},
     {11,"liberamente in tutte le direzioni"},
-    {12,"Ridimensiona ugualmente in tutte le direzioni"}]},
+    {12,"Ridimensiona ugualmente in tutte le direzioni"}
+   ]},
   {dir_help_1,
-   [{1,"Sposta ogni elemento "},
+   [
+    {1,"Sposta ogni elemento "},
     {2,"Ruota liberamente"},
     {3,"Ruota attorno alla normale di ogni elemento"},
     {4,"Estrude ogni elemento, poi lo sposta "},
     {5,"Estrude le facce come una regione, poi sposta le facce sulla normale di essa"},
     {6,"Estrude le facce come una regione, poi le sposta "},
-    {7,"Estrae le facce poi le sposta rispetto alla normale"},
+    {7,"Estrae le facce poi le sposta lungo la normale"},
     {8,"Estrae le facce, poi le sposta "},
-    {9,"Spiana gli elementi rispetto al piano della normale"},
-    {10,"Eleva la faccia rispetto alla sua normale"},
-    {11,"Eleva e sposta la faccia "},
+    {9,"Appiattisce gli elementi rispetto al piano della normale"},
+    {10,"Incardina la faccia lungo la sua normale"},
+    {11,"Incardina e sposta la faccia "},
     {12,"Duplica e sposta liberamente "},
-    {13,"Sposta ogni elemento rispetto "},
-    {14,"Estrude gli elementi, poi li sposta rispetto "},
-    {15,"Estrude insieme le facce, poi le sposta rispetto "},
-    {16,"Estrae le facce, poi le sposta rispetto "},
-    {17,"Ruota rispetto "},
+    {13,"Sposta ogni elemento lungo "},
+    {14,"Estrude gli elementi, poi li sposta lungo "},
+    {15,"Estrude insieme le facce, poi le sposta lungo "},
+    {16,"Estrae le facce, poi le sposta lungo "},
+    {17,"Ruota intorno "},
     {18,"Scala "},
-    {19,"Scala rispetto "},
-    {20,"Spiana a "},
-    {21,"Spiana e sposta verso "},
-    {22,"Eleva la faccia rispetto "},
-    {23,"Duplica, poi sposta rispetto "}]},
+    {19,"Scala lungo "},
+    {20,"Appiattisci a "},
+    {21,"Appiattisce e sposta verso "},
+    {22,"Incardina la faccia rispetto "},
+    {23,"Duplica, poi sposta lungo "},
+    {24,"Estrai ogni elemento, quindi lo sposta "},
+    {25,"Estrae degli elementi, quindi li sposta "},
+    {26,"Estrae ed Estrude facce come regione, quindi le sposta "},
+    {27,"Estrae ed Estrude le facce come regione, quindi sposta le facce lungo la normale della regione"},
+    {28,"Estrae ed Estrude le facce come regione, quindi sposta le facce "}
+   ]},
   {dirs,
-   [{1,"Sposta sugli assi coordinati"},
-    {2,"Scegliere un asse sul quale spostare"},
-    {3,"Sposta sugli assi coordinati"},
+   [
+    {1,"Sposta sugli assi standard"},
+    {2,"Scegli dell'asse lungo il quale spostare"},
+    {3,"Sposta sugli assi standard"},
     {4,"Sposta sulla normale della selezione"},
-    {5,"Scegliere un asse da usare per lo spostamento"},
+    {5,"Scelta dell'asse da usare per lo spostamento"},
     {6,"Estrusione sugli assi standard"},
     {7,"Estrusione sulla normale della selezione"},
     {8,"Scegliere un asse rispetto al quale estrudere"},
-    {9,"Estrusione rispetto agli assi standard"},
-    {10,"Estrusione rispoetto alla normale"},
-    {11,"Scegliere un asse rispetto al quale estrudere"},
-    {12,"Estrarre rispetto agli assi standard"},
-    {13,"Estrarre rispetto alla normale della selezione"},
-    {14,"Scegliere un asse rispetto al quale estrarre"},
-    {15,"Duplica; sposta rispetto agli assi standard"},
-    {16,"Duplica; non spostare"},
-    {17,"Duplica; scegliere un asse per lo spostamento"}]},
+    {12,"Duplica e sposta la faccia rispetto agli assi standard"},
+    {15,"Duplica e sposta rispetto agli assi standard"},
+    {16,"Duplica senza spostare"},
+    {17,"Duplica e scelta di un asse per lo spostamento"},
+    {22,"Duplica la struttura e la estrude lungo l'asse standard creando un nuovo oggetto. "},
+    {23,"Duplica la struttura e la estrude lungo la normale della selezione creando un nuovo oggetto"},
+    {24,"SSeleziona l'asse lungo cui estrudere la struttura estratta"}
+   ]},
+  {dirs_help,
+   [
+    {18,"Seleziona l'asse lungo cui estrudere ogni faccia"},
+    {19,"Seleziona l'asse lungo cui estrudere ogni regione di facce"},
+    {20,"Seleziona l'asse lungo cui estrarre ogni faccia"},
+    {21,"Seleziona l'asse lungo cui estrarre ogni regione di facce"}
+   ]},
   {flatten,
-   [{1,"Spiana"},
-    {2,"Spiana ai piani standard"},
+   [
+    {1,"Appiattisci"},
+    {2,"Appiattisce secondo i piani standard"},
     {3,"Seleziona un piano e un punto di riferimento su di esso"},
-    {4,"Scegli un piano"}]},
+    {4,"Scegli un piano"}
+   ]},
+  {flatten_edge_loops,
+   [
+    {1,"Loop di Spigoli"},
+    {2,"Appiattisci ciascun loop di spigoli chiuso sulla sua normale"}
+   ]},
   {flatten_fun_1,
-   [{1,"Scegli un punto sul piano"}]},
+   [
+    {1,"Scegli un punto sul piano"}
+   ]},
   {rotate,
-   [{1,"Ruota intorno agli assi standard"},
-    {2,"Scegli un asse e un punto di riferimento"},
-    {3,"Scegli un asse come asse di rotazione"}]},
+   [
+    {1,"Ruota intorno agli assi standard"},
+    {2,"Scegli asse e punto di riferimento"},
+    {3,"Scegli l'asse intorno cui ruotare"}
+   ]},
   {rotate_1,
-   [{1,"Ruota"}]},
+   [
+    {1,"Ruota"}
+   ]},
   {rotate_fun,
-   [{1,"Scegli un punto attraverso il quale passera' l'asse"}]},
+   [
+    {1,"Scegli un punto attraverso il quale passerà l'asse"},
+    {2,"Attraverso l'Origine"}
+   ]},
   {scale,
-   [{1,"Scala (assi standard)"},
-    {2,"Scegli un asse o un punto rispetto al quale ridimensionare"},
-    {3,"Scegli un asse rispetto al quale ridimensionare"},
-    {4,"Scala rispetto agli assi standard"},
-    {5,"Scegli un asse e un punto rispetto al quale ridimensionare"},
-    {6,"Scegli un asse rispetto al quale ridimensionare"}]},
+   [
+    {1,"Scala verso l'esterno sugli assi standard"},
+    {2,"Seleziona l'asse e il punto da cui scalare"},
+    {3,"Seleziona l'asse da cui ridimensionare"},
+    {4,"Scala lungo gli assi standard"},
+    {5,"Seleziona l'asse e il punto da cui scalare"},
+    {6,"Seleziona l'asse lungo il quale scalare"}
+   ]},
   {scale_fun,
-   [{1,"Scegli un punto rispetto al quale scalare"}]},
+   [
+    {1,"Scegli il punto da cui scalare"}
+   ]},
   {uniform_scale,
-   [{1,"Scegliere il punto rispetto al quale ridimensionare"},
-    {2,"Scala uniformemente rispetto al punto medio della selezione"}]}]}.
+   [
+    {1,"Seleziona il punto da cui scalare"},
+    {2,"Scala uniformemente dal punto medio della selezione"}
+   ]}
+ ]}.
 {wings_outliner,
- [{command,
-   [{1,"NYI: ~p\n"}]},
-  {common_image_menu,
-   [{1,"Esporta..."},
-    {2,"Esporta l' immagine"},
+ [
+  {command,
+   [
+    {1,"NYI: ~p ~ts\n"},
+    {2,"NYI: ~p\n"},
+    {10,"Prevista un'immagine in scala di grigi, conversione"}
+   ]},
+  {command_image_menu,
+   [
+    {1,"Esporta..."},
+    {2,"Esporta l'immagine"},
     {3,"Duplica"},
-    {4,"Duplica l' immagine selezionata"},
-    {5,"Elimina"},
-    {6,"Elimina l' immagine selezionata"},
+    {4,"Duplica l'immagine selezionata"},
     {7,"Rinomina"},
-    {8,"Rinomina l' immagine selezionata"}]},
+    {8,"Rinomina l'immagine selezionata"},
+    {9,"Crea mappa Normali"},
+    {10,"Crea una mappa delle normali per l'immagine"},
+    {11,"Crea una mappa delle normali per l'immagine con parametri"},
+    {12,"Crea immagine invertita"},
+    {13,"Inverte un canale dell'immagine"},
+    {14,"Crea un'immagine grigia dal canale"},
+    {15,"Crea una nuova immagine dal canale specificato"},
+    {121,"Rosso"},
+    {122,"Verde"},
+    {123,"Blu"},
+    {124,"Alpha"}
+   ]},
+  {create_normal_map,
+   [
+    {1,"Mappa Normali"},
+    {2,"Irregolarità"},
+    {3,"Inverti X"},
+    {4,"Inverti Y"}
+   ]},
   {delete_image,
-   [{1,"L' immagine e' usata da un materiale."},
-    {2,"Sei sicuro di voler cancellare l' immagine (NON ANNULLABILE)?"}]},
+   [
+    {1,"L'immagine è usata da un materiale."},
+    {2,"Sei sicuro di voler cancellare questa immagine? (NON ANNULLABILE)"}
+   ]},
   {do_menu,
-   [{1,"Modifica materiale..."},
-    {2,"Modifica le proprieta' del materiale"},
+   [
+    {1,"Modifica materiale..."},
+    {2,"Modifica le proprietà del materiale"},
     {3,"Assegna alla selezione"},
     {4,"Assegna il materiale alle facce selezionate o ai corpi"},
     {5,"Seleziona"},
@@ -1062,50 +1836,87 @@
     {17,"Rinomina"},
     {18,"Rinomina questo oggetto"},
     {19,"Modifica luce..."},
-    {20,"Modifica le proprieta' della luce"},
+    {20,"Modifica le proprietà della luce"},
     {21,"Duplica"},
     {22,"Duplica questa luce"},
     {23,"Elimina"},
     {24,"Elimina questa luce"},
     {25,"Rinomina"},
-    {26,"Rinomina questa luce"}]},
-  {event,
-   [{1,"Seleziona"},
-    {2,"Mostra il menu schematiche (se c'e' una selezione attiva) o il menu creazione (se non ve ne sono)"}]},
+    {26,"Rinomina questa luce"},
+    {27,"Aggiunge alla selezione tutti gli elementi che hanno questo materiale"},
+    {28,"Rimuove dalla selezione tutti gli elementi che hanno questo materiale"}
+   ]},
+  {from_channel,
+   [
+    {1,"Impossibile leggere il canale dal tipo di immagine"}
+   ]},
   {handle_drop,
-   [{1,"Tipo di tessitura"},
-    {2,"Diffusione"},
-    {3,"Lucentezza"},
-    {4,"Rugosita'"}]},
+   [
+    {1,"Tipo di texture"},
+    {2,"Colore Base"},
+    {4,"Rilievo (HeightMap)"},
+    {5,"Rilievo (NormalMap)"},
+    {6,"Occlusione Ambientale"},
+    {7,"Emissione"},
+    {8,"Lucentezza"},
+    {9,"Ruvidezza"}
+   ]},
   {image_menu,
-   [{1,"Mostra"},
-    {2,"Mostra l' immagine in una finestra"}]},
+   [
+    {1,"Mostra"},
+    {2,"Mostra l'immagine in una finestra"}
+   ]},
   {image_menu_1,
-   [{1,"Rendi esterna..."},
+   [
+    {1,"Rendi disponibile..."},
     {2,"Aggiorna"},
-    {3,"Rendi interna"}]},
+    {3,"Rendi interna"},
+    {11,"Aggiorna l'immagine con il contenuto del file salvato"}
+   ]},
+  {image_menu_2,
+   [
+    {1,"Elimina"},
+    {2,"Elimina l'immagine selezionata"},
+    {3,"Rimuovi Texture"},
+    {4,"Rimuove la texture dal materiale"}
+   ]},
+  {init,
+   [
+    {1,"Seleziona"},
+    {2,"Mostra menu struttura (se selezionato) o il menu di creazione (se non selezionato)"}
+   ]},
+  {invert_image,
+   [
+    {1,"Impossibile invertire il tipo di immagine ~s (~w) bytes per pixel"}
+   ]},
   {make_external,
-   [{1,"Rendi esterna"}]},
+   [
+    {1,"Rendi Disponibile"}
+   ]},
   {refresh_image,
-   [{1,"Non riesco ad aggiornare \""}]},
+   [
+    {1,"Impossibile aggiornare \""}
+   ]},
   {rename_image,
-   [{1,"Rinomina immagine"}]},
+   [
+    {1,"Renomina Immagine"}
+   ]},
+  {root_name,
+   [
+    {1,"Luci"},
+    {2,"Materiali"},
+    {3,"Immagini"}
+   ]},
   {title,
-   [{1,"Schematiche"}]}]}.
+   [
+    {1,"Struttura"}
+   ]}
+ ]}.
 {wings_palette,
- [{command,
-   [{1,"Non trovo colori iniziali."},
-    {2,"Non trovo colori finali."},
-    {3,"Esporta"},
-    {5,"Tavolozza di Wings"},
-    {6,"Errore di esportazione: ~w"},
-    {7,"Importa"},
-    {9,"Tavolozza di Wings"},
-    {10,"Nessuna tavolozza e' stata trovata"},
-    {11,"Errore di importazione: ~w"},
-    {12,"Errore di importazione: ~w"}]},
+ [
   {do_menu,
-   [{1,"Modifica"},
+   [
+    {1,"Modifica"},
     {2,"Modifica il colore"},
     {3,"Interpola"},
     {4,"Interpola i colori vuoti"},
@@ -1116,279 +1927,586 @@
     {9,"Trova colori"},
     {10,"Prende i colori degli oggetti selezionati"},
     {11,"Esporta"},
-    {12,"Esporta la tavolozza in un documento"},
+    {12,"Esporta la tavolozza in un file"},
     {13,"Importa"},
-    {14,"Importa la tavolozza da un documento"}]},
-  {event,
-   [{1,"Assegna il colore alla selezione"},
+    {14,"Importa la tavolozza da un file"}
+   ]},
+  {export,
+   [
+    {3,"Esporta"},
+    {5,"Tavolozza Wings"},
+    {6,"Errore di esportazione: ~w"}
+   ]},
+  {handle_cast,
+   [
+    {1,"Nessun colore iniziale trovato."},
+    {2,"Nessun colore finale trovato."}
+   ]},
+  {help,
+   [
+    {1,"Assegna il colore alla selezione"},
     {2,"Modifica colore"},
-    {3,"Mostra il menu"},
-    {4,"Pulisci colore"}]},
+    {3,"Mostra menu"},
+    {4,"Cancella colore"}
+   ]},
+  {import,
+   [
+    {7,"Importa"},
+    {9,"Tavolozza Wings"},
+    {10,"Nessuna tavolozza trovata"},
+    {11,"Errore di importazione: ~w"},
+    {12,"Errore di importazione: ~w"}
+   ]},
   {title,
-   [{1,"Tavolozza"}]}]}.
+   [
+    {1,"Tavolozza"}
+   ]}
+ ]}.
 {wings_pb,
- [{loop,
-   [{1,"fatto"}]}]}.
+ [
+  {handle_call,
+   [
+    {1,"fatto"}
+   ]}
+ ]}.
 {wings_pick,
  [
-  {clear_hilite_marquee_mode,
-   [{ctrl_action,"Deseleziona"},
-    {shift_action,"(De)seleziona soltanto elementi compresi nel rettangolo"}]},
+  {area_info,
+   [
+    {40," Area ~s"}
+   ]},
+  {enhanced_hl_info,
+   [
+    {1,". Posizione <~s  ~s  ~s>"},
+    {3,". Punto medio <~s  ~s  ~s>\nLunghezza ~s"},
+    {4,". Punto medio <~s  ~s  ~s> \nMateriale ~ts."}
+   ]},
   {handle_hilite_event,
-   [{2,"(nella simmetria)"}]}]}.
+   [
+    {2,"(in mirror)"},
+    {3,"Oggetto"},
+    {4,"Vertice"},
+    {5,"Spigolo"},
+    {6,"Faccia"}
+   ]},
+  {marquee_message,
+   [
+    {ctrl_action,"Deseleziona"},
+    {shift_action,"(De)seleziona solo gli elementi interamente all'interno del riquadro di selezione"}
+   ]}
+ ]}.
 {wings_plugin,
- [{def_ui_plugin,
-   [{1,"Installare nuovamente Wings. Manca il modulo per ~p."}]},
+ [
+  {cat_label,
+   [
+    {1,"Comandi"},
+    {2,"Importazione/esportazione"},
+    {3,"Primitive"},
+    {4,"Render"},
+    {5,"Selezione"},
+    {6,"Strumenti"},
+    {7,"Non classificato"}
+   ]},
+  {def_ui_plugin,
+   [
+    {1,"Installare nuovamente Wings. Manca il Plug-in per ~p."}
+   ]},
   {install,
-   [{1,"Il modulo e' stato aggiunto con successo."}]},
+   [
+    {1,"Il plug-in è stato installato con successo."},
+    {2,"La patch è stata installata correttamente, riavviare Wings3D."}
+   ]},
   {install_beam,
-   [{1,"L'aggiunta di \"~s\" e' fallita: ~p"},
-    {2,"Il documento \"~s\" non e' un modulo espansione di Wings"}]},
+   [
+    {1,"L'installazione di \"~s\" è fallita: ~p"}
+   ]},
   {install_file_type,
-   [{1,"Documento \"~s\": Tipo del documento sconosciuto"}]},
+   [
+    {1,"File \"~s\": tipo di file sconosciuto"}
+   ]},
+  {install_tar,
+   [
+    {1,"L'installazione di \"~s\" è fallita: ~p"}
+   ]},
   {install_verify_files,
-   [{1,"Il documento \"~s\" contiene un documento con un percorso assoluto"},
-    {2,"Il documento \"~s\" non contiene alcun modulo di Wings"}]},
-  {plugin_dir,
-   [{1,"Nessuna cartella \"plugins\" trovata"}]}]}.
+   [
+    {1,"Il file \"~s\" contains a file with an absolute path"},
+    {2,"Il file \"~s\" non contiene alcuna patch o modulo plug-in Wings"}
+   ]},
+  {manager_command,
+   [
+    {1,"Plug-In Manager"}
+   ]},
+  {manager_entry,
+   [
+    {1,"Plug-in Manager..."}
+   ]},
+  {plugin_menu_info_3,
+   [
+    {1,"(Il Plug-In Manager non è riuscito a trovare ulteriori informazioni)"}
+   ]},
+  {plugin_modules,
+   [
+    {1,"Abilita o disabilita questo plug-in "},
+    {2,"(un plug-in disabilitato non viene visualizzato nei menu)"}
+   ]},
+  {plugin_root_menu,
+   [
+    {1,"oggetto: "},
+    {2,"spigolo: "},
+    {3,"faccia: "},
+    {4,"vertice: "},
+    {5,"Seleziona|"},
+    {6,"Strumenti|"}
+   ]}
+ ]}.
+{wings_pref,
+ [
+  {pref,
+   [
+    {1,"Carica Sottoinsieme di Preferenze"},
+    {2,"Salva Sottoinsieme di Preferenze"},
+    {3,"Impostazioni grafiche"},
+    {4,"Impostazioni della Camera"},
+    {5,"Tasti di scelta rapida"},
+    {6,"Impostazioni Finestra e Vista"},
+    {7,"Vincoli"},
+    {8,"Impostazioni Generali"},
+    {9,"Unisci i tasti di scelta rapida"},
+    {10,"Rimuovi prima i tasti di scelta rapida esistenti"},
+    {11,"Il file è stato spostato o eliminato."},
+    {13,"Non è un file .pref"}
+   ]},
+  {recent_pref_help,
+   [
+    {1,"Carica un Sottoinsieme di Preferenze recente"}
+   ]}
+ ]}.
 {wings_pref_dlg,
- [{advanced_prefs,
-   [{1,"Comandi predefiniti"},
+ [
+  {advanced_prefs,
+   [
+    {1,"Comandi predefiniti"},
     {2,"Permette la definizione di comandi che possono essere invocati con Ctrl+L o Ctrl+M"},
-    {3,"Usa l' evidenziazione come selezione temporanea"},
-    {4,"Se non c' e' selezione "},
-    {5,"permette ai comandi di agire sull' elemento evidenziato"},
-    {6,"Nascondi selezione mentre si trascina"},
+    {6,"Nascondi la selezione durante il trascinamento"},
     {7,"Non mostra la selezione in ogni comando interattivo"},
-    {8,"Nascondi selezione mentre si muove la camera"},
-    {9,"Non mostra la selezione quando la camera e' mossa"},
-    {10,"Menu avanzati"},
-    {11,"Altri comandi e altre opzioni, come i magneti"},
-    {12,"Selezione temporanea utente esperto"},
-    {13,"Nel modo secondario di selezione il tasto destro del mouse aggiunge sempre alla selezione corrente"},
+    {8,"Nascondi la selezione durante il movimento della camera"},
+    {9,"Non mostra la selezione quando la camera viene mossa"},
     {14,"Lunghezza"},
-    {15,"Lunghezza del vettore nella selezione secondaria"},
+    {15,"Lunghezza del vettore della selezione secondaria"},
     {16,"Larghezza"},
     {17,"Larghezza in pixels del vettore"},
     {18,"Colore"},
     {19,"Colore del vettore"},
-    {20,"Vettori"}]},
+    {20,"Visualizzazione del vettore"},
+    {23,"Grandezza"},
+    {24,"Dimensione dell'indicatore di taglio definito dall'utente"},
+    {25,"Colore"},
+    {26,"Colore dell'indicatore di taglio definito dall'utente"},
+    {27,"Indicatore del Piano di Taglio"},
+    {38,"Personalizza la risposta al trascinamento"},
+    {39,"Personalizza il rapporto tra trascinamento e movimento del mouse. Deselezionato utilizza le impostazioni predefinite."},
+    {49,"Preferenze di trascinamento"},
+    {50,"Velocità del mouse per il Trascinamento"},
+    {51,"Velocità del mouse per il Ridimensionamento"},
+    {52,"Velocità del mouse per la rotazione"},
+    {54,"Estendi la selezione tramite tasto di scelta rapida sull'evidenziazione temporanea"},
+    {55,"Effetto: Seleziona tutto, Loop di Spigoli, Anelli di Spigoli, Selezioni simili, Normali simili, Materiali simili e Aree simili."}
+   ]},
   {command,
-   [{1,"Generali"},
+   [
+    {1,"Generali"},
     {2,"Camera"},
     {3,"Avanzate"},
     {4,"Interfaccia utente"},
     {5,"Varie"},
-    {6,"Preferenze"}]},
+    {6,"Preferenze"},
+    {31,"Vincoli"}
+   ]},
+  {constraint_prefs,
+   [
+    {1,"Distanza"},
+    {2,"Rotazione"},
+    {3,"Scala"},
+    {4,"Tasti di modifica predefiniti"},
+    {9,"Vincoli di distanza"},
+    {10,"Distanze alternative"},
+    {11,"Salva vincoli in..."},
+    {12,"Vincolo legato a ~s per le operazioni di distanza."},
+    {13,"Vincolo legato a ~s per le rotazioni."},
+    {14,"Vincolo associato a ~s per le operazioni di ridimensionamento."},
+    {15," Vincoli alternativi al reciproco (1.0/Valore)."},
+    {16," Vincoli alternativi a supplementari (180,0 - angolo)."},
+    {17,"(predefinito 1/~s)"},
+    {18,"(predefinito 5/8)"},
+    {19,"(predefinito 3/64)"},
+    {22,"Vincoli di distanza"},
+    {23,"Vincoli di rotazione"},
+    {25,"Fattori di scala"},
+    {29,"Distanze alternative"},
+    {30,"L'eliminazione del valore o l'inserimento di '0' riporta il vincolo all'impostazione predefinita di Wings"},
+    {31,"Imposta Preferenze Vincoli"},
+    {32,"Valori di Vincolo predefiniti"},
+    {33,"Usa vincoli alternativi"},
+    {34,"Se selezionato utilizza distanze alternative, fattori di scala reciproci e angoli supplementari."},
+    {35," Cambia al volo premendo [Shift]+[Tab] durante un'operazione di trascinamento."}
+   ]},
   {gen_prefs,
-   [{1,"Grandezza deselezionati"},
-    {2,"Grandezza in pixels dei vertici deselezionati (0.0 significa non mostrati)"},
-    {3,"Grandezza selezionati"},
-    {4,"Grandezza in pixels dei vertici selezionati"},
-    {5,"Vertici"},
-    {6,"Dimensione deselezionati"},
+   [
+    {1,"Dimensione deselezionato"},
+    {2,"Dimensione in pixels dei vertici deselezionati (0.0 significa non mostrati)"},
+    {3,"Dimensione selezionato"},
+    {4,"Dimensione in pixels dei vertici selezionati"},
+    {5,"Visualizzazione Vertice"},
+    {6,"Dimensione deselezionato"},
     {7,"Larghezza in pixels degli spigoli non selezionati"},
-    {8,"Dimensione selezionati"},
+    {8,"Dimensione selezionato"},
     {9,"Larghezza in pixels degli spigoli selezionati"},
-    {10,"Spigoli morbidi"},
-    {11,"Colore degli spigoli morbidi"},
-    {12,"Spigoli duri"},
-    {13,"Colore degli spigoli duri"},
-    {14,"Spigoli"},
-    {15,"Vertici"},
-    {16,"Spigoli"},
-    {17,"Facce"},
-    {18,"Solidi"},
+    {10,"Spigoli arrotondati"},
+    {11,"Colore degli spigoli arrotondati"},
+    {12,"Spigoli rigidi"},
+    {13,"Colore spigoli rigidi"},
+    {14,"Visualizzazione Spigolo"},
+    {18,"Oggetti"},
     {19,"Deselezionati"},
     {20,"Selezionati"},
-    {21,"Evidenziazione furba"},
     {22,"Evidenziazione"},
-    {23,"Selezioni solide facce"},
-    {24,"Selezioni semitrasparenti facce"},
     {25,"Colore della selezione"},
     {26,"Selezione"},
     {27,"Testo"},
     {28,"Colore del testo di informazione"},
     {29,"Sfondo"},
     {30,"Colore dello sfondo del testo di informazione (include la trasparenza)"},
-    {31,"Testo d' informazione"},
+    {31,"Testo Informativo"},
     {32,"Colore"},
-    {33,"Griglia in primo piano"},
-    {34,"Mostra sempre la griglia quando la vista e' allineata ad uno degli assi principali"},
+    {33,"Forza griglia allineata all'asse"},
+    {34,"Mostra sempre la griglia quando la vista è allineata ad uno degli assi principali"},
     {35,"Griglia"},
-    {36,"Mostra lettere assi"},
     {37,"Colore asse +X"},
     {38,"Colore asse +Y"},
     {39,"Colore asse +Z"},
     {40,"Colore asse -X"},
     {41,"Colore asse -Y"},
     {42,"Colore asse -Z"},
-    {43,"Assi"}]},
+    {43,"Assi"},
+    {44,"Lunghezza"},
+    {45,"Lunghezza delle normali"},
+    {46,"Colore"},
+    {47,"Colore delle normali"},
+    {48,"Visualizzazione delle Normali"},
+    {49,"Vincola gli assi alla griglia"},
+    {50,"Disegna spigoli con anti-aliasing"},
+    {51,"Predefinito"},
+    {52,"Imposta il colore del materiale predefinito"},
+    {55,"Materiali"},
+    {56,"Mostra Mini Assi"},
+    {57,"Larghezza dello spigolo rigido"},
+    {58,"Larghezza in pixel degli spigoli rigidi"},
+    {59,"Larghezza"},
+    {60,"Larghezza delle normali"},
+    {61,"Dettagliato"},
+    {62,"Mostra informazioni aggiuntive sugli elementi selezionati"},
+    {65,"Dimensione vertice maschera magnetica"},
+    {66,"Dimensione in pixel dei vertici della maschera magnetica"},
+    {67,"Vertici non selezionati"},
+    {68,"Colore dei vertici non selezionati"},
+    {69,"Maschera magnetica"},
+    {70,"Colore dei vertici della maschera magnetica"},
+    {71,"Deselezione Condizionale"},
+    {72,"La deselezione mantiene nella stessa modalità di selezione, a meno che non ci sia alcuna selezione"},
+    {73,"Anti-Aliasing"},
+    {74,"Anti-Aliasing dell'intera interfaccia, inclusi i poligoni."},
+    {75,"Abilita il campionamento multiplo"},
+    {aa_ortho1,"Forza allineamento ortogonale all'asse"},
+    {aa_ortho2,"Passare sempre alla modalità ortogonale quando la vista è allineata lungo uno degli assi maggiori"}
+   ]},
   {menu,
-   [{1,"Preferenze..."},
-    {2,"Modifica le preferenze per Wings"}]},
+   [
+    {1,"Preferenze..."},
+    {2,"Modifica le impostazioni di base di Wings"}
+   ]},
   {misc_prefs,
-   [{1,"Le impostazioni di opacita' non sono supportate da questa versione di OpenGL"},
-    {2,"Salva automaticamente ogni"},
+   [
+    {1,"Le impostazioni di opacità non sono supportate da questa versione di OpenGL"},
+    {2,"Salvataggio automatico ogni"},
     {3,"minuti"},
-    {4,"Livelli di ripristino"},
-    {5,"Angolo"},
-    {6,"Ritardo (ms)"},
+    {4,"Livelli di annullamento"},
+    {5,"Angolo per secondo"},
     {7,"Rotazione automatica"},
     {8,"Gabbia"},
     {9,"Qualche spigolo"},
     {10,"Tutti gli spigoli"},
-    {11,"Spigoli nella modalita' ombreggiata"},
-    {12,"Opacita' stazionaria"},
-    {13,"Opacita' in movimento"},
-    {14,"Preferenze arrotondamento automatico"},
-    {15,"Il testo nei menu e dialoghi sparisce"},
-    {16,"Il problema capita ad alcune schede Matrox"},
-    {17,"Wings muore se gli assi vengono disattivati"},
-    {18,"Il problema accade con alcune schede Matrox"},
+    {11,"Stile Spigolo in modalità ombreggiata"},
+    {12,"Opacità da fermo"},
+    {13,"Opacità in movimento"},
+    {14,"Modalità Proxy"},
     {19,"La camera si sposta e i comandi interattivi sono scattosi"},
-    {20,"Il problema accade con MacOS X 10.3 (Panther)"},
-    {21,"Raffazzonamenti"}]},
+    {20,"Riduce i grandi salti cambiando le coordinate del mouse"},
+    {21,"Risoluzione Problemi"},
+    {22,"Problemi di visualizzazione degli spigoli?"},
+    {23,"Sfalsamento del bordo:"},
+    {24,"Mostra menu Sviluppo"},
+    {25,"Mostra un menu con strumenti per gli sviluppatori di Wings"},
+    {26,"I movimenti della telecamera interferiscono con la messa a fuoco"},
+    {27,"Si è verificato un problema su Linux"},
+    {28,"Altezza massima dei menu in pixel"},
+    {29,"I menu vengono tagliati e continuano nel sottomenu 'Altro...'."},
+    {30,"Se inferiore a 1 imposta il ritaglio dei menu su automatico."},
+    {31,"Movimenti della telecamera e comandi interattivi non funzionanti"},
+    {32,"Riduce al minimo i movimenti del mouse a livello di programmazione"},
+    {40,"Un valore pari a 0 utilizzerà l'implementazione standard, un valore maggiore richiede più memoria "},
+    {41,"Sono richiesti i driver OpenCL "},
+    {42,"Livello proxy OpenCL"}
+   ]},
   {smart_set_value_1,
-   [{1,"Il cambiamento ai caratteri di sistema diverra' effettivo la prossima volta che avvii Wings 3D."}]},
+   [
+    {1,"Il cambiamento ai caratteri di sistema diverrà effettivo la prossima volta che avvii Wings 3D."},
+    {2,"La modifica delle icone dell'interfaccia \navrà effetto al successivo avvio di Wings 3D."},
+    {3,"La modifica al tema predefinito avrà effetto \nal successivo avvio di Wings 3D."},
+    {4,"La modifica al font della console \navrà effetto al successivo avvio di Wings 3D."},
+    {5,"La modifica della lingua avrà effetto \nal successivo avvio di Wings 3D."}
+   ]},
   {ui_prefs,
-   [{1,"Carattere di sistema"},
-    {2,"Sfondo Scrivania/Geometrie"},
-    {3,"Testo del menu"},
-    {4,"Evidenziazione nei menu"},
-    {5,"Testo evidenziato nei menu"},
-    {6,"Sfondo dei menu"},
-    {7,"Testo delle fin. di dialogo"},
-    {8,"Testo delle fin. di dialogo disabilitate"},
-    {9,"Sfondo delle fin. di dialogo"},
+   [
+    {1,"Carattere di sistema"},
+    {2,"Sfondo Desktop/Geometria"},
+    {3,"Testo menu"},
+    {4,"Evidenziazione menu"},
+    {5,"Testo evidenziato menu"},
+    {6,"Sfondo menu"},
     {10,"Testo titoli"},
     {11,"Sfondo titoli passivi"},
     {12,"Sfondo titoli attivi"},
     {13,"Colori"},
-    {14,"Nessuna barra di stato"},
-    {15,"Carattere del terminale"},
+    {15,"Carattere della console"},
     {16,"Larghezza"},
     {17,"Altezza"},
-    {18,"Linee ricordate"},
+    {18,"Linee memorizzate"},
     {19,"Sfondo"},
     {20,"Testo"},
-    {21,"Cursore"},
-    {22,"Terminale"},
-    {23,"Lingua interfaccia"}]},
+    {22,"Console"},
+    {23,"Lingua interfaccia"},
+    {24,"Pannelli Flat"},
+    {25,"Utilizza la finestra di dialogo del colore nativo del SO"},
+    {27,"Icone della barra degli strumenti estesa"},
+    {28,"Sfondo barra dei menu"},
+    {29,"Sfondo riga di informazioni"},
+    {30,"Testo riga informazioni"},
+    {31,"Testo barra dei menu"},
+    {35,"Sfondo finestra"},
+    {36,"Testo finestra"},
+    {37,"Finestra evidenziata"},
+    {38,"Testo finestra evidenziato"},
+    {39,"Finestra disabilitata"},
+    {42,"Visualizza il rendering con un visualizzatore esterno"},
+    {47,"Mostra la Barra degli strumenti"},
+    {51,"Classico"},
+    {52,"Blue Cube"},
+    {53,"Purple Tube"}
+   ]},
+  {viewer_prefs,
+   [
+    {1,"Visualizzatore"},
+    {2,"Opzioni"},
+    {3,"..nomefile.."}
+   ]},
   {workaround_1,
-   [{1,"Problema"},
-    {2,"Raffazzono?"}]}]}.
+   [
+    {1,"Problema"},
+    {2,"Risolvo?"}
+   ]}
+ ]}.
+{wings_render,
+ [
+  {show_scale,
+   [
+    {1,"Scala della griglia: x"}
+   ]}
+ ]}.
 {wings_rotate,
- [{edges_to_vertices,
-   [{1,"La rotazione con magneti su regioni con piu' di uno spigolo necessita un' origine esplicita."}]},
+ [
+  {edges_to_vertices,
+   [
+    {1,"La rotazione con magneti su regioni con più di uno spigolo necessita di un'origine esplicita."}
+   ]},
   {faces_to_vertices,
-   [{1,"La rotazione con magneti su regioni a piu' facce necessita un' origine esplicita."}]}]}.
+   [
+    {1,"La rotazione con magneti su regioni a più facce necessita un'origine esplicita."}
+   ]}
+ ]}.
 {wings_s,
  [
-  {mod,
-   [{alt,"Alt"},
-    {ctrl,"Ctrl"},
-    {shift,"Maiusc"},
-    {command,"Command"}]},
-  {mouse_b,
-   [{l,"L"},
-    {m,"M"},
-    {r,"R"}]},
-  {cancel, [{1,"Annulla"}]},
-  {no,     [{1,"No"}]},
-  {yes,    [{1,"Si'"}]},
-  {accept, [{1,"Accetta"}]},
-  {dir, 
-   [{x,"X"},{y,"Y"},{z,"Z"},{all,"Tutti"},
-    {la, "ultimo asse"}, {da, "asse predefiniti"}, 
-    {n, "Normale"}, {f, "Liberamente"},
-    {u, "Ugualmente"}, {r, "Radiale"},
-    {the_axis, "all' asse ~s"}]},
+  {accept,
+   [
+    {1,"Accetta"}
+   ]},
   {camera_mode,
-   [{blender,"Blender"},
+   [
+    {blender,"Blender"},
     {maya,"Maya"},
     {mb,"Motionbuilder"},
     {mirai,"Mirai"},
     {nendo,"Nendo"},
-    {tds,"3ds max"}]}
+    {sketchup,"SketchUp"},
+    {tds,"3ds max"},
+    {wings_cam,"Wings 3D"}
+   ]},
+  {cancel,
+   [
+    {1,"Cancella"}
+   ]},
+  {dir,
+   [
+    {all,"Tutto"},
+    {da,"asse predefinito"},
+    {f,"Liberamente"},
+    {la,"ultimo asse"},
+    {n,"Normale"},
+    {r,"Radiale"},
+    {the_axis,"l'asse ~s"},
+    {u,"Uniformemente"},
+    {x,"X"},
+    {y,"Y"},
+    {z,"Z"}
+   ]},
+  {mod,
+   [
+    {alt,"Alt"},
+    {command,"Comando"},
+    {ctrl,"Ctrl"},
+    {shift,"Shift"}
+   ]},
+  {mouse_b,
+   [
+    {l,"L"},
+    {m,"M"},
+    {r,"R"}
+   ]},
+  {no,
+   [
+    {1,"No"}
+   ]},
+  {scroll,
+   [
+    {scroll,"Scroll"}
+   ]},
+  {yes,
+   [
+    {1,"Sì"}
+   ]}
  ]}.
 {wings_scale,
- [{edges_to_vertices,
-   [{1,"Per ridimensionare con magneti su regioni con piu' spigoli selezionati bisogna scegliere un'origine"}]},
+ [
+  {edges_to_vertices,
+   [
+    {1,"Per il ridimensionamento con magneti su regioni con più spigoli selezionati bisogna scegliere un'origine"}
+   ]},
   {faces_to_vertices,
-   [{1,"Si puo' ridimensionare su regioni con piu' facce selezionate scegliento un' origine."}]},
-  {inset_face,
-   [{1,"Gli spigoli in una o piu' facce selezionate sono troppo corti. (Prova il comando Pulisci)"}]}]}.
+   [
+    {1,"Il ridimensionamento con magnete su più regioni di facce richiede un'origine della scalatura esplicita."}
+   ]}
+ ]}.
 {wings_sel_cmd,
- [{ask,
-   [{1,"Seleziona per Id"}]},
-  {group_title,
-   [{1,"vertice: "},
-    {2,"spigolo: "},
-    {3,"faccia: "},
-    {4,"corpo: "}]},
+ [
+  {ask,
+   [
+    {1,"Seleziona per Id"}
+   ]},
+  {by_name,
+   [
+    {1,"Niente da selezionare."},
+    {2,"Seleziona per nome"},
+    {3,"Nome"}
+   ]},
+  {faces_menu,
+   [
+    {1,"Normali Simili..."},
+    {2,"Aree Simili"},
+    {3,"Materiali Simili..."},
+    {11,"Seleziona facce con normali simili a quelle delle facce già selezionate"},
+    {21,"Seleziona facce con aree simili a quelle delle facce già selezionate"},
+    {31,"Seleziona facce con un materiale simile a quelle delle facce già selezionate"}
+   ]},
+  {faces_with,
+   [
+    {1,"Numero di Spigoli"},
+    {2,"Seleziona Facce"},
+    {3,"Più"},
+    {4,"Meno"},
+    {5,"Esattamente"}
+   ]},
+  {get_area,
+   [
+    {1,"Deve essere selezionata esattamente una faccia"}
+   ]},
+  {group_mode_string,
+   [
+    {body,"Gruppo di selezione Oggetto"},
+    {edge,"Gruppo di selezione Spigolo"},
+    {face,"Gruppo di selezione Faccia"},
+    {vertex,"Gruppo di selezione Vertice"}
+   ]},
   {groups_menu,
-   [{1,"Elimina gruppo"},
-    {2,"Elimina il gruppo \""},
-    {4,"Aggiungi al gruppo"},
-    {5,"Aggiungi la selezione al gruppo \""},
-    {7,"Sottrai dal gruppo"},
-    {8,"Sottrai la selezione dal gruppo \""},
-    {10,"Seleziona gruppo"},
-    {11,"Seleziona il gruppo \""},
-    {13,"Unione gruppo"},
-    {14,"Unione del gruppo \""},
-    {15,"\" con la selezione"},
-    {16,"Sottrazione gruppo"},
-    {17,"Sottrae il gruppo \""},
-    {18,"\" dalla selezione attiva"},
-    {19,"Intersezione gruppo"},
-    {20,"Interseca il gruppo \""},
-    {21,"\" alla selezione attiva"}]},
+   [
+    {22,"Gruppi di Selezione"},
+    {24,"Gruppo Successivo"},
+    {25,"Gruppo Precedente"},
+    {26,"Ciclo in Modalità di Selezione"},
+    {27,"Ciclo precedente/successivo solo all'interno della modalità di selezione attiva"},
+    {79,"Memorizza Selezione"},
+    {80,"Memorizza la selezione nel gruppo di selezione denominato \"StoredSelection\""},
+    {81,"Richiama Selezione"},
+    {82,"Richiama la selezione dal gruppo di selezione denominato \"StoredSelection\""},
+    {83,"Nuovo Gruppo..."},
+    {84,"Crea un nuovo Gruppo di Selezione"}
+   ]},
   {item_by_id,
-   [{1,"Nulla da selezionare."},
-    {2,"Id del corpo"}]},
+   [
+    {1,"Nulla da selezionare."},
+    {2,"Id dell'oggetto"}
+   ]},
   {less_help,
-   [{1,"Deseleziona tutti i vertici adiacenti a quelli non selezionati"},
-    {2,"Deseleziona tutti gli spigoli adiacenti a quelli non selezionati"},
-    {3,"Deseleziona tutte le facce che condividono uno spigolo con quelle non selezionate"}]},
+   [
+    {1,"Deseleziona tutti gli elementi adiacenti a quelli deselezionati"}
+   ]},
   {menu,
-   [{1,"Deseleziona"},
-    {2,"Rimuove la selezione dagli oggetti"},
-    {3,"Ancora"},
+   [
+    {1,"Deseleziona"},
+    {2,"Rimuove la selezione"},
+    {3,"Di più"},
     {4,"Di meno"},
     {5,"Simili"},
-    {6,"Parallelo"},
-    {7,"Parallelo"},
-    {8,"Espande la selezione di uno spigolo al parallelo che lo contiene; "},
-    {9,"converte la selezione di facce alla selezione dei suoi bordi"},
-    {10,"Parallelo in regione"},
-    {11,"Sceglie tutte le facce connesse ad un parallelo"},
+    {6,"Loop di Spigoli"},
+    {7,"Loop di Spigoli"},
+    {8,"Espande la selezione di uno spigolo nel loop che lo contiene; "},
+    {9,"Converte una selezione di facce nella selezione dei suoi spigoli"},
+    {10,"Da Loop a Regione"},
+    {11,"Seleziona tutte le facce connesse ad un loop"},
     {12,"Anello"},
-    {13,"Espande la selezione di uno spigolo all'anello che lo contiene"},
-    {14,"Parallelo precedente"},
-    {15,"Seleziona il precedente parallelo"},
-    {16,"Prossimo parallelo"},
-    {17,"Seleziona il parallelo seguente"},
-    {18,"Espandi sul parallelo"},
-    {19,"Espande la selezione dallo spigolo di uno spigolo sul parallelo"},
-    {20,"Comprimi sul parallelo"},
-    {21,"Comprime la selezione degli spigoli di uno sulla direzione del parallelo"},
-    {22,"Espandi anello"},
-    {23,"Espande la selezione degli spigoli di uno sull' anello che li contiene"},
-    {24,"Comprimi anello"},
-    {25,"Comprime la selezione degli spigoli di uno sull' anello che li contiene"},
+    {13,"Espande la selezione di uno spigolo nell'anello che lo contiene"},
+    {14,"Loop Precedente"},
+    {15,"Seleziona il Loop precedente"},
+    {16,"Loop Successivo"},
+    {17,"Seleziona il Loop successivo"},
+    {18,"Espandi Loop"},
+    {19,"Espande la selezione dallo spigolo/i selezionato/i di uno spigolo sul Loop"},
+    {20,"Riduci Loop"},
+    {21,"Riduce la selezione degli spigoli di uno nella direzione del loop"},
+    {22,"Espandi Anello"},
+    {23,"Espande la selezione degli spigoli di uno nell'anello che li contiene"},
+    {24,"Riduci Anello"},
+    {25,"Comprime la selezione degli spigoli di uno nell'anello che li contiene"},
     {26,"Adiacenti"},
     {27,"Vertici"},
     {28,"Spigoli"},
     {29,"Facce"},
     {30,"Oggetti"},
     {31,"Per"},
-    {32,"Spigoli duri"},
-    {33,"Seleziona tutti gli spigoli duri"},
-    {34,"Vertici isolati"},
-    {35,"Seleziona tutti i vertici isolati"},
-    {36,"Vertici collegati a"},
+    {32,"Spigoli Rigidi"},
+    {33,"Seleziona tutti gli Spigoli rigidi"},
+    {34,"Vertici Isolati"},
+    {35,"Seleziona tutti i Vertici isolati"},
+    {36,"Vertici collegati a..."},
     {37,"2 spigoli"},
     {38,"3 spigoli"},
     {39,"4 spigoli"},
@@ -1397,100 +2515,207 @@
     {42,"2 spigoli"},
     {43,"3 spigoli"},
     {44,"4 spigoli"},
-    {45,"5 or piu'spigoli"},
-    {46,"Casuale"},
-    {56,"Spigoli corti"},
-    {57,"Seleziona gli spigoli troppo corti"},
-    {58,"Spigoli materiali"},
-    {59,"Seleziona tutti gli spigoli tra diversi spigoli"},
+    {45,"5 o più spigoli"},
+    {46,"Scelta Casuale"},
+    {56,"Spigoli Corti..."},
+    {57,"Seleziona gli spigoli (troppo) corti"},
+    {58,"Spigoli tra Materiali"},
+    {59,"Seleziona tutti gli spigoli tra diversi materiali"},
     {60,"Facce UV-mappate"},
     {61,"Seleziona tutti gli spigoli che hanno coordinate UV"},
     {62,"Id..."},
-    {63,"Seleziona secondo un id numerico"},
+    {63,"Seleziona tramite id numerico"},
     {64,"Luci"},
     {65,"Seleziona tutte le luci"},
-    {66,"Seleziona tutto"},
+    {66,"Seleziona tutti gli elementi (vertici, lati, facce o oggetti) in base alla modalità in uso"},
     {67,"Inversa"},
     {68,"Inverte la selezione"},
-    {69,"Nascondi selezionato"},
+    {69,"Nascondi Selezionati ->"},
     {70,"Nasconde tutti gli oggetti selezionati"},
-    {71,"Nascondi non selezionati"},
-    {72,"Nasconde gli oggetti non selezionati"},
-    {73,"Blocca non selezionati"},
-    {74,"Blocca gli oggetti che non hanno selezione"},
-    {75,"Mostra tutto"},
+    {71,"Nascondi non selezionati ->"},
+    {72,"Nasconde tutti gli oggetti non selezionati"},
+    {73,"Blocca non selezionati ->"},
+    {74,"Blocca tutti gli oggetti che non hanno selezione"},
     {76,"Mostra tutti gli oggetti che sono stati nascosti"},
-    {77,"Sblocca tutto"},
     {78,"Sblocca tutti gli oggetti bloccati"},
-    {79,"Memorizza selezione"},
-    {80,"Memorizza la selezione nel gruppo chiamato \"StoredSelection\""},
-    {81,"Richiama selezione"},
-    {82,"Richiama la selezione dal gruppo chiamato \"StoredSelection\""},
-    {83,"Nuovo gruppo..."},
-    {84,"Crea un nuovo gruppo di selezione"}]},
+    {85,"Facce Non planari..."},
+    {86,"Seleziona tutte le facce non planari"},
+    {87,"Spigoli Vivi..."},
+    {88,"Seleziona spigoli vivi"},
+    {89,"Percorso con il minor numero di Spigoli"},
+    {90,"Seleziona il percorso con il minor numero di spigoli tra due vertici"},
+    {91,"Percorso più breve (Dijkstra)"},
+    {92,"Seleziona il percorso più breve tra due vertici (Dijkstra)"},
+    {93,"Percorso più breve (A-Star)"},
+    {94,"Seleziona il percorso più breve tra due vertici (A-Star)"},
+    {95,"Percorso tra Vertici"},
+    {96,"Completa Loop"},
+    {97,"Passa alla modalità Spigoli e completa la selezione del o dei loop"},
+    {98,"; converte vertici consecutivi in spigoli"},
+    {99," (dalla selezione o da tutti gli oggetti visibili (se non c'è nessuna selezione))"},
+    {100,"Anello ogni..."},
+    {101,"Secondo"},
+    {102,"Terzo"},
+    {103,"Ennesimo..."},
+    {104,"Mostra tutti gli Oggetti"},
+    {105,"Sblocca tutti gli Oggetti"},
+    {106," Oggetti"},
+    {107,"Nome..."},
+    {108,"Seleziona gli oggetti per nome. Si può usare * come carattere jolly."},
+    {109,"Loop ogni..."},
+    {110,"Blocca selezionati ->"},
+    {111,"Blocca tutti gli oggetti selezionati (parzialmente o totalmente)."},
+    {401,"6 o Più"},
+    {402,"Specificare..."},
+    {661,"Tutto"},
+    {nq0,"Facce non Quadrangolari"},
+    {nq1,"Tutte le facce non quadrangolari"},
+    {nq2,"Particolari facce non quadrangolari"},
+    {nq3,"Anche facce non quadrangolari"}
+   ]},
   {more_help,
-   [{1,"Seleziona tutti i vertici adiacenti a quelli selezionati"},
-    {2,"Seleziona tutti gli spigoli adiacenti a quelli selezionati"},
-    {3,"Seleziona tutte le facce che condividono almeno un vertice con quella selezionata"}]},
+   [
+    {1,"Seleziona tutti gli elementi adiacenti a quelli già selezionati"}
+   ]},
   {new_group,
-   [{1,"Crea un nuovo gruppo"},
-    {2,"Nome del gruppo"}]},
+   [
+    {1,"Crea un Nuovo Gruppo"},
+    {2,"Nome Gruppo"}
+   ]},
   {new_group_name,
-   [{exists,"esiste."}]},
-  {sel_all_str,
-   [{1,"Tutti i vertici"},
-    {2,"Tutti gli spigoli"},
-    {3,"Tutte le facce"},
-    {4,"Tutti i corpi"}]},
+   [
+    {exists,"esiste già."}
+   ]},
+  {nonplanar_faces,
+   [
+    {1,"Distanza di Tolleranza"},
+    {2,"Seleziona facce non planari"}
+   ]},
+  {oriented_faces,
+   [
+    {1,"Tolleranza angolare"},
+    {2,"Seleziona facce orientate allo stesso modo"},
+    {3,"Solo facce connesse"},
+    {4,"At least one face must be selected"},
+    {5,"Salva Angolo"}
+   ]},
+  {random,
+   [
+    {1,"Seleziona Casualmente"}
+   ]},
+  {random_help,
+   [
+    {1,"Seleziona elementi casuali dalla selezione corrente o tutti gli oggetti visibili (se non c'è nessuna selezione)"}
+   ]},
+  {select_nth_loop,
+   [
+    {1,"Intervallo"},
+    {2,"Seleziona ogni ennesimo Loop di spigoli"}
+   ]},
+  {select_nth_ring,
+   [
+    {1,"Intervallo"},
+    {2,"Seleziona ogni ennesimo anello di spigolo"}
+   ]},
+  {sharp_edges,
+   [
+    {1,"Angolo massimo"},
+    {2,"Seleziona Spigoli rigidi"},
+    {3,"Picchi"},
+    {4,"Valli"},
+    {5,"Entrambi"}
+   ]},
   {short_edges,
-   [{1,"Tolleranza"},
-    {2,"Seleziona gli spigoli corti"}]},
+   [
+    {1,"Lunghezza di Tolleranza"},
+    {2,"Seleziona gli spigoli corti"}
+   ]},
+  {shortest_path,
+   [
+    {1,"Devono essere selezionati esattamente\ndue vertici sullo stesso oggetto."}
+   ]},
+  {similar_area,
+   [
+    {1,"Area di Tolleranza"},
+    {2,"Seleziona Aree Simili"}
+   ]},
   {similar_help,
-   [{1,"Seleziona i vertici simili a quelli selezionati"},
-    {2,"Seleziona gli spigoli simili a quelli selezionati"},
-    {3,"Seleziona le facce simili a quelle selezionate"},
-    {4,"Seleziona i corpi con lo stesso numero di facce, spigoli e vertici"}]},
+   [
+    {1,"Seleziona elementi simili a quelli già selezionati"}
+   ]},
+  {similar_material,
+   [
+    {2,"Solo facce connesse"},
+    {3,"Deve essere selezionata almeno una faccia"},
+    {4,"Seleziona Facce con lo stesso materiale"},
+    {5,"Materiali"},
+    {6,"Colore Vertice"}
+   ]},
   {valid_sel,
-   [{1,"L' Id dell' oggetto "},
-    {2," e' invalido."},
+   [
+    {1,"L'Id dell'oggetto "},
+    {2," non è valido."},
     {3,"Il "},
-    {4," e' invalido."}]}]}.
-{wings_shape,
- [{do_menu,
-   [{1,"Duplica"},
-    {2,"Duplica gli oggetti selezionati"},
-    {3,"Elimina"},
-    {4,"Elimina gli oggetti selezionati"},
-    {5,"Rinomina"},
-    {6,"Rinomina gli oggetti selezionati"}]},
-  {help,
-   [{1,"Selezione"},
-    {2,"Mostra il menu"},
-    {3,"Rende visibile/invisibile l' oggetto attivo"},
-    {4,"Rende visibili/invisibili gli altri oggetti"},
-    {5,"Blocca/sblocca gli oggetti attivi"},
-    {6,"Blocca/sblocca tutti gli oggetti"},
-    {7,"Seleziona/deseleziona gli oggetti attivi"},
-    {8,"Seleziona/deseleziona gli altri oggetti"},
-    {9,"Cambia la visualizzazione ombreggiata/scheletro per l' oggetto attivo"},
-    {10,"Cambia la visualizzazione ombreggiata/scheletro per gli altri oggetti"}]},
-  {title,
-   [{1,"Grafico delle geometrie"},
-    {2,"Grafico delle geometrie #"}]}]}.
+    {4," non è valido."}
+   ]},
+  {vertices_with,
+   [
+    {1,"Numero di Spigoli"},
+    {2,"Seleziona Vertici"},
+    {3,"Più"},
+    {4,"Meno"},
+    {5,"Esattamente"}
+   ]}
+ ]}.
 {wings_shapes,
- [{cone,
-   [{1,"Sezioni"}]},
-  {cylinder,
-   [{1,"Sezioni"}]},
+ [
+  {cone,
+   [
+    {1,"Sezioni"},
+    {2,"Altezza"},
+    {3,"Diametro X"},
+    {5,"Diametro Z"}
+   ]},
+  {dodecahedron,
+   [
+    {1,"Lunghezza Spigolo"}
+   ]},
   {grid,
-   [{1,"Righe/colonne"}]},
-  {menu,
-   [{15,"Altro"},
-    {16,"Altre primitive"}]},
+   [
+    {1,"Righe/Colonne"},
+    {2,"Spaziatura X"},
+    {2,"Spaziatura Z"},
+    {4,"Altezza"}
+   ]},
+  {icosahedron,
+   [
+    {1,"Lunghezza Spigolo"}
+   ]},
+  {octahedron,
+   [
+    {1,"Altezza"}
+   ]},
+  {octotoad,
+   [
+    {1,"Altezza"}
+   ]},
+  {prim_help,
+   [
+    {cone,"Opzioni Cono"},
+    {dodecahedron,"Opzioni Dodecaedro"},
+    {grid,"Opzioni Griglia"},
+    {icosahedron,"Opzioni Icosaedro"},
+    {image,"Crea un'immagine..."},
+    {light,"Crea una luce"},
+    {material,"Crea un materiale..."},
+    {octahedron,"Opzioni Ottaedro"},
+    {octotoad,"Opzioni Octoad"},
+    {sphere,"Opzioni Sfera"},
+    {tetrahedron,"Opzioni Tetraedro"}
+   ]},
   {prim_name,
-   [{cone,"Cono"},
-    {cube,"Cubo"},
-    {cylinder,"Cilindro"},
+   [
+    {cone,"Cono"},
     {dodecahedron,"Dodecaedro"},
     {grid,"Griglia"},
     {icosahedron,"Icosaedro"},
@@ -1498,341 +2723,1053 @@
     {light,"Luce"},
     {material,"Materiale..."},
     {octahedron,"Ottaedro"},
-    {octotoad,"Octottaedro"},
+    {octotoad,"Octotoad"},
     {sphere,"Sfera"},
-    {tetrahedron,"Tetraedro"},
-    {torus,"Toro"}]},
+    {tetrahedron,"Tetraedro"}
+   ]},
   {sphere,
-   [{1,"Sezioni"},
-    {2,"Fette"}]},
-  {torus,
-   [{1,"Sezioni"},
-    {2,"Fette"},
-    {3,"Raggio maggiore"},
-    {4,"Raggio minore"}]}]}.
+   [
+    {1,"Sezioni"},
+    {2,"Divisioni"},
+    {3,"Raggio X"},
+    {4,"Raggio Y"}
+   ]},
+  {tetrahedron,
+   [
+    {1,"Lunghezza Spigolo"}
+   ]}
+ ]}.
 {wings_subdiv,
- [{face_centers,
-   [{1,"La faccia "},
-    {2," ha solo due spigoli."}]},
+ [
+  {face_centers,
+   [
+    {1,"La faccia "},
+    {2," ha solo due spigoli."}
+   ]},
   {smooth,
-   [{1,"arrotondo"},
-    {2,"calcolo i centri delle facce"},
-    {3,"taglio gli spigoli"},
-    {4,"aggiorno i materiali"},
-    {5,"creo le nuove facce"},
-    {6,"sposto i vertici"},
-    {7,"concludo"}]}]}.
+   [
+    {1,"Arrotondamento"},
+    {2,"calcolo dei centri delle facce"},
+    {3,"taglio degli spigoli"},
+    {4,"aggiornnamento decrease_leveli materiali"},
+    {5,"creazione delle nuove facce"},
+    {6,"spostamento dei vertici"},
+    {7,"completamento"}
+   ]},
+  {subdiv,
+   [
+    {1,"suddivisione"},
+    {2,"calcolo del centro delle facce"},
+    {3,"taglio degli spigoli"},
+    {4,"aggiornamento materiali"},
+    {5,"creazione nuove facce"},
+    {6,"spostamento vertici"},
+    {7,"completamento"}
+   ]}
+ ]}.
 {wings_tesselation,
- [{submenu,
-   [{1,"Triangola"},
-    {2,"Quadrangola"}]}]}.
+ [
+  {submenu,
+   [
+    {1,"Triangola"},
+    {2,"Quadrangola"}
+   ]}
+ ]}.
+{wings_theme,
+ [
+  {menu,
+   [
+    {1,"Temi"},
+    {2,"Tema Verde Classico"},
+    {3,"Cambia i colori del display al tema originale di Wings3D con le barre del titolo verdi"},
+    {4,"Tema Oliva"},
+    {5,"Tema Grigio Blu"},
+    {6,"Tema Blu Scuro"},
+    {7,"Cambia combinazione di colori"},
+    {10,"Tema Nativo"},
+    {11,"Cambia la combinazione di colori con un tema che cerca di imitare i colori del sistema operativo"}
+   ]}
+ ]}.
 {wings_toolbar,
  [
-  {button_help_1,
-   [{1,"Deseleziona"}]},
   {button_help_2,
-   [{1,"Seleziona i vertici adiacenti"},
-    {2,"Cambia nel metodo di selezione per vertici"},
-    {3,"Selezione gli spigoli adiacenti"},
-    {4,"Cambia nel metodo di selezione per spigoli"},
-    {5,"Seleziona le facce adiacenti"},
-    {6,"Cambia nel metodo di selezione per facce"},
-    {7,"Cambia nel metodo di selezione per solidi"}]},
+   [
+    {2,"Passa al metodo di selezione dei vertici"},
+    {4,"Passa al metodo di selezione degli spigoli"},
+    {6,"Passa al metodo di selezione delle facce"},
+    {7,"Passa al metodo di selezione degli oggetti"}
+   ]},
+  {button_help_3,
+   [
+    {1,"Annulla l'ultimo comando"},
+    {2,"Ripristina l'ultimo comando annullato"},
+    {3,"Apre una scena salvata in precedenza"},
+    {4,"Salva la scena corrente"},
+    {5,"Modifica le preferenze di Wings"},
+    {6," o "}
+   ]},
   {messages,
-   [{hide,"Nascondi"},
-    {show,"Mostra"},
-    {groundplane,"piano orizzontale"},
+   [
     {axes,"assi"},
-    {change_to,"Cambia in"},
-    {orthogonal,"ortogonale vista"},
-    {perspective,"prospettiva vista"},
+    {change_between,"Cambia tra"},
+    {flat,"ombre piatte"},
+    {groundplane,"piano di terra"},
+    {hide,"Nascondi"},
+    {orthogonal,"vista ortogonale"},
+    {perspective,"vista prospettica"},
+    {show,"Mostra"},
     {show_objects,"Mostra oggetti con"},
-    {smooth,"arrotondata ombreggiatura"},
-    {flat,"piana ombreggiatura"}]}
+    {smooth,"ombre arrotondate"}
+   ]}
+ ]}.
+{wings_tweak,
+ [
+  {axis_string,
+   [
+    {1,"Asse predefinito"},
+    {2,"Normale Elemento"},
+    {3,"Normale Elemento (spigoli)"},
+    {4,"Radiale"},
+    {5,"Da Cursore"},
+    {6,"Da Elemento"},
+    {7,"Dal punto predefinito"}
+   ]},
+  {cam_conflict,
+   [
+    {1,"La combinazione di tasti non è stata assegnata.\n\n    Questa combinazione di tasti entrerebbe in conflitto con i pulsanti della Camera"}
+   ]},
+  {camera_msg,
+   [
+    {1,"[C]: Brandeggia camera  [S]: Panoramica  [D]: Dolly"}
+   ]},
+  {constraints_menu,
+   [
+    {1,"Blocca il movimento sulla Normale della selezione."},
+    {2,"Blocca il movimento sull'asse predefinito."},
+    {3,"Blocca il movimento alla Radiale dell'asse di Ritocco corrente."},
+    {5,"Blocca il movimento sull'asse ~s."},
+    {6,"Movimento vincolato alla normale dell'elemento contrassegnato dal Vettore di Ritocco."},
+    {7,"Scala con il cursore del mouse."},
+    {8,"Scala dall'elemento contrassegnato dal Vettore di Ritocco."},
+    {9,"Scala dal punto predefinito."},
+    {10,"Cancella Vincoli"},
+    {11,"Cancella tutti gli assi bloccati."}
+   ]},
+  {extra_msg,
+   [
+    {1,"Slide Collapse"}
+   ]},
+  {help_msg_axes,
+   [
+    {1,"--Vincoli degli assi--"},
+    {2,"I vincoli dell'asse influiscono solo sulle operazioni Ritocco, Spostamento e Scala."},
+    {3,"Si possono premere [F1], [F2] e [F3] per vincolare il movimento ai 3 assi cardinali, X, Y e Z."},
+    {4,"Fare clic sui tasti di scelta rapida del vincolo dell'asse per alternarli."},
+    {5,"Qualsiasi asse può essere attivato per rimanere attivo tramite il menu Ritocca o la palette Ritocca."},
+    {6,"Gli assi da Elemento e da Punto attivano il Vettore di Ritocco."},
+    {7,"Gli assi possono essere combinati."}
+   ]},
+  {help_msg_basic,
+   [
+    {1,"--Cos'è il Ritocco?--"},
+    {2,"Ritocco consente di modificare rapidamente un modello cliccando e trascinando la geometria."},
+    {3,"Mentre il Ritocco è abilitato, tutti i normali comandi di Wings sono ancora disponibili,"},
+    {4," ma i pulsanti del mouse e i tasti modificatori attiveranno gli strumenti di Ritocco."}
+   ]},
+  {help_msg_hotkeys,
+   [
+    {1,"--Strumenti di modifica con tasti di scelta rapida--"},
+    {2,"Un'alternativa all'utilizzo delle combinazioni di tasti Ritocco consiste nell'assegnare tasti di scelta rapida ai vari strumenti di Ritocco utilizzando il metodo [Inserisci]."},
+    {3,"Premendo il tasto di scelta rapida si assegna lo strumento di Ritocco a Lmb."}
+   ]},
+  {help_msg_keys,
+   [
+    {1,"--Assegnazione dei tasti di Ritocco--"},
+    {2,"A ciascuno degli strumenti di Ritocco ~s può essere assegnata una combinazione di tasti di modifica (Ctrl, Shift, Alt)."},
+    {3," e "},
+    {4,"Per assegnare una combinazione di tasti a uno strumento di Ritocco:"},
+    {5,"\t1) Aprire il menu Ritocco."},
+    {6,"\t2) Evidenziare uno degli strumenti di Ritocco."},
+    {7,"\t3) Tenere premuta la combinazione di tasti di modifica e/o premere il pulsante di attivazione del mouse."}
+   ]},
+  {help_msg_magnet,
+   [
+    {1,"--Magneti--"},
+    {2,"I magneti consentono una selezione morbida."},
+    {3,"Ci sono 3 tipi di magneti: Tondo, Dritto e Punta."},
+    {4,"Regolare il raggio del magnete tenendo premuto [Alt] e muovendo il mouse."},
+    {5,"I comandi per la commutazione dei magneti possono essere assegnati ai tasti di scelta rapida nel menu Tweak|Magneti."},
+    {6,"Le opzioni del magnete possono essere impostate nelle Preferenze di Ritocco."}
+   ]},
+  {help_msg_palette,
+   [
+    {1,"--Palette Ritocco  (Finestre|Gestione Ritocco)--"},
+    {2,"La Palette Ritocco è un gruppo di 3 finestre che contengono i comandi principali del menu Ritocco."},
+    {3,"Usare la Gestione Ritocco per navigare tra Strumenti Ritocco, Tipi di magnete o Vincoli asse."}
+   ]},
+  {help_msg_using_keys,
+   [
+    {1,"--Usare il Ritocco--"},
+    {2,"1) Abilitare il ritocco."},
+    {3,"2) Evidenziare o selezionare uno o più elementi della geometria."},
+    {4,"3) Premere la combinazione di tasti Ritocco e il pulsante del mouse associato per attivare Ritocco."},
+    {5,"4) Trascinare la geometria nella nuova posizione."},
+    {6,"5) Rilasciare il pulsante del mouse per completare il Ritocco."},
+    {7,"Il rilascio dei tasti Ritocco non terminerà l'evento Ritocco."},
+    {8,"Ciò consente di utilizzare altri tasti di scelta rapida durante il Ritocco per attivare un altro strumento di Ritocco, un vincolo dell'asse, puntare la telecamera o regolare il raggio del magnete."},
+    {9,"La pressione di [C] a metà del Ritocco avvicina la camera."},
+    {10,"Premendo [S] o i tasti freccia a metà del Ritocco si sposta la telecamera."},
+    {11,"Premendo [D] a metà del Ritocco, la camera ha un effetto Dollie."},
+    {12,"Premendo [Barra spaziatrice] durante il Ritocco si passa allo strumento Ritocco assegnato a Lmb."},
+    {13,"Tenendo premuto [F] durante la finalizzazione di un'operazione di scorrimento, tutti gli spigoli corti appena creati vengono collassati."}
+   ]},
+  {mag_thelp,
+   [
+    {1,"Questo magnete tira e spinge la geometria con un effetto uniforme e arrotondato."},
+    {2,"Questo magnete tira e spinge la geometria con un effetto lineare."},
+    {3,"Questo magnete tira e spinge la geometria con una punta aguzza."}
+   ]},
+  {magnet_type,
+   [
+    {1,"Tondo"},
+    {2,"Lineare"},
+    {3,"Aguzzo"}
+   ]},
+  {menu,
+   [
+    {1,"Ritocco è una raccolta di strumenti per regolare rapidamente una mesh."},
+    {2,"Abilita Ritocco"},
+    {3,"Disattiva Ritocco"},
+    {4,"Magneti"},
+    {5,"Vincoli di asse"},
+    {6,"Sposta la selezione rispetto allo schermo o vincolata a un asse."},
+    {7,"Sposta la selezione lungo la media delle normali."},
+    {8,"Ridimensiona la selezione rispetto allo schermo o vincolata a un asse."},
+    {9,"Ridimensiona gli elementi in modo uniforme dal centro della selezione."},
+    {10,"Rilassa la selezione verso il piano medio dei vicini."},
+    {11,"Fa scorrere gli elementi lungo gli spigoli adiacenti."},
+    {13,"Preferenze Ritocco"},
+    {14,"Preferenze per il Ritocco"}
+   ]},
+  {menu_conflict,
+   [
+    {1,"La combinazione di tasti non è stata assegnata.\n\n    Questi tasti entrerebbero in conflitto con il menu Ritocco cliccato con il tasto destro."}
+   ]},
+  {mode,
+   [
+    {1,"Sposta"},
+    {2,"Sposta Normali"},
+    {3,"Scala"},
+    {4,"Scala Uniforme"},
+    {5,"Rilassa"},
+    {6,"Scorri"}
+   ]},
+  {spacebar_msg,
+   [
+    {1,"[Spazio]: Passa allo strumento di Ritocco assegnato a L"}
+   ]},
+  {toggle_bold,
+   [
+    {1,"Punto attivo: "},
+    {2,"Asse attivo: "}
+   ]},
+  {tweak_disabled_msg,
+   [
+    {1,"Ritocco: Disabilitato"}
+   ]},
+  {tweak_info_line,
+   [
+    {1,"L: Click Selezione"},
+    {2,"LL: Seleziona pittura"},
+    {3,"Menu Ritocco"},
+    {4,"Menu"}
+   ]},
+  {tweak_magnet_help,
+   [
+    {1,"Magnete: "},
+    {2,"Magnete: Off"},
+    {3,"+Trascina: "},
+    {4,"Regola il raggio"}
+   ]},
+  {tweak_magnet_menu,
+   [
+    {1,"Disattiva magnete"},
+    {2,"Abilita magnete"},
+    {3,"I magneti di Ritocco sono simili alla 'selezione morbida'."},
+    {5,"Tasto di regolazione del raggio"},
+    {6,"Premere [Inserisci] per personalizzare il tasto di scelta rapida per la regolazione del raggio del magnete. "},
+    {7,"Senza un tasto di scelta rapida assegnato, il raggio del magnete viene regolato tenendo premuto [Alt]."},
+    {8,"Reimposta raggio"},
+    {9,"Reimposta il raggio del magnete su 1.0"},
+    {10,"Prossimo tipo di magnete"},
+    {11,"Può essere premuto per scorrere i magneti."}
+   ]},
+  {tweak_magnet_radius_help,
+   [
+    {1,"Trascina verso destra per aumentare e verso sinistra per diminuire il raggio del magnete."},
+    {2,"Magnet is currently off."}
+   ]},
+  {tweak_menu_item,
+   [
+    {2,"Imposta: "},
+    {3,"Scambia: "},
+    {4,"Tieni premuti i modificatori e/o premi qualsiasi pulsante del mouse."},
+    {5,"Premere l'associazione dei tasti di un altro strumento."},
+    {6,"Disassocia: "}
+   ]},
+  {tweak_preferences_dialog,
+   [
+    {1,"Fare clic su Velocità per Selezionare/Deselezionare"},
+    {2,"Abbassare per aumentare il controllo o alzare per aumentare la velocità."},
+    {3,"Velocità di Ritocco (Risposta al trascinamento)"},
+    {4,"Sensibilità di regolazione del raggio del magnete"},
+    {5,"Colore del display del raggio del magnete"},
+    {6,"Lunghezza"},
+    {7,"Larghezza"},
+    {8,"Colore"},
+    {9,"Ritocco vettore"},
+    {10,"Preferenze Ritocco"},
+    {11,"Mostra l'influenza del magnete"}
+   ]},
+  {xyzkey_help,
+   [
+    {1,"Asse attivo: "}
+   ]}
+ ]}.
+{wings_tweak_win,
+ [
+  {title,
+   [
+    {1,"Ritocco"},
+    {2,"Ritocco Magnete"},
+    {3,"Ritocco Asse"}
+   ]}
  ]}.
 {wings_u,
  [
   {caption,
    [
-    {1,"salvataggio-automatico"}
+    {1,"auto-salvato"}
+   ]}
+ ]}.
+{wings_util,
+ [
+  {translation_string,
+   [
+    {1,"Vertice"},
+    {2,"Spigolo"},
+    {3,"Faccia"},
+    {4,"Corpo"},
+    {5,"Luce"},
+    {6,"File"},
+    {7,"Modifica"},
+    {8,"Vista"},
+    {9,"Seleziona"},
+    {10,"Strumenti"},
+    {11,"Finestra"},
+    {12,"Aiuto"},
+    {13,"Nuovo"},
+    {14,"Apri"},
+    {15,"Unisci"},
+    {16,"Salva"},
+    {17,"Salva come"},
+    {18,"Salva Selezionato"},
+    {19,"Salva Incrementale"},
+    {20,"Inverti"},
+    {21,"Importa"},
+    {22,"Esporta"},
+    {23,"Esporta Selezionato"},
+    {24,"Importa Immagine"},
+    {25,"Render"},
+    {26,"Installa Plugin"},
+    {27,"Esci"},
+    {28,"Annulla/Ripristina"},
+    {29,"Annulla"},
+    {30,"Ripristina"},
+    {31,"Ripeti"},
+    {32,"Ripeti Argomenti"},
+    {33,"Ripeti Trascina"},
+    {34,"Elimina Storia Annulla"},
+    {35,"Preferenze"},
+    {36,"Pref."},
+    {37,"Manager Plugin"},
+    {38,"Mostra piano di terra"},
+    {39,"Mostra assi"},
+    {40,"Mostra testo informativo"},
+    {41,"Modalità Lavoro"},
+    {42,"Wireframe"},
+    {43,"Ombra"},
+    {44,"Attiva/disattiva Wireframe"},
+    {45,"Mostra Spigoli"},
+    {46,"Mostra facce posteriori wireframe"},
+    {47,"Attiva/disattiva proxy uniforme"},
+    {48,"Anteprima lisciata rapida"},
+    {49,"Mostra Bounding Box"},
+    {50,"Piano di taglio"},
+    {51,"Mostra normali"},
+    {52,"Mostra colori"},
+    {53,"Mostra materiali"},
+    {54,"Mostra textures"},
+    {55,"Luci di scena"},
+    {56,"Attiva/disattiva luci"},
+    {57,"Vista Ortogonale"},
+    {58,"Reimposta Vista"},
+    {59,"Bersaglio"},
+    {60,"Evidenzia bersaglio"},
+    {61,"Telaio"},
+    {62,"Modalità telaio"},
+    {63,"Allinea alla Selezione"},
+    {64,"Succ."},
+    {65,"Prec."},
+    {66,"Corrente"},
+    {67,"Salta"},
+    {68,"Lungo"},
+    {69,"Rinomina"},
+    {70,"Cancella tutto"},
+    {71,"Impostazioni camera"},
+    {72,"Autorotazione"},
+    {73,"Deseleziona"},
+    {74,"Più"},
+    {75,"Meno"},
+    {76,"Simile"},
+    {77,"Loop Spigolo"},
+    {78,"Da Loop spigolo a regione"},
+    {79,"Anello spigoli"},
+    {80,"Loop spigolo precedente"},
+    {81,"Loop spigolo successivo"},
+    {82,"Edge Link Increase"},
+    {83,"Edge Link Decrease"},
+    {84,"Edge Ring Increase"},
+    {85,"Edge Ring Decrease"},
+    {86,"Adiacente"},
+    {87,"Inverso"},
+    {88,"Nascondi selezionati"},
+    {89,"Nascondi non selezionati"},
+    {90,"Blocca Deselezionati"},
+    {91,"Mostra Tutto"},
+    {92,"Memorizza selezione"},
+    {93,"Richiama selezione"},
+    {94,"Nuovo gruppo"},
+    {95,"Normali Simili"},
+    {96,"Areaa simile"},
+    {97,"Elimina Gruppo"},
+    {98,"Aggiungi al Gruppo"},
+    {99,"Sottrai dal Gruppo"},
+    {100,"Seleziona Gruppo"},
+    {101,"Unione Gruppo"},
+    {102,"Sottrai Gruppo"},
+    {103,"intersezione Gruppi"},
+    {104,"Per"},
+    {105,"Spigoli Rigidi"},
+    {106,"Vertici Isolati"},
+    {107,"Facce Non-planari"},
+    {108,"Vertici con"},
+    {109,"Facce con"},
+    {110,"Non Quadrangolare"},
+    {111,"Odd"},
+    {112,"Anche"},
+    {113,"Random"},
+    {114,"Spigoli corti"},
+    {115,"Spigoli rigidi"},
+    {116,"Percorso tra vertici"},
+    {117,"Percorso con il minor numero di spigoli"},
+    {118,"Percorso più breve (Dijkstra)"},
+    {119,"Percorso più breve (A-Star)"},
+    {120,"Materiale spigoli"},
+    {121,"Allinea"},
+    {122,"Salva Bounding Box"},
+    {123,"Scala al Bounding Box"},
+    {124,"Scale al Bounding Box Proporzionalmente"},
+    {125,"Sposta al Bounding Box"},
+    {126,"Specchio Virtuale"},
+    {127,"Crea"},
+    {128,"Interrompi"},
+    {129,"Congela"},
+    {130,"Screenshot"},
+    {131,"Info Area Volume"},
+    {132,"Memoria Usata"},
+    {133,"Appoggia a terra"},
+    {134,"Uniforma"},
+    {135,"Ritocco"},
+    {136,"Aggancia immagine"},
+    {137,"Contorno"},
+    {138,"Geometria"},
+    {139,"Palette"},
+    {140,"Console"},
+    {141,"Nuova finestra Geometria"},
+    {142,"Finestra dell'editor UV"},
+    {143,"Come Iniziare"},
+    {144,"Pulsanti del Mouse"},
+    {145,"Tastiera internazionale"},
+    {146,"Hotkeys definiti"},
+    {147,"Definizione Hotkeys"},
+    {149,"Commandi di default"},
+    {150,"Suggerimenti per le prestazioni"},
+    {151,"Info OpenGL"},
+    {152,"Informazioni su..."},
+    {153,"Forme"},
+    {154,"Tetraedro"},
+    {155,"Octaedro"},
+    {156,"Octotoad"},
+    {157,"Dodecaedro"},
+    {158,"Icosaedro"},
+    {159,"Cubo"},
+    {160,"Cilindro"},
+    {161,"Cono"},
+    {162,"Sfera"},
+    {163,"Toroide"},
+    {164,"Griglia"},
+    {165,"Materiale"},
+    {166,"Immagine"},
+    {167,"Piano immagine"},
+    {168,"Testo"},
+    {169,"Ingranaggio"},
+    {170,"Tubo"},
+    {171,"Geo Dome"},
+    {172,"Nodo Toroide"},
+    {173,"N-Cubo"},
+    {174,"Poligono"},
+    {175,"Piano regolare"},
+    {176,"Piano increspato"},
+    {177,"Piano ondulato"},
+    {178,"Piano sombrero"},
+    {179,"Spirale"},
+    {180,"Molla"},
+    {181,"Toroide UV"},
+    {182,"Toroide increspato"},
+    {183,"Toroide a spirale"},
+    {184,"Normale"},
+    {185,"Libero"},
+    {186,"Centro"},
+    {187,"Asse centrale"},
+    {188,"X"},
+    {189,"Y"},
+    {190,"Z"},
+    {191,"-X"},
+    {192,"-Y"},
+    {193,"-Z"},
+    {194,"Ultimo Asse"},
+    {195,"Default Axis"},
+    {196,"Vero"},
+    {197,"Falso"},
+    {198,"Tutto"},
+    {199,"Scegli tutto"},
+    {200,"Radiale X"},
+    {201,"Radiale Y"},
+    {202,"Radiale Z"},
+    {203,"ASK"},
+    {204,"LMB"},
+    {205,"MMB"},
+    {206,"RMB"},
+    {207,"Relativo"},
+    {208,"Assoluto"},
+    {209,"Sposta"},
+    {210,"Ruota"},
+    {211,"Scala"},
+    {212,"Uniforme"},
+    {213,"Estrudi"},
+    {214,"Estrai"},
+    {215,"Dissolvi"},
+    {216,"Collassa"},
+    {217,"Elimina"},
+    {218,"Appiattisci"},
+    {219,"Leviga"},
+    {220,"Stringi"},
+    {221,"Leviga"},
+    {222,"Salda"},
+    {223,"Colore vertice"},
+    {224,"Aggancia"},
+    {225,"Aggancia|Immissione numerica"},
+    {226,"Scala alla dimensione di destinazione"},
+    {227,"Scala|Centro"},
+    {228,"Interseca"},
+    {229,"Rimani sulla linea"},
+    {230,"Rimani sul piano"},
+    {231,"Connetti spigoli"},
+    {232,"Curva"},
+    {233,"Sposta"},
+    {234,"Deforma"},
+    {235,"Sgualcisci"},
+    {236,"Rastrema"},
+    {237,"Intrecciare"},
+    {238,"Torci"},
+    {239,"Gonfia"},
+    {240,"Gonfia Cilindrico"},
+    {241,"Trancia"},
+    {242,"Scorri"},
+    {243,"Pulisci dissolvendo"},
+    {244,"Taglia"},
+    {245,"Connetti"},
+    {246,"Rigidità"},
+    {247,"Morbido"},
+    {248,"Rigido"},
+    {249,"Circolarizza"},
+    {250,"Circolarizza|Centro"},
+    {251,"Taglia loop"},
+    {252,"Gira CCW"},
+    {253,"Gira CW"},
+    {254,"Gira ottimizzato"},
+    {255,"Ponte"},
+    {256,"Rilievo"},
+    {257,"Estrudi Regione"},
+    {258,"Estrai Regione"},
+    {259,"Sweep estrusione"},
+    {260,"Sweep regione"},
+    {261,"Sweep estrazione"},
+    {262,"Inserto"},
+    {263,"Intrudi"},
+    {264,"Lift"},
+    {265,"Put On"},
+    {266,"Clone On"},
+    {267,"Mirror"},
+    {268,"Mirror Separate"},
+    {269,"Tesselate"},
+    {270,"Triangola"},
+    {271,"Quadrangola"},
+    {272,"Detriangola"},
+    {273,"Nascondi"},
+    {274,"AutoUV"},
+    {275,"Segmenta"},
+    {276,"Vecchio segmenta"},
+    {277,"Forza Segmenta"},
+    {278,"Capovolgi"},
+    {279,"Inverti"},
+    {280,"Doo Sabin"},
+    {281,"Combina"},
+    {282,"Separa"},
+    {283,"Pulisci"},
+    {284,"Auto Smooth"},
+    {285,"Duplica"},
+    {286,"Modalità Colore Vertici"},
+    {287,"a Luce area"},
+    {288,"Materiali a colori"},
+    {289,"Ruota verso il bersaglio"},
+    {290,"Sposta planare"}
    ]}
  ]}.
 {wings_vec,
- [{add_help_text,
-   [{1,"Scegli un asse (ed un punto)"},
-    {2,"Scegli un asse"},
+ [
+  {add_help_text,
+   [
+    {1,"Scegli un asse (ed un punto)"},
+    {2,"Scelta dell'asse"},
     {3,"Scegli un punto"},
-    {4,"Scegli un punto sul bordo esterno di influenza del magnete"}]},
+    {4,"Scegli un punto sul bordo esterno di influenza del magnete"}
+   ]},
   {add_magnet,
-   [{1,"Scegli il bordo esterno di influenza del magnete"}]},
+   [
+    {1,"Scegli il punto di confine esterno per l'influenza del magnete"}
+   ]},
   {check_magnet_point,
-   [{1,"Punto medio della selezione salvato."}]},
+   [
+    {1,"Punto medio della selezione salvato."}
+   ]},
   {check_point,
-   [{1,"Punto medio della selezione salvato."},
+   [
+    {1,"Punto medio della selezione salvato."},
     {2,"Non considera la simmetria virtuale nel calcolo dei punti di riferimento"},
-    {3,"Includi la simmetria virtuale nel calcolo dei punti di riferimento"}]},
-  {check_vector,
-   [{1,"Scegli soltanto parti di un oggetto"}]},
+    {3,"Includi la simmetria virtuale nel calcolo dei punti di riferimento"}
+   ]},
+  {check_vector_es,
+   [
+    {1,"Normale del loop di spigoli salvata come asse."},
+    {2,"Asse tra i centri del loop di spigoli salvato come asse."},
+    {3,"La selezione multi-spigolo deve formare uno o due loop di spigoli chiusi."},
+    {4,"Spigolo salvato come asse"},
+    {5,"Salva la normale dello spigolo"},
+    {6,"Normale dello spigolo salvata come asse"},
+    {7,"Salva la direzione dello spigolo"},
+    {8,"Direzione tra gli spigoli salvata come asse."},
+    {9,"Salva vettore incrociato"},
+    {10,"Prodotto vettoriale degli spigoli salvato come asse."},
+    {11,"Salva la direzione tra gli spigoli"}
+   ]},
+  {check_vector_fs,
+   [
+    {1,"Normale loop di spigoli della regione salvata come asse."},
+    {2,"La selezione multi-faccia deve avere un singolo loop di spigoli."},
+    {3,"Normale della faccia salvata come asse."},
+    {4,"Direzione tra i centri delle facce salvata come asse."},
+    {5,"Usa la media delle normali delle facce"},
+    {6,"Media delle normali della faccia salvata come asse."},
+    {7,"Usa la direzione tra i centri delle facce"}
+   ]},
+  {check_vector_vs,
+   [
+    {1,"Normale del loop di vertici salvata come asse."},
+    {2,"La selezione multi-vertice deve formare un singolo loop chiuso."},
+    {3,"Vertice della normale salvato."},
+    {4,"Direzione tra i vertici salvata come asse."},
+    {5,"Usa la media delle normali ai vertici come asse"},
+    {6,"Media delle normali ai vertici salvata come asse."},
+    {7,"Usa la direzione tra i vertici come asse"},
+    {8,"3 punti perp. normale salvato come asse."}
+   ]},
   {common_magnet_message,
-   [{1,"Magnete"}]},
+   [
+    {1,"Magnete"}
+   ]},
   {common_message,
-   [{1,"Esegui"},
-    {2,"Continua"}]},
+   [
+    {1,"Esegui"},
+    {2,"Continua"}
+   ]},
   {exit_menu,
-   [{2,"Annulla il comando in corso"}]},
-  {get_vec,
-   [{1,"Bordo salvato come asse"},
-    {2,"Salva la normale dello spigolo"},
-    {3,"Normale dello spigolo salvata come asse"},
-    {4,"Salva direzione dello spigolo"},
-    {5,"Direzione tra gli spigoli salvata come asse."},
-    {6,"Normale dello spigolo circolare salvata come asse."},
-    {7,"La selezione multi-spigolo deve formare un solo spigolo circolare chiuso."},
-    {8,"Normale al vertice salvata."},
-    {9,"La direzione tra i vertici e' stata salvata come asse."},
-    {10,"Use average of vertex normals as axis"},
-    {11,"Average of vertex normals saved as axis."},
-    {12,"Usa la direzione tra i vertici come asse"},
-    {13,"La normale perpendicolare di tre punti e' stata salvata come asse."},
-    {14,"Normale del circolo di vertici salvata come asse."},
-    {15,"La selezione multi-vertice deve formare un solo circolo di vertici chiuso."},
-    {16,"Normale della faccia salvata come asse."},
-    {17,"Direzione tra i centri delle facce salvata come asse."},
-    {18,"Use average of face normals"},
-    {19,"Average of face normals saved as axis."},
-    {20,"Usa la direzione tra i centri delle facce"},
-    {21,"Normale di un bordo circolare per una regione salvata come asse."},
-    {22,"La selezione multi-faccia deve avere un singolo bordo circolare."},
-    {23,"Seleziona spigoli, vertici o facce."}]},
+   [
+    {2,"Annulla il comando corrente"}
+   ]},
+  {guard_string,
+   [
+    {1,"Seleziona parti di un solo oggetto"},
+    {2,", oppure seleziona un elemento in ciascuno dei due oggetti"},
+    {3,", o tre vertici qualsiasi."},
+    {4,",\no un singolo loop di spigoli su ogni oggetto "}
+   ]},
   {magnet_message,
-   [{1,"Esegui "},
-    {2,"Opzioni magnete"}]}]}.
+   [
+    {1,"Esegui "},
+    {2,"Opzioni Magnete"}
+   ]}
+ ]}.
+{wings_vertex,
+ [
+  {connect_cut,
+   [
+    {1,"Impossibile collegare i vertici."}
+   ]}
+ ]}.
 {wings_vertex_cmd,
- [{menu,
-   [{1,"Operazioni sui vertici"},
+ [
+  {connect_cuts_error,
+   [
+    {1,"Definito solo per due o tre vertici selezionati, per ogni oggetto."}
+   ]},
+  {menu,
+   [
     {2,"Sposta"},
     {3,"Estrudi"},
     {4,"Connetti"},
     {5,"Crea un nuovo spigolo connettendo i vertici selezionati"},
-    {6,"Avvicina"},
+    {6,"Stringi"},
     {7,"Sposta i vertici selezionati verso il punto medio"},
-    {8,"Arrotonda"},
-    {9,"Crea facce dai vertici selezionati"},
+    {8,"Smussa"},
+    {9,"Crea nuove facce dai vertici selezionati"},
     {10,"Dissolvi"},
     {11,"Elimina i vertici selezionati (pulendo la selezione)"},
     {12,"Collassa"},
     {13,"Elimina i vertici selezionati (creando una selezione di faccia)"},
     {14,"Deforma"},
-    {15,"Colora i vertici"},
-    {16,"Applica il colore ai vertici selezionati"}]}]}.
+    {15,"Colore Vertici"},
+    {16,"Applica il colore ai vertici selezionati"},
+    {17,"Connetti i vertici e seleziona il nuovo spigolo"},
+    {18,"Crea nuovi spigoli attraverso le facce tra due vertici selezionati"}
+   ]}
+ ]}.
 {wings_view,
- [{auto_rotate_help,
-   [{1,"Basta ruotare"},
-    {2,"Aumenta velocita'"},
-    {3,"Diminuisci velocita'"}]},
+ [
+  {auto_rotate_help,
+   [
+    {1,"Fine rotazione"},
+    {2,"Aumenta velocità"},
+    {3,"Diminuisci velocità"}
+   ]},
   {camera,
-   [{1,"Formato del Negativo"},
+   [
+    {1,"Formato del Negativo"},
     {4,"Personalizzato"},
     {5,"x"},
-    {6,"Obiettivo grandangolo"},
-    {7,"Obiettivo grandangolo moderato"},
+    {6,"Obiettivo grandangolare"},
+    {7,"Obiettivo grandangolare moderato"},
     {8,"Obiettivo standard"},
-    {9,"Teleobiettivo a ritratto"},
+    {9,"Teleobiettivo verticale"},
     {10,"Teleobiettivo"},
     {11,"Obiettivo personalizzato"},
     {12,"Lunghezza"},
     {13,"x Zoom"},
     {14,"Lente"},
-    {15,"Campo visuale"},
-    {16,"Piano limite vicinanza"},
-    {17,"Piano limite lontananza"},
-    {18,"Impostazioni camera"}]},
+    {15,"Campo visivo"},
+    {16,"Piano di taglio vicino"},
+    {17,"Piano di taglio lontano"},
+    {18,"Impostazioni camera"},
+    {19,"Ripristina alle condizioni originali"}
+   ]},
   {help,
-   [{1,"Impostazioni Camera: Visuale"},
-    {2,"Imposta la visuale verticale, l' angolo tra il bordo inferiore e quello superiore con vertice nella camera."},
-    {3,"Il controllo Lente permette di impostare la visuale usando come punti di riferimento gli obiettivi, che sono piu' conosciuti delle impostazioni standard (almeno per un fotografo). La dimensione del negativo e' salvata nelle preferenze dell' utente."},
-    {4,"Il controllo Lente rende l' altezza dell' immagine compatibile con la lente scelta, cosi' se non c'e' lo stesso rapporto tra dimensione del negativo nella finestra Lente e la dimensione della finestra Geometrie, la larghezza restituira' un errore."},
-    {5,"Nota: il fattore di zoom e' relativo alla lunghezza della diagonale del negativo per la lente standard, mentre soltanto l' altezza del negativo influisce sulla lunghezza effettiva della lente."}]},
+   [
+    {1,"Impostazioni Camera: Campo visivo"},
+    {2,"Imposta la visuale verticale, cioè l'angolo tra il bordo inferiore e quello superiore con vertice nella camera."},
+    {3,"Il controllo Lente permette di impostare la visuale usando come punti di riferimento gli obiettivi, che sono più conosciuti delle impostazioni standard (almeno per un fotografo). La dimensione del negativo è salvata nelle preferenze dell'utente."},
+    {4,"Il controllo Lente rende l'altezza dell'immagine compatibile con la lente scelta, così se non c'è lo stesso rapporto tra dimensione del negativo nella finestra Lente e la dimensione della finestra Geometria, la larghezza restituirà un errore."},
+    {5,"Nota: il fattore di zoom è relativo alla lunghezza della diagonale del negativo per la lente standard, mentre soltanto l'altezza del negativo influisce sulla lunghezza effettiva della lente."}
+   ]},
   {menu,
-   [{1,"Piano orizzontale"},
+   [
+    {1,"Piano di terra"},
     {2,"Mostra il piano orizzontale"},
     {3,"Assi"},
     {4,"Mostra gli assi coordinati"},
-    {5,"Modalita' lavoro"},
-    {6,"Cambia l' ombreggiatura (piano/arrotondato)"},
-    {7,"Scheletro"},
-    {8,"Mostra lo scheletro degli oggetti selezionati (se nulla e' selezionato per tutti gli oggetti)"},
-    {9,"Ombra"},
-    {10,"Mostra gli oggetti selezionati come ombreggiati(tutti gli oggetti se nulla e' selezionato)"},
-    {11,"Visualizza scheletro"},
-    {12,"Cambia il modo di visualizzazione per gli oggetti selezionati (per tutti gli oggetti se nulla e' selezionato)"},
-    {13,"Modo di prossimita'"},
-    {14,"Cambia in arrotondamento automatico per gli oggetti selezionati"},
-    {15,"Anteprima arrotondamento veloce"},
-    {16,"Cambia nell' arrotondamento automatico per tutti gli oggetti"},
-    {17,"Mostra CC salvato"},
-    {18,"Mostra ogni contenitore circoscritto"},
-    {19,"Mostra spigoli"},
-    {20,"Mostra gli spigoli nella modalita' di lavoro"},
-    {21,"Mostra tutti gli spigoli"},
-    {22,"Mostra anche gli spigoli posteriori nella visualizzazione scheletrica"},
-    {23,"Mostra normali"},
-    {24,"Mostra le normali per gli elementi selezionati"},
-    {25,"Reimposta vista"},
-    {26,"Reimposta la vista nella posizione iniziale"},
-    {27,"Punta"},
-    {28,"Punta la camera all' elemento selezionato"},
-    {29,"Mostra tutti"},
-    {30,"Cerca di mostrare tutti gli elementi selezionati (o tutti se non e' selezionato nessuno)"},
-    {31,"Vista ortogonale"},
+    {5,"Modalità Lavoro"},
+    {6,"Cambia l'ombreggiatura (piana/arrotondata)"},
+    {7,"Wireframe"},
+    {8,"Mostra il wireframe degli oggetti selezionati (per tutti gli oggetti se non è selezionato niente)"},
+    {9,"Ombreggiato"},
+    {10,"Mostra gli oggetti selezionati con ombreggiatura (tutti gli oggetti se non è selezionato niente)"},
+    {11,"Visualizza Wireframe"},
+    {12,"Cambia il modo di visualizzazione per gli oggetti selezionati (per tutti gli oggetti se non è selezionato niente)"},
+    {13,"Modalità Proxy (On/Off)"},
+    {14,"Aggiunge l'arrotondamento automatico per gli oggetti selezionati"},
+    {15,"Anteprima Rapida Levigata"},
+    {16,"Attiva l'arrotondamento automatico per tutti gli oggetti"},
+    {17,"Mostra BB salvato"},
+    {18,"Mostra tutti i Bounding Box"},
+    {19,"Mostra Spigoli"},
+    {20,"Mostra gli spigoli nella modalità di lavoro"},
+    {21,"Mostra tutte le Facce (Wireframe)"},
+    {22,"Mostra anche le facce posteriori nella visualizzazione Wireframe"},
+    {23,"Mostra Normali"},
+    {24,"Mostra le normali degli elementi selezionati"},
+    {25,"Reimposta Vista"},
+    {26,"Ripristina la visualizzazione iniziale"},
+    {27,"Inquadra"},
+    {28,"Punta la camera verso l'elemento selezionato"},
+    {29,"Inquadra Evidenziati"},
+    {30,"Inquadra gli elementi selezionati (o tutti gli elementi della scena se non ne è selezionato nessuno)"},
+    {31,"Vista Ortogonale"},
     {32,"Vista ortogonale/prospettiva"},
-    {33,"Viste salvate: "},
-    {34,"Preferenze camera..."},
+    {33,"Viste Salvate: "},
+    {34,"Preferenze Camera..."},
     {35,"Imposta il campo, e i piani limite"},
-    {36,"Luci di scena"},
+    {36,"Luci di Scena"},
     {37,"Usa le luci definite nella scena"},
     {38,"Due luci"},
     {39,"Una luce"},
     {40,"Usa due luci di lavoro"},
     {41,"Usa una luce di lavoro"},
-    {42,"Mostra colori"},
-    {43,"Mostra i colori ai vertici sugli oggetti nel modo \"vertici\""},
-    {44,"Mostra materiali"},
-    {45,"Mostra i materiali sugli oggetti nel modo \"materiale\""},
-    {46,"Mostra tessiture"},
-    {47,"Mostra le tessiture sugli oggetti nel modo \"materiale\""},
-    {48,"Mostra testo informativo"},
-    {49,"Mostra il testo informativo nella parte superiore di questa finestra geometrie"},
-    {50,"Vista su"},
+    {42,"Mostra Colori"},
+    {43,"Mostra i colori dei vertici sugli oggetti nel modo \"vertici\""},
+    {44,"Mostra Materiali"},
+    {45,"Mostra i materiali applicati agli oggetti nel modo \"materiale\""},
+    {46,"Mostra Textures"},
+    {47,"Mostra le texture applicate agli oggetti nel modo \"materiale\""},
+    {48,"Mostra Testo Informativo"},
+    {49,"Mostra il testo informativo nella parte superiore di questa finestra Geometria"},
+    {50,"Visualizza lungo l'Asse..."},
     {51,"+X"},
     {52,"+Y"},
     {53,"+Z"},
     {54,"-X"},
     {55,"-Y"},
     {56,"-Z"},
-    {57,"Allinea alla selezione"},
+    {57,"Allinea alla Selezione"},
     {58,"Allinea la vista alla normale della selezione"},
-    {59,"Rotazione automatica"},
-    {60,"Ruota la visuale"}]},
+    {59,"Rotazione Automatica"},
+    {60,"Ruota la visuale automaticamente"},
+    {61,"Piani di Taglio"},
+    {62,"Attiva/disattiva piani di taglio extra (usa l'asse predefinito)"},
+    {65,"L'inquadratura ignora la simmetria"},
+    {66,"Centra Evidenziati"},
+    {67,"Punta la camera sull'oggetto evidenziato al passaggio del mouse. (Richiede 'Usa evidenziazione come selezione temporanea' abilitato e un tasto di scelta rapida assegnato"},
+    {68,"Mostra"},
+    {69,"Mostra Centro BB"},
+    {70,"Visualizza il centro di qualsiasi bounding box salvato "},
+    {71,"Asse più vicino"},
+    {72,"Mostra Facce Posteriori"},
+    {73,"Mostra le facce posteriori quando c'è un foro o facce nascoste in un oggetto"},
+    {74,"Filtra Textures"},
+    {75,"Attiva il filtro texture per tutte le texture. (Disabilitare il filtro per la visualizzazione accurata di texture a risoluzione molto bassa)"},
+    {76,"Mostra Normal Maps"},
+    {77,"Usa le Normal Map per visualizzare materiali ruvidi"},
+    {78,"Piano dell'immagine della camera"},
+    {79,"Mostra il piano dell'immagine della camera"}
+   ]},
+  {update_menu,
+   [
+    {1,"Usa Luce Semisferica"},
+    {2,"Usa luce camera"},
+    {3,"Usa una semplice simulazione della luce del cielo"},
+    {4,"Usa la luce di lavoro della camera"}
+   ]},
   {view_legend,
-   [{from,"Dalla distanza"},
-    {distance,""},
-    {2,"su +X"},
-    {3,"su +Y"},
-    {4,"su +Z"},
-    {5,"su -X"},
-    {6,"su -Y"},
-    {7,"su -Z"},
-    {8,"verso l' origine"},
-    {9,"verso "}]},
+   [
+    {2,"lungo +X"},
+    {3,"lungo +Y"},
+    {4,"lungo +Z"},
+    {5,"lungo -X"},
+    {6,"lungo -Y"},
+    {7,"lungo -Z"},
+    {8,"verso l'Origine"},
+    {9,"verso "},
+    {distance,"distanza"},
+    {from,"Da"}
+   ]},
   {views,
-   [{1,"Questa vista e' gia' quella attiva"},
-    {2,"Nessuna vista salvata"},
-    {3,"Rinomina vista"},
-    {4,"Devi essere alla vista attiva"},
-    {5,"Sei sicuro di cancellare tutte le viste salvate?"}]},
-  {views_save_dialog,[{1,"Salva vista come"}]},
+   [
+    {1,"Questa Vista è già quella attiva"},
+    {2,"Nessuna Vista salvata"},
+    {3,"Rinomina Vista"},
+    {4,"Devi essere nella Vista attiva"},
+    {5,"Sei sicuro di voler cancellare tutte le Viste Salvate?"}
+   ]},
   {views_jump,
-   [{1,"Non esiste tale spazio di salvataggio"}]},
-  {views_jumpmenu,
-   [{1,"Salta"},
-    {2,"Nessuna vista salvata!"},
-    {3,"Salta alla prec["},
-    {5,"Salta alla corrente["},
-    {7,"Salta alla prossima["},
-    {9,"Salta a ["},
-    {11,"Salta"}]},
+   [
+    {1,"Nessuno slot di visualizzazione"}
+   ]},
   {views_move,
-   [{1,"Nessuna vista ["}]},
-  {views_movemenu,
-   [{1,"Sposta attiva"},
-    {2,"Nessuna vista salvata!"},
-    {3,"Sposta \""},
-    {5,"] alla prec["},
-    {7,"Sposta \""},
-    {9,"] da nessuna parte"},
-    {10,"Sposta \""},
-    {12,"] alla prossima["},
-    {14,"Sposta \""},
-    {16,"] alla ["},
-    {18,"Sposta attiva"}]},
+   [
+    {1,"Nessuna Vista ["}
+   ]},
   {views_rename_qs,
-   [{1,"Nome"}]},
+   [
+    {1,"Nome"}
+   ]},
+  {views_save_dialog,
+   [
+    {1,"Salva la Vista come"}
+   ]},
   {views_submenu,
-   [{1,"Prossima"},
-    {2,"Corrente"},
-    {3,"Prec"},
-    {4,"Salva"},
-    {5,"Salva questa vista in ["},
-    {7,"Rinomina..."},
+   [
+    {1,"Successiva"},
+    {2,"Attiva"},
+    {3,"Precedente"},
+    {4,"Salva..."},
     {8,"Elimina"},
-    {9,"Elimina tutte..."}]},
-  {views_submenu_help,
-   [{1,"Nessuna vista salvata!"},
-    {2,"Salta in \""},
-    {5,"Rinomina \""},
-    {8,"Elimina \""},
-    {11,"Elimina tutte le viste salvate"}]},
+    {11,"Sposta la camera alla vista successiva"},
+    {12,"Sposta la camera alla vista attiva"},
+    {13,"Sposta la camera alla vista precedente"},
+    {14,"Salva questa vista"},
+    {18,"Elimina la vista attiva"}
+   ]},
   {virtual_mirror,
-   [{1,"La simmetria virtuale necessita la selezione di una faccia."}]},
+   [
+    {1,"Lo specchio virtuale necessita la selezione di una faccia."}
+   ]},
   {virtual_mirror_fun,
-   [{1,"Deve essere selezionata solamente una faccia per oggetto."}]}]}.
+   [
+    {1,"Deve essere selezionata solamente una faccia per oggetto."}
+   ]}
+ ]}.
+{wings_view_win,
+ [
+  {create_camera,
+   [
+    {0,"Esposizione:"},
+    {1,"Visualizza ambiente"},
+    {2,"Sfocatura ambientale.:"},
+    {3,"Immagine ambiente.:"},
+    {21,"Imposta la sfocatura ambientale"}
+   ]},
+  {create_cameralight,
+   [
+    {2,"Luce Camera"},
+    {3,"Luce Camera, emula un renderer basato sulla fisica, utilizza tutte le proprietà del materiale"},
+    {4,"Orizzontale:"},
+    {5,"Verticale:"},
+    {6,"Colore:"},
+    {41,"Offset della posizione orizzontale della Luce Camera."},
+    {51,"Offset della posizione verticale della Luce Camera.."}
+   ]},
+  {create_hemilight,
+   [
+    {2,"Penombra"},
+    {3,"Semplice luce per la modellazione, utilizza solo le proprietà di diffusione, di emissione e di occlusione del materiale, senza luci"},
+    {4,"Cielo:"},
+    {5,"Suolo:"}
+   ]},
+  {create_scenelight,
+   [
+    {3,"Luce scena, utilizza le luci della scena, emula un renderer basato sulla fisica, utilizza tutte le proprietà del materiale"},
+    {10,"Luce scena"}
+   ]},
+  {forward_event,
+   [
+    {20,"Posizione della Luce Camera: ~.2f, ~.2f"},
+    {21,"Esposizione camera: ~.2f"},
+    {22,"Sfocatura dell'ambiente: ~.3f"}
+   ]},
+  {handle_error,
+   [
+    {1,"Impossibile utilizzare OpenCL, la mappa dell'ambiente non verrà caricata\n Motivo: ~p"},
+    {2,"Impossibile caricare il file immagine: ~s\n Motivo: ~p"}
+   ]},
+  {handle_event,
+   [
+    {1,"Modifica le impostazioni della camera e della luce"},
+    {2,"Cambia il colore della luce"},
+    {3,"Cambia la posizione della luce"},
+    {10,"Cambia esposizione"},
+    {11,"Mostra ambiente"},
+    {12,"Sfoca ambiente"},
+    {13,"Cambia l'immagine dell'ambiente"}
+   ]},
+  {init,
+   [
+    {1,"Impostazioni Luce"},
+    {2,"Impostazioni Camera"}
+   ]},
+  {title,
+   [
+    {1,"Visualizza impostazioni"}
+   ]}
+ ]}.
 {wings_we,
- [{all_soft,
-   [{1,"preparazione"},
-    {2,"collezionamento"}]},
+ [
+  {all_soft,
+   [
+    {1,"preparazione"},
+    {2,"raccolta"}
+   ]},
   {mixed_edges,
-   [{1,"preparazione"},
+   [
+    {1,"preparazione"},
     {2,"normali dei vertici"},
-    {3,"normali dei vertici per faccia"}]},
+    {3,"normali dei vertici per faccia"}
+   ]},
   {normals_2,
-   [{1,"calcolo le normali morbide"}]}]}.
-{wings_wm,
- [{message_event,
-   [{1,"Questa e' la barra informazioni"}]}]}.
-{wings_wm_toplevel,
- [{close_event,
-   [{1,"Chiudi questa finestra"}]},
-  {ctrl_command,
-   [{1,"Larghezza"},
-    {2,"Altezza"},
-    {3,"Imposta dimensioni finestra"}]},
-  {ctrl_menu,
-   [{1,"Fai combaciare"},
-    {2,"Entrambi"},
-    {3,"Permette alla finestra di usare tutto lo spazio disponibile espandendosi in tutte le direzioni"},
-    {4,"Orizzontale"},
-    {5,"Permette alla finestra di usare tutto lo spazio disponibile espandendosi orizzontalmente"},
-    {6,"Verticale"},
-    {7,"Permette alla finestra di espandersi verticalmente per usare tutto lo spazio disponibile"},
-    {8,"Dimensioni"},
-    {9,"Imposta numericamente le dimensioni della finestra"}]},
-  {ctrl_menu_toolbar,
-   [{1,"Nascondi la barra degli strumenti"},
-    {2,"Nasconde la barra degli strumenti"},
-    {3,"Mostra la barra degli strumenti"},
-    {4,"Mostra la barra degli strumenti"}]},
-  {ctrl_message,
-   [{1,"Trascina per muovere"},
-    {2,"Riempi"},
-    {3,"Mostra il menu"}]},
-  {ctrl_resize,
-   [{1,"Hai specificato delle dimensioni troppo grandi"}]},
-  {resize_event,
-   [{1,"Ridimensiona"},
-    {2,"Ridimensiona, mantenendo costante il rapporto tra altezza e larghezza"}]}]}.
+   [
+    {1,"calcolo delle normali soft"}
+   ]}
+ ]}.
 {wpa,
- [{dialog_template,
-   [{1,"Scambia asse X con asse Y"},
-    {6,"Gradi di suddivisione"},
-    {7,"Tipo di documento predefinito per le tessiture"}]},
+ [
+  {dialog_template,
+   [
+    {1,"Scambia asse X con asse Y"},
+    {6,"Passi di suddivisione"},
+    {7,"Tipo di documento predefinito per le textures"},
+    {color,"Esporta i colori dei vertici"},
+    {norms,"Esporta gruppi normali/smussati"},
+    {tess,"Tessellazione"},
+    {tess0,"Nessuno"},
+    {tess3,"Triangolazione"},
+    {tess4,"Quadrangolazione"},
+    {units,"Unità"},
+    {units0,"Centimetri"},
+    {units1,"Decimetri"},
+    {units2,"Metri"},
+    {uv,"Esporta coordinate UV"}
+   ]},
+  {do_import,
+   [
+    {1,"lettura file"}
+   ]},
   {export_scale_s,
-   [{1,"Scala di importazione"}]},
+   [
+    {1,"Scala di esportazione"}
+   ]},
   {export_selected,
-   [{1,"Seleziona oggetti o facce."}]},
+   [
+    {1,"Seleziona oggetti o facce."}
+   ]},
   {format_error,
-   [{1,"Errore interno: ~P\n"}]},
+   [
+    {1,"Errore interno: ~P\n"}
+   ]},
   {import,
-   [{1,"Importazione fallita: "}]},
+   [
+    {1,"Importazione fallita: "},
+    {2,"Formato file sconosciuto: "}
+   ]},
   {import_scale_s,
-   [{1,"Scala di importazione"}]}]}.
+   [
+    {1,"Scala di importazione"}
+   ]}
+ ]}.

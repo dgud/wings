@@ -3,7 +3,7 @@
 %%
 %%     Italian language strings for Plane
 %%
-%%  Copyright (c) 2006 Anthony D'Agostino
+%%  Copyright (c) 2023 Costantino Vita
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -14,43 +14,80 @@
  [
   {plane_menu,
    [
-    {1,"Piano Regulare"},
-    {2,"Piano Tumolo"},
-    {3,"Piano Ondolato"},
+    {1,"Piano Regolare"},
+    {2,"Piano Increspato"},
+    {3,"Piano Ondulato"},
     {4,"Piano Sombrero"}
    ]},
   {make_regular_plane,
    [
-    {1,"Creare Piano Regulare"},
-    {2,"Resoluzzione"},
-    {3,"Largura"},
-    {4,"Dopiezza"}
+    {1,"Crea Piano Regolare"},
+    {2,"Risoluzione"},
+    {3,"Larghezza"},
+    {4,"Spessore"}
    ]},
   {make_lumpy_plane,
    [
-    {1,"Creare Piano Tumolo"},
-    {2,"Resoluzzione"},
-    {3,"Largura"},
-    {4,"Tumoli"},
-    {5,"Dopiezza"}
+    {1,"Crea Piano Increspato"},
+    {2,"Risoluzione"},
+    {3,"Larghezza"},
+    {4,"Increspature"},
+    {5,"Spessore"}
    ]},
   {make_wavy_plane,
    [
-    {1,"Make Wavy Plane"},
-    {2,"Resoluzzione"},
-    {3,"Largura"},
+    {1,"Crea Piano Ondulato"},
+    {2,"Risoluzione"},
+    {3,"Larghezza"},
     {4,"Onde"},
-    {5,"Altura"},
-    {6,"Dopiezza"}
+    {5,"Altezza"},
+    {6,"Spessore"}
    ]},
   {make_sombrero_plane,
    [
-    {1,"Make Sombrero Plane"},
-    {2,"Resoluzzione"},
-    {3,"Largura"},
+    {1,"Crea Piano Sombrero"},
+    {2,"Risoluzione"},
+    {3,"Larghezza"},
     {4,"Onde"},
-    {5,"Scadenza"},
-    {6,"Altura"},
-    {7,"Dopiezza"}
+    {5,"Decadimento"},
+    {6,"Altezza"},
+    {7,"Spessore"}
+   ]}
+ ]}.
+%% [wpc_plane,plane_menu,2] is not used
+%% [wpc_plane,plane_menu,3] is not used
+%% [wpc_plane,plane_menu,4] is not used
+%% [wpc_plane,make_regular_plane] is not used
+%% [wpc_plane,make_lumpy_plane] is not used
+%% [wpc_plane,make_wavy_plane] is not used
+%% [wpc_plane,make_sombrero_plane] is not used
+
+%%
+%% The following strings have no translation.
+%%
+
+{wpc_plane,
+ [
+  {plane_menu,
+   [
+    {7,"Crea una piano"}
+   ]},
+  {plane_dialog,
+   [
+    {1,"Risoluzione"},
+    {2,"Dimensioni"},
+    {3,"Spessore"},
+    {4,"Regolare"},
+    {5,"Increspato"},
+    {6,"Ondulato"},
+    {7,"Sombrero"},
+    {8,"Tipo di Piano"},
+    {9,"Onde"},
+    {10,"Altezza"},
+    {11,"Sfalsamento"}
+   ]},
+  {make_plane,
+   [
+    {1,"Opzioni Piano"}
    ]}
  ]}.
