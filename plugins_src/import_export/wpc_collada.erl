@@ -27,8 +27,8 @@
 	  geoms = [],                   % Collada geometry nodes
 	  objnames = [],                % list of object names
 	  matl_defs = gb_trees:empty(), % defined materials
-          visualscenenodes = [],        % list of visualscenenodes
-          dir                           % File(s) Directory
+	  visualscenenodes = [],        % list of visualscenenodes
+	  dir                           % File(s) Directory
 	 }
        ).
 
@@ -105,7 +105,9 @@ export_1(Filename, Contents0, Attr) ->
     %% Export is a record of data collected while iterating over geometry
     %% and materials.
     ExportState0 = #c_exp{dir = filename:dirname(Filename)},
-    #e3d_file{objs=Objs,mat=Mat} = Contents2,
+    %% We validate the names before process the collada schema
+    Contents3 = validate_names(Contents2),
+    #e3d_file{objs=Objs,mat=Mat} = Contents3,
     ExportState1 = foldl(fun (O, S) ->
 				 make_geometry(O, S, Mat)
 				 end,
@@ -131,8 +133,7 @@ export_1(Filename, Contents0, Attr) ->
     ok = file:write_file(Filename, unicode:characters_to_binary(FileContents)).
 
 make_library_materials(#c_exp{matl_defs=MatlDefs}) ->
-    Matls = map(fun (Matl) ->
-			MatlName = atom_to_list(Matl),
+    Matls = map(fun (MatlName) ->
 			InstanceEffect = {instance_effect,
 					  [{url,"#" ++ MatlName ++ "-fx"}],[]},
 			{material,[{id,MatlName},
@@ -208,7 +209,7 @@ make_scene_node(ObjName, ObjMats) ->
 		      BVI = {bind_vertex_input,[{input_semantic,"TEXCOORD"},
 						{input_set,"1"},
 						{semantic,"CHANNEL1"}],[]},
-		      Target = "#" ++ atom_to_list(Mat),
+		      Target = "#" ++ Mat,
 		      {instance_material,[{symbol,Mat},{target,Target}],[BVI]}
 	      end, ObjMats),
     TC = {technique_common,[],IMs},
@@ -261,7 +262,7 @@ use_material(Name, MatDefs, #c_exp{matl_defs=ExpMatlDefs}=ExportState) ->
            true -> ExportState
        end.
 
-define_material(_, undefined, ExportState) -> 
+define_material(_, undefined, ExportState) ->
     ExportState;
 define_material(Name, ThisMat, #c_exp{matl_defs=ExpMatlDefs, dir=Dir}=ExportState) ->
     OpenGLMat = lookup(opengl, ThisMat),
@@ -520,11 +521,11 @@ make_asset(Attr) when is_list(Attr) ->
 
     UnitsXml =  case Units of
 		    centimeter -> {unit,[{meter,'0.01'},{name,'centimeter'}],[]};
-		    decimeter -> {unit,[{meter,'0.1'},{name,'decimeter'}],[]};    
+		    decimeter -> {unit,[{meter,'0.1'},{name,'decimeter'}],[]};
 		    meter -> {unit,[{meter,'1.0'},{name,'meter'}],[]};
 		    _ ->
 			" "
-		end,	
+		end,
 
     UpAxis = {up_axis,["Y_UP"]},
     CurrentDateTime = now_as_xml_dateTime(),
@@ -554,3 +555,34 @@ now_as_xml_dateTime() ->
 %% keep this for debugging
 %% show_xml(Node) ->
 %%    io:format("~p~n",[flatten(xmerl:export_simple([Node], xmerl_xml))]).
+
+validate_names(#e3d_file{objs=Objs0,mat=Mats0}=Contents) ->
+    Mats = [{validate_name(Name), Mat} || {Name,Mat} <- Mats0],
+    Objs = [Obj#e3d_object{name=validate_name(Name0),obj=validate_mesh(Mesh)} ||
+            #e3d_object{name=Name0,obj=Mesh}=Obj <- Objs0],
+    Contents#e3d_file{objs=Objs,mat=Mats}.
+
+validate_mesh(#e3d_mesh{fs=Fs0}=Mesh) ->
+    Fs = lists:foldr(fun(#e3d_face{mat=[]}=F, Acc) ->
+                        [F|Acc];
+                    (#e3d_face{mat=Mats0}=F, Acc) ->
+                        Mats = [validate_name(MatName) || MatName <- Mats0],
+                        [F#e3d_face{mat=Mats}|Acc]
+	                 end, [], Fs0),
+    Mesh#e3d_mesh{fs=Fs}.
+
+validate_name(Name) when is_atom(Name) ->
+    validate_name(atom_to_list(Name));
+validate_name(Name)->
+    case re:replace(Name, "[^A-Z^a-z^0-9^-]+", "_", [global,{return,list}]) of
+        %% Names must be uniq, check that they are not too short after previous
+        %% mangling and if they are NOT create a (ugly) uniq valid name
+        "" ->
+            base64:encode_to_string(unicode:characters_to_binary(Name), #{mode=>urlsafe});
+        "_" ->
+            base64:encode_to_string(unicode:characters_to_binary(Name), #{mode=>urlsafe});
+        [Int|_] when $0 =< Int, Int =< $9 ->
+            base64:encode_to_string(unicode:characters_to_binary(Name), #{mode=>urlsafe});
+        HopefullyUniqueString ->
+            HopefullyUniqueString
+    end.
