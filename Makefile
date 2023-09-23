@@ -42,10 +42,11 @@ win32: opt lang
 	escript tools/release
 
 #
-# Build a package for MacOS X.
+# Build a package for macOS.
 #
 .PHONY: macosx
-macosx: opt lang
+macosx: macos
+macos: opt lang
 	escript tools/release
 
 #

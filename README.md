@@ -16,5 +16,5 @@ If you want to build Wings3D yourself, you'll need to download the source tar fi
 
 Build instructions are found in one of the following text files included in the source tar file.
 
-- `BUILD.unix` - How to build for a unix-like system, such as GNU Linux or MacOS X.
+- `BUILD.unix` - How to build for a unix-like system, such as GNU Linux or macOS.
 - `BUILD.win32`	- How to build for Microsoft Windows.

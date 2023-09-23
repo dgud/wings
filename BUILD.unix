@@ -1,12 +1,12 @@
-BUILDING WINGS 3D ON UNIX-LIKE SYSTEMS (including MacOS X)
-==========================================================
+BUILDING WINGS 3D ON UNIX-LIKE SYSTEMS (including acOS)
+=======================================================
 
 This guide describes how you can build Wings on unix-like
-systems, such as GNU Linux, FreeBSD, Solaris, and MacOS X.
+systems, such as GNU Linux, FreeBSD, Solaris, and macOS.
 
 After the general build instructions, there are separate
 instructions for building a complete, standalone installation
-package for MacOS X and for other Unix systems.
+package for macOS and for other Unix systems.
 
 Required software
 =================
@@ -145,8 +145,8 @@ Notes:
     allowing Wings to open up a wings file when it starts.
 
 
-Building an installation package for MacOS X
-============================================
+Building an installation package for macOS
+==========================================
 
 To build everything and pack it into a DMG file, you'll need:
 
@@ -176,8 +176,8 @@ When everything is done, there should be a file named like
 in the current directory.
 
 
-Code-signing the Wings3D application on Mac OS X
-================================================
+Code-signing the Wings3D application on macOS
+=============================================
 
 If you are a member of Apple's Mac developer program and have
 obtained a Developer ID certificate, you can sign the code for
