@@ -91,7 +91,7 @@ Download and build like this:
 
 
 Fetching/Unpacking the Wings source code
-===============================
+========================================
 
 $ git clone https://github.com/dgud/wings.git
 $ cd wings
@@ -150,7 +150,7 @@ Building an installation package for macOS
 
 To build everything and pack it into a DMG file, you'll need:
 
-- Xcode 4.6.3 or later on Mountain Lion.
+- Xcode 11 or later
 
 Make sure that your current directory is the directory in which the
 sources were unpacked.
@@ -158,36 +158,60 @@ sources were unpacked.
 Example:
 
 $ pwd
-/Users/bjorng/wings_releases/wings-1.0
+/Users/bjorng/wings_releases/wings-2.2
 $
 
 To build all (including the installer), run the following command:
 
-$ make macosx
+$ make macos
 .
 <A lot of output follows>
 .
 $
 
-When everything is done, there should be a file named like
+When everything is done, there should be a file named like:
 
-	wings-1.0-macosx.dmg
+       wings-2.2-macosx-arm64.dmg
+
+or:
+
+       wings-2.2-macosx-x86_64.dmg
 
 in the current directory.
 
 
-Code-signing the Wings3D application on macOS
-=============================================
+Preparing for codesigning and notarization
+------------------------------------------
 
-If you are a member of Apple's Mac developer program and have
-obtained a Developer ID certificate, you can sign the code for
-Wings3D so that Gatekeeper will accept it. Do like this:
+If you are a member of Apple's Mac developer program, the command
+described above will also sign and notarize the code if you have
+prepared your keychain as described next. For notarization to work,
+Xcode 13 or later is required.
 
-$ export WINGS_CODE_SIGN=yes
-$ make macosx
+To sign the code, the keychain must have an "Developer ID Application"
+certificate from Apple. The easiest way to obtain such certificate is
+from the Accounts tab in Settings for Xcode. It will be stored in your
+keychain.
 
-You will be prompted for your login keychain password if the login
-keychain is locked.
+The following steps are needed to prepare for notarization:
+
+- Sign in to https://appleid.apple.com and create an app-specific
+  password for "notarytool".
+
+- Find out your team id. It can be found by signing in to
+  https://developer.apple.com and going to the Account tab. There you
+  can find the team id for your developer account. It is usually a
+  string of 10 alphanumeric characters.
+
+Run the following command to store your credentials in the keychain:
+
+$ xcrun notarytool store-credentials wings3d
+        --apple-id name@example.com
+        --team-id <team id>
+        --password <app-specific-password-for-notary-tool>
+
+When those steps have been completed, running "make macos" will
+produce a DMG file that is ready for distribution.
 
 
 Building an installation package for Linux (and other Unix systems)

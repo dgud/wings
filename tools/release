@@ -73,11 +73,47 @@ mac_release(BuildRoot, WingsVsn) ->
     release_otp(Resources, undefined),
     convert_script(Resources),
     set_cwd(lib_dir(wings)),
-    codesign(Root),
+
+    io:nl(),
+    io:put_chars("Signing code...\n"),
+    CodeSigned = codesign(Root),
+    case CodeSigned of
+        true ->
+            ok;
+        false ->
+            io:format("The code was not signed.\n")
+    end,
+
+    Arch = string:chomp(os:cmd("uname -m")),
+    WingsDmg = "wings-" ++ WingsVsn ++ "-macosx-" ++ Arch ++ ".dmg",
+    io:nl(),
+    io:format("Creating ~ts...\n", [WingsDmg]),
     MakeDmg = filename:join([lib_dir(wings),"macosx","make_dmg"]),
-    run(MakeDmg, ["wings-"++WingsVsn++"-macosx.dmg",Root,
-                  "Wings3D "++WingsVsn++".app"]),
-    ok.
+    run(MakeDmg, [WingsDmg,Root,"Wings3D "++WingsVsn++".app"]),
+
+    case filelib:is_regular(WingsDmg) of
+        true ->
+            ok;
+        false ->
+            fatal("Failed to create ~ts\n", [WingsDmg])
+    end,
+
+    case CodeSigned of
+        false ->
+            ok;
+        true ->
+            io:nl(),
+            io:put_chars("Notarizing. This may take a compile of minutes...\n"),
+            run("xcrun", ["notarytool",
+                          "submit",
+                          "-p","wings3d",
+                          WingsDmg,
+                          "--wait"], true),
+
+            io:nl(),
+            io:put_chars("Stapling notarized code...\n"),
+            run("stapler", ["staple",WingsDmg], true)
+    end.
 
 create_info_plist(WingsVsn) ->
     WingsShortVsn = short_vsn(WingsVsn, 0),
@@ -104,9 +140,11 @@ codesign(Root) ->
     WingsConvert = filename:join(Root, "Contents/Resources/wings_convert"),
     ToSign = [WingsConvert] ++ DynLibs ++ Bin,
     Entitlements = "macosx/wings3d.entitlements",
-    run("codesign", ["-s","Developer ID",
-                     "--timestamp","--options=runtime",
-                     "--entitlements",Entitlements | ToSign]).
+    run("codesign",
+        ["-s","Developer ID Application",
+         "--timestamp","--options=runtime",
+         "--entitlements",Entitlements | ToSign],
+        true) =:= 0.
 
 unix_release(BuildRoot, WingsVsn) ->
     UnixDir = filename:join(lib_dir(wings), "unix"),
@@ -443,29 +481,40 @@ get_vsn(VsnFile, VsnVar) ->
             Vsn
     end.
 
-run(Prog0, Args) ->
+run(Prog, Args) ->
+    run(Prog, Args, false).
+
+run(Prog0, Args, Print) when is_boolean(Print) ->
     Prog = case os:find_executable(Prog0) of
 	       false ->
 		   fatal("~s not found (or not in $path)", [Prog0]);
 	       Path ->
 		   Path
 	   end,
+    {Opt,Acc} = case Print of
+                    true ->
+                        {exit_status,ok};
+                    false ->
+                        {eof,<<>>}
+                end,
     P = open_port({spawn_executable,Prog},
-		  [{args,Args},binary,in,eof]),
-    get_data(P).
+		  [{args,Args},binary,in,Opt]),
+    get_data(P, Acc).
 
-get_data(Port) ->
-    get_data(Port, <<>>).
-
-get_data(Port, Sofar) ->
+get_data(Port, SoFar) ->
     receive
 	{Port,eof} ->
 	    erlang:port_close(Port),
-	    Sofar;
+	    SoFar;
+	{Port,{exit_status,Exit}} ->
+            Exit;
+	{Port,{data,Bytes}} when is_binary(SoFar) ->
+	    get_data(Port, <<SoFar/binary,Bytes/binary>>);
 	{Port,{data,Bytes}} ->
-	    get_data(Port, <<Sofar/binary,Bytes/binary>>);
+            io:put_chars(Bytes),
+            get_data(Port, SoFar);
 	{'EXIT',Port, _} ->
-	    Sofar
+	    SoFar
     end.
 
 wings_apps() ->
