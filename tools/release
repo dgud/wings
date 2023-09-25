@@ -85,7 +85,7 @@ mac_release(BuildRoot, WingsVsn) ->
     end,
 
     Arch = string:chomp(os:cmd("uname -m")),
-    WingsDmg = "wings-" ++ WingsVsn ++ "-macosx-" ++ Arch ++ ".dmg",
+    WingsDmg = "wings-" ++ WingsVsn ++ "-macos-" ++ Arch ++ ".dmg",
     io:nl(),
     io:format("Creating ~ts...\n", [WingsDmg]),
     MakeDmg = filename:join([lib_dir(wings),"macosx","make_dmg"]),
@@ -103,7 +103,7 @@ mac_release(BuildRoot, WingsVsn) ->
             ok;
         true ->
             io:nl(),
-            io:put_chars("Notarizing. This may take a compile of minutes...\n"),
+            io:put_chars("Notarizing. This may take a couple of minutes...\n"),
             run("xcrun", ["notarytool",
                           "submit",
                           "-p","wings3d",
