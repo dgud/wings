@@ -46,7 +46,7 @@
 - Rewrote OpenGL window handling to make it work with EGL on linux,
   and various other linux fixes. [dgud]
 
-- Fixed a bug in transparency rendering. [dgud] 
+- Fixed a bug in transparency rendering. [dgud]
 
 - Lots of improvements in various Importers/Exporters by Edward Blake.
    Import DirectX (.x) files.
@@ -54,6 +54,23 @@
    SVG additions and improvments.
    Added WMF and EMF path import plugin.
    Improved Adode Postscript support.
+
+- The file type in the file dialog now is in accordance with the glTF type
+  choosen in the option dialog. Thanks to markie [micheus]
+
+- Added Bend command to AutoUV toolset. [micheus]
+
+- New primitive Oblong [micheus]
+
+- Fixed a crach in autouv when rotating a char with multiple edges selected. [micheus]
+
+- When objects and materials was including invalid charactes the .dae file
+  couldn't be imported by other applications. Thanks to Wҽɳԃιҽ Bʅαƈƙƚԋσɾɳ [micheus]
+
+- For the first time, there is a now separate Wings package
+  optimized for Macs with an M1 or M2 chip (Apple Silicon). [bjorng]
+
+- New Duplicate Radial command. [micheus]
 
 --- 2.2.9 --------------------------------------------
 
