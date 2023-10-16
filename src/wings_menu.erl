@@ -220,7 +220,8 @@ setup_dialog(Parent, Entries, Magnet, ScreenPos, Cache) ->
             end,
             MenuData;
         #{frame := Frame} = MenuData ->
-            wxWindow:move(Frame, ScreenPos),
+            Pos = fit_menu_on_display(Frame,ScreenPos),
+            wxWindow:move(Frame, Pos),
             wxPopupTransientWindow:popup(Frame),
             MenuData
     end.
@@ -245,7 +246,7 @@ do_setup_dialog(TopParent, Entries0, Magnet, ScreenPos) ->
     wxPanel:setSizer(Panel, Main),
     wxSizer:fit(Main, Panel),
     wxWindow:setClientSize(Frame, wxWindow:getSize(Panel)),
-    wxWindow:move(Frame, ScreenPos),
+    wxWindow:move(Frame, fit_menu_on_display(Frame, ScreenPos)),
     show_menu_frame(Overlay, Frame, KbdFocus),
     #{overlay=>Overlay, frame=>Frame, panel=>Panel, entries=>Entries, colors=>Cols}.
 
@@ -391,8 +392,9 @@ popup_events(MenuData, Magnet, Previous, Ns, Owner) ->
 	    end;
         cancel ->
             wings_wm:psend(Owner, cancel);
-        {move, Pos} ->
+        {move, {X,Y}} ->
             Frame = maps:get(frame, MenuData),
+            Pos = fit_menu_on_display(Frame, {X,Y}),
             wxWindow:move(Frame, Pos),
             wings_wm:psend(Owner, redraw),
             popup_events(MenuData, Magnet, Previous, Ns, Owner);
@@ -402,6 +404,23 @@ popup_events(MenuData, Magnet, Previous, Ns, Owner) ->
 	    %% ?dbg("Got Ev ~p ~n", [_Ev]),
 	    popup_events(MenuData, Magnet, Previous, Ns, Owner)
     end.
+
+fit_menu_on_display(Frame, {MX,MY} = Pos) ->
+    {WW,WH} = wxWindow:getSize(Frame),
+    DisplayID = wxDisplay:getFromPoint(Pos),
+    Display = wxDisplay_new(DisplayID),
+    {DX,DY,DW,DH} = wxDisplay:getClientArea(Display),
+    MaxW = (DX+DW),
+    PX = if (MX+WW) > MaxW -> MaxW-WW-2;
+            (MX-25) < DX -> MX;
+            true -> max(5, (MX-25)) %% Move so mouse is inside menu
+         end,
+    MaxH = (DY+DH),
+    PY = if (MY+WH) > MaxH -> MaxH-WH-2;
+            true -> max(5, (MY-15)) %% Move so mouse is inside menu
+         end,
+    wxDisplay:destroy(Display),
+    {PX,PY}.
 
 %% If the mouse is not moved after popping up the menu, the menu entry
 %% is not active, find_active_panel finds the active row.
