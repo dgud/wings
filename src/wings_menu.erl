@@ -407,17 +407,25 @@ popup_events(MenuData, Magnet, Previous, Ns, Owner) ->
 
 fit_menu_on_display(Frame, {MX,MY} = Pos) ->
     {WW,WH} = wxWindow:getSize(Frame),
-    DisplayID = wxDisplay:getFromPoint(Pos),
+    wxDisplay:getFromWindow(Frame),
+    %% When multiple resolution displays are present, there is a situation which
+    %% the window being shared partially by two of them - and the window being
+    %% scaled up - the Display ID returned is -1. In order to avoid a crash it we
+    %% get the ID for the main window (Frame's parent) - the menu is shown on it.
+    DisplayID =
+        case wxDisplay:getFromPoint(Pos) of
+            -1 -> wxDisplay:getFromWindow(wxWindow:getParent(Frame));
+            Id -> Id
+        end,
     Display = wxDisplay_new(DisplayID),
     {DX,DY,DW,DH} = wxDisplay:getClientArea(Display),
-    MaxW = (DX+DW),
-    PX = if (MX+WW) > MaxW -> MaxW-WW-2;
-            (MX-25) < DX -> MX;
-            true -> max(5, (MX-25)) %% Move so mouse is inside menu
+    MaxW = abs(DX-MX)+WW,
+    PX = if MaxW > DW -> (DX+DW)-(WW+5);
+            true -> max(DX+5, (MX-5)) %% Move so mouse is inside menu
          end,
-    MaxH = (DY+DH),
-    PY = if (MY+WH) > MaxH -> MaxH-WH-2;
-            true -> max(5, (MY-15)) %% Move so mouse is inside menu
+    MaxH = abs(DY-MY)+WH,
+    PY = if MaxH > DH -> (DY+DH)-(WH+5);
+             true -> max(DY+5, (MY-5)) %% Move so mouse is inside menu
          end,
     wxDisplay:destroy(Display),
     {PX,PY}.
