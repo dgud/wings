@@ -83,8 +83,13 @@ init_import() ->
 props() ->
     [{extensions,
       [{".x3d", "X3D File"},
+       {".x3dz", "X3D File Compressed"},
+       {".x3d.gz", "X3D File (gzipped)"},
        {".wrl", "VRML World"},
-       {".iv",  "SGI Inventor File"}]}].
+       {".wrz", "VRML World Compressed"},
+       {".wrl.gz", "VRML World (gzipped)"},
+       {".iv",  "SGI Inventor File"},
+       {".iv.gz",  "SGI Inventor File (gzipped)"}]}].
 
 do_import(Ask, _St) when is_atom(Ask) ->
     wpa:dialog(Ask, ?__(1,"X3D/VRML Import Options"), dialog(import),
@@ -315,7 +320,7 @@ appearance_opengl(#materialprops{
         {ambient, intensity_to_rgba(AmbInt)},
         {specular, rgb_to_rgba(SpecCol)},
         {shininess, Shine},
-        {diffuse, rgb_to_rgba(DifCol, Transparency)},
+        {diffuse, rgb_to_rgba(DifCol, 1.0 - Transparency)},
         {emission, rgb_to_rgba(EmCol)},
         {metallic,0.1},
         {roughness,0.8},
@@ -416,9 +421,17 @@ dialog(import) ->
 
 get_file_type(FileName) ->
     case string:to_lower(filename:extension(FileName)) of
-        ".x3d" -> x3d;
-        ".wrl" -> wrl;
-        ".iv"  -> wrl
+        ".x3d" ++ _ -> x3d;
+        ".wrl" ++ _ -> wrl;
+        ".wrz" -> wrl;
+        ".iv"  -> wrl;
+        ".gz" ++ _ ->
+            case string:to_lower(filename:extension(filename:rootname(FileName))) of
+                ".x3d" ++ _ -> x3d;
+                ".wrl" ++ _ -> wrl;
+                ".wrz" -> wrl;
+                ".iv"  -> wrl
+            end
     end.
     
 read_file_content(x3d, Filename) ->
@@ -453,7 +466,17 @@ read_file_content(wrl, Filename) ->
     inscene = false  % Is event inside the <Scene> tag
 }).
 
+
 read_x3d_content(Bin_0) ->
+    case Bin_0 of
+        <<31,139,_/binary>> ->
+            %% A gz header, the file is compressed.
+            read_x3d_content_1(zlib:gunzip(Bin_0));
+        _ ->
+            %% Uncompressed
+            read_x3d_content_1(Bin_0)
+    end.
+read_x3d_content_1(Bin_0) ->
     EF = {event_fun, fun x3d_tok/3},
     ES = {event_state, #x3dtk{}},
     {ok, Bin_1} = x3d_change_prolog(Bin_0),
@@ -867,6 +890,15 @@ x3d_sub_of(_) -> root.
 %%
 
 read_vrml_content(Cont) ->
+    case Cont of
+        <<31,139,_/binary>> ->
+            %% A gz header the file is compressed.
+            read_vrml_content_1(zlib:gunzip(Cont));
+        _ ->
+            %% Uncompressed
+            read_vrml_content_1(Cont)
+    end.
+read_vrml_content_1(Cont) ->
     [FirstLine, VRMLContent] = binary:split(Cont, <<10>>),
     case header(FirstLine) of
         {ok, vrml2, _Enc} ->
