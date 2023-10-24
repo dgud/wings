@@ -220,6 +220,10 @@ setup_dialog(Parent, Entries, Magnet, ScreenPos, Cache) ->
             end,
             MenuData;
         #{frame := Frame} = MenuData ->
+            Entries0 = maps:get(entries, MenuData),
+            Col = maps:get(colors, MenuData),
+            menu_sel_cleanup(Col, Entries0),
+
             Pos = fit_menu_on_display(Frame,ScreenPos),
             wxWindow:move(Frame, Pos),
             wxPopupTransientWindow:popup(Frame),
@@ -1130,6 +1134,24 @@ menu_item_desc(Desc, HotKey) ->
 	{win32, _} -> Desc ++ "\t'" ++ HotKey ++ "'";
 	_ -> Desc ++ "\t" ++ HotKey
     end.
+
+menu_sel_cleanup(_, []) -> ok;
+menu_sel_cleanup({BG,FG}=Col, [#menu{type=submenu, object=undefined, wxid=Id}|Menu]) ->
+    Panel = wxWindow:findWindowById(Id),
+    Set = fun() ->
+            setup_colors([Panel|wxWindow:getChildren(Panel)], BG, FG)
+        end,
+    wx:batch(Set),
+    menu_sel_cleanup(Col,Menu);
+menu_sel_cleanup({BG,FG}=Col, [#menu{type=menu, object=Obj}|Menu]) ->
+    Panel = maps:get(panel, Obj),
+    Set = fun() ->
+            setup_colors(Panel, BG, FG)
+        end,
+    wx:batch(Set),
+    menu_sel_cleanup(Col,Menu);
+menu_sel_cleanup(Col, [_|Menu]) ->
+    menu_sel_cleanup(Col,Menu).
 
 %% We want to use the predefined id where they exist (mac) needs for it's
 %% specialized menus but we want our shortcuts hmm.
