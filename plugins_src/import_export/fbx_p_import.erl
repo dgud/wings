@@ -111,7 +111,7 @@ rotate_mat(XA, YA, ZA, Ang) ->
     e3d_mat:rotate(float(Ang), {float(XA), float(YA), float(ZA)}).
 
 
-from_fbx_model_to_obj({{model,_AtomName},L}) ->
+from_fbx_model_to_obj({{model,ObjAtomName},L}) ->
     MatNames = lists:reverse([Mt || {{mat,Mt},mat} <- L]), %% Order of materials are reversed
     case proplists:get_value(geom, L, none) of
         none ->
@@ -137,7 +137,7 @@ from_fbx_model_to_obj({{model,_AtomName},L}) ->
                 ns=Ns,
                 he=HEs
             },
-            [#e3d_object{obj=Mesh}]
+            [#e3d_object{name=atom_to_list(ObjAtomName),obj=Mesh}]
     end;
 from_fbx_model_to_obj(_) ->
     [].
@@ -474,23 +474,30 @@ from_fbx_material({mat,MatName,Cont}, FBXPath)
     
     Prop = proplists:get_value(prop, Cont, []),
     EmCol = from_fbx_material_prop([<<"Emissive">>,<<"EmissiveColor">>], Prop, {color,0.0,0.0,0.0}),
-    EmIntens = from_fbx_material_prop([<<"EmissiveFactor">>], Prop, {number,0.0}),
+    EmIntens = from_fbx_material_prop([<<"EmissiveFactor">>], Prop, {number,1.0}),
     AmCol = from_fbx_material_prop([<<"Ambient">>,<<"AmbientColor">>], Prop, {color,0.0,0.0,0.0}),
     DifCol = from_fbx_material_prop([<<"Diffuse">>,<<"DiffuseColor">>], Prop, {color,0.5,0.5,0.5}),
-    DifIntens = from_fbx_material_prop([<<"DiffuseFactor">>], Prop, {number,0.8}),
+    {TC_R,TC_G,TC_B} = from_fbx_material_prop([<<"TransparentColor">>], Prop, {color,0.0,0.0,0.0}),
+    DifA_0 = 1.0 - from_fbx_material_prop([<<"TransparencyFactor">>], Prop, {number,0.0}),
+    DifA_1 = from_fbx_material_prop([<<"Opacity">>], Prop, {number,1.0}),
     SpecCol = from_fbx_material_prop([<<"Specular">>,<<"SpecularColor">>], Prop, {color,1.0,1.0,1.0}),
-    SpecIntens = from_fbx_material_prop([<<"SpecularFactor">>], Prop, {number,0.25}),
+    SpecIntens = from_fbx_material_prop([<<"SpecularFactor">>], Prop, {number,1.0}),
     Shine = from_fbx_material_prop([<<"Shininess">>], Prop, {number,9.0}),
     RefleIntens = from_fbx_material_prop([<<"ReflectionFactor">>], Prop, {number,0.1}),
+    DifA_2 = 1.0 - ((TC_R+TC_G+TC_B)/3.0),
+    
+    %% If both values of DifA_0 and DifA_2 are somewhere
+    %% below 1.0, there will be some transparency.
+    DifA = min(max(DifA_0, DifA_2), DifA_1), %% Choose either Transparent or Opacity as the lowest.
 
     OpenGL = {opengl, [
         {ambient, rgb_to_rgba(AmCol)},
         {specular, rgb_to_rgba(SpecCol, SpecIntens)},
         {shininess, float(Shine)},
-        {diffuse, rgb_to_rgba(DifCol, DifIntens)},
+        {diffuse, rgb_to_rgba(DifCol, DifA)},
         {emission, rgb_to_rgba(EmCol, EmIntens)},
         {metallic, RefleIntens},
-        {roughness,0.8},
+        {roughness, 0.8},
         {vertex_colors, set}
     ]},
     {MatName, [OpenGL] ++ if length(Maps) > 0 -> [{maps, Maps}]; true -> [] end }.
@@ -522,7 +529,7 @@ from_fbx_tex([{{tex, {for, Which, TexName}}, Cont}|L], FBXPath, OL) ->
             RelFileNameTex = proplists:get_value(relfilename, Cont, none),
             case load_image(find_image_file(FBXPath, [RelFileName, RelFileNameTex, FileNameTex, FileName])) of
                 E3DIm=#e3d_image{} ->
-                    from_fbx_tex(L, FBXPath, [{MapAtom, E3DIm#e3d_image{name=TexName}}|OL]);
+                    from_fbx_tex(L, FBXPath, [{MapAtom, E3DIm#e3d_image{name=atom_to_list(TexName)}}|OL]);
                 {error, Err} ->
                     io:format("~p: NOTE: Texture not loaded: ~p~n", [?MODULE,Err]),
                     from_fbx_tex(L, FBXPath, OL)
@@ -774,7 +781,19 @@ get_atom_from_pair(<<>>) ->
     list_to_atom(lists:flatten(NewName));
 get_atom_from_pair(NamePair) when is_binary(NamePair) ->
     case split_name_pair(NamePair) of
+        {<<"Material::",Name/binary>>, <<>>} ->
+            list_to_atom(utf8b_to_list(Name));
+        {<<"Model::",Name/binary>>, <<>>} ->
+            list_to_atom(utf8b_to_list(Name));
+        {<<"Texture::",Name/binary>>, <<>>} ->
+            list_to_atom(utf8b_to_list(Name));
         {Name, <<>>} ->
+            list_to_atom(utf8b_to_list(Name));
+        {Name, <<"Material">>} ->
+            list_to_atom(utf8b_to_list(Name));
+        {Name, <<"Model">>} ->
+            list_to_atom(utf8b_to_list(Name));
+        {Name, <<"Texture">>} ->
             list_to_atom(utf8b_to_list(Name));
         {Name, Kind} ->
             list_to_atom(utf8b_to_list(Kind) ++ "_" ++ utf8b_to_list(Name))
