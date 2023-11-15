@@ -371,7 +371,24 @@ set_value_impl(#in{wx=Ctrl, type=radiobox, data=Keys}, Val, _) ->
     Idx = get_list_index(Val,Keys),
     wxRadioBox:setSelection(Ctrl, Idx);
 set_value_impl(#in{wx=Ctrl, type=checkbox}, Val, _) ->
-    wxCheckBox:setValue(Ctrl, Val).
+    wxCheckBox:setValue(Ctrl, Val);
+set_value_impl(In=#in{wx=Ctrl, type=table}, {Sel,Rows}, Store) ->
+    ColIdx = lists:seq(0, wxListCtrl:getColumnCount(Ctrl)-1),
+    Li = wxListItem:new(),
+    Header =
+        lists:foldr(fun(C, Acc) ->
+                wxListItem:setMask(Li, ?wxLIST_MASK_TEXT bor ?wxLIST_MASK_WIDTH bor ?wxLIST_MASK_FORMAT),
+                wxListCtrl:getColumn(Ctrl,C,Li),
+                [{wxListItem:getText(Li),
+                  wxListItem:getWidth(Li),
+                  wxListItem:getAlign(Li)}|Acc]
+            end, [], ColIdx),
+    wxListItem:destroy(Li),
+    wxListCtrl:clearAll(Ctrl),
+    fill_table(Ctrl,Header,Rows),
+    [wxListCtrl:setItemState(Ctrl,N,?wxLIST_STATE_SELECTED,?wxLIST_STATE_SELECTED) || N <- Sel],
+    wxListCtrl:refresh(Ctrl),
+    true = ets:insert(Store, In#in{def=Rows}).
 
 get_list_index(Val, List) ->
     get_list_index_0(Val, List, -1).
@@ -1340,29 +1357,16 @@ build(Ask, {table, [Header|Rows], Flags}, Parent, Sizer, In) ->
 			     single -> ?wxLC_SINGLE_SEL bor ?wxLC_REPORT;
 			     _ -> ?wxLC_REPORT
 			 end,
-		Options = [{style, Style}, {size, {-1, Height}}],
+		Options = [{style, Style bor ?wxLC_NO_SORT_HEADER}, {size, {-1, Height}}],
 		Ctrl = wxListCtrl:new(Parent, Options),
-		{CW, _, _, _} = wxWindow:getTextExtent(Ctrl, "D"),
-		Li = wxListItem:new(),
-		AddHeader = fun({HeadStr,W}, Column) ->
-				    wxListItem:setText(Li, HeadStr),
-				    wxListItem:setAlign(Li, ?wxLIST_FORMAT_RIGHT),
-				    wxListCtrl:insertColumn(Ctrl, Column, Li),
-				    wxListCtrl:setColumnWidth(Ctrl, Column, W*CW+10),
-				    Column + 1
-			    end,
-		lists:foldl(AddHeader, 0, lists:zip(tuple_to_list(Header), Widths)),
-		wxListItem:destroy(Li),
+        {CW, _, _, _} = wxWindow:getTextExtent(Ctrl, "D"),
 
-		Add = fun({_, Str}, {Row, Column}) ->
-			      wxListCtrl:setItem(Ctrl, Row, Column, Str),
-			      {Row, Column+1}
-		      end,
-		lists:foldl(fun(Row, N) ->
-				    wxListCtrl:insertItem(Ctrl, N, ""),
-				    lists:foldl(Add, {N, 0}, tuple_to_list(Row)),
-				    N + 1
-			    end, 0, Rows),
+        Widths0 = [W*CW+10 || W <- Widths],
+        Header0 = tuple_to_list(Header),
+        Align = [?wxLIST_FORMAT_RIGHT || _ <- Header0],
+        Header1 = lists:zip3(Header0, Widths0, Align),
+        fill_table(Ctrl,Header1,Rows),
+
 		add_sizer(table, Sizer, Ctrl, Flags),
 		Ctrl
 	end,
@@ -1731,6 +1735,31 @@ pos(C, S) -> pos(C, S, 0).
 pos(C, [C|_Cs], I) -> I;
 pos(C, [_|Cs], I) -> pos(C, Cs, I+1);
 pos(_, [], _I) -> 0.
+
+fill_table(Ctrl,Header,Rows) ->
+    Li = wxListItem:new(),
+    AddHeader = fun({HeadStr,W,A}, Column) ->
+                    wxListItem:setText(Li, HeadStr),
+                    wxListItem:setAlign(Li, A),
+                    wxListCtrl:insertColumn(Ctrl, Column, Li),
+                    wxListCtrl:setColumnWidth(Ctrl, Column, W),
+                    Column + 1
+                end,
+    lists:foldl(AddHeader, 0, Header),
+    wxListItem:destroy(Li),
+    Add = fun({_, Str}, {Row, Column}) ->
+            wxListCtrl:setItem(Ctrl, Row, Column, Str),
+            {Row, Column+1}
+          end,
+    lists:foldl(fun(Row0, N) ->
+                    case tuple_to_list(Row0) of
+                        [] -> N;
+                        Row ->
+                            wxListCtrl:insertItem(Ctrl, N, ""),
+                            lists:foldl(Add, {N, 0}, Row),
+                            N + 1
+                    end
+                end, 0, Rows).
 
 image_to_bitmap(ImageOrFile) ->
     Img = case ImageOrFile of
