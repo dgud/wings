@@ -4008,8 +4008,8 @@ export_blend_mat_shader(F, Name, Mat, ExportDir, YafaRay) ->
 
     Blend_Value = proplists:get_value(blend_value, YafaRay, ?DEF_BLEND_VALUE),
 
-    uniprintln(F, "  <material1 sval=\"""w_""\~ts\"/>~n"
-                  "        <material2 sval=\"""w_""\~ts\"/>~n"
+    uniprintln(F, "  <material1 sval=\"w_\~ts\"/>~n"
+                  "        <material2 sval=\"w_\~ts\"/>~n"
                   "        <blend_value fval=\"~.10f\"/>~n",
             [Blend_Mat1,Blend_Mat2,Blend_Value]),
     foldl(fun ({modulator,Ps}=M, N) when is_list(Ps) ->
