@@ -443,9 +443,9 @@ command_menu(edge, X, Y) ->
     Scale = scale_directions(true),
     Move = move_directions(true),
     Align = 	    
-	[{?__(53,"Free"),free,?__(54,"Rotate selection freely"), [magnet]},
-	 {?__(55,"Chart to X"), align_x, ?__(56,"Rotate chart to align selected edge to X-axis")},
-	 {?__(57,"Chart to Y"), align_y, ?__(58,"Rotate chart to align selected edge to Y-axis")}],
+	   [{?__(53,"Free"),free,?__(54,"Rotate selection freely"), [magnet]},
+	    {?__(55,"Chart to X"), align_x, ?__(56,"Rotate chart to align selected edge to X-axis")},
+	    {?__(57,"Chart to Y"), align_y, ?__(58,"Rotate chart to align selected edge to Y-axis")}],
     Menu = [{?__(60,"Move"),{move,Move},?__(61,"Move selected edges"),[magnet]},
 	    {?__(62,"Scale"),{scale,Scale},?__(63,"Scale selected edges"), [magnet]},
 	    {?__(64,"Rotate"),{rotate,Align},?__(65,"Rotate commands")},
@@ -455,7 +455,8 @@ command_menu(edge, X, Y) ->
 	      [{?__(25,"Horizontal"),horizontal,?__(644,"Distribute horizontally")},
 	       {?__(27,"Vertical"),vertical,?__(645,"Distribute vertically")},
            separator,
-           {?__(647,"Proportional"),proportional,?__(648,"Proportionally distributes the vertices on loop to match the proportions on the object")}]},
+           {?__(647,"Proportional"),proportional,
+            ?__(648,"Proportionally distributes the vertices on loop to match the proportions on the object")}]},
 	     ?__(646,"Distribute vertices evenly")},
 	    separator,
 	    {?__(66,"Stitch"), stitch, ?__(67,"Stitch edges/charts")},
@@ -530,7 +531,10 @@ scale_directions(false) ->
 align_menu() ->
     {?__(93,"Align"),
      {align,
-      [{?__(15,"Bottom"), bottom, ?__(95,"Align to bottom")},
+      [{?__(9,"Center"), center, ?__(99,"Align to Center")},
+       {?__(11,"Center X"), center_x, ?__(100,"Align to horizontal center")},
+       {?__(13,"Center Y"), center_y, ?__(101,"Align to vertical center")},
+       {?__(15,"Bottom"), bottom, ?__(95,"Align to bottom")},
        {?__(17,"Top"), top, ?__(96,"Align to top")},
        {?__(19,"Left"), left, ?__(97,"Align to left")},
        {?__(21,"Right"), right, ?__(98,"Align to right")}
@@ -1964,9 +1968,13 @@ move_to(Dir,We) ->
     wings_we:transform_vs(T, We).
 
 align(Dir,[{Xa,Ya,_},{Xb,Yb,_}],We) ->
-    [{X1,Y1,_},{X2,Y2,_}] = wings_vertex:bounding_box(We),
+    [V1={X1,Y1,_},V2={X2,Y2,_}] = wings_vertex:bounding_box(We),
+    ChartCenter = {CCX,CCY,CCZ} = e3d_vec:average(V1,V2),
     Translate =
         case Dir of
+            center ->   e3d_vec:sub({(Xa+Xb)/2.0,(Ya+Yb)/2.0,CCZ}, ChartCenter);
+            center_x -> e3d_vec:sub({(Xa+Xb)/2.0,CCY,CCZ}, ChartCenter);
+            center_y -> e3d_vec:sub({CCX,(Ya+Yb)/2.0,CCZ}, ChartCenter);
             bottom ->   {0.0,(Ya-Y1),0.0};
             top ->      {0.0,(Yb-Y2),0.0};   
             left ->     {(Xa-X1),0.0,0.0};
