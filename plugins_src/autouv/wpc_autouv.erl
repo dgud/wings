@@ -520,13 +520,36 @@ move_directions(false) ->
      {?__(5,"Vertical"),   y, ?__(6,"Move vertically (Y dir)")}].
 
 scale_directions(true) ->
-    [{?__(1,"Uniform"),    uniform, ?__(2,"Scale in both directions"), [magnet]},
-     {?__(3,"Horizontal"), x, ?__(4,"Scale horizontally (X dir)"), [magnet]},
-     {?__(5,"Vertical"),   y, ?__(6,"Scale vertically (Y dir)"), [magnet]}];
+    ChosePoint = ?__(7,"Choose point to scale from"),
+    [{?__(1,"Uniform"),    uniform_scale([magnet]),
+      {?__(2,"Scale in both directions"),[],ChosePoint}, [magnet]},
+     {?__(3,"Horizontal"), scale(x,[magnet]),
+      {?__(4,"Scale horizontally (X dir)"),[],ChosePoint}, [magnet]},
+     {?__(5,"Vertical"),   scale(y,[magnet]),
+      {?__(6,"Scale vertically (Y dir)"),[],ChosePoint}, [magnet]}];
 scale_directions(false) ->
-    [{?__(1,"Uniform"),    uniform, ?__(2,"Scale in both directions"), []},
-     {?__(3,"Horizontal"), x, ?__(4,"Scale horizontally (X dir)")},
-     {?__(5,"Vertical"),   y, ?__(6,"Scale vertically (Y dir)")}].
+    ChosePoint = ?__(7,"Choose point to scale from"),
+    [{?__(1,"Uniform"),    uniform_scale([]),
+      {?__(2,"Scale in both directions"),[],ChosePoint}},
+     {?__(3,"Horizontal"), scale(x,[]),
+      {?__(4,"Scale horizontally (X dir)"),[],ChosePoint}},
+     {?__(5,"Vertical"),   scale(y,[]),
+      {?__(6,"Scale vertically (Y dir)"),[],ChosePoint}}].
+
+uniform_scale(Flags) ->
+    fun(B, Ns) ->
+        case B of
+            1 -> wings_menu:build_command({'ASK',{[],[center,uniform],Flags}}, Ns);
+            _ -> wings_menu:build_command({'ASK',{[point],[uniform],Flags}}, Ns)
+        end
+    end.
+scale(Axis, Flags) ->
+    fun(B, Ns) ->
+        case B of
+            1 -> wings_menu:build_command({'ASK',{[],[center,Axis],Flags}}, Ns);
+            _ -> wings_menu:build_command({'ASK',{[point],[Axis],Flags}}, Ns)
+        end
+    end.
 
 align_menu() ->
     {?__(93,"Align"),
@@ -912,11 +935,19 @@ handle_command_1({scale,normalize}, St0) -> %% Normalize chart sizes
     St = update_selected_uvcoords(St0#st{shapes=Sh}),
     get_event(St);
 handle_command_1({scale, {'ASK', Ask}}, St) ->
-    wings:ask(Ask, St, fun({Dir,M},St0) -> 
-			       do_drag(wings_scale:setup({Dir,center,M}, St0))
+    wings:ask(Ask, St, fun({Dir,M},St0) when is_tuple(M), element(1,M) == magnet ->
+			       do_drag(wings_scale:setup({Dir,center,M}, St0));
+                          ({Dir,Point},St0) ->
+			       do_drag(wings_scale:setup({Dir,Point}, St0));
+                          ({Dir,Point,M},St0) ->
+			       do_drag(wings_scale:setup({Dir,Point,M}, St0))
 		       end);
-handle_command_1({scale,{Dir,M}}, St) when element(1,M) == magnet ->
+handle_command_1({scale,{Dir,M}}, St) when is_tuple(M), element(1,M) == magnet ->
     wings_scale:setup({Dir,center,M}, St); % For repeat drag
+handle_command_1({scale,{Dir,Point}}, St) ->
+    wings_scale:setup({Dir,Point}, St);
+handle_command_1({scale,{Dir,Point,M}}, St) ->
+    wings_scale:setup({Dir,Point,M}, St);
 handle_command_1({scale,Dir}, St) ->
     wings_scale:setup({Dir,center}, St);
 handle_command_1(rotate, St) ->
