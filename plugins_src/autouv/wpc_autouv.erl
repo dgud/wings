@@ -400,7 +400,8 @@ command_menu(body, X, Y) ->
                                     ?__(412,"Normalize Chart Sizes so that each"
                                         "chart get it's corresponding 2d area")}]},
 	     ?__(5,"Scale selected charts")},
-	    {?__(6,"Rotate"), rotate, ?__(7,"Rotate selected charts")},
+	    {?__(6,"Rotate"), {rotate,rotate_free(false)},
+	     {?__(7,"Rotate selected charts"),[],?__(59,"Pick rotation center")},[]},
 	    separator,
 	    {?__(8,"Move to"),
 	     {move_to,
@@ -433,7 +434,8 @@ command_menu(face, X, Y) ->
     Move = move_directions(true),
     Menu = [{?__(47,"Move"),{move,Move},?__(48,"Move selected faces"),[magnet]},
 	    {?__(49,"Scale"),{scale,Scale},?__(50,"Scale selected faces"), [magnet]},
-	    {?__(51,"Rotate"),rotate,?__(52,"Rotate selected faces"), [magnet]},
+	    {?__(51,"Rotate"),{rotate,rotate_free(true)},
+	     {?__(52,"Rotate selected faces"),[],?__(59,"Pick rotation center")}, [magnet]},
 	    separator,
 	    {?__(521,"Project-Unfold"),	{remap, proj_lsqcm},
 	     ?__(522,"Project selected faces from normal and unfold the rest of chart")}
@@ -443,7 +445,8 @@ command_menu(edge, X, Y) ->
     Scale = scale_directions(true),
     Move = move_directions(true),
     Align = 	    
-	   [{?__(53,"Free"),free,?__(54,"Rotate selection freely"), [magnet]},
+	   [{?__(53,"Free"),rotate_free(true),
+	     {?__(54,"Rotate selection freely"),[],?__(59,"Pick rotation center")}, [magnet]},
 	    {?__(55,"Chart to X"), align_x, ?__(56,"Rotate chart to align selected edge to X-axis")},
 	    {?__(57,"Chart to Y"), align_y, ?__(58,"Rotate chart to align selected edge to Y-axis")}],
     Menu = [{?__(60,"Move"),{move,Move},?__(61,"Move selected edges"),[magnet]},
@@ -467,7 +470,8 @@ command_menu(vertex, X, Y) ->
     Scale = scale_directions(true),
     Move = move_directions(true),
     Align =
-        [{?__(70,"Free"),free,?__(71,"Rotate selection freely"), [magnet]},
+        [{?__(70,"Free"),rotate_free(true),
+          {?__(71,"Rotate selection freely"),[],?__(59,"Pick rotation center")}, [magnet]},
         {?__(72,"Chart to X"), align_x,
         ?__(73,"Rotate chart to align (imaginary) edge joining selected verts to X-axis")},
         {?__(74,"Chart to Y"), align_y,
@@ -548,6 +552,19 @@ scale(Axis, Flags) ->
         case B of
             1 -> wings_menu:build_command({'ASK',{[],[center,Axis],Flags}}, Ns);
             _ -> wings_menu:build_command({'ASK',{[point],[Axis],Flags}}, Ns)
+        end
+    end.
+
+rotate_free(true) ->
+    rotate([magnet]);
+rotate_free(false) ->
+    rotate([]).
+
+rotate(Flags) ->
+    fun(B, Ns) ->
+        case B of
+            1 -> wings_menu:build_command({free,{'ASK',{[],[center,z],Flags}}}, Ns);
+            _ -> wings_menu:build_command({free,{'ASK',{[point],[z],Flags}}}, Ns)
         end
     end.
 
@@ -788,7 +805,7 @@ handle_event_3({action,Ev}=Act, #st{selmode=AUVSel, bb=#uvstate{st=#st{selmode=G
 	{_, {move,_}} ->
 	    handle_command(move,St);
 	{_, {rotate,_}} ->
-	    handle_command({rotate,free},St);
+	    handle_command(rotate,St);
 	{_, {scale,{Dir,_S}}} ->
 	    handle_command({scale,Dir},St);
 	{_, {scale,_S}} ->
@@ -952,14 +969,18 @@ handle_command_1({scale,Dir}, St) ->
     wings_scale:setup({Dir,center}, St);
 handle_command_1(rotate, St) ->
     wings_rotate:setup({free,center}, St);
-handle_command_1({rotate,free}, St) ->
-    wings_rotate:setup({free,center}, St);
-handle_command_1({rotate, {'ASK', Ask}}, St) ->
-    wings:ask(Ask, St, fun({Dir,M},St0) -> 
-			       do_drag(wings_rotate:setup({Dir,center,M}, St0)) 
+handle_command_1({rotate,{free,{z,Point}}}, St) ->
+    wings_rotate:setup({free,Point}, St);
+handle_command_1({rotate, {free, {'ASK', Ask}}}, St) ->
+    wings:ask(Ask, St, fun({Dir,M},St0) when is_tuple(M), element(1,M) == magnet ->
+			       do_drag(wings_rotate:setup({Dir,center,M}, St0));
+                          ({Dir,Point},St0) ->
+                              do_drag(wings_rotate:setup({Dir,Point}, St0));
+                          ({Dir,Point,M},St0) ->
+                              do_drag(wings_rotate:setup({Dir,Point,M}, St0))
 		       end);
-handle_command_1({rotate, Magnet}, St) when element(1, Magnet) == magnet ->
-    wings_rotate:setup({free,center,Magnet}, St); % For repeat drag
+handle_command_1({rotate, {free,{z,Point,Magnet}}}, St) when element(1, Magnet) == magnet ->
+    wings_rotate:setup({free,Point,Magnet}, St); % For repeat drag
 handle_command_1({rotate,Dir}, St0) 
   when Dir == align_y; Dir == align_x; Dir == align_xy ->
     St1 = align_chart(Dir, St0),
