@@ -67,12 +67,27 @@ auv_show_menu(help) ->
 auv_show_menu(Action) ->
     Cmd = {show,toggle_background},
     case Action of
-	true ->
-	    Label = auv_show_menu(label),
-	    Help = auv_show_menu(help),
-	    wings_menu:update_menu(view, Cmd, {append, 0, Label},Help);
-	false ->
-	    wings_menu:update_menu(view, Cmd, delete)
+        true ->
+            Label = auv_show_menu(label),
+            Help = auv_show_menu(help),
+            wings_menu:update_menu(view, Cmd, {append, 0, Label},Help);
+        false ->
+            wings_menu:update_menu(view, Cmd, delete)
+    end.
+
+auv_show_tile_menu(label) ->
+    ?__(1,"Tiled texture");
+auv_show_tile_menu(help) ->
+    ?__(2,"Toggle the show mode for the background texture image");
+auv_show_tile_menu(Action) ->
+    Cmd = {show,toggle_tiled_texture},
+    case Action of
+        true ->
+            Label = auv_show_tile_menu(label),
+            Help = auv_show_tile_menu(help),
+            wings_menu:update_menu(view, Cmd, {append, 0, Label},Help);
+        false ->
+            wings_menu:update_menu(view, Cmd, delete)
     end.
 
 auv_export_menu(label) ->
@@ -268,8 +283,9 @@ create_uv_state(Charts, MatName, Fs, We, #st{shapes=Shs0}=GeomSt) ->
 
     Win = wings_wm:this(),
     case ?GET({?MODULE,show_background}) of
-	undefined -> 
-	    ?SET({?MODULE,show_background}, true);
+	undefined ->
+        ?SET({?MODULE,show_background}, true),
+        ?SET({?MODULE,tiled_texture}, false);
 	_ -> ignore
     end,
     wings:register_postdraw_hook(Win, ?MODULE,
@@ -501,8 +517,10 @@ command_menu(_, X, Y) ->
         true -> ExportMenu = [separator, {auv_export_menu(label), export_uv, auv_export_menu(help)}];
         _ -> ExportMenu = []
     end,
-    Checked = [{crossmark, ?GET({?MODULE,show_background})}],
-    Menu = [{auv_show_menu(label),toggle_background,auv_show_menu(help),Checked}] ++
+    CkdBackground = [{crossmark, ?GET({?MODULE,show_background})}],
+    CkdTiled = [{crossmark, ?GET({?MODULE,tiled_texture})}],
+    Menu = [{auv_show_menu(label),toggle_background,auv_show_menu(help),CkdBackground},
+            {auv_show_tile_menu(label),toggle_tiled_texture,auv_show_tile_menu(help),CkdTiled}] ++
            ExportMenu ++ option_menu(),
     wings_menu:popup_menu(X,Y, {auv,option}, Menu).
 
@@ -714,6 +732,7 @@ handle_event_3({action,{{auv,_},create_texture}}, St) ->
     auv_texture:draw_options(St);
 handle_event_3({action,{auv,{draw_options,restart}}}, St) ->
     ?SET({?MODULE,show_background}, true),
+    ?SET({?MODULE,tiled_texture}, false),
     auv_texture:draw_options(St);
 handle_event_3({action,{auv,{draw_options,Opt}}}, #st{bb=Uvs}=St) ->
     #uvstate{st=GeomSt0,matname=MatName0,bg_img=Image} = Uvs,
@@ -816,6 +835,8 @@ handle_event_3({action,Ev}=Act, #st{selmode=AUVSel, bb=#uvstate{st=#st{selmode=G
 	    handle_command(circularise,St);
 	{view,{show,toggle_background}} ->
 	    handle_command(toggle_background,St);
+	{view,{show,toggle_tiled_texture}} ->
+	    handle_command(toggle_tiled_texture,St);
 	{view,aim} ->
 	    St1 = fake_selection(St),
 	    wings_view:command(aim, St1),
@@ -859,9 +880,11 @@ handle_event_3(got_focus, _) ->
     Message = wings_msg:join([Msg1,Msg2,Msg3]),
     wings_wm:message(Message, ""),
     auv_show_menu(true),
+    auv_show_tile_menu(true),
     wings_wm:dirty();
 handle_event_3(lost_focus, _) ->
     auv_show_menu(false),
+    auv_show_tile_menu(false),
     keep;
 handle_event_3(_Event, _) ->
     %% io:format("MissEvent ~P~n", [_Event, 20]),
@@ -1074,6 +1097,10 @@ handle_command_1(cut_edges, St0 = #st{selmode=edge,bb=#uvstate{id=Id,st=Geom}}) 
 handle_command_1(toggle_background, _) ->
     Old = ?GET({?MODULE,show_background}),
     ?SET({?MODULE,show_background},not Old),
+    wings_wm:dirty();
+handle_command_1(toggle_tiled_texture, _) ->
+    Old = ?GET({?MODULE,tiled_texture}),
+    ?SET({?MODULE,tiled_texture},not Old),
     wings_wm:dirty();
 handle_command_1(export_uv, #st{}=St) ->
     wpc_hlines:command({file, {export_uv, {eps, true}}}, St);
@@ -2205,18 +2232,22 @@ draw_background(#st{bb=#uvstate{bg_img=Image}}) ->
     %% Draw the background texture.
     gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_FILL),
     gl:color3f(1.0, 1.0, 1.0),			%Clear
-    case ?GET({?MODULE,show_background}) of
-	false -> ok;
-	_ ->
+    Q =
+        case ?GET({?MODULE,show_background}) of
+        false ->
+            init_texture_area(false);
+        _ ->
             case wings_image:txid(Image) of
-                none -> ignore; %% Avoid crash if TexImage is deleted
+                none -> %% Avoid crash if TexImage is deleted
+                    init_texture_area(false);
                 Tx ->
+                    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_S, ?GL_REPEAT),
+                    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_T, ?GL_REPEAT),
                     gl:enable(?GL_TEXTURE_2D),
-                    gl:bindTexture(?GL_TEXTURE_2D, Tx)
+                    gl:bindTexture(?GL_TEXTURE_2D, Tx),
+                    init_texture_area(?GET({?MODULE,tiled_texture}))
             end
-    end,
-    Q = [{0.0, 0.0},{0.0, 0.0, -0.99999}, {1.0, 0.0},{1.0, 0.0, -0.99999},
-         {1.0, 1.0},{1.0, 1.0, -0.99999}, {0.0, 1.0},{0.0, 1.0, -0.99999}],
+        end,
     wings_vbo:draw(fun(_) -> gl:drawArrays(?GL_QUADS, 0, 4) end, Q, [uv, vertex]),
 
     gl:disable(?GL_TEXTURE_2D),
@@ -2226,6 +2257,16 @@ draw_background(#st{bb=#uvstate{bg_img=Image}}) ->
 redraw(St) ->
     wings_wm:set_prop(show_info_text, false),
     wings:redraw(St).
+
+init_texture_area(Tiled) ->
+    case Tiled of
+        true ->
+            [{-20.0, -20.0},{-20.0, -20.0, -0.99999}, {20.0, -20.0},{20.0, -20.0, -0.99999},
+             {20.0, 20.0},{20.0, 20.0, -0.99999}, {-20.0, 20.0},{-20.0, 20.0, -0.99999}];
+        false ->
+            [{0.0, 0.0},{0.0, 0.0, -0.99999}, {1.0, 0.0},{1.0, 0.0, -0.99999},
+             {1.0, 1.0},{1.0, 1.0, -0.99999}, {0.0, 1.0},{0.0, 1.0, -0.99999}]
+    end.
 
 init_drawarea() ->
     {W0,H0} = wings_wm:top_size(),
