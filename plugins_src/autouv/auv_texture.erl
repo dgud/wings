@@ -110,7 +110,11 @@ draw_options(#st{bb=Uvs}=AuvSt0) ->
                                         OldId  ->
                                             OldImg = wings_image:info(OldId),
                                             case OldImg#e3d_image.name of
-                                                "auvBG" -> atom_to_list(MatName0);
+                                                Name when is_list(Name) ->
+                                                    case string:left(Name, 5) of
+                                                        "auvBG" -> atom_to_list(MatName0);
+                                                        _ -> Name
+                                                    end;
                                                 Other -> Other
                                             end
                                     end,
@@ -984,10 +988,11 @@ error_msg(Line) ->
     end.
 
 draw_texture_square() ->
-    VertexUvQ = << 0.0:?F32,0.0:?F32, 0.0:?F32,0.0:?F32,
-                   1.0:?F32,0.0:?F32, 1.0:?F32,0.0:?F32,
-                   1.0:?F32,1.0:?F32, 1.0:?F32,1.0:?F32,
-                   0.0:?F32,1.0:?F32, 0.0:?F32,1.0:?F32>>,
+    {U,V} = {1,0},
+    VertexUvQ = << (0.0+U):?F32,(0.0+V):?F32, (0.0+U):?F32,(0.0+V):?F32,
+                   (1.0+U):?F32,(0.0+V):?F32, (1.0+U):?F32,(0.0+V):?F32,
+                   (1.0+U):?F32,(1.0+V):?F32, (1.0+U):?F32,(1.0+V):?F32,
+                   (0.0+U):?F32,(1.0+V):?F32, (0.0+U):?F32,(1.0+V):?F32>>,
     wings_vbo:draw(fun(_) -> gl:drawArrays(?GL_QUADS, 0, 4) end, VertexUvQ, [vertex2d, uv]).
 
 fill_bg_tex(#sh_conf{fbo_w=Prev}) ->
@@ -1116,9 +1121,43 @@ set_viewport({X,Y,W,H}=Viewport, Scale) ->
 %% Data setup 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-setup(#st{bb=#uvstate{id=RId,st=#st{shapes=Sh0}}}=St, Reqs) ->
+setup(#st{shapes=ShUV,selmode=SModeUV0,sel=SelUV0,bb=Uvs}=St, Reqs) ->
+    #uvstate{id=RId,matname=MatName,st=#st{shapes=Sh0}} = Uvs,
     We = gb_trees:get(RId,Sh0),
-    {Charts,{_Cnt,UVpos,Vpos,Ns,Ts,BB,Vc}} = setup_charts(St, We, Reqs),
+    {Charts,{_Cnt,UVpos,Vpos,Ns,Ts,BB,Vc}} =
+        case wpc_autouv:get_textureset_info(We) of
+            {?MULTIPLE,[_,[_|_]]} ->
+                Get_mat_face = fun(#we{id=Id}=WeUV) ->
+                        FsMat = wings_facemat:all(WeUV),
+                        case [F || {F,Mat} <- FsMat, Mat==MatName] of
+                            [] -> [];
+                            Fs -> {Id,Fs}
+                        end
+                    end,
+                SelForTile = lists:flatten([Get_mat_face(WeUV) || WeUV <- gb_trees:values(ShUV)]),
+                case SelForTile of
+                [_|_] ->
+                    if (SelUV0==[]) ->
+                        SModeUV = body,
+                        SelUV = [{Id,gb_sets:singleton(0)} || {Id,_} <- SelForTile];
+                    true ->
+                        SelUV1 = [Sel || {IdSel,_}=Sel <- SelUV0, proplists:is_defined(IdSel,SelForTile)],
+                        case SelUV1 of
+                            [] ->
+                                SModeUV = face,
+                                SelUV = [{Id,gb_sets:from_list(Fs)} || {Id,Fs} <- SelForTile];
+                            _ ->
+                                SModeUV = SModeUV0,
+                                SelUV = SelUV0
+                        end
+                    end,
+                    setup_charts(St#st{selmode=SModeUV,sel=SelUV}, We, Reqs);
+                [] ->
+                    setup_charts(St, We, Reqs)
+                end;
+            none ->
+                setup_charts(St, We, Reqs)
+        end,
     #ts{charts=Charts,
 	uv = to_bin(UVpos,uv),
 	pos= to_bin(Vpos,pos),
