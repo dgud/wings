@@ -1026,167 +1026,167 @@ make_e3dmat_col(#amcol{r=ClrR,g=ClrG,b=ClrB,a=ClrA}) ->
 %% xmerl tokenizer
 %%
 amf_tok({startElement, _, LName, _, Attrs}=_Ev, _Loc, #amftk{}=State) ->
-    case LName of
-        "amf" ->
-            push_metadat(State#amftk{unit=amf_tok_get_unit(Attrs)});
-        "metadata" ->
-            MDatType = amf_tok_get_str("type", Attrs),
-            clear_char(State#amftk{mdat_type=MDatType});
-        "object" ->
-            push_metadat(State#amftk{obj_id=amf_tok_get_int("id", Attrs)});
-        "mesh" ->
-            push_metadat(State);
-        "vertices" ->
-            push_metadat(State);
-        "vertex" ->
-            State;
-        "coordinates" ->
-            State#amftk{vt=#amvrt{}};
-        "x" -> clear_char(State);
-        "y" -> clear_char(State);
-        "z" -> clear_char(State);
-        "volume" ->
-            push_metadat(State#amftk{vlm_mtl_id=amf_tok_get_int("materialid", Attrs),tl=[]});
-        "triangle" ->
-            State#amftk{tri_at=#amtri{},tri_mtl_id=amf_tok_get_int("materialid", Attrs)};
-        "v1" -> clear_char(State);
-        "v2" -> clear_char(State);
-        "v3" -> clear_char(State);
-        
-        "normal" -> State;
-        "nx" -> clear_char(State);
-        "ny" -> clear_char(State);
-        "nz" -> clear_char(State);
-        
-        "texmap" ->
-            State#amftk{
-                tri_at=State#amftk.tri_at#amtri{
-                    rgbtexid=amf_tok_tri_texid(Attrs)
-                }
-            };
-        "utex1" -> clear_char(State);
-        "utex2" -> clear_char(State);
-        "utex3" -> clear_char(State);
-        "vtex1" -> clear_char(State);
-        "vtex2" -> clear_char(State);
-        "vtex3" -> clear_char(State);
-        
-        "material" ->
-            push_metadat(State#amftk{mtl_mtl_id=amf_tok_get_int("id", Attrs)});
-        "color" ->
-            State#amftk{col_at=#amcol{}};
-        "r" -> clear_char(State);
-        "g" -> clear_char(State);
-        "b" -> clear_char(State);
-        "a" -> clear_char(State);
-        
-        "texture" ->
-            clear_char(State#amftk{tex_at=#amtex{
-                id=amf_tok_get_int("id", Attrs),
-                w=amf_tok_get_int("width", Attrs),
-                h=amf_tok_get_int("height", Attrs),
-                d=amf_tok_get_int("depth", Attrs),
-                t=amf_tok_get_int("tiled", Attrs),
-                type=amf_tok_get_textype(Attrs)
-            }});
-        _ ->
-            State
-    end;
+    amf_tok_s(LName, Attrs, State);
 amf_tok({endElement, _, LName, _}=_Ev, _Loc, #amftk{}=State) ->
-    case LName of
-        "amf" -> pop_metadat(State);
-        "metadata" ->
-            add_metadat(clear_char(State),
-                { string:lowercase(State#amftk.mdat_type), State#amftk.char });
-        "object" ->
-            Verts = State#amftk.verts,
-            Volumes = lists:reverse(State#amftk.volumes),
-            Nm = amf_getname(State, object),
-            Obj = #amobj{name=Nm,id=State#amftk.obj_id,vs=Verts,vl=Volumes,col=State#amftk.col_at},
-            pop_metadat(State#amftk{objs=[Obj|State#amftk.objs],col_at=none});
-        
-        "mesh" ->
-            pop_metadat(State);
-        
-        "vertices" ->
-            pop_metadat(State#amftk{verts=lists:reverse(State#amftk.verts)});
-        
-        "vertex" ->
-            State#amftk{verts=[State#amftk.vt|State#amftk.verts],col_at=none};
-        "coordinates" ->
-            State;
-        "x" ->
-            clear_char(State#amftk{vt=State#amftk.vt#amvrt{x=amf_parse_flt(State)}});
-        "y" ->
-            clear_char(State#amftk{vt=State#amftk.vt#amvrt{y=amf_parse_flt(State)}});
-        "z" ->
-            clear_char(State#amftk{vt=State#amftk.vt#amvrt{z=amf_parse_flt(State)}});
-        
-        "volume" ->
-            Nm = amf_getname(State, volume),
-            Volume = #amvlm{name=Nm,mtl=State#amftk.vlm_mtl_id, tl=lists:reverse(State#amftk.tl)},
-            pop_metadat(State#amftk{volumes=[Volume|State#amftk.volumes]});
-        
-        "triangle" ->
-            Tri = State#amftk.tri_at#amtri{col=State#amftk.col_at},
-            State#amftk{tl=[Tri|State#amftk.tl],col_at=none};
-        "v1" ->
-            clear_char(State#amftk{tri_at=State#amftk.tri_at#amtri{v1=amf_parse_int(State)}});
-        "v2" ->
-            clear_char(State#amftk{tri_at=State#amftk.tri_at#amtri{v2=amf_parse_int(State)}});
-        "v3" ->
-            clear_char(State#amftk{tri_at=State#amftk.tri_at#amtri{v3=amf_parse_int(State)}});
-        
-        "normal" -> State;
-        "nx" -> clear_char(State);
-        "ny" -> clear_char(State);
-        "nz" -> clear_char(State);
-        
-        
-        "texmap" ->
-            State;
-        "utex1" ->
-            clear_char(State#amftk{tri_at=State#amftk.tri_at#amtri{utx1=amf_parse_flt(State)}});
-        "utex2" ->
-            clear_char(State#amftk{tri_at=State#amftk.tri_at#amtri{utx2=amf_parse_flt(State)}});
-        "utex3" ->
-            clear_char(State#amftk{tri_at=State#amftk.tri_at#amtri{utx3=amf_parse_flt(State)}});
-        "vtex1" ->
-            clear_char(State#amftk{tri_at=State#amftk.tri_at#amtri{vtx1=amf_parse_flt(State)}});
-        "vtex2" ->
-            clear_char(State#amftk{tri_at=State#amftk.tri_at#amtri{vtx2=amf_parse_flt(State)}});
-        "vtex3" ->
-            clear_char(State#amftk{tri_at=State#amftk.tri_at#amtri{vtx3=amf_parse_flt(State)}});
-        
-        
-        "material" ->
-            Mtl = #ammtl{id=State#amftk.mtl_mtl_id, col=State#amftk.col_at},
-            pop_metadat(State#amftk{mtls=[Mtl|State#amftk.mtls],col_at=none});
-        "color" ->
-            State;
-        "r" ->
-            clear_char(State#amftk{col_at=State#amftk.col_at#amcol{r=amf_parse_flt(State)}});
-        "g" ->
-            clear_char(State#amftk{col_at=State#amftk.col_at#amcol{g=amf_parse_flt(State)}});
-        "b" ->
-            clear_char(State#amftk{col_at=State#amftk.col_at#amcol{b=amf_parse_flt(State)}});
-        "a" ->
-            clear_char(State#amftk{col_at=State#amftk.col_at#amcol{a=amf_parse_flt(State)}});
-        
-        "texture" ->
-            Tex = State#amftk.tex_at#amtex{bin=State#amftk.char},
-            clear_char(State#amftk{texs=[Tex|State#amftk.texs],tex_at=none,char=none});
-        
-        _ ->
-            State
-    end;
+    amf_tok_e(LName, State);
 amf_tok({characters, Chars}=_Ev, _Loc, #amftk{}=State) ->
     State#amftk{char=Chars};
 amf_tok(startDocument, _, State) -> State;
 amf_tok(endDocument, _, State) -> State;
 amf_tok(_Ev, _Loc, State) ->
     State.
-    
+
+amf_tok_s("amf", Attrs, State) ->
+    push_metadat(State#amftk{unit=amf_tok_get_unit(Attrs)});
+amf_tok_s("metadata", Attrs, State) ->
+    MDatType = amf_tok_get_str("type", Attrs),
+    clear_char(State#amftk{mdat_type=MDatType});
+amf_tok_s("object", Attrs, State) ->
+    push_metadat(State#amftk{obj_id=amf_tok_get_int("id", Attrs)});
+amf_tok_s("mesh", _Attrs, State) ->
+    push_metadat(State);
+amf_tok_s("vertices", _Attrs, State) ->
+    push_metadat(State);
+amf_tok_s("vertex", _Attrs, State) ->
+    State;
+amf_tok_s("coordinates", _Attrs, State) ->
+    State#amftk{vt=#amvrt{}};
+amf_tok_s("x", _Attrs, State) -> clear_char(State);
+amf_tok_s("y", _Attrs, State) -> clear_char(State);
+amf_tok_s("z", _Attrs, State) -> clear_char(State);
+amf_tok_s("volume", Attrs, State) ->
+    push_metadat(State#amftk{vlm_mtl_id=amf_tok_get_int("materialid", Attrs),tl=[]});
+amf_tok_s("triangle", Attrs, State) ->
+    State#amftk{tri_at=#amtri{},tri_mtl_id=amf_tok_get_int("materialid", Attrs)};
+amf_tok_s("v1", _Attrs, State) -> clear_char(State);
+amf_tok_s("v2", _Attrs, State) -> clear_char(State);
+amf_tok_s("v3", _Attrs, State) -> clear_char(State);
+
+amf_tok_s("normal", _Attrs, State) -> State;
+amf_tok_s("nx", _Attrs, State) -> clear_char(State);
+amf_tok_s("ny", _Attrs, State) -> clear_char(State);
+amf_tok_s("nz", _Attrs, State) -> clear_char(State);
+
+amf_tok_s("texmap", Attrs, #amftk{tri_at=T_At}=State) ->
+    State#amftk{
+        tri_at=T_At#amtri{
+            rgbtexid=amf_tok_tri_texid(Attrs)
+        }
+    };
+amf_tok_s("utex1", _Attrs, State) -> clear_char(State);
+amf_tok_s("utex2", _Attrs, State) -> clear_char(State);
+amf_tok_s("utex3", _Attrs, State) -> clear_char(State);
+amf_tok_s("vtex1", _Attrs, State) -> clear_char(State);
+amf_tok_s("vtex2", _Attrs, State) -> clear_char(State);
+amf_tok_s("vtex3", _Attrs, State) -> clear_char(State);
+
+amf_tok_s("material", Attrs, State) ->
+    push_metadat(State#amftk{mtl_mtl_id=amf_tok_get_int("id", Attrs)});
+amf_tok_s("color", _Attrs, State) ->
+    State#amftk{col_at=#amcol{}};
+amf_tok_s("r", _Attrs, State) -> clear_char(State);
+amf_tok_s("g", _Attrs, State) -> clear_char(State);
+amf_tok_s("b", _Attrs, State) -> clear_char(State);
+amf_tok_s("a", _Attrs, State) -> clear_char(State);
+
+amf_tok_s("texture", Attrs, State) ->
+    clear_char(State#amftk{tex_at=#amtex{
+        id=amf_tok_get_int("id", Attrs),
+        w=amf_tok_get_int("width", Attrs),
+        h=amf_tok_get_int("height", Attrs),
+        d=amf_tok_get_int("depth", Attrs),
+        t=amf_tok_get_int("tiled", Attrs),
+        type=amf_tok_get_textype(Attrs)
+    }});
+amf_tok_s(_, _Attrs, State) ->
+    State.
+
+
+amf_tok_e("amf", State) -> pop_metadat(State);
+amf_tok_e("metadata", #amftk{mdat_type=MDatType,char=Char}=State) ->
+    add_metadat(clear_char(State),
+        { string:lowercase(MDatType), Char });
+amf_tok_e("object", #amftk{verts=Verts,volumes=Volumes_0,obj_id=ObjId,col_at=ColAt,objs=Objs_0}=State) ->
+    Volumes = lists:reverse(Volumes_0),
+    Nm = amf_getname(State, object),
+    Obj = #amobj{name=Nm,id=ObjId,vs=Verts,vl=Volumes,col=ColAt},
+    pop_metadat(State#amftk{objs=[Obj|Objs_0],col_at=none});
+
+amf_tok_e("mesh", State) ->
+    pop_metadat(State);
+
+amf_tok_e("vertices", #amftk{verts=Verts}=State) ->
+    pop_metadat(State#amftk{verts=lists:reverse(Verts)});
+
+amf_tok_e("vertex", #amftk{verts=Verts,vt=Vt}=State) ->
+    State#amftk{verts=[Vt|Verts],col_at=none};
+amf_tok_e("coordinates", State) ->
+    State;
+amf_tok_e("x", #amftk{vt=Vt}=State) ->
+    clear_char(State#amftk{vt=Vt#amvrt{x=amf_parse_flt(State)}});
+amf_tok_e("y", #amftk{vt=Vt}=State) ->
+    clear_char(State#amftk{vt=Vt#amvrt{y=amf_parse_flt(State)}});
+amf_tok_e("z", #amftk{vt=Vt}=State) ->
+    clear_char(State#amftk{vt=Vt#amvrt{z=amf_parse_flt(State)}});
+
+amf_tok_e("volume", #amftk{vlm_mtl_id=MtlId,tl=Tl0,volumes=Volumes_0}=State) ->
+    Nm = amf_getname(State, volume),
+    Volume = #amvlm{name=Nm,mtl=MtlId, tl=lists:reverse(Tl0)},
+    pop_metadat(State#amftk{volumes=[Volume|Volumes_0]});
+
+amf_tok_e("triangle", #amftk{tri_at=T_At,col_at=ColAt,tl=Tl0}=State) ->
+    Tri = T_At#amtri{col=ColAt},
+    State#amftk{tl=[Tri|Tl0],col_at=none};
+amf_tok_e("v1", #amftk{tri_at=T_At}=State) ->
+    clear_char(State#amftk{tri_at=T_At#amtri{v1=amf_parse_int(State)}});
+amf_tok_e("v2", #amftk{tri_at=T_At}=State) ->
+    clear_char(State#amftk{tri_at=T_At#amtri{v2=amf_parse_int(State)}});
+amf_tok_e("v3", #amftk{tri_at=T_At}=State) ->
+    clear_char(State#amftk{tri_at=T_At#amtri{v3=amf_parse_int(State)}});
+
+amf_tok_e("normal", State) -> State;
+amf_tok_e("nx", State) -> clear_char(State);
+amf_tok_e("ny", State) -> clear_char(State);
+amf_tok_e("nz", State) -> clear_char(State);
+
+
+amf_tok_e("texmap", State) ->
+    State;
+amf_tok_e("utex1", #amftk{tri_at=T_At}=State) ->
+    clear_char(State#amftk{tri_at=T_At#amtri{utx1=amf_parse_flt(State)}});
+amf_tok_e("utex2", #amftk{tri_at=T_At}=State) ->
+    clear_char(State#amftk{tri_at=T_At#amtri{utx2=amf_parse_flt(State)}});
+amf_tok_e("utex3", #amftk{tri_at=T_At}=State) ->
+    clear_char(State#amftk{tri_at=T_At#amtri{utx3=amf_parse_flt(State)}});
+amf_tok_e("vtex1", #amftk{tri_at=T_At}=State) ->
+    clear_char(State#amftk{tri_at=T_At#amtri{vtx1=amf_parse_flt(State)}});
+amf_tok_e("vtex2", #amftk{tri_at=T_At}=State) ->
+    clear_char(State#amftk{tri_at=T_At#amtri{vtx2=amf_parse_flt(State)}});
+amf_tok_e("vtex3", #amftk{tri_at=T_At}=State) ->
+    clear_char(State#amftk{tri_at=T_At#amtri{vtx3=amf_parse_flt(State)}});
+
+
+amf_tok_e("material", #amftk{mtl_mtl_id=MtlId,col_at=ColAt,mtls=Mtls_0}=State) ->
+    Mtl = #ammtl{id=MtlId,col=ColAt},
+    pop_metadat(State#amftk{mtls=[Mtl|Mtls_0],col_at=none});
+amf_tok_e("color", State) ->
+    State;
+amf_tok_e("r", #amftk{col_at=ColAt}=State) ->
+    clear_char(State#amftk{col_at=ColAt#amcol{r=amf_parse_flt(State)}});
+amf_tok_e("g", #amftk{col_at=ColAt}=State) ->
+    clear_char(State#amftk{col_at=ColAt#amcol{g=amf_parse_flt(State)}});
+amf_tok_e("b", #amftk{col_at=ColAt}=State) ->
+    clear_char(State#amftk{col_at=ColAt#amcol{b=amf_parse_flt(State)}});
+amf_tok_e("a", #amftk{col_at=ColAt}=State) ->
+    clear_char(State#amftk{col_at=ColAt#amcol{a=amf_parse_flt(State)}});
+
+amf_tok_e("texture", #amftk{tex_at=TexAt,char=Char,texs=Texs_0}=State) ->
+    Tex = TexAt#amtex{bin=Char},
+    clear_char(State#amftk{texs=[Tex|Texs_0],tex_at=none,char=none});
+
+amf_tok_e(_, State) ->
+    State.
+
 
 clear_char(Stt) ->
     Stt#amftk{char=none}.
@@ -1229,8 +1229,8 @@ amf_getname(State, volume) ->
             VolumeName
     end.
 
-amf_getname_1(#amftk{objs=V}=State, Str) ->
-    case State#amftk.obj_id of
+amf_getname_1(#amftk{objs=V,obj_id=ObjId}=_State, Str) ->
+    case ObjId of
         none ->
             lists:flatten(io_lib:format("~s_~w", [Str, length(V)+1]));
         Number when is_integer(Number) ->
