@@ -571,7 +571,8 @@ read_file__svg(Name) ->
     skipping_tag = [],   % Currently inside a tag we are skipping
     units = "px" :: string(),
     docsz = {100.0,100.0} :: {float(), float()},
-    viewbox = {0.0,0.0,100.0,100.0} :: {float(),float(),float(),float()}
+    viewbox = {0.0,0.0,100.0,100.0} :: {float(),float(),float(),float()},
+    e_sty = []
     }).
 
 -record(path_tag_r,
@@ -786,10 +787,15 @@ read_svg_content(Bin_0, FullFilename, ShortFilename) ->
     EF = {event_fun, fun svg_tok/3},
     ES = {event_state, #svgtk{}},
     {ok, Bin_1} = svg_change_prolog(Bin_0),
-    case xmerl_sax_parser:stream(Bin_1, [EF,ES]) of
-        {ok, #svgtk{list=List,units=DocUnits_S,docsz=DocSz,viewbox=ViewBox}=_Es, _} ->
+    {Bin_2, StyleTagContents} = extract_styles(Bin_1),
+    case xmerl_sax_parser:stream(Bin_2, [EF,ES]) of
+        {ok, #svgtk{list=List,units=DocUnits_S,docsz=DocSz,viewbox=ViewBox,e_sty=ESty}=_Es, _} ->
+            CurDir = filename:dirname(FullFilename),
+            ApplStyle_1 = parse_stylesheet_list(StyleTagContents, CurDir),
+            ApplStyle_2 = get_link_rel_css(ESty, CurDir),
+            ApplStyle = ApplStyle_1 ++ ApplStyle_2,
             DocUnits = unit_atom(DocUnits_S),
-            CommandList_0 = lists:reverse(List),
+            CommandList_0 = match_css(lists:reverse(List), ApplStyle),
             {ok, {Definitions, CommandList_1}} =
                 path_definitions(CommandList_0,
                     #document_s{fullfilename=FullFilename,units=DocUnits,docsz=DocSz,viewbox=ViewBox}),
@@ -914,7 +920,8 @@ make_viewbox_if_needed(ViewBox, _) ->
 
 
 
-svg_tok({startElement, _, LName, _, Attributes_0}=_Ev, _Loc, #svgtk{skipping_tag=SkippingTag,list=List,in_svg_tag=InSVGTag}=State) ->
+svg_tok({startElement, _, LName, _, Attributes_0}=_Ev, _Loc,
+        #svgtk{skipping_tag=SkippingTag,list=List,in_svg_tag=InSVGTag,e_sty=ESty}=State) ->
     case LName of
         "svg" ->
             Wi_He_Units_0 = get_svg_tag_units_from_attrs(Attributes_0),
@@ -926,6 +933,11 @@ svg_tok({startElement, _, LName, _, Attributes_0}=_Ev, _Loc, #svgtk{skipping_tag
             State#svgtk{skipping_tag=["namedview" | SkippingTag]};
         "pattern" ->
             State#svgtk{skipping_tag=["pattern" | SkippingTag]};
+        "link" when SkippingTag =:= [] ->
+            LinkAttrs = [
+                {string:to_lower(AttrLName), Val}
+            || {_,_,AttrLName,Val} <- Attributes_0],
+            State#svgtk{e_sty=[{linkrel,LinkAttrs} | ESty]};
         _ when InSVGTag =:= true andalso SkippingTag =:= [] ->
             Attributes_1 = [
                 svg_tok_attr_pair(string:to_lower(LName), string:to_lower(AttrLName), Val)
@@ -943,6 +955,8 @@ svg_tok({endElement, _, LName, _}=_Ev, _Loc, #svgtk{skipping_tag=SkippingTag,lis
             State#svgtk{ skipping_tag = lists:nthtail(1, SkippingTag) };
         "pattern" ->
             State#svgtk{ skipping_tag = lists:nthtail(1, SkippingTag) };
+        "link" ->
+            State;
         _ when InSVGTag =:= true andalso SkippingTag =:= [] ->
             State#svgtk{list=[{e, string:to_lower(LName)} |List]};
         _ ->
@@ -992,6 +1006,9 @@ svg_tok_attr_pair_clippath(AttrLName, Val)
   when AttrLName =:= "id" ->
     {id, Val};
 svg_tok_attr_pair_clippath(AttrLName, Val)
+  when AttrLName =:= "class" ->
+    {class, Val};
+svg_tok_attr_pair_clippath(AttrLName, Val)
   when AttrLName =:= "clippathunits" ->
     {clipPathUnits, Val};
 svg_tok_attr_pair_clippath(_AttrLName, _Val) ->
@@ -999,6 +1016,9 @@ svg_tok_attr_pair_clippath(_AttrLName, _Val) ->
 svg_tok_attr_pair_mask(AttrLName, Val)
   when AttrLName =:= "id" ->
     {id, Val};
+svg_tok_attr_pair_mask(AttrLName, Val)
+  when AttrLName =:= "class" ->
+    {class, Val};
 svg_tok_attr_pair_mask(AttrLName, Val)
   when AttrLName =:= "maskunits" ->
     {clipPathUnits, Val};
@@ -1044,6 +1064,9 @@ svg_tok_attr_pair_image(AttrLName, Val)
   when AttrLName =:= "id" ->
     {id, Val};
 svg_tok_attr_pair_image(AttrLName, Val)
+  when AttrLName =:= "class" ->
+    {class, Val};
+svg_tok_attr_pair_image(AttrLName, Val)
   when AttrLName =:= "preserveAspectRatio" ->
     {preserve_aspect_ratio, Val};
 svg_tok_attr_pair_image(_AttrLName, _Val) ->
@@ -1053,6 +1076,9 @@ svg_tok_attr_pair_image(_AttrLName, _Val) ->
 svg_tok_attr_pair_g(AttrLName, Val)
   when AttrLName =:= "id" ->
     {id, Val};
+svg_tok_attr_pair_g(AttrLName, Val)
+  when AttrLName =:= "class" ->
+    {class, Val};
 svg_tok_attr_pair_g(AttrLName, Val)
   when AttrLName =:= "label" ->
     {label, Val};
@@ -1086,6 +1112,8 @@ svg_tok_color_attr("fill-opacity", FVal) ->
 %%
 svg_tok_attr_pair_path("id", Val) ->
     {id, Val};
+svg_tok_attr_pair_path("class", Val) ->
+    {class, Val};
 svg_tok_attr_pair_path(StyleAttr, Val)
   when StyleAttr =:= "style";
        StyleAttr =:= "stroke";
@@ -1105,6 +1133,8 @@ svg_tok_attr_pair_path(_AttrLName, _Val) ->
 %%
 svg_tok_attr_pair_polyline("id", Val) ->
     {id, Val};
+svg_tok_attr_pair_polyline("class", Val) ->
+    {class, Val};
 svg_tok_attr_pair_polyline(StyleAttr, Val)
   when StyleAttr =:= "style";
        StyleAttr =:= "stroke";
@@ -1124,6 +1154,8 @@ svg_tok_attr_pair_polyline(_AttrLName, _Val) ->
 %%
 svg_tok_attr_pair_polygon("id", Val) ->
     {id, Val};
+svg_tok_attr_pair_polygon("class", Val) ->
+    {class, Val};
 svg_tok_attr_pair_polygon(StyleAttr, Val)
   when StyleAttr =:= "style";
        StyleAttr =:= "stroke";
@@ -1149,6 +1181,8 @@ svg_tok_attr_pair_rect(StyleAttr, Val)
     svg_tok_color_attr(StyleAttr, Val);
 svg_tok_attr_pair_rect("id", Val) ->
     {id, Val};
+svg_tok_attr_pair_rect("class", Val) ->
+    {class, Val};
 svg_tok_attr_pair_rect("width", Val) ->
     Val_1 = parse_float_number_w_unit(Val, 0.0),
     {width, Val_1};
@@ -1187,6 +1221,8 @@ svg_tok_attr_pair_circle(StyleAttr, Val)
     svg_tok_color_attr(StyleAttr, Val);
 svg_tok_attr_pair_circle("id", Val) ->
     {id, Val};
+svg_tok_attr_pair_circle("class", Val) ->
+    {class, Val};
 svg_tok_attr_pair_circle("cx", Val) ->
     Val_1 = parse_float_number_w_unit(Val, 0.0),
     {cx, Val_1};
@@ -1213,6 +1249,8 @@ svg_tok_attr_pair_ellipse(StyleAttr, Val)
     svg_tok_color_attr(StyleAttr, Val);
 svg_tok_attr_pair_ellipse("id", Val) ->
     {id, Val};
+svg_tok_attr_pair_ellipse("class", Val) ->
+    {class, Val};
 svg_tok_attr_pair_ellipse("cx", Val) ->
     Val_1 = parse_float_number_w_unit(Val, 0.0),
     {cx, Val_1};
@@ -1340,12 +1378,15 @@ parse_style(A) ->
     parse_style(A, [], []).
 
 parse_style([], SName, List) when length(SName) > 0 ->
-    parse_style([], [], [{lists:reverse(SName), ""} | List]);
+    parse_style([], [], [{string:strip(lists:reverse(SName)), ""} | List]);
 parse_style([], [], List) ->
     {ok, orddict:from_list(List)};
 parse_style([$: | R], SName, List) ->
     {ok, StyleVal, R_1} = tok_svg_attr(R, [], []),
-    parse_style(R_1, [], [{lists:reverse(SName), StyleVal} | List]);
+    parse_style(R_1, [], [{string:strip(lists:reverse(SName)), StyleVal} | List]);
+parse_style([A | R], [], List)
+  when A =:= 32; A =:= 9; A =:= 10; A =:= 13 ->
+    parse_style(R, [], List);
 parse_style([A | R], SName, List)
   when A =/= $: , A =/= $; ->
     parse_style(R, [A | SName], List).
@@ -3587,6 +3628,982 @@ angle_of_line({A1_X,A1_Y}, {A2_X,A2_Y}) ->
 %%%
 %%%
 
+%%%
+%%%  Extract <style> and <script> tags from SVG
+%%%
+-define(IS_WS(A), (
+    C =:= 32 orelse C =:= 9 orelse
+    C =:= 10 orelse C =:= 13
+)).
+
+%% Extract style and script tags from the SVG file even before parsing
+%% with xmerl.
+%%
+extract_styles(A) ->
+    extract_styles(A, 0, []).
+extract_styles(A, At, OL) ->
+    case binary:match(A, [<<"<s">>,<<"<S">>], [{scope, {At, byte_size(A)-At}}]) of
+        {S1,_} ->
+            case string:lowercase(binary:part(A, {S1, 6})) of
+                <<"<style">> ->
+                    {S1Start,_} = binary:match(A, [<<">">>], [{scope,{S1, byte_size(A)-S1}}]),
+                    {S2,_} = binary:match(A, [<<"</s">>,<<"</S">>], [{scope,{S1, byte_size(A)-S1}}]),
+                    {S3,_} = binary:match(A, [<<">">>], [{scope,{S2, byte_size(A)-S2}}]),
+                    StyleCont = sty_cmt_unwrap(binary:part(A, {S1Start+1, S2-S1Start-1})),
+                    NewB = iolist_to_binary([
+                        binary:part(A, {0, S1}),
+                        binary:part(A, {S3+1, byte_size(A)-S3-1})]),
+                    Attrs = binary:part(A, {S1+1+5, S1Start-S1-1-5}),
+                    TypeAttr = extract_styles_attr("type", Attrs),
+                    extract_styles(NewB, 0, [{TypeAttr, StyleCont}|OL]);
+                _ ->
+                    case string:lowercase(binary:part(A, {S1, 7})) of
+                        <<"<script">> ->
+                            {S2,_} = binary:match(A, [<<"</s">>,<<"</S">>], [{scope,{S1, byte_size(A)-S1}}]),
+                            {S3,_} = binary:match(A, [<<">">>], [{scope,{S2, byte_size(A)-S2}}]),
+                            NewB = iolist_to_binary([
+                                binary:part(A, {0, S1}),
+                                binary:part(A, {S3+1, byte_size(A)-S3-1})]),
+                            extract_styles(NewB, 0, OL);
+                        _ ->
+                            extract_styles(A, S1+1, OL)
+                    end
+            end;
+        nomatch ->
+            {A, lists:reverse(OL)}
+    end.
+
+%% This extracts an attribute for a <style ...> tag, it is
+%% only used to extract the type attribute.
+%%
+extract_styles_attr(AttrName, Bin)
+  when is_binary(Bin) ->
+    extract_styles_attr(AttrName, binary_to_list(Bin));
+extract_styles_attr(AttrName, Str) ->
+    Str_1 = string:lowercase(string:strip(Str)),
+    extract_styles_attr_1(AttrName, extract_styles_attr_2(Str_1)).
+extract_styles_attr_1(_AttrName, []) ->
+    none;
+extract_styles_attr_1(AttrName, [{A,B}|_])
+  when AttrName =:= A ->
+    B;
+extract_styles_attr_1(AttrName, [_|L]) ->
+    extract_styles_attr_1(AttrName, L).
+extract_styles_attr_2(Str) ->
+    extract_styles_attr_2(Str, {1, []}, []).
+extract_styles_attr_2([], {_, _}, OL) ->
+    lists:reverse(OL);
+extract_styles_attr_2([], {_, AtVal, AtName}, OL) ->
+    AtVal_1 = lists:reverse(AtVal),
+    extract_styles_attr_2([], {1, []}, [{AtName,AtVal_1}|OL]);
+extract_styles_attr_2([C|Str], {1, AtName}, OL)
+  when ?IS_WS(C); C =:= $'; C =:= 34 ->
+    extract_styles_attr_2(Str, {1, [32|AtName]}, OL);
+extract_styles_attr_2([C|Str], {1, AtName}, OL)
+  when C =:= $= ->
+    AtName_1 = string:lowercase(string:strip(lists:reverse(AtName))),
+    [AtName_2|_] = lists:reverse(string:tokens(AtName_1, " \t")),
+    extract_styles_attr_2(Str, {2, AtName_2}, OL);
+extract_styles_attr_2([C|Str], {2, AtName}, OL)
+  when C =:= $'; C =:= 34 ->
+    extract_styles_attr_2(Str, {3, [], AtName}, OL);
+extract_styles_attr_2([C|Str], {3, AtVal, AtName}, OL)
+  when C =:= $'; C =:= 34 ->
+    AtVal_1 = lists:reverse(AtVal),
+    extract_styles_attr_2(Str, {1, []}, [{AtName,AtVal_1}|OL]);
+extract_styles_attr_2([C|Str], {4, AtVal, AtName}, OL)
+  when ?IS_WS(C) ->
+    AtVal_1 = lists:reverse(AtVal),
+    extract_styles_attr_2(Str, {1, []}, [{AtName,AtVal_1}|OL]);
+extract_styles_attr_2([C|Str], {M, AtVal, AtName}, OL)
+  when M =:= 3; M =:= 4 ->
+    extract_styles_attr_2(Str, {M, [C|AtVal], AtName}, OL);
+extract_styles_attr_2([C|Str], {2, AtName}, OL) ->
+    extract_styles_attr_2(Str, {4, [C], AtName}, OL);
+extract_styles_attr_2([C|Str], {1, AtName}, OL) ->
+    extract_styles_attr_2(Str, {1, [C|AtName]}, OL).
+    
+
+
+%% Sometimes there could be a SGML comment or CDATA within the style tag
+%%
+sty_cmt_unwrap(<<C,R/binary>>)
+  when ?IS_WS(C) ->
+    sty_cmt_unwrap(R);
+sty_cmt_unwrap(<<"<!--",R/binary>>) ->
+    {St, _} = binary:match(R, [<<"-->">>]),
+    binary:part(R, {0, St});
+sty_cmt_unwrap(<<"<![CDATA[",R/binary>>) ->
+    {St, _} = binary:match(R, [<<"]]>">>]),
+    binary:part(R, {0, St});
+sty_cmt_unwrap(R) ->
+    R.
+
+
+%% Get link-rel CSS files
+%%
+get_link_rel_css(L, CurDir) ->
+    get_link_rel_css(L, CurDir, []).
+get_link_rel_css([], _CurDir, OL) ->
+    lists:append(lists:reverse(OL));
+get_link_rel_css([{linkrel,LinkedCSS}|L], CurDir, OL) ->
+    Rel = proplists:get_value("rel", LinkedCSS, none),
+    HRef = proplists:get_value("href", LinkedCSS, none),
+    Type = proplists:get_value("type", LinkedCSS, none),
+    if
+        HRef =:= none ->
+            get_link_rel_css(L, CurDir, OL);
+        true ->
+            case string:lowercase(string:strip(Rel)) of
+                "stylesheet" ->
+                    OL_1 = get_link_rel_css_1(HRef, CurDir, Type, OL),
+                    get_link_rel_css(L, CurDir, OL_1);
+                _ ->
+                    get_link_rel_css(L, CurDir, OL)
+            end
+    end.
+get_link_rel_css_1(HRef, CurDir, Type, OL) ->
+    case load_css_import_local(HRef, CurDir) of
+        %% Found a local file
+        {ok, File_1} ->
+            case parse_stylesheet_file(File_1, parse_stylesheet_type(Type)) of
+                {ok, CSS} ->
+                    [CSS|OL];
+                false ->
+                    OL
+            end;
+        false ->
+            OL
+    end.
+
+
+
+
+%%%
+%%%  Style sheet parser for SVG
+%%%
+%%%  Parse and apply style sheets attached to the SVG file.
+%%%
+
+-type stypropstr() :: list().
+
+-type s0_tup_tag() :: none | list().
+-type s0_tup_id() :: none | list().
+-type s0_tup_cls() :: none | list().
+-type s0_tuple() :: {s0_tup_tag(), s0_tup_id(), s0_tup_cls()}.
+-type s0() :: [s0_tuple()].
+-type style_entry() :: {[tuple()], stypropstr()}.
+-type style_list() :: [style_entry()].
+
+
+
+%% Match CSS selectors to SVG elements and set styles on them
+%% Only basic CSS matching by id, class and/or element, and
+%% match of parent elements are currently implemented.
+%%
+-record(csssty, {
+    css,
+    s = []
+}).
+match_css(SVGL, M) ->
+    match_css(SVGL, #csssty{css=M}, []).
+
+match_css([{s,Tag,Opt}|SVGL], #csssty{css=CSS,s=S0}=Stt, OL) ->
+    Id = proplists:get_value(id, Opt, none),
+    Class_0 = proplists:get_value(class, Opt, none),
+    Style = proplists:get_value(style, Opt, none),
+    Class_1 = if
+        is_list(Class_0) ->
+            string:tokens(Class_0, " \t");
+        true ->
+            []
+    end,
+    T = {Tag, Id, Class_1},
+    Style_1 = match_css_1(CSS, [T|S0], Style),
+    Opt1 =
+        case Style_1 of
+            none ->
+                Opt;
+            _ ->
+                [{style, Style_1}|proplists:delete(style, Opt)]
+        end,
+    match_css(SVGL, Stt#csssty{s=[T|S0]}, [{s,Tag,Opt1}|OL]);
+match_css([{e,_}=A0|SVGL], #csssty{s=[_|S0]}=Stt, OL) ->
+    match_css(SVGL, Stt#csssty{s=S0}, [A0|OL]);
+match_css([A0|SVGL], Stt, OL) ->
+    match_css(SVGL, Stt, [A0|OL]);
+match_css([], #csssty{}=_Stt, OL) ->
+    lists:reverse(OL).
+
+
+%% Find which selectors in the style sheet list matches to each element,
+%% where S0 is a list of the current element as a tuple {TagName, Id, Class}
+%% and its parents.
+%%
+-spec match_css_1(style_list(), s0(), none | #style_colors{}) -> none | #style_colors{}.
+match_css_1(CSS, S0, Style) ->
+    match_css_1_find(CSS, S0, Style).
+match_css_1_find([], _S0, Style) ->
+    Style;
+match_css_1_find([C|CSS], S0, Style) ->
+    Style_1 = case match_css_c(C, S0) of
+        {match, StyleFrom_0} ->
+            %% Parse the style properties here when the selectors
+            %% match an element.
+            {ok, StyleFrom_1} = parse_style(StyleFrom_0),
+            {ok, StyleFrom} = style_to_tuple(StyleFrom_1),
+            match_css_1_set_style(Style, StyleFrom);
+        false ->
+            Style
+    end,
+    match_css_1_find(CSS, S0, Style_1).
+
+
+%% Try to match each comma separated selector, try each {m, ...} tuple until
+%% something matches or return false.
+%%
+-spec match_css_c(style_entry(), s0()) -> false | {match, stypropstr()}.
+match_css_c({Match, StyleFrom}, S0) ->
+    match_css_c(Match, S0, StyleFrom).
+match_css_c([{m,W}|L], S0, StyleFrom) ->
+    case match_css_c_1(W, S0) of
+        true ->
+            {match, StyleFrom};
+        false ->
+            match_css_c(L, S0, StyleFrom)
+    end;
+match_css_c([], _S0, _) ->
+    false.
+
+
+-spec match_css_c_1(tuple(), s0()) -> boolean().
+
+-record(matchcss_stt, {
+    sl
+}).
+match_css_c_1(Sel, SL) ->
+    case match_css_c_2(Sel, #matchcss_stt{sl=SL}) of
+        #matchcss_stt{} -> true;
+        _ -> false
+    end.
+match_css_c_2(_, #matchcss_stt{sl=[]}=_Stt) ->
+    false;
+match_css_c_2({select, SList}, #matchcss_stt{sl=[S_0|SL]}=Stt) ->
+    case match_css_c_2_m(slist(SList), S_0) of
+        true ->
+            Stt#matchcss_stt{sl=SL};
+        false ->
+            false
+    end;
+match_css_c_2({in, A, B}, Stt1) ->
+    case match_css_c_2(B, Stt1) of
+        false -> false;
+        Stt2 ->
+            case match_css_c_2(A, Stt2) of
+                false -> false;
+                Stt3 ->
+                    Stt3
+            end
+    end;
+match_css_c_2({ionce, A, B}, Stt1) ->
+    case match_css_c_2(B, Stt1) of
+        false -> false;
+        Stt2 ->
+            case match_css_c_2(A, Stt2) of
+                false -> false;
+                Stt3 ->
+                    Stt3
+            end
+    end;
+match_css_c_2({subsib, _A, _B}, _S0) ->
+    % unimplemented
+    false;
+match_css_c_2({nextsib, _A, _B}, _S0) ->
+    % unimplemented
+    false.
+
+match_css_c_2_m([{MTag,MId,MCls}|SList], {VTag,VId,VCls}=S_0) ->
+    case match_css_c_2_m2(MTag,VTag) andalso
+         match_css_c_2_m2(MId,VId) andalso
+         match_css_c_2_mlist(MCls,VCls) of
+        true ->
+            match_css_c_2_m(SList, S_0);
+        false ->
+            false
+    end;
+match_css_c_2_m([], _) ->
+    true.
+
+match_css_c_2_m2(any, _) ->
+    true;
+match_css_c_2_m2(Str1, Str2)
+  when is_list(Str1), is_list(Str2) ->
+    string:lowercase(Str1) =:= string:lowercase(Str2);
+match_css_c_2_m2(Str1, none)
+  when is_list(Str1) ->
+    false.
+
+
+match_css_c_2_mlist(any, _) ->
+    true;
+match_css_c_2_mlist(B, List) ->
+    lists:any(
+        fun(C) ->
+            match_css_c_2_m2(C, B)
+        end, List).
+
+
+
+slist([]) -> [];
+slist([A|L]) ->
+    [slist_1(A)|slist(L)].
+slist_1({tag,star})        -> {any,any,any};
+slist_1({tag,TagName})     -> {TagName,any,any};
+slist_1({dot,ClassName})   -> {any,any,ClassName};
+slist_1({hash,IDName})     -> {any,IDName,any};
+slist_1({dbc_fun,_})   -> {any,any,any};
+slist_1({dbc,_})       -> {any,any,any};
+slist_1({colon_fun,_}) -> {any,any,any};
+slist_1({colon,_})     -> {any,any,any};
+slist_1({b,_})     -> {any,any,any};
+slist_1({p,_})     -> {any,any,any}.
+
+
+
+%% Apply style sheet style information to the style information of an element
+%% whenever it is possible by replacing 'inherit' placeholders with a color.
+%%
+-spec match_css_1_set_style(none | #style_colors{}, none | #style_colors{}) -> none | #style_colors{}.
+match_css_1_set_style(StyleTo_0, #style_colors{scol=SCol,fcol=FCol,fopa=FOpa}=_StyleFrom) ->
+    StyleTo_1 = match_css_1_set_style_1(StyleTo_0, {scol, SCol}),
+    StyleTo_2 = match_css_1_set_style_1(StyleTo_1, {fcol, FCol}),
+    StyleTo_3 = match_css_1_set_style_1(StyleTo_2, {fopa, FOpa}),
+    StyleTo_3.
+match_css_1_set_style_1(none, Which) ->
+    match_css_1_set_style_1(#style_colors{scol=inherit,fcol=inherit,fopa=inherit}, Which);
+match_css_1_set_style_1(#style_colors{scol=inherit}=Style, {scol, Atom})
+  when Atom =:= none; Atom =:= opaque ->
+    Style#style_colors{scol=Atom};
+match_css_1_set_style_1(#style_colors{fcol=inherit}=Style, {fcol, RGB})
+  when is_tuple(RGB) ->
+    Style#style_colors{fcol=RGB};
+match_css_1_set_style_1(#style_colors{fopa=inherit}=Style, {fopa, Opacity}) ->
+    Style#style_colors{fopa=Opacity};
+match_css_1_set_style_1(Style, _) ->
+    Style.
+
+
+%%%
+%%%
+
+%%% Style sheet tokenization and parsing
+%%%
+
+
+%% Parse a list of style sheets, such as returned from extract_styles/1
+%%
+parse_stylesheet_list(List, CurDir) ->
+    parse_stylesheet_list(List, CurDir, []).
+parse_stylesheet_list([{MimeType, Cont}|List], CurDir, OL) ->
+    {ok, M} = parse_stylesheet(Cont, CurDir, parse_stylesheet_type(MimeType)),
+    parse_stylesheet_list(List, CurDir, [M|OL]);
+parse_stylesheet_list([], _CurDir, OL) ->
+    lists:append(lists:reverse(OL)).
+
+
+%% Parse style sheet, depending on the type, only CSS is supported.
+%%
+parse_stylesheet(Cont, CurDir, css) ->
+    {Toks_1, _} = parse_stylesheet_1(Cont, CurDir, css, gb_sets:new()),
+    parse_css_2(Toks_1);
+parse_stylesheet(_, _CurDir, unknown) ->
+    {ok, []}.
+
+parse_stylesheet_file(File, css)
+  when is_list(File) ->
+    case parse_stylesheet_file_1(File, css, gb_sets:new()) of
+        {ok, {Toks_1, _}} ->
+            parse_css_2(Toks_1);
+        {false, _} ->
+            false
+    end;
+parse_stylesheet_file(_, unknown) ->
+    {ok, []}.
+
+
+parse_stylesheet_1(Cont, CurDir, css, Loaded) ->
+    {Toks, _} = parse_css_1(Cont, []),
+    %% Load @import statements
+    load_css_import(Toks, CurDir, Loaded).
+
+parse_stylesheet_file_1(File, css, Loaded)
+  when is_list(File) ->
+    CurDir = filename:dirname(File),
+    case string:lowercase(filename:extension(File)) of
+        ".css" ->
+            case file:read_file(File) of
+                {ok, F} ->
+                    {ok, parse_stylesheet_1(F, CurDir, css, gb_sets:add(File, Loaded))};
+                {error, _} ->
+                    {false, Loaded}
+            end;
+        Ext ->
+            io:format("~w: NOTE: CSS File unexpected extension: ~s~n", [?MODULE, Ext]),
+            {false, Loaded}
+    end.
+
+
+%% Tokenization
+%%
+parse_css_1(<<C1,C2, R/binary>>, OL)
+  when C1 =:= $/, C2 =:= $* ->
+    {_, R_1} = css_cmt(R),
+  parse_css_1(R_1, OL);
+parse_css_1(<<C, R/binary>>, OL)
+  when C =:= ${ ->
+    {Cont, R_1} = css_enclosing_curly(R),
+    parse_css_1(R_1, [{style, Cont}|OL]);
+parse_css_1(<<C, R/binary>>, OL)
+  when ?IS_WS(C) ->
+    case OL of
+        [ws|_] ->
+            parse_css_1(R, OL);
+        _ ->
+            parse_css_1(R, [ws|OL])
+    end;
+parse_css_1(<<"@charset", R/binary>>, OL) ->
+    case parse_css_charset(R) of
+        {Unused, R_1} ->
+            io:format("~w: NOTE: Skipped @charset: ~p~n", [?MODULE, Unused]),
+            parse_css_1(R_1, OL)
+    end;
+parse_css_1(<<"@import", R/binary>>, OL) ->
+    case parse_css_import(R) of
+        {[{s,File}|_], R_1} ->
+            parse_css_1(R_1, [{import, File}|OL]);
+        {[{w,"url"},{s,File}|_], R_1} ->
+            parse_css_1(R_1, [{import, File}|OL]);
+        {Unused, R_1} ->
+            io:format("~w: NOTE: Skipped @import: ~p~n", [?MODULE, Unused]),
+            parse_css_1(R_1, OL)
+    end;
+parse_css_1(<<"@media", R/binary>>, OL) ->
+    {Cond, Cont, R_1} = css_media(R),
+    parse_css_1(R_1, [{media, Cond, Cont}|OL]);
+parse_css_1(<<"@supports", R/binary>>, OL) -> %% @supports ( .. ) { .. }
+    {Cond, Cont, R_1} = css_media(R),
+    parse_css_1(R_1, [{supports, Cond, Cont}|OL]);
+parse_css_1(<<"@-", R/binary>>, OL) -> %% @-.. { .. }
+    %% Quietly skip proprietary @ rule
+    {_, R_1} = css_unknown(R),
+    parse_css_1(R_1, OL);
+parse_css_1(<<"@", R/binary>>, OL) ->
+    %% Standard @-rule, skip it but mention it in console in case
+    %% it is a bug that it is skipped.
+    {_Unk, R_1} = css_unknown(R),
+    io:format("~w: NOTE: Unknown @-rule skipped~n", [?MODULE]),
+    parse_css_1(R_1, OL);
+
+parse_css_1(<<"(", R/binary>>, OL) ->
+    {Cont, R_1} = css_paren(R),
+    parse_css_1(R_1, [{p, Cont}|OL]);
+parse_css_1(<<C, R/binary>>, OL)
+  when C =:= $* -> %% Wildcard match
+    parse_css_1(R, [star|OL]);
+
+%% Match CSS operators
+%%
+parse_css_1(<<C, R/binary>>, OL)
+  when C =:= $> -> % match operator
+    parse_css_1(R, [ionce|OL]);
+parse_css_1(<<C, R/binary>>, OL)
+  when C =:= $~ -> % subsequent-sibling operator
+    parse_css_1(R, [subsib|OL]);
+parse_css_1(<<C, R/binary>>, OL)
+  when C =:= $+ ->
+    parse_css_1(R, [nextsib|OL]);
+parse_css_1(<<C, R/binary>>, OL)
+  when C =:= $, ->
+    parse_css_1(R, [cma|OL]);
+parse_css_1(<<C1,C2, R/binary>>, OL)
+  when C1 =:= $:,C2 =:= $: ->
+    parse_css_1(R, [dbc|OL]);
+parse_css_1(<<C1, R/binary>>, OL)
+  when C1 =:= $: ->
+    parse_css_1(R, [colon|OL]);
+
+%% Match CSS selector
+parse_css_1(<<C, R/binary>>, OL)
+  when C =:= $. ->
+    parse_css_1(R, [dot|OL]);
+parse_css_1(<<C, R/binary>>, OL)
+  when C =:= $# ->
+    parse_css_1(R, [hash|OL]);
+
+%% CSS Word
+parse_css_1(<<C, _/binary>>=R, OL)
+  when C >= $A andalso C =< $Z;
+       C >= $a andalso C =< $z;
+       C =:= $-; C =:= $_ ->
+    {Cont, R_1} = css_word(R),
+    parse_css_1(R_1, [{w, Cont}|OL]);
+parse_css_1(<<C, R/binary>>, OL)
+  when C =:= $[ ->
+    {Cont, R_1} = css_enclosing_bracket(R),
+    parse_css_1(R_1, [{b, Cont}|OL]);
+parse_css_1(<<C, R/binary>>, OL)
+  when C =:= $} ->
+    {lists:reverse(OL), R};
+parse_css_1(<<>>, OL) ->
+    {lists:reverse(OL), <<>>}.
+
+
+%% Parse CSS @import
+%%
+parse_css_import(R) ->
+    parse_css_import(R, [], []).
+parse_css_import(<<C, _/binary>>=R, [_|_]=W, OL)
+  when ?IS_WS(C); C =:= $/; C =:= $;; C =:= $(; C =:= $'; C =:= 34 ->
+    parse_css_import(R, [], [{w,lists:reverse(W)}|OL]);
+parse_css_import(<<C1,C2, R/binary>>, [], OL)
+  when C1 =:= $/, C2 =:= $* ->
+    {_, R_1} = css_cmt(R),
+    parse_css_import(R_1, [], OL);
+parse_css_import(<<C, R/binary>>, [], OL)
+  when C =:= $; ->
+    {lists:reverse(OL), R};
+parse_css_import(<<C, R/binary>>, [], OL)
+  when C =:= $( ->
+    {Cont, R_1} = css_paren(R, []),
+    Cont_1 = string:strip(Cont),
+    Cont_3 = case Cont_1 of
+        [$'|Cont_2] ->
+            {S, _} = css_quot(iolist_to_binary(Cont_2)),
+            S;
+        [34|Cont_2] ->
+            {S, _} = css_dquot(iolist_to_binary(Cont_2)),
+            S;
+        Cont_2 ->
+            Cont_2
+    end,
+    parse_css_import(R_1, [], [{s, Cont_3}|OL]);
+parse_css_import(<<C, R/binary>>, [], OL)
+  when C =:= $' ->
+    {Cont, R_1} = css_quot(R),
+    parse_css_import(R_1, [], [{s,Cont}|OL]);
+parse_css_import(<<C, R/binary>>, [], OL)
+  when C =:= 34 ->
+    {Cont, R_1} = css_dquot(R),
+    parse_css_import(R_1, [], [{s,Cont}|OL]);
+parse_css_import(<<C, R/binary>>, [], OL)
+  when ?IS_WS(C) ->
+    parse_css_import(R, [], OL);
+parse_css_import(<<C, R/binary>>, L, OL) ->
+    parse_css_import(R, [C|L], OL).
+
+
+%% Parse CSS @charset
+%%
+parse_css_charset(R) ->
+    %% Reuse @import parse code
+    parse_css_import(R).
+
+
+%% The MIME type of the style sheet
+%%
+parse_stylesheet_type(Str_0)
+  when is_list(Str_0) ->
+    Str_1 = string:lowercase(string:strip(Str_0)),
+    [Str_2|_] = string:tokens(Str_1, " ,;"),
+    case Str_2 =:= "text/css" of
+        true ->
+            css;
+        false ->
+            unknown
+    end;
+parse_stylesheet_type(none) ->
+    css;
+parse_stylesheet_type(_) ->
+    unknown.
+
+
+parse_css_2(T) ->
+    parse_css_2(T, [], []).
+
+%% @media and @supports are unimplemented
+parse_css_2([{media, _, _}|T], _ML, OL) ->
+    parse_css_2(T, [], OL);
+parse_css_2([{supports, _, _}|T], _ML, OL) ->
+    parse_css_2(T, [], OL);
+
+%% Parse selectors preceeding the style contents
+parse_css_2([{style, Style}|T], ML, OL) ->
+    parse_css_2(T, [], [{parse_css_ml(lists:reverse(ML)), Style}|OL]);
+parse_css_2([M|T], ML, OL) ->
+    parse_css_2(T, [M|ML], OL);
+parse_css_2([], _, OL) ->
+    {ok, lists:reverse(OL)}.
+
+
+%% Trim white space tokens from both ends and remove white space
+%% adjacent to operators: > ~ ; + :: :
+%% The remaining white space tokens are operators for nested
+%% element matching.
+%%
+parse_css_re_ws(ML) ->
+    ML1 = parse_css_re_ws_l(ML),
+    ML2 = parse_css_re_ws_l(parse_css_re_ws_op(ML1)),
+    lists:reverse(ML2).
+parse_css_re_ws_l([ws|ML]) ->
+    parse_css_re_ws_l(ML);
+parse_css_re_ws_l(ML) ->
+    ML.
+
+parse_css_re_ws_op(ML) ->
+    parse_css_re_ws_op(ML, []).
+parse_css_re_ws_op([ws|[ionce|_]=ML], OL) ->
+    parse_css_re_ws_op(ML, OL);
+parse_css_re_ws_op([ws|[subsib|_]=ML], OL) ->
+    parse_css_re_ws_op(ML, OL);
+parse_css_re_ws_op([ws|[nextsib|_]=ML], OL) ->
+    parse_css_re_ws_op(ML, OL);
+parse_css_re_ws_op([ws|[cma|_]=ML], OL) ->
+    parse_css_re_ws_op(ML, OL);
+
+parse_css_re_ws_op([ionce=T,ws|ML], OL) ->
+    parse_css_re_ws_op(ML, [T|OL]);
+parse_css_re_ws_op([subsib=T,ws|ML], OL) ->
+    parse_css_re_ws_op(ML, [T|OL]);
+parse_css_re_ws_op([nextsib=T,ws|ML], OL) ->
+    parse_css_re_ws_op(ML, [T|OL]);
+parse_css_re_ws_op([cma=T,ws|ML], OL) ->
+    parse_css_re_ws_op(ML, [T|OL]);
+
+parse_css_re_ws_op([T|ML], OL) ->
+    parse_css_re_ws_op(ML, [T|OL]);
+parse_css_re_ws_op([], OL) ->
+    OL.
+
+
+%% Parse
+%%
+parse_css_ml(L) ->
+    parse_css_ml_cma(parse_css_re_ws(L)).
+
+%% Commas between selectors
+%%
+parse_css_ml_cma(L) ->
+    parse_css_ml_cma(L, [], []).
+parse_css_ml_cma([cma|L], [], OL) ->
+    parse_css_ml_cma(L, [], OL);
+parse_css_ml_cma([cma|L], ML, OL) ->
+    parse_css_ml_cma(L, [], [{m, parse_css_ml_op(lists:reverse(ML))}|OL]);
+parse_css_ml_cma([A|L], ML, OL) ->
+    parse_css_ml_cma(L, [A|ML], OL);
+parse_css_ml_cma([], [], OL) ->
+    lists:reverse(OL);
+parse_css_ml_cma([], ML, OL) ->
+    parse_css_ml_cma([], [], [{m, parse_css_ml_op(lists:reverse(ML))}|OL]).
+
+
+%% Operators (white space > ~ +)
+%%
+parse_css_ml_op(L) ->
+    parse_css_ml_op(L, [], [], none).
+parse_css_ml_op([Op|L], ML, [], none)
+  when Op =:= ws; Op =:= ionce; Op =:= subsib; Op =:= nextsib ->
+    ML_1 = parse_css_ml_2(lists:reverse(ML)),
+    parse_css_ml_op(L, [], ML_1, sel_op(Op));
+parse_css_ml_op([Op|L], ML, ML0, Op0)
+  when Op =:= ws; Op =:= ionce; Op =:= subsib; Op =:= nextsib ->
+    ML_1 = parse_css_ml_2(lists:reverse(ML)),
+    parse_css_ml_op(L, [], {Op0, ML0, ML_1}, sel_op(Op));
+parse_css_ml_op([], ML, [], none) ->
+    ML_1 = parse_css_ml_2(lists:reverse(ML)),
+    ML_1;
+parse_css_ml_op([], ML, ML0, Op0) ->
+    ML_1 = parse_css_ml_2(lists:reverse(ML)),
+    {Op0, ML0, ML_1};
+parse_css_ml_op([A|L], ML, ML0, Op0) ->
+    parse_css_ml_op(L, [A|ML], ML0, Op0).
+
+sel_op(ws) -> in;
+sel_op(ionce) -> ionce;
+sel_op(subsib) -> subsib;
+sel_op(nextsib) -> nextsib.
+
+
+parse_css_ml_2_tag(star) ->
+    {tag, star};
+parse_css_ml_2_tag({w,TagName})
+  when is_list(TagName) ->
+    {tag, TagName}.
+
+%%
+-define(CSSMW(W), (
+    W =:= star orelse (is_tuple(W) andalso element(1, W) =:= w)
+)).
+parse_css_ml_2([TagName])
+  when ?CSSMW(TagName) ->
+    {select, [parse_css_ml_2_tag(TagName)]};
+parse_css_ml_2([TagName|[_|_]=R])
+  when ?CSSMW(TagName) ->
+    {select, [parse_css_ml_2_tag(TagName)
+               | parse_css_ml_2_1(R)]};
+parse_css_ml_2(L) ->
+    {select, parse_css_ml_2_1(L)}.
+parse_css_ml_2_1([dbc,{w,A},{p,B}|L])
+  when is_list(A) ->
+    parse_css_ml_2_1([{dbc_fun, {A, B}}|L]);
+parse_css_ml_2_1([dbc,{w,A}|L])
+  when is_list(A) ->
+    parse_css_ml_2_1([{dbc, A}|L]);
+parse_css_ml_2_1([dot,{w,A}|L])
+  when is_list(A) ->
+    parse_css_ml_2_1([{dot, A}|L]);
+parse_css_ml_2_1([hash,{w,A}|L])
+  when is_list(A) ->
+    parse_css_ml_2_1([{hash, A}|L]);
+parse_css_ml_2_1([colon,{w,A},{p,B}|L])
+  when is_list(A) ->
+    parse_css_ml_2_1([{colon_fun, {A, B}}|L]);
+parse_css_ml_2_1([colon,{w,A}|L])
+  when is_list(A) ->
+    parse_css_ml_2_1([{colon, A}|L]);
+parse_css_ml_2_1([A]) ->
+    [A];
+parse_css_ml_2_1([A|L]) ->
+    [A | parse_css_ml_2_1(L)].
+
+
+%% Functions for parse_css_1
+%%
+
+%% CSS Word
+%%
+css_word(R) ->
+    css_word(R, []).
+css_word(<<C, R/binary>>, OL)
+  when C >= $A andalso C =< $Z;
+       C >= $a andalso C =< $z;
+       C >= $0 andalso C =< $9;
+       C =:= $-; C =:= $_ ->
+    css_word(R, [C|OL]);
+css_word(R, OL) ->
+    {lists:reverse(OL), R}.
+
+%% The contents of a style enclosed in curlies.
+%%
+css_enclosing_curly(R) ->
+    css_enclosing_curly(R, []).
+css_enclosing_curly(<<C, R/binary>>, OL)
+  when C =:= 10; C =:= 13; C =:= 9 ->
+    css_enclosing_curly(R, OL);
+css_enclosing_curly(<<C1,C2, R/binary>>, OL)
+  when C1 =:= $/, C2 =:= $* ->
+    {_, R_1} = css_cmt(R),
+    css_enclosing_curly(R_1, OL);
+css_enclosing_curly(<<C, R/binary>>, OL)
+  when C =:= $} ->
+    {lists:reverse(OL), R};
+css_enclosing_curly(<<C, R/binary>>, OL) ->
+    css_enclosing_curly(R, [C|OL]).
+
+%% The contents enclosed in bracket.
+%%
+css_enclosing_bracket(R) ->
+    css_enclosing_bracket(R, []).
+css_enclosing_bracket(<<C, R/binary>>, OL)
+  when C =:= 10; C =:= 13; C =:= 9 ->
+    css_enclosing_bracket(R, OL);
+css_enclosing_bracket(<<C1,C2, R/binary>>, OL)
+  when C1 =:= $/, C2 =:= $* ->
+    {_, R_1} = css_cmt(R),
+    css_enclosing_bracket(R_1, OL);
+css_enclosing_bracket(<<C, R/binary>>, OL)
+  when C =:= $] ->
+    {lists:reverse(OL), R};
+css_enclosing_bracket(<<C, R/binary>>, OL) ->
+    css_enclosing_bracket(R, [C|OL]).
+
+%% The contents enclosed in parenthesises
+%%
+css_paren(R) ->
+    css_paren(R, []).
+css_paren(<<C, R/binary>>, OL)
+  when C =:= 10; C =:= 13; C =:= 9 ->
+    css_paren(R, OL);
+css_paren(<<C1,C2, R/binary>>, OL)
+  when C1 =:= $/, C2 =:= $* ->
+    {_, R_1} = css_cmt(R),
+    css_paren(R_1, OL);
+css_paren(<<C, R/binary>>, OL)
+  when C =:= $( ->
+    {Cont, R_1} = css_paren(R, []),
+    css_paren(R_1, [ $) ] ++ lists:reverse(Cont) ++ [C|OL]);
+css_paren(<<C, R/binary>>, OL)
+  when C =:= $) ->
+    {lists:reverse(OL), R};
+css_paren(<<C, R/binary>>, OL) ->
+    css_paren(R, [C|OL]).
+
+%% The contents of a css comment
+%%
+css_cmt(R) ->
+    css_cmt(R, []).
+css_cmt(<<C1,C2, R/binary>>, OL)
+  when C1 =:= $*, C2 =:= $/ ->
+    {lists:reverse(OL), R};
+css_cmt(<<C, R/binary>>, OL) ->
+    css_cmt(R, [C|OL]).
+
+
+%% The contents of a CSS single quote comment
+%%
+css_quot(R) ->
+    css_quot(R, []).
+css_quot(<<C1, R/binary>>, OL)
+  when C1 =:= $' ->
+    {lists:reverse(OL), R};
+css_quot(<<C, R/binary>>, OL) ->
+    css_quot(R, [C|OL]).
+
+
+%% The contents of a CSS double quote string
+%%
+css_dquot(R) ->
+    css_dquot(R, []).
+css_dquot(<<C1, R/binary>>, OL)
+  when C1 =:= 34 ->
+    {lists:reverse(OL), R};
+css_dquot(<<C, R/binary>>, OL) ->
+    css_dquot(R, [C|OL]).
+
+
+%% The contents of a media grouping.
+%%
+css_media(R) ->
+    css_media(R, []).
+css_media(<<C1,C2, R/binary>>, OL)
+  when C1 =:= $/, C2 =:= $* ->
+    {_, R_1} = css_cmt(R),
+    css_media(R_1, OL);
+css_media(<<C, R/binary>>, OL)
+  when C =:= ${ ->
+    {Cont, R_1} = parse_css_1(R, []),
+    {css_media_q(lists:reverse(OL)), Cont, R_1};
+css_media(<<C, R/binary>>, OL) ->
+    css_media(R, [C|OL]).
+
+css_media_q(L) ->
+    css_media_q(iolist_to_binary(L), []).
+css_media_q(<<C,_/binary>>=R, OL)
+  when C >= $A andalso C =< $Z;
+       C >= $a andalso C =< $z;
+       C >= $0 andalso C =< $9 ->
+    {Cont, R_1} = css_word(R),
+    css_media_q(R_1, [{w,Cont}|OL]);
+css_media_q(<<C,R/binary>>, OL)
+  when C =:= $( ->
+    {Cont, R_1} = css_paren(R),
+    css_media_q(R_1, [{p,Cont}|OL]);
+css_media_q(<<C,R/binary>>, OL)
+  when ?IS_WS(C) ->
+    css_media_q(R, OL);
+css_media_q(<<>>, OL) ->
+    lists:reverse(OL).
+
+
+%% The contents of a unknown @ grouping.
+%%
+css_unknown(<<C1,C2, R/binary>>)
+  when C1 =:= $/, C2 =:= $* ->
+    {_, R_1} = css_cmt(R),
+    css_unknown(R_1);
+css_unknown(<<C, R/binary>>)
+  when C =:= ${ ->
+    {ok, R_1} = css_unknown_1(R),
+    {ok, R_1};
+css_unknown(<<_, R/binary>>) ->
+    css_unknown(R).
+css_unknown_1(<<C1,C2, R/binary>>)
+  when C1 =:= $/, C2 =:= $* ->
+    {_, R_1} = css_cmt(R),
+    css_unknown_1(R_1);
+css_unknown_1(<<C, R/binary>>)
+  when C =:= ${ ->
+    {_, R_1} = css_unknown_1(R),
+    css_unknown_1(R_1);
+css_unknown_1(<<C, R/binary>>)
+  when C =:= $} ->
+    {ok, R};
+css_unknown_1(<<_, R/binary>>) ->
+    css_unknown_1(R).
+
+
+%% Load @import statements
+%%
+load_css_import(Toks, CurDir, Loaded) ->
+    load_css_import(Toks, CurDir, Loaded, []).
+load_css_import([{import, File}|Toks], CurDir, Loaded, OL) ->
+    case load_css_import_local(File, CurDir) of
+        %% Found a local file
+        {ok, File_1} ->
+            case gb_sets:is_element(File_1, Loaded) of
+                false ->
+                    io:format("~w: NOTE: Loading: ~s~n", [?MODULE, File_1]),
+                    {ok, {MoreToks, Loaded_1}} = parse_stylesheet_file_1(File_1, css, Loaded),
+                    load_css_import(Toks ++ [ws] ++ MoreToks, CurDir, Loaded_1, OL);
+                true ->
+                    io:format("~w: NOTE: Already loaded ~p~n", [?MODULE, File]),
+                    load_css_import(Toks, CurDir, Loaded, OL)
+            end;
+        %% Not a local file, or not found
+        false ->
+            load_css_import(Toks, CurDir, Loaded, OL)
+    end;
+load_css_import([T|Toks], CurDir, Loaded, OL) ->
+    load_css_import(Toks, CurDir, Loaded, [T|OL]);
+load_css_import([], _CurDir, Loaded, OL) ->
+    {lists:reverse(OL), Loaded}.
+
+
+%% Make sure a file is local, and that it exists
+%%
+load_css_import_local([D,$:,S|_]=File, CurDir)
+  when (S =:= $/ orelse S =:= $\\),
+       (D >= $A andalso D =< $Z) orelse
+       (D >= $a andalso D =< $z) ->
+    load_css_import_local_1(File, CurDir);
+load_css_import_local(File, CurDir) ->
+    case string:find(File, ":") of
+        nomatch ->
+            %% No uri scheme
+            load_css_import_local_1(File, CurDir);
+        _ ->
+            %% Might be an URL, return false
+            false
+    end.
+
+load_css_import_local_1(File, CurDir) ->
+    File_1 = filename:join(CurDir, File),
+    case string:lowercase(filename:extension(File)) of
+        ".css" ->
+            case file:read_file_info(File_1) of
+                {error, _} ->
+                    io:format("~w: NOTE: CSS File not found: ~s~n", [?MODULE, File_1]),
+                    false;
+                _ ->
+                    {ok, File_1}
+            end;
+        Ext ->
+            io:format("~w: NOTE: CSS File unexpected extension: ~s~n", [?MODULE, Ext]),
+            false
+    end.
+
+%%%
+%%%
+
 %% Some software output the same path twice as two elements in their SVG files,
 %% one for the fill and another for the outline, this can add extra unnecessary
 %% processing time or even confuse the mesh calculations, so the two
@@ -3611,7 +4628,7 @@ remove_double_paths_merge_id(Id_1, Id_2) ->
         "none" -> Id_2;
         _      -> Id_1
     end.
--spec remove_double_paths_merge_style(#style_colors{}, #style_colors{}) -> #style_colors{}.
+-spec remove_double_paths_merge_style(none | #style_colors{}, none | #style_colors{}) -> #style_colors{}.
 remove_double_paths_merge_style(#style_colors{scol=S1,fcol=F1,fopa=A1}=_Style_1,
                                 #style_colors{scol=S2,fcol=F2,fopa=A2}=_Style_2) ->
     #style_colors{
@@ -3759,4 +4776,74 @@ remove_repeat_cedge([Edge|L],OL) ->
     remove_repeat_cedge(L, [Edge|OL]);
 remove_repeat_cedge([],OL) ->
     lists:reverse(OL).
+
+
+-ifdef(TEST).
+
+%%
+%% Style sheet tests
+%%
+
+t_sty_0() ->
+    S0 = [{"path","path2",["cls3"]},{"g",none,["cls2"]},{"g","layer1",["cls1"]}],
+    A = [
+            {linkrel,[{"rel", "stylesheet"},
+             {"href", "test.css"},
+             {"type", "text/css"}]},
+            {linkrel,[{"rel", "stylesheet"},
+             {"href", "sty2.css"},
+             {"type", "text/css"}]},
+            {linkrel,[{"rel", "stylesheet"},
+             {"href", "sty3.css"},
+             {"type", "text/css"}]}
+        ],
+    CSS = get_link_rel_css(A, "./"),
+    match_css_1(CSS, S0, none).
+
+t_sty_1() ->
+    S0 = [{"path","path2",["cls3"]},{"g",none,["cls2"]},{"g","layer1",["cls1"]}],
+    {ok, CSS} = parse_stylesheet_file("./test2.css", parse_stylesheet_type("text/css")),
+    match_css_1(CSS, S0, none).
+
+t_sty_2() ->
+    SVGL=[{e,"g"},
+          {e,"path"},
+          {s,"path",
+             [{style,{style_colors,opaque,none,inherit}},
+              {d,"m 100.13143,193.47428 5.65714,-26.02285 35.64,-19.8 -10.18286,39.03428 z"},
+              {id,"path2"}]},
+          {s,"g",[{label,"Layer 1"},{id,"layer1"}]},
+          {e,"defs"},
+          {s,"defs",[]}],
+    {ok, F} = file:read_file("test.css"),    
+    SVGL_1 = lists:reverse(SVGL),
+    M = parse_stylesheet_list([{"text/css", F}], "./"),
+    match_css(SVGL_1, M).
+
+t_sty_3() ->
+    extract_styles_attr("type", <<" style=\"a b\" x y z type=\"a/b\" a style=b \"c\" d e">>).
+t_sty_4() ->
+    S0 = [{"path","path2",["cls3"]},{"g",none,["cls2"]},{"g","layer1",["cls1"]}],
+    {ok, CSS} = parse_stylesheet_file("./test.css", parse_stylesheet_type("text/css")),
+    match_css_1(CSS, S0, none).
+t_sty() ->
+    A = <<"<svg>\n",
+          "<style type=\"text/css\">\n",
+          "<!--\n",
+          "circle {color:red}\n",
+          "-->\n",
+          "</style>\n",
+          "<STYLE>circle {color:green}</STYLE>\n",
+          "<Style type=\"text/css\">\n",
+          "circle {color:blue}\n",
+          "</Style>\n",
+          "<circle/>\n",
+          "<script>\n",
+          "etc\n",
+          "</script>\n",
+          "</svg>\n">>,
+    {SVG_1, StyleList} = extract_styles(A),
+    {SVG_1, StyleList}.
+
+-endif().
 
