@@ -32,6 +32,7 @@ MODULES= \
 	wpc_3ds \
 	wpc_3mf \
 	wpc_ai \
+	wpc_amf \
 	wpc_bzw \
 	wpc_collada \
 	collada_import \
