@@ -30,6 +30,7 @@ endif
 
 MODULES= \
 	wpc_3ds \
+	wpc_3mf \
 	wpc_ai \
 	wpc_bzw \
 	wpc_collada \
