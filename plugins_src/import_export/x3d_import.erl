@@ -14,7 +14,7 @@
 -module(x3d_import).
 
 -export([init_import/0,do_import/2]).
--export([t_iv/0, t_x3d/0, t_vrml/0]).
+-export([t_iv/0, t_x3d/0, t_vrml/0, t_x3dj/0]).
 
 -import(lists, [map/2,foldl/3,keydelete/3,keyreplace/4,sort/1]).
 
@@ -36,6 +36,8 @@
 -record(geometry, {
     coords = [],
     coordIndices = [],
+    normal = [],
+    normalIndices = [],
     texCoords = none,
     tcIndices = none,
     colors = none,
@@ -54,7 +56,7 @@
 
 -record(shape_piece, {
     appearance = none,
-    geometry = {[], []}
+    geometry :: #geometry{}
 }).
 -record(material, {
     material,
@@ -85,6 +87,12 @@ props() ->
       [{".x3d", "X3D File"},
        {".x3dz", "X3D File Compressed"},
        {".x3d.gz", "X3D File (gzipped)"},
+       {".x3dj", "X3D JSON File"},
+       {".x3djz", "X3D JSON File Compressed"},
+       {".x3dj.gz", "X3D JSON File (gzipped)"},
+       {".x3dv", "ClassicVRML File"},
+       {".x3dvz", "ClassicVRML File Compressed"},
+       {".x3dv.gz", "ClassicVRML File (gzipped)"},
        {".wrl", "VRML World"},
        {".wrz", "VRML World Compressed"},
        {".wrl.gz", "VRML World (gzipped)"},
@@ -154,31 +162,46 @@ combine_shape_pieces([], Grp) ->
     lists:reverse(Grp);
 combine_shape_pieces([Shapes], Grp) ->
     lists:reverse([[Shapes]|Grp]);
-combine_shape_pieces([#shape_piece{geometry=Geom1}=Shape1|ShapesList], Grp) ->
-    #geometry{coords=Coords1,coordIndices=Coords1I}=Geom1,
-    CoordPairs1 = reverse_coord_pairs(Coords1,Coords1I),
-    combine_shape_pieces_1({Shape1, sets:from_list(CoordPairs1)}, ShapesList, [], [], Grp).
-combine_shape_pieces_1(Shp1, [Shape2|ShapesList], SameShape, Other, Grp) ->
+combine_shape_pieces([Shape1|ShapesList], Grp) ->
+    CoordPairs1 = rv_coordpairs_from_shapes([Shape1]),
+    combine_shape_pieces_1({Shape1, CoordPairs1}, ShapesList, [], [], Grp, false).
+combine_shape_pieces_1(Shp1, [Shape2|ShapesList], SameShape, Other, Grp, Found) ->
     case combine_shape_pieces_same(Shp1, Shape2) of
         true ->
-            combine_shape_pieces_1(Shp1, ShapesList, [Shape2|SameShape], Other, Grp);
+            {Shape1,_}=Shp1,
+            combine_shape_pieces_1(
+                {Shape1,rv_coordpairs_from_shapes([Shape1,Shape2|SameShape])},
+                ShapesList, [Shape2|SameShape], Other, Grp, true);
         false ->
-            combine_shape_pieces_1(Shp1, ShapesList, SameShape, [Shape2|Other], Grp)
+            combine_shape_pieces_1(Shp1, ShapesList, SameShape, [Shape2|Other], Grp, Found)
     end;
-combine_shape_pieces_1({Shape1, _}, [], SameShape, Other, Grp) ->
-    combine_shape_pieces(Other, [lists:reverse([Shape1|SameShape])|Grp]).
+combine_shape_pieces_1({Shape1, _}, [], SameShape, Other, Grp, false) ->
+    combine_shape_pieces(Other, [lists:reverse([Shape1|SameShape])|Grp]);
+combine_shape_pieces_1(Shp1, [], SameShape, Other, Grp, true) ->
+    %% Try again with the other shapes
+    combine_shape_pieces_1(Shp1, Other, SameShape, [], Grp, false).
 combine_shape_pieces_same({_,Coords1Set},#shape_piece{geometry=Geom2}=_) ->
     #geometry{coords=Coords2,coordIndices=Coords2I}=Geom2,
     combine_shape_pieces_same_1(Coords1Set, coord_pairs(Coords2, Coords2I)).
 combine_shape_pieces_same_1(Coords1Set, CoordsPair2) ->
     not sets:is_disjoint(Coords1Set, sets:from_list(CoordsPair2)).
-    
+
+rv_coordpairs_from_shapes(SL) ->
+    CoordPairs = lists:append([rv_coordpairs_from_shapes_1(S) || S <- SL]),
+    sets:from_list(CoordPairs).
+rv_coordpairs_from_shapes_1(#shape_piece{geometry=Geom1}) ->
+    #geometry{coords=Coords1,coordIndices=Coords1I}=Geom1,
+    reverse_coord_pairs(Coords1,Coords1I).
+
+
 reverse_coord_pairs(Coords, Indices) ->
     [{E2,E1} || {E1,E2} <- coord_pairs(Coords, Indices)].
     
 coord_pairs(Coords, Indices) ->
     Arr = array:from_list(Coords),
     [{array:get(I1,Arr),array:get(I2,Arr)} || {I1,I2} <- all_edges(Indices)].
+
+
 
 fill_in_colorlist(Fs0, List) ->
     fill_in_txlist(Fs0, List).
@@ -211,25 +234,32 @@ shape_to_object(ShortFilename, ShapePieces, X3DFullPath) ->
     ShapeId = "_" ++ integer_to_list(abs(erlang:unique_integer())),
     ObjectName = ShortFilename ++ ShapeId,
     
-    {Mat1_2, Vs_2, Colors_2, TxList_2, Fs0L_2, _,_,_} = lists:foldl(fun(Shape,
-        {Mat1_0, Vs_0, Colors_0, TxList_0, Fs0L_0, VsOffset,TxOffset,ColOffset})
-    ->
-        {Mat1_1, Vs_1, Colors_1, TxList_1, Fs0L_1, VsOffset_1, TxOffset_1, ColOffset_1} =
-            shape_piece_for_object(ObjectName, Shape, VsOffset, TxOffset, ColOffset, X3DFullPath),
-        {[Mat1_1|Mat1_0], [Vs_1|Vs_0], [Colors_1|Colors_0], [TxList_1|TxList_0], [Fs0L_1|Fs0L_0],
-            VsOffset_1, TxOffset_1, ColOffset_1 }
-    end, {[],[],[],[],[],0,0,0}, ShapePieces),
+    [#shape_piece{geometry=#geometry{creaseAngle=CrAng}}|_] = ShapePieces,
+    
+    {Mat1_2, Vs_2, Ns_2, Colors_2, TxList_2, Fs0L_2, _,_,_,_} = lists:foldl(
+        fun(Shape,
+            {Mat1_0, Vs_0, Ns_0, Colors_0, TxList_0, Fs0L_0, VsOffset,NsOffset,TxOffset,ColOffset})
+        ->
+            {Mat1_1, Vs_1, Ns_1, Colors_1, TxList_1, Fs0L_1,
+             VsOffset_1, NsOffset_1, TxOffset_1, ColOffset_1} =
+                shape_piece_for_object(ObjectName, Shape,
+                    VsOffset, NsOffset, TxOffset, ColOffset, X3DFullPath),
+            {[Mat1_1|Mat1_0], [Vs_1|Vs_0], [Ns_1|Ns_0],
+                [Colors_1|Colors_0], [TxList_1|TxList_0], [Fs0L_1|Fs0L_0],
+                VsOffset_1, NsOffset_1, TxOffset_1, ColOffset_1 }
+        end, {[],[],[],[],[],[],0,0,0,0}, ShapePieces),
     
     Mat1   = lists:reverse(lists:filter(
         fun(none) -> false; (_) -> true end, Mat1_2)),
     Vs     = lists:append(lists:reverse(Vs_2)),
+    Ns     = lists:append(lists:reverse(Ns_2)),
     Vc     = lists:append(lists:reverse(Colors_2)),
     TxList = lists:append(lists:reverse(TxList_2)),
     Fs0L   = lists:append(lists:reverse(Fs0L_2)),
-    HEs = all_edges([L || {L, _, _, _} <- Fs0L]),
     
     Efs = [ #e3d_face{
         vs=L,
+        ns=NL,
         tx=LTx,
         vc=C,
         mat=
@@ -237,15 +267,17 @@ shape_to_object(ShortFilename, ShapePieces, X3DFullPath) ->
                 none -> [];
                 _ -> [MatName]
             end
-    } || {L, C, LTx, MatName} <- Fs0L],
+    } || {L, NL, C, LTx, MatName} <- Fs0L],
     
-    Mesh = #e3d_mesh{
+    %% Put into a mesh and apply the crease angle if needed
+    Mesh = apply_crease(#e3d_mesh{
         type=polygon,
         vs=Vs,
+        ns=Ns,
         vc=Vc,
         fs=Efs,
-        he=HEs,
-        tx=TxList },
+        %%he=HEs,
+        tx=TxList }, CrAng),
         
     ?DEBUG_FMT("Mesh=~p~n", [Mesh]),
     
@@ -254,7 +286,7 @@ shape_to_object(ShortFilename, ShapePieces, X3DFullPath) ->
 
 shape_piece_for_object(ObjectName,
     #shape_piece{appearance=Appearance,geometry=Geometry}=_Shape,
-    VsOffset, TxOffset, ColOffset, X3DFullPath)
+    VsOffset, NsOffset, TxOffset, ColOffset, X3DFullPath)
 ->
     case Appearance of
         #material{ material=MatPs, texture=Filename} ->
@@ -263,10 +295,20 @@ shape_piece_for_object(ObjectName,
             MatName = none,
             Mat1 = none
     end,
-    #geometry{coords=Vs,coordIndices=Fs0_0,texCoords=TxList_0,
+    #geometry{coords=Vs,coordIndices=Fs0_0,
+        normal=Ns_0,normalIndices=Fs0Ns_0,
+        texCoords=TxList_0,
         tcIndices=Fs0Tx_0,colors=Colors_0,colIndices=ColIndices_0,
         creaseAngle=_CreaseAngle} = Geometry,
     Fs0 = [ [F+VsOffset || F <- FL] || FL <- Fs0_0],
+    case Ns_0 of
+        none ->
+            Ns = [],
+            NsIndices = [];
+        _ ->
+            Ns = Ns_0,
+            NsIndices = [[N+NsOffset || N <- NL] || NL <- Fs0Ns_0]
+    end,
     case Colors_0 of
         none ->
             Colors = [],
@@ -280,22 +322,107 @@ shape_piece_for_object(ObjectName,
         none -> TxList = [];
         _ ->    TxList = TxList_0
     end,
-    Fs0Tx_1 = case Fs0Tx_0 of none -> none; _ -> [ [T+TxOffset || T <- TL] || TL <- Fs0Tx_0] end,
+    Fs0Tx_1 = case Fs0Tx_0 of
+        none -> none;
+        _ -> [ [T+TxOffset || T <- TL] || TL <- Fs0Tx_0]
+    end,
     Fs0Tx = fill_in_txlist(Fs0, Fs0Tx_1),
     MatNames = fill_in_matname(Fs0, MatName),
     VsOffset_1 = length(Vs) + VsOffset,
+    NsOffset_1 = length(Ns) + NsOffset,
     TxOffset_1 = length(TxList) + TxOffset,
     ColOffset_1 = length(Colors) + ColOffset,
-    {Mat1, Vs, Colors, TxList, zip_face_elems(Fs0, ColIndices_1, Fs0Tx, MatNames),
-        VsOffset_1, TxOffset_1, ColOffset_1}.
+    {Mat1, Vs, Ns, Colors, TxList, zip_face_elems(Fs0, NsIndices, ColIndices_1, Fs0Tx, MatNames),
+        VsOffset_1, NsOffset_1, TxOffset_1, ColOffset_1}.
     
-zip_face_elems(A,B,C,D) ->
-    zip_face_elems(A,B,C,D,[]).
-zip_face_elems([A|AR],[B|BR],[C|CR],[D|DR], O) ->
-    zip_face_elems(AR,BR,CR,DR, [{A,B,C,D}|O]);
-zip_face_elems([],[],[],[], O) ->
+zip_face_elems(A,Ns,B,C,D) ->
+    zip_face_elems(A,Ns,B,C,D,[]).
+zip_face_elems([A|AR],NsL_0,CL_0,TxL_0,MtL_0, O) ->
+    {NsL,Ns} = case NsL_0 of
+        [] -> {[], []};
+        [Ns_2|NsL_2] -> {NsL_2,Ns_2}
+    end,
+    {CL,C} = case CL_0 of
+        [] -> {[], []};
+        [C_2|CL_2] -> {CL_2,C_2}
+    end,
+    {TxL,T} = case TxL_0 of
+        [] -> {[], []};
+        [T_2|TxL_2] -> {TxL_2,T_2}
+    end,
+    {MtL,D} = case MtL_0 of
+        [] -> {[], []};
+        [D_2|MtL_2] -> {MtL_2,D_2}
+    end,
+    zip_face_elems(AR,NsL,CL,TxL,MtL, [{A,Ns,C,T,D}|O]);
+zip_face_elems([],[],[],[],[], O) ->
     lists:reverse(O).
-    
+
+
+%% Use creaseAngle to set hard edges if there are no normals yet.
+%%
+apply_crease(#e3d_mesh{ns=[_|_],fs=[#e3d_face{ns=[_|_]}|_]}=Mesh0, _) ->
+    Mesh0;
+apply_crease(Mesh_0, Ang_0) ->
+    %% Need to remove duplicate vertices first.
+    #e3d_mesh{vs=VS,fs=Efs}=Mesh=e3d_mesh:merge_vertices(Mesh_0),
+    io:format("X3D: NOTE: Applying creaseAngle~n",[]),
+    try
+        Ang = math:cos(Ang_0),
+        Arr = array:from_list(VS),
+        SNrm_0 = [apply_crease_1(V, Arr) || #e3d_face{vs=V} <- Efs],
+        SNrm = apply_crease_3(SNrm_0),
+        ELst = lists:append([EL || {EL,_} <- SNrm_0]),
+        HE = apply_crease_4(ELst, SNrm, Ang),
+        Mesh#e3d_mesh{he=HE}
+    catch ErrCls:Err:ST ->
+        io:format("X3D: ------------------------------------~n",[]),
+        io:format("X3D: ERROR: creaseAngle failed: ~p:~p~n~p~n",[ErrCls,Err,ST]),
+        io:format("X3D: ------------------------------------~n",[]),
+        Mesh
+    end.
+
+apply_crease_1([V1,V2,V3|_]=VIdx, Arr) ->
+    Norm = e3d_vec:normal(array:get(V1, Arr), array:get(V2, Arr), array:get(V3, Arr)),
+    {apply_crease_2(VIdx), Norm}.
+
+apply_crease_2([V1|_]=L) ->
+    apply_crease_2(L, V1).
+apply_crease_2([V1], B1) ->
+    [{V1,B1}];
+apply_crease_2([V1|[V2|_]=L], B1) ->
+    [{V1,V2}|apply_crease_2(L, B1)].
+
+apply_crease_3(L) ->
+    apply_crease_3(L, gb_trees:empty()).
+apply_crease_3([], SNrm) ->
+    SNrm;
+apply_crease_3([{Edges, Norm}|L], Set0) ->
+    apply_crease_3(L, lists:foldl(
+        fun(E, Set) ->
+            gb_trees:insert(E, Norm, Set)
+        end, Set0, Edges)).
+
+%% Used wings_body:auto_smooth/5 as reference for this.
+apply_crease_4(ELst, SNrm, Ang) ->
+    lists:foldl(fun (E, HE) -> apply_crease_4_2(E, SNrm, Ang, HE) end, [], ELst).
+apply_crease_4_2({V1,V2}, SNrm, Ang, HE) ->
+    Nrm1 = gb_trees:get({V1,V2},SNrm),
+    Nrm2 = gb_trees:get({V2,V1},SNrm),
+    case e3d_vec:is_zero(Nrm1) orelse e3d_vec:is_zero(Nrm2) of
+        true ->
+            HE;
+        _ ->
+            case e3d_vec:dot(Nrm1, Nrm2) of
+                DAng when DAng < Ang ->
+                    %% Hard
+                    [{V1,V2}|HE];
+                _ ->
+                    %% Soft
+                    HE
+            end
+    end.
+
 
 edge_pairs([E|_]=Fs) ->
     edge_pairs(Fs, E, []).
@@ -308,25 +435,39 @@ all_edges(FL) ->
     lists:append([edge_pairs(F) || F <- FL]).
 
     
-appearance_opengl(#materialprops{
+appearance_opengl(MatPs) ->
+    OpenGL = {opengl, 
+        appearance_opengl_1(MatPs) ++
+    [
+        {metallic,0.1},
+        {roughness,0.8},
+        {vertex_colors, set}
+    ]},
+    {ok, OpenGL}.
+
+appearance_opengl_1(#materialprops{
     ambient_intensity=AmbInt,
     specular_color=SpecCol,
     shininess=Shine,
     diffuse_color=DifCol,
     transparency=Transparency,
     emissive_color=EmCol
-}=_MatPs) ->
-    OpenGL = {opengl, [
+}) ->
+    [
         {ambient, intensity_to_rgba(AmbInt)},
         {specular, rgb_to_rgba(SpecCol)},
         {shininess, Shine},
         {diffuse, rgb_to_rgba(DifCol, 1.0 - Transparency)},
-        {emission, rgb_to_rgba(EmCol)},
-        {metallic,0.1},
-        {roughness,0.8},
-        {vertex_colors, set}
-    ]},
-    {ok, OpenGL}.
+        {emission, rgb_to_rgba(EmCol)}
+    ];
+appearance_opengl_1(none) ->
+    [
+        {ambient,{0.0,0.0,0.0,0.0}},
+        {specular, {0.2,0.2,0.2,1.0}},
+        {shininess,0.2},
+        {diffuse, {0.8,0.8,0.8,1.0}},
+        {emission,{0.0,0.0,0.0,1.0}}
+    ].
 
 appearance_to_material(ObjectName, MatPs, none, VsOffset, _FullPath) ->
     {ok, OpenGL} = appearance_opengl(MatPs),
@@ -356,7 +497,7 @@ load_texture_maps(Filename_0, _Id, X3DFullPath) ->
         {error, Err} ->
             %% Image could not be loaded.
             io:format("X3D: " ++ ?__(1,"INFO: Texture could not be loaded:") ++
-                " ~p: ~p", [Filename_0, Err]),
+                " ~p: ~p~n", [Filename_0, Err]),
             {ok, [{maps, []}]}
     end.
 
@@ -421,14 +562,20 @@ dialog(import) ->
 
 get_file_type(FileName) ->
     case string:to_lower(filename:extension(FileName)) of
-        ".x3d" ++ _ -> x3d;
-        ".wrl" ++ _ -> wrl;
+        ".json" ++ _ -> x3dj;
+        ".x3dj" ++ _ -> x3dj;
+        ".x3dv" ++ _ -> wrl;
+        ".x3d"  ++ _ -> x3d;
+        ".wrl"  ++ _ -> wrl;
         ".wrz" -> wrl;
         ".iv"  -> wrl;
         ".gz" ++ _ ->
             case string:to_lower(filename:extension(filename:rootname(FileName))) of
-                ".x3d" ++ _ -> x3d;
-                ".wrl" ++ _ -> wrl;
+                ".json" ++ _ -> x3dj;
+                ".x3dj" ++ _ -> x3dj;
+                ".x3dv" ++ _ -> wrl;
+                ".x3d"  ++ _ -> x3d;
+                ".wrl"  ++ _ -> wrl;
                 ".wrz" -> wrl;
                 ".iv"  -> wrl
             end
@@ -437,6 +584,14 @@ get_file_type(FileName) ->
 read_file_content(x3d, Filename) ->
     {ok, File} = file:read_file(Filename),
     {ok, Conts} = read_x3d_content(File),
+    ShapeList = lists:flatten([ begin
+        {ok, C} = trav(def_or_use_var(Cont)),
+        C
+      end || Cont <- Conts]),
+    {ok, ShapeList};
+read_file_content(x3dj, Filename) ->
+    {ok, File} = file:read_file(Filename),
+    {ok, Conts} = read_x3djson_content(File),
     ShapeList = lists:flatten([ begin
         {ok, C} = trav(def_or_use_var(Cont)),
         C
@@ -886,6 +1041,168 @@ x3d_sub_of(_) -> root.
 
 
 %%
+%% Parse X3D JSON
+%%
+
+read_x3djson_content(Bin_0) ->
+    case Bin_0 of
+        <<31,139,_/binary>> ->
+            %% A gz header, the file is compressed.
+            read_x3djson_content_1(zlib:gunzip(Bin_0));
+        _ ->
+            %% Uncompressed
+            read_x3djson_content_1(Bin_0)
+    end.
+read_x3djson_content_1(C) ->
+    {ok, x3djson_0(json_data(jsone:decode(C, [{object_format,tuple}])))}.
+
+x3djson_0({a,[{o,[{Tag,{o,{a,C}}}]}|_]}) when is_list(C) ->
+    x3djson_0_1(Tag, C);
+x3djson_0({o,[{Tag,{o,C}}]}) when is_list(C) ->
+    x3djson_0_1(Tag, C).
+
+x3djson_0_1(Tag, C) ->
+    case string:uppercase(binary_to_list(Tag)) =:= "X3D" of
+        true ->
+            {o,L}=proplists:get_value(<<"Scene">>, C, none),
+            {a,CL} = proplists:get_value(<<"-children">>, L, none),
+            [ case x3djson_tag(E) of
+                {def,Name,{container,CTag,Cont}} ->
+                    {def,Name,{CTag,Cont}};
+                {use,Name} ->
+                    {use,Name};
+                {container,CTag,Cont} ->
+                    {CTag,Cont}
+              end || E <- CL ]
+    end.
+
+x3djson_tag({o,[{Tag,{o,L}}]}) ->
+    x3djson_tag(Tag, L);
+x3djson_tag({Tag,{o,L}}) ->
+    x3djson_tag(Tag, L).
+x3djson_tag(Tag, L) when is_list(L) ->
+    x3djson_tag_1(Tag, L, none, []).
+x3djson_tag_1(Tag, [], DefUse, OL) ->
+    ContainerName = Tag,
+    Fields = lists:reverse(OL),
+    case DefUse of
+        none ->
+            {container, ContainerName, Fields};
+        {def, Str} ->
+            {def, Str, {container, ContainerName, Fields}};
+        {use, Str} when Fields =:= [] ->
+            {use, Str}
+    end;
+x3djson_tag_1(Tag, [{<<"@DEF">>,{s,C}}|L], _, OL) ->
+    x3djson_tag_1(Tag, L, {def, C}, OL);
+x3djson_tag_1(Tag, [{<<"@USE">>,{s,C}}|L], _, OL) ->
+    x3djson_tag_1(Tag, L, {use, C}, OL);
+%% Attribute value
+x3djson_tag_1(Tag, [{<<"@",FName/binary>>,C_0}|L], DefUse, OL) ->
+    OL_1 = [x3djson_attr(Tag, FName, C_0)|OL],
+    x3djson_tag_1(Tag, L, DefUse, OL_1);
+%% Containers
+x3djson_tag_1(Tag, [{<<"-",FName/binary>>,C_0}|L], DefUse, OL) ->
+    case C_0 of
+        {a, ValL_0} when is_list(L) ->
+            case remove_cmt_objs(ValL_0) of
+                [] ->
+                    x3djson_tag_1(Tag, L, DefUse, OL);
+                ValL_1 when is_list(ValL_1) ->
+                    ValL_2 = [x3djson_tag(E) || E <- ValL_1],
+                    OL_1 = [
+                        {{field, FName},
+                         x3djson_tag_field_s_or_m(Tag, FName, ValL_2)}
+                        | OL],
+                    x3djson_tag_1(Tag, L, DefUse, OL_1)
+            end;
+        {o, _}=Val1 ->
+            Val1_1 = x3djson_tag(Val1),
+            OL_1 = [
+                {{field, FName},
+                 x3djson_tag_field_s_or_m(Tag, FName, [Val1_1])}
+                | OL],
+            x3djson_tag_1(Tag, L, DefUse, OL_1)
+    end;
+%% Comment
+x3djson_tag_1(Tag, [{<<"#",_/binary>>,_}|L], DefUse, OL) ->
+    x3djson_tag_1(Tag, L, DefUse, OL).
+    
+
+x3djson_attr(Tag, FName, Val) ->
+    %% Determine type of field and whether to tokenize it.
+    FieldType = expected_field_type(Tag, {word, FName}),
+    case x3d_xatr_pt(Tag, FName, FieldType) of
+        string ->
+            %% Verbatim XML attribute not used by the X3D parser.
+            {{user, FName}, {string, Val}};
+        word ->
+            %% Change the JSON value into a token list
+            Tokens = json_to_tok(Val),
+            case FieldType of
+                {multival, _} ->
+                    %% We want the field parser to use as much of the XML attribute as
+                    %% possible, so add brackets around the tokens.
+                    {ok, FA, []} = parse_field(FieldType,
+                        {word, FName},
+                        [open_bracket] ++ Tokens ++ [close_bracket]);
+                _ ->
+                    {ok, FA, []} = parse_field(FieldType,
+                        {word, FName},
+                        Tokens)
+            end,
+            FA
+    end.
+
+%% Change the JSON value into a token list that can be used
+%% by parse_field/3.
+%%
+json_to_tok({s,Str}) ->
+    [{string,Str}];
+json_to_tok({a,List}) ->
+    [json_to_tok_1(E) || E <- List];
+json_to_tok({number,Number}) ->
+    [{number,Number}].
+
+json_to_tok_1({s,Str}) ->
+    {string,Str};
+json_to_tok_1({number,Number}) ->
+    {number,Number}.
+
+%% Remove comment "objects" in the X3D JSON file.
+%%
+remove_cmt_objs(L) ->
+    remove_cmt_objs(L, []).
+remove_cmt_objs([], OL) ->
+    lists:reverse(OL);
+remove_cmt_objs([{o,[{<<"#",_/binary>>,_}]}|L], OL) ->
+    remove_cmt_objs(L, OL);
+remove_cmt_objs([O|L], OL) ->
+    remove_cmt_objs(L, [O|OL]).
+
+
+x3djson_tag_field_s_or_m(ContT, FName, [Item|_]=List) ->
+    case expected_field_type(ContT, {word, FName}) of
+        {multival, _} -> {multival, List};
+        _ -> Item
+    end.
+
+
+json_data({A}) ->
+    {o,[{E1,json_data(E2)} || {E1,E2} <- A]};
+json_data([_|_]=A) ->
+    {a,[json_data(E) || E <- A]};
+json_data(A) when is_binary(A) ->
+    {s,binary_to_list(A)};
+json_data(A) when is_number(A) ->
+    {number,A};
+json_data(false) ->
+    {number,0};
+json_data(true) ->
+    {number,1}.
+
+
+%%
 %% VRML File
 %%
 
@@ -966,15 +1283,15 @@ strip_comments_outside_string(Content, AL) ->
     case binary:split(Content, <<10>>) of
         [ThisLine, R] ->
             case binary:split(ThisLine, <<$#>>) of
-                [Keep, _] -> strip_comments_outside_string(R, [Keep | AL]);
-                [Keep]    -> strip_comments_outside_string(R, [Keep | AL])
+                [Keep, _] -> strip_comments_outside_string(R, [<<10>>,Keep | AL]);
+                [Keep]    -> strip_comments_outside_string(R, [<<10>>,Keep | AL])
             end;
         [LastLine] ->
             %% Only the last line matters whether a comment character appears
             %% which overrides the string afterwards.
             case binary:split(LastLine, <<$#>>) of
-                [Keep, _] -> {had_comment, iolist_to_binary(lists:reverse([Keep|AL]))};
-                [Keep]    -> {no_comment,  iolist_to_binary(lists:reverse([Keep|AL]))}
+                [Keep, _] -> {had_comment, iolist_to_binary(lists:reverse([<<10>>,Keep|AL]))};
+                [Keep]    -> {no_comment,  iolist_to_binary(lists:reverse([<<10>>,Keep|AL]))}
             end
     end.
 
@@ -1110,6 +1427,10 @@ header(<<"#VRML ", Rest_0/binary>>) ->
             Encoding = <<"utf-8">>,
             {ok, noheader, Encoding}
     end;
+header(<<"#X3D ", Rest_0/binary>>) ->
+    {ok, _, Rest_1} = header_version(Rest_0),
+    {ok, Encoding} = header_encoding(Rest_1),
+    {ok, vrml2, Encoding};
 header(<<"#Inventor ", Rest_0/binary>>) ->
     %% Try using the VRML 1.0 parser when this file header is encountered.
     case header_version(Rest_0) of
@@ -1173,7 +1494,11 @@ parse(T, Cont) ->
             parse(Rest1, Cont);
         [{word,<<"EXTERNPROTO">>}, {word,ExtProtoName} | Rest0] ->
             {ok, Rest1} = parse_skip_externproto(ExtProtoName, Rest0),
-            parse(Rest1, Cont)
+            parse(Rest1, Cont);
+        [{word,<<"PROFILE">>},{word,_}|Rest0] ->
+            parse(Rest0, Cont);
+        [{word,<<"META">>},{string,_},{string,_}|Rest0] ->
+            parse(Rest0, Cont)
 
     end.
 
@@ -1426,7 +1751,7 @@ expected_field_type(<<"TextureCoordinate">>, {word, <<"point">>}) ->
 expected_field_type(<<"TextureTransform">>, {word, F}) ->
     case F of
         <<"center">> -> vec2;
-        <<"rotation">> -> rotation;
+        <<"rotation">> -> float;
         <<"scale">> -> vec2;
         <<"translation">> -> vec2;
         _ -> any
@@ -2185,20 +2510,6 @@ trav_geom_extrusion(Fields) ->
 
 trav_geom_indexedfaceset(Fields) ->
 
-    case proplists:get_value({field,<<"color">>}, Fields, none) of
-        none ->
-            Colors = none;
-        Cont_Col ->
-            {ok, Colors_0} = trav_color(def_or_use_var(Cont_Col)),
-            case proplists:get_value({field,<<"colorIndex">>}, Fields, none) of
-                none ->
-                    ColorIndices = none;
-                {multival, Vals_ColI} ->
-                    ColorIndices = delim_indexes_to_lists([ N || {float,N} <- Vals_ColI ])
-            end,
-            HasColorPerVertex = value_from_field(<<"colorPerVertex">>, float, Fields, 1),
-            Colors = {to_bool(HasColorPerVertex), Colors_0, ColorIndices}
-    end,
     case proplists:get_value({field,<<"coord">>}, Fields, none) of
         %none ->
         %    Coords = [];
@@ -2219,21 +2530,20 @@ trav_geom_indexedfaceset(Fields) ->
         {multival, Vals_CI} ->
             CoordIndices = delim_indexes_to_lists([ N || {float,N} <- Vals_CI ])
     end,
+    
+    %% creaseAngle is in radians
     CreaseAngle = value_from_field(<<"creaseAngle">>, float, Fields, 0.0),
     
-    case proplists:get_value({field,<<"normal">>}, Fields, none) of
-        none ->
-            _Normals = none;
-        Cont_N ->
-            {ok, _Normals} = trav_norm(def_or_use_var(Cont_N))
+    HasNormalPerVertex = value_from_field(<<"normalPerVertex">>, float, Fields, 1),
+    case HasNormalPerVertex of
+        1 ->
+            {Normals, NormalIndices} =
+                trav_geom_indexedfaceset_ns(Fields, Coords, CoordIndices);
+        _ ->
+            Normals = none,
+            NormalIndices = none
     end,
-    case proplists:get_value({field,<<"normalIndex">>}, Fields, none) of
-        none ->
-            _NormalIndices = none;
-        {multival, Vals_N} ->
-            _NormalIndices = delim_indexes_to_lists([ E || {float, E} <- Vals_N])
-    end,
-    _HasNormalPerVertex = value_from_field(<<"normalPerVertex">>, float, Fields, 1),
+    
     _IsSolid = value_from_field(<<"solid">>, float, Fields, 1),
     
     case proplists:get_value({field,<<"texCoordIndex">>}, Fields, none) of
@@ -2245,26 +2555,61 @@ trav_geom_indexedfaceset(Fields) ->
             TCIndices = delim_indexes_to_lists([ E || {float, E} <- Vals_TC])
     end,
     
-    case Colors of
-        none ->
-            Colors_1 = none,
-            ColorIndices_1 = none;
-        {false, Colors_0_F, [ColorIndices_0_F]} ->
-            {Colors_1, ColorIndices_1} =
-                geom_per_face_colors(Colors_0_F, ColorIndices_0_F, CoordIndices);
-        {true, Colors_0_V, ColorIndices_0_V} ->
-            {Colors_1, ColorIndices_1} =
-                geom_per_vertex_colors(Colors_0_V, ColorIndices_0_V, CoordIndices)
-    end,
+    {Colors_1, ColorIndices_1} = 
+        trav_geom_indexedfaceset_col(Fields, Coords, CoordIndices),
     
     {ok, set_ccw(to_bool(IsCCW), #geometry{
         coords=Coords,
         coordIndices=CoordIndices,
+        normal=Normals,
+        normalIndices=NormalIndices,
         texCoords=TexCoords,
         tcIndices=TCIndices,
         colors=Colors_1,
         colIndices=ColorIndices_1,
         creaseAngle=CreaseAngle})}.
+
+trav_geom_indexedfaceset_ns(Fields, Coords, CoordIndices) ->
+    case proplists:get_value({field,<<"normal">>}, Fields, none) of
+        none ->
+            Normals = none,
+            NormalIndices = none;
+        Cont_N ->
+            {ok, Normals_1} = trav_norm(def_or_use_var(Cont_N)),
+            case proplists:get_value({field,<<"normalIndex">>}, Fields, none) of
+                none when length(Coords) =:= length(Normals_1) ->
+                    Normals = Normals_1,
+                    NormalIndices = CoordIndices;
+                {multival, Vals_N} ->
+                    Normals = Normals_1,
+                    NormalIndices = delim_indexes_to_lists([ E || {float, E} <- Vals_N])
+            end
+    end,
+    {Normals, NormalIndices}.
+
+trav_geom_indexedfaceset_col(Fields, _Coords, CoordIndices) ->
+    case proplists:get_value({field,<<"color">>}, Fields, none) of
+        none ->
+            Colors = none;
+        Cont_Col ->
+            {ok, Colors_0} = trav_color(def_or_use_var(Cont_Col)),
+            case proplists:get_value({field,<<"colorIndex">>}, Fields, none) of
+                none ->
+                    ColorIndices = none;
+                {multival, Vals_ColI} ->
+                    ColorIndices = delim_indexes_to_lists([ N || {float,N} <- Vals_ColI ])
+            end,
+            HasColorPerVertex = value_from_field(<<"colorPerVertex">>, float, Fields, 1),
+            Colors = {to_bool(HasColorPerVertex), Colors_0, ColorIndices}
+    end,
+    case Colors of
+        none ->
+            {none, none};
+        {false, Colors_0_F, [ColorIndices_0_F]} ->
+            geom_per_face_colors(Colors_0_F, ColorIndices_0_F, CoordIndices);
+        {true, Colors_0_V, ColorIndices_0_V} ->
+            geom_per_vertex_colors(Colors_0_V, ColorIndices_0_V, CoordIndices)
+    end.
 
 
 trav_coord({container,<<"Coordinate">>,Fields}) ->
@@ -2889,9 +3234,11 @@ read_default(FileName) ->
 -spec set_ccw(boolean(), #geometry{}) -> #geometry{}.
 set_ccw(true, AlreadyCCW) ->
     AlreadyCCW;
-set_ccw(_, #geometry{coordIndices=CoordIndices,tcIndices=TCIndices}=Geom) ->
+set_ccw(_, #geometry{coordIndices=CoordIndices,normalIndices=NormalIndices,
+                     tcIndices=TCIndices}=Geom) ->
     Geom#geometry{
         coordIndices=[lists:reverse(L) || L <- CoordIndices],
+        normalIndices=[lists:reverse(L) || L <- NormalIndices],
         tcIndices=[lists:reverse(L) || L <- TCIndices]}.
 
 %%%
@@ -3538,6 +3885,10 @@ t_iv() ->
 t_x3d() ->
     {ok, File} = file:read_file("examples_VRML\\x3d.x3d"),
     {ok, [Cont]} = read_x3d_content(File),
+    trav(def_or_use_var(Cont)).
+t_x3dj() ->
+    {ok, C} = file:read_file("box.x3dj"),
+    {ok, [Cont]} = read_x3djson_content(C),
     trav(def_or_use_var(Cont)).
 t_vrml() ->
     {ok, File} = file:read_file("examples_VRML\\wrl.wrl"),
