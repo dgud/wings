@@ -184,11 +184,13 @@ combine_shape_pieces_same({_,Coords1Set},#shape_piece{geometry=Geom2}=_) ->
     #geometry{coords=Coords2,coordIndices=Coords2I}=Geom2,
     combine_shape_pieces_same_1(Coords1Set, coord_pairs(Coords2, Coords2I)).
 combine_shape_pieces_same_1(Coords1Set, CoordsPair2) ->
-    not sets:is_disjoint(Coords1Set, sets:from_list(CoordsPair2)).
+    not sets:is_disjoint(Coords1Set, coordpairs_sets(CoordsPair2)).
 
+coordpairs_sets(List) ->
+    wings_util:sets_from_list(List).
 rv_coordpairs_from_shapes(SL) ->
     CoordPairs = lists:append([rv_coordpairs_from_shapes_1(S) || S <- SL]),
-    sets:from_list(CoordPairs).
+    coordpairs_sets(CoordPairs).
 rv_coordpairs_from_shapes_1(#shape_piece{geometry=Geom1}) ->
     #geometry{coords=Coords1,coordIndices=Coords1I}=Geom1,
     reverse_coord_pairs(Coords1,Coords1I).

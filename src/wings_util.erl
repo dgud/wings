@@ -21,6 +21,7 @@
 	 cap/1,upper/1,stringify/1,quote/1,
 	 add_vpos/2,update_vpos/2,
 	 gb_trees_smallest_key/1,gb_trees_largest_key/1,
+	 sets_new/0,sets_from_list/1,
 	 array_keys/1,array_smallest_key/1,array_greatest_key/1,
 	 array_is_empty/1,array_entries/1,
 	 mapsfind/3,
@@ -154,6 +155,16 @@ gb_trees_smallest_key(Tree) ->
 gb_trees_largest_key(Tree) ->
     {Key,_Val} = gb_trees:largest(Tree),
     Key.
+
+
+%% Create a set with performance options set.
+%%
+sets_new() ->
+    sets:new([{version,2}]).
+
+sets_from_list(List) ->
+    sets:from_list(List, [{version,2}]).
+
 
 array_keys(Array) ->
     array:sparse_foldr(fun(I, _, A) -> [I|A] end, [], Array).
