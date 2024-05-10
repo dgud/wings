@@ -106,14 +106,12 @@ import_mesh(ObjName, #x_mesh{vslist=Vs_0,fslist=Fs_0,normals=Ns,texcoords=TxC_0,
         _ when is_list(ML) ->
             {Efs, NsC} = to_efs_mtl(Fs_0, Ns, TxA, ML)
     end,
-    HEs = all_edges([X || #e3d_face{vs=X} <- Efs]),
     Mesh = #e3d_mesh{
         type=polygon,
         vs=Vs,
         fs=Efs,
         tx=TxC,
-        ns=NsC,
-        he=HEs
+        ns=NsC
     },
     Obj = #e3d_object{name=ObjName,obj=Mesh},
     Obj.
@@ -922,17 +920,6 @@ split_mesh_mtls_1(#x_mesh{matlist=none}=Mesh) ->
     {Mesh, []};
 split_mesh_mtls_1(#x_mesh{matlist={MatList, MSpecs}}=Mesh) ->
     {Mesh#x_mesh{matlist=MatList}, MSpecs}.
-
-
-edge_pairs([E|_]=Fs) ->
-    edge_pairs(Fs, E, []).
-edge_pairs([E1|[E2|_]=Fs], E0, OL) ->
-    edge_pairs(Fs, E0, [{E1,E2}|OL]);
-edge_pairs([E1], E0, OL) ->
-    lists:reverse([{E1,E0}|OL]).
-
-all_edges(FL) ->
-    lists:append([edge_pairs(F) || F <- FL]).
 
 
 %% Read the .x file, and return the content to the tokenizer
