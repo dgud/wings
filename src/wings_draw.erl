@@ -117,7 +117,7 @@ prepare_fun_2(#dlo{proxy=IsUsed, proxy_data=Proxy,ns=Ns}=D, We, Wes) ->
     Open = wings_we:is_open(We),
     {changed_we(D, #dlo{src_we=We,open=Open,mirror=none,
 			proxy=IsUsed,
-			proxy_data=wings_proxy:invalidate(Proxy, maybe),
+			proxy_data=wings_proxy:invalidate(Proxy, 'maybe'),
 			ns=Ns}),Wes}.
 
 only_permissions_changed(#we{perm=P}, #we{perm=P}) -> false;
