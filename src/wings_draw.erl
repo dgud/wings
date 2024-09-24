@@ -235,7 +235,7 @@ update_mirror(D) -> D.
 
 update_needed(#st{selmode=vertex}=St) ->
     case wings_pref:get_value(vertex_size) of
-	0.0 ->
+	+0.0 ->
 	    update_needed_1([], St);
 	PointSize->
 	    update_needed_1([{vertex,PointSize}], St)
@@ -709,7 +709,7 @@ insert_vtx_data([], _, Acc) -> reverse(Acc).
 
 split_vs_dlist(Vs, StaticVs, {vertex,SelVs0}, #we{vp=Vtab}=We) ->
     case wings_pref:get_value(vertex_size) of
-	0.0 -> {none,none};
+	+0.0 -> {none,none};
 	_PtSize -> 
 	    DynVs = sofs:from_external(lists:merge(Vs, StaticVs), [vertex]),
 	    SelVs = sofs:from_external(gb_sets:to_list(SelVs0), [vertex]),

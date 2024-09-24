@@ -212,7 +212,7 @@ edge_attrs(Edge, right, W, #we{es=Etab,lv=Lva,rv=Rva}) ->
 edge_attrs(_Edge, _, _W, #we{lv=none,rv=none}) -> none;
 edge_attrs(Edge, Face, W, #we{es=Etab,lv=Lva,rv=Rva}) ->
     case array:get(Edge, Etab) of
-	#edge{lf=Face} when W =:= 0.0 ->
+	#edge{lf=Face} when W =:= +0.0 ->
 	    aget(Edge, Lva);
 	#edge{lf=Face,ltpr=Ltpr} ->
 	    La = aget(Edge, Lva),

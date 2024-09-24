@@ -262,7 +262,7 @@ info_lines_1([_|T], Lines) ->
     info_lines_1(T, Lines);
 info_lines_1([], Lines) -> Lines.
 
-blend({_,_,_,0.0}, _) -> ok;
+blend({_,_,_,+0.0}, _) -> ok;
 blend({_,_,_,1.0}=Color, Draw) -> Draw(Color);
 blend(Color, Draw) ->
     gl:enable(?GL_BLEND),

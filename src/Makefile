@@ -147,7 +147,7 @@ APP_TARGET = $(EBIN)/$(APP_FILE)
 # ----------------------------------------------------
 # FLAGS
 # ----------------------------------------------------
-ERL_COMPILE_FLAGS += +nowarn_match_float_zero -Werror -I ../.. -I../_deps $(TYPE_FLAGS) -pa $(WINGS_INTL)
+ERL_COMPILE_FLAGS += -Werror -I ../.. -I../_deps $(TYPE_FLAGS) -pa $(WINGS_INTL)
 
 # ----------------------------------------------------
 # Targets

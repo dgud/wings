@@ -920,7 +920,7 @@ do_tweak(#dlo{drag=#drag{vs=Vs,pos=Pos0,pos0=Orig,pst=none,  %% pst =:= none
 
     %% scale axis
     V2 = case e3d_vec:norm_sub(Orig,Pos) of
-	     {0.0,0.0,0.0} -> Pos;
+	     {+0.0,+0.0,+0.0} -> Pos;
 	     Other -> Other
 	 end,
 
@@ -1173,7 +1173,7 @@ slide_vec_w(V, Vpos, VposS, TweakPosS, We, W,Vs) ->
 slide_one_vec(Vpos, TweakPos, PosList) ->
     Dpos=e3d_vec:sub(TweakPos,Vpos),
     {Dp,_} = foldl(fun
-		       ({0.0,0.0,0.0},VPW) -> VPW;
+		       ({+0.0,+0.0,+0.0},VPW) -> VPW;
 		       (Vec, {VP,W}) ->
 			  Vn = e3d_vec:norm(Vec),
 			  Dotp = e3d_vec:dot(Vn,Dpos),
@@ -1187,7 +1187,7 @@ slide_one_vec(Vpos, TweakPos, PosList) ->
 				  {e3d_vec:mul(Vn, Dotp2),Dotp};
 			      true -> {VP,W}
 			  end
-		  end,{{0,0,0},0},PosList),
+                   end,{{0.0,0.0,0.0},0.0},PosList),
     e3d_vec:add(Vpos,Dp).
 
 sub_pos_from_list(List,Pos) ->
@@ -1251,7 +1251,7 @@ tweak_along_axis(true, Axis, Pos0, TweakPos) ->
     %% constraining by the plane
     Dot = e3d_vec:dot(Axis, Axis),
     if
-	Dot =:= 0.0 -> Pos0;
+	abs(Dot) < ?EPSILON -> Pos0;
 	true ->
 	    T = - e3d_vec:dot(Axis, e3d_vec:sub(TweakPos, Pos0)) / Dot,
 	    e3d_vec:add_prod(TweakPos, Axis, T)
@@ -1262,7 +1262,7 @@ tweak_along_axis(false, Axis, Pos0, TweakPos) ->
     %% Return the point along the normal closest to TweakPos.
     Dot = e3d_vec:dot(Axis, Axis),
     if
-	Dot =:= 0.0 -> Pos0;
+	abs(Dot) < ?EPSILON -> Pos0;
 	true ->
 	    T = e3d_vec:dot(Axis, e3d_vec:sub(TweakPos, Pos0)) / Dot,
 	    e3d_vec:add_prod(Pos0, Axis, T)

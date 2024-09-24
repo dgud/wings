@@ -387,7 +387,7 @@ render_wire(Dls, SelMode, false, RS0) ->
         {[],[],[]} -> RS0;
         {Ws,Os,PWs} ->
             case {SelMode,wings_pref:get_value(edge_color)} of
-		{body,{0.0,0.0,0.0}} ->
+		{body,{+0.0,+0.0,+0.0}} ->
 		    gl:color3f(0.3, 0.3, 0.3);
 		{_,EdgeColor} ->
 		    gl:color3fv(EdgeColor)

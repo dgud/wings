@@ -866,7 +866,7 @@ add_tangents([], _, Bin) -> Bin.
 
 add_tangents1([V|Vs], Ts, H0, N, Prev, Bin0) ->
     case array:get(V, Ts) of
-	{{0.0, 0.0, 0.0}, BiT} ->
+	{{+0.0, +0.0, +0.0}, BiT} ->
 	    {Tan = {X,Y,Z}, H} = get_tangent(Prev, BiT, H0, N),
 	    Bin = <<Bin0/binary, X:?F32,Y:?F32,Z:?F32, H:?F32>>,
 	    add_tangents1(Vs, Ts, H, N, Tan, Bin);
@@ -885,7 +885,7 @@ add_tangents1([V|Vs], Ts, H0, N, Prev, Bin0) ->
     end;
 add_tangents1([], _, _, _, _, Bin) -> Bin.
 
-get_tangent(undefined, {0.0,0.0,0.0}, H0, N) ->
+get_tangent(undefined, {+0.0,+0.0,+0.0}, H0, N) ->
     H = if H0 =:= 0 -> -1; true -> H0 end,
     {cross_axis(N), H};
 get_tangent(undefined, BiT, 0, N) ->

@@ -1200,25 +1200,25 @@ along(Along, Az, El) ->
 
 along(Az, El) when Az =:= 90.0; Az =:= -90.0 ->
     case El of
-      0.0 -> x;
-      90.0 -> y;
-      -90.0 -> y;
-      180.0 -> x;
-      _ -> none
+        +0.0 -> x;
+        90.0 -> y;
+        -90.0 -> y;
+        180.0 -> x;
+        _ -> none
     end;
 along(Az, El) when El =:= 90.0; El =:= -90.0 ->
     case Az of
-      0.0 -> y;
-      90.0 -> x;
-      -90.0 -> x;
-      180.0 -> y;
-      _ -> none
+        +0.0 -> y;
+        90.0 -> x;
+        -90.0 -> x;
+        180.0 -> y;
+        _ -> none
     end;
-along(Az, El) when Az =:= 0.0; Az =:= 180.0 ->
+along(Az, El) when Az =:= +0.0; Az =:= 180.0 ->
     case El of
-      0.0 -> z;
-      180.0 -> z;
-      _ -> none
+        +0.0 -> z;
+        180.0 -> z;
+        _ -> none
     end;
 along(_, _) -> none.
 
