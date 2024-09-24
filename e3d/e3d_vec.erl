@@ -45,7 +45,7 @@ zero() ->
 
 -spec is_zero(vector()) -> boolean().
      
-is_zero({0.0,0.0,0.0}) -> true;
+is_zero({+0.0,+0.0,+0.0}) -> true;
 is_zero(_) -> false.
 
 -spec add(vector(), vector()) -> vector().

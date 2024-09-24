@@ -759,7 +759,7 @@ polygon_plane(Vs, Vcoords) ->
 	    Vtab = list_to_tuple(Vcoords),
 	    Ps = [element(V+1, Vtab) || V <- Vs],
 	    case e3d_vec:normal(Ps) of
-		{0.0,0.0,0.0} -> {0.0,0.0,1.0};
+		{+0.0,+0.0,+0.0} -> {0.0,0.0,1.0};
 		N -> N
 	    end
     end.
@@ -817,16 +817,15 @@ segsintersect(IA, IB, IC, ID, Vtab) ->
                              andalso TI > 0.0 andalso TI < 1.0);
                         true ->
                             %% parallel or overlapping
-                            case {dot2(U, U),dot2(V, V)} of
-                                {0.0,_} -> false;
-                                {_,0.0} -> false;
-                                {_,_} ->
+                            case abs(dot2(U, U)) < ?EPSILON orelse abs(dot2(V, V)) < ?EPSILON of
+                                true -> false;
+                                false ->
                                     %% At this point, we know that none of the
                                     %% segments are points.
                                     Z = sub2(B, C),
                                     {Wx,Wy}=W, {Zx,Zy}=Z,
-                                    {T0,T1} = case Vx of
-                                                  0.0 -> {Wy/Vy, Zy/Vy};
+                                    {T0,T1} = case abs(Vx) < ?EPSILON of
+                                                  true -> {Wy/Vy, Zy/Vy};
                                                   _ ->   {Wx/Vx, Zx/Vx}
                                               end,
                                     (0.0 < T0)

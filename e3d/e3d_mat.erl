@@ -55,9 +55,9 @@ identity() ->
 -spec is_identity(matrix()) -> boolean().
 
 is_identity(identity) -> true;
-is_identity({1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0}) -> true;
-is_identity({1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,
-	     0.0,0.0,0.0,1.0}) -> true;
+is_identity({1.0,+0.0,+0.0,+0.0,1.0,+0.0,+0.0,+0.0,1.0,+0.0,+0.0,+0.0}) -> true;
+is_identity({1.0,+0.0,+0.0,+0.0,1.0,+0.0,+0.0,+0.0,1.0,+0.0,+0.0,+0.0,
+	     +0.0,+0.0,+0.0,1.0}) -> true;
 is_identity({_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_}) -> false;
 is_identity({_,_,_,_,_,_,_,_,_,_,_,_}) -> false.
 
@@ -77,10 +77,10 @@ compress(Mat)
 -spec expand(matrix()) -> matrix().
     
 expand(identity) ->
-    {1.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,1.0};
+    {1.0,+0.0,+0.0,+0.0,+0.0,1.0,+0.0,+0.0,+0.0,+0.0,1.0,+0.0,+0.0,+0.0,+0.0,1.0};
 expand({_A,_B,_C,_,_D,_E,_F,_,_G,_H,_I,_,_Tx,_Ty,_Tz,_}=Mat) -> Mat;
 expand({A,B,C,D,E,F,G,H,I,Tx,Ty,Tz}) ->
-    {A,B,C,0.0,D,E,F,0.0,G,H,I,0.0,Tx,Ty,Tz,1.0}.
+    {A,B,C,+0.0,D,E,F,+0.0,G,H,I,+0.0,Tx,Ty,Tz,1.0}.
 
 -spec translate(e3d_vector()) -> compact_matrix().
 
@@ -89,7 +89,7 @@ translate({X,Y,Z}) -> translate(X, Y, Z).
 -spec translate(X::float(), Y::float(), Z::float()) -> compact_matrix().
 
 translate(Tx, Ty, Tz) ->
-    Zero = 0.0,
+    Zero = +0.0,
     One = 1.0,
     {One,Zero,Zero,
      Zero,One,Zero,
@@ -102,7 +102,7 @@ scale({X,Y,Z}) -> scale(X, Y, Z);
 scale(Sc) when is_float(Sc) -> scale(Sc, Sc, Sc).
 
 scale(Sx, Sy, Sz) ->
-    Zero = 0.0,
+    Zero = +0.0,
     {Sx,Zero,Zero,
      Zero,Sy,Zero,
      Zero,Zero,Sz,
@@ -133,7 +133,7 @@ rotate(A0, {X,Y,Z}) when is_float(X), is_float(Y), is_float(Z) ->
     {U1+S*(1.0-U1), U4+NegS*U4+C4, U7+NegS*U7+C7,
      U2+NegS*U2+C2, U5+S*(1.0-U5), U8+NegS*U8+C8,
      U3+NegS*U3+C3, U6+NegS*U6+C6, U9+S*(1.0-U9),
-     0.0,0.0,0.0}.
+     +0.0,+0.0,+0.0}.
 
 %% rotate_from_euler_rad is a shortcut for
 %% Rad2deg = 180/math:pi(),
@@ -152,7 +152,7 @@ rotate_from_euler_rad(Rx,Ry,Rz) ->
     Cy = math:cos(Ry), Sy = math:sin(Ry),
     Cx = math:cos(Rx), Sx = math:sin(Rx),
     Sxsy=Sx*Sy,  Cxsy=Cx*Sy,
-    TZ = 0.0,
+    TZ = +0.0,
     {Cy*Cz,         Cy*Sz,	   -Sy,
      Sxsy*Cz-Cx*Sz, Sxsy*Sz+Cx*Cz, Sx*Cy,
      Cxsy*Cz+Sx*Sz, Cxsy*Sz-Sx*Cz, Cx*Cy,
@@ -177,7 +177,7 @@ project_to_plane(Vec) ->
 	    {Ux*Ux+Vx*Vx,Uy*Ux+Vy*Vx,Uz*Ux+Vz*Vx,
 	     Ux*Uy+Vx*Vy,Uy*Uy+Vy*Vy,Uz*Uy+Vz*Vy,
 	     Ux*Uz+Vx*Vz,Uy*Uz+Vy*Vz,Uz*Uz+Vz*Vz,
-	     0.0,0.0,0.0}
+	     +0.0,+0.0,+0.0}
     end.
 
 -spec rotate_to_z(Vector::e3d_vector()) -> compact_matrix().
@@ -186,17 +186,17 @@ rotate_to_z(Vec) ->
     {Vx,Vy,Vz} = V =
 	case e3d_vec:norm(Vec) of
 	    {Wx,Wy,Wz}=W when abs(Wx) =< abs(Wy), abs(Wx) < abs(Wz) ->
-		e3d_vec:norm(0.0, Wz, -Wy);
+		e3d_vec:norm(+0.0, Wz, -Wy);
 	    {Wx,Wy,Wz}=W when abs(Wy) < abs(Wz) ->
-		e3d_vec:norm(Wz, 0.0, -Wx);
+		e3d_vec:norm(Wz, +0.0, -Wx);
 	    {Wx,Wy,Wz}=W ->
-		e3d_vec:norm(Wy, -Wx, 0.0)
+		e3d_vec:norm(Wy, -Wx, +0.0)
 	end,
     {Ux,Uy,Uz} = e3d_vec:cross(V, W),
     {Ux,Vx,Wx,
      Uy,Vy,Wy,
      Uz,Vz,Wz,
-     0.0,0.0,0.0}.
+     +0.0,+0.0,+0.0}.
 
 -spec rotate_s_to_t(S::e3d_vector(), T::e3d_vector()) -> compact_matrix().
 
@@ -214,7 +214,7 @@ rotate_s_to_t(S, T) ->
 -spec transpose(matrix()) -> matrix().
 
 transpose(identity=I) -> I;
-transpose({M1,M2,M3,M4,M5,M6,M7,M8,M9,0.0=Z,0.0,0.0}) ->
+transpose({M1,M2,M3,M4,M5,M6,M7,M8,M9,+0.0=Z,+0.0,+0.0}) ->
     {M1,M4,M7,
      M2,M5,M8,
      M3,M6,M9,
@@ -267,7 +267,7 @@ add(M1,M2) when tuple_size(M1) =:= 12; tuple_size(M2) =:= 12 ->
 mul(M, identity) -> M;
 mul(identity, M) when not is_number(M) -> M;
 mul(identity,M2) -> mul(expand(identity), M2);
-mul({1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0,B_tx,B_ty,B_tz},
+mul({1.0,+0.0,+0.0,+0.0,1.0,+0.0,+0.0,+0.0,1.0,B_tx,B_ty,B_tz},
     {A_a,A_b,A_c,A_d,A_e,A_f,A_g,A_h,A_i,A_tx,A_ty,A_tz})
   when is_float(A_tx), is_float(A_ty), is_float(A_tz),
        is_float(B_tx), is_float(B_ty), is_float(B_tz) ->
@@ -371,7 +371,7 @@ mul_point({A,B,C,D,E,F,G,H,I,Tx,Ty,Tz}, {X,Y,Z})
     share(X*A + Y*D + Z*G + Tx,
 	  X*B + Y*E + Z*H + Ty,
 	  X*C + Y*F + Z*I + Tz);
-mul_point({A,B,C,0.0,D,E,F,0.0,G,H,I,0.0,Tx,Ty,Tz,1.0}, {X,Y,Z})
+mul_point({A,B,C,+0.0,D,E,F,+0.0,G,H,I,+0.0,Tx,Ty,Tz,1.0}, {X,Y,Z})
   when is_float(A), is_float(B), is_float(C), is_float(D), is_float(E),
        is_float(F), is_float(G), is_float(H), is_float(I), 
        is_float(Tx), is_float(Ty), is_float(Tz), is_float(X), is_float(Y), is_float(Z) ->
@@ -495,7 +495,7 @@ print(Mat) when tuple_size(Mat) =:= 12;
     print_1(Mat).
 
 print_1({A,B,C,D,E,F,G,H,I,Tx,Ty,Tz}) ->
-    print_1({A,B,C,0.0,D,E,F,0.0,G,H,I,0.0,Tx,Ty,Tz,1.0});
+    print_1({A,B,C,+0.0,D,E,F,+0.0,G,H,I,+0.0,Tx,Ty,Tz,1.0});
 print_1(_Mat = {A,B,C,D,E,F,G,H,I,J,K,L,TX,TY,TZ,W}) ->
     io:format(" ~10.3g ~10.3g ~10.3g ~10.3g~n ~10.3g ~10.3g ~10.3g ~10.3g~n"
     	      " ~10.3g ~10.3g ~10.3g ~10.3g~n ~10.3g ~10.3g ~10.3g ~10.3g~n~n", 
@@ -557,7 +557,7 @@ almost_parallel(S, T) ->
     {1.0+ael(C, 1, 1),ael(C, 2, 1),ael(C, 3, 1),
      ael(C, 1, 2),1.0+ael(C, 2, 2),ael(C, 3, 2),
      ael(C, 1, 3),ael(C, 2, 3),1.0+ael(C, 3, 3),
-     0.0,0.0,0.0}.
+     +0.0,+0.0,+0.0}.
 
 ael({C1,C2,C3,U,V}, I, J) ->
     -C1 * element(I, U) * element(J, U) -
@@ -571,13 +571,13 @@ closest_axis({X0,Y0,Z0}) ->
     if
 	X < Y ->
 	    if
-		X < Z -> {1.0,0.0,0.0};
-		true -> {0.0,0.0,1.0}
+		X < Z -> {1.0,+0.0,+0.0};
+		true -> {+0.0,+0.0,1.0}
 	    end;
 	true ->
 	    if
-		Y < Z -> {0.0,1.0,0.0};
-		true -> {0.0,0.0,1.0}
+		Y < Z -> {+0.0,1.0,+0.0};
+		true -> {+0.0,+0.0,1.0}
 	    end
     end.
     
@@ -591,7 +591,7 @@ rotate_s_to_t_1({Vx,Vy,Vz}, E) when is_float(Vx), is_float(Vy), is_float(Vz) ->
     {E+HVx*Vx,HVxy+Vz,HVxz-Vy,
      HVxy-Vz,E+H*Vy*Vy,HVyz+Vx,
      HVxz+Vy,HVyz-Vx,E+HVz*Vz,
-     0.0,0.0,0.0}.
+     +0.0,+0.0,+0.0}.
 
 eig_triDiag3({A0,B0,C0,_,D0,E0,_,_,F0}) 
   when is_float(A0), is_float(B0), is_float(C0), 
@@ -606,15 +606,15 @@ eig_triDiag3({A0,B0,C0,_,D0,E0,_,_,F0})
 	    Di2 = F0-C*Q,
 	    Su0 = Ell,
 	    Su1 = E0-B*Q,
-	    Mat = {1.0, 0.0, 0.0,
-		   0.0,   B,   C,
-		   0.0,   C,  -B},
-	    {Mat,{Di0,Di1,Di2},{Su0,Su1,0.0}};
+	    Mat = {1.0, +0.0, +0.0,
+		   +0.0,   B,   C,
+		   +0.0,   C,  -B},
+	    {Mat,{Di0,Di1,Di2},{Su0,Su1,+0.0}};
        true ->
-	    Mat = {1.0, 0.0, 0.0,
-		   0.0, 1.0, 0.0,
-		   0.0, 0.0, 1.0},
-	    {Mat,{Di0,D0,F0},{B0,E0,0.0}}
+	    Mat = {1.0, +0.0, +0.0,
+		   +0.0, 1.0, +0.0,
+		   +0.0, +0.0, 1.0},
+	    {Mat,{Di0,D0,F0},{B0,E0,+0.0}}
     end.
 
 eps(E) ->

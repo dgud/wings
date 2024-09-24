@@ -254,7 +254,7 @@ rotate_s_to_t(V1={X,Y,Z},V2)
   when is_float(X), is_float(Y), is_float(Z) ->
     Bisector = e3d_vec:norm(e3d_vec:add(V1,V2)),
     CosHalfAngle = e3d_vec:dot(V1,Bisector),
-    if CosHalfAngle =/= 0.0 ->
+    if abs(CosHalfAngle) > ?EPSILON ->
 	    {e3d_vec:cross(V1,Bisector), CosHalfAngle};
        abs(X) >= abs(Y) ->
 	    %% V1.x or V1.z is the largest magnitude component
