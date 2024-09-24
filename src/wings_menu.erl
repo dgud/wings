@@ -411,7 +411,6 @@ popup_events(MenuData, Magnet, Previous, Ns, Owner) ->
 
 fit_menu_on_display(Frame, {MX,MY} = Pos) ->
     {WW,WH} = wxWindow:getSize(Frame),
-    wxDisplay:getFromWindow(Frame),
     %% When multiple resolution displays are present, there is a situation which
     %% the window being shared partially by two of them - and the window being
     %% scaled up - the Display ID returned is -1. In order to avoid a crash it we
