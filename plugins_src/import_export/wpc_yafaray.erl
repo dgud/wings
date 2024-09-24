@@ -2362,16 +2362,16 @@ export_dialog_qs(Op, Attr) ->
             aperture ->
                 {Value0,_} = f_stop_find(Value,ApertureList),
                 wings_dialog:set_value(aperture_idx, Value0, Store),
-                wings_dialog:enable(bokeh_use_QMC, Value =/= 0.0, Store),
-                wings_dialog:enable(?KEY(pnl_dof_type), Value =/= 0.0, Store),
-                wings_dialog:enable(?KEY(pnl_dof_sliders), Value =/= 0.0, Store);
+                wings_dialog:enable(bokeh_use_QMC, Value =/= +0.0, Store),
+                wings_dialog:enable(?KEY(pnl_dof_type), Value =/= +0.0, Store),
+                wings_dialog:enable(?KEY(pnl_dof_sliders), Value =/= +0.0, Store);
             aperture_idx ->
                 if ((Value =/= "") and (Value =/= Custom)) ->
                         {_,Value0} = f_stop_find(Value,ApertureList),
                         wings_dialog:set_value(aperture, Value0, Store);
                     true -> ok
                 end,
-                Enabled = wings_dialog:get_value(aperture, Store) =/= 0.0,
+                Enabled = wings_dialog:get_value(aperture, Store) =/= +0.0,
                 wings_dialog:enable(bokeh_use_QMC, Enabled, Store),
                 wings_dialog:enable(?KEY(pnl_dof_type), Enabled, Store),
                 wings_dialog:enable(?KEY(pnl_dof_sliders), Enabled, Store);
@@ -4297,36 +4297,36 @@ export_modulator(F, Texname0, Maps, {modulator,Ps}, _Opacity) when is_list(Ps) -
 
             TextureShaderType =
                 case {Normal,TextureType,AlphaIntensity} of
-                    {0.0,diffusetexture,off} -> "<diffuse_shader";
-                    {0.0,mirrorcolortexture,off} -> "<mirror_color_shader";
-                    {0.0,mirrortexture,off} -> "<mirror_shader";
-                    {0.0,glossytexture,off} -> "<glossy_shader";
-                    {0.0,glossyreflecttexture,off} -> "<diffuse_reflect_shader";
-                    {0.0,transparencytexture,off} -> "<transparency_shader";
-                    {0.0,translucencytexture,off} -> "<translucency_shader";
-                    {0.0,bumptexture,off} -> "<bump_shader";
+                    {+0.0,diffusetexture,off} -> "<diffuse_shader";
+                    {+0.0,mirrorcolortexture,off} -> "<mirror_color_shader";
+                    {+0.0,mirrortexture,off} -> "<mirror_shader";
+                    {+0.0,glossytexture,off} -> "<glossy_shader";
+                    {+0.0,glossyreflecttexture,off} -> "<diffuse_reflect_shader";
+                    {+0.0,transparencytexture,off} -> "<transparency_shader";
+                    {+0.0,translucencytexture,off} -> "<translucency_shader";
+                    {+0.0,bumptexture,off} -> "<bump_shader";
 
-                    {0.0,diffusetexture,transparency} -> "<transparency_shader";
-                    {0.0,mirrorcolortexture,transparency} -> "<transparency_shader";
-                    {0.0,mirrortexture,transparency} -> "<transparency_shader";
-                    {0.0,glossytexture,transparency} -> "<transparency_shader";
-                    {0.0,glossyreflecttexture,transparency} -> "<transparency_shader";
-                    {0.0,transparencytexture,transparency} -> "<transparency_shader";
+                    {+0.0,diffusetexture,transparency} -> "<transparency_shader";
+                    {+0.0,mirrorcolortexture,transparency} -> "<transparency_shader";
+                    {+0.0,mirrortexture,transparency} -> "<transparency_shader";
+                    {+0.0,glossytexture,transparency} -> "<transparency_shader";
+                    {+0.0,glossyreflecttexture,transparency} -> "<transparency_shader";
+                    {+0.0,transparencytexture,transparency} -> "<transparency_shader";
 
-                    {0.0,diffusetexture,diffusealphatransparency} -> "<diffuse_shader";
-                    {0.0,transparencytexture,diffusealphatransparency} -> "<diffuse_shader";
+                    {+0.0,diffusetexture,diffusealphatransparency} -> "<diffuse_shader";
+                    {+0.0,transparencytexture,diffusealphatransparency} -> "<diffuse_shader";
 
-                    {0.0,diffusetexture,translucency} -> "<translucency_shader";
-                    {0.0,glossytexture,translucency} -> "<translucency_shader";
-                    {0.0,translucencytexture,translucency} -> "<translucency_shader";
+                    {+0.0,diffusetexture,translucency} -> "<translucency_shader";
+                    {+0.0,glossytexture,translucency} -> "<translucency_shader";
+                    {+0.0,translucencytexture,translucency} -> "<translucency_shader";
 
-                    {0.0,diffusetexture,specularity} -> "<mirror_shader";
-                    {0.0,mirrorcolortexture,specularity} -> "<mirror_shader";
-                    {0.0,mirrortexture,specularity} -> "<mirror_shader";
-                    {0.0,glossytexture,specularity} -> "<mirror_shader";
-                    {0.0,glossyreflecttexture,specularity} -> "<mirror_shader";
+                    {+0.0,diffusetexture,specularity} -> "<mirror_shader";
+                    {+0.0,mirrorcolortexture,specularity} -> "<mirror_shader";
+                    {+0.0,mirrortexture,specularity} -> "<mirror_shader";
+                    {+0.0,glossytexture,specularity} -> "<mirror_shader";
+                    {+0.0,glossyreflecttexture,specularity} -> "<mirror_shader";
 
-                    {0.0,diffusetexture,stencil} -> "<diffuse_shader";
+                    {+0.0,diffusetexture,stencil} -> "<diffuse_shader";
                     _ -> "<bump_shader"
                 end,
 
@@ -5982,7 +5982,7 @@ format(L) when is_list(L) ->
 format_decimals(F) when is_float(F), F >= 0.0 ->
     format_decimals_1(F).
 
-format_decimals_1(0.0) ->
+format_decimals_1(+0.0) ->
     ".0";
 format_decimals_1(F) when is_float(F) ->
     G = 10.0 * F,
@@ -5990,7 +5990,7 @@ format_decimals_1(F) when is_float(F) ->
     D = G - float(I),
     [$.,(I+$0)|format_decimals_2(D)].
 
-format_decimals_2(0.0) ->
+format_decimals_2(+0.0) ->
     [];
 format_decimals_2(F) when is_float(F) ->
     G = 100.0 * F,
@@ -6002,7 +6002,7 @@ format_decimals_2(F) when is_float(F) ->
             [integer_to_list(I)|format_decimals_3(D)]
     end.
 
-format_decimals_3(0.0) ->
+format_decimals_3(+0.0) ->
     [];
 format_decimals_3(F) when is_float(F) ->
     G = 1000.0 * F,
@@ -6016,7 +6016,7 @@ format_decimals_3(F) when is_float(F) ->
             [integer_to_list(I)|format_decimals_4(D)]
     end.
 
-format_decimals_4(0.0) ->
+format_decimals_4(+0.0) ->
     [];
 format_decimals_4(F) when is_float(F) ->
     G = 10000.0 * F,

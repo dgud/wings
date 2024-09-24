@@ -3682,7 +3682,7 @@ mat_from_axises(Axises, Mat_0) ->
         %    build_mat_from_axis(XAxis, {1.0, 0.0, 0.0},
         %        build_mat_from_axis(ZAxis, {0.0, 0.0, 1.0}, Mat_0))),
     Mat.
-build_mat_from_axis({X,Y,Z}=_AxisV, _WasAxis, Mat_0) when X+Y+Z =:= 0.0 ->
+build_mat_from_axis({X,Y,Z}=_AxisV, _WasAxis, Mat_0) when abs(X+Y+Z) < ?EPSILON ->
     Mat_0;
 build_mat_from_axis(AxisV, WasAxis, Mat_0) ->
     Mat = e3d_mat:mul(Mat_0, e3d_mat:rotate_s_to_t(WasAxis, AxisV)),
@@ -3783,7 +3783,7 @@ scale_children([#shape_piece{geometry=Geometry}=Shape_0 | L], {XS, YS, ZS}, O) -
     },
     scale_children(L, {XS, YS, ZS}, [Shape_1 | O]).
 
-rotate_children(Shapes, {0.0, 0.0, 1.0, 0.0}) -> Shapes;
+rotate_children(Shapes, {+0.0, +0.0, 1.0, +0.0}) -> Shapes;
 rotate_children(Shapes, {RA, RB, RC, RAng}) ->
     rotate_children(Shapes, {RA, RB, RC, RAng}, []).
 rotate_children([], _, O) ->
@@ -3794,7 +3794,7 @@ rotate_children([#shape_piece{geometry=Geometry}=Shape_0 | L], {RA, RB, RC, RAng
     },
     rotate_children(L, {RA, RB, RC, RAng}, [Shape_1 | O]).
 
-translate_children(Shapes, {0.0, 0.0, 0.0}) -> Shapes;
+translate_children(Shapes, {+0.0, +0.0, +0.0}) -> Shapes;
 translate_children(Shapes, {TX, TY, TZ}) ->
     translate_children(Shapes, {TX, TY, TZ}, []).
 translate_children([], _, O) ->
@@ -3811,14 +3811,14 @@ scale_geometry({XS, YS, ZS}, #geometry{coords=Coords}=Geometry) ->
         coords=[{X*XS, Y*YS, Z*ZS} || {X, Y, Z} <- Coords]
     }.
 
-rotate_geometry({0.0, 0.0, 1.0, 0.0}, Geometry) -> Geometry;
+rotate_geometry({+0.0, +0.0, 1.0, +0.0}, Geometry) -> Geometry;
 rotate_geometry(RotateTup, #geometry{coords=Coords}=Geometry) ->
     Mat = rotate_mat(RotateTup),
     Geometry#geometry{
         coords=[mul_point(Mat, {X, Y, Z}) || {X, Y, Z} <- Coords]
     }.
     
-translate_geometry({0.0, 0.0, 0.0}, Geometry) -> Geometry;
+translate_geometry({+0.0, +0.0, +0.0}, Geometry) -> Geometry;
 translate_geometry({TX, TY, TZ}, #geometry{coords=Coords}=Geometry) ->
     Geometry#geometry{
         coords=[{X+TX, Y+TY, Z+TZ} || {X, Y, Z} <- Coords]

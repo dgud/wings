@@ -515,9 +515,9 @@ check_selection(sub_angle,none,none,#st{sel=[{_Id0,Sel0},{_Id1,Sel1}]}=St,OrigSt
         OrigA = measure_angle(normal,OrigSt),
         Angle = measure_angle(normal,St),
         A0 = abs(Angle - OrigA),
-        A1 = case A0 of
-               0.0 -> 180.0;
-               _ -> A0
+        A1 = case A0 < ?EPSILON of
+                 true -> 180.0;
+                 false -> A0
              end,
         Str = [?__(11," Original Angle ~s"),?DEGREE,?__(12,"\n Current Angle ~s"),
                ?DEGREE,?__(13,"\n Difference ~s"),?DEGREE],
@@ -534,9 +534,9 @@ check_selection(sub_angle,none,none,#st{sel=[{_Id,Sel}]}=St,OrigSt) ->
         OrigA = wings_util:nice_float(Angle),
         CurrA = wings_util:nice_float(CAngle),
         A0 = abs(Angle - CAngle),
-        A1 = case A0 of
-               0.0 -> 180.0;
-               _ -> A0
+        A1 = case A0 < ?EPSILON of
+                 true -> 180.0;
+                 false -> A0
              end,
         A2 = wings_util:nice_float(A1),
         Str1 = [wings_util:format(?__(16," Angle ~s"),[OrigA]),?DEGREE],

@@ -152,7 +152,7 @@ object_vector(CenterPoint, ObjCenter) ->
 %%   The return value is the new position. {X,Y,Z}
 %%
 
-shift_planar(Pos, 0.0, _) -> Pos;
+shift_planar(Pos, +0.0, _) -> Pos;
 shift_planar(Pos, Dist, {Axis, Center}) ->
   V = e3d_vec:sub(Pos,Center),
   D = e3d_vec:dot(V,Axis),
@@ -179,7 +179,7 @@ shift_planar(Pos, Dist, {object, Axis, V}) ->
       Pos
   end.
 
-shift_cylindrical(Pos, 0.0, _) -> Pos;
+shift_cylindrical(Pos, +0.0, _) -> Pos;
 shift_cylindrical(Pos, Dist, {Axis, Center}) ->
     V = e3d_vec:sub(Pos,Center),
     OffDist = e3d_vec:dot(V,Axis),
@@ -192,7 +192,7 @@ shift_cylindrical(Pos, Dist, {object, Axis, V}) ->
     N = e3d_vec:norm(OffVec),
     e3d_vec:add([Pos, e3d_vec:mul(N, Dist)]).
 
-shift_spherical(Pos, 0.0, _Center) -> Pos;
+shift_spherical(Pos, +0.0, _Center) -> Pos;
 shift_spherical(Pos, Dist, {object, V}) ->
     N = e3d_vec:norm(V),
     e3d_vec:add([Pos, e3d_vec:mul(N, Dist)]);

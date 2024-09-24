@@ -834,26 +834,26 @@ inset_faces_fun(InsetData,State) ->
         end,A,VData)
     end.
 
-inset_regions(Vpos,_,_,_,0.0) ->
+inset_regions(Vpos,_,_,_,+0.0) ->
     Vpos;
 inset_regions(Vpos,_Dir,EDir,{_,along_edges,_},Dist) ->
     e3d_vec:add(Vpos,e3d_vec:mul(EDir,Dist));
 inset_regions(Vpos,Dir,_EDir,{_,average,_},Dist) ->
     e3d_vec:add(Vpos,e3d_vec:mul(Dir,Dist)).
 
-offset_regions(Vpos,_,0.0) ->
+offset_regions(Vpos,_,+0.0) ->
     Vpos;
 offset_regions(Vpos,Vec,Dist) ->
     e3d_vec:add(Vpos,e3d_vec:mul(Vec,Dist)).
 
-bump_regions(Vpos,_,_,_,0.0) ->
+bump_regions(Vpos,_,_,_,+0.0) ->
     Vpos;
 bump_regions(Vpos,LoopNormal,_,{_,_,loop},Bump) ->
     e3d_vec:add(Vpos,e3d_vec:mul(LoopNormal,Bump));
 bump_regions(Vpos,_,VNorm,{_,_,faces},Bump) ->
     e3d_vec:add(Vpos,e3d_vec:mul(VNorm,Bump)).
 
-inset_faces(_,_,{Vpos,_},_,0.0) ->
+inset_faces(_,_,{Vpos,_},_,+0.0) ->
     Vpos;
 inset_faces(SDist,_,{Vpos,Dir},{_,_,relative,_,per_obj},Percent) ->
     e3d_vec:add(Vpos, e3d_vec:mul(Dir, SDist * Percent));
@@ -864,7 +864,7 @@ inset_faces(_,_,{Vpos,Dir},{_,along_edges,absolute,_,_},Dist) ->
 inset_faces(_,_,{Vpos,Dir},{_,average,absolute,_,_},Dist) ->
     e3d_vec:add(Vpos, e3d_vec:mul(Dir, Dist)).
 
-bump(Vpos,_,0.0) ->
+bump(Vpos,_,+0.0) ->
     Vpos;
 bump(Vpos,FNorm,Bump)->
     e3d_vec:add(Vpos, e3d_vec:mul(FNorm,Bump)).

@@ -548,8 +548,8 @@ export_camera(F, Attr, CorrectedFOV, Width, Height) ->
     io:format(F,    "\t angle ~f\n", [Fov]),
     io:format(F,    "\t sky <~f, ~f, ~f>\n", [Ux, Uy, Uz]),
     io:format(F,    "\t look_at <~f, ~f, ~f>\n", [Px + Dx, Py + Dy, Pz + Dz]),
-    case proplists:get_value(aperture, Attr, 0.0) of
-        0.0 -> ok;
+    case proplists:get_value(aperture, Attr, +0.0) of
+        +0.0 -> ok;
         _ ->
             io:format(F, "\t aperture ~f\n", [proplists:get_value(aperture, Attr, 0.0)]),
             io:format(F, "\t blur_samples ~p\n", [proplists:get_value(blur_samples, Attr, 1)]),
@@ -873,8 +873,8 @@ export_gamma_macro(F, false) ->
 ambient_multiplier() ->
     {Ar, Ag, Ab} = get_pref(ambient, {0.0, 0.0, 0.0}),
     Ap0 = get_pref(ambient_power, 1.0),
-    case Ar * Ag * Ab * Ap0 of
-        0.0 -> 1.0;
+    case abs(Ar * Ag * Ab * Ap0) < ?EPSILON of
+        true -> 1.0;
         _ ->
             {Apr, Apg, Apb} = {Ar * Ap0, Ag * Ap0, Ab * Ap0},
             Ap1 = min(Apr, min(Apg, Apb)),
@@ -1017,23 +1017,23 @@ export_finish(F, OpenGL, PovRay) ->
     {_H, _S, V} = wings_color:rgb_to_hsv(Sr, Sg, Sb),
     io:format(F, "\t\t specular ~f\n", [V]),
     io:format(F, "\t\t roughness ~f\n", [1.00001 - proplists:get_value(shininess, OpenGL, 1.0)]),
-    case proplists:get_value(finish_phong, PovRay, 0.0) of
-        0.0 -> ok;
+    case proplists:get_value(finish_phong, PovRay, +0.0) of
+        +0.0 -> ok;
         Phong ->
             io:format(F, "\t\t phong ~f\n", [Phong]),
             io:format(F, "\t\t phong_size ~f\n", [proplists:get_value(finish_phong_size, PovRay, 40.0)])
     end,
-    case proplists:get_value(finish_irid_amount, PovRay, 0.0) of
-        0.0 -> ok;
+    case proplists:get_value(finish_irid_amount, PovRay, +0.0) of
+        +0.0 -> ok;
         Amount ->
             io:format(F, "\t\t irid { ~f\n", [Amount]),
             io:format(F, "\t\t\t thickness ~f\n", [proplists:get_value(finish_irid_thickness, PovRay, 0.2)]),
             io:format(F, "\t\t\t turbulence ~f\n", [proplists:get_value(finish_irid_turbulence, PovRay, 0.15)]),
             io:put_chars(F, "\t\t }\n")
     end,
-    SSLTMul = proplists:get_value(finish_sslt_multiplier, PovRay, 0.0),
+    SSLTMul = proplists:get_value(finish_sslt_multiplier, PovRay, +0.0),
     case {get_pref(sslt, false), SSLTMul} of
-        {_, 0.0} -> ok;
+        {_, +0.0} -> ok;
         {true, SSLTMul} ->
             {Tr, Tg, Tb} = proplists:get_value(finish_sslt_color, PovRay, {1.0, 1.0, 1.0}),
             io:put_chars(F, "\t\t subsurface { \n"),
@@ -1751,7 +1751,7 @@ export_dialog(Op) ->
                     _ -> ok
                 end;
             aperture ->
-                wings_dialog:enable(pnl_blur, Value =/= 0.0, Store);
+                wings_dialog:enable(pnl_blur, abs(Value) > ?EPSILON, Store);
             _ -> ok
         end
     end,

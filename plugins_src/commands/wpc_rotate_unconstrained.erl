@@ -181,7 +181,7 @@ rotate_fun(CamX,CamY,Center,VsInf0,{_,R}=Magnet0,State0) ->	% mag
 %%%% ROTATIONS
 %%%% (matrix or vector operations)
 
-rotate(Vpos,_CamX,_CamY,_Center,_, 0.0,0.0) ->
+rotate(Vpos,_CamX,_CamY,_Center,_, +0.0,+0.0) ->
     Vpos;
 
 rotate(Vpos,CamX,CamY,{Cx,Cy,Cz},_,Dx, Dy) ->		% vertex rotation

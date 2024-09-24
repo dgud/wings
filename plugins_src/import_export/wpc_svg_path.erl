@@ -3426,7 +3426,7 @@ subst_str_to_bool(Str) ->
     end.
 
 arc_path(RX, RY, _Rotation, _LargeArcFlag, _SweepFlag, _P1, {X,Y})
-  when abs(RX) =:= 0.0; abs(RY) =:= 0.0 ->
+  when abs(RX) < ?EPSILON; abs(RY) < ?EPSILON ->
     %% If rx = 0 or ry = 0, we just make a line
     [{X,Y}];
 arc_path(RX, RY, Rotation, LargeArc, Sweep, P1, P2) ->
@@ -3536,7 +3536,7 @@ get_radius_to_range_ratio({X1, Y1}, {X2, Y2}, {XR_1, YR_1}, Angle) ->
 -spec arc_path_cmd({float(), float()}, {float(),float()}, {float(),float()},
     float(), boolean(), boolean()) -> any().
 arc_path_cmd(ArcFromPoint, ArcToPoint, {XR_0,YR_0}, Angle_0, LargeArc, Sweep)
-  when is_float(YR_0), YR_0 =/= 0.0 ->
+  when is_float(YR_0), abs(YR_0) > ?EPSILON ->
     %% By making ellipses of the same radius and angle at the start and end point of
     %% the segment, we get two intersection points. At those two intersection points
     %% are the center of the two possible ellipses that can draw an arc for our arc path.

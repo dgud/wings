@@ -264,9 +264,9 @@ trunc_axis(x, {_,Y,Z}) -> {0.0,Y,Z};
 trunc_axis(y, {X,_,Z}) -> {X,0.0,Z};
 trunc_axis(z, {X,Y,_}) -> {X,Y,0.0}.
 
-translate_axis(x, {0.0,_Y,_Z}) -> {-1.0,0.0,0.0};
+translate_axis(x, {+0.0,_Y,_Z}) -> {-1.0,0.0,0.0};
 translate_axis(x, {X,_Y,_Z}) -> {-1.0*(X/abs(X)),0.0,0.0};
-translate_axis(y, {_X,0.0,_Z}) -> {0.0,1.0,0.0};
+translate_axis(y, {_X,+0.0,_Z}) -> {0.0,1.0,0.0};
 translate_axis(y, {_X,Y,_Z}) -> {0.0,Y/abs(Y),0.0};
-translate_axis(z, {_X,_Y,0.0}) -> {0.0,0.0,1.0};
+translate_axis(z, {_X,_Y,+0.0}) -> {0.0,0.0,1.0};
 translate_axis(z, {_X,_Y,Z}) -> {0.0,0.0,Z/abs(Z)}.

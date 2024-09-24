@@ -266,9 +266,9 @@ get_result(Deg, Len, false) ->
 
 opposite(Deg, Adjacent, Divider) ->
     D0 = (180 - Deg)/Divider,
-    case D0 of
-        0.0 -> 0.0;
-        _ ->
+    case abs(D0) < ?EPSILON of
+        true -> 0.0;
+        false ->
             Radians = math:pi()/(180/D0),
             Adjacent * math:tan(Radians)
     end.
@@ -276,12 +276,12 @@ opposite(Deg, Adjacent, Divider) ->
 intersect_vec_plane(PosA, PosB, Plane, Vec) ->
 %% Return point where Vec through PosA intersects with Plane at PosB
     case e3d_vec:dot(Vec,Plane) of
-      0.0 ->
-        Intersection = e3d_vec:dot(e3d_vec:sub(PosB, PosA), Plane),
-        e3d_vec:add(PosB, e3d_vec:mul(Plane, Intersection));
-      Dot ->
-        Intersection = e3d_vec:dot(e3d_vec:sub(PosB, PosA), Plane) / Dot,
-        e3d_vec:add(PosA, e3d_vec:mul(Vec, Intersection))
+        Dot when abs(Dot) < ?EPSILON ->
+            Intersection = e3d_vec:dot(e3d_vec:sub(PosB, PosA), Plane),
+            e3d_vec:add(PosB, e3d_vec:mul(Plane, Intersection));
+        Dot ->
+            Intersection = e3d_vec:dot(e3d_vec:sub(PosB, PosA), Plane) / Dot,
+            e3d_vec:add(PosA, e3d_vec:mul(Vec, Intersection))
     end.
 
 %% Drag option cut

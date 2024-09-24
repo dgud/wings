@@ -170,11 +170,11 @@ inset(Fs, InsetP, BumpP, State, #we{vp=Vp0}=We) ->
                      end, Vp0, FacesData),
     We#we{vp=Vp}.
 
-inset_faces(_,{Vpos,_},0.0) -> Vpos;
+inset_faces(_,{Vpos,_},+0.0) -> Vpos;
 inset_faces(SFDist,{Vpos,Dir},Percent) ->
     e3d_vec:add(Vpos, e3d_vec:mul(Dir, SFDist * Percent)).
 
-bump(Vpos,_,0.0) -> Vpos;
+bump(Vpos,_,+0.0) -> Vpos;
 bump(Vpos,FNorm,Bump)->
     e3d_vec:add(Vpos, e3d_vec:mul(FNorm,Bump)).
 

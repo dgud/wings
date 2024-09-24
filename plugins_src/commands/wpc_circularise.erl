@@ -538,7 +538,7 @@ get_radius([], Center, _, _, RayLen0, NearestVert, Pos, LastPos, FirstPos, AtInd
       false -> {Pos, math:sqrt(NearestVert), Index}
     end;
 
-get_radius([Vert|Vs], Center, Plane, Vtab, 0.0, 0.0, _Pos, _LastPos, _FirstPos, AtIndex, _Index) ->
+get_radius([Vert|Vs], Center, Plane, Vtab, +0.0, +0.0, _Pos, _LastPos, _FirstPos, AtIndex, _Index) ->
     Pos = array:get(Vert, Vtab),
     RayPos = intersect_vec_plane(Pos, Center, Plane),
     Dist = len_sqrt(e3d_vec:sub(RayPos, Center)),
@@ -713,9 +713,9 @@ make_circular_fun(Data, State) ->
     end.
 
 %%%% Arc Main Functions
-arc(Vpos, _Index, _Data, _State, 0.0, 0.0) -> Vpos;
+arc(Vpos, _Index, _Data, _State, +0.0, +0.0) -> Vpos;
 arc(Vpos, Index, {CwNorm, _, Opp, Plane0, Pos, Hinge, NumVs},
-        {Flatten,Orientation,_}, Percent, 0.0) ->
+        {Flatten,Orientation,_}, Percent, +0.0) ->
     Segment = (Opp * 2) / NumVs,
     ChordNorm = e3d_vec:norm(e3d_vec:sub(Hinge, Pos)),
     Plane = reverse_norm(CwNorm,Plane0,Orientation),
@@ -764,7 +764,7 @@ arc(Vpos, Index, {CwNorm, Cross0, Opp, Plane0, Pos, Hinge, NumVs},
     %                                 %
     % % % % % % % % % % % % % % % % % %
 
-arc_center(Vpos, _, _, _, _, _, _, _, 0.0) -> Vpos;
+arc_center(Vpos, _, _, _, _, _, _, _, +0.0) -> Vpos;
 arc_center(Vpos, Angle, Index, NumVs, Pos, Center, Plane, {Flatten,AxisMode,AngleMode}, Percent) ->
     DegIncrement = acute_obtuse(AngleMode, Angle, NumVs),
     RotationAmount = rotation_amount(AxisMode, DegIncrement, Index),
@@ -782,7 +782,7 @@ rotation_amount(reverse, Deg, Index) -> -Deg * Index.
 %%%% Closed Loop. Calculate the final position of each vertex (NewPos).
 %%%% Measure the distance between NewPos and the Center (Factor). Move the
 %%%% vertex towards the NewPos by a distance of the drag Dist * Factor.
-make_circular(_Center, _Ray, _Nearest, _Axis, _Deg, Vpos, _State, 0.0, 0.0) -> Vpos;
+make_circular(_Center, _Ray, _Nearest, _Axis, _Deg, Vpos, _State, +0.0, +0.0) -> Vpos;
 make_circular(Center, Ray, Nearest, Plane, Deg, Vpos, {Flatten,_,Mode}, Percent, Dia) ->
     Pos0 = static_pos(Mode, Center, Ray, Nearest, Dia),
     Pos1 = rotate(Pos0, Plane, Center, Deg),
@@ -822,7 +822,7 @@ intersect_vec_plane(PosA, PosB, PlaneNorm) ->
     Intersection = e3d_vec:dot(e3d_vec:sub(PosB, PosA), PlaneNorm),
     e3d_vec:add(PosA, e3d_vec:mul(PlaneNorm, Intersection)).
 
-reverse_norm({0.0,0.0,0.0}, Norm, reverse) -> e3d_vec:neg(Norm);
+reverse_norm({+0.0,+0.0,+0.0}, Norm, reverse) -> e3d_vec:neg(Norm);
 reverse_norm(_, Norm, _) -> Norm.
 
 %%%% Selection errors

@@ -1987,8 +1987,8 @@ all_zero(InTuple) when is_tuple(InTuple)->
 all_zero([])->
     true;
 all_zero([InVal | InList]) when is_list(InList)->
-    case InVal of
-        0.0 -> all_zero(InList);
+    case abs(InVal) of
+        +0.0 -> all_zero(InList);
         0 -> all_zero(InList);
         _ -> false
     end.

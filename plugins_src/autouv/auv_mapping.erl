@@ -439,7 +439,7 @@ split_pinned([], _, Indx, PosL) ->
     {reverse(Indx), reverse(PosL)}.
 
 scaleVs(VUVs,Scale) ->
-    [{Id, {X*Scale,Y*Scale,0.0}} || {Id,{X,Y,0.0}} <- VUVs].
+    [{Id, {X*Scale,Y*Scale,0.0}} || {Id,{X,Y,_}} <- VUVs].
 
 find_pinned({Circumference, BorderEdges}, We) ->
     Vs = [array:get(V1, We#we.vp) || #be{vs=V1} <- BorderEdges],
@@ -489,7 +489,7 @@ chart_normal(Fs,We = #we{es=Etab}) ->
     CalcNormal = fun(Face,Area) -> face_normal(Face,Area,We) end,
     N0 = foldl(CalcNormal, e3d_vec:zero(), Fs),
     case e3d_vec:norm(N0) of
-	{0.0,0.0,0.0} -> %% Bad normal Fallback1
+	{+0.0,+0.0,+0.0} -> %% Bad normal Fallback1
 	    %%	    BE = auv_util:outer_edges(Fs,We,false),
 	    [{_,BE}|_] = auv_placement:group_edge_loops(Fs,We),
 	    EdgeNormals = 
@@ -500,7 +500,7 @@ chart_normal(Fs,We = #we{es=Etab}) ->
 		end,
 	    N1 = foldl(EdgeNormals, e3d_vec:zero(), BE),
 	    case e3d_vec:norm(N1) of
-		{0.0,0.0,0.0} -> %% Bad normal Fallback2
+		{+0.0,+0.0,+0.0} -> %% Bad normal Fallback2
 		    NewFs = decrease_chart(Fs,BE),
 		    chart_normal(NewFs, We);
 		N -> e3d_vec:neg(N)
@@ -603,11 +603,11 @@ lsq_init_fs([F|Fs],P,We = #we{vp=Vtab},Ds0,N,Re0,Im0) ->
 		    array:get(C0,Vtab)), 
     %% Raimos old solution. 
     SqrtDT0 = try math:sqrt(abs((X2-X1)*(Y3-Y1)-(Y2-Y1)*(X3-X1)))
-	     catch _:_ -> 0.000001
-	     end,
-    SqrtDT = if SqrtDT0 =:= 0.0 -> 1.0;  % this can happen e.g. in a bevel/extrude without offset
-        true -> SqrtDT0
-    end,
+              catch _:_ -> 0.000001
+              end,
+    SqrtDT = if SqrtDT0 < ?EPSILON -> 1.0;  % this can happen e.g. in a bevel/extrude without offset
+                true -> SqrtDT0
+             end,
     W1re = X3-X2, W1im = Y3-Y2, 
     W2re = X1-X3, W2im = Y1-Y3, 
     W3re = X2-X1, W3im = Y2-Y1,

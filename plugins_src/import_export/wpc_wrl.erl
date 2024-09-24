@@ -321,7 +321,7 @@ def_material(Output, Name, Mat0, Dir) ->
     {Sr, Sg, Sb, _} = lookup(specular, Mat),
     Output(5, {tag_attr_vec3, "specularColor", {Sr, Sg, Sb}, true}),
     case (Ar+Ag+Ab)/3 of
-        0.0 ->
+        Amb0 when abs(Amb0) < ?EPSILON ->
             Amb = 1.0, %% wrml needs a non zero value for ambient intensity
             O = 0.0;
         Amb0 ->

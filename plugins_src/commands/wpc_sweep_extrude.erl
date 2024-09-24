@@ -211,7 +211,7 @@ average_face_norm(Fs0, We, Mir0, TouchingMir, Normals) ->
     case gb_sets:is_empty(Fs0) of
       true ->
           case e3d_vec:norm(e3d_vec:add(Normals)) of
-              {0.0,0.0,0.0} -> sweep_error();
+              {+0.0,+0.0,+0.0} -> sweep_error();
               Norm -> Norm
           end;
       false ->
@@ -419,17 +419,17 @@ sweep(Type, Base, VsData, DragData, A) ->
     end,A,VsData).
 
 %%%% Main functions
-extruded_face(_,Vpos,_,{0.0,0.0,0.0,0.0}) ->
+extruded_face(_,Vpos,_,{+0.0,+0.0,+0.0,+0.0}) ->
     Vpos;
 
-extruded_face(Type, Vpos,VData,{Angle,Dist,0.0,0.0}) ->
+extruded_face(Type, Vpos,VData,{Angle,Dist,+0.0,+0.0}) ->
     out_and_side_to_side(Type, Vpos,VData,Angle,Dist);
 
-extruded_face(Type, Vpos, {_,{_N,C}}=VData, {Angle,Dist,0.0,Scale}) ->
+extruded_face(Type, Vpos, {_,{_N,C}}=VData, {Angle,Dist,+0.0,Scale}) ->
     ScPos = scale_extruded_section(Vpos,C,Scale),
     out_and_side_to_side(Type, ScPos, VData,Angle,Dist);
 
-extruded_face(Type, Vpos, {{_,_,LNorm,_,_,_},{_,C}}=VData, {Angle,Dist,Rotate,0.0}) ->
+extruded_face(Type, Vpos, {{_,_,LNorm,_,_,_},{_,C}}=VData, {Angle,Dist,Rotate,+0.0}) ->
     RPos = rotate(Vpos,LNorm,C,Rotate),
     out_and_side_to_side(Type, RPos,VData,Angle,Dist);
 
@@ -464,7 +464,7 @@ scale_extruded_section(Vpos,Center,Scale) ->
     DistCntr = e3d_vec:len(ScaleVec0),
     e3d_vec:add(Vpos, e3d_vec:mul(ScaleVec, Scale*DistCntr)).
 
-seed_face(_,Vpos,_,{0.0,_Dist,_Rotate,_Scale}) ->
+seed_face(_,Vpos,_,{+0.0,_Dist,_Rotate,_Scale}) ->
     Vpos;
 seed_face(freeze_base,Vpos,_,_) ->
     Vpos;
@@ -477,10 +477,10 @@ seed_face(_,Vpos,{{_,_,LoopNorm,_,_,Axis},{Norm,Center}},{Angle,_Dist,_Rotate,_S
         Pn0 = e3d_vec:sub(D,Vpos),
         Ln0 = e3d_vec:norm_sub(Vp,D),
         Dp = e3d_vec:dot(Ln0,Pn0),
-        case Dp of
-          0.0 -> Vpos;
-          _ -> Int = e3d_vec:dot(e3d_vec:sub(Vpos,Vp),Pn0)/Dp,
-               e3d_vec:add(Vp, e3d_vec:mul(Ln0, Int))
+        case abs(Dp) < ?EPSILON of
+            true -> Vpos;
+            false -> Int = e3d_vec:dot(e3d_vec:sub(Vpos,Vp),Pn0)/Dp,
+                     e3d_vec:add(Vp, e3d_vec:mul(Ln0, Int))
         end;
       false ->
         Vpos
