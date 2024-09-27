@@ -392,7 +392,7 @@ transform_obj_dlg() ->
 
 transform_obj([{_,Rot_X},{_,Rot_Y},{_,Rot_Z},{_,Mov_X},{_,Mov_Y},{_,Mov_Z},{_,Ground}], Vs) ->
     transform_obj({Rot_X,Rot_Y,Rot_Z}, {Mov_X,Mov_Y,Mov_Z}, Ground, Vs).
-transform_obj({0.0,0.0,0.0},{0.0,0.0,0.0},false, Vs) -> Vs;
+transform_obj({+0.0,+0.0,+0.0},{+0.0,+0.0,+0.0},false, Vs) -> Vs;
 transform_obj({Rot_X,Rot_Y,Rot_Z}, {Mov_X,Mov_Y,Mov_Z}, Ground, Vs) ->
     MrX = e3d_mat:rotate(Rot_X, {1.0,0.0,0.0}),
     MrY = e3d_mat:rotate(Rot_Y, {0.0,1.0,0.0}),
@@ -464,13 +464,13 @@ tri_cube(Opts) ->
     Tris = ?cube,
     convert(Binary, Tris, CCW, Scale, false, false, false).
 
--define(XPLUS, {1.0,0.0,0.0}).
--define(XMIN, {-1.0,0.0,0.0}).
--define(YPLUS, {0.0,1.0,0.0}).
--define(YMIN, {0.0,-1.0,0.0}).
--define(ZPLUS, {0.0,0.0,1.0}).
--define(ZMIN, {0.0,0.0,-1.0}).
--define(ZERO, {0.0,0.0,0.0}).
+-define(XPLUS, {1.0,+0.0,+0.0}).
+-define(XMIN, {-1.0,+0.0,+0.0}).
+-define(YPLUS, {+0.0,1.0,+0.0}).
+-define(YMIN, {+0.0,-1.0,+0.0}).
+-define(ZPLUS, {+0.0,+0.0,1.0}).
+-define(ZMIN, {+0.0,+0.0,-1.0}).
+-define(ZERO, {+0.0,+0.0,+0.0}).
 -define(octahedron,
 	[{?ZPLUS, ?XPLUS, ?YPLUS},
 	 {?XMIN,  ?ZPLUS, ?YPLUS},

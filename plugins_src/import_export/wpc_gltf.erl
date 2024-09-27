@@ -830,7 +830,7 @@ make_matrix(Key, Node) ->
             case Key of
                 translation -> e3d_mat:translate(X,Y,Z);
                 scale       -> e3d_mat:scale(X,Y,Z);
-                rotation when T =:= [0.0] -> e3d_mat:identity();
+                rotation when T =:= [+0.0] -> e3d_mat:identity();
                 rotation    -> e3d_q:to_rotation_matrix({{X,Y,Z},hd(T)})
             end
     end.

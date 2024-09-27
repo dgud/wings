@@ -407,7 +407,7 @@ get_point_positions(Pos0, Dist, Axis, N) ->
 %%% Body mode
 %%%
 
-intersects({1.0,0.0,0.0}=Plane, {X,_,_}=CutPoint, #we{es=Etab,vp=Vtab}) ->
+intersects({1.0,+0.0,+0.0}=Plane, {X,_,_}=CutPoint, #we{es=Etab,vp=Vtab}) ->
     array:sparse_foldl(fun
       (Edge, #edge{vs=Va,ve=Vb}, EdgesToCut1) ->
         {Xa,_,_} = PosA = array:get(Va, Vtab),
@@ -424,7 +424,7 @@ intersects({1.0,0.0,0.0}=Plane, {X,_,_}=CutPoint, #we{es=Etab,vp=Vtab}) ->
           false -> EdgesToCut1
         end
     end, [], Etab);
-intersects({0.0,1.0,0.0}=Plane, {_,Y,_}=CutPoint, #we{es=Etab,vp=Vtab}) ->
+intersects({+0.0,1.0,+0.0}=Plane, {_,Y,_}=CutPoint, #we{es=Etab,vp=Vtab}) ->
     array:sparse_foldl(fun
       (Edge, #edge{vs=Va,ve=Vb}, EdgesToCut1) ->
         {_,Ya,_} = PosA = array:get(Va, Vtab),
@@ -441,7 +441,7 @@ intersects({0.0,1.0,0.0}=Plane, {_,Y,_}=CutPoint, #we{es=Etab,vp=Vtab}) ->
           false -> EdgesToCut1
         end
     end, [], Etab);
-intersects({0.0,0.0,1.0}=Plane, {_,_,Z}=CutPoint, #we{es=Etab,vp=Vtab}) ->
+intersects({+0.0,+0.0,1.0}=Plane, {_,_,Z}=CutPoint, #we{es=Etab,vp=Vtab}) ->
     array:sparse_foldl(fun
       (Edge, #edge{vs=Va,ve=Vb}, EdgesToCut1) ->
         {_,_,Za} = PosA = array:get(Va, Vtab),
@@ -481,7 +481,7 @@ intersects(Plane, CutPoint, #we{es=Etab,vp=Vtab}) ->
 %%% Face mode
 %%%
 
-intersects(Faces, {1.0,0.0,0.0}=Plane, {X,_,_}=CutPoint, #we{es=Etab,vp=Vtab}=We0) ->
+intersects(Faces, {1.0,+0.0,+0.0}=Plane, {X,_,_}=CutPoint, #we{es=Etab,vp=Vtab}=We0) ->
     Edges = wings_face:to_edges(Faces, We0),
     EdgePos2Cut = foldl(fun(Edge, EdgesToCut1) ->
         #edge{vs=Va,ve=Vb} = array:get(Edge, Etab),
@@ -500,7 +500,7 @@ intersects(Faces, {1.0,0.0,0.0}=Plane, {X,_,_}=CutPoint, #we{es=Etab,vp=Vtab}=We
         end
     end, [], Edges),
     cut_intersecting_edges(Faces, Plane, EdgePos2Cut, We0);
-intersects(Faces, {0.0,1.0,0.0}=Plane, {_,Y,_}=CutPoint, #we{es=Etab,vp=Vtab}=We0) ->
+intersects(Faces, {+0.0,1.0,+0.0}=Plane, {_,Y,_}=CutPoint, #we{es=Etab,vp=Vtab}=We0) ->
     Edges = wings_face:to_edges(Faces, We0),
     EdgePos2Cut = foldl(fun(Edge, EdgesToCut1) ->
         #edge{vs=Va,ve=Vb} = array:get(Edge, Etab),
@@ -519,7 +519,7 @@ intersects(Faces, {0.0,1.0,0.0}=Plane, {_,Y,_}=CutPoint, #we{es=Etab,vp=Vtab}=We
         end
     end, [], Edges),
     cut_intersecting_edges(Faces, Plane, EdgePos2Cut, We0);
-intersects(Faces, {0.0,0.0,1.0}=Plane, {_,_,Z}=CutPoint, #we{es=Etab,vp=Vtab}=We0) ->
+intersects(Faces, {+0.0,+0.0,1.0}=Plane, {_,_,Z}=CutPoint, #we{es=Etab,vp=Vtab}=We0) ->
     Edges = wings_face:to_edges(Faces, We0),
     EdgePos2Cut = foldl(fun(Edge, EdgesToCut1) ->
         #edge{vs=Va,ve=Vb} = array:get(Edge, Etab),
@@ -649,7 +649,7 @@ cut_edges(Es, We0) ->
 intersect_vec_plane(PosA, PosB, Plane, EdgeVec) ->
 %% Return point where Vector through PosA intersects with plane at PosB
     case e3d_vec:dot(EdgeVec,Plane) of
-      0.0 ->
+      Dot when abs(Dot) < ?EPSILON ->
         Intersection = e3d_vec:dot(e3d_vec:sub(PosB, PosA), Plane),
         e3d_vec:add(PosB, e3d_vec:mul(Plane, Intersection));
       Dot ->

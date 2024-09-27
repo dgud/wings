@@ -84,24 +84,24 @@ preview_fun(Qs, OrigView, St) ->
 		       end).
 
 camera_position({OldView,[CamX,CamY,CamZ, FX,FY,FZ]}, St) ->
-    AzF = case CamX of
-        0.0 -> 1.0;
-        _ -> -CamX/abs(CamX)
-    end,
-    Y2 = case {CamX,CamZ} of
-        {0.0,0.0} -> {0.0,0.0,1.0};
-        _ -> e3d_vec:sub({CamX,0.0,CamZ}, {FX,0.0,FZ})
-    end,
+    AzF = case abs(CamX) < ?EPSILON of
+              true -> 1.0;
+              false -> -CamX/abs(CamX)
+          end,
+    Y2 = case abs(CamX) < ?EPSILON andalso abs(CamZ) < ?EPSILON of
+             true -> {0.0,0.0,1.0};
+             false -> e3d_vec:sub({CamX,0.0,CamZ}, {FX,0.0,FZ})
+         end,
     Az =  AzF * e3d_vec:degrees(Y2, {0.0,0.0,1.0}),
-    ElF = case CamY of
-        0.0 -> 1.0;
-        _ -> CamY/abs(CamY)
-    end,
+    ElF = case abs(CamY) < ?EPSILON of
+              true -> 1.0;
+              false -> CamY/abs(CamY)
+          end,
     Dist = e3d_vec:sub({CamX,CamY,CamZ}, {FX,FY,FZ}),
     El = ElF * e3d_vec:degrees(Dist,Y2),
     D = e3d_vec:len(Dist),
     NewView = OldView#view{origin={FX,FY,FZ},distance=D,azimuth=Az,elevation=El,
-        pan_x=0.0,pan_y=0.0},
+                           pan_x=0.0,pan_y=0.0},
     Window = wings_wm:this(),
     wings_wm:set_prop(Window, current_view, NewView),
     St.

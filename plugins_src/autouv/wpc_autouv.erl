@@ -1333,9 +1333,9 @@ make_proportional([Link0|R],We = #we{vp=Vtab1}, [LinkObj0|RObj], WeObj = #we{vp=
                                 {Xd,Yd,_} = e3d_vec:sub(array:get(Ve,Vtab1),
                                                         array:get(Vs,Vtab1)),
                                 ELen = e3d_vec:len({Xd,Yd,0.0}),
-                                Dir = if (ELen =:= 0.0) -> none;
-                                      true -> e3d_vec:norm({Xd,Yd,0.0})
-                                      end,
+                                    Dir = if abs(ELen) < ?EPSILON -> none;
+                                             true -> e3d_vec:norm({Xd,Yd,0.0})
+                                          end,
                                 {Len+ELen,[{E,Dir}|Acc]}
                             end,{0.0,[]},Link),
             EsLen = validate_dir(EsLen0,[]),
@@ -1357,8 +1357,8 @@ make_proportional([Link0|R],We = #we{vp=Vtab1}, [LinkObj0|RObj], WeObj = #we{vp=
             Vtab0 =
                 lists:foldr(fun({{E,Ve,Vs},Dir0}, Acc) ->
                                 EObjLen = proplists:get_value(E,EsObjLen),
-                                if LinkObjLen =/= 0.0 -> Prc = EObjLen/LinkObjLen;
-                                true -> Prc = 1.0
+                                if abs(LinkObjLen) > ?EPSILON -> Prc = EObjLen/LinkObjLen;
+                                   true -> Prc = 1.0
                                 end,
                                 ELen = Prc*LinkLen,
                                 Dir = e3d_vec:mul(Dir0,ELen),
@@ -1377,25 +1377,25 @@ make_proportional([Link0|R],We = #we{vp=Vtab1}, [LinkObj0|RObj], WeObj = #we{vp=
             D1 = e3d_vec:len(Vec1),
 
             %% making the new loop arrangement fit in the old BB length and alignment
-            if D1 =/= 0.0 -> Scl = round((D0/D1)*100.0)/100.0;
-            true -> Scl = 1.0
+            if abs(D1) > ?EPSILON -> Scl = round((D0/D1)*100.0)/100.0;
+               true -> Scl = 1.0
             end,
             {_,_,RotSide} = e3d_vec:norm(e3d_vec:cross(Vec1,Vec0)),
             Rot = round(e3d_vec:degrees(Vec1,Vec0)*10.0)/10.0*RotSide,
             MToOri = e3d_mat:translate(e3d_vec:neg(Mid1)),
-            if (Rot=/=0.0) or (Scl=/=1.0) ->
-                %% preparing transform matrices
-                MRot = e3d_mat:rotate(Rot,wings_util:make_vector(z)),
-                MScl = e3d_mat:scale({Scl,Scl,1.0}),
-                MToDst = e3d_mat:translate(Mid0),
-                M2 = e3d_mat:mul(MScl,MToOri),
-                M1 = e3d_mat:mul(MRot,M2),
-                M0 = e3d_mat:mul(MToDst,M1);
-            true ->
-                MToDst = e3d_mat:translate(Mid0),
-                M0 = e3d_mat:mul(MToDst,MToOri)
+            if abs(Rot) > ?EPSILON orelse (Scl=/=1.0) ->
+                    %% preparing transform matrices
+                    MRot = e3d_mat:rotate(Rot,wings_util:make_vector(z)),
+                    MScl = e3d_mat:scale({Scl,Scl,1.0}),
+                    MToDst = e3d_mat:translate(Mid0),
+                    M2 = e3d_mat:mul(MScl,MToOri),
+                    M1 = e3d_mat:mul(MRot,M2),
+                    M0 = e3d_mat:mul(MToDst,M1);
+               true ->
+                    MToDst = e3d_mat:translate(Mid0),
+                    M0 = e3d_mat:mul(MToDst,MToOri)
             end,
-
+            
             Vtab =
                 lists:foldr(fun(V, Acc) ->
                                 Pos = e3d_mat:mul_point(M0,array:get(V,Acc)),
@@ -1647,7 +1647,7 @@ displace_charts([{_,{Id1,_,_},{Id2,_,_}}|Eds], Moved, Sh) ->
 	    C2 = wings_vertex:center(gb_trees:get(Id2,Sh)),
 	    Disp0 = e3d_vec:mul(e3d_vec:norm(e3d_vec:sub(C1,C2)),?EPSILON),
 	    Move = case Disp0 of
-		       {0.0,0.0,0.0} -> {0.0,?EPSILON,0.0};
+		       {+0.0,+0.0,_} -> {0.0,?EPSILON,0.0};
 		       Disp -> Disp
 		   end,
 	    Vpos= [{V,e3d_vec:add(Pos,Move)} || 

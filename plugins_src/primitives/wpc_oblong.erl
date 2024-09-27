@@ -190,9 +190,9 @@ make_outer_contour(Width, Height0, Bevel0, HeightSec, BevelSec) ->
                          end, BVs, lists:seq(trunc((HeightSec+1)/2),1,-1));
         true ->
             YSeg = Height0/(HeightSec+1),
-            Vs = lists:foldl(fun(_I, [{0.0,Y,Z}|_]=Acc) ->
-                [{0.0,Y-YSeg,Z}|Acc]
-                             end, [{0.0,YTop,ZRig}], lists:seq(1,trunc((HeightSec+1)/2)))
+            Vs = lists:foldl(fun(_I, [{+0.0,Y,Z}|_]=Acc) ->
+                                     [{+0.0,Y-YSeg,Z}|Acc]
+                             end, [{+0.0,YTop,ZRig}], lists:seq(1,trunc((HeightSec+1)/2)))
     end,
     if (HeightSec rem 2) == 0 -> Vs1 = Vs;
         true ->

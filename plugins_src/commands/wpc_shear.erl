@@ -308,7 +308,7 @@ shear_verts_by_mode(ShearData,State,Data,VsPositions,Dist,Cf,A) ->
     end, A, VsPositions).
 
 %%%% Main Functions
-relative_shear(_ShearData,Vpos, 0.0, _Cf, _Data) ->
+relative_shear(_ShearData,Vpos, +0.0, _Cf, _Data) ->
     Vpos;
 
 relative_shear({Sf,Norm,DBbox,Dir,Anchor},Vpos,Dist,Cf,{GlidePlane,_Radial,Origin,_GlidePoint}) ->
@@ -316,7 +316,7 @@ relative_shear({Sf,Norm,DBbox,Dir,Anchor},Vpos,Dist,Cf,{GlidePlane,_Radial,Origi
     {Dist1,Factor} = shear_dist_factor(Cf,Sf,Dir,Anchor,Dist,D),
     e3d_vec:add(Vpos, e3d_vec:mul(Norm, -Dist1 * DBbox * Factor)).
 
-distance_shear(_ShearData,Vpos, 0.0, _Cf, _Data) ->
+distance_shear(_ShearData,Vpos, +0.0, _Cf, _Data) ->
     Vpos;
 
 distance_shear({Sf,Norm,_DBbox,Dir,Anchor},Vpos,Dist,Cf,{GlidePlane,_Radial,Origin,_GlidePoint}) ->
@@ -324,7 +324,7 @@ distance_shear({Sf,Norm,_DBbox,Dir,Anchor},Vpos,Dist,Cf,{GlidePlane,_Radial,Orig
     {Dist1,Factor} = shear_dist_factor(Cf,Sf,Dir,Anchor,Dist,D),
     e3d_vec:add(Vpos, e3d_vec:mul(Norm, -Dist1 * Factor)).
 
-angle_shear(_ShearData,Vpos, 0.0, _Cf, _Data) ->
+angle_shear(_ShearData,Vpos, +0.0, _Cf, _Data) ->
     Vpos;
 
 angle_shear({Sf,Norm,_DBbox,Dir,Anchor},Vpos,Dist,Cf,{GlidePlane,Radial,Origin,GlidePoint}) ->
@@ -345,10 +345,10 @@ angle_shear({Sf,Norm,_DBbox,Dir,Anchor},Vpos,Dist,Cf,{GlidePlane,Radial,Origin,G
     Ln1 = e3d_vec:norm(Ln0),
     Dp1 = e3d_vec:dot(Ln1,Pn1),
 
-    Pos1 = case Dp1 of
-             0.0 -> Vpos;
-             _ -> Int1 = e3d_vec:dot(e3d_vec:sub(GlidePoint,Pos),Pn1)/Dp1,
-                  e3d_vec:add(Pos, e3d_vec:mul(Ln1, Int1))
+    Pos1 = case abs(Dp1) < ?EPSILON of
+               true -> Vpos;
+               false -> Int1 = e3d_vec:dot(e3d_vec:sub(GlidePoint,Pos),Pn1)/Dp1,
+                        e3d_vec:add(Pos, e3d_vec:mul(Ln1, Int1))
            end,
 
     NewDist = dist_along_vector(GlidePoint,Pos1,Norm),

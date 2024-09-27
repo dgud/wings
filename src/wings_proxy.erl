@@ -68,9 +68,9 @@ invalidate(#sp{}=Pd, 'vab') ->
 invalidate(#sp{}=Pd, 'dl') ->
     %% Invalidate displays lists.
     Pd#sp{faces=none,smooth=none};
-invalidate(#sp{faces=none}=Pd, maybe) ->
+invalidate(#sp{faces=none}=Pd, 'maybe') ->
     Pd;
-invalidate(#sp{faces=FL}=Pd, maybe) ->
+invalidate(#sp{faces=FL}=Pd, 'maybe') ->
     Pd#sp{faces=[FL]};
 invalidate(#sp{}=Pd, edges) ->
     Pd#sp{proxy_edges=none};

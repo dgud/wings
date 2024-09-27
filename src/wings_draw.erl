@@ -117,7 +117,7 @@ prepare_fun_2(#dlo{proxy=IsUsed, proxy_data=Proxy,ns=Ns}=D, We, Wes) ->
     Open = wings_we:is_open(We),
     {changed_we(D, #dlo{src_we=We,open=Open,mirror=none,
 			proxy=IsUsed,
-			proxy_data=wings_proxy:invalidate(Proxy, maybe),
+			proxy_data=wings_proxy:invalidate(Proxy, 'maybe'),
 			ns=Ns}),Wes}.
 
 only_permissions_changed(#we{perm=P}, #we{perm=P}) -> false;
@@ -235,7 +235,7 @@ update_mirror(D) -> D.
 
 update_needed(#st{selmode=vertex}=St) ->
     case wings_pref:get_value(vertex_size) of
-	0.0 ->
+	+0.0 ->
 	    update_needed_1([], St);
 	PointSize->
 	    update_needed_1([{vertex,PointSize}], St)
@@ -709,7 +709,7 @@ insert_vtx_data([], _, Acc) -> reverse(Acc).
 
 split_vs_dlist(Vs, StaticVs, {vertex,SelVs0}, #we{vp=Vtab}=We) ->
     case wings_pref:get_value(vertex_size) of
-	0.0 -> {none,none};
+	+0.0 -> {none,none};
 	_PtSize -> 
 	    DynVs = sofs:from_external(lists:merge(Vs, StaticVs), [vertex]),
 	    SelVs = sofs:from_external(gb_sets:to_list(SelVs0), [vertex]),

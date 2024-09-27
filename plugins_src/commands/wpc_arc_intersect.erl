@@ -234,10 +234,10 @@ arc_intersect_fun(Axis,Center,Deg,VsInf0,{_,R}=Magnet0,State0) ->
     end.
 
 
-arc_intersect(_Axis,_Center,_Deg,Vpos,_State,0.0) ->
+arc_intersect(_Axis,_Center,_Deg,Vpos,_State, +0.0) ->
     Vpos;
 
-arc_intersect(Axis,Center,Deg,Vpos,_State,Percent) when Deg =:= 0.0; Deg =:= 180.0 ->
+arc_intersect(Axis,Center,Deg,Vpos,_State,Percent) when Deg =:= +0.0; Deg =:= 180.0 ->
     Rotate = 180.0 * Percent,
     rotate(Vpos,Axis,Center,Rotate);
 

@@ -989,7 +989,7 @@ shape_materials(#we{id=Id, light=#light{diffuse=Front}}, #st{mat=Mtab}=St) ->
     St#st{mat=gb_trees:insert({'_area_light_',Id},[Front],Mtab)}.
 
 mul_point(none, Pos) -> Pos;
-mul_point({1.0,0.0,0.0, 0.0,1.0,0.0, 0.0,0.0,1.0, Tx,Ty,Tz}, {X,Y,Z}) ->
+mul_point({1.0,+0.0,+0.0, +0.0,1.0,+0.0, +0.0,+0.0,1.0, Tx,Ty,Tz}, {X,Y,Z}) ->
     {X+Tx,Y+Ty,Z+Tz};
 mul_point(M, P) -> e3d_mat:mul_point(M, P).
 

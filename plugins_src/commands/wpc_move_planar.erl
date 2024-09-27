@@ -190,7 +190,7 @@ planar_fun(VsPos,Axis) ->
     end.
 
 %%%% Planar
-planar(Vpos,_Axis,0.0,0.0) ->
+planar(Vpos,_Axis,+0.0,+0.0) ->
     Vpos;
 planar(Vpos,{X,Y,Z},Dx,Dy) when abs(Y)<1.0e-9 andalso abs(Z)<1.0e-9 ->  %% X
     {Px,Py,Pz} = Vpos,

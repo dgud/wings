@@ -453,7 +453,7 @@ reduce_sort([Row | A], C) ->
 
 reduce_presort(Z, []) ->
     {Z, infinity, []};
-reduce_presort(Z, [0.0 | Row]) ->
+reduce_presort(Z, [+0.0 | Row]) ->
     reduce_presort(Z+1, Row);
 reduce_presort(Z, [V | _] = Row) when is_float(V) ->
     {Z, 1.0/abs(V), Row};
@@ -518,7 +518,7 @@ backsubst_rev_z(Z, Za, _, _, _) when Za > Z ->
     {error, not_reduced};
 backsubst_rev_z(_, _, [_], _, _) ->
     {error, not_reduced};
-backsubst_rev_z(Z, Za, [0.0 | RowA], A, C) ->
+backsubst_rev_z(Z, Za, [+0.0 | RowA], A, C) ->
     backsubst_rev_z(Z, Za+1, RowA, A, C);
 backsubst_rev_z(Z, Za, [Va | _] = RowA, A, C) when is_float(Va) ->
     if Z == Za ->
@@ -692,7 +692,7 @@ vec_sq([_ | A], S) ->
 
 
 %% Push value; zeros or float
-push_v(0.0, C) ->
+push_v(+0.0, C) ->
     case C of
 	[Z | R] when is_integer(Z) ->
 	    [Z+1 | R];

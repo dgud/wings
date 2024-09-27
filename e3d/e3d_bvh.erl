@@ -352,7 +352,7 @@ bary_centric(Ax,Ay,Bx,By,Cx,Cy, BFCull) ->
             false;
         true ->
             case U+V+W of
-		0.0 -> false;
+		Det when abs(Det) < ?EPSILON -> false;
 		Det -> {U,V,W,Det}
 	    end
     end.
@@ -521,13 +521,13 @@ tri_intvals(V0, V1, V2, Index, D0, D1, D2, _DOD1, DOD2)
     %% here we know that d0d1<=0.0
     isect2(V1,V0,V2,Index,D1,D0,D2);
 tri_intvals(V0, V1, V2, Index, D0, D1, D2, _DOD1, _DOD2)
-  when (D1*D2>0.0) orelse  D0 =/= 0.0 ->
+  when (D1*D2>0.0) orelse  abs(D0) > ?EPSILON ->
     isect2(V0,V1,V2,Index,D0,D1,D2);
 tri_intvals(V0, V1, V2, Index, D0, D1, D2, _DOD1, _DOD2)
-  when D1 =/= 0.0 ->
+  when abs(D1) > ?EPSILON ->
     isect2(V1,V0,V2,Index,D1,D0,D2);
 tri_intvals(V0, V1, V2, Index, D0, D1, D2, _DOD1, _DOD2)
-  when D2 =/= 0.0 ->
+  when abs(D2) > ?EPSILON ->
     isect2(V2,V0,V1,Index,D2,D0,D1);
 tri_intvals(_V1, _V2, _V3, _Index, _D0, _D1, _D2, DOD1, DOD2) ->
     %% triangles are coplanar

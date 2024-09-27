@@ -671,7 +671,7 @@ constraint_check({X1,Y1,Z1}=OrigPos, {X2,Y2,Z2}=NewPos) ->
 intersect_vec_plane(PosA, PosB, Plane, Vec) ->
 %% Return point where Vec through PosA intersects with Plane at PosB
     case e3d_vec:dot(Vec,Plane) of
-      0.0 ->
+      Dot when abs(Dot) < ?EPSILON ->
         Intersection = e3d_vec:dot(e3d_vec:sub(PosB, PosA), Plane),
         e3d_vec:add(PosB, e3d_vec:mul(Plane, Intersection));
       Dot ->

@@ -151,7 +151,7 @@ make_scales(Ta, Tb) ->
 make_scales(I, Ta, Tb) when I > tuple_size(Ta); I > tuple_size(Tb) -> [];
 make_scales(I, Ta, Tb) ->
     S = case {element(I, Ta),element(I, Tb)} of
-	    {_,0.0} -> none;
+	    {_,B} when abs(B) < ?EPSILON -> none;
 	    {A,B} ->
 		case catch A / B of		%catch if B is very small
 		    {'EXIT',_} -> none;
@@ -175,7 +175,7 @@ move_to(Center, Axis, St) ->
     MF = fun(_, #we{vp=Vtab0,temp=MyCenter}=We) ->
                  Offset0 = e3d_vec:sub(Center, MyCenter),
                  case filter_coord(Axis, Offset0) of
-                     {0.0,0.0,0.0} ->
+                     {+0.0,+0.0,+0.0} ->
                          We#we{temp=[]};
                      Offset ->
                          Vtab = offset(Offset, Vtab0),

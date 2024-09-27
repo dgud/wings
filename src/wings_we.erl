@@ -923,7 +923,7 @@ uv_mapped_faces_1([], _, Acc) -> reverse(Acc).
 %%% Transform all vertices according to the matrix.
 %%%
 
-transform_vs({1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0,Tx,Ty,Tz}, We) ->
+transform_vs({1.0,+0.0,+0.0,+0.0,1.0,+0.0,+0.0,+0.0,1.0,Tx,Ty,Tz}, We) ->
     Translate = fun(V, {X,Y,Z}, A) -> [{V,{X+Tx,Y+Ty,Z+Tz}}|A] end,
     transform_vs_1(Translate, We);
 transform_vs(Matrix, We) ->

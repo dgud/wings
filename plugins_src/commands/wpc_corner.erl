@@ -231,7 +231,7 @@ corner_error() ->
 
 corner_tension_fun(VD) ->
     fun
-        ([0.0], A) ->
+        ([+0.0], A) ->
             lists:foldl(fun
                 ({V,Vpos,_Rad,_Vec}, VsAcc) ->
                     [{V,Vpos}|VsAcc];

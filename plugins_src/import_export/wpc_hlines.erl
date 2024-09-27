@@ -3071,7 +3071,7 @@ bspt__to_list(Bspt) ->
 
 sign(V) when V > 0.0 -> 1.0;
 sign(V) when V < 0.0 -> -1.0;
-sign(V) when V =:= 0.0 -> 0.0.
+sign(_V) -> 0.0.
 
 is_convex(FVCs, _Is_FF) when length(FVCs) =:= 3 -> true;
 is_convex([FVC1 | T], Is_FF) ->
