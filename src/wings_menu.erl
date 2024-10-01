@@ -220,7 +220,12 @@ setup_dialog(Parent, Entries, Magnet, ScreenPos, Cache) ->
             end,
             MenuData;
         #{frame := Frame} = MenuData ->
-            wxWindow:move(Frame, ScreenPos),
+            Entries0 = maps:get(entries, MenuData),
+            Col = maps:get(colors, MenuData),
+            menu_sel_cleanup(Col, Entries0),
+
+            Pos = fit_menu_on_display(Frame,ScreenPos),
+            wxWindow:move(Frame, Pos),
             wxPopupTransientWindow:popup(Frame),
             MenuData
     end.
@@ -245,7 +250,7 @@ do_setup_dialog(TopParent, Entries0, Magnet, ScreenPos) ->
     wxPanel:setSizer(Panel, Main),
     wxSizer:fit(Main, Panel),
     wxWindow:setClientSize(Frame, wxWindow:getSize(Panel)),
-    wxWindow:move(Frame, ScreenPos),
+    wxWindow:move(Frame, fit_menu_on_display(Frame, ScreenPos)),
     show_menu_frame(Overlay, Frame, KbdFocus),
     #{overlay=>Overlay, frame=>Frame, panel=>Panel, entries=>Entries, colors=>Cols}.
 
@@ -391,8 +396,9 @@ popup_events(MenuData, Magnet, Previous, Ns, Owner) ->
 	    end;
         cancel ->
             wings_wm:psend(Owner, cancel);
-        {move, Pos} ->
+        {move, {X,Y}} ->
             Frame = maps:get(frame, MenuData),
+            Pos = fit_menu_on_display(Frame, {X,Y}),
             wxWindow:move(Frame, Pos),
             wings_wm:psend(Owner, redraw),
             popup_events(MenuData, Magnet, Previous, Ns, Owner);
@@ -402,6 +408,30 @@ popup_events(MenuData, Magnet, Previous, Ns, Owner) ->
 	    %% ?dbg("Got Ev ~p ~n", [_Ev]),
 	    popup_events(MenuData, Magnet, Previous, Ns, Owner)
     end.
+
+fit_menu_on_display(Frame, {MX,MY} = Pos) ->
+    {WW,WH} = wxWindow:getSize(Frame),
+    %% When multiple resolution displays are present, there is a situation which
+    %% the window being shared partially by two of them - and the window being
+    %% scaled up - the Display ID returned is -1. In order to avoid a crash it we
+    %% get the ID for the main window (Frame's parent) - the menu is shown on it.
+    DisplayID =
+        case wxDisplay:getFromPoint(Pos) of
+            -1 -> wxDisplay:getFromWindow(wxWindow:getParent(Frame));
+            Id -> Id
+        end,
+    Display = wxDisplay_new(DisplayID),
+    {DX,DY,DW,DH} = wxDisplay:getClientArea(Display),
+    MaxW = abs(DX-MX)+WW,
+    PX = if MaxW > DW -> (DX+DW)-(WW+5);
+            true -> max(DX+5, (MX-5)) %% Move so mouse is inside menu
+         end,
+    MaxH = abs(DY-MY)+WH,
+    PY = if MaxH > DH -> (DY+DH)-(WH+5);
+             true -> max(DY+5, (MY-5)) %% Move so mouse is inside menu
+         end,
+    wxDisplay:destroy(Display),
+    {PX,PY}.
 
 %% If the mouse is not moved after popping up the menu, the menu entry
 %% is not active, find_active_panel finds the active row.
@@ -1103,6 +1133,24 @@ menu_item_desc(Desc, HotKey) ->
 	{win32, _} -> Desc ++ "\t'" ++ HotKey ++ "'";
 	_ -> Desc ++ "\t" ++ HotKey
     end.
+
+menu_sel_cleanup(_, []) -> ok;
+menu_sel_cleanup({BG,FG}=Col, [#menu{type=submenu, object=undefined, wxid=Id}|Menu]) ->
+    Panel = wxWindow:findWindowById(Id),
+    Set = fun() ->
+            setup_colors([Panel|wxWindow:getChildren(Panel)], BG, FG)
+        end,
+    wx:batch(Set),
+    menu_sel_cleanup(Col,Menu);
+menu_sel_cleanup({BG,FG}=Col, [#menu{type=menu, object=Obj}|Menu]) ->
+    Panel = maps:get(panel, Obj),
+    Set = fun() ->
+            setup_colors(Panel, BG, FG)
+        end,
+    wx:batch(Set),
+    menu_sel_cleanup(Col,Menu);
+menu_sel_cleanup(Col, [_|Menu]) ->
+    menu_sel_cleanup(Col,Menu).
 
 %% We want to use the predefined id where they exist (mac) needs for it's
 %% specialized menus but we want our shortcuts hmm.
