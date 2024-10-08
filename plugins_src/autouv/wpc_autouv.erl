@@ -1794,7 +1794,7 @@ add_sel([],Sel) -> Sel.
 
 x_rad({X1,Y1,_},{X2,Y2,_}) ->
     Rad =  math:atan2(Y2-Y1,X2-X1),
-    if Rad < 0.0 -> 2*math:pi()+Rad;
+    if Rad < +0.0 -> 2*math:pi()+Rad;
        true -> Rad
     end.
 
@@ -2560,7 +2560,7 @@ info(X, Y, InfoWidth, Info) ->
     wings_io:set_color(wings_pref:get_value(info_color)),
     wings_text:render(X+trunc(?CHAR_WIDTH/2), Y+?CHAR_HEIGHT+1, Info).
 
-blend({_,_,_,0.0}, _) -> ok;
+blend({_,_,_,+0.0}, _) -> ok;
 blend({_,_,_,1.0}=Color, Draw) -> Draw(Color);
 blend(Color, Draw) ->
     gl:enable(?GL_BLEND),
@@ -2707,8 +2707,8 @@ pick_uv_tile(X0, Y0, #st{bb=#uvstate{id=Id,st=#st{shapes=Shs}}=Uvs}=St) ->
             Y = H-float(Y0),
             Matrices = wings_u:get_matrices(0, original),
             {U0,V0,_} = screen_to_obj(Matrices, {X,Y,0.0}),
-            U = if U0 < 0.0 -> U0-1.0; true-> U0 end,
-            V = if V0 < 0.0 -> V0-1.0; true-> V0 end,
+            U = if U0 < +0.0 -> U0-1.0; true-> U0 end,
+            V = if V0 < +0.0 -> V0-1.0; true-> V0 end,
             Tile = {trunc(U),trunc(V)},
             case [MapInfo || {Tile0,MapInfo} <- TxSet, Tile0==Tile] of
                 [] ->
