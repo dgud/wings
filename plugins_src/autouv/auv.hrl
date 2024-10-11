@@ -30,6 +30,7 @@
 	}).
 
 -define(TEXTURESET, textureset).
+-define(TILE_ROWS, 5).
 -define(SINGLE, single_tx).
 -define(MULTIPLE, multi_tx).
 

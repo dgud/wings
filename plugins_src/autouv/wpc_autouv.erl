@@ -261,6 +261,7 @@ do_edit(MatName0, Mode, We0, #st{mat=Materials,shapes=Shs0}=GeomSt0) ->
     GeomSt = GeomSt0#st{shapes=Shs},
 
     AuvSt = create_uv_state(gb_trees:empty(), MatName, Mode, We, GeomSt),
+    camera_reset(),
     new_geom_state(GeomSt, AuvSt).
 
 init_show_maps(Charts0, Fs, #we{name=WeName,id=Id}, GeomSt0) ->
@@ -387,11 +388,11 @@ get_texture_img(MatName, Materials) ->
     end.
 
 update_textureset_system(#we{pst=Pst0}=We, ?SINGLE, _) ->
-    ?SET({?MODULE,texture_set_mode}, false),  %% ensuring editor is not in texture set mode
+    wings_wm:set_prop(wings_wm:this(), texture_set_mode, false),
     Pst = gb_trees:delete_any(?TEXTURESET, Pst0),
     We#we{pst=Pst};
 update_textureset_system(#we{pst=Pst0}=We, Type, TxInfo) ->
-    ?SET({?MODULE,texture_set_mode}, true),  %% forcing the editor to texture set mode
+    wings_wm:set_prop(wings_wm:this(), texture_set_mode, true),
     Pst = gb_trees:enter(?TEXTURESET, {Type,TxInfo}, Pst0),
     We#we{pst=Pst}.
 
@@ -420,7 +421,7 @@ create_uv_state(Charts, MatName, Fs, We, #st{shapes=Shs0}=GeomSt) ->
 		   matname = MatName},
     St = FakeGeomSt#st{selmode=body,sel=[],shapes=Charts,bb=Uvs,
 		       repeatable=ignore,ask_args=none,drag_args=none},
-    Name = wings_wm:this(),
+    Win = wings_wm:this(),
 
     View = #view{origin={0.0,0.0,0.0},
 		 distance=0.65,
@@ -432,8 +433,7 @@ create_uv_state(Charts, MatName, Fs, We, #st{shapes=Shs0}=GeomSt) ->
 		 hither=0.0001,
 		 yon=50.0},
     wings_view:set_current(View),
-
-    wings_wm:set_prop(Name, drag_filter, fun drag_filter/1),
+    wings_wm:set_prop(Win, drag_filter, fun drag_filter/1),
     wings_wm:set_prop(show_wire_backfaces, true),
     wings_wm:set_prop(show_info_text, false), %% Users want this
     wings_wm:set_prop(orthogonal_view, true),
@@ -446,7 +446,6 @@ create_uv_state(Charts, MatName, Fs, We, #st{shapes=Shs0}=GeomSt) ->
 
     wings_wm:later(got_focus),
 
-    Win = wings_wm:this(),
     case ?GET({?MODULE,show_background}) of
 	undefined ->
         ?SET({?MODULE,show_background}, true),
@@ -708,9 +707,10 @@ command_menu(_, X, Y) ->
     [Label0,Label1] = auv_texture_set_menu(label),
     [Help0,Help1] = auv_texture_set_menu(help),
     [Cmd0,Cmd1] = auv_texture_set_menu(cmd),
-    CkdTextureSet = [{crossmark, ?GET({?MODULE,texture_set_mode})}],
+    TxSetMode = wings_wm:get_prop(wings_wm:this(), texture_set_mode),
+    CkdTextureSet = [{crossmark, TxSetMode}],
     CkdTextureSetId = [{crossmark, ?GET({?MODULE,show_texture_set_id})}],
-    case ?GET({?MODULE,texture_set_mode}) of
+    case TxSetMode of
       false ->
           TiledMenu = [{auv_show_tile_menu(label),toggle_tiled_texture,auv_show_tile_menu(help),CkdTiled}],
           ShowTileId = [];
@@ -879,7 +879,7 @@ handle_event_0(Ev=#mousebutton{state=?SDL_PRESSED,
                                button=?SDL_BUTTON_LEFT,
                                mod=Mod}, #st{}=St0, FreeLmbMod)
   when (Mod band ?ALT_BITS) =/= 0 -> %% ALT modifier
-    case ?GET({?MODULE,texture_set_mode}) of
+    case wings_wm:get_prop(wings_wm:this(), texture_set_mode) of
         true ->
             St = pick_uv_tile(X,Y,St0),
             get_event(St);
@@ -1062,8 +1062,10 @@ handle_event_3({action,Ev}=Act, #st{selmode=AUVSel, bb=#uvstate{st=#st{selmode=G
             #st{sel=Sel} = St,
             case  Sel =:= [] of
                 true ->
-		    St1 = fake_selection(St),
-                    wings_view:command(aim, St1),
+                    case fake_selection(St) of
+                        #st{sel=[]} -> camera_reset();
+                        St1 -> wings_view:command(aim, St1)
+                    end,
                     get_event(St);
                 false ->
                     {{_,Cmd},St1} = wings:highlight_aim_setup(St),
@@ -1073,6 +1075,9 @@ handle_event_3({action,Ev}=Act, #st{selmode=AUVSel, bb=#uvstate{st=#st{selmode=G
 	{view,Cmd} when Cmd == frame ->
 	    wings_view:command(Cmd,St),
 	    get_event(St);
+    {view,Cmd} when Cmd == reset ->
+        camera_reset(),
+        get_event(St);
 	{edit, repeat} ->
 	    repeat(command, St);
 	{edit, repeat_args} ->
@@ -1095,7 +1100,7 @@ handle_event_3(got_focus, _) ->
     Msg2 = wings_camera:help(),
     Msg3 = wings_msg:button_format([], [], ?__(2,"Show menu")),
     Msg4 =
-        case ?GET({?MODULE,texture_set_mode}) of
+        case wings_wm:get_prop(wings_wm:this(), texture_set_mode) of
             true -> wings_msg:mod_format(?ALT_BITS, 1, "Set Active Tile");
             false -> []
         end,
@@ -1331,7 +1336,7 @@ handle_command_1(toggle_texture_set_id,_) ->
     ?SET({?MODULE,show_texture_set_id},not Old),
     wings_wm:dirty();
 handle_command_1(toggle_texture_set_mode,St) ->
-    case ?GET({?MODULE,texture_set_mode}) of
+    case wings_wm:get_prop(wings_wm:this(), texture_set_mode) of
         false ->  %% object is going to have multiple texture set enabled
             Win = wings_wm:this_win(),
             Pos = wx_misc:getMousePosition(),
@@ -2293,7 +2298,7 @@ move_to(Dir,We) ->
     [V1={X1,Y1,_},V2={X2,Y2,_}] = wings_vertex:bounding_box(We),
     ChartCenter = {CCX,CCY,CCZ} = e3d_vec:average(V1,V2),
     {OCX,OCY} =
-        case ?GET({?MODULE,texture_set_mode}) of
+        case wings_wm:get_prop(wings_wm:this(), texture_set_mode) of
             true -> {float(trunc(CCX)),float(trunc(CCY))};
             false -> {0.0,0.0}
         end,
@@ -2350,7 +2355,7 @@ stretch(Dir,We) ->
               {max_uniform,x} -> {CY,CY,CZ};
               {max_uniform,y} -> {CX,CX,CZ};
               max_uniform ->
-                  case ?GET({?MODULE,texture_set_mode}) of
+                  case wings_wm:get_prop(wings_wm:this(), texture_set_mode) of
                       true -> {trunc(CX)+0.5,trunc(CY)+0.5,CZ};
                       false -> {0.5,0.5,CZ}
                   end;
@@ -2482,25 +2487,25 @@ update_and_scale_chart(Vs0,We0) ->
 
 draw_background(#st{bb=#uvstate{bg_img=Image, tile={U0,V0}, st=#st{shapes=Shs},id=Id}}) ->
     gl:pushAttrib(?GL_ALL_ATTRIB_BITS),
-    wings_view:load_matrices(false),
     Matrices = wings_u:get_matrices(Id, original),
     [{X0,_,_},{X1,_,_}] = obj_to_screen(Matrices, [{0.0,0.0,0.0},{1.0,0.0,0.0}]),
     TileWidth = X1-X0,
+    TxSetMode = wings_wm:get_prop(wings_wm:this(), texture_set_mode),
+    if (TxSetMode) ->
+        Bin = << <<V:?F32,(?TILE_ROWS*1.0):?F32, V:?F32,0.0:?F32, (?TILE_ROWS*1.0):?F32,V:?F32, 0.0:?F32,V:?F32>>
+                 || V <- lists:seq(0,?TILE_ROWS) >>;
+    true ->
+        Bin = << <<V:?F32,20.0:?F32, V:?F32,-20.0:?F32, 20.0:?F32,V:?F32, -20.0:?F32,V:?F32>>
+                 || V <- lists:seq(-20,20) >>
+    end,
     %% Draw border around the UV space.
     gl:enable(?GL_DEPTH_TEST),
     gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_LINE),
     gl:lineWidth(1.0),
     gl:color3f(0.0, 0.0, 0.7),
     gl:translatef(0.0, 0.0, -0.5),
-    TxSetMode = ?GET({?MODULE,texture_set_mode}),
-    if (TxSetMode) ->
-        Bin = << <<V:?F32,5.0:?F32, V:?F32,0.0:?F32, 5.0:?F32,V:?F32, 0.0:?F32,V:?F32>>
-                 || V <- lists:seq(0,5) >>;
-    true ->
-        Bin = << <<V:?F32,20.0:?F32, V:?F32,-20.0:?F32, 20.0:?F32,V:?F32, -20.0:?F32,V:?F32>>
-        || V <- lists:seq(-20,20) >>
-    end,
     wings_vbo:draw(fun(_) -> gl:drawArrays(?GL_LINES, 0, 4*(20+20+1)) end, Bin, [vertex2d]),
+
     %% Draw border around the current UV tile
     gl:lineWidth(3.0),
     gl:color3f(0.0, 0.0, 1.0),
@@ -2532,7 +2537,6 @@ draw_background(#st{bb=#uvstate{bg_img=Image, tile={U0,V0}, st=#st{shapes=Shs},i
             draw_texture(init_texture({0,0},Image))
     end,
     gl:disable(?GL_TEXTURE_2D),
-
     gl:popAttrib().
 
 redraw(St) ->
@@ -2761,3 +2765,16 @@ remap_uv_tile_1({U,V}, Chart) ->
 
 screen_to_obj({MVM,PM,VP}, Point) ->
     e3d_transform:unproject(Point, MVM, PM, VP).
+
+camera_reset() ->
+    View = wings_view:current(),
+    {X,Y,Dist} =
+        case wings_wm:get_prop(wings_wm:this(), texture_set_mode) of
+            true -> {(?TILE_ROWS*-0.5),(?TILE_ROWS*-0.5),?TILE_ROWS*0.6};
+            false -> {-0.5,-0.5,?CAMERA_DIST*0.08}
+        end,
+    wings_view:set_current(View#view{origin={X,Y,0.0},
+                                     azimuth=0.0,elevation=0.0,
+                                     distance=Dist,
+                                     pan_x=0.0,pan_y=0.0,
+                                     along_axis=none}).
