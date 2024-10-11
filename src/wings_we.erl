@@ -57,9 +57,9 @@
 
 %% build() -> We'
 %% Create a we from faces and vertices or a mesh.
-build(Mode, #e3d_mesh{fs=Fs0,vs=Vs,vc=Vc0,tx=Tx,he=He}) when is_atom(Mode) ->
+build(Mode, #e3d_mesh{fs=Fs0,vs=Vs,vc=Vc0,tx=Tx,he=He, ns=NTab}) when is_atom(Mode) ->
     Vc = supress_alpha(Vc0),
-    Fs = translate_faces(Fs0, list_to_tuple(Vc), list_to_tuple(Tx), []),
+    Fs = translate_faces(Fs0, list_to_tuple(Vc), list_to_tuple(Tx), list_to_tuple(NTab), []),
     wings_we_build:we(Fs, Vs, He);
 build(Fs, Vs) ->
     wings_we_build:we(Fs, Vs, []).
@@ -542,23 +542,24 @@ show_faces_1(Faces, #we{es=Etab0}=We0) ->
 %%% Build Winged-Edges.
 %%%
 
-translate_faces([#e3d_face{vs=Vs,vc=Vc0,tx=Tx0,mat=Mat0}|Fs], Vcs, Txs, Acc) ->
+translate_faces([#e3d_face{vs=Vs,vc=Vc0,tx=Tx0,ns=Ns0,mat=Mat0}|Fs], Vcs, Txs, NTab, Acc) ->
     Mat = translate_mat(Mat0),
-    FaceData = case {Tx0,Vc0} of
-		   {[],[]} -> {Mat,Vs};
-		   {Tx1,Vc1} ->
-		       Tx = if Tx1 =/= [] ->
-				[element(Tx+1, Txs) || Tx <- Tx1];
-			    true -> none
+    FaceData = case {Tx0,Vc0,Ns0} of
+		   {[],[],[]} -> {Mat,Vs};
+		   {Tx1,Vc1,Ns1} ->
+		       Tx = if Tx1 =/= [] -> [element(Tx+1, Txs) || Tx <- Tx1];
+                               true -> none
 			    end,
-		       Vc = if Vc1 =/= [] ->
-				[element(Vc+1, Vcs) || Vc <- Vc1];
-			    true -> none
+		       Vc = if Vc1 =/= [] -> [element(Vc+1, Vcs) || Vc <- Vc1];
+                               true -> none
 			    end,
-			   {Mat,Vs,Tx,Vc}
+                       Ns = if Ns1 =/= [] -> [element(Ni+1, NTab) || Ni <- Ns1];
+                               true -> none
+                            end,
+                       {Mat,Vs,Tx,Vc,Ns}
 	       end,
-    translate_faces(Fs, Vcs, Txs, [FaceData|Acc]);
-translate_faces([], _, _, Acc) -> reverse(Acc).
+    translate_faces(Fs, Vcs, Txs, NTab, [FaceData|Acc]);
+translate_faces([], _, _, _, Acc) -> reverse(Acc).
 
 translate_mat([]) -> default;
 translate_mat([Mat]) -> Mat;
