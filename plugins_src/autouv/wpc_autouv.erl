@@ -1264,6 +1264,8 @@ handle_command_1({bend,Type,{'ASK',Ask}}, St) ->
                end);
 handle_command_1({bend,{Type,Param}}, St) ->
     wpc_bend:setup({Type,Param}, St);
+handle_command_1({bend,Type,Param}, St) ->
+    wpc_bend:setup({Type,Param}, St);
 handle_command_1({flip,horizontal}, St0) ->
     St1 = wpa:sel_map(fun(_, We) -> flip_horizontal(We) end, St0),
     St = update_selected_uvcoords(St1),
