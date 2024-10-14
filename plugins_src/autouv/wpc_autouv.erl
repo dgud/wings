@@ -227,10 +227,8 @@ start_edit(Mode, We, St) ->
     MatNames4 = sofs:to_external(MatNames3),
     MatNames = [Mat || {Name,_}=Mat <- MatNames4, get_texture(Name, St) /= false],
     case MatNames of
-	[{MatName,_}] ->
+	[{MatName,_}|_] ->
 	    do_edit(MatName, Mode, We, St);
-    [MatFace|_] = MatNames when is_tuple(MatFace) ->
-        do_edit(MatNames, Mode, We, St);
 	_ ->
 	    do_edit(none, Mode, We, St)
     end.
@@ -250,11 +248,7 @@ do_edit(MatName0, Mode, We0, #st{mat=Materials,shapes=Shs0}=GeomSt0) ->
                     update_textureset_system(We0, ?MULTIPLE, TxSetInfo)
                 end;
             _X ->
-                MatName =
-                    case MatName0 of
-                        [{MatName1,_}|_] -> MatName1;
-                        _ -> MatName0
-                    end,
+                MatName = MatName0,
                 update_textureset_system(We0, ?SINGLE, [])
         end,
     Shs = gb_trees:update(We#we.id, We, Shs0),
@@ -362,14 +356,14 @@ get_texture_set(OldTxSet, We, Materials) ->
 
 get_texture_set([TxSetNaming, _OldTxSet], [MatInfo|_]=MatNames, We, Materials) when is_tuple(MatInfo) ->
     TxSet =
-        lists:foldr(fun({MatName, Vs}, Acc) ->
+        lists:foldr(fun({MatName, Fs}, Acc) ->
                 VsPos =
                     gb_sets:fold(fun(Face, Acc0) when Face < 0 ->
                             Acc0;
                         (Face, Acc0) ->
                             UVPos = wings_va:face_attr(uv, Face, We),
                             [{U,V,0.0} || {U,V} <- UVPos]++Acc0
-                        end, [], Vs),
+                        end, [], Fs),
                     {U,V,_} = e3d_vec:average(VsPos),
                 TxId = get_texture_img(MatName, Materials),
                 gb_trees:enter({trunc(U),trunc(V)},#{mat=>MatName,bg_img=>TxId}, Acc)
@@ -1075,9 +1069,9 @@ handle_event_3({action,Ev}=Act, #st{selmode=AUVSel, bb=#uvstate{st=#st{selmode=G
 	{view,Cmd} when Cmd == frame ->
 	    wings_view:command(Cmd,St),
 	    get_event(St);
-    {view,Cmd} when Cmd == reset ->
-        camera_reset(),
-        get_event(St);
+	{view,Cmd} when Cmd == reset ->
+	    camera_reset(),
+	    get_event(St);
 	{edit, repeat} ->
 	    repeat(command, St);
 	{edit, repeat_args} ->

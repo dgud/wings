@@ -109,13 +109,10 @@ draw_options(#st{bb=Uvs}=AuvSt0) ->
                                         false -> atom_to_list(MatName0);
                                         OldId  ->
                                             OldImg = wings_image:info(OldId),
-                                            case OldImg#e3d_image.name of
-                                                Name when is_list(Name) ->
-                                                    case string:left(Name, 5) of
-                                                        "auvBG" -> atom_to_list(MatName0);
-                                                        _ -> Name
-                                                    end;
-                                                Other -> Other
+                                            OldName = OldImg#e3d_image.name,
+                                            case string:prefix("auvBG",  OldName) of
+                                                nomatch -> OldName;
+                                                _ ->  atom_to_list(MatName0)
                                             end
                                     end,
                           catch wings_material:update_image(MatName0, diffuse, NewImg#e3d_image{name=TexName}, GeomSt0)
@@ -1136,24 +1133,24 @@ setup(#st{shapes=ShUV,selmode=SModeUV0,sel=SelUV0,bb=Uvs}=St, Reqs) ->
                     end,
                 SelForTile = lists:flatten([Get_mat_face(WeUV) || WeUV <- gb_trees:values(ShUV)]),
                 case SelForTile of
-                [_|_] ->
-                    if (SelUV0==[]) ->
-                        SModeUV = body,
-                        SelUV = [{Id,gb_sets:singleton(0)} || {Id,_} <- SelForTile];
-                    true ->
-                        SelUV1 = [Sel || {IdSel,_}=Sel <- SelUV0, proplists:is_defined(IdSel,SelForTile)],
-                        case SelUV1 of
-                            [] ->
-                                SModeUV = face,
-                                SelUV = [{Id,gb_sets:from_list(Fs)} || {Id,Fs} <- SelForTile];
-                            _ ->
-                                SModeUV = SModeUV0,
-                                SelUV = SelUV0
-                        end
-                    end,
-                    setup_charts(St#st{selmode=SModeUV,sel=SelUV}, We, Reqs);
-                [] ->
-                    setup_charts(St, We, Reqs)
+                    [_|_] ->
+                        if (SelUV0==[]) ->
+                            SModeUV = body,
+                            SelUV = [{Id,gb_sets:singleton(0)} || {Id,_} <- SelForTile];
+                        true ->
+                            SelUV1 = [Sel || {IdSel,_}=Sel <- SelUV0, proplists:is_defined(IdSel,SelForTile)],
+                            case SelUV1 of
+                                [] ->
+                                    SModeUV = face,
+                                    SelUV = [{Id,gb_sets:from_list(Fs)} || {Id,Fs} <- SelForTile];
+                                _ ->
+                                    SModeUV = SModeUV0,
+                                    SelUV = SelUV0
+                            end
+                        end,
+                        setup_charts(St#st{selmode=SModeUV,sel=SelUV}, We, Reqs);
+                    [] ->
+                        setup_charts(St, We, Reqs)
                 end;
             none ->
                 setup_charts(St, We, Reqs)
