@@ -70,8 +70,7 @@ import_object(#e3d_object{name=_Name,obj=Mesh0}) ->
     %%io:format("\n~s:\n", [_Name]),
     Mesh1 = e3d_mesh:merge_vertices(Mesh0),
     Mesh2 = e3d_mesh:clean_faces(Mesh1),
-    Mesh3 = e3d_mesh:transform(Mesh2),
-    Mesh  = e3d_mesh:hard_edges_from_normals(Mesh3),
+    Mesh = e3d_mesh:transform(Mesh2),
     import_mesh(material, Mesh).
 
 -define(P(N), {N,fun N/2}).
