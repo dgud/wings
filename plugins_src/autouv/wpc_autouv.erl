@@ -357,17 +357,18 @@ get_texture_set(OldTxSet, We, Materials) ->
 get_texture_set([TxSetNaming, _OldTxSet], [MatInfo|_]=MatNames, We, Materials) when is_tuple(MatInfo) ->
     TxSet =
         lists:foldr(fun({MatName, Fs}, Acc) ->
-                VsPos =
-                    gb_sets:fold(fun(Face, Acc0) when Face < 0 ->
-                            Acc0;
-                        (Face, Acc0) ->
-                            UVPos = wings_va:face_attr(uv, Face, We),
-                            [{U,V,0.0} || {U,V} <- UVPos]++Acc0
-                        end, [], Fs),
-                    {U,V,_} = e3d_vec:average(VsPos),
-                TxId = get_texture_img(MatName, Materials),
-                gb_trees:enter({trunc(U),trunc(V)},#{mat=>MatName,bg_img=>TxId}, Acc)
-            end, gb_trees:empty(), MatNames),
+                            VsPos =
+                                gb_sets:fold(fun(Face, Acc0) when Face < 0 ->
+                                                     Acc0;
+                                                (Face, Acc0) ->
+                                                     UVPos = wings_va:face_attr(uv, Face, We),
+                                                     [{U,V,0.0} || {U,V} <- UVPos]++Acc0
+                                             end, [], Fs),
+                            {U,V,_} = e3d_vec:average(VsPos),
+                            TxId = get_texture_img(MatName, Materials),
+                            gb_trees:enter({trunc(U),trunc(V)},#{mat=>MatName,bg_img=>TxId}, Acc)
+                    end, gb_trees:empty(), MatNames),
+
     [TxSetNaming,gb_trees:to_list(TxSet)];
 get_texture_set([TxSetNaming, _], MatName, #we{}, Materials) ->
     TxId = get_texture_img(MatName, Materials),
@@ -2488,11 +2489,11 @@ draw_background(#st{bb=#uvstate{bg_img=Image, tile={U0,V0}, st=#st{shapes=Shs},i
     TileWidth = X1-X0,
     TxSetMode = wings_wm:get_prop(wings_wm:this(), texture_set_mode),
     if (TxSetMode) ->
-        Bin = << <<V:?F32,(?TILE_ROWS*1.0):?F32, V:?F32,0.0:?F32, (?TILE_ROWS*1.0):?F32,V:?F32, 0.0:?F32,V:?F32>>
-                 || V <- lists:seq(0,?TILE_ROWS) >>;
-    true ->
-        Bin = << <<V:?F32,20.0:?F32, V:?F32,-20.0:?F32, 20.0:?F32,V:?F32, -20.0:?F32,V:?F32>>
-                 || V <- lists:seq(-20,20) >>
+            Bin = << <<V:?F32,(?TILE_ROWS*1.0):?F32, V:?F32,0.0:?F32, (?TILE_ROWS*1.0):?F32,V:?F32, 0.0:?F32,V:?F32>>
+                     || V <- lists:seq(0,?TILE_ROWS) >>;
+       true ->
+            Bin = << <<V:?F32,20.0:?F32, V:?F32,-20.0:?F32, 20.0:?F32,V:?F32, -20.0:?F32,V:?F32>>
+                     || V <- lists:seq(-20,20) >>
     end,
     %% Draw border around the UV space.
     gl:enable(?GL_DEPTH_TEST),
@@ -2544,9 +2545,9 @@ draw_tile_id({X,Y,_}, TileWidth, TxSetNaming, Tile) ->
     TileStr = txset_suffix(TxSetNaming,Tile),
     InfoWidth = wings_text:width(TileStr)+?CHAR_WIDTH,
     if (InfoWidth < TileWidth) ->
-        info(trunc(X),H-trunc(Y),InfoWidth,TileStr);
-    true ->
-        ok
+            info(trunc(X),H-trunc(Y),InfoWidth,TileStr);
+        true ->
+            ok
     end.
 
 %% based on the wings_io:info/3
@@ -2724,17 +2725,18 @@ remap_uv_tile(#st{bb=Uvs,shapes=Charts0}=St) ->
     #uvstate{tile=Tile,id=Id,st=#st{shapes=Shs0}} = Uvs,
     We = gb_trees:get(Id,Shs0),
     case get_textureset_info(We) of
-    {?MULTIPLE,[_,[_|_]=TxSet]} ->
-        case [MapInfo || {Tile0,MapInfo} <- TxSet, Tile0==Tile] of
-        [] ->
-            St;
-        [#{mat:=MatName}] ->
-            Charts = remap_uv_tile_0(Tile,MatName,gb_trees:values(Charts0),gb_trees:empty()),
-            St#st{shapes=Charts}
-        end;
-    _ ->
-        St
+        {?MULTIPLE,[_,[_|_]=TxSet]} ->
+            case [MapInfo || {Tile0,MapInfo} <- TxSet, Tile0==Tile] of
+                [] ->
+                    St;
+                [#{mat:=MatName}] ->
+                    Charts = remap_uv_tile_0(Tile,MatName,gb_trees:values(Charts0),gb_trees:empty()),
+                    St#st{shapes=Charts}
+            end;
+        _ ->
+            St
     end.
+
 
 remap_uv_tile_0(_, _, [], Acc) -> Acc;
 remap_uv_tile_0({0,0}=Tile, MatName, [#we{id=Id}=Chart|Charts], Acc0) ->
