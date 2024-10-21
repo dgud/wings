@@ -329,24 +329,28 @@ build_txset_name(TxSetNaming, Name0, Tile) ->
 
 build_texture_set(TxSetNaming,Charts0, #we{name=Name}=We1, GeomSt0) ->
     {TxSet,Charts,We,St} =
-        lists:foldl(fun(#we{id=Id,vp=Vs,fs=Fs}=Chart0, {TSetAcc0,ChartsAcc0,WeAcc0,StAcc0})->
-                %% picking faces and uv ids
-                {U0,V0,_} = e3d_vec:average(array:sparse_to_list(Vs)),
-                Key = {trunc(U0),trunc(V0)},
-                %% creating the new material for each uv id
-                NameUV = build_txset_name(TxSetNaming,Name,Key),
-                {#st{mat=Matb}=StAcc,MatName} = add_material({txset, bg_img_tile_id(Key)}, NameUV, StAcc0),
-                TxId = get_texture_img(MatName, Matb),
+        lists:foldl(fun(#we{id=Id,vp=Vs0,fs=Fs}=Chart0, {TSetAcc0,ChartsAcc0,WeAcc0,StAcc0}=Acc)->
+                case array:sparse_to_list(Vs0) of
+                    [] -> Acc;
+                    Vs ->
+                        %% picking faces and uv ids
+                        {U0,V0,_} = e3d_vec:average(Vs),
+                        Key = {trunc(U0),trunc(V0)},
+                        %% creating the new material for each uv id
+                        NameUV = build_txset_name(TxSetNaming,Name,Key),
+                        {#st{mat=Matb}=StAcc,MatName} = add_material({txset, bg_img_tile_id(Key)}, NameUV, StAcc0),
+                        TxId = get_texture_img(MatName, Matb),
 
-                %% assigning the material to the object and chart
-                CFaces = gb_trees:to_list(Fs),  %% faces mapped in Charts (UV)
-                Faces = [F || {F,_} <- CFaces, F >= 0],  %% faces remapped to Shape (Geom)
-                Chart = wings_facemat:assign(MatName, Faces, Chart0),
-                WeAcc = wings_facemat:assign(MatName, Faces, WeAcc0),
+                        %% assigning the material to the object and chart
+                        CFaces = gb_trees:to_list(Fs),  %% faces mapped in Charts (UV)
+                        Faces = [F || {F,_} <- CFaces, F >= 0],  %% faces remapped to Shape (Geom)
+                        Chart = wings_facemat:assign(MatName, Faces, Chart0),
+                        WeAcc = wings_facemat:assign(MatName, Faces, WeAcc0),
 
-                ChartsAcc = gb_trees:update(Id,Chart,ChartsAcc0),
-                TSetAcc = gb_trees:enter(Key,#{mat=>MatName,bg_img=>TxId},TSetAcc0),
-                {TSetAcc,ChartsAcc,WeAcc,StAcc}
+                        ChartsAcc = gb_trees:update(Id,Chart,ChartsAcc0),
+                        TSetAcc = gb_trees:enter(Key,#{mat=>MatName,bg_img=>TxId},TSetAcc0),
+                        {TSetAcc,ChartsAcc,WeAcc,StAcc}
+                end
             end, {gb_trees:empty(),Charts0,We1,GeomSt0}, gb_trees:values(Charts0)),
     {[TxSetNaming,gb_trees:to_list(TxSet)],Charts,We,St}.
 
