@@ -74,9 +74,9 @@ ncube_dialog() ->
 		 [{key,nres},{range,{1,20}}]}}],[{title, ?__(1,"Number of Cuts")}]},
         {hframe,[
             {label_column, [
-                {wings_s:dir(x), {text,2.0,[{key,xcube},{range,{0.0,infinity}}]}},
-                {wings_s:dir(y), {text,2.0,[{key,ycube},{range,{0.0,infinity}}]}},
-                {wings_s:dir(z), {text,2.0,[{key,zcube},{range,{0.0,infinity}}]}}
+                {wings_s:dir(x), {text,2.0,[{key,xcube},{range,{+0.0,infinity}}]}},
+                {wings_s:dir(y), {text,2.0,[{key,ycube},{range,{+0.0,infinity}}]}},
+                {wings_s:dir(z), {text,2.0,[{key,zcube},{range,{+0.0,infinity}}]}}
             ]}
         ],[{margin,false}]},
         {hradio,[{?__(2,"Yes"), true},
@@ -88,14 +88,23 @@ ncube_dialog() ->
 ncube_verts(Nres) ->
     S = 1.0,
     Nverts = plane_verts(Nres),
-    Tverts = [{X, S, Z} || {X,Z} <- Nverts],
-    Bverts = [{X, -S, -Z} || {X,Z} <- Nverts],
-    Fverts = [{X, -Z, S} || {X,Z} <- Nverts],
-    Kverts = [{-X, -Z, -S} || {X,Z} <- Nverts],
-    Rverts = [{ S, -X, Z} || {X,Z} <- Nverts],
-    Lverts = [{-S,  X, Z} || {X,Z} <- Nverts],
+    Tverts = [calc_vs({X, S, Z},{1.0,S,1.0}) || {X,Z} <- Nverts],
+    Bverts = [calc_vs({X, S, Z},{1.0,-S,-1.0}) || {X,Z} <- Nverts],
+    Fverts = [calc_vs({X, Z, S},{1.0,-1.0,S}) || {X,Z} <- Nverts],
+    Kverts = [calc_vs({X, Z, S},{-1.0,-1.0,-S}) || {X,Z} <- Nverts],
+    Rverts = [calc_vs({S, X, Z},{S,-1.0,1.0}) || {X,Z} <- Nverts],
+    Lverts = [calc_vs({S, X, Z},{-S,1.0,1.0}) || {X,Z} <- Nverts],
     VertsWithDups = Tverts ++ Bverts ++ Fverts ++ Kverts ++ Rverts ++ Lverts,
     VertsWithDups.
+
+calc_vs({X,Y,Z},{Xm,Ym,Zm}) ->
+    {safe_multiply(X,Xm),safe_multiply(Y,Ym),safe_multiply(Z,Zm)}.
+
+safe_multiply(N, M) ->
+    case abs(N) < ?EPSILON of
+        true -> +0.0;
+        false -> N*M
+    end.
 
 transform_mesh(false, Box, Vs) ->
     [transform(Box,V) || V <- Vs];
@@ -172,7 +181,7 @@ ngon_verts(NumVerts, Radius) ->
     Nres = NumVerts,
     Delta = 2*pi()/Nres,
     [{Radius*cos(I*Delta),
-      0.0,
+      +0.0,
       Radius*sin(I*Delta)} || I <- lists:seq(0, Nres-1)].
 
 ngon_faces(NumVerts) ->
