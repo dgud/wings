@@ -17,8 +17,6 @@
 -export([init/0,menu/2,command/2]).
 -include_lib("wings/src/wings.hrl").
 
--define(EPSLON, 0.000001).
-
 
 init() -> true.
 
@@ -135,7 +133,7 @@ make_oblong(Arg, _St) ->
         regular ->
             make_regular(Width,Middle,Height,Bevel,SideSec,HeightSec,ThickSec,BevelSec,Modify);
         void ->
-            Min = (Width/2)-?EPSLON,
+            Min = (Width/2)-?EPSILON,
             Thickness1 = min(Min, Thickness),
             Bevel1 = min(Min-(Thickness1/2.0),Bevel),
             make_void(Width,Middle,Height,Bevel1,SideSec,HeightSec,ThickSec,BevelSec,Thickness1,Modify)
@@ -173,7 +171,7 @@ make_void(Width, Middle, Height, Bevel, SideSec,
 make_outer_contour(Width, Height0, Bevel0, HeightSec, BevelSec) ->
     YTop = Height0/2.0,
     ZRig = Width/2.0,
-    if Bevel0 > ?EPSLON ->
+    if Bevel0 > ?EPSILON ->
         if BevelSec > 0 ->
             Delta = (math:pi()/2.0)/(BevelSec+1);
             true ->
@@ -208,7 +206,7 @@ calc_inner_contour(Width, Thickness0, ThickSec, [{XMin,YMin,ZMax}|_]=Vs2) ->
     %% mirroring the outside contour and adjusting the thickness
     [{_XMin,_YMax,ZMin}|_] = Vs1 = [{X,Y,-Z+Offset} || {X,Y,Z} <- lists:reverse(Vs2)],
     Thickness = (ZMax-ZMin),
-    if Thickness > ?EPSLON ->
+    if Thickness > ?EPSILON ->
         ZSeg = Thickness/(ThickSec+1),
         ZBot = [{XMin,-YMin,ZMax-(I*ZSeg)} || I <- lists:seq(1,ThickSec)],
         ZTop = [{X,-Y,Z} || {X,Y,Z} <- lists:reverse(ZBot)];
