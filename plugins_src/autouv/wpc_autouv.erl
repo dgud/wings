@@ -26,6 +26,9 @@
 
 %% Exports to auv_seg_ui.
 -export([init_show_maps/4]).
+%% Exports to auv_texture.
+-export([material_faces/1,get_textureset_info/1,remap_uv_tile/1]).
+
 
 init() -> true.
 
@@ -90,10 +93,38 @@ auv_show_tile_menu(Action) ->
             wings_menu:update_menu(view, Cmd, delete)
     end.
 
+auv_texture_set_menu(label) ->
+    [?__(1,"Texture Set Mode"),
+     ?__(3,"Show/Hide Tile ID")];
+auv_texture_set_menu(help) ->
+    [?__(2,"Toggle the editor mode for multiple texture set"),
+     ?__(4,"Toggle display of the tile identification")];
+auv_texture_set_menu(cmd) ->
+    [toggle_texture_set_mode,
+     toggle_texture_set_id];
+auv_texture_set_menu(Action) ->
+    [Cmd0,Cmd1] = auv_texture_set_menu(cmd),
+    case Action of
+        true ->
+            [Label0,Label1] = auv_texture_set_menu(label),
+            [Help0, Help1] = auv_texture_set_menu(help),
+            wings_menu:update_menu(view, {show,Cmd1}, {append, 0, Label1},Help1),
+            wings_menu:update_menu(view, {show,Cmd0}, {append, 0, Label0},Help0);
+        false ->
+            wings_menu:update_menu(view, {show,Cmd0}, delete),
+            wings_menu:update_menu(view, {show,Cmd1}, delete)
+    end.
+
 auv_export_menu(label) ->
     ?__(1,"Export UV...");
 auv_export_menu(help) ->
     ?__(2,"Exports the UV as cartoon edges (.eps, .svg)").
+
+auv_txset_naming_menu() ->
+    [{?__(1,"Default"), {txset_naming,uv_default}, "Wings3D default auv - name_00_auv"},
+     {?__(2,"UV Tile Base-0"), {txset_naming,uv_base0}, "Zbrush standard - name_u0_v0"},
+     {?__(3,"UV Tile Base-1"), {txset_naming,uv_base1}, "Mudbox standard - name_u1_v1"},
+     {?__(4,"UDIM"), {txset_naming,uv_udim}, "Mari standard - name_1001"}].
 
 command({body,{?MODULE, Op}} , St) ->
     start_uvmap(Op, St);
@@ -196,14 +227,35 @@ start_edit(Mode, We, St) ->
     MatNames4 = sofs:to_external(MatNames3),
     MatNames = [Mat || {Name,_}=Mat <- MatNames4, get_texture(Name, St) /= false],
     case MatNames of
-	[{MatName,_}] ->
+	[{MatName,_}|_] ->
 	    do_edit(MatName, Mode, We, St);
 	_ ->
 	    do_edit(none, Mode, We, St)
     end.
 
-do_edit(MatName, Mode, We, GeomSt) ->
+do_edit(MatName0, Mode, We0, #st{mat=Materials,shapes=Shs0}=GeomSt0) ->
+    We =
+        case get_textureset_info(We0) of
+            {?MULTIPLE,[_,TxSet0]=TxSetInfo0} ->  %% object has multiple texture set enabled
+                [_,[{_,#{mat:=MatName}}|_]=TxSet] = TxSetInfo = get_texture_set(TxSetInfo0,We0,Materials),
+                %% We remove the textureset data if a different material was
+                %% eventually assigned to the model.
+                if (length(TxSet) =/= length(TxSet0)) ->
+                    update_textureset_system(We0, ?SINGLE, []);
+                true ->
+                    ?SET({?MODULE,tiled_texture},false),  %% disable tiled texture
+                    %% updating the texture set info to the #we{}
+                    update_textureset_system(We0, ?MULTIPLE, TxSetInfo)
+                end;
+            _X ->
+                MatName = MatName0,
+                update_textureset_system(We0, ?SINGLE, [])
+        end,
+    Shs = gb_trees:update(We#we.id, We, Shs0),
+    GeomSt = GeomSt0#st{shapes=Shs},
+
     AuvSt = create_uv_state(gb_trees:empty(), MatName, Mode, We, GeomSt),
+    camera_reset(),
     new_geom_state(GeomSt, AuvSt).
 
 init_show_maps(Charts0, Fs, #we{name=WeName,id=Id}, GeomSt0) ->
@@ -237,6 +289,118 @@ init_show_maps(Charts0, Fs, #we{name=WeName,id=Id}, GeomSt0) ->
     end,
     GeomSt.
 
+material_faces(#we{mat=[MatFace|_]=FaceMats0}=We) when is_tuple(MatFace) ->
+    UVF = gb_sets:from_list(wings_we:uv_mapped_faces(We)),
+    FaceMats =
+        lists:foldr(fun({Face,Mat}, Acc) ->
+                case gb_trees:is_defined(Mat,Acc) of
+                    true ->
+                        FaceList = gb_trees:get(Mat,Acc),
+                        gb_trees:enter(Mat,gb_sets:add(Face,FaceList),Acc);
+                    false ->
+                        case gb_sets:is_member(Face,UVF) of
+                            true ->
+                                gb_trees:enter(Mat,gb_sets:add(Face,gb_sets:empty()),Acc);
+                            false ->
+                                Acc
+                        end
+                end
+            end, gb_trees:empty(), FaceMats0),
+    gb_trees:to_list(FaceMats);
+material_faces(#we{mat=FaceMat0}) ->
+    FaceMat0.
+
+txset_suffix(TxSetNaming, {U,V}) ->
+    Suffix =
+        case TxSetNaming of
+            uv_base0 ->  %% 0-based (Zbrush)
+                io_lib:format("u~w_v~w", [U,V]);
+            uv_base1 ->  %% 1-based (Mudbox)
+                io_lib:format("u~w_v~w", [U+1,V+1]);
+            uv_udim ->  %% UDIM (Mari)
+                io_lib:format("~w", [(1000+U+1+V*10)]);
+            uv_default ->  %% default (Wings3D)
+                io_lib:format("~w~w_auv", [U,V])
+        end,
+    lists:flatten(Suffix).
+
+build_txset_name(TxSetNaming, Name0, Tile) ->
+    Name0 ++ "_" ++ txset_suffix(TxSetNaming, Tile).
+
+build_texture_set(TxSetNaming,Charts0, #we{name=Name}=We1, GeomSt0) ->
+    {TxSet,Charts,We,St} =
+        lists:foldl(fun(#we{id=Id,vp=Vs0,fs=Fs}=Chart0, {TSetAcc0,ChartsAcc0,WeAcc0,StAcc0}=Acc)->
+                case array:sparse_to_list(Vs0) of
+                    [] -> Acc;
+                    Vs ->
+                        %% picking faces and uv ids
+                        {U0,V0,_} = e3d_vec:average(Vs),
+                        Key = {trunc(U0),trunc(V0)},
+                        %% creating the new material for each uv id
+                        NameUV = build_txset_name(TxSetNaming,Name,Key),
+                        {#st{mat=Matb}=StAcc,MatName} = add_material({txset, bg_img_tile_id(Key)}, NameUV, StAcc0),
+                        TxId = get_texture_img(MatName, Matb),
+
+                        %% assigning the material to the object and chart
+                        CFaces = gb_trees:to_list(Fs),  %% faces mapped in Charts (UV)
+                        Faces = [F || {F,_} <- CFaces, F >= 0],  %% faces remapped to Shape (Geom)
+                        Chart = wings_facemat:assign(MatName, Faces, Chart0),
+                        WeAcc = wings_facemat:assign(MatName, Faces, WeAcc0),
+
+                        ChartsAcc = gb_trees:update(Id,Chart,ChartsAcc0),
+                        TSetAcc = gb_trees:enter(Key,#{mat=>MatName,bg_img=>TxId},TSetAcc0),
+                        {TSetAcc,ChartsAcc,WeAcc,StAcc}
+                end
+            end, {gb_trees:empty(),Charts0,We1,GeomSt0}, gb_trees:values(Charts0)),
+    {[TxSetNaming,gb_trees:to_list(TxSet)],Charts,We,St}.
+
+get_texture_set(OldTxSet, We, Materials) ->
+    MatFaces = material_faces(We),
+    get_texture_set(OldTxSet, MatFaces, We, Materials).
+
+get_texture_set([TxSetNaming, _OldTxSet], [MatInfo|_]=MatNames, We, Materials) when is_tuple(MatInfo) ->
+    TxSet =
+        lists:foldr(fun({MatName, Fs}, Acc) ->
+                            VsPos =
+                                gb_sets:fold(fun(Face, Acc0) when Face < 0 ->
+                                                     Acc0;
+                                                (Face, Acc0) ->
+                                                     UVPos = wings_va:face_attr(uv, Face, We),
+                                                     [{U,V,0.0} || {U,V} <- UVPos]++Acc0
+                                             end, [], Fs),
+                            {U,V,_} = e3d_vec:average(VsPos),
+                            TxId = get_texture_img(MatName, Materials),
+                            gb_trees:enter({trunc(U),trunc(V)},#{mat=>MatName,bg_img=>TxId}, Acc)
+                    end, gb_trees:empty(), MatNames),
+
+    [TxSetNaming,gb_trees:to_list(TxSet)];
+get_texture_set([TxSetNaming, _], MatName, #we{}, Materials) ->
+    TxId = get_texture_img(MatName, Materials),
+    TxSet = gb_trees:enter({0,0},#{mat=>MatName,bg_img=>TxId}, gb_trees:empty()),
+    [TxSetNaming,gb_trees:to_list(TxSet)].
+
+
+get_texture_img(MatName, Materials) ->
+    case get_texture(MatName,Materials) of
+        false -> bg_img_id();
+        ImId -> ImId
+    end.
+
+update_textureset_system(#we{pst=Pst0}=We, ?SINGLE, _) ->
+    wings_wm:set_prop(wings_wm:this(), texture_set_mode, false),
+    Pst = gb_trees:delete_any(?TEXTURESET, Pst0),
+    We#we{pst=Pst};
+update_textureset_system(#we{pst=Pst0}=We, Type, TxInfo) ->
+    wings_wm:set_prop(wings_wm:this(), texture_set_mode, true),
+    Pst = gb_trees:enter(?TEXTURESET, {Type,TxInfo}, Pst0),
+    We#we{pst=Pst}.
+
+get_textureset_info(#we{pst=Pst}) ->
+    case gb_trees:lookup(?TEXTURESET, Pst) of
+        none -> none;
+        {value,Value} -> Value
+    end.
+
 create_uv_state(Charts, MatName, Fs, We, #st{shapes=Shs0}=GeomSt) ->
     wings:mode_restriction([vertex,edge,face,body]),
     wings_wm:current_state(#st{selmode=body,sel=[]}),
@@ -245,17 +409,18 @@ create_uv_state(Charts, MatName, Fs, We, #st{shapes=Shs0}=GeomSt) ->
     FakeGeomSt = GeomSt#st{sel=[],shapes=Shs},
 
     Image = case get_texture(MatName,GeomSt) of
-		false -> bg_img_id();
-		ImId -> ImId
-	    end,
+                false -> bg_img_id();
+                ImId -> ImId
+            end,
     Uvs = #uvstate{st=wpa:sel_set(face, [], FakeGeomSt),
 		   id      = We#we.id,
 		   mode    = Fs,
 		   bg_img  = Image,
+		   tile    = {0,0},
 		   matname = MatName},
     St = FakeGeomSt#st{selmode=body,sel=[],shapes=Charts,bb=Uvs,
 		       repeatable=ignore,ask_args=none,drag_args=none},
-    Name = wings_wm:this(),
+    Win = wings_wm:this(),
 
     View = #view{origin={0.0,0.0,0.0},
 		 distance=0.65,
@@ -267,8 +432,7 @@ create_uv_state(Charts, MatName, Fs, We, #st{shapes=Shs0}=GeomSt) ->
 		 hither=0.0001,
 		 yon=50.0},
     wings_view:set_current(View),
-
-    wings_wm:set_prop(Name, drag_filter, fun drag_filter/1),
+    wings_wm:set_prop(Win, drag_filter, fun drag_filter/1),
     wings_wm:set_prop(show_wire_backfaces, true),
     wings_wm:set_prop(show_info_text, false), %% Users want this
     wings_wm:set_prop(orthogonal_view, true),
@@ -281,11 +445,11 @@ create_uv_state(Charts, MatName, Fs, We, #st{shapes=Shs0}=GeomSt) ->
 
     wings_wm:later(got_focus),
 
-    Win = wings_wm:this(),
     case ?GET({?MODULE,show_background}) of
 	undefined ->
         ?SET({?MODULE,show_background}, true),
-        ?SET({?MODULE,tiled_texture}, false);
+        ?SET({?MODULE,tiled_texture}, false),
+        ?SET({?MODULE,show_texture_set_id}, true);
 	_ -> ignore
     end,
     wings:register_postdraw_hook(Win, ?MODULE,
@@ -296,7 +460,9 @@ insert_initial_uvcoords(Charts, Id, MatName, #st{shapes=Shs0}=St) ->
     We0 = gb_trees:get(Id, Shs0),
     We1 = update_uvs(gb_trees:values(Charts), We0),
     We2 = preserve_old_materials(We1, St),
-    We = insert_material(Charts, MatName, We2),
+    %% ensuring the object mapping is not enabled to texture set mode
+    We3 = update_textureset_system(We2, ?SINGLE, []),
+    We = insert_material(Charts, MatName, We3),
     Shs = gb_trees:update(Id, We, Shs0),
     St#st{shapes=Shs}.
 
@@ -366,15 +532,25 @@ get_texture(MatName, Materials) ->
 	    proplists:get_value(diffuse, Maps, false)
     end.
 
+add_material({txset,Tx}, Name, St0) ->
+    add_material_0(Tx, list_to_atom(Name), St0);
 add_material(Tx, Name, St0) ->
-    MatName0 = list_to_atom(Name++"_auv"),
-    Mat = {MatName0,[{opengl,[]},{maps,[{diffuse,Tx}]}]},
-    case wings_material:add_materials([Mat], St0) of
-	{St,[]} ->
-	    {St,MatName0};
-	{St,[{MatName0,MatName}]} ->
-	    {St,MatName}
+    add_material_0(Tx, list_to_atom(Name++"_auv"), St0).
+
+add_material_0(Tx, MatName0, #st{mat=Matb0}=St0) ->
+    case gb_trees:lookup(MatName0, Matb0) of
+        none ->
+            Mat = {MatName0,[{opengl,[]},{maps,[{diffuse,Tx}]}]},
+            case wings_material:add_materials([Mat], St0) of
+                {St,[]} ->
+                    {St,MatName0};
+                {St,[{MatName0,MatName}]} ->
+                    {St,MatName}
+            end;
+        _ ->
+            {St0,MatName0}
     end.
+
 update_texture(Im = #e3d_image{},MatName,St) ->
     catch wings_material:update_image(MatName, diffuse, Im, St),
     {St,MatName}.
@@ -384,6 +560,14 @@ bg_img_id() ->
     case [ImId || {ImId,#e3d_image{name="auvBG"}} <- Is] of
 	[ImId] -> ImId;
 	_ -> wings_image:new("auvBG",bg_image())
+    end.
+
+bg_img_tile_id({U,V}) ->
+    ImgName = lists:flatten(io_lib:format("~s_u~w_v~w", ["auvBG",U,V])),
+    Is = wings_image:images(),
+    case [ImId || {ImId,#e3d_image{name=Name}} <- Is, Name==ImgName] of
+        [ImId] -> ImId;
+        _ -> wings_image:new_temp(ImgName,bg_image())
     end.
 
 %%%% Menus.
@@ -519,8 +703,24 @@ command_menu(_, X, Y) ->
     end,
     CkdBackground = [{crossmark, ?GET({?MODULE,show_background})}],
     CkdTiled = [{crossmark, ?GET({?MODULE,tiled_texture})}],
-    Menu = [{auv_show_menu(label),toggle_background,auv_show_menu(help),CkdBackground},
-            {auv_show_tile_menu(label),toggle_tiled_texture,auv_show_tile_menu(help),CkdTiled}] ++
+    [Label0,Label1] = auv_texture_set_menu(label),
+    [Help0,Help1] = auv_texture_set_menu(help),
+    [Cmd0,Cmd1] = auv_texture_set_menu(cmd),
+    TxSetMode = wings_wm:get_prop(wings_wm:this(), texture_set_mode),
+    CkdTextureSet = [{crossmark, TxSetMode}],
+    CkdTextureSetId = [{crossmark, ?GET({?MODULE,show_texture_set_id})}],
+    case TxSetMode of
+      false ->
+          TiledMenu = [{auv_show_tile_menu(label),toggle_tiled_texture,auv_show_tile_menu(help),CkdTiled}],
+          ShowTileId = [];
+      true ->
+          TiledMenu = [],
+          ShowTileId = [{Label1,Cmd1,Help1,CkdTextureSetId}]
+    end,
+    Menu = [{auv_show_menu(label),toggle_background,auv_show_menu(help),CkdBackground}] ++
+           ShowTileId ++
+           [separator] ++ TiledMenu ++
+           [{Label0,Cmd0,Help0,CkdTextureSet}] ++
            ExportMenu ++ option_menu(),
     wings_menu:popup_menu(X,Y, {auv,option}, Menu).
 
@@ -673,6 +873,18 @@ handle_event(Ev, St) ->
 	    Other
     end.
 
+handle_event_0(Ev=#mousebutton{state=?SDL_PRESSED,
+                               x=X,y=Y,
+                               button=?SDL_BUTTON_LEFT,
+                               mod=Mod}, #st{}=St0, FreeLmbMod)
+  when (Mod band ?ALT_BITS) =/= 0 -> %% ALT modifier
+    case wings_wm:get_prop(wings_wm:this(), texture_set_mode) of
+        true ->
+            St = pick_uv_tile(X,Y,St0),
+            get_event(St);
+        false ->
+            handle_event_1(Ev, St0, FreeLmbMod)
+    end;
 %% Short cut for tweak like move
 handle_event_0(Ev=#mousebutton{state=?SDL_PRESSED,
 			       x=X,y=Y,
@@ -729,14 +941,14 @@ handle_event_3({drop,DropData}, St) ->
     handle_drop(DropData, St);
 handle_event_3({action,{{auv,_},create_texture}}, St) ->
     ?SET({?MODULE,show_background}, true),
-    auv_texture:draw_options(St);
+    auv_texture:draw_options(remap_uv_tile(St));
 handle_event_3({action,{auv,{draw_options,restart}}}, St) ->
     ?SET({?MODULE,show_background}, true),
     ?SET({?MODULE,tiled_texture}, false),
     auv_texture:draw_options(St);
 handle_event_3({action,{auv,{draw_options,Opt}}}, #st{bb=Uvs}=St) ->
     #uvstate{st=GeomSt0,matname=MatName0,bg_img=Image} = Uvs,
-    Tx = ?SLOW(auv_texture:get_texture(St, Opt)),
+    Tx = ?SLOW(auv_texture:get_texture(remap_uv_tile(St), Opt)),
     case MatName0 of
 	none ->
 	    ok = wings_image:update(Image, Tx),
@@ -774,6 +986,8 @@ handle_event_3({action,{{auv,_},Cmd}}, St) ->
     %%    io:format("Cmd ~p ~n", [Cmd]),
     handle_command(Cmd, St);
 handle_event_3({action,{auv,Cmd}}, St) ->
+    handle_command(Cmd, St);
+handle_event_3({action,{toggle_texture_set_mode,_}=Cmd}, St) ->
     %%    io:format("Cmd ~p ~n", [Cmd]),
     handle_command(Cmd, St);
 handle_event_3({action,{select,show_all}}, #st{bb=#uvstate{st=GeomSt,id=Id}}) ->
@@ -837,6 +1051,8 @@ handle_event_3({action,Ev}=Act, #st{selmode=AUVSel, bb=#uvstate{st=#st{selmode=G
 	    handle_command(toggle_background,St);
 	{view,{show,toggle_tiled_texture}} ->
 	    handle_command(toggle_tiled_texture,St);
+    {view,{show,toggle_texture_set_mode}} ->
+        handle_command(toggle_texture_set_mode,St);
 	{view,aim} ->
 	    St1 = fake_selection(St),
 	    wings_view:command(aim, St1),
@@ -845,8 +1061,10 @@ handle_event_3({action,Ev}=Act, #st{selmode=AUVSel, bb=#uvstate{st=#st{selmode=G
             #st{sel=Sel} = St,
             case  Sel =:= [] of
                 true ->
-		    St1 = fake_selection(St),
-                    wings_view:command(aim, St1),
+                    case fake_selection(St) of
+                        #st{sel=[]} -> camera_reset();
+                        St1 -> wings_view:command(aim, St1)
+                    end,
                     get_event(St);
                 false ->
                     {{_,Cmd},St1} = wings:highlight_aim_setup(St),
@@ -855,6 +1073,9 @@ handle_event_3({action,Ev}=Act, #st{selmode=AUVSel, bb=#uvstate{st=#st{selmode=G
             end;
 	{view,Cmd} when Cmd == frame ->
 	    wings_view:command(Cmd,St),
+	    get_event(St);
+	{view,Cmd} when Cmd == reset ->
+	    camera_reset(),
 	    get_event(St);
 	{edit, repeat} ->
 	    repeat(command, St);
@@ -877,14 +1098,21 @@ handle_event_3(got_focus, _) ->
     Msg1 = wings_msg:button_format(?__(1,"Select")),
     Msg2 = wings_camera:help(),
     Msg3 = wings_msg:button_format([], [], ?__(2,"Show menu")),
-    Message = wings_msg:join([Msg1,Msg2,Msg3]),
+    Msg4 =
+        case wings_wm:get_prop(wings_wm:this(), texture_set_mode) of
+            true -> wings_msg:mod_format(?ALT_BITS, 1, "Set Active Tile");
+            false -> []
+        end,
+    Message = wings_msg:join([Msg1,Msg2,Msg3,Msg4]),
     wings_wm:message(Message, ""),
     auv_show_menu(true),
     auv_show_tile_menu(true),
+    auv_texture_set_menu(true),
     wings_wm:dirty();
 handle_event_3(lost_focus, _) ->
     auv_show_menu(false),
     auv_show_tile_menu(false),
+    auv_texture_set_menu(false),
     keep;
 handle_event_3(_Event, _) ->
     %% io:format("MissEvent ~P~n", [_Event, 20]),
@@ -1035,6 +1263,8 @@ handle_command_1({bend,Type,{'ASK',Ask}}, St) ->
                end);
 handle_command_1({bend,{Type,Param}}, St) ->
     wpc_bend:setup({Type,Param}, St);
+handle_command_1({bend,Type,Param}, St) ->
+    wpc_bend:setup({Type,Param}, St);
 handle_command_1({flip,horizontal}, St0) ->
     St1 = wpa:sel_map(fun(_, We) -> flip_horizontal(We) end, St0),
     St = update_selected_uvcoords(St1),
@@ -1102,6 +1332,41 @@ handle_command_1(toggle_tiled_texture, _) ->
     Old = ?GET({?MODULE,tiled_texture}),
     ?SET({?MODULE,tiled_texture},not Old),
     wings_wm:dirty();
+handle_command_1(toggle_texture_set_id,_) ->
+    Old = ?GET({?MODULE,show_texture_set_id}),
+    ?SET({?MODULE,show_texture_set_id},not Old),
+    wings_wm:dirty();
+handle_command_1(toggle_texture_set_mode,St) ->
+    case wings_wm:get_prop(wings_wm:this(), texture_set_mode) of
+        false ->  %% object is going to have multiple texture set enabled
+            Win = wings_wm:this_win(),
+            Pos = wx_misc:getMousePosition(),
+            wings_menu:popup_menu(Win,Pos,toggle_texture_set_mode,auv_txset_naming_menu());
+        true ->
+            handle_command_1({toggle_texture_set_mode, off},St)
+    end;
+handle_command_1({toggle_texture_set_mode,{txset_naming,TxSetNaming}},#st{bb=Uvs0,shapes=Charts0}=St) ->
+    #uvstate{st=#st{shapes=Shs0}=GeomSt0, id=Id} = Uvs0,
+    We0 = gb_trees:get(Id, Shs0),
+    ?SET({?MODULE,tiled_texture},false),  %% disable tiled texture
+    {TxSet,Charts,We1,#st{mat=Mtab}} = build_texture_set(TxSetNaming,Charts0,We0,GeomSt0),
+    [_,[{Tile,#{mat:=MatName,bg_img:=Image}}|_]] = TxSet,
+    %% updating the texture set info to the #we{}
+    We = update_textureset_system(We1, ?MULTIPLE, TxSet),
+    Shs = gb_trees:enter(Id,We,Shs0),
+    GeomSt = GeomSt0#st{shapes=Shs,mat=Mtab},
+    wings_wm:send(geom, {new_state,GeomSt}),
+    new_state(St#st{shapes=Charts,mat=Mtab,bb=Uvs0#uvstate{st=GeomSt,tile=Tile,bg_img=Image,matname=MatName}});
+handle_command_1({toggle_texture_set_mode,off},#st{bb=Uvs0}=St) ->
+    #uvstate{st=#st{shapes=Shs0}=GeomSt0, id=Id} = Uvs0,
+    We0 = gb_trees:get(Id, Shs0),
+    Tile = {0,0},
+    %% removing the texture set info to the #we{}
+    We = update_textureset_system(We0, ?SINGLE, []),
+    Shs = gb_trees:enter(Id,We,Shs0),
+    GeomSt = GeomSt0#st{shapes=Shs},
+    wings_wm:send(geom, {new_state,GeomSt}),
+    new_state(St#st{bb=Uvs0#uvstate{st=GeomSt,tile=Tile}});
 handle_command_1(export_uv, #st{}=St) ->
     wpc_hlines:command({file, {export_uv, {eps, true}}}, St);
 handle_command_1(Cmd, #st{selmode=Mode}=St0) ->
@@ -1535,7 +1800,7 @@ add_sel([],Sel) -> Sel.
 
 x_rad({X1,Y1,_},{X2,Y2,_}) ->
     Rad =  math:atan2(Y2-Y1,X2-X1),
-    if Rad < 0.0 -> 2*math:pi()+Rad;
+    if Rad < +0.0 -> 2*math:pi()+Rad;
        true -> Rad
     end.
 
@@ -2033,15 +2298,20 @@ flip(Flip, We0) ->
 move_to(Dir,We) ->
     [V1={X1,Y1,_},V2={X2,Y2,_}] = wings_vertex:bounding_box(We),
     ChartCenter = {CCX,CCY,CCZ} = e3d_vec:average(V1,V2),
+    {OCX,OCY} =
+        case wings_wm:get_prop(wings_wm:this(), texture_set_mode) of
+            true -> {float(trunc(CCX)),float(trunc(CCY))};
+            false -> {0.0,0.0}
+        end,
     Translate
 	= case Dir of
-	      center ->   e3d_vec:sub({0.5,0.5,CCZ}, ChartCenter);
-	      center_x -> e3d_vec:sub({0.5,CCY,CCZ}, ChartCenter);
-	      center_y -> e3d_vec:sub({CCX,0.5,CCZ}, ChartCenter);
-	      bottom ->   {0.0,-Y1,0.0};
-	      top ->      {0.0,1.0-Y2,0.0};   
-	      left ->     {-X1,0.0,0.0};
-	      right ->    {1.0-X2,0.0,0.0}
+	      center ->   e3d_vec:sub({OCX+0.5,OCY+0.5,CCZ}, ChartCenter);
+	      center_x -> e3d_vec:sub({OCX+0.5,CCY,CCZ}, ChartCenter);
+	      center_y -> e3d_vec:sub({CCX,OCY+0.5,CCZ}, ChartCenter);
+	      bottom ->   {0.0,OCY-Y1,0.0};
+	      top ->      {0.0,OCY+1.0-Y2,0.0};
+	      left ->     {OCX-X1,0.0,0.0};
+	      right ->    {OCX+1.0-X2,0.0,0.0}
 	  end,
     T = e3d_mat:translate(Translate),
     wings_we:transform_vs(T, We).
@@ -2085,7 +2355,11 @@ stretch(Dir,We) ->
     Pos = case Dir of
               {max_uniform,x} -> {CY,CY,CZ};
               {max_uniform,y} -> {CX,CX,CZ};
-              max_uniform -> {0.5,0.5,CZ};
+              max_uniform ->
+                  case wings_wm:get_prop(wings_wm:this(), texture_set_mode) of
+                      true -> {trunc(CX)+0.5,trunc(CY)+0.5,CZ};
+                      false -> {0.5,0.5,CZ}
+                  end;
               max_x -> {0.5,CY,CZ};
               max_y -> {CX,0.5,CZ}
           end,
@@ -2212,61 +2486,127 @@ update_and_scale_chart(Vs0,We0) ->
 %%% Draw routines.
 %%%
 
-draw_background(#st{bb=#uvstate{bg_img=Image}}) ->
+draw_background(#st{bb=#uvstate{bg_img=Image, tile={U0,V0}, st=#st{shapes=Shs},id=Id}}) ->
     gl:pushAttrib(?GL_ALL_ATTRIB_BITS),
-    wings_view:load_matrices(false),
-
+    Matrices = wings_u:get_matrices(Id, original),
+    [{X0,_,_},{X1,_,_}] = obj_to_screen(Matrices, [{0.0,0.0,0.0},{1.0,0.0,0.0}]),
+    TileWidth = X1-X0,
+    TxSetMode = wings_wm:get_prop(wings_wm:this(), texture_set_mode),
+    if (TxSetMode) ->
+            Bin = << <<V:?F32,(?TILE_ROWS*1.0):?F32, V:?F32,0.0:?F32, (?TILE_ROWS*1.0):?F32,V:?F32, 0.0:?F32,V:?F32>>
+                     || V <- lists:seq(0,?TILE_ROWS) >>;
+       true ->
+            Bin = << <<V:?F32,20.0:?F32, V:?F32,-20.0:?F32, 20.0:?F32,V:?F32, -20.0:?F32,V:?F32>>
+                     || V <- lists:seq(-20,20) >>
+    end,
     %% Draw border around the UV space.
     gl:enable(?GL_DEPTH_TEST),
     gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_LINE),
     gl:lineWidth(1.0),
     gl:color3f(0.0, 0.0, 0.7),
     gl:translatef(0.0, 0.0, -0.5),
-    Bin = << <<V:?F32,20.0:?F32, V:?F32,-20:?F32, 20.0:?F32,V:?F32, -20.0:?F32,V:?F32>>
-             || V <- lists:seq(-20,20) >>,
     wings_vbo:draw(fun(_) -> gl:drawArrays(?GL_LINES, 0, 4*(20+20+1)) end, Bin, [vertex2d]),
+
+    %% Draw border around the current UV tile
     gl:lineWidth(3.0),
     gl:color3f(0.0, 0.0, 1.0),
-    gl:recti(0, 0, 1, 1),
+    gl:recti(U0, V0, U0+1, V0+1),
 
     %% Draw the background texture.
     gl:polygonMode(?GL_FRONT_AND_BACK, ?GL_FILL),
     gl:color3f(1.0, 1.0, 1.0),			%Clear
-    Q =
-        case ?GET({?MODULE,show_background}) of
+    case TxSetMode of
+        true ->
+            We = gb_trees:get(Id,Shs),
+            case get_textureset_info(We) of
+                {?MULTIPLE,[TxSetNaming,[_|_]=TxSet]} ->
+                    [draw_texture(init_texture(Tile,Image0)) || {Tile,#{bg_img:=Image0}} <- TxSet],
+                    case ?GET({?MODULE,show_texture_set_id}) of
+                        true ->
+                            Draw =
+                                fun({U,V}=Tile) ->
+                                    Pos = obj_to_screen(Matrices, {float(U),float(V+1),0.0}),
+                                    draw_tile_id(Pos,TileWidth,TxSetNaming,Tile)
+                                end,
+                            [Draw(Tile) || {Tile,_} <- TxSet];
+                        false -> ignore
+                    end;
+                _ ->
+                    draw_texture(init_texture({0,0},Image))
+            end;
         false ->
-            init_texture_area(false);
-        _ ->
-            case wings_image:txid(Image) of
-                none -> %% Avoid crash if TexImage is deleted
-                    init_texture_area(false);
-                Tx ->
-                    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_S, ?GL_REPEAT),
-                    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_T, ?GL_REPEAT),
-                    gl:enable(?GL_TEXTURE_2D),
-                    gl:bindTexture(?GL_TEXTURE_2D, Tx),
-                    init_texture_area(?GET({?MODULE,tiled_texture}))
-            end
-        end,
-    wings_vbo:draw(fun(_) -> gl:drawArrays(?GL_QUADS, 0, 4) end, Q, [uv, vertex]),
-
+            draw_texture(init_texture({0,0},Image))
+    end,
     gl:disable(?GL_TEXTURE_2D),
-
     gl:popAttrib().
 
 redraw(St) ->
     wings_wm:set_prop(show_info_text, false),
     wings:redraw(St).
 
-init_texture_area(Tiled) ->
+draw_tile_id({X,Y,_}, TileWidth, TxSetNaming, Tile) ->
+    {_,_,_,H} = wings_wm:viewport(),
+    TileStr = txset_suffix(TxSetNaming,Tile),
+    InfoWidth = wings_text:width(TileStr)+?CHAR_WIDTH,
+    if (InfoWidth < TileWidth) ->
+            info(trunc(X),H-trunc(Y),InfoWidth,TileStr);
+        true ->
+            ok
+    end.
+
+%% based on the wings_io:info/3
+info(X, Y, InfoWidth, Info) ->
+    wings_io:ortho_setup(),
+    blend(wings_pref:get_value(info_background_color),
+          fun(Color) ->
+              wings_io:set_color(Color),
+              gl:recti(X+InfoWidth, Y+2, X+3, Y+?CHAR_HEIGHT+3)
+          end),
+    wings_io:set_color(wings_pref:get_value(info_color)),
+    wings_text:render(X+trunc(?CHAR_WIDTH/2), Y+?CHAR_HEIGHT+1, Info).
+
+blend({_,_,_,+0.0}, _) -> ok;
+blend({_,_,_,1.0}=Color, Draw) -> Draw(Color);
+blend(Color, Draw) ->
+    gl:enable(?GL_BLEND),
+    gl:blendFunc(?GL_SRC_ALPHA, ?GL_ONE_MINUS_SRC_ALPHA),
+    Draw(Color),
+    gl:disable(?GL_BLEND).
+
+obj_to_screen(Matrix, Points) when is_list(Points) ->
+    [obj_to_screen(Matrix, Point) || Point <- Points];
+obj_to_screen({MVM,PM,VP}, Point) ->
+    e3d_transform:project(Point, MVM, PM, VP).
+
+init_texture_area({U,V}, Tiled) ->
     case Tiled of
         true ->
             [{-20.0, -20.0},{-20.0, -20.0, -0.99999}, {20.0, -20.0},{20.0, -20.0, -0.99999},
              {20.0, 20.0},{20.0, 20.0, -0.99999}, {-20.0, 20.0},{-20.0, 20.0, -0.99999}];
         false ->
-            [{0.0, 0.0},{0.0, 0.0, -0.99999}, {1.0, 0.0},{1.0, 0.0, -0.99999},
-             {1.0, 1.0},{1.0, 1.0, -0.99999}, {0.0, 1.0},{0.0, 1.0, -0.99999}]
+            [{0.0+U, 0.0+V},{0.0+U, 0.0+V, -0.99999}, {1.0+U, 0.0+V},{1.0+U, 0.0+V, -0.99999},
+             {1.0+U, 1.0+V},{1.0+U, 1.0+V, -0.99999}, {0.0+U, 1.0+V},{0.0+U, 1.0+V, -0.99999}]
     end.
+
+init_texture(Tile, Image) ->
+    case ?GET({?MODULE,show_background}) of
+        false ->
+            init_texture_area(Tile,false);
+        true ->
+            case wings_image:txid(Image) of
+                none -> %% Avoid crash if TexImage was deleted
+                    init_texture_area(Tile,false);
+                Tx ->
+                    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_S, ?GL_REPEAT),
+                    gl:texParameteri(?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_T, ?GL_REPEAT),
+                    gl:enable(?GL_TEXTURE_2D),
+                    gl:bindTexture(?GL_TEXTURE_2D, Tx),
+                    init_texture_area(Tile,?GET({?MODULE,tiled_texture}))
+            end
+    end.
+
+draw_texture(Q) ->
+    wings_vbo:draw(fun(_) -> gl:drawArrays(?GL_QUADS, 0, 4) end, Q, [uv, vertex]).
 
 init_drawarea() ->
     {W0,H0} = wings_wm:top_size(),
@@ -2362,3 +2702,81 @@ geom2auv_edges(Es, #we{name=#ch{emap=Emap0}}) ->
 		      {value,Hits} -> Hits ++ Acc
 		  end
 	  end, [], Es).
+
+pick_uv_tile(X0, Y0, #st{bb=#uvstate{id=Id,st=#st{shapes=Shs}}=Uvs}=St) ->
+    We = gb_trees:get(Id,Shs),
+    case get_textureset_info(We) of
+        {?MULTIPLE,[_,[_|_]=TxSet]} ->
+            {_,H} = wings_wm:win_size(),
+            X = float(X0),
+            Y = H-float(Y0),
+            Matrices = wings_u:get_matrices(0, original),
+            {U0,V0,_} = screen_to_obj(Matrices, {X,Y,0.0}),
+            U = if U0 < +0.0 -> U0-1.0; true-> U0 end,
+            V = if V0 < +0.0 -> V0-1.0; true-> V0 end,
+            Tile = {trunc(U),trunc(V)},
+            case [MapInfo || {Tile0,MapInfo} <- TxSet, Tile0==Tile] of
+                [] ->
+                    St;
+                [#{mat:=MatName,bg_img:=TxId}] ->
+                    St#st{bb=Uvs#uvstate{tile=Tile,matname=MatName,bg_img=TxId}}
+            end;
+        _ ->
+            St
+    end.
+
+remap_uv_tile(#st{bb=Uvs,shapes=Charts0}=St) ->
+    #uvstate{tile=Tile,id=Id,st=#st{shapes=Shs0}} = Uvs,
+    We = gb_trees:get(Id,Shs0),
+    case get_textureset_info(We) of
+        {?MULTIPLE,[_,[_|_]=TxSet]} ->
+            case [MapInfo || {Tile0,MapInfo} <- TxSet, Tile0==Tile] of
+                [] ->
+                    St;
+                [#{mat:=MatName}] ->
+                    Charts = remap_uv_tile_0(Tile,MatName,gb_trees:values(Charts0),gb_trees:empty()),
+                    St#st{shapes=Charts}
+            end;
+        _ ->
+            St
+    end.
+
+
+remap_uv_tile_0(_, _, [], Acc) -> Acc;
+remap_uv_tile_0({0,0}=Tile, MatName, [#we{id=Id}=Chart|Charts], Acc0) ->
+    Acc = gb_trees:enter(Id,Chart,Acc0),
+    remap_uv_tile_0(Tile,MatName,Charts,Acc);
+remap_uv_tile_0(Tile, MatName, [#we{id=Id,mat=MatName}=Chart0|Charts], Acc0) ->
+    Chart = remap_uv_tile_1(Tile, Chart0),
+    Acc = gb_trees:enter(Id,Chart,Acc0),
+    remap_uv_tile_0(Tile,MatName,Charts,Acc);
+remap_uv_tile_0(Tile, MatName, [#we{id=Id}=Chart0|Charts], Acc0) ->
+    FsMat = wings_facemat:all(Chart0),
+    Acc =
+        case [F || {F,Mat} <- FsMat, Mat==MatName] of
+        [] ->
+            gb_trees:enter(Id,Chart0,Acc0);
+        _ ->
+            Chart = remap_uv_tile_1(Tile, Chart0),
+            gb_trees:enter(Id,Chart,Acc0)
+        end,
+    remap_uv_tile_0(Tile,MatName,Charts,Acc).
+remap_uv_tile_1({U,V}, Chart) ->
+    Transform = e3d_mat:translate(float(-U),float(-V),0.0),
+    wings_we:transform_vs(Transform, Chart).
+
+screen_to_obj({MVM,PM,VP}, Point) ->
+    e3d_transform:unproject(Point, MVM, PM, VP).
+
+camera_reset() ->
+    View = wings_view:current(),
+    {X,Y,Dist} =
+        case wings_wm:get_prop(wings_wm:this(), texture_set_mode) of
+            true -> {(?TILE_ROWS*-0.5),(?TILE_ROWS*-0.5),?TILE_ROWS*0.6};
+            false -> {-0.5,-0.5,?CAMERA_DIST*0.08}
+        end,
+    wings_view:set_current(View#view{origin={X,Y,0.0},
+                                     azimuth=0.0,elevation=0.0,
+                                     distance=Dist,
+                                     pan_x=0.0,pan_y=0.0,
+                                     along_axis=none}).
