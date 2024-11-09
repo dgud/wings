@@ -29,7 +29,12 @@ menu() ->
     [{cylinder(),cylinder,?__(2,"Create a cylinder"),[option]}].
 
 cylinder() ->
-    ?__(1,"Cylinder").
+    cylinder_type(cylinder).
+
+cylinder_type(cylinder) -> ?__(1,"Cylinder");
+cylinder_type(tube) -> ?__(2,"Tube");
+cylinder_type(gear) -> ?__(3,"Gear");
+cylinder_type(pie) -> ?__(4,"Pie").
 
 command({shape,{cylinder, Ask}}, St) -> make_cylinder(Ask, St);
 command(_, _) -> next.
@@ -44,7 +49,9 @@ cylinder_dialog() ->
     Hook = fun(Var, Val, Sto) ->
 	case Var of
 	    cylinder_type ->
-		wings_dialog:enable(thickness, Val=/=cylinder, Sto);
+		wings_dialog:enable(thickness, (Val=/=cylinder) and (Val=/=pie) , Sto),
+		wings_dialog:enable(angle_offset, Val==pie, Sto),
+		wings_dialog:enable(degrees, Val==pie, Sto);
 	    _ -> ok
 	end
     end,
@@ -60,12 +67,15 @@ cylinder_dialog() ->
 	{?__(6,"Bottom Z Radius"), {text,1.0,[{key,bottom_z},{range,{0.0,infinity}}]}}]
      },
      {hradio, [
-	{cylinder(),cylinder},
-	{?__(8,"Tube"),tube},
-	{?__(9,"Gear"),gear}],
+	{cylinder_type(cylinder),cylinder},
+	{cylinder_type(tube),tube},
+	{cylinder_type(gear),gear},
+	{cylinder_type(pie),pie}],
 		cylinder, [{key,cylinder_type},{hook, Hook},{title,?__(10,"Cylinder Type")}]},
      {label_column,[
-	 {?__(11,"Thickness"), {text,0.25,[{key,thickness},{range,{0.0,infinity}}]}}]},
+	 {?__(11,"Thickness"), {text,0.25,[{key,thickness},{range,{0.0,infinity}}]}},
+	 {?__(12,"Degrees"), {text,360.0,[{key,degrees},{range,{0.0,360.0}}]}},
+	 {?__(13,"Angle Offset"), {text,0.0,[{key,angle_offset},{range,{-360.0,360.0}}]}}]},
      wings_shapes:transform_obj_dlg()].
 
 make_cylinder(Arg, St) when is_atom(Arg) ->
@@ -81,6 +91,8 @@ make_cylinder(Arg, _St) ->
     BotX = dict:fetch(bottom_x, ArgDict),
     BotZ = dict:fetch(bottom_z, ArgDict),
     Thickness = dict:fetch(thickness, ArgDict),
+    Degrees = dict:fetch(degrees, ArgDict),
+    AngleOffset = dict:fetch(angle_offset, ArgDict),
     Modify = [{dict:fetch(rot_x, ArgDict), dict:fetch(rot_y, ArgDict), dict:fetch(rot_z, ArgDict)},
 	      {dict:fetch(mov_x, ArgDict), dict:fetch(mov_y, ArgDict), dict:fetch(mov_z, ArgDict)},
 	      dict:fetch(ground, ArgDict)],
@@ -94,7 +106,9 @@ make_cylinder(Arg, _St) ->
         gear ->
             [Min|_] = lists:sort([TopX, TopZ, BotX, BotZ]),
             Thickness1 = min(Min, Thickness),
-            make_gear(Sections, TopX, TopZ, BotX, BotZ, Height, Thickness1, Modify)
+            make_gear(Sections, TopX, TopZ, BotX, BotZ, Height, Thickness1, Modify);
+        pie ->
+            make_pie(Sections, TopX, TopZ, BotX, BotZ, Height, Degrees, AngleOffset, Modify)
     end.
 
 %%%
@@ -105,14 +119,14 @@ make_cylinder(Sections, TopX, TopZ, BotX, BotZ, Height, [Rot, Mov, Ground]) ->
     Vs0 = cylinder_verts(Sections, TopX, TopZ, BotX, BotZ, Height),
     Vs = wings_shapes:transform_obj(Rot,Mov,Ground, Vs0),
     Fs = cylinder_faces(Sections),
-    {new_shape,cylinder(),Fs,Vs}.
+    {new_shape,cylinder_type(cylinder),Fs,Vs}.
 
 cylinder_verts(Sections, TopX, TopZ, BotX, BotZ, Height) ->
     YAxis = Height/2,
     Delta = pi()*2/Sections,
     Rings = lists:seq(0, Sections-1),
-    Top = ring_of_verts(Rings, Delta, YAxis, TopX, TopZ),
-    Bottom = ring_of_verts(Rings, Delta, -YAxis, BotX, BotZ),
+    Top = ring_of_verts(Rings, Delta, YAxis, TopX, TopZ, 0.0),
+    Bottom = ring_of_verts(Rings, Delta, -YAxis, BotX, BotZ, 0.0),
     Top ++ Bottom.
 
 cylinder_faces(N) ->
@@ -131,16 +145,16 @@ make_gear(Sections0, TopX, TopZ, BotX, BotZ, Height, ToothHeight, [Rot, Mov, Gro
     Vs0 = gear_verts(Sections, TopX, TopZ, BotX, BotZ, Height, ToothHeight),
     Vs = wings_shapes:transform_obj(Rot,Mov,Ground, Vs0),
     Fs = gear_faces(Sections),
-    {new_shape,?__(1,"Gear"),Fs,Vs}.
+    {new_shape,cylinder_type(gear),Fs,Vs}.
 
 gear_verts(Sections, TopX, TopZ, BotX, BotZ, Height, ToothHeight) ->
     YAxis = Height/2,
     Delta = pi()*2/Sections,
     Rings = lists:seq(0, Sections-1),
-    TopOuter = ring_of_verts(Rings, Delta, YAxis, TopX, TopZ),
-    BotOuter = ring_of_verts(Rings, Delta, -YAxis, BotX, BotZ),
-    TopInner = ring_of_verts(Rings, Delta, YAxis, TopX-ToothHeight, TopZ-ToothHeight),
-    BotInner = ring_of_verts(Rings, Delta, -YAxis, BotX-ToothHeight, BotZ-ToothHeight),
+    TopOuter = ring_of_verts(Rings, Delta, YAxis, TopX, TopZ, 0.0),
+    BotOuter = ring_of_verts(Rings, Delta, -YAxis, BotX, BotZ, 0.0),
+    TopInner = ring_of_verts(Rings, Delta, YAxis, TopX-ToothHeight, TopZ-ToothHeight, 0.0),
+    BotInner = ring_of_verts(Rings, Delta, -YAxis, BotX-ToothHeight, BotZ-ToothHeight, 0.0),
     OuterVerts = TopOuter ++ TopInner,
     InnerVerts = BotOuter ++ BotInner,
     OuterVerts ++ InnerVerts.
@@ -171,16 +185,16 @@ make_tube(Sections, TopX, TopZ, BotX, BotZ, Height, Thickness, [Rot, Mov, Ground
     Vs0 = tube_verts(Sections, TopX, TopZ, BotX, BotZ, Height, Thickness),
     Vs = wings_shapes:transform_obj(Rot,Mov,Ground, Vs0),
     Fs = tube_faces(Sections),
-    {new_shape,?__(1,"Tube"),Fs,Vs}.
+    {new_shape,cylinder_type(tube),Fs,Vs}.
 
 tube_verts(Sections, TopX, TopZ, BotX, BotZ, Height, Thickness) ->
     YAxis = Height/2,
     Delta = pi()*2/Sections,
     Rings = lists:seq(0, Sections-1),
-    TopOuter = ring_of_verts(Rings, Delta, YAxis, TopX, TopZ),
-    BotOuter = ring_of_verts(Rings, Delta, -YAxis, BotX, BotZ),
-    TopInner = ring_of_verts(Rings, Delta, YAxis, TopX-Thickness, TopZ-Thickness),
-    BotInner = ring_of_verts(Rings, Delta, -YAxis, BotX-Thickness, BotZ-Thickness),
+    TopOuter = ring_of_verts(Rings, Delta, YAxis, TopX, TopZ, 0.0),
+    BotOuter = ring_of_verts(Rings, Delta, -YAxis, BotX, BotZ, 0.0),
+    TopInner = ring_of_verts(Rings, Delta, YAxis, TopX-Thickness, TopZ-Thickness, 0.0),
+    BotInner = ring_of_verts(Rings, Delta, -YAxis, BotX-Thickness, BotZ-Thickness, 0.0),
     OuterVerts = TopOuter ++ BotOuter,
     InnerVerts = TopInner ++ BotInner,
     OuterVerts ++ InnerVerts.
@@ -199,11 +213,36 @@ tube_faces(Nres) ->
 	[[2*Nres-1, Nres, 3*Nres, 4*Nres-1] ], % the last face
     TopFaces ++ BotFaces ++ InnerFaces ++ OuterFaces.
 
-ring_of_verts(Rings, Delta, YAxis, XAxis, ZAxis) ->
-    [{XAxis*cos(I*Delta), YAxis, ZAxis*sin(I*Delta)} || I <- Rings].
+ring_of_verts(Rings, Delta, YAxis, XAxis, ZAxis, Offset) ->
+    [{XAxis*cos(Offset+I*Delta), YAxis, ZAxis*sin(Offset+I*Delta)} || I <- Rings].
 
 zip_lists_2e([], []) -> [];   % Zip two lists together, two elements at a time.
 zip_lists_2e(A, B) ->	      % Both lists must be equal in length
     [HA1,HA2 | TA] = A,       % and must have an even number of elements
     [HB1,HB2 | TB] = B,
     lists:flatten([[HA1,HA2,HB1,HB2] | zip_lists_2e(TA, TB)]).
+
+%%%
+%%% Pie
+%%%
+
+make_pie(Sections, TopX, TopZ, BotX, BotZ, Height, Degrees, AngleOffset, [Rot, Mov, Ground]) ->
+    Vs0 = pie_verts(Sections, TopX, TopZ, BotX, BotZ, Height, Degrees, AngleOffset),
+    Vs = wings_shapes:transform_obj(Rot,Mov,Ground, Vs0),
+    Fs = cylinder_faces(trunc(length(Vs0)/2)),
+    {new_shape,cylinder_type(pie),Fs,Vs}.
+
+pie_verts(Sections, TopX, TopZ, BotX, BotZ, Height, Degrees, AngleOffset) ->
+    YAxis = Height/2,
+    DtoRad = math:pi()/180.0,
+    Offset = AngleOffset*DtoRad,
+    Delta = (Degrees*DtoRad)/Sections,
+    Rings = lists:seq(0, Sections-1),
+    [Top0|_] = Top = ring_of_verts(Rings, Delta, YAxis, TopX, TopZ, Offset),
+    [Bottom0|_] = Bottom = ring_of_verts(Rings, Delta, -YAxis, BotX, BotZ, Offset),
+    {TopExt,BottomExt} =
+        case Degrees of
+            360.0 -> {[Top0,{0.0,YAxis,0.0}],[Bottom0,{0.0,-YAxis,0.0}]};
+            _ -> {[{0.0,YAxis,0.0}],[{0.0,-YAxis,0.0}]}
+        end,
+    Top ++ TopExt ++ Bottom ++ BottomExt.
