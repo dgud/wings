@@ -1,3 +1,32 @@
+--- 2.4 --------------------------------------------
+
+- New FBX importer/exporter. [Edward Blake]
+
+- X3D/VRML Improvements, X3D JSON support.
+  Fixed transparency, added gzip support.  [Edward Blake]
+
+- Fixed popup menu location that could be shown out of screen. Thanks to Xavier
+  Fixed the menu selection that was showing garbage. Thanks to sciroccorics [Micheus]
+
+- Improved hard-edges from vertex normals calculation when importing models. [dgud]
+
+- Added support for multiple textures in the AutoUV editor.
+  The "Create Texture" option will be active over the selected tile which can
+  be selected by holding the ALT key while clicking on the desired tile. [Micheus]
+
+- Added the new type "Pie" to the Cylinder primitive. [Micheus]
+
+- New AMF (additive manufacturing file) importer and exporter.
+  and 3MF (3D manufacturing file) importer and exporter [Edward Blake]
+
+- New additions to AutoUV menus. [Micheus]
+  Added the options Center, Center X and Center Y to the Align command
+  Added the RMB option to Scale command to choose a reference point
+  Added the RMB option to Rotate command to choose a reference point
+  Added option to show the background texture in tiled mode
+
+- SVG: Added style sheet support. [Edward Blake]
+
 --- 2.3 --------------------------------------------
 
 - Added option to rotate the environment map. [micheus]

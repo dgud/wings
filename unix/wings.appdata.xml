@@ -30,6 +30,7 @@
     <screenshot type="default">http://www.wings3d.com/wp-content/uploads/linux-screenshot.png</screenshot>
   </screenshots>
   <releases>
+    <release version="2.4" type="stable" date="2024-11-10" />
     <release version="2.3" type="stable" date="2023-10-05" />
     <release version="2.2.9" type="stable" date="2022-02-26" />
     <release version="2.2.8" type="stable" date="2021-12-30" />
