@@ -60,8 +60,14 @@ command(_, _) -> next.
 radial_duplicator(pick, St) ->
     wings:ask(selection_ask([axis,center,point]), St, fun radial_duplicator/2);
 radial_duplicator(Dir, St) when is_atom(Dir) ->
-    SelRef = wings_sel:center(St),
-    radial_duplicator({Dir,e3d_vec:zero(),SelRef}, St);
+    {X,Y,Z} = SelRef = wings_sel:center(St),
+    Center =
+        case Dir of
+            x -> {X,0.0,0.0};
+            y -> {0.0,Y,0.0};
+            z -> {0.0,0.0,Z}
+        end,
+    radial_duplicator({Dir,Center,SelRef}, St);
 radial_duplicator({_,_,_}=Params, #st{sel=Sel}=St) ->
     Qs = readial_dup_dlg(Params,length(Sel)),
     wings_dialog:dialog_preview({body,radial_dup}, true, menu(caption), Qs, St);
@@ -79,7 +85,7 @@ readial_dup_dlg(Dir, SelCount) ->
                    case Key of
                        4 ->
                            Shift = wings_dialog:get_value(7,Sto),
-                           if (abs(Value) > 360.0) and (abs(Shift) == 0.0) ->
+                           if (abs(Value) > 360.0) and (abs(Shift) == +0.0) ->
                                wings_dialog:set_value(4,360.0,Sto),
                                wings_dialog:update(4,Sto);
                            true -> ignore
@@ -116,7 +122,7 @@ duplicate_rotate([{Axis, Center, SelRef}, Seed, Count0, Angle, Oriented, RandRot
         AngOfs = Angle/Count0
     end,
 
-    AxisOfs = AxisShift/(Count0),
+    AxisOfs = AxisShift/Count0,
     RadOfs = RadShift/(Count0),
     clone_add_sel(We, Count0, [Center,wings_util:make_vector(Axis),SelRef,
                               Oriented,RandRot,AngOfs,AxisOfs,RadOfs], Acc).
@@ -126,6 +132,7 @@ clone_add_sel(#we{name=Name0,vp=Vtab0}=We0, Count,
               [Center,Axis,SelRef,Oriented,RandRot,
                AngOfs,AxisOfs,RadShift]=Params, {Id,Shs0}) ->
     Name = new_name(Name0, Id),
+
     Vtab = do_rotate(Center, Axis, SelRef, Oriented, RandRot,
                      AxisOfs*Count, RadShift*Count, AngOfs*Count, Vtab0),
     We = We0#we{id=Id,name=Name,vp=Vtab},
