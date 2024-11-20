@@ -522,15 +522,27 @@ insert_material(Cs, MatName, We) ->
 
 %%%%% Material handling
 
-get_texture(MatName, #st{mat=Materials}) ->
-    get_texture(MatName, Materials);
-get_texture(MatName, Materials) ->
-    case gb_trees:lookup(MatName, Materials) of
+get_texture(MatName, #st{mat=MTab}) ->
+    get_texture(MatName, MTab);
+get_texture(MatName, MTab) ->
+    case gb_trees:lookup(MatName, MTab) of
 	none -> false;
 	{value,Mat} ->
 	    Maps = proplists:get_value(maps, Mat, []),
 	    proplists:get_value(diffuse, Maps, false)
     end.
+
+set_texture(MatName, Id, #st{mat=Mtab0}=St) ->
+    Mat0 = gb_trees:get(MatName, Mtab0),
+    {Maps0,Mat1} = prop_get_delete(maps, Mat0),
+    Maps = [{diffuse,Id}|lists:keydelete(diffuse, 1, Maps0)],
+    Mat = [{maps,Maps}|Mat1],
+    Mtab = gb_trees:update(MatName, Mat, Mtab0),
+    St#st{mat=Mtab}.
+
+prop_get_delete(Key, List) ->
+    Val = proplists:get_value(Key, List),
+    {Val,lists:keydelete(Key, 1, List)}.
 
 add_material({txset,Tx}, Name, St0) ->
     add_material_0(Tx, list_to_atom(Name), St0);
@@ -1969,9 +1981,38 @@ drag_filter({image,_,_}) ->
     {yes,?__(1,"Drop: Change the texture image")};
 drag_filter(_) -> no.
 
-handle_drop(#{type:=image,id:=Id}, #st{bb=Uvs0}=St) ->
-    Uvs = Uvs0#uvstate{bg_img=Id},
-    get_event(St#st{bb=Uvs});
+handle_drop(#{type:=image,id:=Id}, #st{bb=Uvs0, shapes=Shs0}=AuvSt0) ->
+    #uvstate{matname=MatName, tile=Tile, st=#st{shapes=GShs0}=GeomSt0, id=WId} = Uvs0,
+    TxSetMode = wings_wm:get_prop(wings_wm:this(), texture_set_mode),
+    {AuvSt,GeomSt} =
+        case TxSetMode of
+            true ->
+                FWe0 = gb_trees:get(WId,GShs0),
+                We0 = gb_trees:get(WId,Shs0),
+                case get_textureset_info(FWe0) of
+                    {?MULTIPLE,[TxSetNaming,[_|_]=TxSet0]} ->
+                        case lists:keyfind(Tile,1,TxSet0) of
+                            false ->
+                                {set_texture(MatName,Id,AuvSt0),set_texture(MatName,Id,GeomSt0)};
+                            {Tile,#{mat:=MatName,bg_img:=_OldTxId}} ->
+                                TxSet = lists:keyreplace(Tile,1,TxSet0,{Tile,#{mat=>MatName,bg_img=>Id}}),
+                                %% updates the image id in the texture set data
+                                We = update_textureset_system(We0,?MULTIPLE,[TxSetNaming,TxSet]),
+                                GWe = update_textureset_system(FWe0,?MULTIPLE,[TxSetNaming,TxSet]),
+                                Shs = gb_trees:update(We#we.id,We,Shs0),
+                                GShs = gb_trees:update(GWe#we.id,GWe,GShs0),
+                                %% updates the Mtab
+                                AuvSt1 = set_texture(MatName,Id,AuvSt0),
+                                GeomSt1 = set_texture(MatName,Id,GeomSt0),
+                                {AuvSt1#st{shapes=Shs},GeomSt1#st{shapes=GShs}}
+                        end;
+                    _ ->
+                        {set_texture(MatName,Id,AuvSt0), set_texture(MatName,Id,GeomSt0)}
+                end;
+            false ->
+                {set_texture(MatName,Id,AuvSt0), set_texture(MatName,Id,GeomSt0)}
+        end,
+    new_state(AuvSt#st{bb=Uvs0#uvstate{bg_img=Id, st=GeomSt}});
 handle_drop(_DropData, _) ->
     ?dbg("Ignore ~P~n",[_DropData,30]),
     keep.
