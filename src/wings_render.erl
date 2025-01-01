@@ -957,7 +957,7 @@ show_scale(W, H, Scale) ->
     ScaleStr = float_to_list(float(Scale),[{decimals, 4}, compact]),
     StrScale = ?__(1,"Grid Scale: x")++ScaleStr,
     X = W-wings_text:width(StrScale)-10,
-    wings_io:info(X, H-18, StrScale).
+    wings_io:info(X, H-?LINE_HEIGHT-4, StrScale).
 
 show_saved_bb(St) ->
     Key = get_saved_bb_key(St),
