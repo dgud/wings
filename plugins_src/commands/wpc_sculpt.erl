@@ -861,7 +861,7 @@ help(#sculpt{mag=Mag,rad=Rad,mag_type=MagType,str=Str,mode=Mode}) ->
     {_,H} = wings_wm:win_size(),
     Constraint = constraint_info(),
     LLine = wings_msg:join([?__(10,"Sculpt Mode")++": "++ModeMsg,StatusBar,Constraint]),
-    wings_io:info(0, H-?LINE_HEIGHT-3, LLine),
+    wings_io:info(0, H-?LINE_HEIGHT-4, LLine),
     wings_wm:message(wings_msg:join([Sculpt,Menu,Exit]),
                      wings_msg:join([Radius,Strength])).
 

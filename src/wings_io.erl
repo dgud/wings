@@ -249,7 +249,7 @@ info(X, Y, Info) ->
 		  gl:recti(X, Y, W, Y + N*?LINE_HEIGHT + 6)
 	  end),
     set_color(wings_pref:get_value(info_color)),
-    wings_text:render(X + 5, Y + ?CHAR_HEIGHT+3, Info).
+    wings_text:render(X + 5, Y + ?CHAR_HEIGHT+2, Info).
 
 info_lines(Info) ->
     info_lines_1(Info, 1).

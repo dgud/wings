@@ -2212,7 +2212,7 @@ modifier({Ctrl,Shift,Alt}) ->
 
 draw_tweak_info_line(Msg) ->
     {_,H} = wings_wm:win_size(),
-    wings_io:info(0, H-?LINE_HEIGHT-3, wings_msg:join([Msg])).
+    wings_io:info(0, H-?LINE_HEIGHT-4, wings_msg:join([Msg])).
 
 %%%
 %%% XYZ Constraints Info line while Tweaking
