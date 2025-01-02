@@ -985,11 +985,10 @@ error_msg(Line) ->
     end.
 
 draw_texture_square() ->
-    {U,V} = {1,0},
-    VertexUvQ = << (0.0+U):?F32,(0.0+V):?F32, (0.0+U):?F32,(0.0+V):?F32,
-                   (1.0+U):?F32,(0.0+V):?F32, (1.0+U):?F32,(0.0+V):?F32,
-                   (1.0+U):?F32,(1.0+V):?F32, (1.0+U):?F32,(1.0+V):?F32,
-                   (0.0+U):?F32,(1.0+V):?F32, (0.0+U):?F32,(1.0+V):?F32>>,
+    VertexUvQ = << 0.0:?F32,0.0:?F32, 0.0:?F32,0.0:?F32,
+                   1.0:?F32,0.0:?F32, 1.0:?F32,0.0:?F32,
+                   1.0:?F32,1.0:?F32, 1.0:?F32,1.0:?F32,
+                   0.0:?F32,1.0:?F32, 0.0:?F32,1.0:?F32>>,
     wings_vbo:draw(fun(_) -> gl:drawArrays(?GL_QUADS, 0, 4) end, VertexUvQ, [vertex2d, uv]).
 
 fill_bg_tex(#sh_conf{fbo_w=Prev}) ->

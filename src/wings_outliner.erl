@@ -85,6 +85,7 @@ command({assign_texture,Type,Id,Name0, Format}, #st{mat=Mtab}=St) ->
                 occlusion when Format =/= g8 -> wings_u:message(ConvertWarning);
                 _ -> ignore
             end,
+            wings_wm:psend(geom, {drop,#{type=>image,id=>Id}}),  %% ensure AutoUV is updated if active
             wings_wm:send(geom, {action,{material,{update,Name,Mat}}});
         false ->
             keep
