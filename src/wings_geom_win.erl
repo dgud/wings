@@ -566,14 +566,18 @@ handle_event(#wx{event=#wxList{type=Op, itemIndex=Indx, col=Col}},
 
 handle_event(#wx{event=#wxTree{type=command_tree_sel_changed, item=Indx}},
 	     #state{name=Name, tree=Tree} = State) ->
-    {_, Folder} = lists:keyfind(Indx, 1, Tree),
-    Apply = fun(#st{pst=Pst0} = St) ->
-		    {_,Fld} = gb_trees:get(?FOLDERS, Pst0),
-		    Pst = gb_trees:enter(?FOLDERS, {Folder,Fld}, Pst0),
-		    send_client({update_state,St#st{pst=Pst}}),
-		    keep
-	    end,
-    wings_wm:psend(Name, {apply, false, Apply}),
+    case lists:keyfind(Indx, 1, Tree) of
+        {_, Folder} ->
+            Apply = fun(#st{pst=Pst0} = St) ->
+                    {_,Fld} = gb_trees:get(?FOLDERS, Pst0),
+                    Pst = gb_trees:enter(?FOLDERS, {Folder,Fld}, Pst0),
+                    send_client({update_state,St#st{pst=Pst}}),
+                    keep
+                end,
+            wings_wm:psend(Name, {apply, false, Apply});
+        _ ->
+            ignore
+    end,
     {noreply, State};
 
 handle_event(#wx{event=#wxTree{type=command_tree_item_menu, item=Indx, pointDrag=Pos0}},
