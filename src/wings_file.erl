@@ -704,6 +704,7 @@ confirmed_revert_1(#st{file=File}=St0) ->
     case ?SLOW(wings_ff_wings:import(File, St1)) of
 	#st{}=St2 ->
 	    St = wings_obj:recreate_folder_system(St2),
+        wings_u:caption(St#st{saved=true}),
 	    clean_images(St);
 	{error,_}=Error ->
 	    Error
