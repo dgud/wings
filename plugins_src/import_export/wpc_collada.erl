@@ -80,14 +80,25 @@ do_export(Ask, Op, _Exporter, _St) when is_atom(Ask) ->
 	       fun(Res) ->
 		       {file,{Op,{dae,Res}}}
 	       end);
-do_export(Attr, _Op, Exporter, _St) when is_list(Attr) ->
+do_export(Attr, _Op, Exporter, #st{views={_,Views1}}=_St) when is_list(Attr) ->
     set_pref(Attr),
     SubDivs = proplists:get_value(subdivisions, Attr, 0),
     Uvs = proplists:get_bool(include_uvs, Attr),
     Units = proplists:get_value(units, Attr),
+    Views =
+        case proplists:get_value(include_views, Attr) of
+            true ->
+                Views0 = tuple_to_list(Views1),
+                CurView = wings_wm:get_prop(geom, current_view),
+                case lists:keyfind(CurView, 1, Views0) of
+                    false -> [{CurView,"Current View"}|Views0];
+                    _ -> Views0
+                end;
+            false -> []
+        end,
     Ps = [{include_uvs,Uvs},{units,Units},{include_hard_edges,true},
 	  {subdivisions,SubDivs}|props()],
-    Exporter(Ps, export_fun(Attr)),
+    Exporter(Ps, export_fun([{views,Views}|Attr])),
     keep.
 
 export_fun(Attr) ->
@@ -96,6 +107,7 @@ export_fun(Attr) ->
     end.
 
 export_1(Filename, Contents0, Attr) ->
+    Views = proplists:get_value(views, Attr),
     Filetype = proplists:get_value(default_filetype, Attr, ?DEF_IMAGE_TYPE),
     Contents1 = wpa:save_images(Contents0,
 				filename:dirname(Filename), Filetype),
@@ -115,13 +127,14 @@ export_1(Filename, Contents0, Attr) ->
     LibraryGeometryNode = {library_geometries,ExportState1#c_exp.geoms},
     Asset = make_asset(Attr),
     LibraryVisualSceneNode = make_library_visual_scene(ExportState1),
+    LibraryCameraNode = make_library_camera(Views),
     LibraryEffectsNode = make_library_effects(ExportState1),
     LibraryImagesNode = make_library_images(ExportState1),
     %% TODO
     %%Lights = proplists:get_value(lights, Attr, []),
     LibraryMaterialsNode = make_library_materials(ExportState1),
     SceneNode = make_scene(),
-    ColladaNodes = ["\n",Asset,"\n",LibraryEffectsNode,"\n",
+    ColladaNodes = ["\n",Asset,"\n",LibraryCameraNode,"\n",LibraryEffectsNode,"\n",
 		    LibraryImagesNode,"\n",LibraryMaterialsNode,"\n",
 		    LibraryGeometryNode,"\n",LibraryVisualSceneNode,"\n",SceneNode,"\n"],
     ColladaAtts = [#xmlAttribute{name='version',value='1.4.0'},
@@ -140,6 +153,28 @@ make_library_materials(#c_exp{matl_defs=MatlDefs}) ->
 				   {name,MatlName}],[InstanceEffect]}
 		end, gb_trees:keys(MatlDefs)),
     {library_materials,[],Matls}.
+
+make_library_camera(Views) when is_list(Views) ->
+    ARatio = wings_pref:get_value(negative_width)/wings_pref:get_value(negative_height),
+    {_,Cameras} = lists:foldl(fun({View,Label}, {Idx,Acc}) ->
+            [IntPos, {EyePos,_,UpVec}, YFov, Near, Far] = wings_view:camera_info([aim,pos_dir_up,fov,hither,yon], View),
+            Assets = {assets,[],[{lookat, [], [floatlist_to_string(triple_to_array([IntPos])),"\n",
+                                              floatlist_to_string(triple_to_array([EyePos])),"\n",
+                                              floatlist_to_string(triple_to_array([UpVec])),"\n"]}]},
+            Perspective = {perspective,[],[{yfov,[floatlist_to_string([YFov])]},"\n",
+                                           {aspect_ratio,[floatlist_to_string([ARatio])]},"\n",
+                                           {znear,[floatlist_to_string([Near])]},"\n",
+                                           {zfar,[floatlist_to_string([Far])]},"\n"]},
+            Optics = {optics,[],[{technique_common,[],[Perspective,"\n"]}]},
+            Params = ["\n",Assets,"\n",Optics,"\n"],
+            Id = "#Camera" ++ integer_to_list(Idx),
+            Camera = [{camera,[{id,Id},{name,Label}], Params}],
+            {Idx+1, Acc ++ Camera}
+        end, {1,[]}, Views),
+    case Cameras of
+        [] -> "";
+        _ -> {library_camera,[],Cameras}
+    end.
 
 make_library_effects(#c_exp{matl_defs=MatlDefs}) ->
     Materials = gb_trees:values(MatlDefs),
@@ -168,8 +203,13 @@ export_transform(Contents, Attr) ->
     e3d_file:transform(Contents, Mat).
 
 dialog(Type) ->
-    [wpa:dialog_template(?MODULE, units), panel,
-     wpa:dialog_template(?MODULE, Type, [include_colors, include_normals])].
+    [wpa:dialog_template(?MODULE, units), panel] ++
+    dialog_extra(Type) ++
+    [wpa:dialog_template(?MODULE, Type, [include_colors, include_normals])].
+
+dialog_extra(export) ->
+    [{hframe,[{?__(views, "Export camera/views"),
+      wpa:pref_get(?MODULE, include_views, false), [{key,include_views}]}],[{margin,2}]}].
 
 props() ->
     [{ext,".dae"},{ext_desc,?__(1,"Collada file")}].
