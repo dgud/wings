@@ -237,7 +237,7 @@ pie_verts(Sections, TopX, TopZ, BotX, BotZ, Height, Degrees, AngleOffset) ->
     DtoRad = math:pi()/180.0,
     Offset = AngleOffset*DtoRad,
     Delta = (Degrees*DtoRad)/Sections,
-    Rings = lists:seq(0, Sections-1),
+    Rings = lists:seq(0, Sections),
     [Top0|_] = Top = ring_of_verts(Rings, Delta, YAxis, TopX, TopZ, Offset),
     [Bottom0|_] = Bottom = ring_of_verts(Rings, Delta, -YAxis, BotX, BotZ, Offset),
     {TopExt,BottomExt} =
