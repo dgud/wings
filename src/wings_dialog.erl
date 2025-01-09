@@ -813,7 +813,7 @@ setup_hook(#in{key=Key, wx=Ctrl, type=dirpicker, hook=UserHook}, Fields) ->
 				       end}]),
     UserHook(Key, wxDirPickerCtrl:getPath(Ctrl), Fields);
 setup_hook(#in{key=Key, wx=Ctrl, type=table, hook=UserHook}, Fields) ->
-    wxListCtrl:connect(Ctrl, command_list_item_focused,
+    wxListCtrl:connect(Ctrl, command_list_item_selected,
         [{callback, fun(_, _) ->
             UserHook(Key, Ctrl, Fields)
         end}]),
