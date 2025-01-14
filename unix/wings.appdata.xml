@@ -7,6 +7,9 @@
   <summary>An advanced subdivision modeler</summary>
   <content_rating type="oars-1.1" />
   <name>Wings 3D</name>
+  <developer id="com.wings3d">
+    <name>Wings3D Team</name>
+  </developer>
   <launchable type="desktop-id">com.wings3d.WINGS.desktop</launchable>
   <description>
   <p>
@@ -27,7 +30,10 @@
   </description>
   <url type="homepage">http://www.wings3d.com</url>
   <screenshots>
-    <screenshot type="default">http://www.wings3d.com/wp-content/uploads/linux-screenshot.png</screenshot>
+    <screenshot type="default">
+      <image>http://www.wings3d.com/wp-content/uploads/linux-screenshot.png</image>
+      <caption>Main Wings3D window</caption>
+    </screenshot>
   </screenshots>
   <releases>
     <release version="2.4" type="stable" date="2024-11-10" />
