@@ -1,3 +1,23 @@
+--- 2.4.1 ------------------------------------------
+
+- Fixed the text location in the information line inside the Geometry
+  window which could be cut in Linux. Thanks to @thedæmon [micheus]
+
+- Fixed the autosave status which was kept "unsaved" after a Revert command
+  be used. Thanks to @jczd [micheus]
+
+- Fixed Russian translation [makaim]
+
+- Workaround Geometry window crash [micheus]
+
+- Fixed Duplicate Radial [micheus]
+
+- Fixed Pie Primitive [micheus]
+
+- Fixed autouv drag-n-drop [micheus]
+
+- Added new option to export camera in Collada exporter [micheus]
+
 --- 2.4 --------------------------------------------
 
 - New FBX importer/exporter. [Edward Blake]

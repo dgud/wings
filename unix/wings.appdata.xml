@@ -28,14 +28,15 @@
     Edge Ring selection and navigation tools and Smooth Preview.
   </p>
   </description>
-  <url type="homepage">http://www.wings3d.com</url>
+  <url type="homepage">https://www.wings3d.com</url>
   <screenshots>
     <screenshot type="default">
-      <image>http://www.wings3d.com/wp-content/uploads/linux-screenshot.png</image>
+      <image>https://www.wings3d.com/wp-content/uploads/linux-screenshot.png</image>
       <caption>Main Wings3D window</caption>
     </screenshot>
   </screenshots>
   <releases>
+    <release version="2.4.1" type="stable" date="2025-01-15" />
     <release version="2.4" type="stable" date="2024-11-10" />
     <release version="2.3" type="stable" date="2023-10-05" />
     <release version="2.2.9" type="stable" date="2022-02-26" />
