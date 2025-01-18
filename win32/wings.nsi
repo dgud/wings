@@ -337,7 +337,7 @@ Function .onInit
    SectionGetFlags 0 $MYTEMP
    StrCpy $archprefix "x86"
    StrCpy $sysnativedir "$SYSDIR"
-   StrCpy $redistdllname "VCRUNTIME140"
+   StrCpy $redistdllname "VCRUNTIME140.dll"
    IfFileExists $sysnativedir\$redistdllname MaybeFoundInSystemLbl
    SearchSxSLbl:
         FindFirst $0 $1 $WINDIR\WinSxS\$archprefix*
