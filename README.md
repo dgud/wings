@@ -10,6 +10,12 @@
 
 A working OpenGL driver. There will never be a version of Wings for DirectX.
 
+## Packaging Status
+
+<a href="https://repology.org/project/wings3d/versions">
+    <img src="https://repology.org/badge/vertical-allrepos/wings3d.svg?columns=3" alt="Packaging status">
+</a>
+
 ## Building from source
 
 If you want to build Wings3D yourself, you'll need to download the source tar file from [here](http://www.wings3d.com).
