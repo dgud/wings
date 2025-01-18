@@ -15,8 +15,8 @@
 -include_lib("kernel/include/file.hrl").
 
 %% Change these when compiler version is changed on windows
--define(WIN32_VCREDIST_VERSION, "14.29.30139.0").
--define(WIN64_VCREDIST_VERSION, "14.29.30139.0").
+-define(WIN32_VCREDIST_VERSION, "14.29.30157.0").
+-define(WIN64_VCREDIST_VERSION, "14.29.30157.0").
 
 main(_) ->
     try
