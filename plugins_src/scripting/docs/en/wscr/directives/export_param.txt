@@ -1,0 +1,21 @@
+export_param Instruction
+<code><pre>
+<b>export_param</b> "subdivisions" %[params/subdivisions]
+</pre></code>
+
+Sets an export parameter for the <tt>wpa:export</tt>
+ function or some scripting export functions on the scripting plugin side.
+ For <tt>"script_texture_convert"</tt>, the recommended option is 
+<tt>'user'</tt> with the export template for the texture handling.
+
+This directive is only used with exporter scripts.
+
+An <b>export_param</b> directive should be inside a
+<b>params_set { ... }</b> section.
+
+The second argument can be a string, an atom or a query value enclosed
+in %[...]
+
+Refer to the <b>Query Mini Language</b> about query values.
+
+

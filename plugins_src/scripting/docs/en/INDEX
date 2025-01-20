@@ -1,0 +1,94 @@
+{info,[
+	{title, "Scripting Reference"},
+    {language, "en"}
+]}.
+{txt, "README", "README.txt"}.
+{"Scripting Information",[
+	{"Introduction",[
+		{txt, "Introduction", "wscr/intro.txt"},
+		{txt, "Script Folders", "wscr/scriptfolders.txt"},
+		{txt, "Plugin Scripts", "wscr/pluginscripts.txt"},
+		{txt, "Language files", "wscr/langfiles.txt"},
+		{txt, "Query Mini Language", "wscr/query.txt"}
+	]},
+    {"Directive Reference",[
+		{txt, "type Directive", "wscr/directives/type.txt"},
+		{txt, "name Directive", "wscr/directives/name.txt"},
+		{txt, "mode Directive", "wscr/directives/mode.txt"},
+		{txt, "desc Directive", "wscr/directives/desc.txt"},
+		{txt, "include Directive", "wscr/directives/include.txt"},
+		{txt, "params_title Directive", "wscr/directives/params_title.txt"},
+		{txt, "params_templates Directive", "wscr/directives/params_templates.txt"},
+		{txt, "template Directive", "wscr/directives/template.txt"},
+		{txt, "params Directive", "wscr/directives/params.txt"},
+		{txt, "param Directive", "wscr/directives/param.txt"},
+		{txt, "extensions Directive", "wscr/directives/extensions.txt"},
+		{txt, "params_init Directive", "wscr/directives/params_init.txt"},
+		{txt, "params_set Directive", "wscr/directives/params_set.txt"},
+		{txt, "export_param Directive", "wscr/directives/export_param.txt"},
+		{txt, "import_param Directive", "wscr/directives/import_param.txt"},
+		{txt, "adv_param Directive", "wscr/directives/adv_param.txt"},
+		{txt, "params_preview Directive", "wscr/directives/params_preview.txt"},
+		{txt, "script_param Directive", "wscr/directives/script_param.txt"},
+		{txt, "extra_file Directive", "wscr/directives/extra_file.txt"},
+		{txt, "command_inputs Directive", "wscr/directives/command_inputs.txt"},
+		{txt, "command_changes Directive", "wscr/directives/command_changes.txt"},
+		{txt, "hradio Directive", "wscr/directives/hradio.txt"},
+		{txt, "menu Directive", "wscr/directives/menu.txt"},
+		{txt, "browse Directive", "wscr/directives/browse.txt"},
+		{txt, "checkbox Directive", "wscr/directives/checkbox.txt"},
+		{txt, "vradio Directive", "wscr/directives/vradio.txt"}
+    ]}
+]}.
+{"Python",[
+	{"Introduction",[
+        {txt, "Online Resources for the Python Language", "python/langres.txt"},
+		{txt, "Python Intro", "python/intro.txt"},
+		{txt, "New Shape Scripts", "python/new_shape_scripts.txt"},
+		{txt, "Command Scripts", "python/command_scripts.txt"},
+		{txt, "Importer Scripts", "python/importer_scripts.txt"},
+		{txt, "Exporter Scripts", "python/exporter_scripts.txt"}
+	]},
+	{"OutputList Function Reference",[
+		{txt, "OutputList", "python/functions/output_list.txt"}
+	]},
+	{"NewShape (w3d_newshape) Function Reference",[
+		{txt, "ListOfArrays", "python/functions/list_of_arrays.txt"},
+		{txt, "ListOfTuples", "python/functions/list_of_tuples.txt"},
+		{txt, "NewShape", "python/functions/new_shape.txt"}
+	]},
+	{"E3D (w3d_e3d) Function Reference",[
+		{txt, "E3DFace", "python/functions/e3d_face.txt"},
+		{txt, "E3DMesh", "python/functions/e3d_mesh.txt"},
+		{txt, "E3DObject", "python/functions/e3d_object.txt"},
+		{txt, "E3DImage", "python/functions/e3d_image.txt"},
+		{txt, "MaterialMaps", "python/functions/material_maps.txt"},
+		{txt, "MaterialOpenGLAttributes", "python/functions/material_opengl.txt"},
+		{txt, "Material", "python/functions/material.txt"},
+		{txt, "E3DFile", "python/functions/e3d_file.txt"}
+	]},
+	{"We (w3d_we) Function Reference",[
+		{txt, "we", "../generated/en/py-we.txt"}
+	]}
+]}.
+{"Scheme",[
+	{"Introduction",[
+        {txt, "Online Resources for the Scheme Language", "scheme/langres.txt"},
+		{txt, "Scheme Intro", "scheme/intro.txt"},
+		{txt, "New Shape Scripts", "scheme/new_shape_scripts.txt"},
+		{txt, "Command Scripts", "scheme/command_scripts.txt"},
+		{txt, "Importer Scripts", "scheme/importer_scripts.txt"},
+		{txt, "Exporter Scripts", "scheme/exporter_scripts.txt"}
+	]},
+	{"E3D Function Reference",[
+		{txt, "e3d_face", "scheme/functions/e3d_face.txt"},
+		{txt, "e3d_mesh", "scheme/functions/e3d_mesh.txt"},
+		{txt, "e3d_object", "scheme/functions/e3d_object.txt"},
+		{txt, "e3d_file", "scheme/functions/e3d_file.txt"},
+		{txt, "e3d_image", "scheme/functions/e3d_image.txt"}
+	]},
+	{"We Function Reference",[
+		{txt, "we", "../generated/en/scm-we.txt"}
+	]}
+]}.
+

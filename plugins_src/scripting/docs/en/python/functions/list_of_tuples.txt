@@ -1,0 +1,14 @@
+class ListOfTuples
+
+Visible attributes: l
+
+<b>ListOfTuples</b>()
+
+Create a new empty ListOfTuples instance
+
+list.<b>as_output_list</b>()
+
+Return an OutputList instance
+
+
+

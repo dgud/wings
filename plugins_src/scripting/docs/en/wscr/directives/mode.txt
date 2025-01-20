@@ -1,0 +1,33 @@
+mode Directive
+<code><pre>
+<b>mode</b> "import"
+</pre></code>
+
+The mode indicates what kind of script it is and which menu it should
+appear in. For example, if a script has "export" for mode, it will only
+show up when choosing "Script-based exporters" in the 
+"File" > "Export" menu.
+
+Table of values for mode:
+<code><pre>
+Kind of script         mode
+--------------         ----
+New shapes             (empty)
+Importers              import
+Exporters              export
+Commands               command
+</pre></code>
+
+New shapes scripts create a new shape.
+
+Importer scripts are Found in File > Import.
+ Returns an E3D file
+
+Exporter scripts are Found in File > Export.
+ Takes an E3D file.
+
+Command scripts changes existing shapes.
+
+
+
+

@@ -1,0 +1,17 @@
+script_param Instruction
+<code><pre>
+<b>script_param</b> "test" "1"
+</pre></code>
+
+Sets an extra parameter for the script, which has to be accessed through the 
+<tt>extra_params</tt> variable in Python, or the 
+<tt>*extra-params*</tt> variable in Scheme.
+
+An <b>script_param</b> directive should be inside a
+<b>params_set { ... }</b> section.
+
+The second argument can be a string, an atom or a query value enclosed
+in %[...]
+
+Refer to the <b>Query Mini Language</b> about query values.
+

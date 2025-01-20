@@ -1,0 +1,28 @@
+e3d_file
+
+(<b>make-e3d_file</b>
+ .
+ sc)
+
+Make a e3d_file list structure with a constructor list, available items are 'objs 'mat 'creator 'dir
+
+(<b>e3d_file?</b>
+ l)
+
+Is the list structure an e3d_file?
+
+(<b>e3d_file-objs</b>
+ l)
+
+(<b>e3d_file-mat</b>
+ l)
+
+(<b>e3d_file-creator</b>
+ l)
+
+(<b>e3d_file-dir</b>
+ l)
+
+Get the value of a given field in e3d_file
+
+

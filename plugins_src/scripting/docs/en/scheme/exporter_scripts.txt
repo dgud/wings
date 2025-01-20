@@ -1,0 +1,120 @@
+Exporter Scripts
+
+Exporter scripts are available from the "File" > "Export" and "File" > "Export Selected" menus.
+
+Read e3d_file
+
+The "filename" and "content" extra parameters are needed, the file name is chosen by the user to save the model, and the content contains an e3d_file data structure.
+
+<code><pre>
+(main-function
+    (lambda (*params* *extra-params*)
+        ;; The filename to write to
+        (define filename
+          (list-ref
+            (assoc "filename" *extra-params*) 1))
+        ;; The e3d_file contents
+        (define content
+          (list-ref
+            (assoc "content"  *extra-params*) 1))
+
+        ;;
+        ;; ...
+        ;;
+
+        ;; Return '(ok) after successfully writing the file
+        '(ok)
+        ))
+</pre></code>
+
+After writing the content to a file, the exporter returns a list with only 'ok' to Wings3D:
+
+<code><pre>'(ok)</pre></code>
+
+
+A minimal exporter that writes vertices to a file:
+
+<code><pre>
+(use srfi-1)
+(use srfi-13)
+
+(define (export_fun Attr Filename Contents)
+    (define Objs (e3d_file-objs Contents))
+    (call-with-output-file Filename (lambda (Fp)
+        ;; Number of objects
+        (display (format "~w\n" (length Objs)) Fp)
+        (for-each (lambda (Obj)
+            (define Mesh (e3d_object-obj Obj))
+            (define Name (e3d_object-name Obj))
+            (define Vs (e3d_mesh-vs Mesh))
+            (define Faces (e3d_mesh-fs Mesh))
+            ;; Name of object
+            (display (format "~a\n" Name) Fp)
+            ;; Number of vertices
+            (display (format "~w\n" (length Vs)) Fp)
+            (for-each (lambda (V)
+                (define X (vector-ref V 0))
+                (define Y (vector-ref V 1))
+                (define Z (vector-ref V 2))
+                ;; Vertex coordinates
+                (display (format "~f ~f ~f\n" X Y Z) Fp)
+                ) Vs)
+            ;; Number of faces
+            (display (format "~w\n" (length Faces)) Fp)
+            (for-each (lambda (Face)
+                (define VList (e3d_face-vs Face))
+                (display (format "DEBUG:~w\n" VList))
+                (for-each (lambda (V)
+                    ;; Index
+                    (display (format "~w " V) Fp)
+                    ) VList)
+                (display (format "\n") Fp)
+                ) Faces)
+            ) Objs)
+        '(ok)
+        ) :encoding 'utf8)
+    )
+
+(define (exporter *params* *extra-params*)
+    ;; e3d_file tuple is found in "content" of extra parameters, and the
+    ;; filename to export to is in filename.
+    ;;
+    (define Filename (list-ref (assoc "filename" *extra-params*) 1))
+    (define Content (list-ref (assoc "content" *extra-params*) 1))
+    (newline)
+    (export_fun '() Filename Content)
+    )
+
+(main-function exporter)
+</pre></code>
+
+
+A .wscr file for the exporter:
+
+<code><pre>
+type "scm"
+name ?__(1,"Example Exporter (.txt)")
+mode "export"
+params_title ?__(3,"Example Exporter Settings")
+params_init {
+  do %[1>$'subdivisions']
+}
+params_templates {
+  template export include_normals,include_uvs,include_colors
+}
+params_set {
+  export_param include_uvs  %[bool(params/include_uvs)]
+  export_param subdivisions %[params/subdivisions]
+  export_param include_hard_edges 'true'
+  export_param script_texture_convert 'user'
+}
+extensions {
+  ext .txt ?__(5,"Text Mesh")
+}
+</pre></code>
+
+
+The .wscr and .scm file should have the same name before the extension (script.scm and script.wscr).
+
+
+

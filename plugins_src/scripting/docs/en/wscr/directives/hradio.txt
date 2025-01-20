@@ -1,0 +1,19 @@
+hradio Directive
+<code><pre>
+<b>hradio</b> "Color" 'blue' {
+  item "Red" 'red'
+  item "Green" 'green'
+  item "Blue" 'blue'
+}
+</pre></code>
+
+Shows a horizontal row of radio button choices.
+
+The list of values each start with <b>item</b>, followed
+by the string showed to user, followed by an atom that
+will be used by the script.
+
+A <b>hradio</b> directive should be inside a
+<b>params { ... }</b> section.
+
+
