@@ -1,0 +1,17 @@
+class E3DMesh
+
+Visible attributes: type, vs, vc, tx, ns, fs, he, matrix
+
+<b>E3DMesh</b>()
+
+Creates a new E3DMesh instance
+
+mesh.<b>as_output_list</b>()
+
+Outputs the whole E3DMesh instance and all its values into an output list, not usually used directly.
+
+mesh.<b>load_from</b>(expr)
+
+Load contents into a E3DMesh instance, not usually used directly.
+
+

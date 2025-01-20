@@ -1,0 +1,48 @@
+e3d_image
+
+(<b>make-e3d_image</b>
+ .
+ sc)
+
+Make a e3d_image list structure with a constructor list, available items are 'type 'bytes_pp 'alignment 'order 'width 'height 'image 'filename 'name 'extra
+
+(<b>e3d_image?</b>
+ l)
+
+Is the list structure an e3d_image?
+
+(<b>e3d_image-type</b>
+ l)
+
+(<b>e3d_image-bytes_pp</b>
+ l)
+
+(<b>e3d_image-alignment</b>
+ l)
+
+(<b>e3d_image-order</b>
+ l)
+
+(<b>e3d_image-width</b>
+ l)
+
+(<b>e3d_image-height</b>
+ l)
+
+(<b>e3d_image-image</b>
+ l)
+
+(<b>e3d_image-filename</b>
+ l)
+
+(<b>e3d_image-name</b>
+ l)
+
+(<b>e3d_image-extra</b>
+ l)
+
+Get the value of a given field in e3d_image
+
+
+
+

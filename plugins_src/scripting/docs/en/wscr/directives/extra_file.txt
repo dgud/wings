@@ -1,0 +1,17 @@
+extra_file Section
+<code><pre>
+<b>extra_file</b> "icon" {
+  title "Choose small image"
+  extensions {
+    ...
+  }
+}
+</pre></code>
+
+An extra input file which can be used by any of the script modes.
+ The first argument should be the name that will be set in 
+<tt>extra_params</tt> for the script.
+ The title and the list of extensions need to be set for it.
+
+
+

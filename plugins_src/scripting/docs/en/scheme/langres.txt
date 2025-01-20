@@ -1,0 +1,15 @@
+Online Resources for the Scheme Language
+
+A very non exhaustive list of resources:
+
+Scheme Language Tutorials and Books
+https://docs.scheme.org/
+
+Gauche reference
+http://practical-scheme.net/gauche/man/gauche-refe/index.html
+
+R5RS (reference for functions found in nearly every Scheme to write portable code)
+https://conservatory.scheme.org/schemers/Documents/Standards/R5RS/
+
+
+

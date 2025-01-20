@@ -20,7 +20,8 @@
 	 set_edge_color/4,
 	 vtx_attrs/2,vtx_attrs/3,attr/2,new_attr/2,average_attrs/1,average_attrs/2,
 	 set_vtx_face_uvs/4,
-	 remove/2,remove/3,renumber/2,merge/2,gc/1,any_update/2]).
+	 remove/2,remove/3,renumber/2,merge/2,gc/1,any_update/2,
+	 set_face_attr_vs/4,replace_attr/3]).
 
 -include("wings.hrl").
 
@@ -493,6 +494,18 @@ gc(#we{lv=Lva0,rv=Rva0,es=Etab}=We) ->
 any_update(#we{lv=Lva,rv=Rva}, #we{lv=Lva,rv=Rva}) -> false;
 any_update(_, _) -> true.
 
+
+%% set_face_attr_vs(Type, Face, NewList, We0) -> We
+%%  Set new UV or color values to every vertex of a face, in the same
+%%  order as the list returned by face_attr/3.
+%%
+-spec set_face_attr_vs(Type, face_num(), [uv_coords()], #we{}) -> #we{} when Type :: 'uv';
+                      (Type, face_num(), [vertex_color()], #we{}) -> #we{} when Type :: 'color'.
+set_face_attr_vs(Type, Face, NewList, We) ->
+    set_face_attr_vs_1(Type, Face, NewList, We).
+
+
+
 %%%
 %%% Local functions.
 %%%
@@ -807,6 +820,37 @@ mix(_, none, _) -> none;
 mix(_, [_|_], none) -> none;
 mix(W, [Col1|UV1], [Col2|UV2]) ->
     [wings_color:mix(W, Col1, Col2)|wings_color:mix(W, UV1, UV2)].
+
+
+set_face_attr_vs_1(Type, Face, NewList, #we{fs=Ftab}=We0) ->
+    Edge = gb_trees:get(Face, Ftab),
+    set_face_attr_vs_1(Type, Face, Edge, Edge, lists:reverse(NewList), We0).
+set_face_attr_vs_1(_Type, _, LastEdge, LastEdge, [], We) -> We;
+set_face_attr_vs_1(Type, Face, Edge, LastEdge, [Val|NewList], #we{es=Etab}=We0) ->
+    case array:get(Edge, Etab) of
+        #edge{lf=Face,ltsu=NextEdge} ->
+            set_face_attr_vs_1(Type, Face, NextEdge, LastEdge, NewList, 
+                set_face_attr_vs_2(Type, Edge, Face, Val, We0));
+        #edge{rf=Face,rtsu=NextEdge} ->
+            set_face_attr_vs_1(Type, Face, NextEdge, LastEdge, NewList, 
+                set_face_attr_vs_2(Type, Edge, Face, Val, We0))
+    end.
+set_face_attr_vs_2(Type, Edge, Face, Val, We0) ->
+    set_edge_attrs(Edge, Face,
+        replace_attr(Type, Val, edge_attrs(Edge, Face, We0)),
+        We0).
+
+
+%% Replace the UV or color of an opaque attribute
+%%
+-spec replace_attr(Type, uv_coords(), all_attributes()) -> all_attributes() when Type :: 'uv';
+                  (Type, vertex_color(), all_attributes()) -> all_attributes() when Type :: 'color'.
+replace_attr(uv, UV, OA) ->
+    new_attr(attr(color, OA), UV);
+replace_attr(color, Color, OA) ->
+    new_attr(Color, attr(uv, OA)).
+
+
 
 average(L) ->
     {A0,B0} = average_1(L, [], []),

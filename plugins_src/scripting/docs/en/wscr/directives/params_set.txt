@@ -1,0 +1,16 @@
+params_set Instructions Section
+<code><pre>
+<b>params_set</b> {
+  export_param "include_uvs" %[bool(params/include_uvs)]
+  ...
+}
+</pre></code>
+
+The params_set section sets special parameters with directives such as
+export_param, import_param and script_param. With each directive within
+assigning a value to a parameter. These are different from the params
+section which are for normal parameters shown in a dialog box.
+
+Query values are enclosed in %[...] brackets, refer to the
+<b>Query Mini Language</b> about query values.
+

@@ -1,0 +1,126 @@
+Importer Scripts
+
+Importer scripts are available from the "File" > "Import" menu.
+
+Importer scripts are scripts that open a file, and with the mesh information in the file, creates an e3d_file data structure and returns it.
+
+The "filename" extra parameter is needed which contain the file path of the file to read:
+
+<code><pre>
+(main-function
+    (lambda (*params* *extra-params*)
+        (define filename
+          (list-ref
+            (assoc "filename" *extra-params*) 1))
+
+        ;;
+        ;; ...
+        ;;
+
+        ;; Return an e3d_file in a variable called e3df
+        (list 'ok e3df)
+        ))
+</pre></code>
+
+Constructing e3d objects involves using
+make-e3d_face, 
+make-e3d_object,
+ make-e3dfile, etc.
+
+After parsing the file, the importer returns the contents of e3d_file back to Wings3D:
+
+<code><pre>(list 'ok (make-e3d_file `(objs ,(list Obj))))</pre></code>
+
+
+A minimal importer that reads vertices from a file:
+
+<code><pre>
+(use srfi-1)
+(use srfi-13) ; For string-tokenize
+
+(define (read-for-each Fp F)
+    (define NumVals (string->number (read-line Fp))) ; Number of values
+    (let loop ((I 0) (Vals (list)))
+        (if (< I NumVals)
+            (let ((Ret (F)))
+                (loop (+ I 1) (cons Ret Vals))
+                )
+            (reverse Vals))
+        )
+    )
+
+(define (import_fun Attr Filename)
+    (call-with-input-file Filename (lambda (Fp)
+        ; Read each object
+        (define Objs (read-for-each Fp
+            (lambda ()
+                (define ObjName (read-line Fp))
+                ; Read each vertex
+                (define Vs (read-for-each Fp
+                    (lambda ()
+                        (define Vtx0 (string-tokenize (read-line Fp)))
+                        ; Vertex coordinate
+                        (define Vtx (map exact->inexact (map string->number Vtx0)))
+                        (list->vector Vtx))))
+                ; Read each face
+                (define Faces (read-for-each Fp
+                    (lambda ()
+                        ; Vertex indices
+                        (define VList0 (string-tokenize (read-line Fp)))
+                        (define VList (map string->number VList0))
+                        (make-e3d_face 
+                                `(vs ,VList)
+                                `(vc ,(list))
+                                `(tx ,(list))
+                                `(ns ,(list))
+                            )
+                        )))
+                (define Mesh (make-e3d_mesh
+                    `(type polygon)
+                    `(vs ,Vs)
+                    `(fs ,Faces)
+                    `(vc ,(list))
+                    `(tx ,(list))
+                    `(ns ,(list))
+                    `(he ,(list))
+                    ))
+                (make-e3d_object `(name ,ObjName) `(obj ,Mesh))
+                )))
+        (list 'ok (make-e3d_file `(objs ,Objs)))
+        ) :encoding 'utf8)
+    )
+
+(define (importer *params* *extra-params*)
+    ;; the filename to import from is in "filename" of extra parameters.
+    ;;
+    (define Filename (list-ref (assoc "filename" *extra-params*) 1))
+    (import_fun '() Filename)
+    )
+
+(main-function importer)
+</pre></code>
+
+
+A .wscr file for the importer:
+
+<code><pre>
+type "scm"
+name ?__(1,"Example Importer (.txt)")
+mode "import"
+params_title ?__(3,"Example Importer Settings")
+params_templates {
+  template import
+}
+params_set {
+  import_param script_texture_convert 'auto'
+}
+extensions {
+  ext .txt ?__(5,"Text Mesh")
+}
+</pre></code>
+
+
+The .wscr and .scm file should have the same name before the extension (script.scm and script.wscr).
+
+
+

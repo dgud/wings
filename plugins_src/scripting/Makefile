@@ -28,9 +28,18 @@ TYPE_FLAGS=
 endif
 
 MODULES= \
-	wpc_scripting_shapes
+	wpc_scripting_shapes \
+	scripting_engines
+
+INIT_SCRIPT_SRC=$(ESRC)/init_scripts
+INIT_SCRIPT_EBIN=$(EBIN)/wpc_scripting_shapes_init
+INIT_SCRIPT_PY_SRC=$(INIT_SCRIPT_SRC)/py
+INIT_SCRIPT_PY_EBIN=$(INIT_SCRIPT_EBIN)/py
+INIT_SCRIPT_SCM_SRC=$(INIT_SCRIPT_SRC)/scm
+INIT_SCRIPT_SCM_EBIN=$(INIT_SCRIPT_EBIN)/scm
 
 TARGET_FILES= $(MODULES:%=$(EBIN)/%.beam)
+              
 
 # ----------------------------------------------------
 # FLAGS
@@ -51,40 +60,66 @@ lang: template
 	cp *.lang $(EBIN)
 	$(ERL) -pa $(WINGS_INTL) -noinput -run tools diff_lang_files $(EBIN)
 
-common: $(TARGET_FILES)
+common: $(TARGET_FILES) $(INIT_SCRIPT_EBIN) subdirs
+
+subdirs:
+	(cd docs; $(MAKE))
 
 clean:
 	rm -f $(TARGET_FILES)
 	rm -f core
+	(cd docs; $(MAKE) clean)
 
-$(EBIN)/%.beam: $(ESRC)/%.erl $(EBIN)/wpc_scripting_shapes_init
+ESCRIPT=escript
+
+$(EBIN)/%.beam: $(ESRC)/%.erl
 	$(ERLC) $(ERL_COMPILE_FLAGS) -o$(EBIN) $<
-	
-$(EBIN)/wpc_scripting_shapes_init: $(EBIN)/wpc_scripting_shapes_init/init.py \
-                                   $(EBIN)/wpc_scripting_shapes_init/w3d_e3d.py \
-								   $(EBIN)/wpc_scripting_shapes_init/w3d_int.py \
-								   $(EBIN)/wpc_scripting_shapes_init/w3d_newshape.py \
-								   $(EBIN)/wpc_scripting_shapes_init/init.scm \
-								   $(EBIN)/wpc_scripting_shapes_init/init_env_csi.scm \
-								   $(EBIN)/wpc_scripting_shapes_init/init_env_gauche.scm \
 
-MKDIR_INIT_SCRIPTS=mkdir -p $(EBIN)/wpc_scripting_shapes_init/
-$(EBIN)/wpc_scripting_shapes_init/init.py: $(ESRC)/init_scripts/init.py
-	$(MKDIR_INIT_SCRIPTS)
-	cp $(ESRC)/init_scripts/init.py $(EBIN)/wpc_scripting_shapes_init/
-$(EBIN)/wpc_scripting_shapes_init/w3d_e3d.py: $(ESRC)/init_scripts/w3d_e3d.py
-	cp $(ESRC)/init_scripts/w3d_e3d.py $(EBIN)/wpc_scripting_shapes_init/
-$(EBIN)/wpc_scripting_shapes_init/w3d_int.py: $(ESRC)/init_scripts/w3d_int.py
-	cp $(ESRC)/init_scripts/w3d_int.py $(EBIN)/wpc_scripting_shapes_init/
-$(EBIN)/wpc_scripting_shapes_init/w3d_newshape.py: $(ESRC)/init_scripts/w3d_newshape.py
-	cp $(ESRC)/init_scripts/w3d_newshape.py $(EBIN)/wpc_scripting_shapes_init/
+PY_FILES= init w3d_e3d w3d_int w3d_newshape
+PY_FILES_1=$(PY_FILES:%=$(INIT_SCRIPT_PY_EBIN)/%.py)
 
-$(EBIN)/wpc_scripting_shapes_init/init.scm: $(ESRC)/init_scripts/init.scm
-	cp $(ESRC)/init_scripts/init.scm $(EBIN)/wpc_scripting_shapes_init/
-$(EBIN)/wpc_scripting_shapes_init/init_env_csi.scm: $(ESRC)/init_scripts/init_env_csi.scm
-	cp $(ESRC)/init_scripts/init_env_csi.scm $(EBIN)/wpc_scripting_shapes_init/
-$(EBIN)/wpc_scripting_shapes_init/init_env_gauche.scm: $(ESRC)/init_scripts/init_env_gauche.scm
-	cp $(ESRC)/init_scripts/init_env_gauche.scm $(EBIN)/wpc_scripting_shapes_init/
+SCM_FILES= init_env_csi init_env_gauche
+SCM_FILES_1=$(SCM_FILES:%=$(INIT_SCRIPT_SCM_EBIN)/%.scm)
+
+$(INIT_SCRIPT_EBIN): $(INIT_SCRIPT_EBIN)/callable.conf \
+                     $(INIT_SCRIPT_EBIN)/defaults.conf \
+                     $(INIT_SCRIPT_EBIN)/python.script-init-conf \
+                     $(INIT_SCRIPT_EBIN)/scheme.script-init-conf \
+                     $(INIT_SCRIPT_PY_EBIN)/w3d_we.py \
+                     $(INIT_SCRIPT_SCM_EBIN)/init.scm \
+                     $(PY_FILES_1) \
+                     $(SCM_FILES_1)
 
 
-#$(EBIN)/wpc_scripting_shapes.beam: $(WINGS_E3D)/e3d.hrl
+$(INIT_SCRIPT_EBIN)/%.conf: $(INIT_SCRIPT_SRC)/%.conf
+	cp $< $(INIT_SCRIPT_EBIN)/
+$(INIT_SCRIPT_EBIN)/%.script-init-conf: $(INIT_SCRIPT_SRC)/%.script-init-conf
+	cp $< $(INIT_SCRIPT_EBIN)/
+$(INIT_SCRIPT_PY_EBIN)/%.py: $(INIT_SCRIPT_PY_SRC)/%.py
+	cp $< $(INIT_SCRIPT_PY_EBIN)/
+$(INIT_SCRIPT_SCM_EBIN)/%.scm: $(INIT_SCRIPT_SCM_SRC)/%.scm
+	cp $< $(INIT_SCRIPT_SCM_EBIN)/
+
+# Generate w3d_we.py file from callable.conf
+$(INIT_SCRIPT_PY_EBIN)/w3d_we.py: $(INIT_SCRIPT_PY_SRC)/w3d_we.1.py \
+                                  $(INIT_SCRIPT_SRC)/callable.conf \
+                                  $(INIT_SCRIPT_SRC)/py-modnames
+	./tools/gen-init-we-script.sh \
+		"$(INIT_SCRIPT_PY_SRC)/w3d_we.1.py" \
+		- \
+		"$(INIT_SCRIPT_SRC)/callable.conf" \
+		"$(INIT_SCRIPT_SRC)/py-modnames" py \
+		> "$(INIT_SCRIPT_PY_EBIN)/w3d_we.py"
+
+# Generate init.scm file from callable.conf
+$(INIT_SCRIPT_SCM_EBIN)/init.scm: $(INIT_SCRIPT_SCM_SRC)/init.1.scm \
+                                  $(INIT_SCRIPT_SRC)/callable.conf \
+                                  $(INIT_SCRIPT_SRC)/scm-modnames \
+                                  $(INIT_SCRIPT_SCM_SRC)/init.2.scm
+	./tools/gen-init-we-script.sh \
+		"$(INIT_SCRIPT_SCM_SRC)/init.1.scm" \
+		"$(INIT_SCRIPT_SCM_SRC)/init.2.scm" \
+		"$(INIT_SCRIPT_SRC)/callable.conf" \
+		"$(INIT_SCRIPT_SRC)/scm-modnames" scm \
+		> "$(INIT_SCRIPT_SCM_EBIN)/init.scm"
+

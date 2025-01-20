@@ -1,0 +1,9 @@
+params_preview Directive
+<code><pre>
+<b>params_preview</b> 1
+</pre></code>
+
+Specifies that preview should be enabled on the dialog box so changes
+are seen when when changing parameters.
+
+

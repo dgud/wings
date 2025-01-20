@@ -1,0 +1,9 @@
+params_title Directive
+<code><pre>
+<b>params_title</b> ?__(3,"Command Settings")
+</pre></code>
+
+The params_title directive indicates the titlebar string of the dialog that
+ is shown for user input.
+
+
