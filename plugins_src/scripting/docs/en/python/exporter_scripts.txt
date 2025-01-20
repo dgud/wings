@@ -1,0 +1,105 @@
+Exporter Scripts
+
+Exporter scripts are available from the "File" > "Export" and "File" > "Export Selected" menus.
+
+Read E3DFile
+
+The "filename" and "content" extra parameters are needed, the file name is chosen by the user to save the model, and the content contains an e3d_file data structure.
+
+<code><pre>
+def main(params, params_by_key, extra_params):
+    filename = extra_params["filename"]
+    content = w3d_e3d.E3DFile()
+    content.load_from(extra_params["content"])
+
+    ##
+    ## ...
+    ##
+
+    ## Return Okay() if the file was written successfully.
+    return Okay()
+
+w3d_main_function = main
+</pre></code>
+
+Don't forget to assign the 'main' function to 'w3d_main_function'.
+
+Exporters take in both a filename and the e3d_file content which has to be loaded with E3DFile.load_from(...). After writing the file to disk, create an "ok" tuple and write its output list out:
+
+<code><pre>
+    return Okay()
+</pre></code>
+
+
+A minimal exporter that writes vertices to a file:
+
+<code><pre>
+import w3d_e3d
+from os import path
+
+def export_fun(attr, filename, content):
+    objs = content.objs
+    with open(filename, "w", encoding="utf-8") as fp:
+        # Number of objects
+        fp.write(str(len(objs)) + "\n")
+        for obj in objs:
+            mesh = obj.obj
+            vs = mesh.vs
+            faces = mesh.fs
+            # Object name
+            fp.write(str(obj.name) + "\n")
+            # Number of vertices
+            fp.write(str(len(vs)) + "\n")
+            for v in vs:
+                x = v[0]
+                y = v[1]
+                z = v[2]
+                # Vertice coordinate
+                fp.write(str(x) + " " + str(y) + " " + str(z) + "\n")
+            # Number of faces
+            fp.write(str(len(faces)) + "\n")
+            for face in faces:
+                vlist = face.vs
+                for v in vlist:
+                    fp.write(str(v) + " ")
+                fp.write("\n")
+        
+        return Okay()
+
+def exporter(params, params_by_key, extra_params):
+    filename = extra_params["filename"]
+    content = w3d_e3d.E3DFile()
+    content.load_from(extra_params["content"])
+    return export_fun({}, filename, content)
+
+w3d_main_function = exporter
+</pre></code>
+
+
+A .wscr file for the exporter:
+
+<code><pre>
+type "py"
+name ?__(1,"Example Exporter (.txt)")
+mode "export"
+params_title ?__(3,"Example Exporter Settings")
+params_templates {
+  template export include_normals,include_uvs,include_colors
+}
+params_set {
+  export_param include_uvs  %[bool(params/include_uvs)]
+  export_param subdivisions %[params/subdivisions]
+  export_param include_normals %[bool(params/include_normals)]
+  export_param include_hard_edges 'true'
+  export_param script_texture_convert 'user'
+}
+extensions {
+  ext .txt ?__(5,"Text Mesh")
+}
+</pre></code>
+
+
+The .wscr and .scm file should have the same name before the extension (script.scm and script.wscr).
+
+
+

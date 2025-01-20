@@ -1,0 +1,22 @@
+include Directives
+<code><pre>
+<b>include</b> "(%)_dialog.inclr"
+</pre></code>
+
+WSCR files can include other files, it is recommended to move all the parameter
+ related configuration to another file and add an include directive towards
+ it so as to keep the main wscr file small.
+ This is important as each time the user opens a script chooser dialog,
+ every directory is traversed for every wscr file, and each wscr file found
+ is read for it's information to display in the script chooser browser.
+ 
+The script chooser traversal process reads every wscr file, but it does
+ not read the include directives.
+ When a script is invoked, the include directives are used to read the rest
+ of the configuration.
+ A parenthesis wrapped percent symbol "(%)"
+
+ auto expands to the name of the .wscr file before the extension.
+
+
+

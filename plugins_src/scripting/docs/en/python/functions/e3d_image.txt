@@ -1,0 +1,17 @@
+class E3DImage
+
+Visible attributes type, bytes_pp, alignment, order, width, height, image, filename, name, extra
+
+<b>E3DImage</b>()
+
+Creates a new E3DImage instance
+
+image.<b>as_output_list</b>()
+
+Outputs the whole E3DImage instance and all its values into an output list, not usually used directly.
+
+image.<b>load_from</b>(expr)
+
+Load contents into a E3DImage instance, not usually used directly.
+
+

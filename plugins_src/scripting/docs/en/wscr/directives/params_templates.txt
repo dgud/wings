@@ -1,0 +1,16 @@
+params_templates Section
+<code><pre>
+<b>params_templates</b> {
+  template "export" ""
+}
+</pre></code>
+
+Param templates are standard groups of parameters that are used by most
+ plugins in Wings3D for consistency.
+ For example, importers might use the import template to show the flip axis
+ and scale parameters.
+ When a template is used, the corresponding code that interprets the standard
+ parameters to automatically modify the E3D tuple will also be handled by
+ the scripting interface.
+
+
