@@ -56,6 +56,7 @@ MODULES= \
 	wpc_plane_cut \
 	wpc_region \
 	wpc_rotate_unconstrained \
+	wpc_tools_win_resize \
 	wpc_sculpt \
 	wpc_sel_absolute \
 	wpc_sel_win \
