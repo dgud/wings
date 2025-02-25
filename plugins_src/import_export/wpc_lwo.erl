@@ -98,10 +98,10 @@ end).
 
 -define(SINT, big-signed-integer).
 -define(UINT, big-unsigned-integer).
--define(UW, :16/?UINT).
--define(FLT, :32/big-float).
--define(FLT8, :64/big-float).
--define(ID, :4/bytes).
+-define(UW, 16/?UINT).
+-define(FLT, 32/big-float).
+-define(FLT8, 64/big-float).
+-define(ID, 4/bytes).
 
 gv(A, List, D) ->
     proplists:get_value(A, List, D).
@@ -447,7 +447,7 @@ read_ptag_l_1(Data, Acc) ->
     [{FaceIndex,SurfIndex} | read_ptag_l_1(More, Acc)].
 
 
-read_vmap(<<Type?ID, Dim?UW, Values/binary>>) ->
+read_vmap(<<Type:?ID, Dim:?UW, Values/binary>>) ->
     {Name, Bin1} = read_cstring(Values),
     {Type, Name, read_vmap_list(Dim, Bin1)}.
 
@@ -460,21 +460,21 @@ read_vmap_list(Dim, Bin, L) ->
     {Values, Bin3} = read_vmap_dim(Dim, Bin2),
     read_vmap_list(Dim, Bin3, [{Vert, Values}|L]).
 
-read_vmap_dim(1, <<F1?FLT,Bin/binary>>) ->
+read_vmap_dim(1, <<F1:?FLT,Bin/binary>>) ->
     {F1, Bin};
-read_vmap_dim(2, <<F1?FLT,F2?FLT,Bin/binary>>) ->
+read_vmap_dim(2, <<F1:?FLT,F2:?FLT,Bin/binary>>) ->
     {{F1,F2}, Bin};
-read_vmap_dim(3, <<F1?FLT,F2?FLT,F3?FLT,Bin/binary>>) ->
+read_vmap_dim(3, <<F1:?FLT,F2:?FLT,F3:?FLT,Bin/binary>>) ->
     {{F1,F2,F3}, Bin};
-read_vmap_dim(4, <<F1?FLT,F2?FLT,F3?FLT,F4?FLT,Bin/binary>>) ->
+read_vmap_dim(4, <<F1:?FLT,F2:?FLT,F3:?FLT,F4:?FLT,Bin/binary>>) ->
     {{F1,F2,F3,F4}, Bin}.
 
-read_bbox(<<MinX?FLT,MinY?FLT,MinZ?FLT,
-          MaxX?FLT,MaxY?FLT,MaxZ?FLT>>) ->
+read_bbox(<<MinX:?FLT,MinY:?FLT,MinZ:?FLT,
+          MaxX:?FLT,MaxY:?FLT,MaxZ:?FLT>>) ->
     {{MinX, MinY, MinZ}, {MaxX, MaxY, MaxZ}}.
 
 
-read_vmad(<<Type?ID, Dim?UW, Values/binary>>) ->
+read_vmad(<<Type:?ID, Dim:?UW, Values/binary>>) ->
     {Name, Bin1} = read_cstring(Values),
     {Type, Name, read_vmad_list(Dim, Bin1)}.
 
@@ -488,13 +488,13 @@ read_vmad_list(Dim, Bin, L) ->
     {Values, Bin4} = read_vmad_dim(Dim, Bin3),
     read_vmad_list(Dim, Bin4, [{{Vert, Poly}, Values}|L]).
 
-read_vmad_dim(1, <<F1?FLT,Bin/binary>>) ->
+read_vmad_dim(1, <<F1:?FLT,Bin/binary>>) ->
     {F1, Bin};
-read_vmad_dim(2, <<F1?FLT,F2?FLT,Bin/binary>>) ->
+read_vmad_dim(2, <<F1:?FLT,F2:?FLT,Bin/binary>>) ->
     {{F1,F2}, Bin};
-read_vmad_dim(3, <<F1?FLT,F2?FLT,F3?FLT,Bin/binary>>) ->
+read_vmad_dim(3, <<F1:?FLT,F2:?FLT,F3:?FLT,Bin/binary>>) ->
     {{F1,F2,F3}, Bin};
-read_vmad_dim(4, <<F1?FLT,F2?FLT,F3?FLT,F4?FLT,Bin/binary>>) ->
+read_vmad_dim(4, <<F1:?FLT,F2:?FLT,F3:?FLT,F4:?FLT,Bin/binary>>) ->
     {{F1,F2,F3,F4}, Bin}.
 
 
@@ -552,12 +552,12 @@ lwob_c(ChunkId, _ChunkData) ->
 
 lwob_pols(<<>>) ->
     [];
-lwob_pols(<<Num?UW,R0/binary>>) ->
-    {Verts, <<S?UW,R/binary>>} = lwob_pols_v(Num, R0, []),
+lwob_pols(<<Num:?UW,R0/binary>>) ->
+    {Verts, <<S:?UW,R/binary>>} = lwob_pols_v(Num, R0, []),
     [{Verts, S}|lwob_pols(R)].
 lwob_pols_v(0, R, Vs) ->
     {lists:reverse(Vs), R};
-lwob_pols_v(Num, <<V?UW,R/binary>>, Vs) ->
+lwob_pols_v(Num, <<V:?UW,R/binary>>, Vs) ->
     lwob_pols_v(Num-1, R, [V|Vs]).
 
 -record(lwobmat, {
@@ -609,10 +609,10 @@ lwob_surf(Data) ->
 lwob_float_or_fixed(Flt, Fix, A, V) ->
     case {proplists:is_defined(Flt, A),proplists:is_defined(Fix, A)} of
         {true,_} ->
-            <<V1?FLT>> = gv(Flt, A, <<0,0,0,0>>),
+            <<V1:?FLT>> = gv(Flt, A, <<0,0,0,0>>),
             V1;
         {_,true} ->
-            <<V0?UW>> = gv(Fix, A, <<0,0>>),
+            <<V0:?UW>> = gv(Fix, A, <<0,0>>),
             V0 / 255.0;
         _ ->
             V
@@ -621,7 +621,7 @@ lwob_float_or_fixed(Flt, Fix, A, V) ->
 
 lwob_surf_2c(<<>>, Acc) ->
     lists:reverse(Acc);
-lwob_surf_2c(<<C:4/bytes,S?UW,Data/binary>>, Acc) ->
+lwob_surf_2c(<<C:4/bytes,S:?UW,Data/binary>>, Acc) ->
     CD = binary:part(Data, {0, S}),
     Rest = binary:part(Data, {S, byte_size(Data)-S}),
     lwob_surf_2c(Rest, [{C,CD}|Acc]).
@@ -739,20 +739,20 @@ lwo2_surf_2c(Bin) ->
     lwo2_surf_2c(Bin, []).
 lwo2_surf_2c(<<>>, Acc) ->
     lists:reverse(Acc);
-lwo2_surf_2c(<<C:4/bytes,S?UW,Data/binary>>, Acc) ->
+lwo2_surf_2c(<<C:4/bytes,S:?UW,Data/binary>>, Acc) ->
     CD = binary:part(Data, {0, S}),
     Rest = binary:part(Data, {S, byte_size(Data)-S}),
     lwo2_surf_2c(Rest, [{C,lwo2_surf_2c_1(C, CD)}|Acc]).
 
 lwo2_surf_2c_1(<<"BLOK">>, Data) ->
     lwo2_surf_2c(Data, []);
-lwo2_surf_2c_1(<<"IMAP">>, <<_?UW,Data/binary>>) ->
+lwo2_surf_2c_1(<<"IMAP">>, <<_:?UW,Data/binary>>) ->
     lwo2_surf_2c(Data, []);
 lwo2_surf_2c_1(<<"TMAP">>, Data) ->
     lwo2_surf_2c(Data, []);
 lwo2_surf_2c_1(<<"NODS">>, Data) ->
     lwo2_surf_2c(Data, []);
-lwo2_surf_2c_1(<<"COLR">>, <<R?FLT,G?FLT,B?FLT,_/binary>>) ->
+lwo2_surf_2c_1(<<"COLR">>, <<R:?FLT,G:?FLT,B:?FLT,_/binary>>) ->
     {R,G,B};
 lwo2_surf_2c_1(<<"VMAP">>, Data) ->
     {Str, _} = read_cstring(Data),
@@ -761,17 +761,17 @@ lwo2_surf_2c_1(<<"STIL">>, Data) ->
     {Str, _} = read_cstring(Data),
     Str;
 
-lwo2_surf_2c_1(<<"DIFF">>,<<F?FLT,_Env/binary>>) -> F;
-lwo2_surf_2c_1(<<"SPEC">>,<<F?FLT,_Env/binary>>) -> F;
-lwo2_surf_2c_1(<<"LUMI">>,<<F?FLT,_Env/binary>>) -> F;
-lwo2_surf_2c_1(<<"REFL">>,<<F?FLT,_Env/binary>>) -> F;
-lwo2_surf_2c_1(<<"TRAN">>,<<F?FLT,_Env/binary>>) -> F;
-lwo2_surf_2c_1(<<"IMAG">>,<<E?UW>>) -> E;
+lwo2_surf_2c_1(<<"DIFF">>,<<F:?FLT,_Env/binary>>) -> F;
+lwo2_surf_2c_1(<<"SPEC">>,<<F:?FLT,_Env/binary>>) -> F;
+lwo2_surf_2c_1(<<"LUMI">>,<<F:?FLT,_Env/binary>>) -> F;
+lwo2_surf_2c_1(<<"REFL">>,<<F:?FLT,_Env/binary>>) -> F;
+lwo2_surf_2c_1(<<"TRAN">>,<<F:?FLT,_Env/binary>>) -> F;
+lwo2_surf_2c_1(<<"IMAG">>,<<E:?UW>>) -> E;
 
-lwo2_surf_2c_1(<<"WRAP">>,<<WWrap?UW,HWrap?UW>>) -> {WWrap,HWrap};
-lwo2_surf_2c_1(<<"WRPW">>,<<F?FLT,0,0>>) -> F;
-lwo2_surf_2c_1(<<"WRPH">>,<<F?FLT,0,0>>) -> F;
-lwo2_surf_2c_1(<<"PIXB">>,<<E?UW>>) -> E;
+lwo2_surf_2c_1(<<"WRAP">>,<<WWrap:?UW,HWrap:?UW>>) -> {WWrap,HWrap};
+lwo2_surf_2c_1(<<"WRPW">>,<<F:?FLT,0,0>>) -> F;
+lwo2_surf_2c_1(<<"WRPH">>,<<F:?FLT,0,0>>) -> F;
+lwo2_surf_2c_1(<<"PIXB">>,<<E:?UW>>) -> E;
 lwo2_surf_2c_1(_, CD) ->
     CD.
 
@@ -814,12 +814,12 @@ lwo2_clip(<<Id:32/?UINT,Rest/binary>>) ->
 
 lxob_ch(Data) ->
     {Str1, Bin0} = read_cstring(Data),
-    {Str2, <<_?UW,Num?UW,Bin/binary>>} = read_cstring(Bin0),
+    {Str2, <<_:?UW,Num:?UW,Bin/binary>>} = read_cstring(Bin0),
     {Str1, {Num, Str2}, lxob_ch_2c(Bin)}.
     
 lxob_ch_2c(<<>>) ->
     [];
-lxob_ch_2c(<<Id?ID,Size?UW,Bin/binary>>) ->
+lxob_ch_2c(<<Id:?ID,Size:?UW,Bin/binary>>) ->
     C = binary:part(Bin, {0, Size}),
     CD = binary:part(Bin, {Size, byte_size(Bin)-Size}),
     [{Id, C}|lxob_ch_2c(CD)].
@@ -836,12 +836,12 @@ read_lwo3(Bin) ->
     read_lwo3(Bin, [], []).
 read_lwo3(<<>>, _Context, OL) ->
     lists:reverse(OL);
-read_lwo3(<<SubTag?ID, Size:32/?UINT, Bin/binary>>, Context, OL) ->
+read_lwo3(<<SubTag:?ID, Size:32/?UINT, Bin/binary>>, Context, OL) ->
     A1 = binary:part(Bin, {0, Size}),
     A2 = binary:part(Bin, {Size, byte_size(Bin)-Size}),
     {SubTag_1, Content} = case SubTag of
         <<"FORM">> ->
-            <<SubForm?ID,A1_1/binary>> = A1,
+            <<SubForm:?ID,A1_1/binary>> = A1,
             {{form, SubForm}, read_lwo3(A1_1, [SubForm|Context], [])};
         _ ->
             lwo3_c(SubTag, Context, A1)
@@ -859,7 +859,7 @@ lwo3_c(<<"POLS">>, [<<"LWO3">>], Values) ->
 lwo3_c(<<"LAYR">>, [<<"LWO3">>], Bin) ->
     {o, {layr, lwo3_layr(Bin)}};
 
-lwo3_c(<<"OTAG">>, [<<"LWO3">>], <<Type?ID, Values/binary>>) ->
+lwo3_c(<<"OTAG">>, [<<"LWO3">>], <<Type:?ID, Values/binary>>) ->
     {otag, {Type, strz(Values)}};
 lwo3_c(<<"VMAD">>, [<<"LWO3">>], Values) ->
     {o, {vmad, read_vmad(Values)}};
@@ -873,9 +873,9 @@ lwo3_c(<<"BBOX">>, _Context, Values) ->
 
 lwo3_c(<<"NLOC">>, [<<"NROT">>|_], <<X:32/?SINT,Y:32/?SINT>>) ->
     {nloc, {X, Y}};
-lwo3_c(<<"NZOM">>, [<<"NROT">>|_], <<Zoom?FLT>>) ->
+lwo3_c(<<"NZOM">>, [<<"NROT">>|_], <<Zoom:?FLT>>) ->
     {nzom, Zoom};
-lwo3_c(<<"NSTA">>, [<<"NROT">>|_], <<State?UW>>) ->
+lwo3_c(<<"NSTA">>, [<<"NROT">>|_], <<State:?UW>>) ->
     {nsta, State};
 lwo3_c(<<"NVER">>, [<<"NODS">>|_], <<Version:32/?UINT>>) ->
     {nver, Version};
@@ -919,25 +919,25 @@ lwo3_c(<<"ENUM">>, [<<"META">>|_], <<Enum:32/?UINT>>) ->
 
 lwo3_c(<<"CHAN">>, [<<"IMAP">>|_], Values) ->
     {chan, lwo3_chan(Values)};
-lwo3_c(<<"NEGA">>, [<<"IMAP">>|_], <<Invert?UW>>) ->
+lwo3_c(<<"NEGA">>, [<<"IMAP">>|_], <<Invert:?UW>>) ->
     {nega, Invert};
-lwo3_c(<<"CSYS">>, [<<"TMAP">>|_], <<Type?UW>>) ->
+lwo3_c(<<"CSYS">>, [<<"TMAP">>|_], <<Type:?UW>>) ->
     {csys, Type};
 lwo3_c(<<"OREF">>, [<<"TMAP">>|_], Values) ->
     {oref, strz(Values)};
 
-lwo3_c(<<"PROJ">>, _Context, <<Proj?UW>>) ->
+lwo3_c(<<"PROJ">>, _Context, <<Proj:?UW>>) ->
     {proj, Proj};
-lwo3_c(<<"AXIS">>, _Context, <<Axis?UW>>) ->
+lwo3_c(<<"AXIS">>, _Context, <<Axis:?UW>>) ->
     {axis, Axis};
 lwo3_c(<<"IMAG">>, _Context, Values) ->
     {TImg, <<>>} = read_vx(Values),
     {imag, TImg};
-lwo3_c(<<"WRAP">>, _Context, <<WWrap?UW,HWrap?UW>>) ->
+lwo3_c(<<"WRAP">>, _Context, <<WWrap:?UW,HWrap:?UW>>) ->
     {wrap, {WWrap, HWrap}};
-lwo3_c(<<"AAST">>, _Context, <<Flags?UW,AAValue?FLT>>) ->
+lwo3_c(<<"AAST">>, _Context, <<Flags:?UW,AAValue:?FLT>>) ->
     {aast, {Flags, AAValue}};
-lwo3_c(<<"PIXB">>, _Context, <<Pixb?UW>>) ->
+lwo3_c(<<"PIXB">>, _Context, <<Pixb:?UW>>) ->
     {pixb, Pixb};
 
 lwo3_c(<<"NCOM">>, _Context, Values) ->
@@ -1003,14 +1003,14 @@ strz_list(Values, L) ->
 lwo3_chan(Bin) ->
     Bin.
 
-lwo3_v_idx_env(<<X?FLT,Y?FLT,Z?FLT,Bin/binary>>) ->
+lwo3_v_idx_env(<<X:?FLT,Y:?FLT,Z:?FLT,Bin/binary>>) ->
     {Index, Bin1} = read_vx(Bin),
     {{X,Y,Z}, Index, Bin1}.
 
-lwo3_layr(<<_Num?UW,_Flags?UW,X?FLT,Y?FLT,Z?FLT,Bin/binary>>) ->
+lwo3_layr(<<_Num:?UW,_Flags:?UW,X:?FLT,Y:?FLT,Z:?FLT,Bin/binary>>) ->
     {Name, LayrPar} = read_cstring(Bin),
     Parent = case LayrPar of
-        <<P?UW>> -> P;
+        <<P:?UW>> -> P;
         _ -> -1
     end,
     {{X, Y, Z}, read_nstring(Name), Parent}.
@@ -1121,13 +1121,13 @@ lwo3_surf_data_entr(Form) ->
             {Name, {lwo3_surf_data_val(Val, Name), Tex}}
     end.
 
-lwo3_surf_data_val(<<0,0,0,4,V1?FLT8,V2?FLT8,V3?FLT8,V4?FLT8>>, _) ->
+lwo3_surf_data_val(<<0,0,0,4,V1:?FLT8,V2:?FLT8,V3:?FLT8,V4:?FLT8>>, _) ->
     {V1,V2,V3,V4};
-lwo3_surf_data_val(<<0,0,0,3,V1?FLT8,V2?FLT8,V3?FLT8>>, _) ->
+lwo3_surf_data_val(<<0,0,0,3,V1:?FLT8,V2:?FLT8,V3:?FLT8>>, _) ->
     {V1,V2,V3};
-lwo3_surf_data_val(<<0,0,0,2,V1?FLT8,V2?FLT8>>, _) ->
+lwo3_surf_data_val(<<0,0,0,2,V1:?FLT8,V2:?FLT8>>, _) ->
     {V1,V2};
-lwo3_surf_data_val(<<0,0,0,1,Val?FLT8>>, _) ->
+lwo3_surf_data_val(<<0,0,0,1,Val:?FLT8>>, _) ->
     Val;
 lwo3_surf_data_val(Val, _) ->
     Val.
