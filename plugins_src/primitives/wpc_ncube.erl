@@ -151,7 +151,18 @@ make_ngon(Arg, St) when is_atom(Arg) ->
 make_ngon(Arg, _) ->
     ArgDict = dict:from_list(Arg),
     NumVerts = dict:fetch(numverts, ArgDict),
-    Radius = dict:fetch(radius, ArgDict),
+    Radius0 = dict:fetch(radius, ArgDict),
+    DistType = dict:fetch(dist_type, ArgDict),
+    Radius =
+        case DistType of
+            radius -> Radius0;
+            apothem ->
+                Degree = math:pi()/NumVerts,
+                Radius0/math:cos(Degree);
+            side_len ->
+                Degree = math:pi()/NumVerts,
+                (Radius0/2)/math:sin(Degree)
+        end,
     Rot_X = dict:fetch(rot_x, ArgDict),
     Rot_Y = dict:fetch(rot_y, ArgDict),
     Rot_Z = dict:fetch(rot_z, ArgDict),
@@ -168,13 +179,23 @@ make_ngon(Arg, _) ->
 ngon_dialog() ->
     NumVerts = get_pref(numverts, 5),
     Radius = get_pref(radius, 1.0),
+    DistType = get_pref(dist_type, radius),
     [{vframe, [
         {label_column, [
             {?__(3,"Number of Verts"), {slider, {text, NumVerts,
-                                                 [{key, numverts}, {range, {3, 20}}]}}},
-            {?__(4,"Radius"), {slider, {text, Radius, [{key, radius}, {range, {0.1, 20.0}}]}}}]
+                                                 [{key, numverts}, {range, {3, 20}}]}}}]
         },
-        wings_shapes:transform_obj_dlg()]
+        {vframe, [
+            {hradio, [
+                {?__(6,"Radius"),radius},
+                {?__(7,"Apothem"),apothem},
+                {?__(8,"Side Length"),side_len}],
+                DistType, [{key,dist_type}]},
+            {label_column, [
+                {?__(4,"Value"), {slider, {text, Radius, [{key, radius}, {range, {0.1, 50.0}}]}}}]
+            }
+        ],[{title,?__(5,"Perimeter Computed by")},{margin,false}]},
+         wings_shapes:transform_obj_dlg()]
     }].
 
 ngon_verts(NumVerts, Radius) ->
