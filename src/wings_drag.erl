@@ -1379,39 +1379,48 @@ trim([[_|_]=H|T]) ->
 trim(S) -> S.
 
 normalize(Move, #drag{mode_fun=ModeFun,mode_data=ModeData,
-		      st=#st{shapes=Shs0}=St}) ->
+		      st=#st{shapes=Shs0,sel=Sel0}=St}) ->
     ModeFun(done, ModeData),
     gl:disable(gl_rescale_normal()),
-    Shs = wings_dl:map(fun(D, Sh) ->
+    {Shs,Sel} = wings_dl:map(fun(D, Sh) ->
 			       normalize_fun(D, Move, Sh)
-		       end, Shs0),
-    St#st{shapes=Shs}.
+		       end, {Shs0,Sel0}),
+    if Sel=/=Sel0 -> wings_draw:refresh_dlists(St);
+    true -> ignore
+    end,
+    St#st{shapes=Shs,sel=Sel}.
 
 normalize_fun(#dlo{drag=none}=D, _Move, Shs) -> {D,Shs};
 normalize_fun(#dlo{drag={matrix,_,_,_},transparent=#we{id=Id}=We,
-		   proxy_data=PD}=D0, _Move, Shs0) when ?IS_LIGHT(We) ->
+		   proxy_data=PD}=D0, _Move, {Shs0,Sel}) when ?IS_LIGHT(We) ->
     Shs = gb_trees:update(Id, We, Shs0),
     D = D0#dlo{work=none,smooth=none,drag=none,src_we=We,transparent=false,
 	   proxy_data=wings_proxy:invalidate(PD, dl)},
-    {wings_draw:changed_we(D, D),Shs};
-normalize_fun(#dlo{drag={matrix,_,_,Matrix},src_we=#we{id=Id}=We0,
-		   proxy_data=PD}=D0,
-	      _Move, Shs0) ->
+    {wings_draw:changed_we(D, D),{Shs,Sel}};
+normalize_fun(#dlo{drag={matrix,_,_,Matrix},src_sel={_,DSel},src_we=#we{id=Id}=We0,
+		   proxy_data=PD}=D0, _Move, {Shs0,Sel}) ->
     We1 = We0#we{temp=[]},
     We = wings_we:transform_vs(Matrix, We1),
     Shs = gb_trees:update(Id, We, Shs0),
     D = D0#dlo{work=none,smooth=none,edges=none,sel=none,drag=none,src_we=We,
 	       mirror=none,proxy_data=wings_proxy:invalidate(PD, dl)},
-    {wings_draw:changed_we(D, D),Shs};
-normalize_fun(#dlo{drag={general,Fun},src_we=#we{id=Id}=We0}=D0, Move, Shs) ->
+    {wings_draw:changed_we(D, D),{Shs,update_sel(Id,DSel,Sel)}};
+normalize_fun(#dlo{drag={general,Fun}, src_sel={_,DSel}, src_we=#we{id=Id}=We0}=D0,
+		   Move, {Shs,Sel}) ->
     D1 = Fun({finish,Move}, D0),
     We = We0#we{temp=[]},
     D = D1#dlo{drag=none,sel=none,src_we=We},
-    {wings_draw:changed_we(D, D),gb_trees:update(Id, We, Shs)};
-normalize_fun(#dlo{src_we=#we{id=Id}}=D0, _Move, Shs) ->
+    {wings_draw:changed_we(D, D),{gb_trees:update(Id, We, Shs),update_sel(Id,DSel,Sel)}};
+normalize_fun(#dlo{src_sel={_,DSel}, src_we=#we{id=Id}}=D0, _Move, {Shs,Sel}) ->
     #dlo{src_we=We0} = D = wings_draw:join(D0),
     We = We0#we{temp=[]},
-    {D,gb_trees:update(Id, We, Shs)}.
+    {D,{gb_trees:update(Id, We, Shs),update_sel(Id,DSel,Sel)}}.
+
+update_sel(Id, DSel, Sel) ->
+    case orddict:is_key(Id,Sel) of
+        true -> orddict:store(Id,DSel,Sel);
+        false -> Sel
+    end.
 
 %%%
 %%% Redrawing while dragging.
