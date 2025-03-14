@@ -41,8 +41,9 @@ menu(X, Y, St) ->
 	    separator,
 	    cut_line(St),
 	    {?__(6,"Connect"),connect(),
-	     	{?__(7,"Create a new edge by connecting midpoints of selected edges"), [],
-		 ?__(25,"Create a new edge and slides it along neighbor edges")},[]},
+	     	{?__(7,"Create a new edge by connecting midpoints of selected edges"),
+			 ?__(26,"Create multiple parallel edges by connecting selected edges."),
+		 	 ?__(25,"Create a new edge and slides it along neighbor edges")},[]},
 	    {?__(8,"Bevel"),bevel,
 	     ?__(9,"Round off selected edges")},
 	    separator,
@@ -69,6 +70,7 @@ menu(X, Y, St) ->
 connect() ->
     fun
 	(1, _Ns) -> {edge,connect};
+	(2, _Ns) -> {edge,connect_multiple};
 	(3, _Ns) -> {edge,connect_slide};
 	(_, _) -> ignore
     end.
@@ -144,6 +146,8 @@ command({cut,Num}, St) ->
     {save_state,cut(Num, St)};
 command(connect, St) ->
     {save_state,connect(St)};
+command(connect_multiple, St) ->
+	connect_multiple(St);
 command(connect_slide, St) ->
     connect_slide(St);
 command(clean_dissolve, St) ->
@@ -188,6 +192,49 @@ connect(Es0, We0) ->
     Sel = wings_we:new_items_as_gbset(edge, We1, We2),
     We = wings_edge:dissolve_isolated_vs(Vs, We2),
     {We,Sel}.
+
+connect_multiple(St0) ->
+	St = wings_sel:map_update_sel(fun connect_multiple_1/2, St0),
+	ConFun0 = fun([N], _)->
+				if N < 1.0 -> 1;
+				true -> trunc(N)
+				end
+			end,
+	DF = fun(_) -> adjust_fun(ConFun0) end,
+	Units = [absolute_diameter],
+	Flags = [{initial,[1]}],
+	wings_drag:general(DF, Units, Flags, St).
+
+adjust_fun(AdjFun) ->
+	fun({finish,Ds}, D) ->
+		adjust_fun_1(AdjFun, Ds, D);
+	   (Ds, D) -> adjust_fun_1(AdjFun, Ds, D)
+	end.
+
+adjust_fun_1(AdjFun, Ds, #dlo{src_sel=Sel0,src_we=#we{temp={N0,Es,WeSrc}}=We0}=D) ->
+	N = AdjFun(Ds, N0),
+	{We,Sel} =
+		case N == N0 of
+			false ->
+				{_Vs,We1} =
+					mapfoldl(fun(Edge, W0) ->
+								{W,V} = wings_edge:cut(Edge, N+1, W0),
+								{V,W}
+							 end, WeSrc, gb_sets:to_list(Es)),
+				S = wings_we:new_items_as_gbset(vertex, WeSrc, We1),
+				We2 = wings_vertex_cmd:connect(gb_sets:to_list(S), We1),
+				Sel1 = wings_we:new_items_as_gbset(edge, We1, We2),
+				{We2,{edge,Sel1}};
+			true -> {We0,Sel0}
+		end,
+	D#dlo{src_sel=Sel,src_we=We#we{temp={N,Es,WeSrc}}}.
+
+connect_multiple_1(Es0, We) ->
+	Es1 = gb_sets:to_list(Es0),
+	Es2 = remove_nonconnectable(Es1, Es0, We, []),
+	Es = gb_sets:from_list(Es2),
+	{We#we{temp={0,Es,We}},Es}.
+
 
 connect_slide(St0) ->
     St = wings_sel:map_update_sel(fun connect/2, St0),
