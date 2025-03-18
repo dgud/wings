@@ -634,6 +634,7 @@ command_menu(body, X, Y) ->
 	       {?__(21,"Right"), right, ?__(22,"Move to right border")}
 	      ]}, ?__(23,"Move charts to position")},
         align_menu(),
+        arrange_menu(),
 	    {?__(24,"Flip"),{flip,
                              [{?__(25,"Horizontal"),horizontal,?__(26,"Flip selection horizontally")},
                               {?__(27,"Vertical"),vertical,?__(28,"Flip selection vertically")}]},
@@ -805,6 +806,13 @@ rotate(Flags) ->
             _ -> wings_menu:build_command({free,{'ASK',{[point],[z],Flags}}}, Ns)
         end
     end.
+
+arrange_menu() ->
+    {?__(93,"Arrange"),
+     {arrange,
+      [{?__(25,"Horizontal"),horizontal,?__(26,"Arrange selection horizontally")},
+       {?__(27,"Vertical"),vertical,?__(28,"Arrange selection vertically")}
+      ]}, ?__(94,"Arrange charts relative each other")}.
 
 align_menu() ->
     {?__(93,"Align"),
@@ -1265,6 +1273,8 @@ handle_command_1({move_to,Dir}, St0) ->
     St1 = wpa:sel_map(fun(_, We) -> move_to(Dir,We) end, St0),
     St = update_selected_uvcoords(St1),
     get_event(St);
+handle_command_1({arrange,Dir}, St) ->
+    arrange(Dir, St);
 handle_command_1({align,Dir}, #st{selmode=Mode,sel=Sel}=St0) when Mode == body; Mode == vertex ->
     St =
         case length(Sel) of
@@ -2365,6 +2375,123 @@ move_to(Dir,We) ->
     T = e3d_mat:translate(Translate),
     wings_we:transform_vs(T, We).
 
+arrange(Dir0, St0) ->
+    State = wings_pref:get_value(uv_arrange, {false,false,false}),
+    Dir = make_vector(Dir0),
+    BBSel = wings_sel:bounding_box(St0),
+    MF = fun(_, We, {Idx,OfsAcc}=Acc) ->
+            BBObj = wings_vertex:bounding_box(We),
+            [{X0,Y0,_},{X1,Y1,_}] = BBObj,
+            Ofs =
+                case Dir0 of
+                    horizontal -> e3d_vec:mul(Dir,X1-X0);
+                    vertical -> e3d_vec:mul(Dir,Y0-Y1)
+                end,
+            Tv = arrange(Dir,BBSel,BBObj,Acc,State,We),
+            {We#we{temp=Tv},{Idx+1,e3d_vec:add(Ofs,OfsAcc)}}
+        end,
+    {St,_} = wings_sel:mapfold(MF, {0,{0.0,0.0,0.0}}, St0),
+    DF = fun(_I, #we{temp=Tv}) ->
+            Tv
+         end,
+    Flags = [{mode,{arrange_modes(Dir0),State}}],
+    wings_drag:fold(DF,[distance],Flags,St).
+
+arrange(Dir, BBSel,BBObj, Idx_Ofs, State, #we{vp=VTab}) ->
+    Vs = wings_util:array_keys(VTab),
+    VsPos = array:sparse_to_orddict(VTab),
+    Fun = arrange_fun(Dir,BBSel,BBObj,Idx_Ofs,VsPos, State),
+    {Vs,Fun}.
+
+arrange_fun(Dir, [Stl,Sbr]=BBSel, [Otl,Obr]=BBObj, {Idx0,Ofs1}=Idx_Ofs, Vpos, State) ->
+    BSc = e3d_vec:average(BBSel),
+    BOc = e3d_vec:average(BBObj),
+    BSd = e3d_vec:sub(BBSel),
+    BOd = e3d_vec:sub(BBObj),
+    case Dir of
+        {_,+0.0,_} ->  %% horizontal
+            AlnOfs = calc_vert_ofs(BSc,BOc,BSd,BOd,State),  %% Top, Center, Bottom
+            Idx = Idx0;
+        {+0.0,_,_} ->  %% vertical
+            AlnOfs = calc_hrz_ofs(BSc,BOc,BSd,BOd,State),  %% Left, Center, Right
+            Idx = -Idx0
+    end,
+    fun(new_mode_data,{NewState,_}) ->
+            arrange_fun(Dir,BBSel,BBObj,Idx_Ofs,Vpos,NewState);
+        ([Dx], Acc) ->
+            Pad = e3d_vec:mul(Dir,abs(Dx)*Idx),
+            if Dx >= 0 ->
+                Ofs0 = e3d_vec:add(Ofs1,Pad),
+                {X,_Y,_} = e3d_vec:sub(Stl,Otl),
+                {_X,Y,_} = e3d_vec:sub(Sbr,Obr);
+            true ->
+                Ofs0 = e3d_vec:neg(e3d_vec:add(Ofs1,Pad)),
+                {_X,Y,_} = e3d_vec:sub(Stl,Otl),
+                {X,_Y,_} = e3d_vec:sub(Sbr,Obr)
+            end,
+            case Dir of
+                {_,+0.0,_} ->  %% horizontal
+                    Ref = {X,0.0,0.0};
+                {+0.0,_,_} ->  %% vertical
+                    Ref = {0.0,Y,0.0}
+            end,
+            Ofs = e3d_vec:add(Ref,Ofs0),
+            do_arrange(AlnOfs,Ofs,Vpos,Acc);
+        (_, _) ->
+            arrange_fun(Dir,BBSel,BBObj,Idx_Ofs,Vpos,State)
+    end.
+
+do_arrange(AlnOfs, Ofs, VsPos, Acc0) ->
+    M = e3d_mat:translate(e3d_vec:add(Ofs,AlnOfs)),
+    foldl(fun({V,Pos0}, Acc) ->
+            Pos = e3d_mat:mul_point(M, Pos0),
+            [{V,Pos}|Acc]
+          end, Acc0, VsPos).
+
+calc_vert_ofs(_,_,_,_, {false,false,false}) -> {0.0,0.0,0.0};
+calc_vert_ofs({_,BScY,_},{_,BOcY,_},{_,BSdH,_},{_,BOdH,_}, {true,false,false}) -> {0.0,-((BOcY-BScY)+(BSdH-BOdH)/2),0.0};
+calc_vert_ofs({_,BScY,_},{_,BOcY,_},_,_, {false,true,false}) -> {0.0,-(BOcY-BScY),0.0};
+calc_vert_ofs({_,BScY,_},{_,BOcY,_},{_,BSdH,_},{_,BOdH,_}, {false,false,true}) -> {0.0,(BScY-BOcY)+(BSdH-BOdH)/2,0.0}.
+
+calc_hrz_ofs(_,_,_,_, {false,false,false}) -> {0.0,0.0,0.0};
+calc_hrz_ofs({BScX,_,_},{BOcX,_,_},{BSdW,_,_},{BOdW,_,_}, {true,false,false}) -> {(BScX-BOcX)+((BSdW-BOdW)/2),0.0,0.0};
+calc_hrz_ofs({BScX,_,_},{BOcX,_,_},_,_, {false,true,false}) -> {(BScX-BOcX),0.0,0.0};
+calc_hrz_ofs({BScX,_,_},{BOcX,_,_},{BSdW,_,_},{BOdW,_,_}, {false,false,true}) -> {(BScX-BOcX)-((BSdW-BOdW)/2),0.0,0.0}.
+
+%%% Arrange modes
+arrange_modes(Dir) ->
+    fun(help, State) -> arrange_mode_help(Dir,State);
+        ({key,$1},{_LeftTop,_CenterXY,_RightBot}) -> {false,false,false};
+        ({key,$2},{false,_CenterXY,_RightBot}) -> {true,false,false};
+        ({key,$3},{_LeftTop,false,_RightBot}) -> {false,true,false};
+        ({key,$4},{_LeftTop,_CenterXY,false}) -> {false,false,true};
+        (done,{_,_,_}=State) -> wings_pref:set_value(uv_arrange, State);
+        (_,_) -> none
+    end.
+
+%%%% Mode Help
+arrange_mode_help(Dir,State) ->
+    io:format(" "),
+    ["[1] " ++ arrange_help(1,State,arrange_help(1,Dir)),
+     "  [2] " ++ arrange_help(2,State,arrange_help(2,Dir)),
+     "  [3] " ++ arrange_help(3,State,arrange_help(3,Dir)),
+     "  [4] " ++ arrange_help(4,State,arrange_help(4,Dir))].
+
+arrange_help(2, {true,false,false}, Label) -> "*" ++ Label ++ "*";
+arrange_help(3, {false,true,false}, Label) -> "*" ++ Label ++ "*";
+arrange_help(4, {false,false,true}, Label) -> "*" ++ Label ++ "*";
+arrange_help(1, {false,false,false}, Label) -> "*" ++ Label ++ "*";
+arrange_help(_, _, Label) -> Label.
+
+arrange_help(1, _) -> ?__(1,"Keep");
+arrange_help(2, vertical) -> ?__(2,"Left");
+arrange_help(3, vertical) -> ?__(3,"Center");
+arrange_help(4, vertical) -> ?__(4,"Right");
+arrange_help(2, horizontal) -> ?__(5,"Top");
+arrange_help(3, horizontal) -> ?__(3,"Center");
+arrange_help(4, horizontal) -> ?__(6,"Bottom").
+
+
 align(Dir,[{Xa,Ya,_},{Xb,Yb,_}],We) ->
     [V1={X1,Y1,_},V2={X2,Y2,_}] = wings_vertex:bounding_box(We),
     ChartCenter = {CCX,CCY,CCZ} = e3d_vec:average(V1,V2),
@@ -2829,3 +2956,6 @@ camera_reset() ->
                                      distance=Dist,
                                      pan_x=0.0,pan_y=0.0,
                                      along_axis=none}).
+
+make_vector(horizontal) -> {1.0,0.0,0.0};
+make_vector(vertical) -> {0.0,1.0,0.0}.
