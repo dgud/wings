@@ -82,7 +82,9 @@
 -type fold_tv() :: basic_tv() | {'we',[we_transform_fun()],basic_tv()}.
 
 -type inf_or_float() :: 'infinity' | float().
+-type inf_or_int() :: 'infinity' | integer().
 -type limit2() :: {inf_or_float(),inf_or_float()}.
+-type limit2i() :: {inf_or_int(),inf_or_int()}.
 
 -type unit() :: 'angle'   | {'angle',limit2()}
               | 'distance'| {'distance',limit2()}
@@ -94,6 +96,7 @@
               | 'percent' | {'percent',limit2()}
               | 'rx'      | {'rx',limit2()}
               | 'skip'
+              | 'count' | {'count',limit2i()}
               | plugin_unit_kludge().
 
 %% FIXME: Should wrap in a tuple, e.e. {custom,CustomType}.
@@ -533,6 +536,9 @@ drag_help(Units) ->
             percent ->
               Msg = zmove_help(?__(2,"Scale")),
               {4,S,[Msg|MsgAcc]};
+            count ->
+              Msg = zmove_help(?__(7,"Count")),
+              {4,S,[Msg|MsgAcc]};
             _ when S ->
               Msg = zmove_help(wings_util:stringify(P)),
               {4,S,[Msg|MsgAcc]};
@@ -548,6 +554,9 @@ drag_help(Units) ->
             percent ->
               Msg = p4_help(?__(2,"Scale")),
               {5,S,[Msg|MsgAcc]};
+            count ->
+              Msg = zmove_help(?__(7,"Count")),
+              {5,S,[Msg|MsgAcc]};
             _ when S ->
               Msg = p4_help(wings_util:stringify(P)),
               {5,S,[Msg|MsgAcc]};
@@ -562,6 +571,9 @@ drag_help(Units) ->
               {6,S,[Msg|MsgAcc]};
             percent ->
               Msg = p5_help(?__(2,"Scale")),
+              {6,S,[Msg|MsgAcc]};
+            count ->
+              Msg = zmove_help(?__(7,"Count")),
               {6,S,[Msg|MsgAcc]};
             _ when S ->
               Msg = p5_help(wings_util:stringify(P)),
@@ -893,6 +905,8 @@ make_move_1([{percent,_}=Unit|Units], [V|Vals]) ->
     [clamp(Unit, V/100)|make_move_1(Units, Vals)];
 make_move_1([percent|Units], [V|Vals]) ->
     [V/100|make_move_1(Units, Vals)];
+make_move_1([count|Units], [V|Vals]) ->
+    [trunc(V)|make_move_1(Units, Vals)];
 make_move_1([{U,{_Min,_Max}}=Unit|Units], [V|Vals]) ->
     make_move_1([U|Units], [clamp(Unit, V)|Vals]);
 make_move_1([_U|Units], [V|Vals]) ->
@@ -1096,7 +1110,11 @@ round_to_constraint([], [], _, Acc) -> reverse(Acc).
 
 constrain_1([falloff], _, #drag{falloff=Falloff}) ->
     [Falloff];
-constrain_1([_|Us], [D|Ds], Drag) ->
+constrain_1([{count,_}=U|Us], [D|Ds], Drag) ->
+    [clamp(U, trunc(D))|constrain_1(Us, Ds, Drag)];
+constrain_1([count|Us], [D|Ds], Drag) ->
+    [trunc(D)|constrain_1(Us, Ds, Drag)];
+constrain_1([_U|Us], [D|Ds], Drag) ->
     [D|constrain_1(Us, Ds, Drag)];
 constrain_1([], _, _) -> [].
 
@@ -1364,6 +1382,8 @@ unit(percent, P) ->
     trim(io_lib:format("~.2f%  ", [P*100.0]));
 unit(falloff, R) ->
     ["R: "|trim(io_lib:format("~10.2f", [R]))];
+unit(count, R) ->
+    ["C: "|trim(io_lib:format("~10w", [trunc(R)]))];
 unit(skip,_) ->
     %% the atom 'skip' can be used as a place holder. See wpc_arc.erl
     [];
