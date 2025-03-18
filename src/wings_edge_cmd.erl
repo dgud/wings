@@ -195,13 +195,9 @@ connect(Es0, We0) ->
 
 connect_multiple(St0) ->
 	St = wings_sel:map_update_sel(fun connect_multiple_1/2, St0),
-	ConFun0 = fun([N], _)->
-				if N < 1.0 -> 1;
-				true -> trunc(N)
-				end
-			end,
+	ConFun0 = fun([N|_], _)-> N end,
 	DF = fun(_) -> adjust_fun(ConFun0) end,
-	Units = [absolute_diameter],
+	Units = [{count,{1,infinity}}],
 	Flags = [{initial,[1]}],
 	wings_drag:general(DF, Units, Flags, St).
 
