@@ -54,6 +54,26 @@ command(_,_) -> next.
 %% Resize the main app or a float window.
 %%
 
+get_win_borders(Win) ->
+    Xborder =
+    wxSystemSettings:getMetric(?wxSYS_BORDER_X ,[{win,Win}]) +
+    wxSystemSettings:getMetric(?wxSYS_EDGE_X ,[{win,Win}]) +
+        wxSystemSettings:getMetric(?wxSYS_FRAMESIZE_X ,[{win,Win}]),
+    YBorder =
+    wxSystemSettings:getMetric(?wxSYS_BORDER_Y ,[{win,Win}]) +
+    wxSystemSettings:getMetric(?wxSYS_EDGE_Y ,[{win,Win}]) +
+        wxSystemSettings:getMetric(?wxSYS_FRAMESIZE_Y ,[{win,Win}]),
+    {Xborder,YBorder}.
+
+get_full_win_size(Win) ->
+    {Xborder,YBorder} = get_win_borders(Win),
+    {W,H} = wxWindow:getSize(Win),
+    {W-Xborder*2,H-YBorder}.
+
+set_full_win_size(Win,{W,H}) ->
+    {Xborder,YBorder} = get_win_borders(Win),
+    wxWindow:setSize(Win,{W+Xborder*2,H+YBorder}).
+
 resize_window(_St) ->
     {MaxWidth,MaxHeight} = wx_misc:displaySize(),
     MainWin = wings_frame:get_top_frame(),
@@ -64,13 +84,13 @@ resize_window(_St) ->
     PickWxInfo = fun(Name) ->
             WinTitle = wings_wm:get_prop(Name,title),
             case lists:keyfind(WinTitle,1,WxWins) of
-                {_,WxWin} -> {wxWindow:getSize(WxWin),WxWin};
+                {_,WxWin} -> {get_full_win_size(WxWin),WxWin};
                 false -> {wings_wm:win_size(Name),wx:null()}
             end
         end,
     WinToSel = [{"Wings3D App",main}] ++
                [{wings_wm:get_prop(Name,title),Name} || {Name,_,_,_} <- Free],
-    WinSize = [{main,{wxWindow:getSize(MainWin),MainWin}}] ++
+    WinSize = [{main,{get_full_win_size(MainWin),MainWin}}] ++
               [{Name,PickWxInfo(Name)} || {Name,_,_,_} <- Free],
 
     WinSizeHook = fun(Key,Val,Store) ->
@@ -132,7 +152,7 @@ resize_window(_St) ->
                         fun(Res)-> {tools,{resize_window,Res}} end).
 
 resize_window([{wxwin,WxWin},{win_to_sel,_},{win_size_opt,_},{width,W},{height,H}], _St) ->
-    wxWindow:setSize(WxWin,{W,H}),
+    set_full_win_size(WxWin,{W,H}),
     ok.
 
 %% Utils
