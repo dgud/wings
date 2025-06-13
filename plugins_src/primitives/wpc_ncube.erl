@@ -183,7 +183,7 @@ ngon_dialog() ->
     [{vframe, [
         {label_column, [
             {?__(3,"Number of Verts"), {slider, {text, NumVerts,
-                                                 [{key, numverts}, {range, {3, 20}}]}}}]
+                                                 [{key, numverts}, {range, {3, 100}}]}}}]
         },
         {vframe, [
             {hradio, [
