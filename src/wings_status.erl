@@ -51,7 +51,7 @@ update_theme() ->
 init([Frame]) ->
     try
 	SB0 = wxStatusBar:new(Frame),
-        SB = wx_object:set_pid(SB0, self()),
+	SB = wx_object:set_pid(SB0, self()),
 	SBG = wings_color:rgb4bv(wings_pref:get_value(info_line_bg)),
 	SFG = wings_color:rgb4bv(wings_pref:get_value(info_line_text)),
 	wxStatusBar:setBackgroundColour(SB, SBG),
@@ -61,6 +61,8 @@ init([Frame]) ->
 	wxStatusBar:setStatusStyles(SB, [?wxSB_FLAT, ?wxSB_NORMAL]),
 	wxFrame:setStatusBar(Frame, SB),
 	wxFrame:setStatusBarPane(Frame, 0),
+	%% this will "fix" the custom painting theme
+    wxWindow:connect(SB, paint, [{callback, fun custom_draw/2}]),
 	{SB, #state{sb=SB, frame=Frame}}
     catch _:Reason:ST ->
 	    io:format("Error ~p ~p ~n",[Reason, ST]),
@@ -103,6 +105,31 @@ code_change(_, _, State) ->
 terminate(_, _) ->
     ok.
 
+custom_draw(#wx{obj=Obj, event=#wxPaint{}}, _) ->
+    Size = wxWindow:getSize(Obj),
+    DC = case os:type() of
+             {win32, _} -> %% Flicker on windows
+                 wx:typeCast(wxBufferedPaintDC:new(Obj), wxPaintDC);
+             _ ->
+                 wxPaintDC:new(Obj)
+         end,
+    wxDC:setBackgroundMode(DC, ?wxBRUSHSTYLE_SOLID),
+    wxDC:clear(DC),
+    wxDC:setBackgroundMode(DC, ?wxBRUSHSTYLE_TRANSPARENT),
+    case wxStatusBar:getFieldsCount(Obj) of
+        2 ->
+            {true,{Xl,Yl,_,_Hl}} = wxStatusBar:getFieldRect(Obj, 0),
+            {true,{Xr,Yr,_Wr,_Hr}} = wxStatusBar:getFieldRect(Obj, 1),
+            wxDC:drawText(DC, wxStatusBar:getStatusText(Obj,[{number,0}]), {Xl+3,Yl+2}),
+            wxDC:drawText(DC, wxStatusBar:getStatusText(Obj,[{number,1}]), {Xr+3,Yr+2});
+        _ -> ok
+    end,
+    GrpPen = wxPen:new(wxSystemSettings:getColour(?wxSYS_COLOUR_3DSHADOW)),
+    wxDC:setPen(DC,GrpPen),
+    draw_grip(DC, Size, 3),
+    wxPen:destroy(GrpPen),
+    wxPaintDC:destroy(DC).
+
 update_status({value, Prev}, Prev, _SB) ->
     Prev;
 update_status(none, _, SB) ->
@@ -131,6 +158,11 @@ set_status(Msgs={Left, Right}, SB) ->
     wxStatusBar:setStatusText(SB, Left,  [{number, 0}]),
     wxStatusBar:setStatusText(SB, Right, [{number, 1}]),
     Msgs.
+
+draw_grip(_, _, 0) -> ok;
+draw_grip(DC, {W,H}=Size, C) ->
+    [wxDC:drawRectangle(DC, {W-(3*I)-1, H-(3*(4-C))-1}, {2,2}) || I <- lists:seq(C,1,-1)],
+    draw_grip(DC, Size, C-1).
 
 str(undefined, Old) -> Old;
 str(New, _) -> str_clean(New).
