@@ -25,7 +25,7 @@
 -import(lists, [sort/1,keysort/2,map/2,foldl/3,reverse/1,keysearch/3]).
 
 %% Exports to auv_seg_ui.
--export([init_show_maps/4]).
+-export([init_show_maps/4,init_show_maps/5]).
 %% Exports to auv_texture.
 -export([material_faces/1,get_textureset_info/1,remap_uv_tile/1]).
 
@@ -258,8 +258,11 @@ do_edit(MatName0, Mode, We0, #st{mat=Materials,shapes=Shs0}=GeomSt0) ->
     camera_reset(),
     new_geom_state(GeomSt, AuvSt).
 
-init_show_maps(Charts0, Fs, #we{name=WeName,id=Id}, GeomSt0) ->
-    Charts1 = auv_placement:place_areas(Charts0),
+init_show_maps(Charts0, Fs, We, GeomSt0) ->
+    init_show_maps(preserve, Charts0, Fs, We, GeomSt0).
+
+init_show_maps(UVMode, Charts0, Fs, #we{name=WeName,id=Id}, GeomSt0) ->
+    Charts1 = auv_placement:place_areas(UVMode,Charts0),
     Charts  = gb_trees:from_orddict(keysort(1, Charts1)),
     MatName0 = list_to_atom(WeName++"_auv"),
     {GeomSt1,MatName} = 

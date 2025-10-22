@@ -17,7 +17,7 @@
 -export([moveAndScale/5]).
 -export([outer_edges/2,outer_edges/3]).
 -export([number/1,number/2]).
--export([mark_segments/4,make_mat/1,seg_materials/0]).
+-export([mark_segments/4,make_mat/1,seg_materials/0, uv_mode/1]).
 
 -include_lib("wings/src/wings.hrl").
 -include("auv.hrl").
@@ -183,3 +183,6 @@ reuse_materials_1(Orig={_, Outer, Fs0}, [Keep = {_, Chart,Fs1}|Rest],
     end;
 reuse_materials_1({_, _, Combined}, [], Size, _We, Acc) ->
     {lists:reverse(Acc), Combined, Size}.
+
+uv_mode({camera,Mode}) -> Mode;
+uv_mode(_) -> arrange.
