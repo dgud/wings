@@ -615,10 +615,7 @@ command_menu(body, X, Y) ->
 	     ?__(3,"Move selected charts")},
 	    {?__(4,"Scale"), {scale, scale_directions(false) ++
                                   [separator] ++ stretch_directions() ++
-                                  [separator,
-                                   {?__(411,"Normalize Sizes"), normalize,
-                                    ?__(412,"Normalize Chart Sizes so that each"
-                                        "chart get it's corresponding 2d area")}]},
+                                  [separator] ++ normalize()},
 	     ?__(5,"Scale selected charts")},
 	    {?__(6,"Rotate"), {rotate,rotate_free(false)},
 	     {?__(7,"Rotate selected charts"),[],?__(59,"Pick rotation center")},[]},
@@ -752,6 +749,12 @@ stretch_directions() ->
      {?__(3,"Max Horizontal"), max_x, ?__(4,"Maximize horizontally (X dir)")},
      {?__(5,"Max Vertical"),   max_y, ?__(6,"Maximize vertically (Y dir)")}].
 
+normalize() ->
+    [{?__(411,"Normalize Sizes"), normalize_fun(),
+        {?__(412,"Normalize Chart Sizes so that each "
+            "chart get it's corresponding 2d area"),[],
+         ?__(413,"Normalize chart sizes by taking a reference into account")}}].
+
 move_directions(true) ->
     [{?__(1,"Free"), free_2d, ?__(2,"Move in both directions"), [magnet]},
      {?__(3,"Horizontal"), x, ?__(4,"Move horizontally (X dir)"), [magnet]},
@@ -829,6 +832,12 @@ max_uniform() ->
         (1, _Ns) -> {auv,{scale,max_uniform}};
         (2, _Ns) -> {auv,{scale,{max_uniform,x}}};
         (3, _Ns) -> {auv,{scale,{max_uniform,y}}}
+    end.
+
+normalize_fun() ->
+    fun
+        (1, _Ns) -> {auv,{scale,normalize}};
+        (3, _Ns) -> {auv,{scale,normalize_ref}}
     end.
 
 option_menu() ->
@@ -1222,6 +1231,9 @@ handle_command_1({scale,normalize}, St0) -> %% Normalize chart sizes
     Sh = lists:foldl(Scale, Sh0, List),
     St = update_selected_uvcoords(St0#st{shapes=Sh}),
     get_event(St);
+handle_command_1({scale,normalize_ref}, St) -> %% Normalize chart sizes using a reference
+    Sel = wings_sel:selected_ids(St),
+    wings:ask(normalize_ask(Sel), St, fun normalize_by_ref/2);
 handle_command_1({scale, {'ASK', Ask}}, St) ->
     wings:ask(Ask, St, fun({Dir,M},St0) when is_tuple(M), element(1,M) == magnet ->
 			       do_drag(wings_scale:setup({Dir,center,M}, St0));
@@ -1509,6 +1521,76 @@ do_drag({drag,Drag}) ->
     wings_drag:do_drag(Drag,none);
 do_drag(Other) ->
     Other.
+
+normalize_ask(OrigSel) ->
+    Fun = fun(check, St) ->
+                    case check_selection(OrigSel, St) of
+                        {Result,Msg} ->
+                            {Result,Msg};
+                        Msg ->
+                            {none,Msg}
+                    end;
+              (exit, {_,_,St}) ->
+                    case check_selection(OrigSel, St) of
+                      {{_,_,Id},_} ->
+                          {result,Id};
+                      _ ->
+                          error
+                    end
+          end,
+    {[{Fun,?__(1,"Pick the chart to be used as reference")}],[],[],[body]}.
+
+check_selection(Ids, #st{selmode=Mode}=St) ->
+    Sel = case Mode of
+              body -> Ids;
+              _ -> []
+          end,
+    MF = fun(_Items, #we{id=Id}) ->
+                case lists:member(Id, Sel) of
+                    true ->
+                        [wrong];
+                    false ->
+                        [{0,0,Id}]
+                end;
+            (_, _) ->
+                [wrong]
+         end,
+    RF = fun erlang:'++'/2,
+    case wings_sel:dfold(MF, RF, [], St) of
+        [] ->
+            ?__(1,"Nothing selected");
+        [wrong] ->
+            ?__(2,"Only unselected charts are allowed");
+        [Result] when is_tuple(Result) ->
+            {Result, ?__(3,"Reference chart picked")};
+        [_|_] ->
+            ?__(4,"Select only one chart")
+    end.
+
+normalize_by_ref(RefId, St0) ->
+    #st{shapes=Sh0, bb=#uvstate{id=Id,st=#st{shapes=Orig}}} = St0,
+    OWe = gb_trees:get(Id, Orig),
+    RWe = gb_trees:get(RefId, Sh0),
+    {RA2D,RA3D,_} = calc_areas(RWe,OWe,{0.0,0.0,[]}),
+    RScale = RA2D/RA3D,
+
+    {_,_,List} = wings_sel:fold(fun(_,We,Areas) ->
+                                        calc_areas(We,OWe,Areas)
+                                      end, {0.0,0.0,[]}, St0),
+    Scale = fun({A2D,A3D,We0 = #we{id=WId}},Sh) ->
+                Ri = A2D / wings_util:nonzero(A3D),
+                Scale = math:sqrt(RScale / Ri),
+                Center = wings_vertex:center(We0),
+                T0 = e3d_mat:translate(e3d_vec:neg(Center)),
+                SM = e3d_mat:scale(Scale, Scale, 1.0),
+                T1 = e3d_mat:mul(SM, T0),
+                T = e3d_mat:mul(e3d_mat:translate(Center), T1),
+                We = wings_we:transform_vs(T, We0),
+                gb_trees:update(WId,We,Sh)
+            end,
+    Sh = lists:foldl(Scale, Sh0, List),
+    St = update_selected_uvcoords(St0#st{shapes=Sh}),
+    get_event(St).
 
 tighten(#st{selmode=vertex}=St) ->
     tighten_1(fun vertex_tighten/2, St);
