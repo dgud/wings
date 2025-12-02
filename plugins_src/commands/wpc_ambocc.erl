@@ -19,6 +19,7 @@
 -export([init/0,menu/2,command/2]).
 
 -define(NEED_OPENGL, 1).
+-define(NEED_ESDL, 1).
 -include_lib("wings/src/wings.hrl").
 -include_lib("wings/e3d/e3d_image.hrl").
 
@@ -27,11 +28,14 @@ init() ->
 
 menu({tools}, Menu) ->
     Menu ++ [separator,{?__(1,"Ambient Occlusion"),ambient_occlusion,
-			?__(2,"Add Ambient-Occlusion vertex colors via OpenGL")}];
+			?__(2,"Add Ambient-Occlusion vertex colors via OpenGL") ++
+            "    " ++ wings_s:key(ctrl) ++ " " ++
+            ?__(3,"Blend to current vertex colors")}];
 menu(_, Menu) -> Menu.
 
 command({tools,ambient_occlusion}, St0) ->
-    St = ambient_occlusion(St0),
+    Mix = wings_io:is_modkey_pressed(?CTRL_BITS),
+    St = ambient_occlusion(St0, Mix),
     create_ambient_light(St);
 command(_Cmd, _) -> next.
 
@@ -40,7 +44,7 @@ command(_Cmd, _) -> next.
 -define(SAMPLE_SZ, 64).
 -define(NUM_SAMPLES, (?TEX_SZ div ?SAMPLE_SZ)).
 
-ambient_occlusion(St) ->
+ambient_occlusion(St, Mix) ->
     StartTime = os:timestamp(),
     gl:pushAttrib(?GL_ALL_ATTRIB_BITS),
     setup_gl(),
@@ -48,7 +52,7 @@ ambient_occlusion(St) ->
     DrawFun = make_disp_list(St),
     AO = AO_0#ao{df=DrawFun},
     #st{shapes=Shapes} = St,
-    ProcessObject = fun(_,We) -> process_obj(We, AO) end,
+    ProcessObject = fun(_,We) -> process_obj(We, AO, Mix) end,
     Shapes2 = ?SLOW(gb_trees:map(ProcessObject, Shapes)),
     St2 = St#st{shapes=Shapes2},
     cleanup(AO),
@@ -81,16 +85,16 @@ setup_shaders() ->
 cleanup(#ao{cleanup_fbo=Fbo}) ->
     wings_gl:delete_fbo(Fbo).
 
-process_obj(We, _) when ?IS_NOT_VISIBLE(We#we.perm) ->
+process_obj(We, _, _) when ?IS_NOT_VISIBLE(We#we.perm) ->
     We;
-process_obj(We, _) when ?IS_NOT_SELECTABLE(We#we.perm) ->
+process_obj(We, _, _) when ?IS_NOT_SELECTABLE(We#we.perm) ->
     We;
-process_obj(We, _) when ?IS_ANY_LIGHT(We) ->
+process_obj(We, _, _) when ?IS_ANY_LIGHT(We) ->
     case We#we.name =/= ambient() of
 	true -> We#we{perm=?PERM_HIDDEN_BIT};
 	false -> We
     end;
-process_obj(We0, AO) ->
+process_obj(We0, AO, Mix) ->
     #we{es=Etab,vp=Vtab,name=Name} = We0,
     io:fwrite(?__(1,"Processing: ~s\n"), [Name]),
     gl:clear(?GL_COLOR_BUFFER_BIT  bor ?GL_DEPTH_BUFFER_BIT),
@@ -98,7 +102,10 @@ process_obj(We0, AO) ->
     SetColor = fun(Edge, #edge{vs=Va,ve=Vb}, W) ->
 		       Color1 = array:get(Va, VertexColors),
 		       Color2 = array:get(Vb, VertexColors),
-		       wings_va:set_edge_color(Edge, Color1, Color2, W)
+		       case Mix of
+		           false -> wings_va:set_edge_color(Edge, Color1, Color2, W);
+		           true -> wings_va:blend_edge_color(Edge, Color1, Color2, W)
+		       end
 	       end,
     array:sparse_foldl(SetColor, We0, Etab).
 

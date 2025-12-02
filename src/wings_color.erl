@@ -18,7 +18,7 @@
 	 rgba_to_rgb/1, rgb3bv/1, rgb4bv/1, rgb3fv/1, rgb4fv/1,
          srgb_to_linear/1,
 	 hsb_to_rgb/3, lab_to_rgb/3, cmyk_to_rgb/4,
-	 def_palette/0
+	 def_palette/0, blend/2
 	]).
 
 -include("wings.hrl").
@@ -487,3 +487,33 @@ get_palette(_, _) -> [].
 %%     Sto = gb_trees:update(val, V, Sto6),
 %%     {store,Sto};
 %% eyepicker_update(_, _) -> void.
+
+blend({R0,G0,B0}, ColorToBlend) ->
+    {R,G,B,_} = blend_0({R0,G0,B0,1}, tuple_to_list(ColorToBlend)),
+    {R,G,B};
+blend(Color, ColorToBlend) ->
+    blend_0(Color, tuple_to_list(ColorToBlend)).
+
+blend_0({R,G,B,A}, [Gr0,Gr0,Gr0|_]) when is_integer(R) ->
+    {Gr,_,_} = rgb3bv({Gr0,Gr0,Gr0}),
+    Factor = Gr / 255,
+    {round(R * Factor),
+     round(G * Factor),
+     round(B * Factor),
+     A};
+blend_0({R,G,B,A}, [Rb0,Gb0,Bb0|_]) when is_integer(R) ->
+    {Rb,Gb,Bb} = rgb3bv({Rb0,Gb0,Bb0}),
+    {(R + Rb) div 2,
+        (G + Gb) div 2,
+        (B + Bb) div 2,
+        A};
+blend_0({R,G,B,A}, [Gr,Gr,Gr|_]) ->
+    {R * Gr,
+     G * Gr,
+     B * Gr,
+     A};
+blend_0({R,G,B,A}, [Rb,Gb,Bb|_]) ->
+    {(R + Rb) / 2,
+     (G + Gb) / 2,
+     (B + Bb) / 2,
+     A}.
