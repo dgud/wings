@@ -130,6 +130,8 @@ command({body,{?MODULE, Op}} , St) ->
     start_uvmap(Op, St);
 command({face,{?MODULE, Op}} , St) ->
     start_uvmap(Op, St);
+command({?MODULE, {continue,_}=Op}, St) ->
+    start_uvmap(Op, St);
 command({?MODULE, Op}, St) ->
     start_uvmap(Op, St);
 command({window,uv_editor_window}, St) ->
@@ -138,6 +140,12 @@ command(_Cmd, _) ->
     next.
 
 start_uvmap(edit, #st{sel=[]}) -> wings_u:error_msg(?__(1,"Nothing selected"));
+start_uvmap({continue,Action}, #st{sel=Sel}=St) ->
+    start_uvmap_1(Sel, Action, St);
+start_uvmap(Action, #st{sel=Sel}) when length(Sel) > 1 ->
+    Msg = ?__(2,"You have selected more than one object (~w).\n" ++
+                "Proceed with processing all selected items?"),
+    wings_u:yes_no(io_lib:format(Msg,[length(Sel)]), fun()-> {?MODULE, {continue,Action}} end);
 start_uvmap(Action, #st{sel=Sel}=St) ->
     start_uvmap_1(Sel, Action, St).
 
