@@ -32,7 +32,7 @@ browse_props() ->
 	    case os:type() of
 		{win32,_} -> 
 		    {extensions,[{".exe","Windows Executable"}]};
-		_-> {extensions,[]}
+		_-> {extensions,[{"","Executable"}]}
 	    end]}.
 
 %% Render formats that may be handled
