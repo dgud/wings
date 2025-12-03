@@ -19,7 +19,7 @@
 	 union/2, dist/2, intersect/2,
 	 center/1,max_extent/1,
 	 surface_area/1,volume/1,
-	 sphere/1,
+	 sphere/1,cylinder/4,
 	 inside/2, hit/2, hit/3, inv_sign/1]).
 
 %% Other Stuff
@@ -225,6 +225,20 @@ sphere(BB = {{_,_,_}, Max = {_,_,_}}) ->
 	 false -> 0.0
      end}.
 
+
+%%--------------------------------------------------------------------
+%% @doc Creates a bounding cylinder
+%% @end
+%%--------------------------------------------------------------------
+
+-spec cylinder(point(), number(), number(), vector()) -> e3d_bcylinder().
+cylinder(Center={_,_,_}, Radius, Height, Axis)
+  when is_number(Height), is_number(Radius) ->
+    Matrix = e3d_mat:rotate_s_to_t(Axis, {0.0,1.0,0.0}),
+    Center1=e3d_mat:mul_vector(Matrix,Center),
+    {Center1,Radius*Radius,Height*0.5,Matrix}.
+
+
 %%--------------------------------------------------------------------
 %% @doc Returns the center of the bounding volume
 %% @end
@@ -265,11 +279,17 @@ volume({Min = {Minx,_,_}, Max = {MaxX,_,_}}) ->
 %%--------------------------------------------------------------------
 -spec inside(point(), e3d_bv()) -> boolean().
 inside({V30,V31,V32}, {{V10,V11,V12}, {V20,V21,V22}}) ->
-    V10 >= V30 andalso V30 >= V20 andalso
-	V11 >= V31 andalso V31 >= V21 andalso
-	V12 >= V32 andalso V32 >= V22;
+    V10 =< V30 andalso V30 =< V20 andalso
+	V11 =< V31 andalso V31 =< V21 andalso
+	V12 =< V32 andalso V32 =< V22;
 inside(Point, {Center, DistSqr}) when is_number(DistSqr) ->
-    dist_sqr(Center, Point) =< DistSqr.
+    dist_sqr(Center, Point) =< DistSqr;
+inside(Point, {{CX,CY,CZ}=_Center, DistSqr, Height, Matrix})
+  when is_number(DistSqr), is_number(Height) ->
+    {X,Y,Z}=e3d_mat:mul_vector(Matrix,Point),
+    (abs(Y - CY) =< Height) andalso
+        (e3d_vec:dist_sqr({CX,Y,CZ}, {X,Y,Z}) =< DistSqr).
+
 
 %%--------------------------------------------------------------------
 %% @doc Returns the largest dimension of the bounding box,
