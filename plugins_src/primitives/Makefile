@@ -32,6 +32,7 @@ MODULES= \
 	wpc_cylinder \
 	wpc_geodome \
 	wpc_image \
+	wpc_image_contour \
 	wpc_knot \
 	wpc_ncube \
 	wpc_oblong \
