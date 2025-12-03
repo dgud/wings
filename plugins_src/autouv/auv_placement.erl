@@ -16,12 +16,39 @@
 -include_lib("wings/src/wings.hrl").
 -include("auv.hrl").
 
--export([place_areas/1,rotate_area/2,group_edge_loops/2]).
+-export([place_areas/1,place_areas/2,rotate_area/2,group_edge_loops/2]).
 
 -import(lists, [max/1,sort/1,map/2,reverse/1]).
 
+-define(HUGE, 1.0E307).
+-define(TINY, 1.0E-300).
+
 %% Returns a gb_tree with areas...
-place_areas(Areas0) ->
+place_areas(Areas) ->
+    place_areas(arrange, Areas).
+
+%% The 'preserve' mode will keep the projection layout for the UV islands
+place_areas(preserve, Areas0) ->
+    Measure = fun(We, [{Xmin0,Xmax0},{Ymin0,Ymax0}]) ->
+            [{Xmin,Xmax},{Ymin,Ymax}] = bbox(We),
+            [{min(Xmin,Xmin0),max(Xmax,Xmax0)},
+             {min(Ymin,Ymin0),max(Ymax,Ymax0)}]
+        end,
+    [{Xmin,Xmax},{Ymin,Ymax}] = lists:foldl(Measure, [{?HUGE,?TINY},{?HUGE,?TINY}], Areas0),
+    Dx = Xmax - Xmin,
+    Dy = Ymax - Ymin,
+    Max = if Dx > Dy -> Dx; true -> Dy end,
+    Scale  = 1 / Max,
+    {Areas1,Positions0} = lists:mapfoldl(fun(#we{id=Id,name=Ch}=We0, Acc)->
+                                [{Xmin0,Xmax0},{Ymin0,Ymax0}] = bbox(We0),
+                                Dx0 = (Xmax0-Xmin0)*Scale,
+                                Dy0 = (Ymax0-Ymin0)*Scale,
+                                Size = {Dx0,Dy0},
+                                We = We0#we{name=Ch#ch{size=Size}},
+                                {We,[{Id,{-Xmin,-Ymin}}|Acc]}
+                            end,[],Areas0),
+    move_and_scale_charts(Areas1, lists:sort(Positions0), Scale, []);
+place_areas(arrange, Areas0) ->
     Rotate = fun(#we{id=Id,name=Ch0}=We0, BBs) ->
 		     {{Dx,Dy}=Size,Vs} = center(We0),
 		     Ch = Ch0#ch{size=Size},
@@ -34,6 +61,11 @@ place_areas(Areas0) ->
 %    ?DBG("~p~n",[Positions0]),
     Scale  = 1 / max(Max),
     move_and_scale_charts(Areas1, lists:sort(Positions0), Scale, []).
+
+bbox(#we{vp=VTab}) ->
+    VL = array:sparse_to_orddict(VTab),
+    {{_,Xmin},{_,Xmax},{_,Ymin},{_,Ymax}} = auv_util:maxmin(VL),
+    [{Xmin,Xmax},{Ymin,Ymax}].
 
 center(#we{vp=VTab}) ->
     VL = array:sparse_to_orddict(VTab),
