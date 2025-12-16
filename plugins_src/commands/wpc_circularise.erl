@@ -478,6 +478,8 @@ circle_setup_2(Vs0, #we{vp=Vtab}=We, Plane, State, Acc0) ->
     Data = {Center,Ray,NearestVpos,Axis,VertDegList},
     [{Vs,make_circular_fun(Data, State)}|Acc0].
 
+%%% arc_mirrored_setu will make an arc on the mirror boundaries
+%%% to act like it was a full circle
 arc_mirrored_setup(Vs0, #we{vp=Vtab}=We, Plane, State, Acc0) ->
     Matrix = wings_dl:mirror_matrix(We#we.id),
     {Ps0, PsMirror0} =
@@ -494,8 +496,9 @@ arc_mirrored_setup(Vs0, #we{vp=Vtab}=We, Plane, State, Acc0) ->
     Vs = check_vertex_order(Vs0, Axis, CwNorm),
     Center = e3d_vec:average(Ps),
     Deg = 180.0/(length(Vs)-1),
-    {Pos,NearestVpos,Index} = get_radius(mirrored, Vs, Center, Axis, Vtab, 0.0, 0.0, raypos, lastpos, firstpos, 0.0, index),
-    VertDegList = degrees_from_static_ray(Vs, Vtab, -Deg, trunc(Index), 1.0, []),
+    {Pos,NearestVpos,AtIndex} = get_radius(mirrored, Vs, Center, Axis, Vtab, 0.0, 0.0, raypos, lastpos, firstpos, 0.0, index),
+    %% 'AtIndex' may contain decimals values which must be ignored
+    VertDegList = degrees_from_static_ray(Vs, Vtab, -Deg, trunc(AtIndex), 1.0, []),
     Ray = e3d_vec:norm_sub(Pos, Center),
     Data = {Center,Ray,NearestVpos,Axis,VertDegList},
     [{Vs,make_circular_fun(Data, State)}|Acc0].
@@ -507,17 +510,17 @@ check_mirror(Edges, We) ->
                 end, true, VsList).
 
 is_mirror(_, #we{mirror=none}) -> false;
-is_mirror([V|_]=VsList, We) when is_tuple(V) ->
+is_mirror([{_,_,_}|_]=VsList, We) ->
     {Vs,_} = arc_vs(VsList, [], []),
     is_mirror(Vs,We);
-is_mirror(Vs0, #we{mirror=Mirror}=We) ->
+is_mirror(Vs, #we{mirror=Mirror}=We) ->
     MirrorVs0 = wings_face:vertices_cw(Mirror, We),
-    [Vb|Vs] = Vs0,
+    [Vb|_] = Vs,
     [Ve|_] = lists:reverse(Vs),
     lists:member(Vb,MirrorVs0) and lists:member(Ve,MirrorVs0).
 
 process_mixed(Groups,We) ->
-    lists:foldl(fun(Edges, Acc) ->
+    lists:foldr(fun(Edges, Acc) ->
         Es = [E || {E,_,_} <- Edges],
         case wings_edge_loop:edge_loop_vertices(Es, We) of
             none ->
@@ -529,7 +532,7 @@ process_mixed(Groups,We) ->
                 end;
             [Group] -> [Group|Acc]
         end
-                end, [], Groups).
+    end, [], Groups).
 
 %% Tent arc for open edge loops that have a ccw normal of {0,0,0}
 tent_arc(Edges, [_,V2|_], Norm, #we{vp=Vtab}=We) ->
@@ -603,7 +606,7 @@ find_stable_point([_|Vs], RayV, Vtab, Index) ->
 
 
 %%%% Return the Index and Position of the Vertex or midpoint between adjacent
-%%%% vertices closeest to the Center. Distance calculation is made after the
+%%%% vertices closest to the Center. Distance calculation is made after the
 %%%% point in question is flattened to the relevant Plane.
 get_radius(Mode, [], Center, _, _, RayLen0, NearestVert, Pos, LastPos, FirstPos, AtIndex, Index) ->
     HalfPos =
