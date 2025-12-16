@@ -752,7 +752,7 @@ stretch_directions() ->
 normalize() ->
     [{?__(411,"Normalize Sizes"), normalize_fun(),
         {?__(412,"Normalize Chart Sizes so that each "
-            "chart get it's corresponding 2d area"),[],
+            "chart get its corresponding 2d area"),[],
          ?__(413,"Normalize chart sizes by taking a reference into account")}}].
 
 move_directions(true) ->
@@ -1572,17 +1572,17 @@ normalize_by_ref(RefId, St0) ->
     OWe = gb_trees:get(Id, Orig),
     RWe = gb_trees:get(RefId, Sh0),
     {RA2D,RA3D,_} = calc_areas(RWe,OWe,{0.0,0.0,[]}),
-    RScale = RA2D/RA3D,
+    RScale = RA2D/wings_util:nonzero(RA3D),
 
     {_,_,List} = wings_sel:fold(fun(_,We,Areas) ->
                                         calc_areas(We,OWe,Areas)
                                       end, {0.0,0.0,[]}, St0),
     Scale = fun({A2D,A3D,We0 = #we{id=WId}},Sh) ->
                 Ri = A2D / wings_util:nonzero(A3D),
-                Scale = math:sqrt(RScale / Ri),
+                ScaleFactor = math:sqrt(RScale / wings_util:nonzero(Ri)),
                 Center = wings_vertex:center(We0),
                 T0 = e3d_mat:translate(e3d_vec:neg(Center)),
-                SM = e3d_mat:scale(Scale, Scale, 1.0),
+                SM = e3d_mat:scale(ScaleFactor, ScaleFactor, 1.0),
                 T1 = e3d_mat:mul(SM, T0),
                 T = e3d_mat:mul(e3d_mat:translate(Center), T1),
                 We = wings_we:transform_vs(T, We0),
