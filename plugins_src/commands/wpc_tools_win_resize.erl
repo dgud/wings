@@ -33,9 +33,13 @@ parse([],MenuNew,false) ->
     MenuNew ++ [separator|draw_menu()];
 parse([{_,screenshot,_,_}=ScreenShot|Rest],MenuNew,_) ->
     MenuNew2 = MenuNew ++ [ScreenShot],
-    [Now|Rest2] = Rest,
-    MenuNew3 = MenuNew2 ++ draw_menu() ++ [Now],
-    parse(Rest2,MenuNew3,true);
+    case Rest of
+        [Now|Rest2] ->
+            MenuNew3 = MenuNew2 ++ draw_menu() ++ [Now],
+            parse(Rest2,MenuNew3,true);
+        [] ->
+            MenuNew2 ++ draw_menu()
+    end;
 parse([First|Rest],MenuNew,State) ->
     MenuNew2 = MenuNew ++ [First],
     parse(Rest,MenuNew2,State).
@@ -55,24 +59,24 @@ command(_,_) -> next.
 %%
 
 get_win_borders(Win) ->
-    Xborder =
-    wxSystemSettings:getMetric(?wxSYS_BORDER_X ,[{win,Win}]) +
-    wxSystemSettings:getMetric(?wxSYS_EDGE_X ,[{win,Win}]) +
+    XBorder =
+        wxSystemSettings:getMetric(?wxSYS_BORDER_X ,[{win,Win}]) +
+        wxSystemSettings:getMetric(?wxSYS_EDGE_X ,[{win,Win}]) +
         wxSystemSettings:getMetric(?wxSYS_FRAMESIZE_X ,[{win,Win}]),
     YBorder =
-    wxSystemSettings:getMetric(?wxSYS_BORDER_Y ,[{win,Win}]) +
-    wxSystemSettings:getMetric(?wxSYS_EDGE_Y ,[{win,Win}]) +
+        wxSystemSettings:getMetric(?wxSYS_BORDER_Y ,[{win,Win}]) +
+        wxSystemSettings:getMetric(?wxSYS_EDGE_Y ,[{win,Win}]) +
         wxSystemSettings:getMetric(?wxSYS_FRAMESIZE_Y ,[{win,Win}]),
-    {Xborder,YBorder}.
+    {XBorder,YBorder}.
 
 get_full_win_size(Win) ->
-    {Xborder,YBorder} = get_win_borders(Win),
+    {XBorder,YBorder} = get_win_borders(Win),
     {W,H} = wxWindow:getSize(Win),
-    {W-Xborder*2,H-YBorder}.
+    {W-XBorder*2,H-YBorder}.
 
 set_full_win_size(Win,{W,H}) ->
-    {Xborder,YBorder} = get_win_borders(Win),
-    wxWindow:setSize(Win,{W+Xborder*2,H+YBorder}).
+    {XBorder,YBorder} = get_win_borders(Win),
+    wxWindow:setSize(Win,{W+XBorder*2,H+YBorder}).
 
 resize_window(_St) ->
     {MaxWidth,MaxHeight} = wx_misc:displaySize(),
@@ -80,7 +84,7 @@ resize_window(_St) ->
     {_, Free} = wx_object:call(wings_frame, get_windows),
 
     Wins0 = wxWindow:getChildren(MainWin),
-    WxWins = [{wxWindow:getLabel(Win),Win} || Win <- Wins0, wxWindow:getLabel(Win)=/=[]],
+    WxWins = [{wxWindow:getLabel(Win),Win} || Win <- Wins0, wxWindow:getLabel(Win) =/= []],
     PickWxInfo = fun(Name) ->
             WinTitle = wings_wm:get_prop(Name,title),
             case lists:keyfind(WinTitle,1,WxWins) of
@@ -106,7 +110,7 @@ resize_window(_St) ->
                 wings_dialog:enable(pnl_resize, Opt==custom, Store),
                 wings_dialog:update(pnl_resize, Store);
             win_size_opt ->
-                if Val=/=custom ->
+                if Val =/= custom ->
                     {W,H} = id_to_size(Val);
                 true ->
                     Win = wings_dialog:get_value(win_to_sel,Store),
