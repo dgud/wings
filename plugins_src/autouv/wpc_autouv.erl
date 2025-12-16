@@ -824,7 +824,7 @@ align_menu() ->
        {?__(17,"Top"), top, ?__(96,"Align to top")},
        {?__(19,"Left"), left, ?__(97,"Align to left")},
        {?__(21,"Right"), right, ?__(98,"Align to right")}
-      ]}, ?__(94,"Align charts relative each other")}.
+      ]}, ?__(94,"Align charts relative to each other")}.
 
 bend_submenu_items() ->
     {bend,{plastic_bend,noclamp},
@@ -2448,15 +2448,23 @@ do_arrange(AlnOfs, Ofs, VsPos, Acc0) ->
             [{V,Pos}|Acc]
           end, Acc0, VsPos).
 
-calc_vert_ofs(_,_,_,_, {false,false,false}) -> {0.0,0.0,0.0};
-calc_vert_ofs({_,BScY,_},{_,BOcY,_},{_,BSdH,_},{_,BOdH,_}, {true,false,false}) -> {0.0,-((BOcY-BScY)+(BSdH-BOdH)/2),0.0};
-calc_vert_ofs({_,BScY,_},{_,BOcY,_},_,_, {false,true,false}) -> {0.0,-(BOcY-BScY),0.0};
-calc_vert_ofs({_,BScY,_},{_,BOcY,_},{_,BSdH,_},{_,BOdH,_}, {false,false,true}) -> {0.0,(BScY-BOcY)+(BSdH-BOdH)/2,0.0}.
+calc_vert_ofs(_, _, _, _, {false,false,false}) ->
+        {0.0,0.0,0.0};
+calc_vert_ofs({_,BScY,_}, {_,BOcY,_}, {_,BSdH,_}, {_,BOdH,_}, {true,false,false}) ->
+    {0.0,-((BOcY-BScY)+(BSdH-BOdH)/2),0.0};
+calc_vert_ofs({_,BScY,_}, {_,BOcY,_}, _, _, {false,true,false}) ->
+    {0.0,-(BOcY-BScY),0.0};
+calc_vert_ofs({_,BScY,_}, {_,BOcY,_}, {_,BSdH,_}, {_,BOdH,_}, {false,false,true}) ->
+    {0.0,(BScY-BOcY)+(BSdH-BOdH)/2,0.0}.
 
-calc_hrz_ofs(_,_,_,_, {false,false,false}) -> {0.0,0.0,0.0};
-calc_hrz_ofs({BScX,_,_},{BOcX,_,_},{BSdW,_,_},{BOdW,_,_}, {true,false,false}) -> {(BScX-BOcX)+((BSdW-BOdW)/2),0.0,0.0};
-calc_hrz_ofs({BScX,_,_},{BOcX,_,_},_,_, {false,true,false}) -> {(BScX-BOcX),0.0,0.0};
-calc_hrz_ofs({BScX,_,_},{BOcX,_,_},{BSdW,_,_},{BOdW,_,_}, {false,false,true}) -> {(BScX-BOcX)-((BSdW-BOdW)/2),0.0,0.0}.
+calc_hrz_ofs(_, _, _, _, {false,false,false}) ->
+    {0.0,0.0,0.0};
+calc_hrz_ofs({BScX,_,_}, {BOcX,_,_}, {BSdW,_,_}, {BOdW,_,_}, {true,false,false}) ->
+    {(BScX-BOcX)+((BSdW-BOdW)/2),0.0,0.0};
+calc_hrz_ofs({BScX,_,_}, {BOcX,_,_} , _, _, {false,true,false}) ->
+    {(BScX-BOcX),0.0,0.0};
+calc_hrz_ofs({BScX,_,_}, {BOcX,_,_}, {BSdW,_,_}, {BOdW,_,_}, {false,false,true}) ->
+    {(BScX-BOcX)-((BSdW-BOdW)/2),0.0,0.0}.
 
 %%% Arrange modes
 arrange_modes(Dir) ->
@@ -2471,6 +2479,8 @@ arrange_modes(Dir) ->
 
 %%%% Mode Help
 arrange_mode_help(Dir,State) ->
+    %% FIXME: for some strange reason, without the following command
+    %% the status values are not updated regards to the selection
     io:format(" "),
     ["[1] " ++ arrange_help(1,State,arrange_help(1,Dir)),
      "  [2] " ++ arrange_help(2,State,arrange_help(2,Dir)),
