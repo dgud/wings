@@ -42,7 +42,7 @@ menu(X, Y, St) ->
 	    cut_line(St),
 	    {?__(6,"Connect"),connect(),
 	     	{?__(7,"Create a new edge by connecting midpoints of selected edges"),
-			 ?__(26,"Create multiple parallel edges by connecting selected edges."),
+			 ?__(26,"Create multiple parallel edges by connecting selected edges"),
 		 	 ?__(25,"Create a new edge and slides it along neighbor edges")},[]},
 	    {?__(8,"Bevel"),bevel,
 	     ?__(9,"Round off selected edges")},
@@ -230,7 +230,6 @@ connect_multiple_1(Es0, We) ->
 	Es2 = remove_nonconnectable(Es1, Es0, We, []),
 	Es = gb_sets:from_list(Es2),
 	{We#we{temp={0,Es,We}},Es}.
-
 
 connect_slide(St0) ->
     St = wings_sel:map_update_sel(fun connect/2, St0),

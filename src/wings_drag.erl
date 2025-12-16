@@ -1399,7 +1399,7 @@ trim([[_|_]=H|T]) ->
 trim(S) -> S.
 
 normalize(Move, #drag{mode_fun=ModeFun,mode_data=ModeData,
-		      st=#st{shapes=Shs0,sel=Sel0}=St}) ->
+            st=#st{shapes=Shs0,sel=Sel0}=St}) ->
     ModeFun(done, ModeData),
     gl:disable(gl_rescale_normal()),
     {Shs,Sel} = wings_dl:map(fun(D, Sh) ->
@@ -1410,7 +1410,7 @@ normalize(Move, #drag{mode_fun=ModeFun,mode_data=ModeData,
     end,
     St#st{shapes=Shs,sel=Sel}.
 
-normalize_fun(#dlo{drag=none}=D, _Move, Shs) -> {D,Shs};
+normalize_fun(#dlo{drag=none}=D, _Move, ShsSel) -> {D,ShsSel};
 normalize_fun(#dlo{drag={matrix,_,_,_},transparent=#we{id=Id}=We,
 		   proxy_data=PD}=D0, _Move, {Shs0,Sel}) when ?IS_LIGHT(We) ->
     Shs = gb_trees:update(Id, We, Shs0),
