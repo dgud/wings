@@ -927,8 +927,8 @@ set_position(mouse, Dialog) ->
 
     case wxDisplay:getFromPoint(Pt) of
         ?wxNOT_FOUND ->
-            io:format("Not found - getFromPoint: ~p ~n",[Pt]),
-            ok;
+            io:format("Not found - wxDisplay:getFromPoint(~p)~n",[Pt]),
+            set_position(center, Dialog);
         Did ->
             Display = wxDisplay:new(Did),
             {X,Y,W,H} = wxDisplay:getGeometry(Display),
