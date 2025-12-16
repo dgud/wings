@@ -187,7 +187,7 @@ seg_mode_menu(face, _, Tail) ->
 	 separator,
 	 {?__(5,"Select"),{select,Menu0}},
      {?__(6,"Switch to AuvChart"),color_mode,
-      ?__(7,"When the texture is displayed, it switches to showing colors instead.")}|Tail],
+      ?__(7,"Display UV charts with colored segments instead of textures.")}|Tail],
     [separator|Menu].
 
 seg_event_4(Ev, Ss) ->
