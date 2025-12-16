@@ -305,7 +305,7 @@ set_edge_color(Edge, LeftCol, RightCol, #we{lv=Lva0,rv=Rva0}=We) ->
     Rva = set_color(Edge, RightCol, Rva0),
     We#we{lv=Lva,rv=Rva}.
 
-%% mix_edge_color(Edge, LeftColor, RightColor, We0) -> We
+%% blend_edge_color(Edge, LeftColor, RightColor, We0) -> We
 %%  Blend the current vertex colors and the new color to the edge.
 blend_edge_color(Edge, LeftCol, RightCol, #we{lv=Lva0,rv=Rva0}=We) ->
     Lva = blend_color(Edge, LeftCol, Lva0),
