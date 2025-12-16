@@ -26,6 +26,12 @@
 
 -behaviour(wx_object).
 
+-define(TEXT_PADDING_X, 3).
+-define(TEXT_PADDING_Y, 2).
+-define(GRIP_DOT_SIZE, 2).
+-define(GRIP_DOT_SPACING, 3).
+-define(GRIP_ROWS, 3).
+
 start_link() ->
     Status = wx_object:start_link({local,?MODULE}, ?MODULE, [wings_frame:get_top_frame()], []),
     {ok, wx_object:get_pid(Status)}.
@@ -109,24 +115,35 @@ custom_draw(#wx{obj=Obj, event=#wxPaint{}}, _) ->
     Size = wxWindow:getSize(Obj),
     DC = case os:type() of
              {win32, _} -> %% Flicker on windows
-                 wx:typeCast(wxBufferedPaintDC:new(Obj), wxPaintDC);
+                 BufferedDC = wxBufferedPaintDC:new(Obj),
+                 wx:typeCast(BufferedDC, wxPaintDC);
              _ ->
+                 BufferedDC = none,
                  wxPaintDC:new(Obj)
          end,
+    SBG = wings_color:rgb4bv(wings_pref:get_value(info_line_bg)),
+    Brush = wxBrush:new(SBG),
+    wxDC:setBackground(DC, Brush),
     wxDC:clear(DC),
     case wxStatusBar:getFieldsCount(Obj) of
         2 ->
             {true,{Xl,Yl,_,_Hl}} = wxStatusBar:getFieldRect(Obj, 0),
             {true,{Xr,Yr,_Wr,_Hr}} = wxStatusBar:getFieldRect(Obj, 1),
-            wxDC:drawText(DC, wxStatusBar:getStatusText(Obj,[{number,0}]), {Xl+3,Yl+2}),
-            wxDC:drawText(DC, wxStatusBar:getStatusText(Obj,[{number,1}]), {Xr+3,Yr+2});
+            wxDC:drawText(DC, wxStatusBar:getStatusText(Obj,[{number,0}]), {Xl+?TEXT_PADDING_X,Yl+?TEXT_PADDING_Y}),
+            wxDC:drawText(DC, wxStatusBar:getStatusText(Obj,[{number,1}]), {Xr+?TEXT_PADDING_X,Yr+?TEXT_PADDING_Y});
         _ -> ok
     end,
     GrpPen = wxPen:new(wxSystemSettings:getColour(?wxSYS_COLOUR_3DSHADOW)),
     wxDC:setPen(DC,GrpPen),
-    draw_grip(DC, Size, 3),
+    draw_grip(DC, Size, ?GRIP_ROWS),
     wxPen:destroy(GrpPen),
-    wxPaintDC:destroy(DC).
+    wxBrush:destroy(Brush),
+    case os:type() of
+        {win32, _} -> %% Flicker on windows
+            wxBufferedPaintDC:destroy(BufferedDC);
+        _ ->
+            wxPaintDC:destroy(DC)
+    end.
 
 update_status({value, Prev}, Prev, _SB) ->
     Prev;
@@ -159,7 +176,8 @@ set_status(Msgs={Left, Right}, SB) ->
 
 draw_grip(_, _, 0) -> ok;
 draw_grip(DC, {W,H}=Size, C) ->
-    [wxDC:drawRectangle(DC, {W-(3*I)-1, H-(3*(4-C))-1}, {2,2}) || I <- lists:seq(C,1,-1)],
+    [wxDC:drawRectangle(DC, {W-(?GRIP_DOT_SPACING*I)-1, H-(?GRIP_DOT_SPACING*(4-C))-1},
+                        {?GRIP_DOT_SIZE,?GRIP_DOT_SIZE}) || I <- lists:seq(C,1,-1)],
     draw_grip(DC, Size, C-1).
 
 str(undefined, Old) -> Old;
