@@ -185,7 +185,9 @@ seg_mode_menu(face, _, Tail) ->
     Menu = Menu0 ++
 	[{?__(4,"Ignore Faces"), ignore_faces},
 	 separator,
-	 {?__(5,"Select"),{select,Menu0}}|Tail],
+	 {?__(5,"Select"),{select,Menu0}},
+     {?__(6,"Switch to AuvChart"),color_mode,
+      ?__(7,"Display UV charts with colored segments instead of textures.")}|Tail],
     [separator|Menu].
 
 seg_event_4(Ev, Ss) ->
@@ -276,6 +278,9 @@ filter_sel_command(#seg{selmodes=Modes}=Ss, #st{selmode=Mode}=St) ->
 
 seg_command({continue,Method}, Ss) ->
     seg_map_charts(Method, Ss);
+seg_command(color_mode, #seg{st=St0}=Ss) ->
+    St = color_mode(St0),
+    get_seg_event(Ss#seg{st=St});
 seg_command(cut_edges, #seg{st=St0}=Ss) ->
     St = wings_edge_cmd:hardness(hard, St0),
     get_seg_event(Ss#seg{st=St});
@@ -421,6 +426,12 @@ seg_map_charts_1([],_, _, _,Charts0,Failed,
 		    get_seg_event(seg_init_message(Ss#seg{st=St,fs=Keep,orig_st=GeomSt}))
 	    end
     end.
+
+color_mode(#st{shapes=Shs}=St) ->
+    [We] = gb_trees:values(Shs),
+    {Faces,FvUvMap} = auv_segment:fv_to_uv_map(object,We),
+    {Charts,Cuts} = auv_segment:uv_to_charts(Faces, FvUvMap, We),
+    auv_util:mark_segments(Charts, Cuts, We, St).
 
 segment(Mode, #st{shapes=Shs}=St) ->
     [We] = gb_trees:values(Shs),
