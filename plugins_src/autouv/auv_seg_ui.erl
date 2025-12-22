@@ -205,6 +205,11 @@ seg_event_5(Ev, #seg{st=St0}=Ss) ->
 seg_event_6({new_state,St}, Ss) ->
     get_seg_event(Ss#seg{st=St});
 
+seg_event_6({new_orig_state,{Id,#st{shapes=Shp1,mat=TMat}}}, #seg{orig_st=#st{shapes=Shp0}=St}=Ss) ->
+    We = gb_trees:get(Id,Shp1),
+    Shp = gb_trees:enter(Id,We,Shp0),
+    get_seg_event(Ss#seg{orig_st=St#st{shapes=Shp,mat=TMat}});
+
 seg_event_6({action,{view,Cmd}}, #seg{st=St0}=Ss) ->
     case Cmd of
     aim -> 

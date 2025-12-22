@@ -283,6 +283,7 @@ init_show_maps(Charts0, Fs, #we{name=WeName,id=Id}, GeomSt0) ->
     case wings_wm:is_window(EditWin) of
 	true ->
 	    wings_wm:send(EditWin, {add_faces,Fs,GeomSt}),
+	    update_all_seg_ui(all, Id, GeomSt),
 	    wings_wm:send(geom, {new_state,GeomSt});
 	false ->
 	    %% we are going to ensure to open the AutoUV window in the same
@@ -293,6 +294,7 @@ init_show_maps(Charts0, Fs, #we{name=WeName,id=Id}, GeomSt0) ->
 	    Pos = wxWindow:clientToScreen(SegWin,X0,Y0),
 	    Win = create_window({edit,Fs}, EditWin, Id, GeomSt),
 	    wxWindow:move(Win,Pos),
+	    update_all_seg_ui(SegWin, Id, GeomSt),
 	    wings_wm:send(geom, {new_state,GeomSt})
     end,
     GeomSt.
@@ -481,6 +483,7 @@ update_selected_uvcoords(#st{bb=Uvs}=St) ->
     We = update_uvs(Charts, We0),    
     Shs = gb_trees:update(Id, We, Shs0),
     GeomSt = GeomSt0#st{shapes=Shs},
+    update_all_seg_ui(all, Id, GeomSt),
     wings_wm:send(geom, {new_state,GeomSt}),
     clear_temp_sel(St#st{bb=Uvs#uvstate{st=GeomSt}}).
 
@@ -2829,3 +2832,20 @@ camera_reset() ->
                                      distance=Dist,
                                      pan_x=0.0,pan_y=0.0,
                                      along_axis=none}).
+
+%% When multiple 'AutoUV Segmenting' windows are open, this function ensures that all of them
+%% keep their #ss.orig_st field updated with the latest UV state. This prevents the field from
+%% being overridden when concluding a new segmentation, which previously caused users to lose
+%% the work they had already done in an active 'AutoUV Edit' window.
+update_all_seg_ui(SegWin, Id, St) ->
+    All = wings_wm:windows(),
+    Filter = fun(Name) when Name =:= SegWin -> false;
+                ({autouv,{segment,_}}) -> true;
+                (_) -> false
+             end,
+    case lists:filter(Filter, All) of
+        [] ->
+            ok;
+        SegAuv0 ->
+            [wings_wm:send(Name,{new_orig_state,{Id,St}}) || Name <- SegAuv0]
+    end.
