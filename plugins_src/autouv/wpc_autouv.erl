@@ -689,6 +689,7 @@ command_menu(edge, X, Y) ->
 command_menu(vertex, X, Y) ->
     Scale = scale_directions(true),
     Move = move_directions(true),
+    Flatten = flatten_directions(),
     Align =
         [{?__(70,"Free"),rotate_free(true),
           {?__(71,"Rotate selection freely"),[],?__(59,"Pick rotation center")}, [magnet]},
@@ -701,10 +702,7 @@ command_menu(vertex, X, Y) ->
 	    {?__(79,"Scale"),{scale,Scale},?__(80,"Scale selected vertices"), [magnet]},
 	    {?__(81,"Rotate"),{rotate,Align},?__(82,"Rotation commands")},
 	    separator,
-	    {?__(83,"Flatten"),{flatten,
-                                [{"X", x, ?__(84,"Flatten horizontally")},
-                                 {"Y", y, ?__(85,"Flatten vertically")}]},
-	     ?__(86,"Flatten selected vertices")},
+	    {?__(83,"Flatten"),{flatten,Flatten},?__(86,"Flatten selected vertices")},
         align_menu(),
         {?__(76,"Bend"),bend_submenu_items(),?__(93,"Plastic Bend")},
 	    {?__(87,"Tighten"),tighten,
@@ -778,6 +776,12 @@ scale_directions(false) ->
      {?__(5,"Vertical"),   scale(y,[]),
       {?__(6,"Scale vertically (Y dir)"),[],ChosePoint}}].
 
+flatten_directions() ->
+    ChosePoint = ?__(7,"Choose point to flatten to"),
+    [{"X", flatten(x), {?__(1,"Flatten horizontally"), [], ChosePoint}},
+     {"Y", flatten(y), {?__(2,"Flatten vertically"), [], ChosePoint}},
+     {"Pick", flatten(pick), ?__(3,"Pick orientation and target")}].
+
 uniform_scale(Flags) ->
     fun(B, Ns) ->
         case B of
@@ -790,6 +794,23 @@ scale(Axis, Flags) ->
         case B of
             1 -> wings_menu:build_command({'ASK',{[],[center,Axis],Flags}}, Ns);
             _ -> wings_menu:build_command({'ASK',{[point],[Axis],Flags}}, Ns)
+        end
+    end.
+
+flatten(pick) ->
+    Params = [{axis, ?__(3,"Pick the direction")},
+              {point, ?__(4,"Pick the vertex to flatten toward")}],
+    fun(B, Ns) ->
+        case B of
+            1 -> wings_menu:build_command({'ASK',{Params,[],[]}}, Ns);
+            _ -> ok
+        end
+    end;
+flatten(Axis) ->
+    fun(B, Ns) ->
+        case B of
+            1 -> wings_menu:build_command({flatten,Axis}, Ns);
+            _ -> wings_menu:build_command({'ASK',{[point],[Axis],[]}}, Ns)
         end
     end.
 
@@ -1308,9 +1329,7 @@ handle_command_1(delete, St) ->
 handle_command_1(hide, St) ->
     get_event(hide_charts(St));
 handle_command_1({flatten, Plane}, St0 = #st{selmode=vertex}) ->
-    {save_state, St1} = wings_vertex_cmd:flatten(Plane, St0),
-    St = update_selected_uvcoords(St1),
-    get_event(St);
+    flatten(Plane,St0);
 handle_command_1(stitch, St0 = #st{selmode=edge}) ->
     Es = wpa:sel_fold(fun(Es,We=#we{name=#ch{emap=Emap},es=Etab},A) ->
 			      Vis = gb_sets:from_list(wings_we:visible(We)),
@@ -1460,6 +1479,7 @@ repeatable({tighten,_}, Mode) ->
 repeatable(delete, Mode) -> Mode == body;
 repeatable(hide, Mode) -> Mode == body;
 repeatable(flatten, Mode) -> Mode == edge;
+repeatable({flatten_}, Mode) -> Mode == vertex;
 repeatable(stitch, Mode) ->  Mode == edge;
 repeatable(cut_edges, Mode) -> Mode == edge;
 repeatable(_Cmd,_Mode) ->
@@ -1509,6 +1529,13 @@ do_drag({drag,Drag}) ->
     wings_drag:do_drag(Drag,none);
 do_drag(Other) ->
     Other.
+
+flatten({'ASK',Ask}, St) ->
+    wings:ask(Ask, St, fun flatten/2);
+flatten(Plane, St0) ->
+    {save_state, St1} = wings_vertex_cmd:flatten(Plane, St0),
+    St = update_selected_uvcoords(St1),
+    get_event(St).
 
 tighten(#st{selmode=vertex}=St) ->
     tighten_1(fun vertex_tighten/2, St);
