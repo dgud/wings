@@ -58,6 +58,7 @@ MODULES= \
 	wpc_rotate_unconstrained \
 	wpc_sculpt \
 	wpc_sel_absolute \
+	wpc_sel_fill \
 	wpc_sel_win \
 	wpc_shear \
 	wpc_shift \
