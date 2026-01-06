@@ -220,15 +220,15 @@ setup_vcredist(BitSize, Root) ->
                          _File -> io:format("Wrong vcredist file: ~p expected ~p~n",[_File, File]),
                                   exit({bad, vcredist_file})
                      end,
-                     "\\'" ++ wsl_path(VCRedist) ++ "\\'";
+                     VCRedist;
                  _ ->
                      Quoted0 = filename:join(filename:dirname(VCRedist0), File),
                      "\"" ++ string:join(string:tokens(Quoted0, "/"), "\\\\") ++ "\""
              end,
-    CMD = "wmic.exe datafile where name=" ++ Quoted ++ " get version",
+    CMD = "powershell.exe /c \"(Get-Item '" ++ Quoted ++ "').VersionInfo.FileVersion\"",
     Res0 = os:cmd(CMD),
-    %% io:format("VMIC: ~ts~n\t~ts~n",[CMD,Res0]),
-    VcVsn = [V || V <- tl(string:tokens(Res0, ".\s\r\n"))],
+    %% io:format("VCVsn: ~ts~n\t~ts~n",[CMD,Res0]),
+    VcVsn = [V || V <- string:tokens(Res0, ".\s\r\n")],
     VsnInts = [list_to_integer(V) || V <- VcVsn],
 
     %% We don't have any possibility to control C compiler of erlang and wings in the cloud

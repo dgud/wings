@@ -62,7 +62,7 @@ unix: opt lang
 lang: intl_tools src plugins_src
 	(cd src; $(MAKE) lang)
 	(cd plugins_src; $(MAKE) lang)
-	$(ESCRIPT) tools/verify_language_files .
+	escript tools/verify_language_files .
 
 #
 # Build the source distribution.
