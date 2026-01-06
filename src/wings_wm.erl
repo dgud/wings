@@ -938,7 +938,7 @@ redraw_win({Name, #win{w=W,h=H,obj=Obj,scale=Scale}}) ->
 			      N =:= Name;
 			 (_) -> false
 		      end),
-    case do_dispatch(Name, redraw) =/= deleted andalso DoSwap of
+    case do_dispatch(Name, redraw) andalso DoSwap of
         false -> ok;
         true  -> wxGLCanvas:swapBuffers(Obj)
     end.

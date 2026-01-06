@@ -732,12 +732,12 @@ cl_write_input(#base{f=Fs,e=Es,v=Vs, as=As},
 		   [W5]
 	   end,
     [W1,W2,W3,W4|Last].
-    
+
 cl_release(#cl_mem{v=Vs,f=Fs,e=Es,fi0=Fi0,as=As}, All) ->
-    Vs /= undefined andalso cl:release_mem_object(Vs),
-    Fs /= undefined andalso cl:release_mem_object(Fs),
-    Es /= undefined andalso cl:release_mem_object(Es),
-    As /= undefined andalso cl:release_mem_object(As),
+    cl:release_mem_object(Vs),
+    cl:release_mem_object(Fs),
+    cl:release_mem_object(Es),
+    cl:release_mem_object(As),
     All andalso cl:release_mem_object(Fi0).
 
 check_temp_buffs(CL=#cls{
