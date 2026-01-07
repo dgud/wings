@@ -225,8 +225,11 @@ material(Bin, Acc) ->
     fold_chunks(fun material/3, Acc, Bin).
 
 material(16#A000, Name0, Acc) ->
-    {Name1,<<>>} = get_cstring(Name0),
-    Name = list_to_atom(Name1),
+    Name2 = case get_cstring(Name0) of
+        {Name1,<<>>} -> Name1;
+        {Name1,<<_R0,_G0,_B0,_,_,_>>} -> Name1
+    end,
+    Name = list_to_atom(Name2),
     ?dbg("\nMaterial: ~p\n", [Name]),
     [{Name,[]}|Acc];
 material(16#A010, Chunk, Acc) ->
@@ -366,8 +369,10 @@ get_transform(Name) ->
 	[{Name,ParentId}] ->
 	    case get_name_and_matrix(ParentId) of
 		identity -> identity;
-		{Parent,Matrix} ->
-		    e3d_mat:mul(get_transform(Parent), Matrix)
+		{Parent,Matrix} when Name =/= Parent ->
+		    e3d_mat:mul(get_transform(Parent), Matrix);
+		{_,Matrix} ->
+		    Matrix
 	    end
     end.
 
