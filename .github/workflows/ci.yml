@@ -18,7 +18,7 @@ jobs:
 
       - uses: erlef/setup-beam@v1
         with:
-          otp-version: '27.1'
+          otp-version: '28.3'
           rebar3-version: '3.24'
 
       - name: Install OpenCL deps
@@ -45,7 +45,7 @@ jobs:
       run:
         shell: wsl-bash {0}
     name: Build Wings3D (Windows)
-    runs-on: windows-2022
+    runs-on: windows-2025
 
     steps:
       - uses: Vampire/setup-wsl@v3
@@ -56,18 +56,16 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Install winget
-        uses: Cyberboss/install-winget@v1
-        with:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Download win32 Erlang
         shell: cmd
         run: |
-          winget install --id=Erlang.ErlangOTP -v "27.0" -e --accept-source-agreements
+          winget install --id=Erlang.ErlangOTP -v "28.3" -e --accept-source-agreements
 
-##        NSIS is already pre-installed
-##        winget install --verbose -y nsis
+#        NSIS is not pre-installed in 2025
+      - name: Install NSIS
+        uses: repolevedavaj/install-nsis@v1.1.0
+        with:
+          nsis-version: '3.10'
 
       - name: Prepare WSL for compilation
         run: |
@@ -76,13 +74,24 @@ jobs:
              # to invoke rebar3 from windows
              #
              mkdir bin
-             wget -q -O bin/rebar3 https://github.com/erlang/rebar3/releases/download/3.22.0/rebar3
+             wget -q -O bin/rebar3 https://github.com/erlang/rebar3/releases/download/3.25.1/rebar3
              chmod +x bin/rebar3
-             #
-             # We need erlang (for rebar3), make and unzip
-             #
+             # We need make and unzip
              sudo apt-get update
-             sudo apt-get install -y erlang-dev erlang-ssh erlang-inets unzip build-essential
+             sudo apt-get install -y unzip build-essential zlib1g-dev libncurses5-dev libssl-dev
+
+      - name: Build erlang in WSLenv and fetch OpenCL lib
+        run: |
+             #
+             # We need (a recent) erlang (for rebar3)
+             #
+             wget -q -O otp.tgz https://github.com/erlang/otp/releases/download/OTP-28.3/otp_src_28.3.tar.gz
+             tar zxf otp.tgz
+             mv otp_src_* otp_src
+             cd otp_src
+             export MAKEFLAGS=-j$(($(nproc) + 2))
+             ./configure --without-wx --without-debugger -without-et && make
+             cd ..
              #
              # wings need opencl libs and headers
              #
@@ -107,7 +116,10 @@ jobs:
              eval `cmd.exe /c "$WINGS_DIR_WIN/win32/SetupWSLcross.bat" x64`
              cd $WINGS_DIR_WSL
              #
-             export PATH=$PATH:"/mnt/c/Program Files/Erlang OTP/bin:$WINGS_DIR_WSL/bin"
+             export NSIS_DIR="/mnt/c/Program Files (x86)/NSIS"
+             ls "$NSIS_DIR"
+             #
+             export PATH=$WINGS_DIR_WSL/otp_src/bin:$PATH:"/mnt/c/Program Files/Erlang OTP/bin:$WINGS_DIR_WSL/bin:$NSIS_DIR"
              make
              export WINGS_VCREDIST_IGNORE_VSN=1
              make win32
