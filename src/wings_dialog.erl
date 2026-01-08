@@ -919,23 +919,37 @@ set_keyboard_focus(Dialog, Fields) ->
     end.
 
 set_position(mouse, Dialog) ->
-    {Xm,Ym} = wx_misc:getMousePosition(),
+    {Xm,Ym} = Pt = wx_misc:getMousePosition(),
     {Wd, Hd} = wxWindow:getSize(Dialog),
     Ws = wxSystemSettings:getMetric(?wxSYS_SCREEN_X),
     Hs = wxSystemSettings:getMetric(?wxSYS_SCREEN_Y),
     {XWw, YWw} = wxWindow:getScreenPosition(?GET(top_frame)),
-    if (Xm+Wd) < Ws, (Ym+Hd) < Hs ->
-            wxWindow:move(Dialog, max(Xm-100, min(0,XWw)), max(Ym-50, min(0,YWw)));
-       (Xm+Wd) < Ws ->
-            wxWindow:move(Dialog, max(Xm-100, min(0,XWw)), max(Hs-Hd-50, min(0,YWw)));
-       (Ym+Hd) < Hs ->
-            wxWindow:move(Dialog, max(Ws-Wd-100, min(0,XWw)), max(Ym-50, min(0,YWw)));
-       true ->
-            io:format("~p ~p~n",[{Xm,Wd,Ws},{Ym,Hd,Hs}]),
-            ok
+
+    case wxDisplay:getFromPoint(Pt) of
+        ?wxNOT_FOUND ->
+            io:format("Not found - wxDisplay:getFromPoint(~p)~n",[Pt]),
+            set_position(center, Dialog);
+        Did ->
+            Display = wxDisplay:new(Did),
+            {X,Y,W,H} = wxDisplay:getGeometry(Display),
+            wxDisplay:destroy(Display),
+            XMax = X+W, YMax = Y+H,
+            if (Xm+Wd) < XMax, (Ym+Hd) < YMax ->
+                    wxWindow:move(Dialog, max(Xm-100, max(XWw,X)), max(Ym-50, min(0,Y)));
+               (Xm+Wd) < XMax ->
+                    wxWindow:move(Dialog, max(Xm-100, max(XWw,X)), max(YMax-Hd-50, min(0,YWw)));
+               (Ym+Hd) < YMax ->
+                    wxWindow:move(Dialog, max(XMax-Wd-100, max(XWw,X)), max(Ym-50, min(YWw,Y)));
+               true ->
+                    io:format("~p ~p~n",[{Xm,Wd,Ws},{Ym,Hd,Hs}]),
+                    ok
+            end
     end;
 set_position(center, Dialog) ->
-    wxTopLevelWindow:centerOnScreen(Dialog);
+    case wxDisplay:getCount() of
+        1 -> wxTopLevelWindow:centerOnScreen(Dialog);
+        _ -> wxWindow:centerOnParent(Dialog)
+    end;
 set_position(_, _Dialog) ->
     ok.
 
