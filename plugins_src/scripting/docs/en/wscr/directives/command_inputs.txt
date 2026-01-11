@@ -1,0 +1,24 @@
+command_inputs Directive
+<code><pre>
+<b>command_inputs</b> "points,faces"
+</pre></code>
+
+For command scripts, sets a comma separated list of input information that
+ will be sent to the script as part of the 
+<tt>extra_params</tt> variable in Python, or the 
+<tt>*extra-params*</tt> vaiable in Scheme.
+ For example, if faces is specified, an item entry with the key faces will
+ be available in extra params. This directive is not needed if the script
+uses the we commands directly.
+
+This directive is only used with command scripts, and only optionally as an
+alternative to using the we commands directly.
+
+Items can be:
+  points,
+  faces,
+  face_colors,
+  face_uvs,
+  e3d_mesh
+
+

@@ -1,0 +1,40 @@
+e3d_mesh
+
+(<b>make-e3d_mesh</b>
+ .
+ sc)
+
+Make a e3d_mesh list structure with a constructor list, available items are 'type 'vs 'vc 'tx 'ns 'fs 'he 'matrix
+
+(<b>e3d_mesh?</b>
+ l)
+
+Is the list structure an e3d_mesh?
+
+(<b>e3d_mesh-type</b>
+ l)
+
+(<b>e3d_mesh-vs</b>
+ l)
+
+(<b>e3d_mesh-vc</b>
+ l)
+
+(<b>e3d_mesh-tx</b>
+ l)
+
+(<b>e3d_mesh-ns</b>
+ l)
+
+(<b>e3d_mesh-fs</b>
+ l)
+
+(<b>e3d_mesh-he</b>
+ l)
+
+(<b>e3d_mesh-matrix</b>
+ l)
+
+Get the value of a given field in e3d_mesh
+
+

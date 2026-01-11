@@ -1,0 +1,11 @@
+params Section
+<code><pre>
+<b>params</b> {
+  param "Size" "2.0"
+  ...
+}
+</pre></code>
+
+The params section contains param directives.
+
+

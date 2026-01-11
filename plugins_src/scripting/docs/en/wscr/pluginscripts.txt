@@ -1,0 +1,67 @@
+Plugin Scripts
+
+Plugin scripts are scripts that get added into wing's menu system so they can be accessed the same way as plugins, this is done by having a config file that points to the wscr file, and some information of the menu to create for the script.
+
+Each plugin script config file is written in erlang term syntax, similar to the syntax used for Wings3D language files.
+
+<code><pre>
+%% Syntax of conf file, comment lines start with %
+
+{&lt;Name&gt;, [
+    {wscr, &lt;WSCRFile&gt;},
+    {menu, [
+        {&lt;MenuPath&gt;, &lt;Option&gt;}
+    ]}
+]}.
+
+{strings, [
+    {plugin, &lt;Name&gt;},
+    {&lt;LangCode&gt;, [
+        {{plugin,&lt;MenuPathItem&gt;}, &lt;ActualName&gt;},
+        {{menu,&lt;MenuPathItem&gt;}, &lt;ActualName&gt;},
+        ...
+        {{info,&lt;MenuPathItem&gt;}, &lt;Text&gt;}
+    ]}
+]}.
+</pre></code>
+
+&lt;Name&gt; is a double quoted string of a unique name, for example "com.example.author-name.plugin-script-name" or "author-name.plugin-script-name".
+
+&lt;WSCRFile&gt; is a double quoted path relative to the current config file, that points to the script's .wscr file.
+
+&lt;MenuPath&gt; is a list of &lt;MenuPathItem&gt; enclosed in [...] brackets, with comma separated words of the menu identifiers that the plugin's menu item is located. The first item is the top menu, subsequent items before the last item are submenus and the last item is the name for the plugin itself.
+
+&lt;MenuPathItem&gt; is each individual menu path item, names should not have quotes, double quotes, special characters, and just use a-z and _, numbers cannot be the first character in the name.
+
+&lt;Option&gt; is currently an empty list []
+
+&lt;LangCode&gt; is a 2 or 5 character language code, same as the ones available in Wings 3D.
+
+&lt;ActualName&gt; is a double quote enclosed text of the actual display name for the plugin or sub menu item that will be displayed in the menu.
+
+&lt;Text&gt; is a double quote enclosed text of text to show in some contexts.
+
+The config file is placed in the "plugin_scripts" folder inside the wings user data folder, in the same directory as the plugins and patches folders.
+
+<code><pre>
+%% Example plugin script .conf file:
+
+{"com.example.my.plugin.1", [
+    {wscr, "my-plugin.wscr"},
+    {menu, [
+        {[tools, newsubmenu, newnewsubmenu, myplugin], []}
+    ]}
+]}.
+
+{strings, [
+    {plugin, "com.example.my.plugin.1"},
+    {"en", [
+        {{plugin,name}, "My Plugin"},
+        {{menu,newsubmenu}, "New Submenu"},
+        {{menu,newnewsubmenu}, "New new Submenu"},
+        {{menu,myplugin}, "My Plugin"},
+        {{info,myplugin}, "My Plugin menu tooltip"}
+    ]}
+]}.
+</pre></code>
+

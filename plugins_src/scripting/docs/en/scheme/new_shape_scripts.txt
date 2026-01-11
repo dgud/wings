@@ -1,0 +1,109 @@
+New Shape Scripts
+
+New shape scripts are available when right clicking with no selection.
+
+An example of a complete Scheme script to create a shape:
+
+<code><pre>
+(main-function
+    (lambda (*params* *extra-params*)
+        (list 'new_shape "MyShape"
+            '(
+                (0 1 3 2)
+                (6 7 5 4)
+                (1 0 4 5)
+                (2 3 7 6)
+                (0 2 6 4)
+                (3 1 5 7)
+            ) '(
+                #(-2.0 0.5 -2.0)
+                #(-2.0 0.5 2.0)
+                #(2.0 0.5 -2.0)
+                #(2.0 0.5 2.0)
+                #(-2.0 -0.5 -2.0)
+                #(-2.0 -0.5 2.0)
+                #(2.0 -0.5 -2.0)
+                #(2.0 -0.5 2.0)
+            )) 
+        ))
+</pre></code>
+
+An .wscr file to use with the script:
+
+<pre><code>
+type "scm"
+name ?__(1,"Example New Shape")
+params_title ?__(3,"Example New Shape")
+params {
+param "Unused" 0.0
+}
+</code></pre>
+
+The .wscr and .scm file should have the same name before the extension (script.scm and script.wscr).
+
+To use parameters with the script, such as shifting the points by an adjustable value:
+
+<code><pre>
+(main-function
+    (lambda (*params* *extra-params*)
+        (define xshift (list-ref *params* 0))
+        (define yshift (list-ref *params* 1))
+        (define zshift (list-ref *params* 2))
+        (list 'new_shape "MyShape"
+            '(
+                (0 1 3 2)
+                (6 7 5 4)
+                (1 0 4 5)
+                (2 3 7 6)
+                (0 2 6 4)
+                (3 1 5 7)
+            ) '(
+                (vector (+ val -2.0) (+ yshift 0.5) (+ zshift -2.0))
+                (vector (+ val -2.0) (+ yshift 0.5) (+ zshift 2.0))
+                (vector (+ val 2.0) (+ yshift 0.5) (+ zshift -2.0))
+                (vector (+ val 2.0) (+ yshift 0.5) (+ zshift 2.0))
+                (vector (+ val -2.0) (+ yshift -0.5) (+ zshift -2.0))
+                (vector (+ val -2.0) (+ yshift -0.5) (+ zshift 2.0))
+                (vector (+ val 2.0) (+ yshift -0.5) (+ zshift -2.0))
+                (vector (+ val 2.0) (+ yshift -0.5) (+ zshift 2.0))
+            )) 
+        ))
+</pre></code>
+
+In the .wscr file, replace the "Unused" parameter with "X", "Y" and "Z" parameters:
+
+<pre><code>
+type "scm"
+name ?__(1,"Example New Shape")
+params_title ?__(3,"Example New Shape")
+params {
+param "X" 0.0
+param "Y" 0.0
+param "Z" 0.0
+}
+</code></pre>
+
+
+
+Another way to create a new shape where you might want to add colors, UVs, materials and hard edges is to make a new shape using a e3d_object.
+
+<pre><code>
+(main-function
+    (lambda (*params* *extra-params*)
+        (define Fs ...) ; List of indices into vertice list
+        (define Vs ...) ; Vertice list
+        (define Efs (map (lambda (Indices)
+                           (make-e3d_face `(vs ,Indices))) Fs))
+        (define Mesh (make-e3d_mesh
+            `(type polygon)
+            `(vs ,Vs)
+            `(fs ,Efs)
+        ))
+        (define Obj (make-e3d_object `(obj ,Mesh)))
+        (define Mat '())
+        (list 'new_shape "MyShape" Obj Mat)
+        ))
+</code></pre>
+
+
+

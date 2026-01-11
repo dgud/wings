@@ -1,0 +1,60 @@
+class OutputList
+
+Visible attributes lst_cont, lst_type
+
+Python is somewhat different from Erlang and Scheme for their data structures, so to serialize objects for input and output with the script plugin, a helper class called OutputList is used. Other helper classes also use OutputList to be able to load and write data to and from Wings3D.
+
+
+<b>OutputList</b>()
+
+Create a new empty OutputList instance
+
+list.<b>add_symbol</b>(a)
+
+Add a symbol (interned string) to the list
+
+list.<b>add_str</b>(a)
+
+Add a string to the list
+
+list.<b>add_number</b>(a)
+
+Add a number to the list
+
+list.<b>add_numbers</b>(alst)
+
+Add several numbers to the list, it does not add a sublist
+
+list.<b>add_integer</b>(a)
+
+Add an integer to the list
+
+list.<b>add_integers</b>(alst)
+
+Add several integers to the list, it does not add a sublist
+
+list.<b>add_float</b>(a)
+
+Add a floating point number to the list
+
+list.<b>add_floats</b>(alst)
+
+Add several floating point numbers to the list, it does not add a sublist
+
+list.<b>add_list</b>(a)
+
+Add a sublist to the list
+
+list.<b>add_vector</b>(a)
+
+Add a vector (tuple) to the list
+
+list.<b>add</b>(a, typ)
+
+Add an item with type number to the list, this method shouldn't be used directly.
+
+list.<b>write_list_out</b>(ost)
+
+Write the list to the stream ost
+
+
