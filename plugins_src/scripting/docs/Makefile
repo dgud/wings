@@ -9,9 +9,10 @@
 #  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 #
 
-AWK=awk
-MKDIR=mkdir -p
-PACK_MANUAL=../../../tools/pack_manual
+AWK?=awk
+MKDIR?=mkdir -p
+PACK_MANUAL?=../../../tools/pack_manual
+ESCRIPT?=escript
 
 FILES= \
 	en/INDEX \
@@ -100,7 +101,7 @@ generated/en/py-we.txt: generated/en funs
 ${SCRIPTINITDIR}/scripting-reference-en.manual: $(FILES) \
                                generated/en/scm-we.txt \
                                generated/en/py-we.txt
-	$(PACK_MANUAL) en \
+	$(ESCRIPT) $(PACK_MANUAL) en \
              --out ${SCRIPTINITDIR}/scripting-reference-en.manual
 
 

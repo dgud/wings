@@ -70,7 +70,7 @@ clean:
 	rm -f core
 	(cd docs; $(MAKE) clean)
 
-ESCRIPT=escript
+SH?=sh
 
 $(EBIN)/%.beam: $(ESRC)/%.erl
 	$(ERLC) $(ERL_COMPILE_FLAGS) -o$(EBIN) $<
@@ -104,7 +104,7 @@ $(INIT_SCRIPT_SCM_EBIN)/%.scm: $(INIT_SCRIPT_SCM_SRC)/%.scm
 $(INIT_SCRIPT_PY_EBIN)/w3d_we.py: $(INIT_SCRIPT_PY_SRC)/w3d_we.1.py \
                                   $(INIT_SCRIPT_SRC)/callable.conf \
                                   $(INIT_SCRIPT_SRC)/py-modnames
-	./tools/gen-init-we-script.sh \
+	$(SH) ./tools/gen-init-we-script.sh \
 		"$(INIT_SCRIPT_PY_SRC)/w3d_we.1.py" \
 		- \
 		"$(INIT_SCRIPT_SRC)/callable.conf" \
@@ -116,7 +116,7 @@ $(INIT_SCRIPT_SCM_EBIN)/init.scm: $(INIT_SCRIPT_SCM_SRC)/init.1.scm \
                                   $(INIT_SCRIPT_SRC)/callable.conf \
                                   $(INIT_SCRIPT_SRC)/scm-modnames \
                                   $(INIT_SCRIPT_SCM_SRC)/init.2.scm
-	./tools/gen-init-we-script.sh \
+	$(SH) ./tools/gen-init-we-script.sh \
 		"$(INIT_SCRIPT_SCM_SRC)/init.1.scm" \
 		"$(INIT_SCRIPT_SCM_SRC)/init.2.scm" \
 		"$(INIT_SCRIPT_SRC)/callable.conf" \
