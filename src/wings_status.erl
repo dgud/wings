@@ -26,6 +26,12 @@
 
 -behaviour(wx_object).
 
+-define(TEXT_PADDING_X, 3).
+-define(TEXT_PADDING_Y, 2).
+-define(GRIP_DOT_SIZE, 2).
+-define(GRIP_DOT_SPACING, 3).
+-define(GRIP_ROWS, 3).
+
 start_link() ->
     Status = wx_object:start_link({local,?MODULE}, ?MODULE, [wings_frame:get_top_frame()], []),
     {ok, wx_object:get_pid(Status)}.
@@ -51,7 +57,7 @@ update_theme() ->
 init([Frame]) ->
     try
 	SB0 = wxStatusBar:new(Frame),
-        SB = wx_object:set_pid(SB0, self()),
+	SB = wx_object:set_pid(SB0, self()),
 	SBG = wings_color:rgb4bv(wings_pref:get_value(info_line_bg)),
 	SFG = wings_color:rgb4bv(wings_pref:get_value(info_line_text)),
 	wxStatusBar:setBackgroundColour(SB, SBG),
@@ -61,6 +67,8 @@ init([Frame]) ->
 	wxStatusBar:setStatusStyles(SB, [?wxSB_FLAT, ?wxSB_NORMAL]),
 	wxFrame:setStatusBar(Frame, SB),
 	wxFrame:setStatusBarPane(Frame, 0),
+	%% this will "fix" the custom painting theme
+    wxWindow:connect(SB, paint, [{callback, fun custom_draw/2}]),
 	{SB, #state{sb=SB, frame=Frame}}
     catch _:Reason:ST ->
 	    io:format("Error ~p ~p ~n",[Reason, ST]),
@@ -103,6 +111,42 @@ code_change(_, _, State) ->
 terminate(_, _) ->
     ok.
 
+custom_draw(#wx{obj=Obj, event=#wxPaint{}}, _) ->
+    Size = wxWindow:getSize(Obj),
+    DC = case os:type() of
+             {win32, _} -> %% Flicker on windows
+                 BufferedDC = wxBufferedPaintDC:new(Obj),
+                 wx:typeCast(BufferedDC, wxPaintDC);
+             _ ->
+                 BufferedDC = none,
+                 wxPaintDC:new(Obj)
+         end,
+    SBG = wings_color:rgb4bv(wings_pref:get_value(info_line_bg)),
+    Brush = wxBrush:new(SBG),
+    wxDC:setBackgroundMode(DC, ?wxBRUSHSTYLE_SOLID),
+    wxDC:setBackground(DC, Brush),
+    wxDC:clear(DC),
+    wxDC:setBackgroundMode(DC, ?wxBRUSHSTYLE_TRANSPARENT),
+    case wxStatusBar:getFieldsCount(Obj) of
+        2 ->
+            {true,{Xl,Yl,_,_Hl}} = wxStatusBar:getFieldRect(Obj, 0),
+            {true,{Xr,Yr,_Wr,_Hr}} = wxStatusBar:getFieldRect(Obj, 1),
+            wxDC:drawText(DC, wxStatusBar:getStatusText(Obj,[{number,0}]), {Xl+?TEXT_PADDING_X,Yl+?TEXT_PADDING_Y}),
+            wxDC:drawText(DC, wxStatusBar:getStatusText(Obj,[{number,1}]), {Xr+?TEXT_PADDING_X,Yr+?TEXT_PADDING_Y});
+        _ -> ok
+    end,
+    GrpPen = wxPen:new(wxSystemSettings:getColour(?wxSYS_COLOUR_3DSHADOW)),
+    wxDC:setPen(DC,GrpPen),
+    draw_grip(DC, Size, ?GRIP_ROWS),
+    wxPen:destroy(GrpPen),
+    wxBrush:destroy(Brush),
+    case os:type() of
+        {win32, _} -> %% Flicker on windows
+            wxBufferedPaintDC:destroy(BufferedDC);
+        _ ->
+            wxPaintDC:destroy(DC)
+    end.
+
 update_status({value, Prev}, Prev, _SB) ->
     Prev;
 update_status(none, _, SB) ->
@@ -131,6 +175,12 @@ set_status(Msgs={Left, Right}, SB) ->
     wxStatusBar:setStatusText(SB, Left,  [{number, 0}]),
     wxStatusBar:setStatusText(SB, Right, [{number, 1}]),
     Msgs.
+
+draw_grip(_, _, 0) -> ok;
+draw_grip(DC, {W,H}=Size, C) ->
+    [wxDC:drawRectangle(DC, {W-(?GRIP_DOT_SPACING*I)-1, H-(?GRIP_DOT_SPACING*(4-C))-1},
+                        {?GRIP_DOT_SIZE,?GRIP_DOT_SIZE}) || I <- lists:seq(C,1,-1)],
+    draw_grip(DC, Size, C-1).
 
 str(undefined, Old) -> Old;
 str(New, _) -> str_clean(New).
