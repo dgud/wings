@@ -15,8 +15,6 @@
 -module(wpc_image_contour).
 -export([init/0,menu/2,command/2]).
 
--import(math, [sqrt/1,cos/1,sin/1,pi/0,pow/2,exp/1]).
-
 -include_lib("wings/e3d/e3d.hrl").
 -include_lib("wings/e3d/e3d_image.hrl").
 -include_lib("wings/intl_tools/wings_intl.hrl").
