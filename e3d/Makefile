@@ -46,7 +46,8 @@ MODULES= \
 	e3d__tga \
 	e3d__png \
 	e3d__tif \
-	e3d_bzw
+	e3d_bzw \
+	trace_2d
 
 TARGET_FILES= $(MODULES:%=$(EBIN)/%.beam)
 
