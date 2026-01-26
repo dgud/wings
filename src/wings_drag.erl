@@ -82,7 +82,9 @@
 -type fold_tv() :: basic_tv() | {'we',[we_transform_fun()],basic_tv()}.
 
 -type inf_or_float() :: 'infinity' | float().
+-type inf_or_int() :: 'infinity' | integer().
 -type limit2() :: {inf_or_float(),inf_or_float()}.
+-type limit2i() :: {inf_or_int(),inf_or_int()}.
 
 -type unit() :: 'angle'   | {'angle',limit2()}
               | 'distance'| {'distance',limit2()}
@@ -94,6 +96,7 @@
               | 'percent' | {'percent',limit2()}
               | 'rx'      | {'rx',limit2()}
               | 'skip'
+              | 'count' | {'count',limit2i()}
               | plugin_unit_kludge().
 
 %% FIXME: Should wrap in a tuple, e.e. {custom,CustomType}.
@@ -533,6 +536,9 @@ drag_help(Units) ->
             percent ->
               Msg = zmove_help(?__(2,"Scale")),
               {4,S,[Msg|MsgAcc]};
+            count ->
+              Msg = zmove_help(?__(7,"Count")),
+              {4,S,[Msg|MsgAcc]};
             _ when S ->
               Msg = zmove_help(wings_util:stringify(P)),
               {4,S,[Msg|MsgAcc]};
@@ -548,6 +554,9 @@ drag_help(Units) ->
             percent ->
               Msg = p4_help(?__(2,"Scale")),
               {5,S,[Msg|MsgAcc]};
+            count ->
+              Msg = zmove_help(?__(7,"Count")),
+              {5,S,[Msg|MsgAcc]};
             _ when S ->
               Msg = p4_help(wings_util:stringify(P)),
               {5,S,[Msg|MsgAcc]};
@@ -562,6 +571,9 @@ drag_help(Units) ->
               {6,S,[Msg|MsgAcc]};
             percent ->
               Msg = p5_help(?__(2,"Scale")),
+              {6,S,[Msg|MsgAcc]};
+            count ->
+              Msg = zmove_help(?__(7,"Count")),
               {6,S,[Msg|MsgAcc]};
             _ when S ->
               Msg = p5_help(wings_util:stringify(P)),
@@ -893,6 +905,8 @@ make_move_1([{percent,_}=Unit|Units], [V|Vals]) ->
     [clamp(Unit, V/100)|make_move_1(Units, Vals)];
 make_move_1([percent|Units], [V|Vals]) ->
     [V/100|make_move_1(Units, Vals)];
+make_move_1([count|Units], [V|Vals]) ->
+    [trunc(V)|make_move_1(Units, Vals)];
 make_move_1([{U,{_Min,_Max}}=Unit|Units], [V|Vals]) ->
     make_move_1([U|Units], [clamp(Unit, V)|Vals]);
 make_move_1([_U|Units], [V|Vals]) ->
@@ -1096,7 +1110,11 @@ round_to_constraint([], [], _, Acc) -> reverse(Acc).
 
 constrain_1([falloff], _, #drag{falloff=Falloff}) ->
     [Falloff];
-constrain_1([_|Us], [D|Ds], Drag) ->
+constrain_1([{count,_}=U|Us], [D|Ds], Drag) ->
+    [clamp(U, trunc(D))|constrain_1(Us, Ds, Drag)];
+constrain_1([count|Us], [D|Ds], Drag) ->
+    [trunc(D)|constrain_1(Us, Ds, Drag)];
+constrain_1([_U|Us], [D|Ds], Drag) ->
     [D|constrain_1(Us, Ds, Drag)];
 constrain_1([], _, _) -> [].
 
@@ -1364,6 +1382,8 @@ unit(percent, P) ->
     trim(io_lib:format("~.2f%  ", [P*100.0]));
 unit(falloff, R) ->
     ["R: "|trim(io_lib:format("~10.2f", [R]))];
+unit(count, R) ->
+    ["C: "|trim(io_lib:format("~10w", [trunc(R)]))];
 unit(skip,_) ->
     %% the atom 'skip' can be used as a place holder. See wpc_arc.erl
     [];
@@ -1379,39 +1399,48 @@ trim([[_|_]=H|T]) ->
 trim(S) -> S.
 
 normalize(Move, #drag{mode_fun=ModeFun,mode_data=ModeData,
-		      st=#st{shapes=Shs0}=St}) ->
+            st=#st{shapes=Shs0,sel=Sel0}=St}) ->
     ModeFun(done, ModeData),
     gl:disable(gl_rescale_normal()),
-    Shs = wings_dl:map(fun(D, Sh) ->
+    {Shs,Sel} = wings_dl:map(fun(D, Sh) ->
 			       normalize_fun(D, Move, Sh)
-		       end, Shs0),
-    St#st{shapes=Shs}.
+		       end, {Shs0,Sel0}),
+    if Sel=/=Sel0 -> wings_draw:refresh_dlists(St);
+    true -> ignore
+    end,
+    St#st{shapes=Shs,sel=Sel}.
 
-normalize_fun(#dlo{drag=none}=D, _Move, Shs) -> {D,Shs};
+normalize_fun(#dlo{drag=none}=D, _Move, ShsSel) -> {D,ShsSel};
 normalize_fun(#dlo{drag={matrix,_,_,_},transparent=#we{id=Id}=We,
-		   proxy_data=PD}=D0, _Move, Shs0) when ?IS_LIGHT(We) ->
+		   proxy_data=PD}=D0, _Move, {Shs0,Sel}) when ?IS_LIGHT(We) ->
     Shs = gb_trees:update(Id, We, Shs0),
     D = D0#dlo{work=none,smooth=none,drag=none,src_we=We,transparent=false,
 	   proxy_data=wings_proxy:invalidate(PD, dl)},
-    {wings_draw:changed_we(D, D),Shs};
-normalize_fun(#dlo{drag={matrix,_,_,Matrix},src_we=#we{id=Id}=We0,
-		   proxy_data=PD}=D0,
-	      _Move, Shs0) ->
+    {wings_draw:changed_we(D, D),{Shs,Sel}};
+normalize_fun(#dlo{drag={matrix,_,_,Matrix},src_sel={_,DSel},src_we=#we{id=Id}=We0,
+		   proxy_data=PD}=D0, _Move, {Shs0,Sel}) ->
     We1 = We0#we{temp=[]},
     We = wings_we:transform_vs(Matrix, We1),
     Shs = gb_trees:update(Id, We, Shs0),
     D = D0#dlo{work=none,smooth=none,edges=none,sel=none,drag=none,src_we=We,
 	       mirror=none,proxy_data=wings_proxy:invalidate(PD, dl)},
-    {wings_draw:changed_we(D, D),Shs};
-normalize_fun(#dlo{drag={general,Fun},src_we=#we{id=Id}=We0}=D0, Move, Shs) ->
+    {wings_draw:changed_we(D, D),{Shs,update_sel(Id,DSel,Sel)}};
+normalize_fun(#dlo{drag={general,Fun}, src_sel={_,DSel}, src_we=#we{id=Id}=We0}=D0,
+		   Move, {Shs,Sel}) ->
     D1 = Fun({finish,Move}, D0),
     We = We0#we{temp=[]},
     D = D1#dlo{drag=none,sel=none,src_we=We},
-    {wings_draw:changed_we(D, D),gb_trees:update(Id, We, Shs)};
-normalize_fun(#dlo{src_we=#we{id=Id}}=D0, _Move, Shs) ->
+    {wings_draw:changed_we(D, D),{gb_trees:update(Id, We, Shs),update_sel(Id,DSel,Sel)}};
+normalize_fun(#dlo{src_sel={_,DSel}, src_we=#we{id=Id}}=D0, _Move, {Shs,Sel}) ->
     #dlo{src_we=We0} = D = wings_draw:join(D0),
     We = We0#we{temp=[]},
-    {D,gb_trees:update(Id, We, Shs)}.
+    {D,{gb_trees:update(Id, We, Shs),update_sel(Id,DSel,Sel)}}.
+
+update_sel(Id, DSel, Sel) ->
+    case orddict:is_key(Id,Sel) of
+        true -> orddict:store(Id,DSel,Sel);
+        false -> Sel
+    end.
 
 %%%
 %%% Redrawing while dragging.
