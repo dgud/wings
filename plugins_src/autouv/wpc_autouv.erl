@@ -755,11 +755,21 @@ stretch_directions() ->
 move_directions(true) ->
     [{?__(1,"Free"), free_2d, ?__(2,"Move in both directions"), [magnet]},
      {?__(3,"Horizontal"), x, ?__(4,"Move horizontally (X dir)"), [magnet]},
-     {?__(5,"Vertical"),   y, ?__(6,"Move vertically (Y dir)"), [magnet]}];
+     {?__(5,"Vertical"),   y, ?__(6,"Move vertically (Y dir)"), [magnet]},
+     separator,
+     {?__(7,"Absolute"), move_abs_fun(),
+      {?__(8,"Move to exact position in absolute coordinates"),
+       ?__(9,"Move using a secondary selection as reference"), []},[]}
+    ];
 move_directions(false) ->
     [{?__(1,"Free"), free_2d, ?__(2,"Move in both directions")},
      {?__(3,"Horizontal"), x, ?__(4,"Move horizontally (X dir)")},
-     {?__(5,"Vertical"),   y, ?__(6,"Move vertically (Y dir)")}].
+     {?__(5,"Vertical"),   y, ?__(6,"Move vertically (Y dir)")},
+     separator,
+     {?__(7,"Absolute"), move_abs_fun(),
+      {?__(8,"Move to exact position in absolute coordinates"),
+       ?__(9,"Move using a secondary selection as reference"),[]},[]}
+    ].
 
 scale_directions(true) ->
     ChosePoint = ?__(7,"Choose point to scale from"),
@@ -777,6 +787,15 @@ scale_directions(false) ->
       {?__(4,"Scale horizontally (X dir)"),[],ChosePoint}},
      {?__(5,"Vertical"),   scale(y,[]),
       {?__(6,"Scale vertically (Y dir)"),[],ChosePoint}}].
+
+move_abs_fun() ->
+    fun(B, Ns) ->
+        case B of
+            1 -> wings_menu:build_command({{absolute,move},{'ASK',[]}}, Ns);
+            _ -> wings_menu:build_command({{absolute,rmove},
+                    {'ASK',move_abs_ask()}}, Ns)
+        end
+    end.
 
 uniform_scale(Flags) ->
     fun(B, Ns) ->
@@ -865,6 +884,8 @@ handle_event(revert_state, St) ->
     get_event(St);
 handle_event({current_state,geom_display_lists,GeomSt}, AuvSt) ->
     new_geom_state(GeomSt, AuvSt);
+handle_event({update_state,St}, _) ->
+    get_event(St);
 handle_event({do_tweak, Type, St =#st{sh=Sh,selmode=Mode}}, _) ->
     case Type of 
 	temp_selection ->
@@ -1188,6 +1209,13 @@ handle_command_1({'ASK',Ask}, St) ->
 handle_command_1({remap,Method}, St0) ->
     St = remap(Method, St0),
     get_event(St);
+handle_command_1({move,{{absolute,Mode},{'ASK',Ask}}}, St) ->
+    case Mode of
+        move ->
+            move(St);
+        rmove ->
+            wings:ask(Ask, St, fun rmove/2)
+    end;
 handle_command_1(move, St) ->
     wings_move:setup(free_2d, St);
 handle_command_1({move,{'ASK',Ask}}, St) ->
@@ -2829,3 +2857,234 @@ camera_reset() ->
                                      distance=Dist,
                                      pan_x=0.0,pan_y=0.0,
                                      along_axis=none}).
+
+%%%
+%%% absolute move - Adapted from wpc_absolute_move.erl
+%%%
+
+move(St) ->
+    move(center, St).
+
+rmove(Reference, St) ->
+    move(Reference, St).
+
+move(Reference0, St) ->
+    Reference = case Reference0 of
+                    center -> wings_sel:center_vs(St);
+                    _ -> Reference0
+                end,
+    {OneObject,SinglePoints,_} = analyze_selection(St),
+    WholeObjects = if
+                       SinglePoints ->
+                           false;
+                       true ->
+                           all_items_selected(St)
+                   end,
+    MoveObj = if
+                  OneObject -> one;
+                  true -> many
+              end,
+    Flatten = if
+                  SinglePoints or WholeObjects -> false;
+                  true -> true
+              end,
+    Align = not OneObject,
+    draw_window({{move_obj,MoveObj},
+        {flatten,Flatten},
+        {align,Align},
+        {from,Reference},
+        {to,Reference}}, St).
+
+%%
+%% draw_window(Options,Selection,State)
+%%
+%% functions that draws interface and translates entered options for
+%% further processing and calls
+%% do_move(ProcessedOptions, Selection, State)
+%%
+
+draw_window({{_,MoveObj},{_,Flatten},{_,Align},{_,Center},{_,Default}}, St) ->
+    MoveD = case MoveObj of
+                one ->
+                    {hframe,
+                        [{?__(3,"Move object"),false,[{key,all},
+                            {hook, fun disable/3}]}]};
+                many ->
+                    {hframe,
+                        [{?__(4,"Move objects"),false,[{key,all},
+                            {hook, fun disable/3}]}]}
+            end,
+
+    {Headers, RX,RY} = foldl(fun draw_window1/2, {[],[],[]},
+        [{center, Default}, {align,Align}, {flatten, Flatten}]),
+
+    Frame1 = {label_column,[{" ", lists:reverse(Headers)},
+        {"X:", lists:reverse(RX)},
+        {"Y:", lists:reverse(RY)}]},
+
+    Reference = {label,?__(8,"Reference point is") ++ ": " ++
+        wings_util:nice_vector(Center)},
+
+    Frame = [{vframe,[Frame1, MoveD, separator, Reference]}],
+    wings_dialog:dialog(?__(1,"Absolute move options"), {preview,Frame},
+        fun({dialog_preview,Move}) ->
+                St0 = translate(Move, Center, St),
+                {preview,St,St0};
+            (cancel) ->
+                St;
+            (Move) ->
+                St0 = translate(Move, Center, St),
+                {commit,St,St0}
+        end).
+
+draw_window1({center,{XC,YC,_}}, {Header, X,Y}) ->
+    {[{label,?__(2,"Set position")++":", [{proportion, 2}]}|Header],
+        [{text,XC,[{key,x},{proportion,2}]}|X],
+        [{text,YC,[{key,y},{proportion,2}]}|Y]};
+draw_window1({align, true}, {Header, X,Y}) ->
+    {[{label,?__(6,"Align")++":", [{proportion, 1}]}|Header],
+        [{"",false,[{key,ax},{proportion,1}]}|X],
+        [{"",false,[{key,ay},{proportion,1}]}|Y]};
+draw_window1({flatten,true}, {Header, X,Y}) ->
+    {[{label,?__(7,"Flatten")++":", [{proportion, 1}]}|Header],
+        [{"",false,[{key,fx},{proportion,1}]}|X],
+        [{"",false,[{key,fy},{proportion,1}]}|Y]};
+draw_window1({_, false}, Acc) ->
+    Acc.
+
+disable(all, Bool, Store) ->
+    try
+        wings_dialog:enable(ax, Bool, Store),
+        wings_dialog:enable(ay, Bool, Store)
+    catch _:_ -> ignore end.
+
+lookup(Key, List, Default) ->
+    case lists:keyfind(Key, 1, List) of
+        {_,Value} -> Value;
+        false -> Default
+    end.
+
+translate(Options, {CX,CY,_}=Center, St) ->
+    X = lookup(x, Options, 0.0),
+    Y = lookup(y, Options, 0.0),
+    NX = case lookup(lx, Options, false) of
+             true -> CX;
+             false -> X
+         end,
+    NY = case lookup(ly, Options, false) of
+             true -> CY;
+             false -> Y
+         end,
+    Obj = lookup(all, Options, true),
+    Ax = lookup(ax, Options, false),
+    Ay = lookup(ay, Options, false),
+    Fx = lookup(fx, Options, false),
+    Fy = lookup(fy, Options, false),
+    do_move([Center,{NX,NY,0.0},Obj,{Ax,Ay,false},{Fx,Fy,false}], St).
+
+%%
+%% do_move(Options,Selection,State)
+%%
+%% this is main absolute move command, it returns new state.
+%%
+
+do_move([_,Origin,_,_,_]=Move, St) ->
+    do_move_1(Origin, Move, St).
+
+do_move_1(Origin, Move, #st{selmode=Mode}=St) ->
+    CF = fun(Items, We0) ->
+            Vs0 = wings_sel:to_vertices(Mode, Items, We0),
+            Vs = gb_sets:from_ordset(Vs0),
+            We = do_move_2(Vs, We0, Origin, Move),
+            We
+         end,
+    St0 = wings_sel:map(CF, St),
+    St0.
+
+do_move_2(Vs, We, Origin, Params) ->
+    do_move_3(Vs, We, Origin, Params).
+
+do_move_3(Vs, We0, _Origin,
+        [CommonCenter,Pos,Wo,Align,Flatten]) ->
+    Center = wings_vertex:center(Vs, We0),
+    D = d(Pos, Align, CommonCenter, Center),
+    Vtab0 = We0#we.vp,
+    Vtab = execute_move(D, Pos, Flatten, Wo, Vs, Vtab0),
+    We0#we{vp=Vtab}.
+
+d(Pos0, Align, CommonCenter, Center) ->
+    PosAlign = e3d_vec:sub(Pos0, Center),
+    Pos = e3d_vec:sub(Pos0, CommonCenter),
+    d_1(1, Align, PosAlign, Pos).
+
+d_1(I, Align, PosAlign, Pos0) when I =< tuple_size(Align) ->
+    case element(I, Align) of
+        true ->
+            Pos = setelement(I, Pos0, element(I, PosAlign)),
+            d_1(I+1, Align, PosAlign, Pos);
+        false ->
+            d_1(I+1, Align, PosAlign, Pos0)
+    end;
+d_1(_, _, _, Pos) -> Pos.
+
+execute_move(D,N,F,Wo,Vset,Vtab) ->
+    execute_move(array:sparse_size(Vtab)-1,D,N,F,Wo,Vset,Vtab).
+
+execute_move(-1,_D,_N,_F,_Wo,_Vset,Vtab) ->
+    Vtab;
+execute_move(Vertex,{Dx,Dy,_}=D,{Nx,Ny,_}=N,{Fx,Fy,_}=F,Wo,Vset,Vtab) ->
+    Z1 = 0.0,
+    case array:get(Vertex, Vtab) of
+        undefined ->
+            execute_move(Vertex-1,D,N,F,Wo,Vset,Vtab);
+        {X,Y,Z} ->
+            case gb_sets:is_element(Vertex,Vset) of
+                true ->
+                    X1 = case Fx of
+                             true -> Nx;
+                             _ -> X+Dx
+                         end,
+                    Y1 = case Fy of
+                             true -> Ny;
+                             _ -> Y+Dy
+                         end;
+                _ ->
+                    if
+                        Wo ->
+                            X1 = X+Dx,
+                            Y1 = Y+Dy;
+                        true ->
+                            X1 = X,
+                            Y1 = Y
+                    end
+            end,
+            Vtab2 = case {X1,Y1,Z1} of
+                        {X,Y,Z} -> Vtab;
+                        NewPos -> array:set(Vertex,NewPos,Vtab)
+                    end,
+            execute_move(Vertex-1,D,N,F,Wo,Vset,Vtab2)
+    end.
+
+%% -> {SingleObject,SinglePoints,AllLights}
+analyze_selection(#st{selmode=Mode}=St) ->
+    MF = fun(Items, We) ->
+            IsLight = ?IS_LIGHT(We),
+            {1,gb_sets:size(Items) =:= 1,IsLight}
+         end,
+    RF = fun({B,S,L}, {B0,S0,L0}) ->
+            {B+B0,S0 and S,L and L0}
+         end,
+    Acc0 = {0,Mode =:= vertex,true},
+    {N,Single,Lights} = wings_sel:dfold(MF, RF, Acc0, St),
+    {N =:= 1,Single,Lights}.
+
+all_items_selected(#st{selmode=Mode}=St) ->
+    MF = fun(Items, We) ->
+            wings_sel:get_all_items(Mode, We) =:= Items
+         end,
+    RF = fun erlang:'and'/2,
+    wings_sel:dfold(MF, RF, true, St).
+
+move_abs_ask() ->
+    Desc = ?__(1,"Select reference point for snap operation"),
+    {[{point,Desc}],[],[],[vertex, edge, face, body]}.
