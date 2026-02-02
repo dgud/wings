@@ -87,7 +87,7 @@ map_chart_1(Type, Chart, Loop, Options, We) ->
     end.
 
 map_chart_2(project, C, _, _, We) ->    projectFromChartNormal(C, We);
-map_chart_2(camera, C, _, Dir, We) ->   projectFromCamera(C, Dir, We);
+map_chart_2({camera,_}, C, _, Dir, We) ->   projectFromCamera(C, Dir, We);
 map_chart_2(lsqcm, C, Loop, Pinned, We) ->
     case get(auv_use_erlang_impl) == true
         orelse erlang:system_info(wordsize) =:= 4 of

@@ -150,10 +150,17 @@ mappers() ->
             end,
     First ++
         [{?__(2,"Projection Normal"),project},
-         {?__(3,"Projection Camera"),camera},
+         {?__(3,"Projection Camera"),camera_mode(),
+             {?__(7,"Arrange UV islands"), [], ?__(8,"Preserve the view layout for UV islands")},[]},
          {?__(4,"Sphere Map"),sphere},
          {?__(5,"Cylindrical Map"),cyl}
         ].
+
+camera_mode() ->
+    fun(1, _Ns) -> {auv_segmentation,{continue,{camera,arrange}}};
+       (3, _Ns) -> {auv_segmentation,{continue,{camera,preserve}}};
+       (_, _Ns) -> ignore
+    end.
 -else.
 seg_debug(Tail) ->
     [separator,
@@ -389,11 +396,15 @@ seg_map_charts_1([We0|Cs], Type, Id, N, Acc,Failed,Ss) ->
 	{error,Message} ->
 	    seg_map_charts_1(Cs,Type,Id+1,N,Acc,[We1|Failed],Ss#seg{err=Message});
 	Vs0 ->
-	    Vs = auv_placement:rotate_area(Vs0,We1),
+        Vs =
+            case auv_util:uv_mode(Type) of
+                preserve -> Vs0;
+                arrange -> auv_placement:rotate_area(Vs0,We1)
+            end,
 	    We = We1#we{vp=array:from_orddict(sort(Vs))},
 	    seg_map_charts_1(Cs, Type, Id+1, N, [We|Acc], Failed, Ss)
     end;
-seg_map_charts_1([],_, _, _,Charts0,Failed,
+seg_map_charts_1([],Type, _, _,Charts0,Failed,
 		 Ss = #seg{orig_st=GeomSt0,fs=Fs,st=St0,we=#we{id=Id}}) ->
     wings_pb:done(),
     if Charts0 == [] ->
@@ -402,7 +413,7 @@ seg_map_charts_1([],_, _, _,Charts0,Failed,
        true ->
 	    Charts = reverse(Charts0),
 	    We = gb_trees:get(Id, GeomSt0#st.shapes),
-	    GeomSt = wpc_autouv:init_show_maps(Charts, Fs, We, GeomSt0),
+	    GeomSt = wpc_autouv:init_show_maps(auv_util:uv_mode(Type), Charts, Fs, We, GeomSt0),
 	    case Failed of
 		[] ->
 		    cleanup_before_exit(),
@@ -427,7 +438,7 @@ segment(Mode, #st{shapes=Shs}=St) ->
     {Charts,Cuts} = auv_segment:create(Mode, We),
     auv_util:mark_segments(Charts, Cuts, We, St).
 
-camera_dir(camera) ->
+camera_dir({camera,_Mode}) ->
     Matrices = wings_u:get_matrices(0, original),
     {matrices, Matrices};
 camera_dir(_) -> none.
