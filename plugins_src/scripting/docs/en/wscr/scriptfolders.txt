@@ -1,0 +1,37 @@
+Script Folders
+
+Script folder files are config files in the user data area where other software or the user can add new paths to find scripts.
+
+Each script folder config file is written in erlang term syntax, similar to the syntax used for Wings3D language files.
+
+<code><pre>
+%% Syntax of config file, comment lines start with %
+
+{&lt;Name&gt;,[
+    {type,&lt;Type&gt;},
+    {path,&lt;Paths&gt;}
+]}.
+</pre></code>
+
+&lt;Name&gt; is a double quoted string of a unique name, for example "com.example.author.script-folders.name" or "author-name.script-folders.name".
+
+&lt;Type&gt; is a list enclosed in [...] of: vertex, edge, face, body, shape
+
+&lt;Paths&gt; is a list of double quoted string paths enclosed in [...]. So a list of one path is ["folder/"]. Paths can be absolute paths, or relative to your operating system user folder.
+
+The config file is placed in the "script_folders" folder inside the wings user data folder, in the same directory as the plugins and patches folders.
+
+<code><pre>
+%% Example script folder .conf file:
+
+{"com.example.wings-scripts-1",[
+    {type,[shape]},
+    {path,["a1/","a2/"]}
+]}.
+
+{"com.example.scripts.2",[
+    {type,[face,body]},
+    {path,["a/"]}
+]}.
+</pre></code>
+

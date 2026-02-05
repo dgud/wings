@@ -1,0 +1,301 @@
+| Winged Edge Function Reference
+we | collapse | collapse_edge        | ! | EdgeNumber     | KeepVertexNumber | |
+we | collapse | collapse_edges       | ! | ListOfEdges    | | |
+we | collapse | collapse_faces       | ! | ListOfFaces    | | |
+we | collapse | collapse_vertices    | ! | ListOfVertices | | |
+we | collapse | fast_collapse_edge   | ! | EdgeNumber     | | |
+we | dissolve | complement           | ! | ListOfFaces    | | |
+we | dissolve | faces                | ! | ListOfFaces    | | |
+we | dissolve | outer_edge_partition |   | ListOfFaces    | | list
+
+we | edge | cut                  | ! | EdgeNumber Count | | number
+we | edge | dissolve_edge        | ! | EdgeNumber | | number
+
+we | edge | dissolve_edges       | ! | ListOfEdgeNumbers | | _
+we | edge | dissolve_edges       | ! | ListOfEdgeNumbers ListOfFaceNumbers | | list
+
+we | edge | dissolve_isolated_vs | ! | ListOfVertexNumbers | | |
+we | edge | fast_cut             | ! | EdgeNumber VertexPositionVec3 | | vertex number
+we | edge | from_faces           |   | ListOfFaceNumbers | | list of edge numbers
+we | edge | from_vs              |   | ListOfVertexNumbers | | list of edge numbers
+we | edge | length               |   | EdgeNumber | | float
+we | edge | reachable_faces      |   | ListOfFaceNumbers ListOfEdgeNumbers | | list of face numbers
+we | edge | screaming_cut        | ! | EdgeNumber VertexPositionVec3 | | vertex number
+we | edge | select_region        |   | ListOfEdgeNumbers | | list of face numbers
+we | edge | to_vertices          |   | ListOfEdges | | list of vertex numbers
+
+we | edge_cmd | loop_cut_partition |   | ListOfEdgeNumbers | | list of lists of face numbers
+
+we | edge_loop | edge_links         |   | ListOfEdgeNumbers | | list of tuples $(TUPLE EdgeNumber VertexNumberStart VertexNumberEnd)
+we | edge_loop | edge_loop_vertices |   | ListOfEdgeNumbers | | list of lists of vertex numbers
+we | edge_loop | partition_edges    |   | ListOfEdgeNumbers | | list of lists of edge numbers
+we | edge_loop | select_loop        |   | ListOfEdgeNumbers | | list of edge numbers
+
+we | extrude_edge | extrude_edges  | ! | ListOfEdgeNumbers DistanceFloat | | list of vertices, list of new vertices, list of forbidden faces
+we | extrude_face | faces          | ! | ListOfFaceNumbers | | |
+we | extrude_face | regions        | ! | ListOfListOfFaceNumbers | | |
+
+we | face | are_neighbors     |   | FaceNumberA FaceNumberB | | boolean
+we | face | area              |   | FaceNumber | | float
+we | face | center            |   | FaceNumber | | vec3
+we | face | delete_bad_faces  | ! | ListOfFaceNumbers | | 
+we | face | extend_border     |   | ListOfFaceNumbers | | list of face numbers
+we | face | face_normal_ccw   |   | ListOfVertexNumbers | | vec3
+we | face | face_normal_cw    |   | ListOfVertexNumbers | | vec3
+we | face | from_edges        |   | ListOfEdgeNumbers | | list
+we | face | from_vs           |   | ListOfVertexNumbers | | list
+we | face | good_normal       |   | FaceNumber | | boolean
+we | face | inner_edges       |   | ListOfFaceNumbers | | list of inner edges
+we | face | inner_outer_edges |   | ListOfFaceNumbers | | list of inner edges, list of outer edges
+we | face | is_planar         |   | ToleranceFloat FaceNumber | | boolean
+we | face | is_thin           |   | FaceNumber | | boolean
+we | face | mirror_matrix     |   | FaceNumber | | matrix
+we | face | normal            |   | FaceNumber | EdgeNumber | vec3
+we | face | outer_edges       |   | ListOfFaceNumbers | | list of edge numbers
+we | face | to_edges          |   | ListOfFaceNumbers | | list of edge numbers
+we | face | to_vertices       |   | ListOfFaceNumbers | | list of vertex numbers
+we | face | vertex_positions  |   | FaceNumber | EdgeNumber | list
+we | face | vertices          |   | FaceNumber | | number
+we | face | vertices_ccw      |   | FaceNumber | EdgeNumber | list of vertex numbers
+we | face | vertices_cw       |   | FaceNumber | EdgeNumber | list of vertex numbers
+
+we | face_cmd | force_bridge  | ! | FaceNumberA VertexA FaceNumberB VertexB | | |
+we | face_cmd | mirror_faces  | ! | ListOfFaceNumbers | | |
+
+we | facemat | all                       |   | | | list
+we | facemat | any_interesting_materials |   | | | boolean
+we | facemat | assign                    | ! | ListOfTuples | | |
+we | facemat | assign                    | ! | Material FaceNumber | | |
+we | facemat | delete_face               | ! | FaceNumber | | |
+we | facemat | delete_faces              | ! | ListOfFaceNumbers | | |
+we | facemat | face                      |   | FaceNumber | | atom string
+we | facemat | gc                        | ! | | | |
+we | facemat | hide_faces                | ! | | | |
+we | facemat | is_material_used          |   | Material | | boolean
+we | facemat | keep_faces                | ! | ListOfFaceNumbers | |
+we | facemat | mat_faces                 |   | ListOfPairsFaceInfo | | list of tuples $(TUPLE Material ListOfPairsFaceInfo)
+we | facemat | show_faces                | ! | ListOfFaces | | |
+we | facemat | used_materials            |   | | | list
+
+we | subdiv | get_proxy_info    |   | DynListOfVertexNumbers UpdateListOfVertexNumbers | | list of face positions, list of edge split, list of smooth new vertices, list of original vertices
+we | subdiv | smooth            | ! | | | |
+we | subdiv | smooth            | ! | ListOfFaces ListOfVertices ListOfEdges ListOfHardEdges | |
+we | subdiv | smooth_faces_htab |   | | | list of faces and list of hard edges
+we | subdiv | subdiv            | ! | | | |
+we | subdiv | subdiv            | ! | ListOfFaces ListOfVertices ListOfEdges ListOfHardEdges | |
+
+we | tesselation | quadrangulate | ! | | ListOfFaceNumbers | |
+we | tesselation | triangulate   | ! | | ListOfFaceNumbers | |
+
+we | util | add_vpos    |   | ListOfVertexNumbers | | list of tuple $(TUPLE VertexNumber Vec3)
+we | util | update_vpos |   | ListOfTuple | | list of tuple $(TUPLE VertexNumber Vec3)
+| Each element in $(ARG ListOfTuple) is $(TUPLE VertexNumber Vec3)
+
+we | va | all            |   | WhatAtom | | list
+we | va | any_attributes |   | | | boolean
+we | va | any_colors     |   | | | boolean
+we | va | any_uvs        |   | | | boolean
+
+we | va | del_edge_attrs | ! | EdgeNumber | |
+
+we | va | edge_attrs     |   | EdgeNumber Side | WeightFloat | Attribute value
+we | va | face_attr      |   | WhatSymbol FaceNumber | EdgeNumber | list
+| $(ARG WhatSymbol) can be $(ATOM uv) or $(ATOM color)
+
+we | va | face_mixed_attrs |   | FaceNumber | | list
+we | va | face_pos_attr    |   | WhatAtom FaceNumber EdgeNumber | | list, list
+we | va | gc               | ! | | | |
+we | va | remove           | ! | WhatSymbol | ListOfFaceNumbers | 
+| $(ARG WhatSymbol) can be $(ATOM all) $(ATOM uv) $(ATOM color)
+
+we | va | renumber            | ! | ListOfPairs | | |
+we | va | set_body_color      | ! | Vec3 | | |
+we | va | set_both_edge_attrs | ! | EdgeNumber LeftOpaqueAttribute RightOpaqueAttribute | | |
+we | va | set_edge_attrs      | ! | ListOfTuple | | |
+| Each element in $(ARG ListOfTuple) is $(TUPLE EdgeNumber LeftUV RightUV LeftVC RightVC)
+
+we | va | set_edge_attrs      | ! | EdgeNumber Side AttrValue | | 
+we | va | set_edge_color      | ! | ListOfEdges ColorVec3 | | 
+we | va | set_edge_color      | ! | EdgeNumber LeftColorVec3 RightColorVec3 | | 
+we | va | set_edge_colors     | ! | ListOfTuple | | 
+| Each element in $(ARG ListOfTuple) is $(TUPLE EdgeNumber LeftColor RightColor)
+
+we | va | set_edge_uvs        | ! | ListOfTuple | | 
+| Each element in $(ARG ListOfTuple) is $(TUPLE EdgeNumber LeftUV RightUV)
+
+we | va | set_face_attr_vs    | ! | WhatAtom FaceNumber ListOfNewValues | | 
+we | va | set_face_attrs      | ! | FaceNumber OpaqueAttr | | 
+we | va | set_face_color      | ! | ListOfFaceNumbers Vec3 | | 
+we | va | set_vertex_color    | ! | ListOfVertexNumbers Vec2 | | 
+we | va | set_vtx_face_uvs    | ! | VertexNumber ListOfFaceNumbers Vec2 | | 
+we | va | vtx_attrs           |   | VertexNumber | FaceNumber | Attribute value
+
+we | vertex | bounding_box       |   | | ListOfVertices BoundingBoxVec3 | vec3
+we | vertex | center             |   | | ListOfVertices | vec3
+we | vertex | connect            | ! | FaceNumber ListOfVertexNumbers | |
+we | vertex | connect_cut        | ! | VertexNumberA VertexNumberB | | list of edge numbers
+we | vertex | dissolve_isolated  | ! | ListOfVertexNumbers | | 
+we | vertex | edge_through       |   | VertexNumberA VertexNumberB | FaceNumber | $(ARG EdgeNumber)
+we | vertex | flatten            | ! | ListOfVertices PlaneNormalVec3 | CenterVec3 |
+we | vertex | force_connect      | ! | VertexNumberStart VertexNumberEnd FaceNumber | | |
+we | vertex | from_edges         |   | ListOfEdgeNumbers | | list
+we | vertex | from_faces         |   | ListOfFaceNumbers | | list
+we | vertex | isolated           |   | | | list of vertex numbers
+we | vertex | normal             |   | VertexNumber | | vec3
+we | vertex | outer_vertices_ccw |   | ListOfFaceNumbers | | list of vertex numbers or none
+we | vertex | per_face           |   | ListOfVertexNumbers | | list of tuples $(TUPLE Face ListOfVertexNumbers)
+we | vertex | pos                |   | VertexNumber | | vec3
+we | vertex | reachable          |   | ListOfVertexNumbers | | list
+
+we | vertex_cmd | bevel_vertex   | ! | VertexNumber | | 
+we | vertex_cmd | connect        | ! | ListOfVertices | |
+
+we | we | all_hidden          |   | | | boolean
+we | we | break_mirror        | ! | | | |
+we | we | centroid            |   | | | vec3
+we | we | create_holes        | ! | ListOfFaceNumbers | | 
+we | we | create_mirror       | ! | FaceNumber | |
+we | we | fast_rebuild        | ! | | | |
+we | we | freeze_mirror       | ! | | | |
+we | we | fully_visible_edges |   | List | | list
+we | we | hide_faces          | ! | ListOfFaces | | list
+we | we | invert_normals      | ! | | | |
+we | we | is_consistent       |   | | | boolean
+we | we | is_face_consistent  |   | FaceNumber | | boolean
+we | we | is_open             |   | | | boolean
+we | we | mirror_projection   |   | | | matrix
+we | we | new_id              | ! | | | number
+we | we | new_ids             | ! | Number | |
+we | we | new_wrap_range      | ! | Number Number | | tuple
+we | we | normals             |   | FaceNormals MatrixOrNone | | list
+we | we | num_hidden          |   | | | number
+we | we | perimeter           |   | | | float
+we | we | rebuild             | ! | | | |
+we | we | renumber            | ! | StartNumber | RootSet |
+we | we | separate            | ! | | | list
+we | we | show_faces          | ! | | ListOfFaces | 
+we | we | surface_area        |   | | | float
+we | we | transform_vs        | ! | Matrix | |
+we | we | uv_mapped_faces     |   | | | list
+we | we | uv_to_color         | ! | | | |
+we | we | validate_mirror     | ! | | | |
+we | we | visible             |   | | List | list
+| $(ARG List) is either list of face numbers, or list of tuples $(TUPLE FaceNumber EdgeNumber)
+
+we | we | visible_edges       |   | | ListOfEdges | list
+we | we | visible_vs          |   | | ListOfVertices | list
+we | we | volume              |   | | | float
+
+| e3d_mat | identity              |   | | | matrix
+| e3d_mat | is_identity           |   | Matrix | | bool
+| e3d_mat | determinant           |   | Matrix | | float
+| e3d_mat | print                 |   | Matrix | | atom
+| e3d_mat | compress              |   | Matrix | | matrix
+| e3d_mat | expand                |   | Matrix | | matrix
+
+| e3d_mat | translate             |   | Vec3 | | _
+| e3d_mat | translate             |   | Float Float Float | | matrix
+
+| e3d_mat | scale                 |   | Vec3OrFloat | | _
+| e3d_mat | scale                 |   | Float Float Float Float | | matrix
+
+| e3d_mat | rotate                |   | Float Vec3 | | matrix
+
+| e3d_mat | rotate_from_euler_rad |   | Vec3 | |
+| e3d_mat | rotate_from_euler_rad |   | Float Float Float | | matrix
+
+| e3d_mat | rotate_to_z           |   | Vec3 | | matrix
+| e3d_mat | rotate_s_to_t         |   | Vec3 Vec3 | | matrix
+| e3d_mat | project_to_plane      |   | Vec3 | | matrix
+| e3d_mat | transpose             |   | Matrix | | matrix
+| e3d_mat | invert                |   | Matrix | | matrix
+| e3d_mat | add                   |   | Matrix Matrix | | matrix
+
+| e3d_mat | mul                   |   | List | | _
+| e3d_mat | mul                   |   | Matrix MatrixOrFloat | | matrix
+
+| e3d_mat | mul_point             |   | Matrix Vec3 | | vec3
+| e3d_mat | mul_vector            |   | Matrix Vec3 | | vec3
+| e3d_mat | eigenv3               |   | Matrix | | vec3 matrix
+
+
+| e3d_vec | zero                |   | | | vec3
+| e3d_vec | is_zero             |   | Vec3 | | bool
+
+| e3d_vec | add                 |   | List | | _
+| e3d_vec | add                 |   | Vec3 Vec3 | | vec3
+
+| e3d_vec | add_prod            |   | Vec3 Vec3 Float | | vec3
+
+| e3d_vec | sub                 |   | List | | _
+| e3d_vec | sub                 |   | Vec3 Vec3 | | vec3
+
+| e3d_vec | lerp                |   | Vec3 Vec3 Float | | vec3
+| e3d_vec | norm_sub            |   | Vec3 Vec3 | | vec3
+| e3d_vec | mul                 |   | Vec3 Float | | vec3
+| e3d_vec | divide              |   | Vec3 Float | | vec3
+| e3d_vec | neg                 |   | Vec3 | | vec3
+| e3d_vec | dot                 |   | Vec3 Vec3 | | float
+
+| e3d_vec | cross               |   | Vec3 Vec3 | | vec3
+| e3d_vec | len                 |   | Vec3 | | float
+| e3d_vec | len_sqr             |   | Vec3 | | float
+| e3d_vec | dist                |   | Vec3 Vec3 | | float
+| e3d_vec | dist_sqr            |   | Vec3 Vec3 | | float
+
+| e3d_vec | norm                |   | Vec3 | | _
+| e3d_vec | norm                |   | Float Float Float | | vec3
+
+| e3d_vec | normal              |   | List | | _
+| e3d_vec | normal              |   | Vec3 Vec3 Vec3 | | vec3
+
+| e3d_vec | average             |   | List | | _
+| e3d_vec | average             |   | Vec3 Vec3 | | _
+| e3d_vec | average             |   | Vec3 Vec3 Vec3 Vec3 | | vec3
+
+| e3d_vec | area                |   | Vec3 Vec3 Vec3 | | float
+| e3d_vec | degrees             |   | Vec3 Vec3 | | float
+
+| e3d_vec | plane               |   | List | | _
+| e3d_vec | plane               |   | Vec3 Vec3 | | _
+| e3d_vec | plane               |   | Vec3 Vec3 Vec3 | | tuple
+
+| e3d_vec | plane_side          |   | Vec3 Tuple | | integer
+| e3d_vec | plane_dist          |   | Vec3 Tuple | | float
+| e3d_vec | line_dist           |   | Vec3 Vec3 Vec3 | | float
+| e3d_vec | line_dist_sqr       |   | Vec3 Vec3 Vec3 | | float
+| e3d_vec | line_line_intersect |   | Vec3 Vec3 Vec3 Vec3 | | any
+| e3d_vec | project_2d          |   | Vec3 Atom | | vec3
+| Atom is $(ATOM x), $(ATOM y) or $(ATOM z)
+
+| e3d_vec | largest_dir         |   | Vec3 | | atom
+
+
+| e3d_bv | box               |   |  | | _
+| e3d_bv | box               |   | List | | _
+| e3d_bv | box               |   | Any Any | | _
+| e3d_bv | box               |   | Vec3 Vec3 Float | | tuple
+
+| e3d_bv | union             |   | Tuple Tuple | | tuple
+| e3d_bv | dist              |   | Tuple Tuple | | float_or_false
+| e3d_bv | intersect         |   | Tuple Tuple | | bool
+| e3d_bv | center            |   | Tuple | | vec3
+| e3d_bv | max_extent        |   | Tuple | | any
+| e3d_bv | surface_area      |   | Tuple | | float
+| e3d_bv | volume            |   | Tuple | | float
+| e3d_bv | sphere            |   | Tuple | | tuple
+| e3d_bv | inside            |   | Vec3 Tuple | | bool
+
+| e3d_bv | hit               |   | Ray BBox | | _
+| e3d_bv | hit               |   | Ray Tuple BBox | | bool
+
+| e3d_bv | inv_sign          |   | Vec3 | | tuple
+| e3d_bv | eigen_vecs        |   | List | | tuple
+| e3d_bv | quickhull         |   | List | | tuple
+| e3d_bv | covariance_matrix |   | List | | tuple
+
+
+
+
+
+

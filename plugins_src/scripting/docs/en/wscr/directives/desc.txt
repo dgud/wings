@@ -1,0 +1,11 @@
+desc Directive
+<code><pre>
+<b>desc</b> ?__(2,"This script does something")
+</pre></code>
+
+A short description can be added to provide more information about what
+ the script does.
+
+
+
+

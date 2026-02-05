@@ -1,0 +1,11 @@
+browse Directive
+<code><pre>
+<b>browse</b> "Click to browse" "filename.txt"
+</pre></code>
+
+A text box with a button to browse for files.
+
+A <b>browse</b> directive should be inside a
+<b>params { ... }</b> section.
+
+

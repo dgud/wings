@@ -1,0 +1,123 @@
+New Shape Scripts
+
+New shape scripts are available when right clicking with no selection.
+
+A complete example of a Python script to create a new shape:
+
+<code><pre>
+import w3d_newshape
+import sys
+
+def main(params, params_by_key, extra_params):
+    nshp = w3d_newshape.NewShape()
+    nshp.fs = w3d_newshape.ListOfArrays([
+        [0,1,3,2],
+        [6,7,5,4],
+        [1,0,4,5],
+        [2,3,7,6],
+        [0,2,6,4],
+        [3,1,5,7]
+    ])
+    nshp.vs = w3d_newshape.ListOfTuples([
+        (-2.0, 0.5,-2.0),
+        (-2.0, 0.5, 2.0),
+        ( 2.0, 0.5,-2.0),
+        ( 2.0, 0.5, 2.0),
+        (-2.0,-0.5,-2.0),
+        (-2.0,-0.5, 2.0),
+        ( 2.0,-0.5,-2.0),
+        ( 2.0,-0.5, 2.0)
+    ])
+    return nshp
+
+w3d_main_function = main
+</pre></code>
+
+Don't forget to assign the 'main' function to 'w3d_main_function'.
+
+An .wscr to use with the script:
+
+<code><pre>
+type "py"
+name ?__(1,"Example New Shape")
+params_title ?__(3,"Example New Shape")
+params {
+param "Unused" 0.0
+}
+</pre></code>
+
+The .wscr and .py file should have the same name before the extension (script.py and script.wscr).
+
+To use parameters with the script, such as shifting the points by an adjustable value:
+
+<code><pre>
+import w3d_newshape
+import sys
+
+def main(params, params_by_key, extra_params):
+    xshift = params[0]
+    yshift = params[1]
+    zshift = params[2]
+    nshp = w3d_newshape.NewShape()
+    nshp.fs = w3d_newshape.ListOfArrays([
+        [0,1,3,2],
+        [6,7,5,4],
+        [1,0,4,5],
+        [2,3,7,6],
+        [0,2,6,4],
+        [3,1,5,7]
+    ])
+    nshp.vs = w3d_newshape.ListOfTuples([
+        (-2.0 + xshift,  0.5 + yshift, -2.0 + zshift),
+        (-2.0 + xshift,  0.5 + yshift,  2.0 + zshift),
+        ( 2.0 + xshift,  0.5 + yshift, -2.0 + zshift),
+        ( 2.0 + xshift,  0.5 + yshift,  2.0 + zshift),
+        (-2.0 + xshift, -0.5 + yshift, -2.0 + zshift),
+        (-2.0 + xshift, -0.5 + yshift,  2.0 + zshift),
+        ( 2.0 + xshift, -0.5 + yshift, -2.0 + zshift),
+        ( 2.0 + xshift, -0.5 + yshift,  2.0 + zshift)
+    ])
+    return nshp
+
+w3d_main_function = main
+</pre></code>
+
+In the .wscr file, replace the "Unused" parameter with "X", "Y" and "Z" parameters:
+
+<code><pre>
+type "py"
+name ?__(1,"Example New Shape")
+params_title ?__(3,"Example New Shape")
+params {
+param "X" 0.0
+param "Y" 0.0
+param "Z" 0.0
+}
+</pre></code>
+
+
+
+Another way to create a new shape where you might want to add colors, UVs, materials and hard edges is to make a new shape using a E3DObject. To create a shape, create a geometry with E3DMesh and E3DObject, and assign E3DObject to the obj attribute of a NewShape object.
+
+<code><pre>
+import w3d_newshape
+import w3d_e3d
+import sys
+
+def main(params, params_by_key, extra_params):
+    mesh = w3d_e3d.E3DMesh()
+    ...
+    e3d_o = w3d_e3d.E3DObject()
+    e3d_o.obj = mesh
+    nshp = w3d_newshape.NewShape()
+    nshp.prefix = "shape"
+    nshp.obj = e3d_o
+    return nshp
+
+w3d_main_function = main
+</pre></code>
+
+
+
+
+

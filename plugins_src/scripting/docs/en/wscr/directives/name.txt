@@ -1,0 +1,7 @@
+name Directive
+<code><pre>
+<b>name</b> ?__(1,"Raw Triangles (.raw)")
+</pre></code>
+
+A name for the script, which appears in the script chooser dialog.
+

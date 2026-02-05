@@ -1,0 +1,37 @@
+e3d_face
+
+(<b>make-e3d_face</b> default
+ .
+ sc)
+
+Make a e3d_face list structure with a constructor list, available items are 'vs 'vc 'tx 'ns 'mat 'sg 'vis
+
+(<b>e3d_face?</b>
+ l)
+
+Is the list structure an e3d_face?
+
+(<b>e3d_face-vs</b>
+ l)
+
+(<b>e3d_face-vc</b>
+ l)
+
+(<b>e3d_face-tx</b>
+ l)
+
+(<b>e3d_face-ns</b>
+ l)
+
+(<b>e3d_face-mat</b>
+ l)
+
+(<b>e3d_face-sg</b>
+ l)
+
+(<b>e3d_face-vis</b>
+ l)
+
+Get the value of a given field in e3d_face.
+
+

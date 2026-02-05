@@ -302,17 +302,19 @@ object_name(Prefix, #st{onext=Oid}) ->
 %%%
 
 install(Name) ->
-    {Type,Dest} = case install_file_type(Name) of
+    {Type,Dest,AfterInst} = case install_file_type(Name) of
 		      beam -> install_beam(Name);
 		      tar -> install_tar(Name)
 		  end,
-    io:format("Installed ~w to ~ts~n",[Type, Dest]),
+    io:format("Installed ~w to ~ts~n",[case Type of {AtomType,_} -> AtomType; _ -> Type end, Dest]),
+    AfterInst(Dest),
     case Type of
         plugin ->
-            init_dir(plugin_dir()),
             wings_u:message(?__(1,"The plug-in was successfully installed."));
         patch ->
-            wings_u:message(?__(2,"The patch was successfully installed, please restart wings."))
+            wings_u:message(?__(2,"The patch was successfully installed, please restart wings."));
+        {_,CustomStr} ->
+            wings_u:message(io_lib:format(?__(3,"The ~s was successfully installed."),[CustomStr]))
     end.
 
 install_file_type(Name) ->
@@ -342,9 +344,9 @@ install_beam(Name) ->
         {ok,_} ->
             if Patch ->
                     wings_start:enable_patches(),
-                    {patch, Dest};
+                    {patch, Dest, after_install_patch()};
                true ->
-                    {plugin, Dest}
+                    {plugin, Dest, after_install_plugin()}
             end;
         {error,Reason} ->
             wings_u:error_msg(?__(1,"Install of \"~s\" failed: ~p"),
@@ -357,12 +359,13 @@ erl_tar() -> %% Fool dialyzer the spec is wrong for erl_tar:table() in 20.0-20.2
 
 install_tar(Name) ->
     {ok,Files} = (erl_tar()):table(Name, [compressed]),
-    Type = install_verify_files(Files, Name),
-    Dest = case Type of
-		plugin -> plugin_dir();
-		patch -> wings_start:patch_dir()
+    Type_0 = install_verify_files(Files, Name),
+    {Type,Dest,AfterInst} = case Type_0 of
+		plugin -> {Type_0, plugin_dir(), after_install_plugin()};
+		patch -> {Type_0, wings_start:patch_dir(), after_install_patch()};
+		manifest -> install_manifest(Name)
 	    end,
-    case erl_tar:extract(Name, [compressed,{cwd,Dest}]) of
+    case erl_tar:extract(Name, [compressed,{cwd,Dest},{files,Files -- ["manifest.xml"]}]) of
 	ok when Type =:= patch ->
 	    wings_start:enable_patches();
 	ok -> ok;
@@ -375,7 +378,13 @@ install_tar(Name) ->
 			      [filename:basename(Name),
 			       file:format_error(Reason)])
     end,
-    {Type,Dest}.
+    {Type,Dest,AfterInst}.
+
+after_install_plugin() ->
+    fun (_) -> init_dir(plugin_dir()) end.
+
+after_install_patch() ->
+    fun (_) -> ok end.
 
 install_verify_files(Fs, Name) when is_list(Name) ->
     install_verify_files(Fs, Name, undefined).
@@ -391,6 +400,8 @@ install_verify_files([F|Fs], Name, Content) ->
 	false ->
 	    case filename:extension(F) of
 		".beam" -> install_verify_files(Fs, Name, patch);
+		".xml" when F =:= "manifest.xml", Content =:= undefined ->
+		    install_verify_files(Fs, Name, manifest);
 		_ -> install_verify_files(Fs, Name, Content)
 	    end
     end;
@@ -409,6 +420,71 @@ is_plugin(Name) ->
 
 plugin_dir() ->
     filename:join([wings_u:basedir(user_data), wings_u:version(), "plugins"]).
+
+install_manifest(Name) ->
+    case erl_tar:extract(Name,[{files,["manifest.xml"]},compressed,memory]) of
+        {ok,[{_,ContentBin}]} ->
+            EF = {event_fun, fun manifest_parse/3},
+            ES = {event_state, {unknown,[],{[],""}}},
+            case xmerl_sax_parser:stream(ContentBin, [EF,ES]) of
+                {ok,{Type,List,_}, _} ->
+                    install_manifest_1(Type,List);
+                {_Error, {_,_,Line}, Reason, _ET, _St} ->
+                    wings_u:error_msg(?__(1,"Manifest file in tar has errors at line ~w: ~p"),
+                        [Line,Reason])
+            end;
+        _ ->
+            wings_u:error_msg(?__(2,"Manifest file in tar isn't available"),[])
+    end.
+manifest_parse({startElement, _, LName, _, Attrs0}, _Loc, {TypeAtom,List,{Context,_Text}}=State) ->
+    case LName of
+        "manifest" -> State;
+        "type" when Context =:= [] ->
+            {TypeAtom,List,{[{type,[],[]}],""}};
+        Name ->
+            Attrs = [{AttrName,AttrVal} || {_,_,AttrName,AttrVal} <- Attrs0],
+            {TypeAtom,[],{[{Name,Attrs,List}|Context],""}}
+    end;
+manifest_parse({endElement, _, LName, _}=_Ev, _Loc, {TypeAtom,List1,{[{Name,Attrs0,List0}|Context],Text}}=State) ->
+    case LName of
+        "manifest" -> State;
+        "type" when Context =:= [] andalso Name =:= type ->
+            case string:trim(Text) of
+                "" ->
+                    {unknown,List0,{Context,""}};
+                _ ->
+                    {list_to_atom(Text),List0,{Context,""}}
+            end;
+        _ ->
+            Content = case {List1,string:trim(Text)} of
+                {[],""} -> [];
+                {[_|_]=List2,_} -> List2;
+                {[],Text1} -> Text1
+            end,
+            {TypeAtom,[{Name,Attrs0,Content}|List0],{Context,""}}
+    end;
+manifest_parse({characters, Chars}, _Loc, {TypeAtom,List,{Context,_}}) ->
+    {TypeAtom,List,{Context,Chars}};
+manifest_parse(_Ev, _Loc, State) ->
+    State.
+
+install_manifest_1(Type,List) ->
+    install_manifest_1(?GET(wings_plugins),Type,List).
+install_manifest_1([],_Type,_List) ->
+    wings_u:error_msg(?__(1,"Could not find plugin to install files."),[]);
+install_manifest_1([M|Plugins],Type,List) ->
+    try M:installing_archive(Type,List) of
+        next ->
+            install_manifest_1(Plugins,Type,List);
+        {SubFolder,TypeStr,AfterInstFun} ->
+            Dest = filename:join([wings_u:basedir(user_data), wings_u:version(), SubFolder]),
+            {{Type,TypeStr},Dest,AfterInstFun}
+    catch
+        _:_ ->
+            install_manifest_1(Plugins,Type,List)
+    end.
+
+
 
 %%%
 %%% Plug-in manager.

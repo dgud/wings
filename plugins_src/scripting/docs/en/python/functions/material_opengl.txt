@@ -1,0 +1,17 @@
+class MaterialOpenGLAttributes
+
+Visible attributes ambient, specular, shininess, diffuse, emission, metallic, roughness, vertex_colors
+
+<b>MaterialOpenGLAttributes</b>()
+
+Creates a new MaterialOpenGLAttributes instance
+
+opengl.<b>as_output_list</b>()
+
+Outputs the whole MaterialOpenGLAttributes instance and all its values into an output list, not usually used directly.
+
+opengl.<b>load_from</b>(tlist)
+
+Load contents into a MaterialOpenGLAttributes instance, not usually used directly.
+
+

@@ -1,0 +1,26 @@
+command_changes Directive
+<code><pre>
+<b>command_changes</b> "points"
+</pre></code>
+
+For command scripts, sets a comma separated list of possible information
+that will be changed by the script when making modifications to data from
+command_inputs. This directive is not needed if the script uses we commands
+to modify the shape directly.
+
+This directive is only used with command scripts, and only optionally as an
+alternative to using the we commands directly.
+
+The e3d_mesh option provides an e3d mesh of the shape, which can be modified
+by the script and then is recreated as a we object when returned back to wings.
+Since the we object is changed to a e3d mesh and then back, it is possible that
+all the numbering of vertices, edges and faces will be completely changed and any
+special data that uses those numberings won't match anymore.
+
+Items can be:
+  points,
+  face_colors,
+  face_uvs,
+  e3d_mesh
+
+
