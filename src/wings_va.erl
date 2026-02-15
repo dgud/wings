@@ -17,7 +17,7 @@
 	 face_mixed_attrs/2,
 	 all/2,edge_attrs/3,edge_attrs/4,set_edge_attrs/4,set_both_edge_attrs/4,
 	 set_edge_attrs/2,set_edge_uvs/2,set_edge_colors/2,del_edge_attrs/2,
-	 set_edge_color/4,
+	 set_edge_color/4,blend_edge_color/4,
 	 vtx_attrs/2,vtx_attrs/3,attr/2,new_attr/2,average_attrs/1,average_attrs/2,
 	 set_vtx_face_uvs/4,
 	 remove/2,remove/3,renumber/2,merge/2,gc/1,any_update/2]).
@@ -303,6 +303,13 @@ set_edge_colors(List, #we{lv=Lva0,rv=Rva0}=We) ->
 set_edge_color(Edge, LeftCol, RightCol, #we{lv=Lva0,rv=Rva0}=We) ->
     Lva = set_color(Edge, LeftCol, Lva0),
     Rva = set_color(Edge, RightCol, Rva0),
+    We#we{lv=Lva,rv=Rva}.
+
+%% blend_edge_color(Edge, LeftColor, RightColor, We0) -> We
+%%  Blend the current vertex colors and the new color to the edge.
+blend_edge_color(Edge, LeftCol, RightCol, #we{lv=Lva0,rv=Rva0}=We) ->
+    Lva = blend_color(Edge, LeftCol, Lva0),
+    Rva = blend_color(Edge, RightCol, Rva0),
     We#we{lv=Lva,rv=Rva}.
 
 %% del_edge_attrs(Edge, We0) -> We.
@@ -802,6 +809,13 @@ set_uv(Edge, UV, Tab) ->
 	       [Color|_] -> [Color|UV]
 	   end,
     aset(Edge, Attr, Tab).
+
+blend_color(Edge, Color, Tab) ->
+    case aget(Edge, Tab) of
+        none -> aset(Edge, [Color|none], Tab);
+        [Color|_] -> Tab;
+        [OldColor|UV] -> aset(Edge, [wings_color:blend(OldColor,Color)|UV], Tab)
+    end.
 
 mix(_, none, _) -> none;
 mix(_, [_|_], none) -> none;
