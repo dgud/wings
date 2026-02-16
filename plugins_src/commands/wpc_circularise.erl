@@ -71,6 +71,8 @@ process_circ_cmd(Plane, St0) ->
                          Gs = wings_edge_loop:partition_edges(Edges, We),
                          VsList = wings_edge_loop:edge_links(Edges, We),
                          case check_partial_and_full_loops(VsList, We) of
+                             mixed_mirror ->
+                                 true;
                              not_mixed when length(Gs) =:= length(VsList) ->
                                  false;
                              not_mixed ->
@@ -126,6 +128,8 @@ process_cc_cmd_1(Data, St0) ->
                  case check_partial_and_full_loops(Vs, We) of
                      not_mixed when length(EdgeGroups) =:= length(Vs) ->
                          ok;
+                     mixed_mirror ->
+                         circ_sel_error();
                      not_mixed ->
                          circ_sel_error();
                      single_edge ->
@@ -374,7 +378,11 @@ check_partial_and_full_loops([Group|Vs], We) when length(Group) > 1 ->
     case is_list(wings_edge_loop:edge_loop_vertices(Edges, We)) of
       true -> mixed;
       false when Bool -> mixed;
-      false -> check_partial_and_full_loops(Vs, We)
+      false ->
+          case check_mirror(Edges, We) of
+              true -> mixed_mirror;
+              false -> check_partial_and_full_loops(Vs, We)
+          end
     end;
 check_partial_and_full_loops([], _) -> not_mixed;
 check_partial_and_full_loops(_, _) -> single_edge.
@@ -397,7 +405,12 @@ circle_setup(Plane, St) ->
     DF = fun(Edges, We) ->
                  case wings_edge_loop:edge_loop_vertices(Edges, We) of
                      none ->
-                         circ_sel_error_4();
+                         Groups0 = wings_edge_loop:edge_links(Edges, We),
+                         Groups = process_mixed(Groups0,We),
+                         case length(Groups0) =:= length(Groups) of
+                             true -> circle_setup_1(Groups, We, Plane, State, []);
+                             false -> circ_sel_error_4()
+                         end;
                      Groups ->
                          TotalVs = length(wings_edge:to_vertices(Edges, We)),
                          SumCheck = [length(SubGroup) || SubGroup <- Groups],
@@ -443,18 +456,83 @@ circle_pick_all_setup_1(Edges, #we{vp=Vtab}=We, State, RayV, Center, Axis) ->
 
 circle_setup_1([], _, _, _, Acc) ->
     wings_drag:compose(Acc);
-circle_setup_1([Vs0|Groups], #we{vp=Vtab}=We, Plane, State, Acc0) ->
+circle_setup_1([Vs0|Groups], We, Plane, State, Acc0) ->
+    Acc =
+        case is_mirror(Vs0, We) of
+            true ->
+                arc_mirrored_setup(Vs0, We, Plane, State, Acc0);
+            false ->
+                circle_setup_2(Vs0, We, Plane, State, Acc0)
+        end,
+    circle_setup_1(Groups, We, Plane, State, Acc).
+
+circle_setup_2(Vs0, #we{vp=Vtab}=We, Plane, State, Acc0) ->
     CwNorm = wings_face:face_normal_cw(Vs0, Vtab),
     Axis = circle_plane(Plane, CwNorm),
     Vs = check_vertex_order(Vs0, Axis, CwNorm),
     Center = wings_vertex:center(Vs, We),
     Deg = 360.0/length(Vs),
-    {Pos,NearestVpos,Index} = get_radius(Vs, Center, Axis, Vtab, 0.0, 0.0, raypos, lastpos, firstpos, 0.0, index),
+    {Pos,NearestVpos,Index} = get_radius(full, Vs, Center, Axis, Vtab, 0.0, 0.0, raypos, lastpos, firstpos, 0.0, index),
     VertDegList = degrees_from_static_ray(Vs, Vtab, Deg, Index, 1.0, []),
     Ray = e3d_vec:norm_sub(Pos, Center),
     Data = {Center,Ray,NearestVpos,Axis,VertDegList},
-    Acc = [{Vs,make_circular_fun(Data, State)}|Acc0],
-    circle_setup_1(Groups, We, Plane, State, Acc).
+    [{Vs,make_circular_fun(Data, State)}|Acc0].
+
+%%% arc_mirrored_setu will make an arc on the mirror boundaries
+%%% to act like it was a full circle
+arc_mirrored_setup(Vs0, #we{vp=Vtab}=We, Plane, State, Acc0) ->
+    Matrix = wings_dl:mirror_matrix(We#we.id),
+    {Ps0, PsMirror0} =
+        lists:foldl(fun(V, {Acc, AccM}) ->
+                        Pos0 = array:get(V,Vtab),
+                        Pos = e3d_mat:mul_point(Matrix, Pos0),
+                        {[Pos0|Acc], [Pos|AccM]}
+                    end, {[],[]}, Vs0),
+    [_|Ps1] = lists:reverse(Ps0),
+    [_|PsMirror] = PsMirror0,
+    Ps = Ps1 ++ PsMirror,
+    CwNorm = e3d_vec:normal(Ps),
+    Axis = circle_plane(Plane, CwNorm),
+    Vs = check_vertex_order(Vs0, Axis, CwNorm),
+    Center = e3d_vec:average(Ps),
+    Deg = 180.0/(length(Vs)-1),
+    {Pos,NearestVpos,AtIndex} = get_radius(mirrored, Vs, Center, Axis, Vtab, 0.0, 0.0, raypos, lastpos, firstpos, 0.0, index),
+    %% 'AtIndex' may contain decimals values which must be ignored
+    VertDegList = degrees_from_static_ray(Vs, Vtab, -Deg, trunc(AtIndex), 1.0, []),
+    Ray = e3d_vec:norm_sub(Pos, Center),
+    Data = {Center,Ray,NearestVpos,Axis,VertDegList},
+    [{Vs,make_circular_fun(Data, State)}|Acc0].
+
+check_mirror(Edges, We) ->
+    VsList = wings_edge_loop:edge_links(Edges, We),
+    lists:foldl(fun(Vs0, Acc) ->
+                    Acc and is_mirror(Vs0, We)
+                end, true, VsList).
+
+is_mirror(_, #we{mirror=none}) -> false;
+is_mirror([{_,_,_}|_]=VsList, We) ->
+    {Vs,_} = arc_vs(VsList, [], []),
+    is_mirror(Vs,We);
+is_mirror(Vs, #we{mirror=Mirror}=We) ->
+    MirrorVs0 = wings_face:vertices_cw(Mirror, We),
+    [Vb|_] = Vs,
+    [Ve|_] = lists:reverse(Vs),
+    lists:member(Vb,MirrorVs0) and lists:member(Ve,MirrorVs0).
+
+process_mixed(Groups,We) ->
+    lists:foldr(fun(Edges, Acc) ->
+        Es = [E || {E,_,_} <- Edges],
+        case wings_edge_loop:edge_loop_vertices(Es, We) of
+            none ->
+                [{_, _, V1}|_] = Edges,
+                Vs = [V1|[V || {_,V,_} <- Edges]],
+                case is_mirror(Vs,We) of
+                    true -> [Vs|Acc];
+                    false -> Acc
+                end;
+            [Group] -> [Group|Acc]
+        end
+    end, [], Groups).
 
 %% Tent arc for open edge loops that have a ccw normal of {0,0,0}
 tent_arc(Edges, [_,V2|_], Norm, #we{vp=Vtab}=We) ->
@@ -528,23 +606,27 @@ find_stable_point([_|Vs], RayV, Vtab, Index) ->
 
 
 %%%% Return the Index and Position of the Vertex or midpoint between adjacent
-%%%% vertices closeest to the Center. Distance calculation is made after the
+%%%% vertices closest to the Center. Distance calculation is made after the
 %%%% point in question is flattened to the relevant Plane.
-get_radius([], Center, _, _, RayLen0, NearestVert, Pos, LastPos, FirstPos, AtIndex, Index) ->
-    HalfPos = e3d_vec:average(LastPos, FirstPos),
+get_radius(Mode, [], Center, _, _, RayLen0, NearestVert, Pos, LastPos, FirstPos, AtIndex, Index) ->
+    HalfPos =
+        case Mode of
+            mirrored -> LastPos;
+            _ -> e3d_vec:average(LastPos, FirstPos)
+        end,
     HalfDist = len_sqrt(e3d_vec:sub(HalfPos, Center)),
     case HalfDist < RayLen0 of
       true -> {HalfPos, math:sqrt(NearestVert), AtIndex+0.5};
       false -> {Pos, math:sqrt(NearestVert), Index}
     end;
 
-get_radius([Vert|Vs], Center, Plane, Vtab, +0.0, +0.0, _Pos, _LastPos, _FirstPos, AtIndex, _Index) ->
+get_radius(Mode, [Vert|Vs], Center, Plane, Vtab, +0.0, +0.0, _Pos, _LastPos, _FirstPos, AtIndex, _Index) ->
     Pos = array:get(Vert, Vtab),
     RayPos = intersect_vec_plane(Pos, Center, Plane),
     Dist = len_sqrt(e3d_vec:sub(RayPos, Center)),
-    get_radius(Vs, Center, Plane, Vtab, Dist, Dist, RayPos, Pos, Pos, AtIndex+1.0, AtIndex+1.0);
+    get_radius(Mode, Vs, Center, Plane, Vtab, Dist, Dist, RayPos, Pos, Pos, AtIndex+1.0, AtIndex+1.0);
 
-get_radius([Vert|Vs], Center, Plane, Vtab, RayLen0, NearestVert0, RayPos0, LastPos0, FirstPos, AtIndex0, Index0) ->
+get_radius(Mode, [Vert|Vs], Center, Plane, Vtab, RayLen0, NearestVert0, RayPos0, LastPos0, FirstPos, AtIndex0, Index0) ->
     Pos = array:get(Vert, Vtab),
     LastPos = intersect_vec_plane(Pos, Center, Plane),
     HalfPos = e3d_vec:average(LastPos, LastPos0),
@@ -585,7 +667,7 @@ get_radius([Vert|Vs], Center, Plane, Vtab, RayLen0, NearestVert0, RayPos0, LastP
             Index = Index0
         end
     end,
-    get_radius(Vs, Center, Plane, Vtab, RayLen, NearestVert, RayPos, LastPos, FirstPos, AtIndex, Index).
+    get_radius(Mode, Vs, Center, Plane, Vtab, RayLen, NearestVert, RayPos, LastPos, FirstPos, AtIndex, Index).
 
 len_sqrt({X,Y,Z}) ->
     X*X+Y*Y+Z*Z.
