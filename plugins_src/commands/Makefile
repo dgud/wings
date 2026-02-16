@@ -59,6 +59,7 @@ MODULES= \
 	wpc_tools_win_resize \
 	wpc_sculpt \
 	wpc_sel_absolute \
+	wpc_sel_fill \
 	wpc_sel_win \
 	wpc_shear \
 	wpc_shift \
