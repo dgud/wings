@@ -560,7 +560,10 @@ handle_event(#wx{event=#wxList{type=Op, itemIndex=Indx, col=Col}},
 	     #state{name=Name, shown=Shown} = State) ->
     {shape, Id} = get_id(Indx, Shown),
     Action = col_name(Col),
-    Apply = fun(St) -> Action(Id, Op, St), keep end,
+    Apply = fun(St) ->
+                Action(Id, Op, St),
+                wings_wm:psend(geom,need_save)
+            end,
     wings_wm:psend(Name, {apply, false, Apply}),
     {noreply, State};
 
