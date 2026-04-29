@@ -2873,7 +2873,7 @@ move(Reference0, St) ->
                     center -> wings_sel:center_vs(St);
                     _ -> Reference0
                 end,
-    {OneObject,SinglePoints,_} = analyze_selection(St),
+    {OneObject,SinglePoints} = analyze_selection(St),
     WholeObjects = if
                        SinglePoints ->
                            false;
@@ -2964,17 +2964,9 @@ lookup(Key, List, Default) ->
         false -> Default
     end.
 
-translate(Options, {CX,CY,_}=Center, St) ->
-    X = lookup(x, Options, 0.0),
-    Y = lookup(y, Options, 0.0),
-    NX = case lookup(lx, Options, false) of
-             true -> CX;
-             false -> X
-         end,
-    NY = case lookup(ly, Options, false) of
-             true -> CY;
-             false -> Y
-         end,
+translate(Options, Center, St) ->
+    NX = lookup(x, Options, 0.0),
+    NY = lookup(y, Options, 0.0),
     Obj = lookup(all, Options, true),
     Ax = lookup(ax, Options, false),
     Ay = lookup(ay, Options, false),
@@ -2988,24 +2980,16 @@ translate(Options, {CX,CY,_}=Center, St) ->
 %% this is main absolute move command, it returns new state.
 %%
 
-do_move([_,Origin,_,_,_]=Move, St) ->
-    do_move_1(Origin, Move, St).
-
-do_move_1(Origin, Move, #st{selmode=Mode}=St) ->
+do_move(Move, #st{selmode=Mode}=St) ->
     CF = fun(Items, We0) ->
             Vs0 = wings_sel:to_vertices(Mode, Items, We0),
             Vs = gb_sets:from_ordset(Vs0),
-            We = do_move_2(Vs, We0, Origin, Move),
+            We = do_move_1(Vs, We0, Move),
             We
          end,
-    St0 = wings_sel:map(CF, St),
-    St0.
+    wings_sel:map(CF, St).
 
-do_move_2(Vs, We, Origin, Params) ->
-    do_move_3(Vs, We, Origin, Params).
-
-do_move_3(Vs, We0, _Origin,
-        [CommonCenter,Pos,Wo,Align,Flatten]) ->
+do_move_1(Vs, We0, [CommonCenter,Pos,Wo,Align,Flatten]) ->
     Center = wings_vertex:center(Vs, We0),
     D = d(Pos, Align, CommonCenter, Center),
     Vtab0 = We0#we.vp,
@@ -3065,18 +3049,16 @@ execute_move(Vertex,{Dx,Dy,_}=D,{Nx,Ny,_}=N,{Fx,Fy,_}=F,Wo,Vset,Vtab) ->
             execute_move(Vertex-1,D,N,F,Wo,Vset,Vtab2)
     end.
 
-%% -> {SingleObject,SinglePoints,AllLights}
 analyze_selection(#st{selmode=Mode}=St) ->
-    MF = fun(Items, We) ->
-            IsLight = ?IS_LIGHT(We),
-            {1,gb_sets:size(Items) =:= 1,IsLight}
+    MF = fun(Items, _We) ->
+            {1,gb_sets:size(Items) =:= 1}
          end,
-    RF = fun({B,S,L}, {B0,S0,L0}) ->
-            {B+B0,S0 and S,L and L0}
+    RF = fun({B,S}, {B0,S0}) ->
+            {B+B0,S0 and S}
          end,
-    Acc0 = {0,Mode =:= vertex,true},
-    {N,Single,Lights} = wings_sel:dfold(MF, RF, Acc0, St),
-    {N =:= 1,Single,Lights}.
+    Acc0 = {0,Mode =:= vertex},
+    {N,Single} = wings_sel:dfold(MF, RF, Acc0, St),
+    {N =:= 1,Single}.
 
 all_items_selected(#st{selmode=Mode}=St) ->
     MF = fun(Items, We) ->
