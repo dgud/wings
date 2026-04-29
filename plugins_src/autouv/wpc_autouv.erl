@@ -1479,7 +1479,7 @@ repeatable({tighten,_}, Mode) ->
 repeatable(delete, Mode) -> Mode == body;
 repeatable(hide, Mode) -> Mode == body;
 repeatable(flatten, Mode) -> Mode == edge;
-repeatable({flatten_}, Mode) -> Mode == vertex;
+repeatable({flatten, _}, Mode) -> Mode == vertex;
 repeatable(stitch, Mode) ->  Mode == edge;
 repeatable(cut_edges, Mode) -> Mode == edge;
 repeatable(_Cmd,_Mode) ->
