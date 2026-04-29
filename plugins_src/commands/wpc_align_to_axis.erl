@@ -18,71 +18,123 @@ init() ->
     true.
 
 %%%% Menu
-menu({Mode,absolute},Menu) when Mode =:= body ->
-    [Menu|[separator,align_to_axis_menu()]];
+menu({Mode},Menu) when Mode=:=body ->
+    parse(Menu, Mode);
 menu(_,Menu) ->
     Menu.
 
-align_to_axis_menu() ->
-    {?__(2,"Align to Target"), {rotate_to_axis, fun align_to_axis_options/2},[],[]}.
+parse(Menu, Mode) ->
+    lists:reverse(parse(Menu, Mode, [], false)).
 
-align_to_axis_options(help, _) ->
-    {?__(1,"Rotate around specified center by an angle defined by Vector A and a default axis"), [],
-     ?__(2,"Rotate around specified center by an angle defined by Vector A and Vector B")};
-align_to_axis_options(1, _Ns) ->
-    rotate_def_axis();
-align_to_axis_options(3, _Ns) ->
-    {body,{rotate_to_axis,{'ASK',[center,point_A,point_B,point_C,point_D]}}};
-align_to_axis_options(_,_) ->
+parse([], _, NewMenu, true) ->
+    NewMenu;
+parse([{_, {absolute, _}}=AbsCMD|Rest], Mode, NewMenu, false) ->
+    parse(Rest, Mode, [align_to_menu()|[AbsCMD|NewMenu]], true);
+parse([Elem|Rest], Mode, NewMenu, Found) ->
+    parse(Rest, Mode, [Elem|NewMenu], Found).
+
+align_to_menu() ->
+    [{?__(2,"Align to"), {align_to, align_to_axis()}}].
+
+align_to_axis() ->
+    RotAxisStrL = ?__(1,"Align the object to ~s axis by using a reference axis"),
+    RotAxisStrR = ?__(2,"Align the object to ~s axis by setting the reference direction"),
+    [{wings_s:dir(x),align_to_axis_fun(x), {io_lib:format(RotAxisStrL, [wings_s:dir(x)]),[],
+        io_lib:format(RotAxisStrR, [wings_s:dir(x)])}},
+     {wings_s:dir(y),align_to_axis_fun(y), {io_lib:format(RotAxisStrL, [wings_s:dir(y)]),[],
+         io_lib:format(RotAxisStrR, [wings_s:dir(y)])}},
+     {wings_s:dir(z),align_to_axis_fun(z), {io_lib:format(RotAxisStrL, [wings_s:dir(z)]),[],
+         io_lib:format(RotAxisStrR, [wings_s:dir(z)])}},
+     separator,
+     {?__(3,"Target"), {target, fun align_to_target_opt/2},[],[]}].
+
+align_to_target_opt(help, _) ->
+    {?__(1,"Rotate around the specified center by an angle defined by the reference vector and a default axis"), [],
+     ?__(2,"Rotate around the specified center using an angle defined by the reference and target vectors")};
+align_to_target_opt(1, _Ns) ->
+    align_to_target();
+align_to_target_opt(3, _Ns) ->
+    {body,{align_to_target,{'ASK',[center,point_A,point_B,point_C,point_D]}}};
+align_to_target_opt(_,_) ->
     ignore.
 
-rotate_def_axis() ->
+align_to_target() ->
     RotAxisStr = ?__(1,"Align the vector to ~s axis"),
     OrientAxisStr = ?__(2,"Point the vector to ~s axis"),
-    [{wings_s:dir(x),rotate_def_fun(x), {io_lib:format(RotAxisStr, [wings_s:dir(x)]), [],
-                                         io_lib:format(OrientAxisStr, [wings_s:dir(x)])}},
-     {wings_s:dir(y),rotate_def_fun(y), {io_lib:format(RotAxisStr, [wings_s:dir(y)]), [],
-                                         io_lib:format(OrientAxisStr, [wings_s:dir(y)])}},
-     {wings_s:dir(z),rotate_def_fun(z), {io_lib:format(RotAxisStr, [wings_s:dir(z)]), [],
-                                         io_lib:format(OrientAxisStr, [wings_s:dir(z)])}}].
+    [{wings_s:dir(x),align_to_target_fun(x), {io_lib:format(RotAxisStr, [wings_s:dir(x)]), [],
+        io_lib:format(OrientAxisStr, [wings_s:dir(x)])}},
+     {wings_s:dir(y),align_to_target_fun(y), {io_lib:format(RotAxisStr, [wings_s:dir(y)]), [],
+        io_lib:format(OrientAxisStr, [wings_s:dir(y)])}},
+     {wings_s:dir(z),align_to_target_fun(z), {io_lib:format(RotAxisStr, [wings_s:dir(z)]), [],
+        io_lib:format(OrientAxisStr, [wings_s:dir(z)])}}].
 
-rotate_def_fun(Axis) ->
+align_to_target_fun(Axis) ->
     fun
-        (1,_Ns) -> {body,{{rotate_to_axis,{lmb,Axis}},{'ASK',[center,point_A,point_B]}}};
-%%        (2,_Ns) -> {body,{{rotate_to_axis,Axis},{'ASK',[center,point_A,point_B]}}};
-        (3,_Ns) -> {body,{{rotate_to_axis,{rmb,Axis}},{'ASK',[center,vector]}}};
+        (1,_Ns) -> {body,{{align_to_target,{lmb,Axis}},{'ASK',[center,point_A,point_B]}}};
+        (3,_Ns) -> {body,{{align_to_target,{rmb,Axis}},{'ASK',[center,vector]}}};
+        (_,_)   -> ignore
+    end.
+
+align_to_axis_fun(Axis) ->
+    fun
+        (1,_Ns) -> {body,{{align_to_axis,{lmb,Axis}},{'ASK',[axis_point]}}};
+        (3,_Ns) -> {body,{{align_to_axis,{rmb,Axis}},{'ASK',[center,point_A,point_B]}}};
         (_,_)   -> ignore
     end.
 
 %%%% Commands
-command({_,{{rotate_to_axis,{lmb,Axis}},{'ASK',Ask}}}, St) ->
+command({_,{{align_to_target,{lmb,Axis}},{'ASK',Ask}}}, St) ->
     wings:ask(selection_ask(Ask), St, case Axis of
-                                          x -> fun rotate_axis_x_lmb/2;
-                                          y -> fun rotate_axis_y_lmb/2;
-                                          z -> fun rotate_axis_z_lmb/2
+                                          x -> fun rot_target_x_lmb/2;
+                                          y -> fun rot_target_y_lmb/2;
+                                          z -> fun rot_target_z_lmb/2
                                       end);
-command({_,{{rotate_to_axis,{lmb,Axis}},Data}}, St) ->
+command({_,{{align_to_target,{lmb,Axis}},Data}}, St) ->
     case Axis of
-        x -> rotate_axis_x_lmb(Data,St);
-        y -> rotate_axis_y_lmb(Data,St);
-        z -> rotate_axis_z_lmb(Data,St)
+        x -> rot_target_x_lmb(Data,St);
+        y -> rot_target_y_lmb(Data,St);
+        z -> rot_target_z_lmb(Data,St)
     end;
-command({_,{{rotate_to_axis,{rmb,Axis}},{'ASK',Ask}}}, St) ->
+command({_,{{align_to_target,{rmb,Axis}},{'ASK',Ask}}}, St) ->
     wings:ask(selection_ask(Ask), St, case Axis of
-                                          x -> fun rotate_axis_x_rmb/2;
-                                          y -> fun rotate_axis_y_rmb/2;
-                                          z -> fun rotate_axis_z_rmb/2
+                                          x -> fun rot_target_x_rmb/2;
+                                          y -> fun rot_target_y_rmb/2;
+                                          z -> fun rot_target_z_rmb/2
                                       end);
-command({_,{{rotate_to_axis,{rmb,Axis}},Data}}, St) ->
+command({_,{{align_to_target,{rmb,Axis}},Data}}, St) ->
     case Axis of
-        x -> rotate_axis_x_rmb(Data,St);
-        y -> rotate_axis_y_rmb(Data,St);
-        z -> rotate_axis_z_rmb(Data,St)
+        x -> rot_target_x_rmb(Data,St);
+        y -> rot_target_y_rmb(Data,St);
+        z -> rot_target_z_rmb(Data,St)
     end;
-command({_,{rotate_to_axis,{'ASK',Ask}}}, St) ->
-    wings:ask(selection_ask(Ask), St, fun rotate_axis_setup/2);
-command({_,{rotate_to_axis,Data}}, St) ->
-    rotate_axis_setup(Data,St);
+command({_,{align_to_target,{'ASK',Ask}}}, St) ->
+    wings:ask(selection_ask(Ask), St, fun rot_target_setup/2);
+command({_,{align_to_target,Data}}, St) ->
+    rot_target_setup(Data,St);
+command({_,{{align_to_axis,{lmb,Axis}},{'ASK',Ask}}}, St) ->
+    wings:ask(selection_ask(Ask), St, case Axis of
+                                          x -> fun rot_axis_x_lmb/2;
+                                          y -> fun rot_axis_y_lmb/2;
+                                          z -> fun rot_axis_z_lmb/2
+                                      end);
+command({_,{{align_to_axis,{lmb,Axis}},Data}}, St) ->
+    case Axis of
+        x -> rot_axis_x_lmb(Data,St);
+        y -> rot_axis_y_lmb(Data,St);
+        z -> rot_axis_z_lmb(Data,St)
+    end;
+command({_,{{align_to_axis,{rmb,Axis}},{'ASK',Ask}}}, St) ->
+    wings:ask(selection_ask(Ask), St, case Axis of
+                                          x -> fun rot_axis_x_rmb/2;
+                                          y -> fun rot_axis_y_rmb/2;
+                                          z -> fun rot_axis_z_rmb/2
+                                      end);
+command({_,{{align_to_axis,{rmb,Axis}},Data}}, St) ->
+    case Axis of
+        x -> rot_axis_x_rmb(Data,St);
+        y -> rot_axis_y_rmb(Data,St);
+        z -> rot_axis_z_rmb(Data,St)
+    end;
 command(_Ev,_) ->
     next.
 
@@ -96,38 +148,41 @@ selection_ask([center|Rest],Ask) ->
     Desc = ?__(1,"Pick center of rotation"),
     selection_ask(Rest,[{point,Desc}|Ask]);
 selection_ask([point_A|Rest],Ask) ->
-    Desc = ?__(2,"Pick Point A for Vector A"),
+    Desc = ?__(2,"Pick Point A for reference vector"),
     selection_ask(Rest,[{point,Desc}|Ask]);
 selection_ask([point_B|Rest],Ask) ->
-    Desc = ?__(3,"Pick Point B for Vector A"),
+    Desc = ?__(3,"Pick Point B for reference vector"),
     selection_ask(Rest,[{point,Desc}|Ask]);
 selection_ask([point_C|Rest],Ask) ->
-    Desc = ?__(4,"Pick Point A for Vector B"),
+    Desc = ?__(4,"Pick Point A for target vector"),
     selection_ask(Rest,[{point,Desc}|Ask]);
 selection_ask([point_D|Rest],Ask) ->
-    Desc = ?__(5,"Pick Point B for Vector B"),
+    Desc = ?__(5,"Pick Point B for target vector"),
     selection_ask(Rest,[{point,Desc}|Ask]);
 selection_ask([vector|Rest],Ask) ->
-    Desc = ?__(6,"Pick the vector"),
-    selection_ask(Rest,[{axis_point,Desc}|Ask]).
+    Desc = ?__(6,"Pick the reference vector"),
+    selection_ask(Rest,[{axis_point,Desc}|Ask]);
+selection_ask([axis_point|Rest],Ask) ->
+    Desc = ?__(7,"Pick the reference axis"),
+    selection_ask(Rest,[{axis,Desc}|Ask]).
 
-%%%% Setup
+%%%% Setup Align to Target
 %%%% LMB
-rotate_axis_x_lmb({Center,A,B},St) ->
-    rotate_axis_lmb({x,Center,A,B},St).
-rotate_axis_y_lmb({Center,A,B},St) ->
-    rotate_axis_lmb({y,Center,A,B},St).
-rotate_axis_z_lmb({Center,A,B},St) ->
-    rotate_axis_lmb({z,Center,A,B},St).
-
-rotate_axis_x_rmb({Center,Normal,_CNormal},St) ->
+rot_target_x_lmb({Center,A,B},St) ->
+    rot_target_lmb({x,Center,A,B},St).
+rot_target_y_lmb({Center,A,B},St) ->
+    rot_target_lmb({y,Center,A,B},St).
+rot_target_z_lmb({Center,A,B},St) ->
+    rot_target_lmb({z,Center,A,B},St).
+%%%% RMB
+rot_target_x_rmb({Center,Normal,_CNormal},St) ->
     rotate_vector_rmb({x,Normal,Center},St).
-rotate_axis_y_rmb({Center,Normal,_CNormal},St) ->
+rot_target_y_rmb({Center,Normal,_CNormal},St) ->
     rotate_vector_rmb({y,Normal,Center},St).
-rotate_axis_z_rmb({Center,Normal,_CNormal},St) ->
+rot_target_z_rmb({Center,Normal,_CNormal},St) ->
     rotate_vector_rmb({z,Normal,Center},St).
 
-rotate_axis_lmb({Axis0,Center,A,B},St) ->
+rot_target_lmb({Axis0,Center,A,B},St) ->
     Vec0 = e3d_vec:sub(B,A),
     Vec = e3d_vec:norm(project(Axis0,Vec0)),
     Axis = wings_util:make_vector(Axis0),
@@ -177,7 +232,7 @@ rotate_vector_rmb({Axis,Vec,Center}, St) ->
     end.
 
 %%%% LMB
-rotate_axis_setup({Center,A,B,C,D},St) ->
+rot_target_setup({Center,A,B,C,D},St) ->
     VecD0 = e3d_vec:sub(D,C),
     %% checking if the Destination vector is laying on a system axis (X/Y/Z)
     DAxis0 = e3d_vec:largest_dir(VecD0),
@@ -185,8 +240,8 @@ rotate_axis_setup({Center,A,B,C,D},St) ->
     case OnAxis of
         true ->
             case e3d_vec:plane_side(VecD0,{wings_util:make_vector(DAxis0),0.0}) of
-                1 -> rotate_axis_lmb({DAxis0,Center,A,B},St);
-                -1 -> rotate_axis_lmb({DAxis0,Center,B,A},St)
+                1 -> rot_target_lmb({DAxis0,Center,A,B},St);
+                -1 -> rot_target_lmb({DAxis0,Center,B,A},St)
             end;
         false ->
             VecS = e3d_vec:norm(e3d_vec:sub(B,A)),
@@ -226,9 +281,49 @@ rotate_axis_setup({Center,A,B,C,D},St) ->
             end
     end.
 
+%%%% Setup Align to Target
+%%%% LMB
+rot_axis_x_lmb(A,St) ->
+    rot_axis({x,center,A},St).
+rot_axis_y_lmb(A,St) ->
+    rot_axis({y,center,A},St).
+rot_axis_z_lmb(A,St) ->
+    rot_axis({z,center,A},St).
+
+%%%% RMB
+rot_axis_x_rmb({Center,A,B},St) ->
+    rot_axis({x,Center,e3d_vec:sub(B,A)},St).
+rot_axis_y_rmb({Center,A,B},St) ->
+    rot_axis({y,Center,e3d_vec:sub(B,A)},St).
+rot_axis_z_rmb({Center,A,B},St) ->
+    rot_axis({z,Center,e3d_vec:sub(B,A)},St).
+
+rot_axis({Axis0,Center,A},St) ->
+    Vec = e3d_vec:norm(A),
+    Axis = wings_util:make_vector(Axis0),
+    RotAxis0 = e3d_vec:norm(e3d_vec:cross(Vec,Axis)),
+    Valid = valid_vec(RotAxis0),
+    RotAxis =
+        if not Valid ->
+            if (Axis0=:=x) or (Axis0=:=z) ->
+                wings_util:make_vector(y);
+                true ->
+                    wings_util:make_vector(z)
+            end;
+            true -> RotAxis0
+        end,
+    Deg = e3d_vec:degrees(Axis,Vec),
+    Mr = e3d_mat:rotate(Deg, RotAxis),
+    rotate_axis(Center, Mr, St).
+
 %%%% Rotate functions
-rotate_axis(Center, Mr, St0) ->
+rotate_axis(Center0, Mr, St0) ->
     F = fun(_, #we{vp=Vtab0}=We, Acc0) ->
+            Center =
+                case Center0 of
+                    center -> wings_we:centroid(We);
+                    _ -> Center0
+                end,
             VsPos0 = array:sparse_to_orddict(Vtab0),
             VsPos1 = rotate_axis_fun(Center, Mr, VsPos0),
             Vtab = array:from_orddict(VsPos1),
