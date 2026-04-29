@@ -294,7 +294,7 @@ init_show_maps(Charts0, Fs, #we{name=WeName,id=Id}, GeomSt0) ->
 	    Pos = wxWindow:clientToScreen(SegWin,X0,Y0),
 	    Win = create_window({edit,Fs}, EditWin, Id, GeomSt),
 	    wxWindow:move(Win,Pos),
-	    update_all_seg_ui(SegWin, Id, GeomSt),
+	    update_all_seg_ui(wings_wm:wx2win(SegWin), Id, GeomSt),
 	    wings_wm:send(geom, {new_state,GeomSt})
     end,
     GeomSt.
