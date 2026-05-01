@@ -115,12 +115,14 @@ custom_draw(#wx{obj=Obj, event=#wxPaint{}}, _) ->
     Size = wxWindow:getSize(Obj),
     DC = case os:type() of
              {win32, _} -> %% Flicker on windows
-                 BufferedDC = wxBufferedPaintDC:new(Obj),
-                 wx:typeCast(BufferedDC, wxPaintDC);
+                 wx:typeCast(wxBufferedPaintDC:new(Obj), wxPaintDC);
              _ ->
-                 BufferedDC = none,
                  wxPaintDC:new(Obj)
          end,
+    SFG = wings_color:rgb4bv(wings_pref:get_value(info_line_text)),
+    wxDC:setTextForeground(DC, SFG),
+    wxDC:setFont(DC, wxWindow:getFont(Obj)),
+
     SBG = wings_color:rgb4bv(wings_pref:get_value(info_line_bg)),
     Brush = wxBrush:new(SBG),
     wxDC:setBackgroundMode(DC, ?wxBRUSHSTYLE_SOLID),
@@ -135,17 +137,16 @@ custom_draw(#wx{obj=Obj, event=#wxPaint{}}, _) ->
             wxDC:drawText(DC, wxStatusBar:getStatusText(Obj,[{number,1}]), {Xr+?TEXT_PADDING_X,Yr+?TEXT_PADDING_Y});
         _ -> ok
     end,
-    GrpPen = wxPen:new(wxSystemSettings:getColour(?wxSYS_COLOUR_3DSHADOW)),
-    wxDC:setPen(DC,GrpPen),
-    draw_grip(DC, Size, ?GRIP_ROWS),
-    wxPen:destroy(GrpPen),
-    wxBrush:destroy(Brush),
     case os:type() of
-        {win32, _} -> %% Flicker on windows
-            wxBufferedPaintDC:destroy(BufferedDC);
-        _ ->
-            wxPaintDC:destroy(DC)
-    end.
+        {win32, _} ->
+            GrpPen = wxPen:new(wxSystemSettings:getColour(?wxSYS_COLOUR_3DSHADOW)),
+            wxDC:setPen(DC,GrpPen),
+            draw_grip(DC, Size, ?GRIP_ROWS),
+            wxPen:destroy(GrpPen);
+        _ -> ok
+    end,
+    wxBrush:destroy(Brush),
+    wxPaintDC:destroy(DC).
 
 update_status({value, Prev}, Prev, _SB) ->
     Prev;
