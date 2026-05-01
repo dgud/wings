@@ -302,7 +302,7 @@ str2float(S) -> str2float_1(S).
 
 str2float_1(S) ->
     try
-	list_to_float(S)
+	wings_util:string_to_float(S)
     catch
 	error:badarg ->
 	    str2float_2(S, [])
@@ -314,7 +314,7 @@ str2float_2([H|T], Acc) when H == $e; H == $E ->
 	       (D) when $0 =< D, D =< $9 -> ok
 	    end, Acc),
     NumStr = reverse(Acc, ".0e") ++ T,
-    list_to_float(NumStr);
+    wings_util:string_to_float(NumStr);
 str2float_2([H|T], Acc) ->
     str2float_2(T, [H|Acc]);
 str2float_2([], Acc) ->

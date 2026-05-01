@@ -231,10 +231,15 @@ nonzero(Value) ->
     true -> Value
     end.
 
-string_to_float("NaN") -> 0.0;
 string_to_float(Str) ->
-    try list_to_float(Str)
-    catch _:_ -> make_float2(Str)
+    case string:to_lower(Str) of
+        "nan" -> 0.0;
+        "inf" -> 1.0e16;
+        "-inf" -> 1.0e-16;
+        _ ->
+            try list_to_float(Str)
+            catch _:_ -> make_float2(Str)
+            end
     end.
 
 make_float2(Str) ->
