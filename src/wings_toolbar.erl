@@ -80,6 +80,8 @@ button_sh_filter(_, _) -> false.
 init(Frame, Icons) ->
     wxSystemOptions:setOption("msw.remap", 2),
     TB = wxFrame:createToolBar(Frame),
+    Col = wings_color:rgb4bv(wings_pref:get_value(menu_color)),
+    wxFrame:setBackgroundColour(TB, Col),
     Bs = [make_bitmap(B, Icons) || B <- buttons()],
     Tools = case wings_pref:get_value(extended_toolbar) of
 		true -> Bs;
