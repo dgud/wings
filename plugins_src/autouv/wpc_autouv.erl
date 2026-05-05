@@ -2479,9 +2479,6 @@ arrange_modes(Dir) ->
 
 %%%% Mode Help
 arrange_mode_help(Dir,State) ->
-    %% FIXME: for some strange reason, without the following command
-    %% the status values are not updated regards to the selection
-    io:format(" "),
     ["[1] " ++ arrange_help(1,State,arrange_help(1,Dir)),
      "  [2] " ++ arrange_help(2,State,arrange_help(2,Dir)),
      "  [3] " ++ arrange_help(3,State,arrange_help(3,Dir)),

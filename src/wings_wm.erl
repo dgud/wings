@@ -143,7 +143,8 @@ message(Message) ->
     wings_io:putback_event({wm,{message,get(wm_active),Message}}).
 
 message_right(Right) ->
-    wings_io:putback_event({wm,{message_right,get(wm_active),Right}}).
+    wings_io:putback_event({wm,{message_right,get(wm_active),Right}}),
+    psend(get(wm_active),redraw).
 
 message(Message, Right) ->
     message(Message),
