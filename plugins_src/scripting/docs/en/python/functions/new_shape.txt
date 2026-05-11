@@ -1,0 +1,22 @@
+class NewShape
+
+Visible attributes prefix, fs, vs, obj, mat
+
+<b>NewShape</b>()
+
+Create a NewShape instance
+
+shape.<b>as_output_list</b>()
+
+Return an OutputList instance, the kind of tuple that is returned is different depending on if obj is set, if it is set the tuple contains obj and mat. If it is not set, it returns a tuple with fs and vs.
+
+<code><pre>
+e3d_o = w3d_e3d.E3DObject()
+e3d_o.obj = mesh
+shp = w3d_newshape.NewShape()
+shp.prefix = "shape"
+shp.obj = e3d_o
+o = shp.as_output_list()
+o.write_list_out(sys.stdout)
+</pre></code>
+

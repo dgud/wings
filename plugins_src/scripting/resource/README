@@ -1,0 +1,11 @@
+After updating the xbm bitmap, some programs include the entire absolute path
+inside of the xbm file, which breaks the xbm file. The beginning of the xbm 
+file should look like this:
+
+#define wpc_shape_from_scripts_btn_refresh_width 32
+#define wpc_shape_from_scripts_btn_refresh_height 32
+static unsigned char wpc_shape_from_scripts_btn_refresh_bits[] = {
+
+Use xbm_to_hrl.escript to update the hrl from the xbm.
+
+

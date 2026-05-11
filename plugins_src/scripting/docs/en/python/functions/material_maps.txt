@@ -1,0 +1,17 @@
+class MaterialMaps
+
+Visible attributes maps
+
+<b>MaterialMaps</b>()
+
+Create a new MaterialMaps instance
+
+maps.<b>as_output_list</b>()
+
+Outputs the whole MaterialMaps instance and all its values into an output list, not usually used directly.
+
+maps.<b>load_from</b>(tlist)
+
+Load contents into a MaterialMaps instance, not usually used directly.
+
+

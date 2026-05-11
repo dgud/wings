@@ -1,0 +1,19 @@
+vradio Directive
+<code><pre>
+<b>vradio</b> "Color" 'blue' {
+  item "Red" 'red'
+  item "Green" 'green'
+  item "Blue" 'blue'
+}
+</pre></code>
+
+Shows a vertical list of radio button choices.
+
+The list of values each start with <b>item</b>, followed
+by the string showed to user, followed by an atom that
+will be used by the script.
+
+A <b>vradio</b> directive should be inside a
+<b>params { ... }</b> section.
+
+

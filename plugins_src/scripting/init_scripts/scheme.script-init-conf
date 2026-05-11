@@ -1,0 +1,38 @@
+
+%%
+%%  Scripting for Shapes
+%%
+%%  Copyright 2025 Edward Blake
+%%
+%%  See the file "license.terms" for information on usage and redistribution
+%%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+%%
+%%     $Id$
+%%
+
+%%
+%% Sets the default gauche binary filenames
+%%
+
+%% NAME   ARGS   INITIAL SCRIPT
+{  "scm", true, "scm/init.scm", [
+    %% List of interpreter filenames to try
+    "gosh",
+    "csi"
+], [
+    %% Special arguments depending on the interpreter found
+    {auto_fill, [
+    %% Required arguments for Chicken Scheme interpreter (csi)
+        {"csi", [
+            "-q", "-n", "-b",
+            "-eval", {wrap, "(load \"%s\")", {esc, {absname, "init_env_csi.scm", "%BASEDIR%/scm"}}}
+        ]},
+    %% Required arguments for Gauche shell (gosh)
+        {"gosh", [
+            "-q", "-b",
+            {concat, "-A", "%BASEDIR%/scm"},
+            {concat, "-l", "init_env_gauche.scm"}
+        ]}
+    ]}
+]}.
+

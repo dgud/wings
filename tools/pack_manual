@@ -1,0 +1,175 @@
+#!/usr/bin/env escript
+
+%%
+%%  Compress a bunch of text files into a manual for use
+%%  from within Wings.
+%%
+%%  Copyright 2025 Edward Blake
+%%
+%%  See the file "license.terms" for information on usage and redistribution
+%%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+%%
+%%     $Id$
+%%
+
+
+
+main(Args) ->
+    Flags = args(Args),
+    OutputFile = orddict:fetch(out, Flags),
+    Dir = orddict:fetch(dir, Flags),
+    pack(Dir, OutputFile).
+
+
+args(List) ->
+    args(List, []).
+args(["--out", Filename|Rest], Flags) ->
+    args(Rest, orddict:store(out,Filename,Flags));
+args(["--" ++ _=Flag|_], _Flags) ->
+    io:format("Unknown option: ~p~n",[Flag]);
+args([Filename|Rest], Flags) ->
+    case file:read_file_info(Filename) of
+        {ok,_} ->
+            args(Rest, orddict:store(dir,Filename,Flags))
+    end;
+args([], Flags) ->
+    Flags.
+
+
+pack(Dir, OutputFile) ->
+    {ok, Cont_0} = file:consult(filename:join(Dir,"INDEX")),
+    [{info,Info}|Cont] = Cont_0,
+    erlang:put(number,100),
+    erlang:put(files,[]),
+    erlang:put(types,[]),
+    erlang:put(titles,[]),
+    Cont_1 = pack_contents(read_files(Dir,Cont)),
+    Types = pack_contents(lists:reverse(erlang:get(types))),
+    Titles = pack_contents(lists:reverse(erlang:get(titles))),
+    Chunks_0 = [
+        {0,{table,compress(Cont_1)}}, %% Table of contents
+        {1,{table,compress(Types)}},  %% MIME Types
+        {2,{table,compress(Titles)}}  %% Titles
+        | lists:reverse(erlang:get(files))],
+    {Refs,Chunks,_} = chunks(Chunks_0),
+    Header = header(Info, Refs),
+    file:write_file(OutputFile,[Header,Chunks]),
+    io:format("OK~n",[]).
+
+-define(BUINT4,32/unsigned-integer).
+
+read_files(Dir,[Entry|List]) ->
+    [read_entry(Dir,Entry)|read_files(Dir,List)];
+read_files(_Dir,[]) ->
+    [].
+
+read_entry(Dir,{Name,List}) ->
+    {Name,read_files(Dir,List)};
+read_entry(Dir,{txt,Name,Filename}) ->
+    Number = erlang:get(number),
+    erlang:put(number,Number+1),
+    Files = erlang:get(files),
+    Types = erlang:get(types),
+    Titles = erlang:get(titles),
+    {ok,Cont} = file:read_file(filename:join(Dir,Filename)),
+    erlang:put(files,[{Number,{txt,compress(Cont)}}|Files]),
+    erlang:put(types,[{Number,"text/plain+html"}|Types]),
+    erlang:put(titles,[{Number,Name}|Titles]),
+    {Name,Number}.
+
+    
+header(Info, Refs) ->
+    Title = proplists:get_value(title,Info,"No Title"),
+    {Title_1, TitleSz} = padded(Title, 128),
+    EditedDate = proplists:get_value(date,Info,""),
+    {EditedDate_1, EditedDateSz} = padded(EditedDate, 31),
+    Language = proplists:get_value(language,Info,""),
+    Language_1 = list_to_binary(string:pad(Language, 8)),
+
+    Comments = proplists:get_value(comments,Info,""),
+    {Comments_1, _CommentsSz} = padded(Comments, 256),
+
+    RefList = iolist_to_binary(refs_list(Refs)),
+    RefListC = erlang:adler32(RefList),
+    {RefChunks, Size} = chunk_1(RefList),
+    Size_1 = 512+Size*512,
+    RCount = length(Refs),
+    {HChunk, _} = chunk_1(iolist_to_binary([
+        <<"MANUAL">>,
+        <<0,1,0,0,0,0,0,0,0,TitleSz>>,
+        Title_1,
+        <<EditedDateSz>>,EditedDate_1,
+        Comments_1,
+        <<Size_1:?BUINT4,RCount:?BUINT4,RefListC:?BUINT4,0:?BUINT4>>,
+        <<"utf8",0:?BUINT4>>,
+        Language_1
+    ])),
+    iolist_to_binary([HChunk|RefChunks]).
+
+padded(Str, Max) ->
+    if length(Str) < Max ->
+        Str_1 = unicode:characters_to_nfc_binary(Str),
+        StrSz = byte_size(Str_1),
+        Len = Max-StrSz,
+        {list_to_binary([Str_1, string:copies([0],Len)]),StrSz}
+    end.
+
+
+pack_contents(Int)
+  when is_integer(Int) ->
+    <<23,Int:?BUINT4>>;
+pack_contents([C|_]=Str)
+  when is_integer(C) ->
+    Data = unicode:characters_to_nfc_binary(Str),
+    Count = byte_size(Data),
+    [<<22,Count:?BUINT4>>,Data];
+pack_contents(Tuple)
+  when is_tuple(Tuple) ->
+    List = tuple_to_list(Tuple),
+    Count = length(List),
+    Data = [pack_contents(Elem) || Elem <- List],
+    [<<Count>>|Data];
+pack_contents(List)
+  when is_list(List) ->
+    Count = length(List),
+    Data = [pack_contents(Elem) || Elem <- List],
+    [<<21,Count:?BUINT4>>|Data].
+
+
+refs_list(Refs) ->
+    [
+        <<Number:?BUINT4,Where:?BUINT4,Size:?BUINT4>>
+    || {Number,{Where,Size}} <- Refs].
+
+-record(chunkstate, {
+    l1 = [], %% List of refs for ref chunk
+    l2 = [], %% List of chunks
+    size = 0
+}).
+
+chunks(List) ->
+    chunks(List, #chunkstate{}).
+chunks([{Number,{Atom,Cont}}|List], #chunkstate{l1=OL,l2=OL2,size=Size})
+  when is_atom(Atom) ->
+    {Chunks,Extra} = chunk_1(Cont),
+    Ref = {Number,{Size,Extra}},
+    chunks(List, #chunkstate{l1=[Ref|OL],l2=[Chunks|OL2],size=Size+Extra});
+chunks([], #chunkstate{l1=OL1,l2=OL2,size=Size}) ->
+    {lists:reverse(OL1),lists:reverse(OL2),Size}.
+
+chunk_1(Bin) ->
+    chunk_1(Bin, []).
+chunk_1(<<Bin:512/bytes,Rest/binary>>,OL) ->
+    chunk_1(Rest,[Bin|OL]);
+chunk_1(<<>>,OL) ->
+    {lists:reverse(OL),length(OL)};
+chunk_1(Bin,OL) ->
+    Len = 512-byte_size(Bin),
+    Bin_1 = iolist_to_binary([Bin,string:copies([0],Len)]),
+    {lists:reverse([Bin_1|OL]),length(OL)+1}.
+
+compress(Bin) ->
+    Bin_1 = zlib:compress(Bin),
+    Size = byte_size(Bin_1),
+    <<Size:?BUINT4,Bin_1/binary>>.
+
