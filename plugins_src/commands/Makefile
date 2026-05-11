@@ -51,6 +51,9 @@ MODULES= \
 	wpc_intersect_vertex \
 	wpc_isometric_view \
 	wpc_magnet_mask \
+	wpc_metadata \
+	wpc_metadata_dc \
+	wpc_metadata_units \
 	wpc_move_planar \
 	wpc_numeric_camera \
 	wpc_plane_cut \
