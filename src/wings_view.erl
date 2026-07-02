@@ -27,7 +27,6 @@
 -import(lists, [foldl/3,flatmap/2,zip/2]).
 
 menu() ->
-    L = wings_pref:get_value(number_of_lights),
     [{?__(68,"Show"),{show,
      [{?__(1,"Ground Plane"),show_groundplane,?__(2,"Show the ground plane"),
        crossmark(show_groundplane)},
@@ -36,6 +35,12 @@ menu() ->
       {?__(48,"Show Info Text"),show_info_text,
        ?__(49,"Show an informational text at the top of this Geometry window"),
        crossmark(show_info_text)},
+        separator,
+      {?__(19,"Show Edges"),show_edges,?__(20,"Show edges in workmode"),crossmark(show_edges)},
+      {?__(72,"Show Backfaces"),show_backfaces,
+       ?__(73,"Show backfaces when there is a hole or hiddwn faces in an object"),crossmark(show_backfaces)},
+      {?__(21,"Show Wireframe Backfaces"),show_wire_backfaces,
+       ?__(22,"Show wireframe backfaces"),crossmark(show_wire_backfaces)},
         separator,
       {?__(17,"Show Saved BB"),show_bb,?__(18,"Display any saved bounding box"),crossmark(show_bb)},
       {?__(69,"Show BB Center"),show_bb_center,
@@ -66,11 +71,6 @@ menu() ->
      {?__(9,"Shade"),shade,?__(10,"Display selected objects as shaded (same for all objects if nothing is selected)")},
      {?__(11,"Toggle Wireframe"),toggle_wireframe,
       ?__(12,"Toggle display mode for selected objects (same for all objects if nothing is selected)")},
-     {?__(19,"Show Edges"),show_edges,?__(20,"Show edges in workmode"),crossmark(show_edges)},
-     {?__(72,"Show Backfaces"),show_backfaces,
-      ?__(73,"Show backfaces when there is a hole or hiddwn faces in an object"),crossmark(show_backfaces)},
-     {?__(21,"Show Wireframe Backfaces"),show_wire_backfaces,
-      ?__(22,"Show wireframe backfaces"),crossmark(show_wire_backfaces)},
      separator,
      {?__(5,"Workmode"),workmode,?__(6,"Toggle flat/smooth shading"),
       crossmark(workmode)},
@@ -79,12 +79,11 @@ menu() ->
      {?__(15,"Quick Smoothed Preview"),quick_preview,
       ?__(16,"Toggle the smooth proxy mode for all objects")},
      separator |
-     [{?__(36,"Scene Lights"),scene_lights,
-       ?__(37,"Use the lights defined in the scene"),
-       crossmark(scene_lights)},
-      {one_of(L == 1, ?__(38,"Use Camera Light"),?__(39,"Use a camera work Light")),toggle_lights,
-       one_of(L == 1, ?__(40,"Use two work lights"),?__(41,"Use a simple sky light simulation"))},
-      separator,
+     [{?__(40,"Hemisphere Light"),{light,hemi_light},?__(41,"Use a simple sky light simulation"),[radiomark,false]},
+      {?__(38,"Camera Light"),{light,camera_light},?__(39,"Use a camera work Light"),[radiomark,false]},
+      {?__(80,"MatCap Light"),{light,matcap_light},?__(81,"Use a baked lighting texture"),[radiomark,false]},
+      {?__(36,"Scene Lights"),{light,scene_lights},?__(37,"Use the lights defined in the scene"),[radiomark,false]},
+     separator,
       {?__(31,"Orthographic View"),orthogonal_view,
        ?__(32,"Toggle between orthographic and perspective views"),
        crossmark(orthogonal_view)},
@@ -228,11 +227,8 @@ command(rotate_left, St) ->
 command(align_to_selection, St) ->
     aim(St),
     align_to_selection(St);
-command(toggle_lights, St) ->
-    toggle_lights(),
-    St;
-command(scene_lights, St) ->
-    toggle_option(scene_lights),
+command({light,Light}, St) ->
+    select_light(Light),
     St;
 command(camera_settings, St) ->
     camera(St);
@@ -698,8 +694,7 @@ auto_rotate_event_1(#keyboard{}=Kb, Tim) ->
             ?SET(auto_rotate, max(-45/60, Deg-Incr)),
 	    get_event(Tim);
         next -> keep;
-        {view, toggle_lights} -> toggle_lights(), keep;
-        {view, scene_lights} -> toggle_option(scene_lights), keep;
+        {view, {light,Light}} -> select_light(Light), keep;
         {view, reset} -> reset(), keep;
         {view, toggle_wireframe} -> toggle_option(workmode), keep;
 	_Cmd ->
@@ -798,8 +793,9 @@ init() ->
     wings_pref:set_default(filter_texture, true),
     wings_pref:set_default(frame_disregards_mirror, false),
     wings_pref:set_default(scene_lights, false),
-    Lights0 = wings_pref:get_value(number_of_lights),
-    update_menu(toggle_light(Lights0)).
+    LightId = wings_pref:get_value(number_of_lights),
+    Light = wings_shaders:shader_light(LightId),
+    update_light_menu(Light).
 
 initial_properties() ->
     [{workmode,true},
@@ -1141,29 +1137,36 @@ views_move(J, St, CurrentView, Views) ->
 	    wings_u:message(?__(1,"No such view [")++integer_to_list(J)++"]")
     end.
 
-toggle_lights() ->
-    %% Invalidate displaylists so that shader data get set correctly
-    %% for materials
-    case wings_pref:get_value(scene_lights, true) of
-        false -> ok;
-        true -> toggle_option(scene_lights)
-    end,
-    Lights0 = wings_pref:get_value(number_of_lights),
-    update_menu(Lights0),
-    wings_wm:send(top_frame, {menu,{view, number_of_lights, toggle_light(Lights0)}}),
-    wings_pref:set_value(number_of_lights, toggle_light(Lights0)).
+select_light(scene_lights) ->
+    SceneLights = wings_pref:get_value(scene_lights, false),
+    EnabledLight = wings_light:any_enabled_lights(),
+    if EnabledLight and not SceneLights ->
+        wings_pref:set_value(scene_lights, true),
+        update_light_menu(scene_lights);
+    EnabledLight and SceneLights ->
+        ok;
+    true ->
+        OldId = wings_pref:get_value(number_of_lights),
+        OldLight = wings_shaders:shader_light(OldId),
+        wings_pref:set_value(scene_lights, false),
+        update_light_menu(OldLight)
+    end;
+select_light(Light) ->
+    SceneLights = wings_pref:get_value(scene_lights, false),
+    OldId = wings_pref:get_value(number_of_lights),
+    NewId = wings_shaders:shader_light(Light),
+    if SceneLights ->
+        wings_pref:set_value(scene_lights, false),
+        wings_pref:set_value(number_of_lights, NewId),
+        update_light_menu(Light);
+    OldId =/= NewId ->
+        wings_pref:set_value(number_of_lights, NewId),
+        update_light_menu(Light);
+    true -> ok
+    end.
 
-toggle_light(Lights0) ->
-    1 + (2 + Lights0) rem 2.
-
-update_menu(Lights0) ->
-    wings_menu:update_menu(view, toggle_lights,
-			   one_of(Lights0 == 1,
-				  ?__(2,"Use Camera Light"),
-				  ?__(1,"Use Hemisphere Light")),
-			   one_of(Lights0 == 1,
-				  ?__(4,"Use a camera work light"),
-				  ?__(3,"Use a simple sky light simulation"))).
+update_light_menu(Light) ->
+    wings_menu:select_item({view,{light,Light}}).
 
 along(x) -> along(x, -90.0, 0.0);
 along(y) -> along(y, 0.0, 90.0);
@@ -1277,9 +1280,6 @@ align_view_to_normal({Nx,Ny,Nz}) ->
 
 to_degrees(A) when is_float(A) ->
     A*180.0/math:pi().
-
-one_of(true, S, _) -> S;
-one_of(false,_, S) -> S.
 
 %%%
 %%% Export and import of views.

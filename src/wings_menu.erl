@@ -15,7 +15,7 @@
 -module(wings_menu).
 -export([is_popup_event/1,popup_menu/4,build_command/2,
 	 kill_menus/0, predefined_item/2]).
--export([setup_menus/2, id_to_name/1, check_item/1, str_clean/1]).
+-export([setup_menus/2, id_to_name/1, check_item/1, select_item/1, str_clean/1]).
 -export([update_menu/3, update_menu/4,
 	 update_menu_enabled/3, update_menu_hotkey/2]).
 
@@ -797,6 +797,13 @@ check_item(Name) ->
 	    wxMenuItem:check(MenuItem, [{check, not Checked}])
     end.
 
+select_item(Name) ->
+    case ets:match_object(wings_menus, #menu{name=Name, type=?wxITEM_RADIO, _ = '_'}) of
+        [] -> ok;
+        [#menu{object=MenuItem}] -> %% Select the item in a radio group
+            wxMenuItem:check(MenuItem, [{check, true}])
+    end.
+
 update_menu(Menu, Item, Cmd) ->
     update_menu(Menu, Item, Cmd, undefined).
 
@@ -1111,11 +1118,20 @@ menu_item(#menu{desc=Desc0, name=Name, help=Help, opts=Props, hk=HotKey}=ME, Par
 		  false ->
 		      Name
 	      end,
-    {Type,Check} = case proplists:get_value(crossmark, Props) of
-		       undefined -> {?wxITEM_NORMAL, false};
-		       false -> {?wxITEM_CHECK, false};
-		       _ -> {?wxITEM_CHECK, true} %% grey or true
-		   end,
+    {Type,Check} =
+        case proplists:is_defined(crossmark, Props) of
+            true ->
+                case proplists:get_value(crossmark, Props) of
+                   false -> {?wxITEM_CHECK, false};
+                   _ -> {?wxITEM_CHECK, true} %% grey or true
+                end;
+            false ->
+                case proplists:get_value(radiomark, Props) of
+                    undefined -> {?wxITEM_NORMAL, false};
+                    false -> {?wxITEM_RADIO, false};
+                    _ -> {?wxITEM_RADIO, true}
+                end
+        end,
     MI = wxMenuItem:new([{parentMenu, Parent}, {id,MenuId},
 			 {text,Desc}, {kind, Type}, {help,Help}]),
     Cmd = case is_function(Command) of
