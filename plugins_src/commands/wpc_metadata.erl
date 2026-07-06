@@ -130,7 +130,7 @@ obj_names(St) ->
 %% Find the metadata plugins
 %%
 metadata_plugins(Scope) ->
-    Plugins = get(wings_plugins),
+    Plugins = ?GET(wings_plugins),
     lists:append([ try_metadata_plugin(Scope, Pl) || Pl <- Plugins])
         ++ [{comments, ?__(2,"Comments"), 0}].
 

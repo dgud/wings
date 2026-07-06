@@ -108,7 +108,7 @@ text_field(Name, FieldName, FieldInfo, MetadataDC) when is_list(MetadataDC) ->
 
 
 update(Name, Acc, Args) ->
-    case proplists:get_value(Name, Args, 1) of
+    case proplists:get_value(Name, Args, "") of
         "" ->
             proplists:delete(Name, Acc);
         Creator ->

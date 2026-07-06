@@ -68,7 +68,7 @@ metadata_update(_Scope, _Name, MetadataUnits, Args) when is_list(MetadataUnits) 
         end, MetadataUnits, [units]).
 
 update(Name, Acc, Args) ->
-    case proplists:get_value(Name, Args, 1) of
+    case proplists:get_value(Name, Args, none) of
         none ->
             proplists:delete(Name, Acc);
         Val ->
