@@ -10,7 +10,7 @@ GOTO badarg
 :search
 
 SET VSWHERE="%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe"
-FOR /F "delims=" %%P IN ('%VSWHERE% -latest -property installationPath') DO (
+FOR /F "delims=" %%P IN ('%VSWHERE% -latest -products * -property installationPath') DO (
    SET "VCVARSALL=%%P\VC\Auxiliary\Build\vcvarsall.bat"
  )
 
