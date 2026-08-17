@@ -71,9 +71,7 @@ make_ai(Name, Nsubsteps) ->
 	    wpa:pref_set(wpc_ai, bisections, Nsubsteps),
 	    {ok, E3dFile};
 	{error,Reason} ->
-	    {error, ?__(1,"AI import failed")++": " ++ Reason};
-	_ ->
-	    {error, ?__(2,"AI import internal error")}
+	    {error, ?__(1,"AI import failed")++": " ++ Reason}
     catch
 	_:_ ->
 	    {error, ?__(2,"AI import internal error")}

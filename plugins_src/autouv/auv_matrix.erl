@@ -100,7 +100,7 @@ vector_from_tuplist(I, N, [], C) when I =< N ->
 vector_from_tuplist(_, _, [], C) ->
     lists:reverse(C);
 vector_from_tuplist(I1, N, [{I2,V} | D], C)
-  when is_integer(I2), is_number(V), 
+  when is_integer(I2), is_number(V),
        I1 =< I2, I2 =< N ->
     F = float(V),
     vector_from_tuplist(I2+1, N, D, push_v(F, push_v(I2-I1, C)));
@@ -236,8 +236,8 @@ diag_cols(I, I, A, [V | Row], C) when is_float(V) ->
 diag_cols(I, J, A, [V | Row], C) when is_float(V) ->
     diag_cols(I, J+1, A, Row, C);
 diag_cols(I, J, A, [Z | Row], C) when J+Z > I ->
-    diag_rows(I+1, 
-	      if Row == [] -> []; true -> A end, 
+    diag_rows(I+1,
+	      if Row == [] -> []; true -> A end,
 	      [0.0 | C]);
 diag_cols(I, J, A, [Z | Row], C) ->
     diag_cols(I, J+Z, A, Row, C).
@@ -396,7 +396,7 @@ mult_const(F, [Row | A], C) ->
 
 
 %% Exported
-%% 
+%%
 add({?TAG,N,M,A}, {?TAG,N,M,B}) ->
     fix({?TAG,N,M,add_row(A, B, [])});
 add({?TAG,N,A}, {?TAG,N,B}) ->
@@ -471,7 +471,7 @@ reduce_postsort({0, _, Row}) ->
 reduce_postsort({Z, _, Row}) ->
     [Z | Row].
 
-reduce_zap({Z, _, [V | Row]} = R, [{Z, _, [Va | RowA]} | A], C) 
+reduce_zap({Z, _, [V | Row]} = R, [{Z, _, [Va | RowA]} | A], C)
   when is_float(V), is_float(Va) ->
     reduce_zap(R, A, [reduce_presort(Z+1, vec_add(RowA, -Va/V, Row)) | C]);
 reduce_zap(_, [], C) ->
@@ -483,16 +483,14 @@ reduce_zap(_, A, C) ->
 
 %% Exported
 %%
-backsubst({?TAG,N,M,A} = AA) when M == N+1 ->
+backsubst({?TAG,N,M,A}) when M == N+1 ->
     try backsubst_rev(0, A, []) of
 	A_tri when is_list(A_tri) ->
 	    try backsubst_const(A_tri, [], []) of
 		X when is_list(X) ->
 		    {?TAG,N,X};
 		{error, Reason} ->
-		    Reason;
-		Fault ->
-		    error(Fault, [AA])
+		    Reason
 	    catch
 		_:{badarith, []} ->
 		    illconditioned;
@@ -500,9 +498,7 @@ backsubst({?TAG,N,M,A} = AA) when M == N+1 ->
 		    exit(Reason)
 	    end;
 	{error, Reason} ->
-	    Reason;
-	Fault ->
-	    error(Fault, [AA])
+	    Reason
     catch
 	_:{badarith, []} ->
 	    illconditioned;
@@ -544,10 +540,10 @@ backsubst_vec_r([], [], X) ->
 backsubst_vec_r([RowA | A], [Vb | B], X) ->
     backsubst_vec_x(RowA, A, B, X, X, Vb).
 
-backsubst_vec_x([Va], A, B, [], X0, S) 
+backsubst_vec_x([Va], A, B, [], X0, S)
   when is_float(Va), is_float(S) ->
     backsubst_vec_r(A, B, X0++[S/Va]);
-backsubst_vec_x([Va | RowA], A, B, [Vx | X], X0, S) 
+backsubst_vec_x([Va | RowA], A, B, [Vx | X], X0, S)
   when is_float(Va), is_float(Vx), is_float(S) ->
     backsubst_vec_x(RowA, A, B, X, X0, S - Va*Vx).
 
@@ -593,7 +589,7 @@ vec_add(0, [Va | A], Zb, B, Zc, C) ->
     vec_add(0, A, Zb-1, B, 0, if Zc == 0 -> [Va | C];
 				 true -> [Va, Zc | C]
 			      end);
-vec_add(Za, A, 0, [Vb | B], Zc, C) 
+vec_add(Za, A, 0, [Vb | B], Zc, C)
   when is_float(Vb) ->
     vec_add(Za-1, A, 0, B, 0, if Zc == 0 -> [Vb | C];
 				 true -> [Vb, Zc | C]
@@ -627,7 +623,7 @@ vec_add(0, [Va | A], F, Zb, B, Zc, C) ->
     vec_add(0, A, F, Zb-1, B, 0, if Zc == 0 -> [Va | C];
 				    true -> [Va, Zc | C]
 				 end);
-vec_add(Za, A, F, 0, [Vb | B], Zc, C) 
+vec_add(Za, A, F, 0, [Vb | B], Zc, C)
   when is_float(F), is_float(Vb) ->
     Vc = F*Vb,
     vec_add(Za-1, A, F, 0, B, 0, if Zc == 0 -> [Vc | C];

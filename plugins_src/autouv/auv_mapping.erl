@@ -12,7 +12,7 @@
 %%
 
 %%%%%% Least Square Conformal Maps %%%%%%%%%%%%
-%% Algorithms based on the paper, 
+%% Algorithms based on the paper,
 %% (now probably totally ruined by me or Raimo)
 %% 'Least Square Conformal Maps for Automatic Texture Generation Atlas'
 %% by Bruno Levy, Sylvain Petitjean, Nicolas Ray, Jerome Mailot
@@ -20,7 +20,7 @@
 %%
 %%%% The Conjugate Gradient Method (trad)
 %% Algorithms based on the paper:
-%%       An Introduction to 
+%%       An Introduction to
 %%  the Conjugate Gradient Method
 %%    Without the Agonizing Pain
 %% by
@@ -34,14 +34,14 @@
 %%      Xiaoge Wang, 1994
 
 %% All credits about the LSQCM implementation goes to Raimo, who
-%% implemented the lot. 
+%% implemented the lot.
 
 -module(auv_mapping).
 
 -export([stretch_opt/2, fs_area/2, area2d2/3,area3d/3, calc_area/3]).
 -export([map_chart/3, projectFromChartNormal/2, chart_normal/2]).
 
-%% Internal exports. 
+%% Internal exports.
 -export([model_l2/5]).
 -export([lsq/2, lsq/3,  % Debug entry points
 	 find_pinned/2,
@@ -67,10 +67,7 @@ map_chart(Type, We, Options) ->
 	_ when Type == lsqcm, is_list(Options), length(Options) < 2 ->
 	    {error,?__(3,"At least 2 vertices (per chart) must be selected")};
 	[Best|_] ->
-	    map_chart_1(Type, Faces, Best, Options, We);
-	Err ->
-	    ?dbg(?__(4,"Error:")++" ~p~n", [Err]),
-	    {error, ?__(5,"Error, try to cleanup objects before uv-mapping")}
+	    map_chart_1(Type, Faces, Best, Options, We)
     catch
 	_:Err ->
 	    ?dbg(?__(4,"Error:")++" ~p~n", [Err]),
@@ -111,10 +108,10 @@ volproject(Type,Chart,_Pinned,{_,BEdges},We) ->
     {Center,Axes,LoopInfo} = find_axes(Chart,BEdges,We),
     %%io:format("Res: ~p ~n",[{Center,Axes}]),
     Rot = rot_mat(Axes),
-    CalcUV = case Type of 
-		 cyl -> fun cyl/1; 
+    CalcUV = case Type of
+		 cyl -> fun cyl/1;
 		 sphere -> fun sphere/1
-	     end,    
+	     end,
     Vs0 = wings_face:to_vertices(Chart, We),
     Transform = fun(V) ->
 			Pos = wings_vertex:pos(V, We),
@@ -228,7 +225,7 @@ clamp(X) -> X.
 fix_positions(_V,{_,_,Z},Proj,_) when Z > 0.0 -> Proj;
 fix_positions(V,_,Proj = {X,Y,Z},Tags) ->
     case gb_sets:is_member(V,Tags) of
-	true when X > 0.0 -> 
+	true when X > 0.0 ->
 	    {X-2.0,Y,Z};
 	false when X < 0.0 ->
 	    {X+2.0,Y,Z};
@@ -263,7 +260,7 @@ do_face_more(Face, We, Acc) ->
     wings_face:fold(fun(_,_,#edge{lf=LF,rf=RF},P={A1,Free}) ->
 			    AFace = if LF == Face -> RF; true -> LF end,
 			    case gb_sets:is_member(AFace,Free) of
-				true -> 
+				true ->
 				    {[AFace|A1],
 				     gb_sets:delete(AFace,Free)};
 				false ->
@@ -287,7 +284,7 @@ find_axes(Fs,BEdges,We) ->
 	      "please use unfolding or one of the projection mappings."));
 
 %%	    find_axes_from_eigenv(Fs,ChartNormal,BEdges,We);
-	Nice -> 
+	Nice ->
 	    Nice
     end.
 
@@ -295,7 +292,7 @@ forms_closed_object(BEdges0,ChartNormal,We=#we{name=#ch{emap=Emap}}) ->
     BEdges = [{auv_segment:map_edge(Edge,Emap),BE} || BE = #be{edge=Edge} <- BEdges0],
     case is_an_8(BEdges, false) of
 	false -> undefined;
-	Edge -> 
+	Edge ->
 	    {North,South,Link,LinkR} = split_edges(Edge,BEdges,We),
 	    NorthSouth = e3d_vec:sub(North,South),
 	    Center = e3d_vec:average(North,South),
@@ -337,14 +334,14 @@ is_an_8([{E,_}|R],HaveRemoved) -> %% Hmm we must take them in order
 	    end
     end.
 
-%%  Split edges splits into three parts two loops 
+%%  Split edges splits into three parts two loops
 %%  and a link between them.
-%%    bc  
-%%    _ defg 
+%%    bc
+%%    _ defg
 %%  a/ \____h
 %%   \_/--\_|     => 2 loops: mnoabc fghijk
 %%   onmdekji     =>    link: def
-%% 
+%%
 %% d(L) -> %% DBG
 %%     lists:map(fun({E,_BE}) -> E end,L).
 
@@ -457,14 +454,14 @@ find_pinned({Circumference, BorderEdges}, We) ->
     [{_,V0,_V1Pos}|_] = lists:reverse(lists:sort(AllC)),
     BE1 = reorder_edge_loop(V0, BorderEdges, []),
     HalfCC = Circumference/2, %% - Circumference/100,
-    {V1, V2} = find_pinned(BE1, BE1, 0.0, HalfCC, HalfCC, undefined), 
+    {V1, V2} = find_pinned(BE1, BE1, 0.0, HalfCC, HalfCC, undefined),
     [{V1,{0.0,0.0}},{V2,{1.0,1.0}}].
-    
-find_pinned(Curr=[#be{vs=C1,dist=Clen}|CR],Start=[#be{ve=S2,dist=Slen}|SR],Len,HCC,Best,BVs) ->    
+
+find_pinned(Curr=[#be{vs=C1,dist=Clen}|CR],Start=[#be{ve=S2,dist=Slen}|SR],Len,HCC,Best,BVs) ->
     Dlen = HCC-(Clen+Len),
     ADlen = abs(Dlen),
-%    ?DBG("Testing ~p ~p ~p ~p ~p~n", [{S2,C1},Dlen,{Len+Clen,HCC}, Best, BVs]),    
-    if 
+%    ?DBG("Testing ~p ~p ~p ~p ~p~n", [{S2,C1},Dlen,{Len+Clen,HCC}, Best, BVs]),
+    if
 	Dlen >= 0.0 ->
 	    if ADlen < Best ->
 		    find_pinned(CR,Start,Clen+Len,HCC,ADlen,{S2,C1});
@@ -497,7 +494,7 @@ chart_normal(Fs,We = #we{es=Etab}) ->
 	{+0.0,+0.0,+0.0} -> %% Bad normal Fallback1
 	    %%	    BE = auv_util:outer_edges(Fs,We,false),
 	    [{_,BE}|_] = auv_placement:group_edge_loops(Fs,We),
-	    EdgeNormals = 
+	    EdgeNormals =
 		fun(#be{edge=Edge}, Sum0) ->
 			#edge{lf=LF,rf=RF} = array:get(Edge, Etab),
 			Sum1 = CalcNormal(LF,Sum0),
@@ -539,7 +536,7 @@ fs_area(Fs,We) ->
     fs_area(Fs,We,0.0).
 fs_area([Face|Rest],We,Area) ->
     Vs0 = wpa:face_vertices(Face, We),
-    NewArea = try 
+    NewArea = try
 		  Normal = wings_face:normal(Face, We),
 		  calc_area(Vs0, Normal, We)
 	      catch _:_ ->
@@ -567,7 +564,7 @@ sum_crossp([_Last], Acc) ->
 
 lsq_setup(Fs,We,Pinned) ->
     {M,N,D,DR,L1,L2} = lsq_init(Fs,We,Pinned),
-    {Lquv0,{Np,Usum,Vsum}} =  
+    {Lquv0,{Np,Usum,Vsum}} =
 	lists:mapfoldl(
 	  fun({P,{U,V} = UV}, {I,X,Y}) ->
 		  {ok,Q} = dict:find(P, D),
@@ -575,11 +572,11 @@ lsq_setup(Fs,We,Pinned) ->
 	  end,{0,0.0,0.0},Pinned),
     Lquv = lists:sort(Lquv0), % Must be sorted for pick() and insert() to work.
     ?DBG("lsq_int - Lquv = ~p~n",[Lquv]),
-    %% Build the basic submatrixes 
+    %% Build the basic submatrixes
     %% M1 = Re(M), M2 = Im(M), M2n = -M2
     {M1,M2,M2n} = build_basic(M,L1,L2),
-    %% Compile the basic submatrixes into the ones related to 
-    %% free points (Mf*) i.e unknown, 
+    %% Compile the basic submatrixes into the ones related to
+    %% free points (Mf*) i.e unknown,
     %% and pinned points (Mp*).
     {Mfp1c,Mfp2c,Mfp2nc,LuLv} = build_cols(M1,M2,M2n,Lquv),
     ?DBG("lsq_int - LuLv = ~p~n", [LuLv]),
@@ -592,7 +589,7 @@ lsq_setup(Fs,We,Pinned) ->
 
     #lsq{a=Af,x0=X0Fix,ap=Ap,temp1=LuLv,temp2=Lquv,dr=DR}.
 
-lsq_init(Fs0,We0,Pinned0) -> 
+lsq_init(Fs0,We0,Pinned0) ->
     %% Do a real triangulation, might be optimized later.
     We = wings_tesselation:triangulate(Fs0, We0),
     Fs = Fs0 ++ wings_we:new_items_as_ordset(face,We0,We),
@@ -602,19 +599,19 @@ lsq_init(Fs0,We0,Pinned0) ->
 lsq_init_fs([F|Fs],P,We = #we{vp=Vtab},Ds0,N,Re0,Im0) ->
     Vs = [[A0|_],[B0|_],[C0|_]] = wings_va:face_attr([vertex|uv], F, We),
     {[A,B,C],Ds} = update_dicts(Vs,Ds0),
-%%    {X1=Z0x,Y1=Z0y,X2=Z1x,Y2=Z1y,X3=Z2x,Y3=Z2y} = 
-    {X1,Y1,X2,Y2,X3,Y3} = 
+%%    {X1=Z0x,Y1=Z0y,X2=Z1x,Y2=Z1y,X3=Z2x,Y3=Z2y} =
+    {X1,Y1,X2,Y2,X3,Y3} =
 	project_tri(array:get(A0,Vtab),array:get(B0,Vtab),
-		    array:get(C0,Vtab)), 
-    %% Raimos old solution. 
+		    array:get(C0,Vtab)),
+    %% Raimos old solution.
     SqrtDT0 = try math:sqrt(abs((X2-X1)*(Y3-Y1)-(Y2-Y1)*(X3-X1)))
               catch _:_ -> 0.000001
               end,
     SqrtDT = if SqrtDT0 < ?EPSILON -> 1.0;  % this can happen e.g. in a bevel/extrude without offset
                 true -> SqrtDT0
              end,
-    W1re = X3-X2, W1im = Y3-Y2, 
-    W2re = X1-X3, W2im = Y1-Y3, 
+    W1re = X3-X2, W1im = Y3-Y2,
+    W2re = X1-X3, W2im = Y1-Y3,
     W3re = X2-X1, W3im = Y2-Y1,
 
     Re=[[{A,W1re/SqrtDT},{B,W2re/SqrtDT},{C,W3re/SqrtDT}]|Re0],
@@ -689,7 +686,7 @@ project_tri(P0,P1,P2) ->
     {0.0,0.0,
      e3d_vec:len(L),0.0,
      e3d_vec:dot(T,X), e3d_vec:dot(T,Y)}.
-    
+
 lsq(L, Lpuv) when is_list(Lpuv) ->
     lsq(L, Lpuv, env);
 lsq(Name, Method) when is_atom(Method) ->
@@ -697,7 +694,7 @@ lsq(Name, Method) when is_atom(Method) ->
     lsq(L, Lpuv, Method).
 
 lsq(L, Lpuv, Method0) when is_record(L,lsq), is_list(Lpuv), is_atom(Method0) ->
-    Method = case Method0 of 
+    Method = case Method0 of
 		 env ->
 		     case os:getenv("WINGS_AUTOUV_SOLVER") of
 			 "ge" -> ge;
@@ -717,12 +714,12 @@ lsq(L, Lpuv, Method) ->
     error(badarg, [L, Lpuv, Method]).
 
 lsq_int(#lsq{a=Af,x0=X0,ap=Ap,temp1=LuLv,temp2=Lquv,dr=Rdict},_Pinned,Method) ->
-    %% Clean this mess up    
+    %% Clean this mess up
     {Np,K_LuLv} = keyseq_neg(LuLv),
     U = auv_matrix:vector(Np, K_LuLv),
     ?DBG("build_matrixes - U = ~p~n", [U]),
     B = auv_matrix:mult(Ap, U),
-    
+
     X = case Method of
 	    ge -> minimize_ge(Af,B);
 	    _ ->
@@ -779,7 +776,7 @@ keyseq(N, [X | L], R) ->
     keyseq(N+1, L, [{N,-X} | R]).
 
 %%               _   _    2
-%% Minimize || A x - b ||  
+%% Minimize || A x - b ||
 %%
 %%              t   _       t _
 %% by solving A   A x  =  A   b
@@ -792,7 +789,7 @@ minimize_ge(A, B) ->
 %%    ?DBG("Reduced: ~p~n", [AAA]),
     X = auv_matrix:backsubst(AAA),
     ?DBG("Solved~n",[]),
-    X.    
+    X.
 
 mk_solve_matrix(Af,B) ->
     AfT = auv_matrix:trans(Af),
@@ -801,12 +798,12 @@ mk_solve_matrix(Af,B) ->
     auv_matrix:cat_cols(AfTAf, AfTB).
 
 %%               _   _    2
-%% Minimize || A x - b ||  
+%% Minimize || A x - b ||
 %%
 %%             -1  t    _      -1  t  _
 %% by solving M   A   A x  =  M   A   b
 %%                                                         __
-%% using the Preconditioned Coujugate Gradient method with x0 as 
+%% using the Preconditioned Coujugate Gradient method with x0 as
 %% iteration start vector.
 %%
 minimize_cg(A, X0, B) ->
@@ -821,12 +818,12 @@ minimize_cg(A, X0, B) ->
     AtB = auv_matrix:mult(At, B),
 
     %% A very cheap preconditioning. The column norm
-    %% takes no time to calculate compared to 
-    %% AtA above. The iteration time impact is also 
+    %% takes no time to calculate compared to
+    %% AtA above. The iteration time impact is also
     %% very low since it is a matrix multiplication
     %% with a diagonal (i.e. very sparse) matrix.
     %% The preconditioning effect (on the required
-    %% number of iterations) is modest, but 
+    %% number of iterations) is modest, but
     %% cost effective.
     Diag = auv_matrix:row_norm(At),
     M_inv = try [1/V || V <- Diag] of
@@ -845,20 +842,20 @@ minimize_cg(A, X0, B) ->
     D = M_inv(R),
     Delta = auv_matrix:mult(auv_matrix:trans(R), D),
     Delta_max = Epsilon*Epsilon*Delta,
-    minimize_cg(M_inv, At, A, AtB, Delta_max, 
+    minimize_cg(M_inv, At, A, AtB, Delta_max,
 		Delta, I, D, R, X0).
 
-minimize_cg(_, _At, _A, _, _, 
+minimize_cg(_, _At, _A, _, _,
 	    _, 0, _D, _, X) ->
-    ?DBG("minimize_cg() sizes were ~p ~p ~p~n", 
+    ?DBG("minimize_cg() sizes were ~p ~p ~p~n",
 	 [auv_matrix:dim(_At), auv_matrix:dim(_A), auv_matrix:dim(_D)]),
     {stopped, X};
-minimize_cg(_, _At, _A, _, Delta_max, 
+minimize_cg(_, _At, _A, _, Delta_max,
 	    Delta, _, _D, _, X) when Delta < Delta_max ->
-    ?DBG("minimize_cg() sizes were ~p ~p ~p~n", 
+    ?DBG("minimize_cg() sizes were ~p ~p ~p~n",
 	 [auv_matrix:dim(_At), auv_matrix:dim(_A), auv_matrix:dim(_D)]),
     {ok, X};
-minimize_cg(M_inv, At, A, AtB, Delta_max, 
+minimize_cg(M_inv, At, A, AtB, Delta_max,
 	    Delta, I, D, R, X) ->
 %%    ?DBG("minimize_cg() step ~p Delta=~p~n", [I, Delta]),
     P = auv_matrix:mult(A, D),
@@ -897,13 +894,13 @@ minimize_cg_3(M_inv, At, A, AtB, Delta_max,
     minimize_cg(M_inv, At, A, AtB, Delta_max,
 		Delta_new, I-1, D_new, R_new, X_new).
 
-%% Extract the result from vector X and combine it with the 
+%% Extract the result from vector X and combine it with the
 %% pinned points. Re-translate the point identities.
 %%
 lsq_result(X, Lquv, Rdict) ->
     {MM,1} = auv_matrix:dim(X),
     {Ulist, Vlist} = split(auv_matrix:vector(X), MM div 2),
-    {[],UVlistR} = 
+    {[],UVlistR} =
 	foldl(
 	  fun (U, {[], R}) ->
 		  {[], [{U,0.0} | R]};
@@ -957,7 +954,7 @@ pick(_, _, _, _, _) ->
 %% Insert terms with specified indexes in a list
 %%
 %% L: List of terms
-%% S: List of {Pos,Term} tuples with Term to be 
+%% S: List of {Pos,Term} tuples with Term to be
 %%    inserted at position Pos in L
 %%
 insert(L, S) when is_list(L), is_list(S) ->
@@ -1004,7 +1001,7 @@ area3d(V1, V2, V3) ->
     e3d_vec:area(V1, V2, V3).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Texture metric stretch 
+%% Texture metric stretch
 %% From 'Texture Mapping Progressive Meshes' by
 %% Pedro V. Sander, John Snyder Steven J. Gortler, Hugues Hoppe
 
@@ -1036,7 +1033,7 @@ stretch_opt(We0, OVs) ->
     io:format(?__(3,"After Stretch sum (mean) ~p")++" ~n",  [_Mean2]),
 
     SUvs1 = gb_trees:to_list(SUvs0),
-    
+
     Suvs = [{Id,{S0/Scale,T0/Scale,0.0}} || {Id,{S0,T0}} <- SUvs1],
     We0#we{vp=array:from_orddict(Suvs)}.
 
@@ -1052,13 +1049,13 @@ stretch_setup(Fs, We0, OVs) ->
     Tris = [{Face,[{Id1,{S1*S,T1*S}},{Id2,{S2*S,T2*S}},{Id3,{S3*S,T3*S}}]} ||
 	       {Face,[{Id1,{S1,T1}},{Id2,{S2,T2}},{Id3,{S3,T3}}]} <- Tris0],
     {F2S2,F2S8,Uvs,State0} = init_stretch(Tris,F2OV, [], [], [], [], []),
-    Worst = model_l8(gb_trees:keys(F2S8), F2S8, 0.0), 
+    Worst = model_l8(gb_trees:keys(F2S8), F2S8, 0.0),
     Mean  = model_l2(gb_trees:keys(F2S2), F2S2, F2A,0.0, 0.0),
     io:format(?__(1,"Stretch sum (worst) ~p")++" ~n", [Worst]),
     io:format(?__(2,"Stretch sum (mean) ~p")++" ~n",  [Mean]),
     {F2S2,F2S8,Uvs,State0#s{f2a=F2A,f2ov=F2OV,bv=Bv},S}.
 
-stretch_iter(S2V0=[{_,First}|_],I,V2S0,F2S20,Uvs0,State) 
+stretch_iter(S2V0=[{_,First}|_],I,V2S0,F2S20,Uvs0,State)
   when First > ?MIN_STRETCH, I < ?MAX_ITER ->
     if
 	I rem 4 =:= 0 ->
@@ -1078,10 +1075,10 @@ stretch_iter2([{V,OldVal}|R],V2S0,F2S20,Uvs0,State)
     #s{f2v=F2Vs,v2f=V2Fs} = State,
     Fs   = gb_trees:get(V,V2Fs),
     Val  = gb_trees:get(V,V2S0),
-    %%	    ?DBG("~p ~.4f:",[V,Val]), 
+    %%	    ?DBG("~p ~.4f:",[V,Val]),
     {PVal,Uvs,F2S2} = opt_v(Val,0,?VERTEX_STEP,V,Line,Fs,F2S20,Uvs0,State),
-    case PVal == Val of 
-	true -> 
+    case PVal == Val of
+	true ->
 	    stretch_iter2(R,V2S0,F2S20,Uvs0,State);
 	false ->
 	    Vs0  = lists:usort(lists:append([gb_trees:get(F,F2Vs)|| F<-Fs])),
@@ -1100,9 +1097,9 @@ random_line() ->
     Len = math:sqrt(X*X+Y*Y),
     {X/Len,Y/Len}.
 
-opt_v(PVal,I,Step,V,L,Fs,F2S0,Uvs0,_State=#s{f2v=F2Vs,f2ov=F2OV,f2a=F2A}) ->    
+opt_v(PVal,I,Step,V,L,Fs,F2S0,Uvs0,_State=#s{f2v=F2Vs,f2ov=F2OV,f2a=F2A}) ->
     UV = gb_trees:get(V, Uvs0),
-    {Data,F2S1} = 
+    {Data,F2S1} =
 	foldl(fun(Face, {Acc,Fs0}) ->
 		      Vs = [V1,V2,V3] = gb_trees:get(Face, F2Vs),
 		      {[{Vs,
@@ -1127,11 +1124,11 @@ update_fs([{Face,S}|Ss],F2S) ->
     update_fs(Ss,gb_trees:update(Face,S,F2S));
 update_fs([],F2S) -> F2S.
 
-opt_v2(PVal,I,Step,V,UV={S0,T0},L={X,Y},Data,FS0) 
+opt_v2(PVal,I,Step,V,UV={S0,T0},L={X,Y},Data,FS0)
   when I < ?MAX_LEVELS ->
     St = {S0+X*Step,T0+Y*Step},
     {Stretch,FS} = calc_stretch(V,Data,St,0.0,0.0,[]),
-    if 
+    if
 	Stretch < PVal ->
 %	    io:format(">"),
 	    opt_v2(Stretch,I,Step,V,St,L,Data,FS);
@@ -1146,7 +1143,7 @@ opt_v2(PVal,I,Step,V,UV={S0,T0},L={X,Y},Data,FS0)
 opt_v2(PVal,_I,_Step,_V,St,_L,_,FS) ->
 %    io:format("~n"),
     {PVal,St,FS}.
-       
+
 calc_stretch(V,[{[V,_,_],{_,UV2,UV3},{Q1,Q2,Q3},Face,FA}|R],UV1,Mean,Area,FS) ->
     S = l2(UV1,UV2,UV3,Q1,Q2,Q3),
     calc_stretch(V,R,UV1,S*S*FA+Mean,FA+Area,[{Face,S}|FS]);
@@ -1193,20 +1190,20 @@ calc_scale([{Face,[{Id1,P1},{Id2,P2},{Id3,P3}]}|R], Ovs, A2D, A3D,F2A,F2OVs) ->
     A2 = abs(area2d2(P1,P2,P3)/2),
     Q1 = array:get(Id1,Ovs),
     Q2 = array:get(Id2,Ovs),
-    Q3 = array:get(Id3,Ovs),    
+    Q3 = array:get(Id3,Ovs),
     A3 = area3d(Q1,Q2,Q3),
     calc_scale(R,Ovs,A2+A2D,A3+A3D,[{Face,A3}|F2A],[{Face,{Q1,Q2,Q3}}|F2OVs]);
 calc_scale([],_Ovs,A2D,A3D,F2A,F2OVs) ->
     {math:sqrt(A3D/wings_util:nonzero(A2D)),
-     gb_trees:from_orddict(lists:sort(F2A)), 
+     gb_trees:from_orddict(lists:sort(F2A)),
      gb_trees:from_orddict(lists:sort(F2OVs))}.
 
 model_l8([Face|R], F2S8, Worst) ->
     FVal = gb_trees:get(Face,F2S8),
-    New  = if FVal > Worst -> 
+    New  = if FVal > Worst ->
 %		   ?DBG("Face ~p has worst ~p~n", [Face,FVal]),
 		   FVal;
-	      true -> 
+	      true ->
 		   Worst
 	   end,
     model_l8(R,F2S8,New);
@@ -1243,7 +1240,7 @@ l2({S1,T1}, {S2,T2}, {S3,T3},
 	    C = TX*TX+TY*TY+TZ*TZ,
 
 	    math:sqrt((A+C)/(2.0*DoubleArea*DoubleArea));
-	_ -> 
+	_ ->
 	    9999999999.9
     end.
 
@@ -1259,8 +1256,8 @@ l8(P1,P2,P3,Q1,Q2,Q3) ->  %% Worst stretch value
        true ->
 	    9999999999.9
     end.
-    
-ss({_,T1},{_,T2},{_,T3},{Q1x,Q1y,Q1z},{Q2x,Q2y,Q2z},{Q3x,Q3y,Q3z},A) 
+
+ss({_,T1},{_,T2},{_,T3},{Q1x,Q1y,Q1z},{Q2x,Q2y,Q2z},{Q3x,Q3y,Q3z},A)
   when is_float(T1),is_float(T2),is_float(T3),
        is_float(Q1x),is_float(Q1y),is_float(Q1z),
        is_float(Q2x),is_float(Q2y),is_float(Q2z),
@@ -1269,8 +1266,8 @@ ss({_,T1},{_,T2},{_,T3},{Q1x,Q1y,Q1z},{Q2x,Q2y,Q2z},{Q3x,Q3y,Q3z},A)
     {(Q1x*T23+Q2x*T31+Q3x*T12)/A,
      (Q1y*T23+Q2y*T31+Q3y*T12)/A,
      (Q1z*T23+Q2z*T31+Q3z*T12)/A}.
-    
-st({S1,_},{S2,_},{S3,_},{Q1x,Q1y,Q1z},{Q2x,Q2y,Q2z},{Q3x,Q3y,Q3z},A) 
+
+st({S1,_},{S2,_},{S3,_},{Q1x,Q1y,Q1z},{Q2x,Q2y,Q2z},{Q3x,Q3y,Q3z},A)
   when is_float(S1),is_float(S2),is_float(S3),
        is_float(Q1x),is_float(Q1y),is_float(Q1z),
        is_float(Q2x),is_float(Q2y),is_float(Q2z),
@@ -1294,7 +1291,7 @@ get_face_vspos([Face|Fs], We, Tris) ->
        true ->
 	    io:format(?__(1,"Error: Face isn't triangulated ~p with ~p vertices")++"~n",
 		      [Face, Vs1]),
-	    error({triangulation_bug, [Face, Vs1]})    
+	    error({triangulation_bug, [Face, Vs1]})
     end;
 get_face_vspos([], _, Tris) ->
     Tris.

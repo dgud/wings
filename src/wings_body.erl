@@ -1078,10 +1078,9 @@ closest_pair([], {Va,_}, {{Vb,_},_}, _Face, #we{}) -> {Va,Vb};
 closest_pair([], _, _, _, _) -> none.
 
 dissolve_edges([E|CommonEs],We0) ->
-    try wings_edge:dissolve_edge(E,We0) of
-	#we{}=We ->
-	    dissolve_edges(CommonEs,We);
-	_ -> We0
+    try
+        We = wings_edge:dissolve_edge(E,We0),
+	    dissolve_edges(CommonEs,We)
     catch
 	_:_ -> We0
     end;

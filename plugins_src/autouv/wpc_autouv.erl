@@ -721,9 +721,9 @@ command_menu(vertex, X, Y) ->
     wings_menu:popup_menu(X,Y, {auv,vertex}, Menu);
 command_menu(_, X, Y) ->
     ExportMenu =
-        try wpc_hlines:init() of
-            true -> [separator, {auv_export_menu(label), export_uv, auv_export_menu(help)}];
-            _ -> []
+        try
+            wpc_hlines:init(),
+            [separator, {auv_export_menu(label), export_uv, auv_export_menu(help)}]
         catch
             _:_ -> []
         end,

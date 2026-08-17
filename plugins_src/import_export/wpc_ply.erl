@@ -129,10 +129,9 @@ import(Name) ->
     end.
 
 import_1(Fd, Dir) ->
-    try import_2(Fd, Dir) of
-	{error,_}=Error -> Error;
-	{format_not_supported,Reason} -> {error, Reason};
-	#e3d_file{}=E3dFile -> {ok,E3dFile}
+    try
+	#e3d_file{}=E3dFile = import_2(Fd, Dir),
+	{ok,E3dFile}
     catch
 	_:Reason -> exit(Reason)
     end.
@@ -146,7 +145,7 @@ import_2(Fd0, _Dir) ->
         ({X,Y,Z,Color}, {Vs1,Vc1}) ->
             {[{X,Y,Z}|Vs1],[convert_rgb(Color)|Vc1]};
         ({X,Y,Z},{Vs1,Vc1}) ->{[{X,Y,Z}|Vs1],Vc1}
-    end, 
+    end,
     {Vs,VC} = lists:foldr(MyAcc,{[],[]},Vs0),
     {Fs0,OnlyTris} = convert_fs(Data),
     Fs = if VC==[] -> Fs0; true -> process_vc(Fs0) end,
@@ -158,12 +157,12 @@ convert_rgb({R,_,_}=Color) when is_integer(R) -> wings_color:rgb4fv(Color);
 convert_rgb({R,_,_,_}=Color) when is_integer(R) -> wings_color:rgb4fv(Color);
 convert_rgb(Color) -> Color.
 
-convert_vs([{vertex, _No, Vars, _Ts, Data}|_]) -> 
+convert_vs([{vertex, _No, Vars, _Ts, Data}|_]) ->
     convert_vs(Vars, Vars, Data, []);
-convert_vs([_|T]) -> 
+convert_vs([_|T]) ->
     convert_vs(T).
 
-    
+
 %% element properties probably don't need to be any order ... likely x,y,z would be first
 %% but not wanting to make any assumptions about what fields come next.
 convert_vs([x,y,z|_]=Keys,Vars,[[X,Y,Z|_]=Values|T],Acc)  ->
@@ -182,15 +181,15 @@ convert_vs([x,y,z|_]=Keys,Vars,[[X,Y,Z|_]=Values|T],Acc)  ->
 		true -> {R,G,B}
 		end,
             convert_vs(Vars,Vars,T,[{float(X),float(Y),float(Z),Color}|Acc]);
-        true -> 
+        true ->
             convert_vs(Vars,Vars,T,[{float(X),float(Y),float(Z)}|Acc])
     end;
 convert_vs([_|V1], Vs, [[_|T0]|T1], Acc) ->
     convert_vs(V1,Vs, [T0|T1],Acc);
-convert_vs(_,_,[],Acc) -> 
+convert_vs(_,_,[],Acc) ->
     reverse(Acc).
 
-convert_fs([{face, _No, Vars, _Ts, Data}|_]) -> 
+convert_fs([{face, _No, Vars, _Ts, Data}|_]) ->
     convert_fs(Vars, Vars, Data, true, []);
 convert_fs([_|T]) ->
     convert_fs(T).
@@ -202,7 +201,7 @@ convert_fs([vertex_indices|_],Vars,[[Fs|_]|T],OT,Acc) ->
 convert_fs([_What|V1], Vs, [[_|T0]|T1], OT, Acc) ->
 %%    io:format("Skipped ~p ~n", [_What]),
     convert_fs(V1,Vs, [T0|T1],OT,Acc);
-convert_fs(_,_,[],OT,Acc) -> 
+convert_fs(_,_,[],OT,Acc) ->
     {reverse(Acc), OT}.
 
 process_vc(Fs) ->
@@ -260,10 +259,10 @@ parseHead([{Type, Num}|Rest], Acc) ->
     parseHead(R2, [{Type, Num, Vars, Types}|Acc]);
 parseHead([], Acc) ->
     reverse(Acc).
-    
+
 parseProps([{Var, Type}|Rest], V0, T0) when is_atom(Type), is_atom(Var) ->
     parseProps(Rest, [Var|V0], [Type|T0]);
-parseProps([{ListType, Var, Type}|Rest], V0, T0) 
+parseProps([{ListType, Var, Type}|Rest], V0, T0)
   when is_atom(Type),is_atom(Var) ->
     parseProps(Rest, [Var|V0], [{ListType,Type}|T0]);
 parseProps(Rest,V0,T0) ->
@@ -303,7 +302,7 @@ read_open(Name) ->
 
 close({Fd,_}) ->
     file:close(Fd).
-	    
+
 get_line({Fd,Buf}) ->
     get_line(Buf, Fd, []).
 
@@ -322,6 +321,6 @@ get_line([$\n|Cs], Fd, Line) ->
     {string:tokens(reverse(Line, []), " \t\n"),{Fd,Cs}};
 get_line([C|Cs], Fd, Line) ->
     get_line(Cs, Fd, [C|Line]).
-    
+
 str2float(S) ->
     wings_util:string_to_float(S).
