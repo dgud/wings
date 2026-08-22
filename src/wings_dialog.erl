@@ -921,9 +921,6 @@ set_keyboard_focus(Dialog, Fields) ->
 set_position(mouse, Dialog) ->
     {Xm,Ym} = Pt = wx_misc:getMousePosition(),
     {Wd, Hd} = wxWindow:getSize(Dialog),
-    Ws = wxSystemSettings:getMetric(?wxSYS_SCREEN_X),
-    Hs = wxSystemSettings:getMetric(?wxSYS_SCREEN_Y),
-    {XWw, YWw} = wxWindow:getScreenPosition(?GET(top_frame)),
 
     case wxDisplay:getFromPoint(Pt) of
         ?wxNOT_FOUND ->
@@ -934,16 +931,9 @@ set_position(mouse, Dialog) ->
             {X,Y,W,H} = wxDisplay:getGeometry(Display),
             wxDisplay:destroy(Display),
             XMax = X+W, YMax = Y+H,
-            if (Xm+Wd) < XMax, (Ym+Hd) < YMax ->
-                    wxWindow:move(Dialog, max(Xm-100, max(XWw,X)), max(Ym-50, min(0,Y)));
-               (Xm+Wd) < XMax ->
-                    wxWindow:move(Dialog, max(Xm-100, max(XWw,X)), max(YMax-Hd-50, min(0,YWw)));
-               (Ym+Hd) < YMax ->
-                    wxWindow:move(Dialog, max(XMax-Wd-100, max(XWw,X)), max(Ym-50, min(YWw,Y)));
-               true ->
-                    io:format("~p ~p~n",[{Xm,Wd,Ws},{Ym,Hd,Hs}]),
-                    ok
-            end
+			Xd = clamp(Xm - 100, X, XMax - Wd),
+			Yd = clamp(Ym - 50, Y, YMax - Hd),
+			wxWindow:move(Dialog, Xd, Yd)
     end;
 set_position(center, Dialog) ->
     case wxDisplay:getCount() of
@@ -2105,3 +2095,4 @@ text_wheel_move(Value, #wxMouse{wheelRotation=Count,wheelDelta=Delta}=EvMouse, T
     ValPercent =  Percent + (Count/Delta)*Incr,
     FromSlider(ValPercent).
 
+clamp(V, Min, Max) -> max(Min, min(Max, V)).
