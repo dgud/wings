@@ -1,0 +1,230 @@
+Command Scripts
+
+Command scripts are available when right clicking on a selected object.
+
+The "points" extra parameter is needed to access the list of vertices, which come as a vertice number and a 3 dimensional position.
+
+<code><pre>
+import w3d_int
+
+def main(params, params_by_key, extra_params):
+    points = w3d_int.Points()
+    points.load_from(extra_params["points"])
+
+    ##
+    ## ...
+    ##
+
+    ## Return new points positions
+    return [w3d_int.SetPoints(points)]
+
+w3d_main_function = main
+</pre></code>
+
+Don't forget to assign the 'main' function to 'w3d_main_function'.
+
+The following script shifts all the vertice positions of a selected object by 0.5 in all axis:
+
+<code><pre>
+import w3d_int
+
+def command(params, params_by_key, extra_params):
+    op = extra_params["op"]
+    points = w3d_int.Points()
+    points.load_from(extra_params["points"])
+
+    newpoints = []
+    for pair in points.list:
+        x = pair[1][0] + 0.5
+        y = pair[1][1] + 0.5
+        z = pair[1][2] + 0.5
+        newpoints.append((pair[0], (x,y,z)))
+    return [w3d_int.SetPoints(newpoints)]
+
+w3d_main_function = main
+</pre></code>
+
+The op variable contains which mode the command script is in, such as "vertex", "edge", "face" and "body". The modes the script runs in is set with the <b>mode</b> directive in the .wscr file.
+
+An .wscr file to use with the script:
+
+<code><pre>
+type "py"
+name ?__(1,"Example Simple Script")
+desc ?__(2,"Example Simple Script")
+mode "body"
+params_title ?__(3,"Example Simple Script")
+command_inputs "points"
+command_changes "points"
+params {
+  param "Unused" 0.0
+}
+</pre></code>
+
+The .wscr and .scm file should have the same name before the extension (script.scm and script.wscr).
+
+To use parameters with the command script, such as shifting the points by an adjustable value:
+
+<code><pre>
+import w3d_int
+
+def command(params, params_by_key, extra_params):
+    op = extra_params["op"]
+    val = params[0]
+    points = w3d_int.Points()
+    points.load_from(extra_params["points"])
+
+    newpoints = []
+    for pair in points.list:
+        x = pair[1][0] + val
+        y = pair[1][1] + val
+        z = pair[1][2] + val
+        newpoints.append((pair[0], (x,y,z)))
+    return [w3d_int.SetPoints(newpoints)]
+
+w3d_main_function = main
+</pre></code>
+
+In the .wscr file, rename the "Unused" parameter to "Move":
+
+<code><pre>
+type "py"
+name ?__(1,"Example Simple Script")
+desc ?__(2,"Example Simple Script")
+mode "body"
+params_title ?__(3,"Example Simple Script")
+command_inputs "points"
+command_changes "points"
+params {
+  param "Move" 0.5
+}
+</pre></code>
+
+
+
+Changes
+
+Depending on the kind of changes you are making, you add to the list:
+SetPoints
+SetFaceUVs
+SetFaceColors
+SetE3dMesh
+
+You also need to add to the command_inputs and command_changes directives the data needed, and what data will be changed. For the script using set_points, the following is needed in the .wscr file:
+<code><pre>
+command_inputs "points"
+command_changes "points"
+</pre></code>
+
+
+Advanced Commands
+
+Simple command scripts can be used to change the point coordinates, the UV values and colors. For more complicated tasks where the mesh needs more complicated changes, there are two options: E3DMesh scripts and We function based scripts.
+
+The E3DMesh script option the .wscr needs to specify the following options:
+<code><pre>
+command_inputs "e3d_mesh"
+command_changes "e3d_mesh"
+</pre></code>
+
+With this option, the script gets a E3DMesh object, and the E3DMesh can be changed, and then returned. Then the object's winged edge structure is recreated. This option is most useful when the script is a wrapper for external tools that expect meshes as list of faces and vertex array such as in a .obj file. A caveat of this option is the mesh will have to be turned into a list of faces and vertices, and then rebuilt back to a winged edge structure, so faces, edges and vertices will be renumbered.
+
+An example command that just returns the E3DMesh unchanged:
+
+<code><pre>
+from w3d_e3d import E3DMesh, SetE3DMesh
+
+def command(params, params_by_key, extra_params):
+    op   = extra_params["op"]
+    mesh = E3DMesh()
+    mesh.load_from(extra_params["e3d_mesh"])
+
+    return [SetE3DMesh(mesh)]
+
+w3d_main_function = command
+</pre></code>
+
+An example of moving the object by 0.5 in all axis:
+
+<code><pre>
+from w3d_e3d import E3DMesh, SetE3DMesh
+
+def command(params, params_by_key, extra_params):
+    op   = extra_params["op"]
+    mesh = E3DMesh()
+    mesh.load_from(extra_params["e3d_mesh"])
+
+    points = mesh.vs
+
+    newpoints = []
+    for (x,y,z) in points:
+        newpoints.append((x + 0.5, y + 0.5, z + 0.5))
+
+    mesh.vs = newpoints
+
+    return [SetE3DMesh(mesh)]
+
+w3d_main_function = command
+</pre></code>
+
+An .wscr file to use with the script:
+
+<code><pre>
+type "py"
+name ?__(1,"Example E3D Mesh Script")
+desc ?__(2,"Example E3D Mesh Script")
+mode "body"
+params_title ?__(3,"Example E3D Mesh Script")
+command_inputs "e3d_mesh"
+command_changes "e3d_mesh"
+params {
+  param "Unused" 0.0
+}
+</pre></code>
+
+
+Advanced We Function Scripts
+
+Scripts can use the we functions from Wings3D directly. When using this option, the command script does not need to use the command_inputs and command_changes directives, and the return from the script can be an empty list. Instead the script contains a sequence of we function calls that modifies the we object.
+
+
+An example of moving the object by 0.5 in all axis using a we function, in this case, matrix transformation of the vertices:
+
+<code><pre>
+import w3d_we
+
+def command(params, params_by_key, extra_params):
+    op   = extra_params["op"]
+
+    move_x = 0.5
+    move_y = 0.5
+    move_z = 0.5
+    w3d_we.we__transform_vs([
+        1.0, 0.0, 0.0,
+        0.0, 1.0, 0.0,
+        0.0, 0.0, 1.0,
+        move_x, move_y, move_z])
+
+    return []
+
+w3d_main_function = command
+</pre></code>
+
+A list of all the available callable we functions is available in the w3d_we function references.
+
+An .wscr file to use for the we function command script:
+
+<code><pre>
+type "py"
+name ?__(1,"Example We Script")
+desc "Example We Script"
+mode "body"
+params_title ?__(2,"Example We Script")
+params_preview 1
+params {
+  param "Unused" 0.0
+}
+</pre></code>
+
+
+

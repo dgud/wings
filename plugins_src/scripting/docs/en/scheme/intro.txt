@@ -1,0 +1,83 @@
+Introduction
+
+<h3>.wscr File</h3>
+
+For your script to be able to appear in the script chooser dialog, you will need to make a .wscr file with the same base name as your main Scheme script file. For example, if your script file is example.scm, your wscr file should be named example.wscr. The name that appears in the script chooser is the name specified in the .wscr file.
+
+<h3>Initial Bootstrap Script</h3>
+
+A bootstrap script that comes with the script plugin is first launched which then defines some basic functions, sometimes adds include paths, and gets from stdin the actual script being invoked as well as parameters that goes with it.
+
+<h3>Parameters that are passed in</h3>
+
+When a script is invoked, parameters from the dialog box are passed in, other parameters are also passed in depending on the type of script.
+
+<h3>Returning values from the script</h3>
+
+Scripts write to stdout their response before exiting.
+
+<code><pre>    (list 'ok '(new_shape ... ))</pre></code>
+
+<h3>Calling functions in Wings3D from a script</h3>
+
+Scripts can communicate with the plugin by setting temporary variables and using queries to call functions and get the return value. Temporary variables makes it easier to input elaborate data structures as arguments by referencing them in the query.
+
+
+Set value to variable:
+
+<code><pre>
+    (wings-set-variable! "var1" '(1 2 3 4))
+</pre></code>
+
+The return should be <code><pre>'ok</pre></code> .
+
+
+Get value of variable:
+
+<code><pre>
+    (wings-get-variable "var1")
+</pre></code>
+
+The return would be <code><pre>'(1 2 3 4)</pre></code> .
+
+
+Query:
+
+<code><pre>
+    (wings-query "lists:reverse(<$'var1')")
+</pre></code>
+
+The return would be <code><pre>'(4 3 2 1)</pre></code> .
+
+
+
+<h3>Calling We functions</h3>
+
+Most We functions are already wrapped into a defined function, and are covered in the we function reference.
+
+Other functions can be called with
+ (wings-we! Module FunName . Args)
+ (wings-we Module FunName . Args)
+
+
+<h3>Long Running Processes</h3>
+
+If your script runs for a long time, you want to use the long-running-process function. The long-running-process function continues your script processing in another thread, while sending back keep-alive messages to Wings3D so the program knows that the script has not timed out.
+
+<code><pre>
+(display "Started")(newline)
+(long-running-process
+    (lambda ()
+        (let loop ((N 100000000))
+            (if (> N 0)
+                (loop (- N 1))
+                'ok))
+    ))
+(display "Done")(newline)
+</pre></code>
+
+
+
+
+
+

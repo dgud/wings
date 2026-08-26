@@ -1,0 +1,29 @@
+adv_param Directive
+<code><pre>
+<b>adv_params</b> <b>begin</b>
+  {vframe, [
+     {hframe,[
+       {label,?__(3,"Path:")},
+       {text,"testing2",[{key,path}]}]},
+     panel,
+     separator,
+     {?__(2,"Enable"), 'true', [{key,enable}]}
+  ]}
+<b>end.</b>
+</pre></code>
+
+Adds parameters in the form of erlang term syntax, which allows
+scripts to have more control over the user interface layout. The
+erlang term syntax begins on the line after <b>begin</b> until
+the line <b>end.</b>. NOTE that there must be a dot (.) immediately
+after end on the same line, and end. must be on its own line.
+
+The erlang term itself should <b>not</b> have a dot after the
+term itself.
+
+Locale strings ?__(1, "Text") and query values %[...] are available
+to include inside the erlang term.
+
+An <b>adv_param</b> directive should be inside a
+<b>params { ... }</b> section.
+

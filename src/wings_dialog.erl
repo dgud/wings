@@ -18,7 +18,8 @@
 	 info/3,
 	 ask/3, ask/4, ask/5,
 	 dialog/3, dialog/4, dialog/5,
-	 ask_preview/5, dialog_preview/5
+	 ask_preview/5, dialog_preview/5,
+     manual/1,manual/2
 	]).
 
 %% Hook callbacks
@@ -371,7 +372,24 @@ set_value_impl(#in{wx=Ctrl, type=radiobox, data=Keys}, Val, _) ->
     Idx = get_list_index(Val,Keys),
     wxRadioBox:setSelection(Ctrl, Idx);
 set_value_impl(#in{wx=Ctrl, type=checkbox}, Val, _) ->
-    wxCheckBox:setValue(Ctrl, Val).
+    wxCheckBox:setValue(Ctrl, Val);
+set_value_impl(In=#in{wx=Ctrl, type=table}, {Sel,Rows}, Store) ->
+    ColIdx = lists:seq(0, wxListCtrl:getColumnCount(Ctrl)-1),
+    Li = wxListItem:new(),
+    Header =
+        lists:foldr(fun(C, Acc) ->
+                wxListItem:setMask(Li, ?wxLIST_MASK_TEXT bor ?wxLIST_MASK_WIDTH bor ?wxLIST_MASK_FORMAT),
+                wxListCtrl:getColumn(Ctrl,C,Li),
+                [{wxListItem:getText(Li),
+                  wxListItem:getWidth(Li),
+                  wxListItem:getAlign(Li)}|Acc]
+            end, [], ColIdx),
+    wxListItem:destroy(Li),
+    wxListCtrl:clearAll(Ctrl),
+    fill_table(Ctrl,Header,Rows),
+    [wxListCtrl:setItemState(Ctrl,N,?wxLIST_STATE_SELECTED,?wxLIST_STATE_SELECTED) || N <- Sel],
+    wxListCtrl:refresh(Ctrl),
+    true = ets:insert(Store, In#in{def=Rows}).
 
 get_list_index(Val, List) ->
     get_list_index_0(Val, List, -1).
@@ -796,7 +814,7 @@ setup_hook(#in{key=Key, wx=Ctrl, type=dirpicker, hook=UserHook}, Fields) ->
 				       end}]),
     UserHook(Key, wxDirPickerCtrl:getPath(Ctrl), Fields);
 setup_hook(#in{key=Key, wx=Ctrl, type=table, hook=UserHook}, Fields) ->
-    wxListCtrl:connect(Ctrl, command_list_item_focused,
+    wxListCtrl:connect(Ctrl, command_list_item_selected, % command_list_item_focused,
         [{callback, fun(_, _) ->
             UserHook(Key, Ctrl, Fields)
         end}]),
@@ -1340,29 +1358,16 @@ build(Ask, {table, [Header|Rows], Flags}, Parent, Sizer, In) ->
 			     single -> ?wxLC_SINGLE_SEL bor ?wxLC_REPORT;
 			     _ -> ?wxLC_REPORT
 			 end,
-		Options = [{style, Style}, {size, {-1, Height}}],
+		Options = [{style, Style bor ?wxLC_NO_SORT_HEADER}, {size, {-1, Height}}],
 		Ctrl = wxListCtrl:new(Parent, Options),
-		{CW, _, _, _} = wxWindow:getTextExtent(Ctrl, "D"),
-		Li = wxListItem:new(),
-		AddHeader = fun({HeadStr,W}, Column) ->
-				    wxListItem:setText(Li, HeadStr),
-				    wxListItem:setAlign(Li, ?wxLIST_FORMAT_RIGHT),
-				    wxListCtrl:insertColumn(Ctrl, Column, Li),
-				    wxListCtrl:setColumnWidth(Ctrl, Column, W*CW+10),
-				    Column + 1
-			    end,
-		lists:foldl(AddHeader, 0, lists:zip(tuple_to_list(Header), Widths)),
-		wxListItem:destroy(Li),
+        {CW, _, _, _} = wxWindow:getTextExtent(Ctrl, "D"),
 
-		Add = fun({_, Str}, {Row, Column}) ->
-			      wxListCtrl:setItem(Ctrl, Row, Column, Str),
-			      {Row, Column+1}
-		      end,
-		lists:foldl(fun(Row, N) ->
-				    wxListCtrl:insertItem(Ctrl, N, ""),
-				    lists:foldl(Add, {N, 0}, tuple_to_list(Row)),
-				    N + 1
-			    end, 0, Rows),
+        Widths0 = [W*CW+10 || W <- Widths],
+        Header0 = tuple_to_list(Header),
+        Align = [?wxLIST_FORMAT_RIGHT || _ <- Header0],
+        Header1 = lists:zip3(Header0, Widths0, Align),
+        fill_table(Ctrl,Header1,Rows),
+
 		add_sizer(table, Sizer, Ctrl, Flags),
 		Ctrl
 	end,
@@ -1732,6 +1737,31 @@ pos(C, [C|_Cs], I) -> I;
 pos(C, [_|Cs], I) -> pos(C, Cs, I+1);
 pos(_, [], _I) -> 0.
 
+fill_table(Ctrl,Header,Rows) ->
+    Li = wxListItem:new(),
+    AddHeader = fun({HeadStr,W,A}, Column) ->
+                    wxListItem:setText(Li, HeadStr),
+                    wxListItem:setAlign(Li, A),
+                    wxListCtrl:insertColumn(Ctrl, Column, Li),
+                    wxListCtrl:setColumnWidth(Ctrl, Column, W),
+                    Column + 1
+                end,
+    lists:foldl(AddHeader, 0, Header),
+    wxListItem:destroy(Li),
+    Add = fun({_, Str}, {Row, Column}) ->
+            wxListCtrl:setItem(Ctrl, Row, Column, Str),
+            {Row, Column+1}
+          end,
+    lists:foldl(fun(Row0, N) ->
+                    case tuple_to_list(Row0) of
+                        [] -> N;
+                        Row ->
+                            wxListCtrl:insertItem(Ctrl, N, ""),
+                            lists:foldl(Add, {N, 0}, Row),
+                            N + 1
+                    end
+                end, 0, Rows).
+
 image_to_bitmap(ImageOrFile) ->
     Img = case ImageOrFile of
 	      File when is_list(File) ->
@@ -2089,4 +2119,436 @@ text_wheel_move(Value, #wxMouse{wheelRotation=Count,wheelDelta=Delta}=EvMouse, T
     Incr = constraint_factor(EvMouse),
     ValPercent =  Percent + (Count/Delta)*Incr,
     FromSlider(ValPercent).
+
+
+%% Show a manual table of contents
+%%
+%% manual(Filename, Ps)
+%% manual(Fun, Ps)
+%%
+%% If manual is called with a string, a manual is opened in the file format
+%% documented below. If manual is called with a function then the function 
+%% handles its own custom file format.
+%%
+%% Example usage:
+%%
+%% Fun = fun
+%%     (title) ->
+%%         %% Return string of the title of the table of contents
+%%         "Table of contents";
+%%     (contents) ->
+%%         %% The table of contents, leaf nodes are tuples with the title
+%%         %% of the article and the reference number, which will be
+%%         %% the number used when this function is called with 
+%%         %% {read,Number}.
+%%         [{"Chapter",[
+%%              {"Article",100},
+%%              {"Another Article",101}
+%%            ]}];
+%%     ({read,Number}) ->
+%%         %% Return the title and contents of an article,
+%%         %% in the same format as for info/1.
+%%         {"Title",["Contents of article"]};
+%% end
+%%
+%% The file format of the manual file:
+%% 
+%% File consists of 512-byte chunks, network byte order.
+%% The file is structured as:
+%%
+%% 0                 +---------------+
+%%                   |     Header    |
+%% 512               +---------------+
+%%                   |    Reflist    |
+%% 512               +---------------+
+%%                   |      ...      |
+%% Content offset    +---------------+
+%%                   |    Contents   |
+%%                   +---------------+
+%%                   |      ...      |
+%%                   +---------------+
+%%
+%%
+%% the first 512 byte chunk contains the header:
+%% 
+%% 6 bytes: "MANUAL"
+%% 2 bytes: Version (byte 1: 0x0  byte 2: 0x1)
+%% 7 bytes: zero (0x00 ...)
+%% 1 byte: length of title without null padding
+%% 128 bytes: title (null padded to a length of 127)
+%% 1 byte: length of edition date without null padding
+%% 31 bytes: edition date (null padded to a length of 31)
+%% 256 byte: meta data reference pairs of 8 bytes, each 
+%%           pair contains a 4 byte ID and 4 byte reference
+%%           number.
+%% 4 bytes: Offset to contents
+%% 4 bytes: Number of references in reflist
+%% 4 bytes: Adler32 checksum of reflist contents
+%% 4 bytes: zeros (unused)
+%% 4 bytes: File encoding ("utf8")
+%% 4 bytes: zeros (unused)
+%% 8 bytes: Language locale (space padded)
+%%
+%% The next one or more 512-byte chunks contains the reflist,
+%% which consists of 12-byte triples of:
+%% * 4 bytes: the reference number of the resource.
+%% * 4 bytes: the offset of the first chunk in 512-byte steps
+%% * 4 bytes: the size of the content
+%%
+%% After the reflist the remaining 512-byte chunks are content
+%% chunks that starts at offset to contents, to access a specific
+%% content, look up the reference number in the reflist and seek
+%% to the 512-byte boundary offset:
+%%
+%% 4 bytes: size of compressed content
+%% variable length: zlib compressed data stream.
+%%
+%% Some reference numbers have special meanings and contain special
+%% data, article content should start at 100 for their reference 
+%% numbers.
+%%
+%% Reference numbers:
+%%
+%% 0: Table of contents
+%% 1: Table of MIME Types for each article
+%% 2: Table of article titles
+%%
+%% These tables are packed with the following encoding:
+%%
+%% Tuple:
+%% <1 byte: count between 0 and 20> <... list of entries>
+%%
+%% List of elements:
+%% 21 <4 byte: count> <... list of entries>
+%%
+%% String:
+%% 22 <4 byte: count> <string contents ...>
+%%
+%% Integer:
+%% 23 <4 byte: integer>
+%%
+%%
+manual(Location) ->
+    manual(Location, []).
+manual(Location, Ps) ->
+    Size = proplists:get_value(size, Ps, {250, 300}),
+    manual(Size, Ps, Location).
+
+manual(Size, _Ps, Filename)
+  when is_list(Filename) ->
+    Langs = [wings_pref:get_value(language), "en"],
+    manual(Size, _Ps, manual_with_file(Filename, Langs));
+manual(Size, _Ps, F)
+  when is_function(F) ->
+    Title = F(title),
+    Parent = wings_dialog:get_dialog_parent(),
+    WStyle = ?wxCAPTION bor ?wxRESIZE_BORDER bor
+             ?wxCLOSE_BOX bor ?wxFRAME_FLOAT_ON_PARENT,
+    Flags  = [{size, Size}, {style, WStyle}],
+    Frame  = wxFrame:new(Parent, ?wxID_ANY, Title, Flags),
+    manual_init_frame(Frame, F),
+    wxFrame:show(Frame),
+    keep;
+manual(_Size, _Ps, false) ->
+    wings_u:error_msg(?__(1,"Manual not found")),
+    keep.
+
+%% The search path for finding the manual.
+%%
+manual_search_paths() ->
+    Dir1 = filename:join([wings_u:basedir(user_data), wings_u:version(), "plugins"]),
+    lists:append([
+        %% Local plugin directory
+        manual_search_paths_all_dirs(Dir1),
+        %% Local patch directory
+        [wings_start:patch_dir()],
+        %% Main plugin beam directory
+        manual_search_paths_all_dirs(filename:join(wings_util:lib_dir(wings), "plugins")),
+        %% Main beam directory
+        [filename:dirname(code:where_is_file("wings_start.beam"))]
+    ]).
+
+manual_search_paths_all_dirs(Dir) ->
+    manual_search_paths_all_dirs(Dir,2).
+manual_search_paths_all_dirs(_Dir,0) ->
+    false;
+manual_search_paths_all_dirs(Dir,Limit) ->
+    case file:list_dir(Dir) of
+        {ok, []} -> %% no files in this directory
+            false;
+        {ok, Files} ->
+            L=[manual_search_paths_all_dirs(filename:join(Dir,File),Limit-1) || File <- Files],
+            [Dir] ++ lists:append([F || F <- L, is_list(F)]);
+        _ ->
+            false
+    end.
+
+
+%% Search for a manual in the prefered language in all search paths,
+%% then search for a manual in the alternative language.
+%%
+
+find_manual(_Dir, _Filename1, _Filename2, _InDirs, []) ->
+    false;
+find_manual(Dir, Filename1, Filename2, InDirs, [Lang|Langs1]) ->
+    case find_manual_1(Dir, Filename1, Filename2, InDirs, Lang) of
+        false ->
+            find_manual(Dir, Filename1, Filename2, InDirs, Langs1);
+        Filename ->
+            Filename
+    end.
+
+find_manual_1(_Dir, _Filename1, _Filename2, [], _Lang) ->
+    false;
+find_manual_1(Dir, Filename1, Filename2, [InDir|Dirs1], Lang) ->
+    Filename_0 = Filename1 ++ Lang ++ Filename2,
+    Filename = filename:join(filename:join(InDir,Dir),Filename_0),
+    case file:read_file_info(Filename) of
+        {ok,_} ->
+            Filename;
+        _ ->
+            find_manual_1(Dir, Filename1, Filename2, Dirs1, Lang)
+    end.
+
+manual_with_file(Filename_0, Langs) ->
+    Dir = filename:dirname(Filename_0),
+    Filename_1 = filename:basename(Filename_0),
+    SearchDirs = manual_search_paths(),
+    Filename = case string:split(Filename_1,":LANG:") of
+        [Filen1,Filen2] ->
+            find_manual(Dir, Filen1, Filen2, SearchDirs, Langs);
+        [_] ->
+            Filename_0
+    end,
+    manual_with_file_1(Filename).
+manual_with_file_1(Filename) ->
+    %% Get the table of contents
+    {Contents,Types,Titles,Info} = manual_file(Filename, fun (FH,Refs,Info1) ->
+        {Contents1,_} = manual_unpack_contents(ref_get_at(FH,Refs,0)),
+        {Types1,_} = manual_unpack_contents(ref_get_at(FH,Refs,1)),
+        {Titles1,_} = manual_unpack_contents(ref_get_at(FH,Refs,2)),
+        {Contents1,dict:from_list(Types1),dict:from_list(Titles1),Info1}
+    end),
+    fun
+        (title) ->
+            proplists:get_value(title, Info, ?__(1,"No Title"));
+        (contents) ->
+            Contents;
+        ({read,Number}) ->
+            {ok, Cont} = read_article_at(Filename,Number),
+            Title = string:trim(dict:fetch(Number,Titles)),
+            case dict:fetch(Number,Types) of
+                "text/plain+html" ->
+                    {Title,[binary_to_list(Cont)]};
+                "text/plain" ->
+                    {Title,[binary_to_list(Cont)]};
+                _ ->
+                    error
+            end
+    end.
+
+
+manual_init_frame(Frame, F) ->
+    Contents = manual_get_contents(F),
+    
+    Win = wxPanel:new(Frame, [{style, wings_frame:get_border()}]),
+        #{bg:=BG} = wings_frame:get_colors(),
+        wxPanel:setBackgroundColour(Win, BG),
+    
+    BorderSz = wxBoxSizer:new(?wxVERTICAL),
+    
+    wxWindow:setSizer(Win, BorderSz),
+
+    Search = wxTextCtrl:new(Win, ?wxID_ANY, [{style, 0}]),
+    wxBoxSizer:add(BorderSz, Search,
+        [{flag, ?wxEXPAND}]),
+    
+    NodeTree = wxTreeCtrl:new(Win,
+        [{id, ?wxID_ANY}, {style, ?wxTR_DEFAULT_STYLE bor ?wxTR_HIDE_ROOT}]),
+    wxBoxSizer:add(BorderSz, NodeTree,
+        [{flag, ?wxEXPAND}, {proportion, 10}]),
+    
+    wxWindow:connect(NodeTree, command_tree_item_activated, [{callback,
+        fun(#wx{event=#wxTree{item=Item}}, _Obj) ->
+            case wxTreeCtrl:getItemData(NodeTree, Item) of
+                "" ->
+                    ok;
+                Data when is_integer(Data) ->
+                    manual_show_ref(F, Data)
+            end
+        end}]),
+    
+    wxWindow:connect(Search, command_text_updated, [{callback,
+        fun(#wx{event=#wxCommand{cmdString=Str}}, _Obj) ->
+            ref_refresh(NodeTree, Contents, Str)
+        end}]),
+    
+    ref_refresh(NodeTree, Contents, ""),
+    
+    keep.
+
+manual_show_ref(F, Data) ->
+    case manual_get_content_at(F, Data) of
+        {Title,Text} ->
+            wings_dialog:info(Title, Text, []);
+        error ->
+            wings_u:error_msg(?__(1,"Could not open"))
+    end.
+    
+
+manual_get_contents(F) ->
+    F(contents).
+
+manual_get_content_at(F, Number) ->
+    F({read,Number}).
+
+ref_refresh(TList, Contents, SearchStr) ->
+    wxTreeCtrl:deleteAllItems(TList),
+    ERoot = wxTreeCtrl:addRoot(TList, "*"),
+    ref_refresh_fill(ERoot, TList, Contents, SearchStr),
+    ok.
+
+ref_refresh_section(ERoot, TList, Name1, SeList1, SearchStr) ->
+    R1 = ref_adddir(ERoot, TList, Name1),
+    ref_refresh_fill(R1, TList, SeList1, SearchStr).
+
+ref_refresh_fill(R1, TList, SeList1, SearchStr) ->
+    lists:foreach(fun
+        ({Name2, SeList2}) when is_list(SeList2) ->
+            case find_search(SearchStr, Name2, SeList2) of
+                true ->
+                    ref_refresh_section(R1, TList, Name2, SeList2, SearchStr);
+                false ->
+                    ok
+            end;
+        ({Name3, Id}) when is_integer(Id) ->
+            case find_search(SearchStr, Name3, Id) of
+                true ->
+                    ref_add(R1, TList, Name3, Id);
+                false ->
+                    ok
+            end
+    end, SeList1).
+
+find_search("", _Name, _List) ->
+    true;
+find_search(SearchStr, Name, Int) when is_integer(Int) ->
+    found_str(Name, SearchStr);
+find_search(SearchStr, Name3, List) when is_list(List) ->
+    find_search(SearchStr, [{Name3,[]}|List]).
+find_search(SearchStr, [{_,L}|List]) when is_list(L) ->
+    find_search(SearchStr, L)
+        orelse find_search(SearchStr, List);
+find_search(SearchStr, [{Name,Int}|List]) when is_integer(Int) ->
+    found_str(Name, SearchStr)
+        orelse find_search(SearchStr, List);
+find_search(_SearchStr, []) ->
+    false.
+
+found_str(Str,Search) ->
+    case string:str(Str, Search) of
+        0 ->
+            false;
+        _ ->
+            true
+    end.
+
+ref_adddir(ParentNode, TList, Name) ->
+    Elm = wxTreeCtrl:appendItem(TList, ParentNode, Name),
+    wxTreeCtrl:ensureVisible(TList, Elm),
+    Elm.
+
+ref_add(ParentNode, TList, Name, Id) ->
+    wxTreeCtrl:appendItem(TList, ParentNode, Name, [{data, Id}]).
+
+
+
+-define(BUINT4,32/unsigned-integer).
+
+%% Get the text contents at the given number.
+%%
+read_article_at(Filename, Number) ->
+    manual_file(Filename, fun (FH,Refs,_Ps) ->
+        Data = ref_get_at(FH,Refs,Number),
+        {ok, Data}
+    end).
+
+manual_file(Filename, F) ->
+    {ok,FH} = file:open(Filename,[read,binary]),
+    {ok,{Refs,Info}} = manual_read_header(FH),
+    Ret = F(FH,Refs,Info),
+    file:close(FH),
+    Ret.
+
+
+to_str(Bin, Len) ->
+    unicode:characters_to_list(binary:part(Bin, {0, Len}), utf8).
+
+%% Unpack the binary contents into a term, this is only
+%% used by the table of content, table of mime types and
+%% table of article names.
+%%
+manual_unpack_contents(<<23,Int:?BUINT4,Rest/binary>>) ->
+    {Int,Rest};
+manual_unpack_contents(<<22,Count:?BUINT4,Rest/binary>>) ->
+    Rest_1 = binary:part(Rest,{Count,byte_size(Rest)-Count}),
+    Str = to_str(Rest, Count),
+    {Str, Rest_1};
+manual_unpack_contents(<<21,Count:?BUINT4,Rest/binary>>) ->
+    manual_unpack_contents_1(Count,Rest);
+manual_unpack_contents(<<Count,Rest/binary>>)
+  when Count < 21 ->
+    {List,Rest_1} = manual_unpack_contents_1(Count,Rest),
+    {list_to_tuple(List),Rest_1}.
+
+manual_unpack_contents_1(Count,Bin) ->
+    manual_unpack_contents_1(Count,Bin,[]).
+manual_unpack_contents_1(0,Bin,OL) ->
+    {lists:reverse(OL),Bin};
+manual_unpack_contents_1(Count,Bin,OL) ->
+    {Val,Rest} = manual_unpack_contents(Bin),
+    manual_unpack_contents_1(Count-1,Rest,[Val|OL]).
+
+%% Read header of manual file
+%%
+manual_read_header(FH) ->
+    case file:pread(FH,0,16) of
+        {ok,<<"MANUAL",0,1,  _,_,_,_,_,_,_,TitleSz>>} ->
+            {ok,Title_0} = file:pread(FH,16,128),
+            Title = to_str(Title_0,TitleSz),
+            {ok,<<EditedDateSz,EditedDate_0/binary>>} = file:pread(FH,16+128,32),
+            EditedDate = to_str(EditedDate_0,EditedDateSz),
+            {ok,_Unused} = file:pread(FH,16+128+32,256),
+            Info = [
+                {title, Title},
+                {date, EditedDate}
+            ],
+            {ok,<<First:?BUINT4,RCount:?BUINT4,_RefListC:?BUINT4,_:?BUINT4>>} =
+                file:pread(FH,16+128+32+256,16),
+            {ok,<<_Enc:4/bytes,_Unused_2:4/bytes,_Language:8/bytes>>} =
+                file:pread(FH,16+128+32+256+16,16),
+
+            {ok,RefChunks} = file:pread(FH,512,First-512),
+            Refs = dict:from_list(read_refs(RCount,RefChunks)),
+            {ok,{{Refs,First},Info}}
+    end.
+
+read_refs(RCount,Bin) ->
+    read_refs(RCount,Bin,[]).
+read_refs(I,<<Number:?BUINT4,Where:?BUINT4,Size:?BUINT4,Rest/binary>>, OL)
+  when I > 0 ->
+    read_refs(I-1,Rest, [{Number,{Where,Size}}|OL]);
+read_refs(0,_, OL) ->
+    lists:reverse(OL).
+
+ref_get_at(FH,{Refs,First},Number) ->
+    {Get_0,Size_0} = dict:fetch(Number, Refs),
+    Size = Size_0 bsl 9, %% 512 * Size_0
+    Get = First + (Get_0 bsl 9), %% 512 * Get_0
+    {ok,<<Size_2:?BUINT4,Getting/binary>>} = file:pread(FH,Get,Size),
+    zlib:uncompress(binary:part(Getting,{0,Size_2})).
+
+
+
+
 

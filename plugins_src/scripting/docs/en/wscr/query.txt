@@ -1,0 +1,246 @@
+Query Mini Language
+
+The query language is designed to be able to navigate the Erlang terms used by Wings3D with a simple path-like syntax.
+
+When the user enters parameter settings, before the script is invoked, there will be a need to set some settings for <tt>wpa:export</tt> or <tt>wpa:import</tt> through <tt>export_param</tt> and <tt>import_param</tt> instructions. The query language is used for referencing parameter values in the script information file as well as for communicating between the script and plugin.
+
+Query values are enclosed in %[...] brackets in the .wscr file instead of double quotes.
+
+<h3>First Identifier</h3>
+
+The first identifier in the query can be an identifier such as st, params, a temporary variable retrieval, a function call, a tuple/list constructor or a literal such as 1, 'atom' or "string".
+
+
+<h3>Atoms</h3>
+
+Atoms must be enclosed in single quotes, words without single quotes are not automatically made into atoms.
+
+e.g.
+
+<code><pre>
+    'triangulated'
+</pre></code>
+
+
+<h3>Strings</h3>
+
+Strings are enclosed in double quotes.
+
+e.g.
+
+<code><pre>
+    "Sample text"
+</pre></code>
+
+
+
+<h3>Numbers</h3>
+
+Integers and floating point numbers can be used in the query.
+
+e.g.
+
+<code><pre>
+    1
+    1.2
+</pre></code>
+
+
+<h3>Dot Notation</h3>
+
+<code><pre>
+    variable.shapes
+</pre></code>
+
+With some records such as 'st' and 'we', fields of those records can be accessed using a dot notation. There is no need to specify the record type itself as done in Erlang because the record is inspected at runtime to match the record type for a field name.
+
+However, only a few record types have their fields registered in the plugin to use the dot notation. Alternatively, record fields can be accessed with the tuple index operator, where {0} is the atom of the record and {1} is the first field.
+
+e.g.
+
+<code><pre>
+    st.shapes
+</pre></code>
+
+
+<h3>Associative List Path</h3>
+
+<code><pre>
+    variable/key
+</pre></code>
+
+Associative lists can be navigated by their keys with the "slash" (/) character. If the associated lists contain more associated lists, the slash can be chained like a path to access deeper elements.
+
+e.g.
+
+<code><pre>
+    params/include_uvs
+</pre></code>
+
+
+<h3>Tuple by index</h3>
+
+<code><pre>
+    variable{0}
+</pre></code>
+
+The entries of a tuple can be accessed by a zero-based index by enclosing a number inside curly brackets, the first entry is {0}. Indexing operators can be chained as necessary to access deeper elements.
+
+e.g.
+
+<code><pre>
+    tuple(1,2,3,4){2}
+</pre></code>
+
+
+
+
+<h3>List by index</h3>
+
+<code><pre>
+    variable[0]
+</pre></code>
+
+The entries of a list can be accessed by a zero-based index by enclosing a number inside square brackets, the first entry is [0] Indexing operators can be chained as necessary to access deeper elements.
+
+e.g.
+
+<code><pre>
+    list(1,2,3,4)[1]
+</pre></code>
+
+
+
+
+<h3>Store to</h3>
+
+<code><pre>
+    >$'variable'
+</pre></code>
+
+Store the current value into a temporary variable for later retrieval, the syntax is a greater than symbol, a dollar sign and a integer or atom literal. This operator returns the same value that it is storing so it can be added at the end of a query chain without affecting the return value.
+
+e.g.
+
+<code><pre>
+    params/include_uvs>$'include_uvs'
+</pre></code>
+
+
+
+
+<h3>Get from</h3>
+
+<code><pre>
+    <$'variable'
+</pre></code>
+
+Get the value stored in a temporary variable, the syntax is a lesser than symbol, a dollar sign and a integer or atom literal, this can appear at the beginning of the query.
+
+e.g.
+
+<code><pre>
+    <$'settings'/group1/setting
+</pre></code>
+
+
+<h3>Call function</h3>
+
+<code><pre>
+    module:function( ... )
+</pre></code>
+
+Calls a function from a module, with the given arguments. A function call can appear at the beginning of the query.
+
+e.g.
+
+<code><pre>
+    lists:reverse(list(1,2,3,4))
+</pre></code>
+
+
+
+<h3>List constructor</h3>
+
+<code><pre>
+    list(1,'two',3)
+</pre></code>
+
+Construct a list with given values. A list constructor can appear at the beginning of the query. It is usually more convenient to use %setvar with temporary variables to input list data structures from the script to the plugin than to use inline constructors.
+
+
+
+
+<h3>Tuple constructor</h3>
+
+<code><pre>
+    tuple(1,2,'three')
+</pre></code>
+
+Construct a tuple with given values. A tuple constructor can appear at the beginning of the query. It is usually more convenient to use %setvar with temporary variables to input tuple data structures from the script to the plugin than to use inline constructors.
+
+
+
+
+<h3>Boolean Value</h3>
+
+<code><pre>
+    bool(1)
+</pre></code>
+
+Get either the atom 'true' or 'false' from another value.
+
+
+
+
+<h3>Integer Value</h3>
+
+<code><pre>
+    int("1")
+</pre></code>
+
+Get the integer value from another value
+
+
+
+
+<h3>Float Value</h3>
+
+<code><pre>
+    float("1.0")
+</pre></code>
+
+Get the float value from another value.
+
+
+
+<h3>Ok Test</h3>
+
+<code><pre>
+    ok_test(orddict:find(key, $<'variable'), "not found")
+</pre></code>
+
+Tests if the return of the first argument is a tuple with the first element being 'ok'. If it is an 'ok' tuple, the tuple's value is returned. If the first argument is not an 'ok' tuple, the second argument is evaluated and returned instead.
+
+
+
+<h3>Value Test</h3>
+
+<code><pre>
+    value_test('value', gb_trees:lookup(key, $<'variable'), "not found")
+</pre></code>
+
+A general version of ok_test that tests if the return of the second argument is a tuple with the first element being equal to the first argument. If the second argument does not match, the third argument is evaluated and returned instead.
+
+
+
+<h3>Conditional If</h3>
+
+<code><pre>
+    if(bool(<$'cond'), "on", "off")
+</pre></code>
+
+Tests the first argument if it evaluates to the atom 'true', then the second argument (the "then" argument) is evaluated, otherwise the third (the "else" argument) is evaluated.
+
+
+

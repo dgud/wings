@@ -1,0 +1,17 @@
+class E3DObject
+
+Visible attributes name, obj, mat, attr
+
+<b>E3DObject</b>()
+
+Creates a new E3DObject instance
+
+obj.<b>as_output_list</b>()
+
+Outputs the whole E3DObject instance and all its values into an output list, not usually used directly.
+
+obj.<b>load_from</b>(expr)
+
+Load contents into a E3DObject instance, not usually used directly.
+
+

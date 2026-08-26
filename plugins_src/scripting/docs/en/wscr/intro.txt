@@ -1,0 +1,13 @@
+What are .wscr files?
+
+Wings SCRipt files provide information so that scripts can be used like normal plugins in wings, WSCR files specify:
+
+* Name and description of the script.
+* If the script is a import, export, shape or command script.
+* Parameters to ask the user before starting the script.
+
+When a user opens a script chooser dialog, the script search path is traversed for all wscr files, the name in the wscr file is used for the name shown in the script chooser dialog.
+
+
+
+
