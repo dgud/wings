@@ -156,9 +156,8 @@ render_objects(Mode, PM, MM, UseSceneLights) ->
     case IsXray of
         true ->
             gl:enable(?GL_BLEND),
-            %% Use CONSTANT_COLOR to tint the geometry, and ONE_MINUS_CONSTANT_ALPHA for opacity
+            %% CONSTANT_COLOR to tint the geometry, and ONE_MINUS_CONSTANT_ALPHA for opacity
             gl:blendFunc(?GL_CONSTANT_COLOR, ?GL_ONE_MINUS_CONSTANT_ALPHA),
-            %% Art of Illusion's signature soft periwinkle blue (Red, Green, Blue, Alpha)
             gl:blendColor(0.55, 0.60, 0.95, 0.40), 
             gl:depthMask(?GL_FALSE);
         _ -> ok
