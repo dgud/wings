@@ -18,8 +18,8 @@ jobs:
 
       - uses: erlef/setup-beam@v1
         with:
-          otp-version: '28.3'
-          rebar3-version: '3.24'
+          otp-version: '29.0'
+          rebar3-version: '3.27.0'
 
       - name: Install OpenCL deps
         run: sudo apt-get update && sudo apt-get install -y ocl-icd-opencl-dev
@@ -59,7 +59,7 @@ jobs:
       - name: Download win32 Erlang
         shell: cmd
         run: |
-          winget install --id=Erlang.ErlangOTP -v "28.3" -e --accept-source-agreements
+          winget install --id=Erlang.ErlangOTP -v "29.0" -e --accept-source-agreements
 
 #        NSIS is not pre-installed in 2025
       - name: Install NSIS
@@ -74,7 +74,7 @@ jobs:
              # to invoke rebar3 from windows
              #
              mkdir bin
-             wget -q -O bin/rebar3 https://github.com/erlang/rebar3/releases/download/3.25.1/rebar3
+             wget -q -O bin/rebar3 https://github.com/erlang/rebar3/releases/download/3.27.0/rebar3
              chmod +x bin/rebar3
              # We need make and unzip
              sudo apt-get update
@@ -85,7 +85,7 @@ jobs:
              #
              # We need (a recent) erlang (for rebar3)
              #
-             wget -q -O otp.tgz https://github.com/erlang/otp/releases/download/OTP-28.3/otp_src_28.3.tar.gz
+             wget -q -O otp.tgz https://github.com/erlang/otp/releases/download/OTP-29.0/otp_src_29.0.tar.gz
              tar zxf otp.tgz
              mv otp_src_* otp_src
              cd otp_src
