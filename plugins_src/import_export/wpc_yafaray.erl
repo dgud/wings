@@ -710,13 +710,11 @@ do_export(Op, Props0, Attr0, St0) ->
     Attr = [CameraInfo,{lights,wpa:lights(St0)}|Attr0],
     ExportFun =
         fun (Filename, Contents) ->
-            case catch export(Attr, Filename, Contents) of
-                ok ->
-                    ok;
-                Error ->
-                    io:format(?__(1,"ERROR: Failed to export")++":~n~p~n", [Error]),
-                    {error,?__(2,"Failed to export")}
-            end
+                try export(Attr, Filename, Contents)
+                catch _:Error ->
+                        io:format(?__(1,"ERROR: Failed to export")++":~n~p~n", [Error]),
+                        {error,?__(2,"Failed to export")}
+                end
         end,
     %% Freeze virtual mirrors.
     Shapes0 = gb_trees:to_list(St0#st.shapes),
@@ -5036,8 +5034,7 @@ export_light(F, Name, area, OpenGL, YafaRay) ->
     AFs = zip_lists(As, Fs),
     foldl(
       fun ({Af,#e3d_face{vs=VsF}}, I) ->
-              case catch Power*Af/Area of
-                  {'EXIT',{badarith,_}} -> I;
+              try Power*Af/Area of
                   Pwr ->
                       NameI = Name++"_"++integer_to_list(I),
                       [A,B,C,D] = quadrangle_vertices(VsF, VsT),
@@ -5060,6 +5057,7 @@ export_light(F, Name, area, OpenGL, YafaRay) ->
                       println(F," <cast_shadows bval=\"~s\"/>", [format(CastShadows)]),
                       println(F, "</light>"),
                       I+1
+              catch error:badarith -> I
               end
       end, 1, AFs),
     undefined;

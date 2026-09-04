@@ -598,7 +598,7 @@ code_change(_From, _To, State) ->
 
 terminate(_Reason, #state{windows=#{frame:=Frame}}) ->
     %% io:format("~p: terminate: ~p~n",[?MODULE, _Reason]),
-    catch wxFrame:destroy(Frame),
+    try wxFrame:destroy(Frame) catch _:_ -> ok end,
     wx:destroy(),
     shutdown.
 
@@ -747,11 +747,11 @@ make_overlay(Parent) ->
     wxFrame:setBackgroundColour(Overlay, {95,138,255,200}),
     Panel = wxPanel:new(Overlay),
     wxFrame:setBackgroundColour(Panel, {95,138,255,200}),
-    catch wxFrame:setTransparent(Overlay, 120),
+    try wxFrame:setTransparent(Overlay, 120) catch _:_ -> ok end,
     Overlay.
 
 overlay_draw(Overlay, Rect, Alpha) ->
-    catch wxFrame:setTransparent(Overlay, Alpha),
+    try wxFrame:setTransparent(Overlay, Alpha) catch _:_ -> ok end,
     wxFrame:setSize(Overlay, Rect),
     wxFrame:show(Overlay).
 
@@ -972,7 +972,7 @@ update_win(Win, #split{w1=W1, w2=W2}=Parent, _, Fun) ->
 update_win(_, _, _, _) -> false.
 
 close_win(Win, #state{windows=#{frame:=TopFrame,ch:=Tree,loose:=Loose,szr:=Szr}=Wins}=State) ->
-    catch wx_object:stop(Win),
+    try wx_object:stop(Win) catch _:_ -> ok end,
     case find_win(Win, Tree) of
 	false ->
 	    case lists:keyfind(Win, #win.win, maps:values(Loose)) of
@@ -1305,7 +1305,8 @@ make_bar(Parent, BG, Label, Close) ->
     wxWindow:setForegroundColour(Bar, wings_color:rgb4bv(FG)),
     WBSz = wxBoxSizer:new(?wxHORIZONTAL),
     wxSizer:addStretchSpacer(WBSz),
-    wxSizer:add(WBSz, ST=wxStaticText:new(Bar, ?wxID_ANY, Label), [{flag, ?wxALIGN_CENTER}]),
+    ST = wxStaticText:new(Bar, ?wxID_ANY, Label),
+    wxSizer:add(WBSz, ST,  [{flag, ?wxALIGN_CENTER}]),
     {_, H} = wxWindow:getSize(ST),
     wxSizer:addStretchSpacer(WBSz),
     Close andalso make_close_button(Parent, Bar, WBSz, H),

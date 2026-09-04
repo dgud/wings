@@ -543,14 +543,11 @@ do_export(Props, File_name, #e3d_file{objs=Objs, mat=Mats}) ->
 	    		   end;
 	    	      true ->
 	    		   fun({X, Y, Z}) ->
-	    			   Rz = case catch Zf / Z of
-	    				    R when is_float(R) -> R; _ -> ?BIG end,
+	    			   Rz = try Zf / Z catch _:_ -> ?BIG end,
 	    			   {X * Rz, Y * Rz};
 	    		      ({{X1, Y1, Z1}, {X2, Y2, Z2}}) ->
-	    			   Rz_1 = case catch Zf / Z1 of
-	    				      R1 when is_float(R1) -> R1; _ -> ?BIG end,
-	    			   Rz_2 = case catch Zf / Z2 of
-	    				      R2 when is_float(R2) -> R2; _ -> ?BIG end,
+	    			   Rz_1 = try Zf / Z1 catch _:_ -> ?BIG end,
+	    			   Rz_2 = try Zf / Z2 catch _:_ -> ?BIG end,
 	    			   {{X1 * Rz_1, Y1 * Rz_1}, {X2 * Rz_2, Y2 * Rz_2}}
 	    		   end
 	    	   end,
@@ -1312,9 +1309,8 @@ delta({{X1, Y1} = LVC1, {X2, Y2}}) -> {LVC1, {X2 - X1, Y2 - Y1}}.
 param({LVC1, DL}, U) -> add(LVC1, mul(DL, U)).
 
 section({LVC1, DL}, {TN, TD}) ->
-    case catch (TD - dot(TN, LVC1)) / dot(TN, DL) of
-        R when is_float(R)-> R;
-        _ -> ?BIG
+    try (TD - dot(TN, LVC1)) / dot(TN, DL)
+    catch _:_ -> ?BIG
     end.
 
 ip(Delta, P) -> param(Delta, section(Delta, P)).
@@ -1659,7 +1655,7 @@ find_section(Smin, Smax, Find_one, {LVC1, DL} = Del, [{EVC1, EVC2} | T]) ->
     D = sub(LVC1, EVC1),
     DE = sub(EVC2, EVC1),
     A = cross(DE, DL),
-    case catch cross(D, DL) / A of
+    try cross(D, DL) / A of
         R when is_float(R), R > 0.0 - ?EPS2, R < 1.0 + ?EPS2 ->
             case cross(D, DE) / A of
                 S when S > 0.0 - ?EPS2, S < 1.0 + ?EPS2 ->
@@ -1680,6 +1676,8 @@ find_section(Smin, Smax, Find_one, {LVC1, DL} = Del, [{EVC1, EVC2} | T]) ->
                     find_section(Smin, Smax, Find_one, Del, T)
             end;
         _ ->
+            find_section(Smin, Smax, Find_one, Del, T)
+    catch _:_ ->
             find_section(Smin, Smax, Find_one, Del, T)
     end.
 

@@ -578,7 +578,7 @@ add_material_0(Tx, MatName0, #st{mat=Matb0}=St0) ->
     end.
 
 update_texture(Im = #e3d_image{},MatName,St) ->
-    catch wings_material:update_image(MatName, diffuse, Im, St),
+    try wings_material:update_image(MatName, diffuse, Im, St) catch _:_ -> ok end,
     {St,MatName}.
 
 bg_img_id() ->
@@ -719,10 +719,11 @@ command_menu(vertex, X, Y) ->
 	   ] ++ option_menu(),
     wings_menu:popup_menu(X,Y, {auv,vertex}, Menu);
 command_menu(_, X, Y) ->
-    case catch wpc_hlines:init() of
-        true -> ExportMenu = [separator, {auv_export_menu(label), export_uv, auv_export_menu(help)}];
-        _ -> ExportMenu = []
-    end,
+    ExportMenu = try
+                     true = wpc_hlines:init(),
+                     [separator, {auv_export_menu(label), export_uv, auv_export_menu(help)}]
+                 catch _:_ -> []
+                 end,
     CkdBackground = [{crossmark, ?GET({?MODULE,show_background})}],
     CkdTiled = [{crossmark, ?GET({?MODULE,tiled_texture})}],
     [Label0,Label1] = auv_texture_set_menu(label),

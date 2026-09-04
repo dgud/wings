@@ -129,11 +129,10 @@ import(Name) ->
     end.
 
 import_1(Fd, Dir) ->
-    case catch import_2(Fd, Dir) of
-	{'EXIT',Reason} -> exit(Reason);
-	{error,_}=Error -> Error;
-	{format_not_supported,Reason} -> {error, Reason};
+    try import_2(Fd, Dir) of
 	#e3d_file{}=E3dFile -> {ok,E3dFile}
+    catch throw:{format_not_supported,Reason} ->
+            {error, Reason}
     end.
 
 import_2(Fd0, _Dir) ->

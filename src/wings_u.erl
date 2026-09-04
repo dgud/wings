@@ -89,7 +89,7 @@ crash_log(WinName, {Reason, stack, StackTrace}) ->
     crash_log(WinName, Reason, StackTrace).
 
 crash_log(WinName, Reason, StackTrace) ->
-    catch wings_pb:cancel(),
+    try wings_pb:cancel() catch _:_ -> ok end,
     LogFileDir = log_file_dir(),
     LogName = filename:absname("wings_crash.dump", LogFileDir),
     F = open_log_file(LogName),
@@ -267,9 +267,11 @@ geom_windows_1([_|T]) ->
 geom_windows_1([]) -> [].
 
 log_file_dir() ->
-    case catch log_file_dir(os:type()) of
-	Dir when is_list(Dir) -> Dir;
-	_Other -> "."
+    try
+        Dir = log_file_dir(os:type()),
+        true = is_list(Dir),
+        Dir
+    catch _:_ -> "."
     end.
 
 log_file_dir({unix,_}) ->

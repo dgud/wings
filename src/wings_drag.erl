@@ -891,9 +891,8 @@ percent_qrange({_,{Min,Max}}) ->
 percent_qrange(_) -> [{width, undefined}].
 
 safe_mul_100(A) ->
-    case catch 100*A of
-	{'EXIT',_} -> A;
-	P -> P
+    try 100*A
+    catch _:_ -> A
     end.
 
 make_move(Move, #drag{unit=Units}) ->

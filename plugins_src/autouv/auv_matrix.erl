@@ -437,11 +437,11 @@ sub(A, B) ->
 %% Exported
 %%
 reduce({?TAG,N,M,A}) ->
-    case catch reduce_sort(A, []) of
-	{'EXIT',{badarith,_}} ->
-	    illconditioned;
+    try reduce_sort(A, []) of
 	B ->
 	    {?TAG,N,M,B}
+    catch error:badarith ->
+	    illconditioned
     end;
 reduce(A) ->
     error(badarg, [A]).
@@ -483,27 +483,22 @@ reduce_zap(_, A, C) ->
 %% Exported
 %%
 backsubst({?TAG,N,M,A} = AA) when M == N+1 ->
-    case catch backsubst_rev(0, A, []) of
-	A_tri when is_list(A_tri) ->
-	    case catch backsubst_const(A_tri, [], []) of
-		X when is_list(X) ->
-		    {?TAG,N,X};
-		{error, Reason} ->
-		    Reason;
-		{'EXIT', {badarith, []}} ->
-		    illconditioned;
-		{'EXIT', Reason} ->
-		    exit(Reason);
-		Fault ->
-		    error(Fault, [AA])
-	    end;
-	{error, Reason} ->
-	    Reason;
-	{'EXIT', {badarith, []}} ->
+    try case backsubst_rev(0, A, []) of
+            A_tri when is_list(A_tri) ->
+                case backsubst_const(A_tri, [], []) of
+                    X when is_list(X) ->
+                        {?TAG,N,X};
+                    {error, Reason} ->
+                        Reason
+                end;
+            {error, Reason} ->
+                Reason
+        end
+    catch error:badarith ->
 	    illconditioned;
-	{'EXIT', Reason} ->
-	    exit(Reason);
-	Fault ->
+          exit:Err ->
+	    exit(Err);
+          error:Fault ->
 	    error(Fault, [AA])
     end;
 backsubst(A) ->

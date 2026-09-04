@@ -305,7 +305,8 @@ hit_triangle(#ray{o=Orig, d=Dir, bfc=BFCull}=Ray, Hit0, % {_,_,Kz} = Order, {_,_
                             {Ray, Hit0};
                         _ ->
                             RcpDet = 1.0 / Det,
-                            Hit = #{t=>Far=T*RcpDet,
+                            Far=T*RcpDet,
+                            Hit = #{t=>Far,
                                     b1=>V*RcpDet,
                                     b2=>W*RcpDet,
                                     mesh=>Mesh,

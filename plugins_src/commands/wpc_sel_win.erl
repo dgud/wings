@@ -99,7 +99,8 @@ change_state(Window, SelSt) ->
 forward_event(redraw, _Window, _St) -> keep;
 forward_event({current_state, _,_}, _Window, _St) -> keep;
 forward_event({current_state, #st{sel=Sel}=St}, Window, SelSt0) ->
-    case (SelSt = get_sel_state(St)) =:= SelSt0 of
+    SelSt = get_sel_state(St),
+    case SelSt =:= SelSt0 of
 	true  -> ignore;
 	false -> wx_object:cast(Window, {new_state,{SelSt, Sel=:=[]}})
     end,

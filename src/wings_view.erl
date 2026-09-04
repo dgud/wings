@@ -489,20 +489,20 @@ camera_propconv(from_fov, Props) ->
     {NegH,NegW} = NegF = camera_propconv_negative_format(Props),
     Fov = pget(fov, Props),
     LensLength =
-	case catch 0.5*NegH/math:tan(Fov*math:pi()/360) of
-	    {'EXIT',_} -> 0.0;
+	try 0.5*NegH/math:tan(Fov*math:pi()/360) of
 	    L when is_float(L) -> L
+        catch _:_ -> 0.0
 	end,
     LensType =
 	camera_lens_type(NegF, LensLength),
     Zoom =
 	LensLength / math:sqrt(NegH*NegH + NegW*NegW),
     ZoomSlider =
-	case catch math:log(Zoom) / math:log(2) of
-	    {'EXIT',_} ->
-		{Z,_} = ?RANGE_ZOOM_SLIDER,
-		Z;
+	try math:log(Zoom) / math:log(2) of
 	    Z when is_float(Z) -> Z
+        catch _:_ ->
+		{Z,_} = ?RANGE_ZOOM_SLIDER,
+		Z
 	end,
     [{lens_length,LensLength},
      {lens_type,LensType},
@@ -533,9 +533,9 @@ camera_propconv(fov, Props) ->
 	end,
     Fov =
 	if is_float(LensLength) ->
-		case catch 360*math:atan(0.5*NegH/LensLength)/math:pi() of
-		    {'EXIT',_} -> 180.0;
+		try 360*math:atan(0.5*NegH/LensLength)/math:pi() of
 		    F when is_float(F) -> F
+                catch _:_ -> 180.0
 		end
 	end,
     [{fov,wings_util:limit(Fov, ?RANGE_FOV)}].

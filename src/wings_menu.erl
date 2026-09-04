@@ -236,7 +236,7 @@ do_setup_dialog(TopParent, Entries0, Magnet, ScreenPos) ->
     wxWindow:setFont(Panel, ?GET(system_font_wx)),
     {{R,G,B,A},FG} = {colorB(menu_color),colorB(menu_text)},
     Cols = {{R,G,B,A}, FG},
-    catch wxFrame:setTransparent(Frame, 240),
+    try wxFrame:setTransparent(Frame, 240) catch _:_ -> ok end,
     wxWindow:setBackgroundColour(Frame, {R,G,B, 240}),
     wxWindow:setBackgroundColour(Panel, {R,G,B, 240}),
     Main = wxBoxSizer:new(?wxHORIZONTAL),
@@ -301,7 +301,7 @@ make_menu_frame(Parent, Pos) ->
             make_overlay(Parent,Pos);
         _ ->
             Frame = wxPopupTransientWindow:new(Parent, [{style, ?wxBORDER_SIMPLE}]),
-            EvH = fun(Ev, _) -> catch wings_menu_process ! Ev end,
+            EvH = fun(Ev, _) -> try wings_menu_process ! Ev catch _:_ -> ok end end,
             wxPopupTransientWindow:connect(Frame, show, [{callback, EvH}]),
             {none, Frame, none}
     end.
@@ -323,7 +323,7 @@ make_overlay(Parent, ScreenPos) ->
     {DX,DY,DW,DH} = wxDisplay:getClientArea(Display),
     true = wxFrame:create(OL, Parent, -1, "", [{pos,{DX,DY}},{size, {DW,DH}},{style, Flags}]),
     wxFrame:setBackgroundColour(OL, {0,0,0,TCol}),
-    catch wxFrame:setTransparent(OL, TCol),
+    try wxFrame:setTransparent(OL, TCol) catch _:_ -> ok end,
     Panel = wxWindow:new(OL, -1, [{size, {DW,DH}}, {style, ?wxWANTS_CHARS}]),
     EvH = fun(#wx{event=#wxKey{keyCode=Key}}, _) ->
                   if Key =:= ?WXK_ESCAPE -> wings_menu_process ! cancel;
@@ -334,7 +334,7 @@ make_overlay(Parent, ScreenPos) ->
              (_Ev, Obj) ->
                   wxEvent:skip(Obj),
                   %% ?dbg("Cancel menu: ~w~n",[_Ev]),
-                  catch wings_menu_process ! cancel
+                  try wings_menu_process ! cancel  catch _:_ -> ok end
           end,
     [wxWindow:connect(Panel, Ev, [{callback, EvH}]) ||
         Ev <- [left_up, middle_up, right_up, char, char_hook]],
@@ -590,14 +590,17 @@ setup_popup([#menu{type=submenu, wxid=Id, desc=Desc, help=Help0, opts=Ps, hk=HK}
     Controls =
 	case get_hotkey(1,HK) of
 	    [] ->
-		wxSizer:add(Line, T1 = wxStaticText:new(Panel, Id, Desc), [{proportion, 1},{flag, ?wxALIGN_CENTER}]),
+                T1 = wxStaticText:new(Panel, Id, Desc),
+		wxSizer:add(Line, T1, [{proportion, 1},{flag, ?wxALIGN_CENTER}]),
 		[Panel,T1];
 	    HK0 ->
-		wxSizer:add(Line, T1 = wxStaticText:new(Panel, Id, Desc), [{proportion, 0},{flag, ?wxALIGN_CENTER}]),
+                T1 = wxStaticText:new(Panel, Id, Desc),
+		wxSizer:add(Line, T1, [{proportion, 0},{flag, ?wxALIGN_CENTER}]),
 		wxSizer:setItemMinSize(Line, T1, Sz1, -1),
 		wxSizer:addSpacer(Line, 10),
 		wxSizer:addStretchSpacer(Line),
-		wxSizer:add(Line, T2 = wxStaticText:new(Panel, Id, HK0),  [{proportion, 0},{flag, ?wxALIGN_CENTER}]),
+                T2 = wxStaticText:new(Panel, Id, HK0),
+		wxSizer:add(Line, T2,  [{proportion, 0},{flag, ?wxALIGN_CENTER}]),
 		wxSizer:setItemMinSize(Line, T2, Sz2, -1),
 		wxSizer:addSpacer(Line, 10),
 		wxSizer:add(Line, 16, 16),
@@ -620,14 +623,17 @@ setup_popup([#menu{type=menu, wxid=Id, desc=Desc, help=Help, opts=Props, hk=HK}=
     Checked = proplists:get_value(crossmark, Props) =:= true,
     wxSizer:addSpacer(Line, 3),
     ChkM = if Checked -> ?CHECK_MARK; true -> "" end,
-    wxSizer:add(Line, T1 = wxStaticText:new(Panel, Id, ChkM++Desc),[{proportion, 0},{flag, ?wxALIGN_CENTER}]),
+    T1 = wxStaticText:new(Panel, Id, ChkM++Desc),
+    wxSizer:add(Line, T1, [{proportion, 0},{flag, ?wxALIGN_CENTER}]),
     wxSizer:setItemMinSize(Line, T1, Sz1, -1),
     wxSizer:addSpacer(Line, 10),
     wxSizer:addStretchSpacer(Line),
-    wxSizer:add(Line, T2 = wxStaticText:new(Panel, Id, get_hotkey(1,HK)), [{proportion, 0},{flag, ?wxALIGN_CENTER}]),
+    T2 = wxStaticText:new(Panel, Id, get_hotkey(1,HK)),
+    wxSizer:add(Line, T2, [{proportion, 0},{flag, ?wxALIGN_CENTER}]),
     wxSizer:setItemMinSize(Line, T2, Sz2, -1),
     wxSizer:addSpacer(Line, 10),
-    BM = case {OpBox = have_option_box(Props),have_color(Props)} of
+    OpBox = have_option_box(Props),
+    BM = case {OpBox,have_color(Props)} of
 	     {true,_} ->
 		 Bitmap = get_pref_bitmap(),
                  SBM = case os:type() of

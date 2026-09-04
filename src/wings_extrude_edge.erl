@@ -406,14 +406,14 @@ straighten([{V,N0}|Ns], New, #we{vp=Vtab0}=We0) ->
 straighten([], _, We) -> We.
 
 straighten_1(Vec, N, {Cx,Cy,Cz}, OtherV, OPos0, Vt) ->
-    case catch e3d_mat:rotate_s_to_t(Vec, N) of
-	{'EXIT',_} -> Vt;
+    try e3d_mat:rotate_s_to_t(Vec, N) of
         Rot ->
 	    M0 = e3d_mat:translate(Cx, Cy, Cz),
 	    M1 = e3d_mat:mul(M0, Rot),
 	    M = e3d_mat:mul(M1, e3d_mat:translate(-Cx, -Cy, -Cz)),
 	    OPos = e3d_mat:mul_point(M, OPos0),
 	    array:set(OtherV, OPos, Vt)
+    catch _:_ -> Vt
     end.
 
 %% 

@@ -77,7 +77,8 @@ read_image(Prop) ->
             e3d_image:load(Name, Prop);
         _ ->
             BlockWxMsgs = wxLogNull:new(),
-            case wxImage:loadFile(Image=wxImage:new(), Name) of
+            Image = wxImage:new(),
+            case wxImage:loadFile(Image, Name) of
                 true ->
                     E3d = wings_image:wxImage_to_e3d(Image),
                     wxImage:destroy(Image),
@@ -101,7 +102,8 @@ write_image(Prop) ->
         ".dds" ->
             e3d_image:save(Image, Name, Prop);
         _Ext ->
-            case wxImage:saveFile(Wx = wings_image:e3d_to_wxImage(Image), Name) of
+            Wx = wings_image:e3d_to_wxImage(Image),
+            case wxImage:saveFile(Wx, Name) of
                 true -> wxImage:destroy(Wx), ok;
                 false -> wxImage:destroy(Wx), {error, unknown}
             end

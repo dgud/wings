@@ -37,16 +37,16 @@ start_link() ->
     {ok, wx_object:get_pid(Status)}.
 
 message(Win, Str) ->
-    catch wx_object:cast(?MODULE, {message, Win, Str, undefined}).
+    try wx_object:cast(?MODULE, {message, Win, Str, undefined}) catch _:_ -> ok end.
 
 message(Win, Left, Right) ->
-    catch wx_object:cast(?MODULE, {message, Win, Left, Right}).
+    try wx_object:cast(?MODULE, {message, Win, Left, Right}) catch _:_ -> ok end.
 
 message_right(Win, Right) ->
-    catch wx_object:cast(?MODULE, {message, Win, undefined, Right}).
+    try wx_object:cast(?MODULE, {message, Win, undefined, Right}) catch _:_ -> ok end.
 
 active(Win) ->
-    catch wx_object:cast(?MODULE, {active, Win}).
+    try wx_object:cast(?MODULE, {active, Win})  catch _:_ -> ok end.
 
 get_statusbar() ->
     wx_object:call(?MODULE, get_statusbar).

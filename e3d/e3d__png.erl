@@ -875,7 +875,7 @@ test2([]) -> ok;
 test2([File|Rest]) ->
     case lists:reverse(File) of 
 	"gnp." ++ F ->
-	    case catch load(File,[]) of
+	    try load(File,[]) of
 		Img = #e3d_image{} when hd(File) == $x ->
 		    io:format("~n Didn't Fail with ~p ~p ~n~n",[File,Img]);
 		Else when hd(File) == $x ->
@@ -888,12 +888,12 @@ test2([File|Rest]) ->
 		    test2(Rest);
 		#e3d_image{width=W,height=H,bytes_pp=Bpp,image=Image} ->
 		    io:format("~n~p Failed: Size differ W*H*Bpp=~p*~p*~p=~p Isz=~p~n",
-			      [File,W,H,Bpp, W*H*Bpp,size(Image)]);
-	    
-		{'EXIT',not_implemented} ->
+			      [File,W,H,Bpp, W*H*Bpp,size(Image)])
+            catch
+                _:not_implemented ->
 		    io:format("~nNot implemented skipped ~p ~n~n",[File]),
 		    test2(Rest);
-		Else ->
+                _:Else ->
 		    io:format("~n ~p Failed with ~p~n~n",[File,Else])
 	    end;
 	_ ->

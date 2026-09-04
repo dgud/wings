@@ -47,33 +47,33 @@ validate_faces(#we{fs=Ftab}=We) ->
 walk_face_cw(_Face, LastEdge, LastEdge, _We, [_|_]=Acc) -> Acc;
 walk_face_cw(Face, Edge, LastEdge, We, Acc) ->
     #we{es=Etab} = We,
-    case catch array:get(Edge, Etab) of
+    try array:get(Edge, Etab) of
 	#edge{vs=V,lf=Face,ltsu=Next} ->
 	    walk_face_cw(Face, Next, LastEdge, We, [V|Acc]);
 	#edge{ve=V,rf=Face,rtsu=Next} ->
 	    walk_face_cw(Face, Next, LastEdge, We, [V|Acc]);
-	{'EXIT',_} ->
-	    [{make_ref(),crash,missing_edge,Edge,
-	     [Face,Edge,LastEdge,We,Acc]}];
 	Other ->
 	    [{make_ref(),{crash,Other},
 	      {face,Face,edge,Edge,last_edge,LastEdge,acc,Acc}}]
+    catch _:_ ->
+            [{make_ref(),crash,missing_edge,Edge,
+              [Face,Edge,LastEdge,We,Acc]}]
     end.
 
 walk_face_ccw(_Face, LastEdge, LastEdge, _We, [_|_]=Acc) -> Acc;
 walk_face_ccw(Face, Edge, LastEdge, We, Acc) ->
     #we{es=Etab} = We,
-    case catch array:get(Edge, Etab) of
+    try array:get(Edge, Etab) of
 	#edge{ve=V,lf=Face,ltpr=Next} ->
 	    walk_face_ccw(Face, Next, LastEdge, We, [V|Acc]);
 	#edge{vs=V,rf=Face,rtpr=Next} ->
 	    walk_face_ccw(Face, Next, LastEdge, We, [V|Acc]);
-	{'EXIT',_} ->
-	    [{make_ref(),crash,missing_edge,Edge,
-	     [Face,Edge,LastEdge,We,Acc]}];
 	Other ->
 	    [{make_ref(),{crash,Other},
 	      {face,Face,edge,Edge,last_edge,LastEdge,acc,Acc}}]
+    catch _:_ ->
+	    [{make_ref(),crash,missing_edge,Edge,
+              [Face,Edge,LastEdge,We,Acc]}]
     end.
 
 validate_vertex_tab(#we{es=Etab,vc=Vct,vp=Vtab}=We) ->

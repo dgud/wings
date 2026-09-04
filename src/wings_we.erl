@@ -1264,16 +1264,13 @@ centroid( #we{}=_We ) ->
     end,
     Fs = gb_trees:keys(Ftab),
     {{X,Y,Z}, VolumeT }  = lists:foldl(MyAcc, {{0.0,0.0,0.0},0.0} , Fs),
-    case catch {X/VolumeT,Y/VolumeT,Z/VolumeT} of 
-    	{_,_,_}=Centroid ->
-    		Centroid;
-    	_ ->  %% caught a bad arith error more than likely zero volume, apply fallback scheme
-    		#we{vp=VPos}=_We,
-    		TempDict = array:sparse_to_orddict(VPos),
-    		e3d_bv:center(e3d_bv:box([Point || {_,Point} <- TempDict]))
+    try {X/VolumeT,Y/VolumeT,Z/VolumeT}
+    catch _:_ ->  %% zero volume, apply fallback scheme
+            #we{vp=VPos}=_We,
+            TempDict = array:sparse_to_orddict(VPos),
+            e3d_bv:center(e3d_bv:box([Point || {_,Point} <- TempDict]))
     end.
-    		
-	
+
 centroid_parts(Face, We) ->
     [V1,V2,V3] = wings_face:vertex_positions(Face, We),
     Bc = e3d_vec:cross(V2, V3),
