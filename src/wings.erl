@@ -1185,7 +1185,7 @@ crash_dialog(LogName) ->
 	   end,
     try
         true = is_process_alive(whereis(wings_frame)),
-        Parent = wings_dialog:get_dialog_parent(),
+        Parent = ?GET(top_frame),
         Dialog = Show(Parent),
         wxDialog:destroy(Dialog)
     catch _:_ ->
