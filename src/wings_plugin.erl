@@ -71,12 +71,12 @@ menu(Name, Menu0) ->
     menu_1(?GET(wings_plugins), Name, Menu).
 
 menu_1([M|Ps], Name, Menu0) ->
-    case catch M:menu(Name, Menu0) of
+    try M:menu(Name, Menu0) of
 	Menu when is_list(Menu) ->
-	    menu_1(Ps, Name, Menu);
-	Other ->
-	    io:format("~w:menu/2: bad return value: ~P\n", [M,Other,20]),
-	    menu_1(Ps, Name, Menu0)
+	    menu_1(Ps, Name, Menu)
+    catch _:Other ->
+            io:format("~w:menu/2: bad return value: ~P\n", [M,Other,20]),
+            menu_1(Ps, Name, Menu0)
     end;
 menu_1([], _Name, Menu) -> Menu.
 
@@ -86,34 +86,34 @@ has_dialog(Dialog) ->
 
 has_dialog_1(_, [], Acc) -> Acc;
 has_dialog_1(Dialog, [M|Tail], Acc) ->
-    case catch M:has_dialog(Dialog) of
-        {'EXIT',{undef,_}} ->
-            has_dialog_1(Dialog, Tail, Acc);
-        {'EXIT',Reason} ->
-            io:format("~w:has_dialog/1: crashed: ~P\n", [M,Reason,20]),
-            wings_u:error_msg("~w:has_dialog/1: crashed", [M]);
+    try M:has_dialog(Dialog) of
         DlgId when is_tuple(DlgId) ->
             has_dialog_1(Dialog, Tail, [{M,DlgId}|Acc]);
         _ ->
             has_dialog_1(Dialog, Tail, Acc)
+    catch error:undef ->
+            has_dialog_1(Dialog, Tail, Acc);
+          _:Reason ->
+            io:format("~w:has_dialog/1: crashed: ~P\n", [M,Reason,20]),
+            wings_u:error_msg("~w:has_dialog/1: crashed", [M])
     end.
 
 dialog(Dialog, Ps) when is_list(Ps) ->
     dialog_1(Dialog, Ps, ?GET(wings_plugins)).
 
 dialog_1(Dialog, Ps, [M|Tail]) ->
-    case catch M:dialog(Dialog, Ps) of
-	{'EXIT',{undef,[{M,dialog, _, _}|_]}} ->
-	    dialog_1(Dialog, Ps, Tail);
-	{'EXIT',Reason} ->
-	    io:format("~w:dialog/2: crashed: ~P\n", [M,Reason,20]),
-	    wings_u:error_msg("~w:dialog/2: crashed", [M]);
+    try M:dialog(Dialog, Ps) of
 	NewPs when is_list(NewPs) ->
 	    Checked = check_dialog(NewPs, M),
 	    dialog_1(Dialog, Checked, Tail);
 	Other ->
 	    io:format("~w:dialog/2: bad return value: ~P\n", [M,Other,20]),
 	    wings_u:error_msg("~w:dialog/2: bad return value", [M])
+    catch error:undef ->
+	    dialog_1(Dialog, Ps, Tail);
+          _:Reason ->
+	    io:format("~w:dialog/2: crashed: ~P\n", [M,Reason,20]),
+	    wings_u:error_msg("~w:dialog/2: crashed", [M])
     end;
 dialog_1(_Dialog, Ps, []) -> 
     Ps.
@@ -136,18 +136,18 @@ dialog_result(Dialog, Ps, Module) when is_tuple(Dialog), is_list(Ps) ->
 	dialog_result1(Dialog, Ps, [Module]).
 
 dialog_result1(Dialog, Ps, [M|Tail]) ->
-    case catch M:dialog(Dialog, Ps) of
-	{'EXIT',{undef,_}} ->
-	    dialog_result1(Dialog, Ps, Tail);
-	{'EXIT',Reason} ->
-	    io:format("~w:dialog/2: crashed: ~P\n", [M,Reason,20]),
-	    wings_u:error_msg("~w:dialog/2: crashed", [M]);
+    try M:dialog(Dialog, Ps) of
 	{Content,NewPs} when is_list(NewPs) ->
 	    dialog_result1(setelement(tuple_size(Dialog), Dialog, Content), 
 			   NewPs, Tail);
 	Other ->
 	    io:format("~w:dialog/2: bad return value: ~P\n", [M,Other,20]),
 	    wings_u:error_msg("~w:dialog/2: bad return value", [M])
+    catch error:undef ->
+	    dialog_result1(Dialog, Ps, Tail);
+          _:Reason ->
+	    io:format("~w:dialog/2: crashed: ~P\n", [M,Reason,20]),
+	    wings_u:error_msg("~w:dialog/2: crashed", [M])
     end;
 dialog_result1(Dialog, Ps, []) -> 
     {element(tuple_size(Dialog), Dialog),Ps}.
@@ -165,10 +165,15 @@ command(Cmd, St) ->
 
 command([M|Ps], Cmd, St) ->
     CmdFun = fun() -> M:command(Cmd, St) end,
-    case catch wings_develop:time_command(CmdFun, Cmd) of
+    try wings_develop:time_command(CmdFun, Cmd) of
 	next -> command(Ps, Cmd, St);
 	Other ->
 	    case check_result(M, Other, St) of
+		next -> command(Ps, Cmd, St);
+		Res -> Res
+	    end
+    catch _:Other ->
+            case check_result(M, Other, St) of
 		next -> command(Ps, Cmd, St);
 		Res -> Res
 	    end
@@ -195,20 +200,24 @@ init_plugins([]) -> ok.
 
 init_plugin(user_interface, M) ->
     Ui0 = get(wings_ui),
-    case catch M:init(Ui0) of
+    try M:init(Ui0) of
 	Ui when is_function(Ui) ->
 	    put(wings_ui, Ui);
-	Other ->
-	    io:format("~w:init/1 bad return value: ~P\n", [M,Other,20])
+        Other ->
+            io:format("~w:init/1 bad return value: ~P\n", [M,Other,20])
+    catch _:Reason ->
+            io:format("~w:init/1 crashed: ~P\n", [M,Reason,20])
     end;
 init_plugin(_, M) ->
-    case catch M:init() of
+    try M:init() of
 	true ->
 	    ?SET(wings_plugins, [M|?GET(wings_plugins)]);
 	false ->
 	    ok;
 	Other ->
 	    io:format("~w:init/0 bad return value: ~P\n", [M,Other,20])
+    catch _:Reason ->
+	    io:format("~w:init/0 crashed: ~P\n", [M,Reason,20])
     end.
     
 def_ui_plugin() ->
@@ -756,11 +765,12 @@ check_plugin_against_flag(_Flag, _PData, wings_shape, Acc) ->
     %% to load the non-existing wings_shape module from disk.
     Acc;
 check_plugin_against_flag(Flag, PData, Plugin, Acc) ->
-    case catch Plugin:get_data(Flag,PData,Acc) of
-      {ok, Result} -> Result;
-      _otherwise -> Acc
+    try Plugin:get_data(Flag,PData,Acc) of
+        {ok, Result} -> Result;
+        _otherwise -> Acc
+    catch _:_ ->
+            Acc
     end.
-
 
 %%%
 %%% Plugin Save/Restore Windows Utilities
@@ -775,19 +785,22 @@ get_win_data(WinName) ->
 %% win_data/1 function allows many plugin's windows to be saved.
 %% it should returns: {Name, {Horiz alignment, Custom_data}}
 get_win_data_1([M|Ps], WinName) ->
-	case catch M:win_data(WinName) of
-	  {WinName,Data} -> {M,Data};
-	  _ -> get_win_data_1(Ps, WinName)
-	end;
+    try
+        {WinName,Data} = M:win_data(WinName),
+        {M,Data}
+    catch _:_ ->
+            get_win_data_1(Ps, WinName)
+    end;
 get_win_data_1([], _) -> none.
 
 restore_window(M, WinName, Pos, Size, CtmData, St) ->
     Ps = ?GET(wings_plugins),
     case module_found(M,Ps) of
 	true ->
-	    catch M:window(WinName, Pos, Size, CtmData, St),
+	    try M:window(WinName, Pos, Size, CtmData, St) catch _:_ -> ok end,
 	    keep;
-	_ -> keep
+	_ ->
+            keep
     end.
 
 module_found(M,[M|_]) -> true;

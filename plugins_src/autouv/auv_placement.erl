@@ -290,11 +290,11 @@ sort_edges(V21, EdsT0, All = [Current|Acc]) ->
 	{value, BE = #be{ve=V22}} -> 
 	    sort_edges(V22, gb_trees:delete(V21,EdsT0), 
 		       [[BE|Current]|Acc]);
-	none ->	    
-	    case catch gb_trees:take_smallest(EdsT0) of
+	none ->
+	    try gb_trees:take_smallest(EdsT0) of
 		{_, BE = #be{ve=V2}, EdsT1} ->
-		    sort_edges(V2, EdsT1, [[BE]|All]);
-		{'EXIT', _} -> %% Stop
+		    sort_edges(V2, EdsT1, [[BE]|All])
+            catch _:_ -> %% Stop
 		    All
 	    end
     end.

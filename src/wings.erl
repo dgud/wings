@@ -111,11 +111,12 @@ init_part2(Args, Frame, GeomGL, GeomPs) ->
     make_geom_window(GeomGL, GeomPs, St),
     is_fast_start(Args) orelse wings_file:init_autosave(),
     is_fast_start(Args) orelse restore_windows(St),
-    case catch wings_wm:enter_event_loop() of
-	{'EXIT',shutdown} ->
+    try wings_wm:enter_event_loop()
+    catch
+        exit:shutdown ->
 	    wings_io:quit(),
             exit(shutdown);
-        {'EXIT',Reason} ->
+        exit:Reason ->
 	    io:format("~P\n", [Reason,20]),
 	    wings_io:quit(),
 	    exit(Reason)
@@ -352,7 +353,7 @@ handle_event({crash_in_other_window,LogName}, St) ->
     crash_dialog(LogName),
     main_loop(St);
 handle_event({open_file,Name}, St0) ->
-    case catch ?SLOW(wings_ff_wings:import(Name, St0)) of
+    try ?SLOW(wings_ff_wings:import(Name, St0)) of
 	#st{}=St1 ->
 	    St2 = wings_obj:recreate_folder_system(St1),
 	    USFile = wings_file:autosave_filename(wings_file:unsaved_filename()),
@@ -366,6 +367,8 @@ handle_event({open_file,Name}, St0) ->
 	    update_menus(St),
 	    main_loop(wings_u:caption(St));
 	{error,_} ->
+	    main_loop(St0)
+    catch _:{error,_} ->
 	    main_loop(St0)
     end;
 handle_event(Ev, St) ->

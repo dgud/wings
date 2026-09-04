@@ -89,7 +89,7 @@ init([Frame]) ->
 	?wxNO_BORDER,
     Overlay = wxFrame:new(Frame, -1, "", [{style, Flags}]),
     wxFrame:setBackgroundColour(Overlay, {95,95,95,127}),
-    catch wxFrame:setTransparent(Overlay, 127),
+    try wxFrame:setTransparent(Overlay, 127) catch _:_ -> ok end,
     wxFrame:hide(Overlay),
     {Overlay, #state{frame=Frame, overlay=Overlay}}.
 

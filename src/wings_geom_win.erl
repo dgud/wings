@@ -398,7 +398,8 @@ change_state(Window, St) ->
 forward_event(redraw, _Window, _St) -> keep;
 forward_event({current_state, _, _}, _Window, _St0) -> keep;
 forward_event({current_state, St}, Window, St0) ->
-    case (SelSt = get_shape_state(St)) =:= get_shape_state(St0) of
+    SelSt = get_shape_state(St),
+    case SelSt =:= get_shape_state(St0) of
 	true  -> ignore;
 	false -> wx_object:cast(Window, {new_state,SelSt})
     end,

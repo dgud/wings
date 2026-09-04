@@ -99,7 +99,8 @@ change_state(Window, St) ->
 forward_event(redraw, _Window, _St) -> keep;
 forward_event({current_state, _,_}, _Window, _St) -> keep;
 forward_event({current_state, St}, Window, St0) ->
-    case (New = get_view_state(St)) =:= get_view_state(St0) of
+    New = get_view_state(St),
+    case New =:= get_view_state(St0) of
 	true  -> ignore;
 	false -> wx_object:cast(Window, {new_state, New})
     end,

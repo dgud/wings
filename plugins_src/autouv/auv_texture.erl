@@ -115,7 +115,8 @@ draw_options(#st{bb=Uvs}=AuvSt0) ->
                                                 _ ->  atom_to_list(MatName0)
                                             end
                                     end,
-                          catch wings_material:update_image(MatName0, diffuse, NewImg#e3d_image{name=TexName}, GeomSt0)
+                          try wings_material:update_image(MatName0, diffuse, NewImg#e3d_image{name=TexName}, GeomSt0)
+                          catch _:_ -> ok end
                   end,
                   %% The dialog owner is the AutoUV window, so the state
                   %% returned here is installed as *its* state - it must be
@@ -127,7 +128,8 @@ draw_options(#st{bb=Uvs}=AuvSt0) ->
                       none ->
                           ok = wings_image:update(TexImg, BkpImg);
                       _ ->
-                          catch wings_material:update_image(MatName0, diffuse, BkpImg, GeomSt0)
+                          try wings_material:update_image(MatName0, diffuse, BkpImg, GeomSt0)
+                          catch _:_ -> ok end
                   end,
                   prw_img_id(delete),
                   AuvSt0;

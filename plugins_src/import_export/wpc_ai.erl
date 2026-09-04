@@ -66,13 +66,13 @@ command(_, _) ->
     next.
 
 make_ai(Name, Nsubsteps) ->
-    case catch tryimport(Name, Nsubsteps) of
+    try tryimport(Name, Nsubsteps) of
 	{ok, E3dFile} ->
 	    wpa:pref_set(wpc_ai, bisections, Nsubsteps),
 	    {ok, E3dFile};
 	{error,Reason} ->
-	    {error, ?__(1,"AI import failed")++": " ++ Reason};
-	_ ->
+	    {error, ?__(1,"AI import failed")++": " ++ Reason}
+    catch _:_ ->
 	    {error, ?__(2,"AI import internal error")}
     end.
 
@@ -92,17 +92,17 @@ tryimport(Name, Nsubsteps) ->
 		Mesh = #e3d_mesh{type=polygon,vs=Vs,fs=Efs,he=HEs},
 		Obj = #e3d_object{name=Name,obj=Mesh},
 		{ok, #e3d_file{objs=[Obj]}};
-    {ok,_} ->
-		{error,?__(1,"Not an Adobe Illustrator File (Version 8 or earlier)")};
-	    {error,Reason} ->
-		{error,file:format_error(Reason)}
-	end.
+        {ok,_} ->
+            {error,?__(1,"Not an Adobe Illustrator File (Version 8 or earlier)")};
+        {error,Reason} ->
+            {error,file:format_error(Reason)}
+    end.
 
 center_object(Vec,Vs) ->
     lists:foldl(fun(V,Acc) ->
-       {X,Y,Z} = e3d_vec:add(V,Vec),
-	   [{X,Y,Z}|Acc]
-    end,[],Vs).
+                        {X,Y,Z} = e3d_vec:add(V,Vec),
+                        [{X,Y,Z}|Acc]
+                end,[],Vs).
 
 
 tokenize_bin(Bin) ->

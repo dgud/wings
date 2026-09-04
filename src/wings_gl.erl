@@ -121,7 +121,8 @@ connect_events(Canvas, Context) ->
                      [{callback, fun(_, _) -> setCurrent(Canvas, Context) end}]),
     wxWindow:connect(Canvas, show,
                      [{callback, fun(#wx{event=#wxShow{show=Show}}, _) ->
-                                         Show andalso (catch setCurrent(Canvas, Context))
+                                         Show andalso (try setCurrent(Canvas, Context)
+                                                       catch _:_ -> ok end)
                                  end}]),
     case os:type() of
 	{unix, darwin} ->
@@ -134,7 +135,8 @@ connect_events(Canvas, Context) ->
     end,
 
     wxWindow:connect(Canvas, size),
-    catch wxWindow:connect(Canvas, mouse_capture_lost), %% Not available in old wx's.
+    try wxWindow:connect(Canvas, mouse_capture_lost)
+    catch _:_ -> ok end, %% Not available in old wx's.
 
     setup_std_events(Canvas),
     wxWindow:setFocus(Canvas), %% Get keyboard focus
@@ -254,22 +256,19 @@ init_extensions() ->
     Exts0 = lists:sort(string:tokens(gl:getString(?GL_EXTENSIONS), " ")),
     Exts = [{list_to_atom(E)} || E <- Exts0],
     ets:insert(wings_gl_ext, Exts),
-    Ver = case catch get_version() of
-	      {_,_,_}=V -> V;
-	      _ -> {1,1,0}
+    Ver = try get_version()
+          catch _:_ -> {1,1,0}
 	  end,
     ets:insert(wings_gl_ext, {version,Ver}).
 
 get_version() ->
-    case string:tokens(gl:getString(?GL_VERSION), ". ") of
-	[Major0,Minor0] ->
-	    Patch = 0;
-	[Major0,Minor0,Patch0|_] ->
-	    case catch list_to_integer(Patch0) of
-		{'EXIT',_} -> Patch = 0;
-		Patch -> Patch
-	    end
-    end,
+    Patch = case string:tokens(gl:getString(?GL_VERSION), ". ") of
+                [Major0,Minor0] -> 0;
+                [Major0,Minor0,Patch0|_] ->
+                    try list_to_integer(Patch0)
+                    catch _:_ -> 0
+                    end
+            end,
     Major = list_to_integer(Major0),
     Minor = list_to_integer(Minor0),
     {Major,Minor,Patch}.

@@ -86,17 +86,17 @@ log_error(Off, {exit, {Reason, Stacktrace}, [_|_]}, St) ->
 log_error(Off, {Reason, [_|_]=Stacktrace}, St) ->
     {Pid, Who} = who(Off),
     LogName = wings_u:crash_log(Who, Reason, Stacktrace),
-    catch wings_wm:psend(geom, {crash_in_other_window,LogName}),
+    try wings_wm:psend(geom, {crash_in_other_window,LogName}) catch _:_ -> ok end,
     {ok, St#{error=>Pid}};
 log_error(Off, {Reason, stack, Stacktrace}, St) ->
     {Pid, Who} = who(Off),
     LogName = wings_u:crash_log(Who, Reason, Stacktrace),
-    catch wings_wm:psend(geom, {crash_in_other_window,LogName}),
+    try wings_wm:psend(geom, {crash_in_other_window,LogName}) catch _:_ -> ok end,
     {ok, St#{error=>Pid}};
 log_error(Off, Reason, St) ->
     {Pid, Who} = who(Off),
     LogName = wings_u:crash_log(Who, Reason, []),
-    catch wings_wm:psend(geom, {crash_in_other_window,LogName}),
+    try wings_wm:psend(geom, {crash_in_other_window,LogName}) catch _:_ -> ok end,
     {ok, St#{error=>Pid}}.
 
 who(Pid) when is_pid(Pid) ->
@@ -170,14 +170,14 @@ init(Env, GroupLeader) ->
         _ ->
             error_logger:add_report_handler(?MODULE)
     end,
-    case catch register(?SERVER_NAME, self()) of
+    try register(?SERVER_NAME, self()) of
         true ->
             wx:set_env(Env),
             Gmon = erlang:monitor(process, GroupLeader),
             group_leader(self(), whereis(wings_sup)),
             proc_lib:init_ack({ok, self()}),
-            server_loop(#state{gmon=Gmon, group_leader=GroupLeader});
-        _ ->
+            server_loop(#state{gmon=Gmon, group_leader=GroupLeader})
+    catch _:_ ->
             exit(already_started)
     end.
 
@@ -361,17 +361,21 @@ io_request(State, {put_chars,Chars}) ->
 io_request(State, {put_chars,unicode,Chars}) ->
     {put_chars(State, Chars),ok,forward};
 io_request(State, {put_chars,unicode,Mod,Func,Args}) ->
-    case catch apply(Mod, Func, Args) of
+    try apply(Mod, Func, Args) of
 	Chars when is_list(Chars); is_binary(Chars) ->
 	    io_request(State, {put_chars,unicode,Chars});
 	_ ->
 	    {State,{error,Func},error}
+    catch _:_ ->
+	    {State,{error,Func},error}
     end;
 io_request(State, {put_chars,Mod,Func,Args}) ->
-    case catch apply(Mod, Func, Args) of
+    try apply(Mod, Func, Args) of
 	Chars when is_list(Chars); is_binary(Chars) ->
 	    io_request(State, {put_chars,Chars});
 	_ ->
+	    {State,{error,Func},error}
+    catch _:_ ->
 	    {State,{error,Func},error}
     end;
 io_request(State, {requests,Requests}) when is_list(Requests) ->

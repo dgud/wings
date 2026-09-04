@@ -60,8 +60,8 @@ load_language(Lang) when is_list(Lang) ->
 
 load_language_only(Lang0) when is_list(Lang0) ->
     Lang = list_to_atom(Lang0),
-    put(?MODULE, Lang), 
-    catch ets:delete(?MODULE), 
+    put(?MODULE, Lang),
+    try ets:delete(?MODULE) catch _:_ -> ok end,
     case Lang of
 	?DEF_LANG_ATOM -> ok;
 	_  ->
@@ -78,15 +78,15 @@ load_language(Root, [Dir|Dirs], Lang) ->
 	{ok,List} ->
 	    load_language_2(Path, List, Lang),
 	    load_language(Root,Dirs,Lang);
-	_ -> 
+	_ ->
 	    load_language(Root,Dirs, Lang)
     end.
 
 load_language_2(Dir, [File|Fs], Lang) ->
-    case catch lists:nthtail(length(File)-length(Lang), File) of
+    try lists:nthtail(length(File)-length(Lang), File) of
 	Lang ->
-	    load_language_file(filename:join(Dir, File));
-	_ ->
+	    load_language_file(filename:join(Dir, File))
+    catch _:_ ->
 	    Path = filename:join(Dir,File),
 	    case filelib:is_dir(Path) of
 		true ->

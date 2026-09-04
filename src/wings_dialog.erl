@@ -1292,7 +1292,8 @@ build(Ask, {button, Label, Action, Flags}, Parent, Sizer, In) ->
 
 
 build(Ask, {fontpicker, DefFont, Flags}, Parent, Sizer, In) ->
-    Def = case {(catch wx:getObjectType(DefFont) =:= wxFont), DefFont} of
+    IsFont = try wx:getObjectType(DefFont) =:= wxFont catch _:_ -> false end,
+    Def = case {IsFont, DefFont} of
 	      {true,_}  -> DefFont;
 	      {_, default} -> wxSystemSettings:getFont(?wxSYS_DEFAULT_GUI_FONT);
 	      {_, FontInfo} when is_map(FontInfo) ->

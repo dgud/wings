@@ -62,10 +62,9 @@ image_read(Ps) ->
     end.
 
 image_write(Ps) ->
-    case catch wings_plugin:call_ui({image,write,Ps}) of
-	{'EXIT',Reason} ->
-	    {error,{none,?MODULE,{crash,Reason}}};
-	Result -> Result
+    try wings_plugin:call_ui({image,write,Ps})
+    catch _:Reason ->
+            {error,{none,?MODULE,{crash,Reason}}}
     end.
 
 e3d_to_wxImage(I) ->

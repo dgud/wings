@@ -209,20 +209,20 @@ connect_five_sided(NewVertex, CV, Va, Face, We0) ->
     Vs = wings_face:to_vertices([Face], We0),
     Vsp = ordsets:from_list([Va,NewVertex,CV]),
     case ordsets:is_subset(Vsp, ordsets:from_list(Vs)) of
-      true ->
-        case catch wings_vertex:force_connect(NewVertex, CV, Face, We0) of
-          {#we{vp=Vtab}=We,_} ->
-              P0 = array:get(NewVertex, Vtab),
-              P1 = array:get(CV, Vtab),
-              P2 = array:get(Va, Vtab),
-              Rad = e3d_vec:dist(P0, P2),
-              Vec = e3d_vec:norm_sub(P1, P0),
-              {{NewVertex,P0,Rad,Vec},We};
-          _Error ->
-              corner_error()
-        end;
-      false ->
-        corner_error()
+        true ->
+            try wings_vertex:force_connect(NewVertex, CV, Face, We0) of
+                {#we{vp=Vtab}=We,_} ->
+                    P0 = array:get(NewVertex, Vtab),
+                    P1 = array:get(CV, Vtab),
+                    P2 = array:get(Va, Vtab),
+                    Rad = e3d_vec:dist(P0, P2),
+                    Vec = e3d_vec:norm_sub(P1, P0),
+                    {{NewVertex,P0,Rad,Vec},We}
+            catch _:_ ->
+                    corner_error()
+            end;
+        false ->
+            corner_error()
     end.
 
 -spec corner_error() -> no_return().

@@ -153,9 +153,8 @@ make_scales(I, Ta, Tb) ->
     S = case {element(I, Ta),element(I, Tb)} of
 	    {_,B} when abs(B) < ?EPSILON -> none;
 	    {A,B} ->
-		case catch A / B of		%catch if B is very small
-		    {'EXIT',_} -> none;
-		    Q -> Q
+		try A / B		%catch if B is very small
+		catch _:_ -> none
 		end
 	end,
     [S|make_scales(I+1, Ta, Tb)].

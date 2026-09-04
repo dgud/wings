@@ -75,7 +75,9 @@ make_wxfont(#{type:=font, face:=FaceName, size:=Size,
     end.
 
 get_font_info(DefFont) ->
-    case {(catch wx:getObjectType(DefFont) =:= wxFont), DefFont} of
+    IsFont = try wx:getObjectType(DefFont) =:= wxFont
+             catch _:_ -> false end,
+    case {IsFont, DefFont} of
 	{true, _} -> get_font_info_1(DefFont);
 	{_, Info = #{type:=font}} ->
 	    Info
@@ -160,7 +162,8 @@ font_cw_lh(Font) ->
     {glyph_info(Font, width), glyph_info(Font, height)}.
 
 render(X, Y, S) ->
-    Res = render_1(S, Font=current_font(), {X, Y, X, <<>>}),
+    Font = current_font(),
+    Res = render_1(S, Font, {X, Y, X, <<>>}),
     gl:pushAttrib(?GL_TEXTURE_BIT bor ?GL_ENABLE_BIT),
     gl:enable(?GL_BLEND),
     gl:blendFunc(?GL_SRC_ALPHA, ?GL_ONE_MINUS_SRC_ALPHA),

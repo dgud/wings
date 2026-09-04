@@ -1228,10 +1228,12 @@ collapse_short_edges(Tolerance, #we{es=Etab,vp=Vtab}=We) ->
 		      end
 	      end, [], Etab),
     NothingCollapsed = Short =:= [],
-    case catch wings_collapse:collapse_edges(Short,We) of
+    try wings_collapse:collapse_edges(Short,We) of
         #we{}=We1 ->
             {NothingCollapsed, We1};
         _ ->
+            {delete, #we{}}
+    catch _:_ ->
             {delete, #we{}}
     end.
 
@@ -1674,13 +1676,19 @@ show_cursor(_, #dlo{src_we=#we{id=Id}, drag={matrix,Pos,_,_}}) ->
     {X0,Y0,_} = obj_to_screen(Matrices, Pos),
     show_cursor_1(X0,Y0);
 show_cursor(El, #dlo{src_sel={Mode,_},src_we=#we{id=Id}=We,drag=#drag{mm=MM}}) ->
-    Vs0 = case catch sel_to_vs(Mode, El, We) of
+    Vs0 = try sel_to_vs(Mode, El, We) of
 	      VsList when is_list(VsList) -> VsList;
 	      _ -> crash_the_next_check_too
+          catch _:_ ->
+                  crash_the_next_check_too
 	  end,
-    Center = case catch wings_vertex:center(Vs0, We) of
-		 {X,Y,Z}=C when C =:= {float(X), float(Y), float(Z)} -> C;
+    Center = try wings_vertex:center(Vs0, We) of
+		 {X,Y,Z}=C when C =:= {float(X), float(Y), float(Z)} ->
+                     C;
 		 _ ->
+		     {{_,_,C},_} = wings_pref:get_value(tweak_geo_point),
+		     C
+             catch _:_ ->
 		     {{_,_,C},_} = wings_pref:get_value(tweak_geo_point),
 		     C
 	     end,

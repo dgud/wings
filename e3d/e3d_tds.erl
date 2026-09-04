@@ -60,12 +60,11 @@ import_2(<<16#4D4D:16/little,_Size:32/little,T/binary>>) ->
     File = fold_chunks(fun main/3, #e3d_file{}, T),
     #e3d_file{objs=Objs0,mat=Mat0} = File,
     Mat = reformat_material(Mat0),
-    Objs = case catch fix_transform(Objs0) of
-	       {'EXIT',Reason} ->
+    Objs = try fix_transform(Objs0)
+           catch _:Reason ->
 		   io:format("~P\n", [Reason,20]),
-		   reverse(Objs0);
-	       Other -> Other
-	   end,
+		   reverse(Objs0)
+           end,
     File#e3d_file{objs=Objs,mat=Mat};
 import_2(_) -> error_msg("Not a .3ds file").
 

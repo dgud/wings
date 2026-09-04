@@ -45,7 +45,7 @@ load() ->
             case local_consult(PrefFile) of
                 {ok,List0} ->
                     List = clean(List0),
-                    catch ets:insert(wings_state, List),
+                    try ets:insert(wings_state, List) catch _:_ -> ok end,
                     check_user_keys(List),
                     check_legacy_colors(List),
                     win32_window_layout(),
@@ -141,7 +141,7 @@ finish_save_prefs(PrefFile) ->
 	    end,
     Str = lists:map(Write, List),
     Bin = unicode:characters_to_binary(io_lib:format("~ts",[Str])),
-    catch file:write_file(PrefFile, Bin),
+    try file:write_file(PrefFile, Bin) catch _:_ -> ok end,
     ok.
 
 lowpass(X, Y) ->
@@ -727,7 +727,7 @@ write_pref(Dir, ColorPref) ->
                   end,
     Write = fun(Entry) -> PostProcess(io_lib:format(Format, [Entry])) end,
     Str = lists:map(Write, ColorPref),
-    catch file:write_file(Dir, Str),
+    try file:write_file(Dir, Str) catch _:_ -> ok end,
     update_recent_prefs(Dir),
     set_value(pref_directory,Dir).
 
@@ -942,7 +942,7 @@ load_pref_category([{graphical,true}|Options], List, St) ->
 		 {_,C} -> C;
 		 false -> []
 	     end,
-    catch wings_pref_dlg:set_values(Colors, St),
+    try wings_pref_dlg:set_values(Colors, St) catch _:_ -> ok end,
     load_pref_category(Options, List, St);
 load_pref_category([{windows,true}|Options], List, St) ->
     %% Load preference windows and remove any old windows
