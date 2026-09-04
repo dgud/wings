@@ -117,7 +117,11 @@ draw_options(#st{bb=Uvs}=AuvSt0) ->
                                     end,
                           catch wings_material:update_image(MatName0, diffuse, NewImg#e3d_image{name=TexName}, GeomSt0)
                   end,
-                  {preview,GeomSt0,GeomSt0};
+                  %% The dialog owner is the AutoUV window, so the state
+                  %% returned here is installed as *its* state - it must be
+                  %% the AutoUV state, not the geom state (which would leave
+                  %% the AutoUV window with bb=none and crash on redraw).
+                  {preview,AuvSt0,AuvSt0};
              (cancel) ->
                   case MatName0 of
                       none ->
@@ -125,9 +129,8 @@ draw_options(#st{bb=Uvs}=AuvSt0) ->
                       _ ->
                           catch wings_material:update_image(MatName0, diffuse, BkpImg, GeomSt0)
                   end,
-                  wings_wm:later({new_state,AuvSt0}),
                   prw_img_id(delete),
-                  GeomSt0;
+                  AuvSt0;
              (Options) ->
                   Opt = list_to_prefs(Options),
                   prw_img_id(delete),
