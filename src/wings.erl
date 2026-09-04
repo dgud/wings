@@ -79,6 +79,7 @@ init(Env) ->
             init_part2(Args, Frame, GeomGL, Ps)
     end.
 
+-spec init_part2(undefined | {'ok', list()}, wx:wx_object(), wx:wx_object(), list()) -> no_return().
 init_part2(Args, Frame, GeomGL, GeomPs) ->
     St0 = new_st(),
     St1 = wings_sel:reset(St0),

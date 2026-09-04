@@ -67,10 +67,7 @@ map_chart(Type, We, Options) ->
 	_ when Type == lsqcm, is_list(Options), length(Options) < 2 ->
 	    {error,?__(3,"At least 2 vertices (per chart) must be selected")};
 	[Best|_] ->
-	    map_chart_1(Type, Faces, Best, Options, We);
-	Err ->
-	    ?dbg(?__(4,"Error:")++" ~p~n", [Err]),
-	    {error, ?__(5,"Error, try to cleanup objects before uv-mapping")}
+	    map_chart_1(Type, Faces, Best, Options, We)
     catch _:Err ->
 	    ?dbg(?__(4,"Error:")++" ~p~n", [Err]),
 	    {error, ?__(5,"Error, try to cleanup objects before uv-mapping")}

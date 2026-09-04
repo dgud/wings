@@ -130,7 +130,6 @@ import(Name) ->
 
 import_1(Fd, Dir) ->
     try import_2(Fd, Dir) of
-	{error,_}=Error -> Error;
 	#e3d_file{}=E3dFile -> {ok,E3dFile}
     catch throw:{format_not_supported,Reason} ->
             {error, Reason}
