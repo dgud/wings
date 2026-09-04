@@ -143,12 +143,15 @@ message(Message) ->
     wings_io:putback_event({wm,{message,get(wm_active),Message}}).
 
 message_right(Right) ->
-    wings_io:putback_event({wm,{message_right,get(wm_active),Right}}),
-    psend(get(wm_active),redraw).
+    MsgData0=get_window_data(message),
+    put_window_data(message,MsgData0#win{z=highest_z()}),
+    wings_io:putback_event({wm,{message_right,get(wm_active),Right}}).
 
 message(Message, Right) ->
-    message(Message),
-    message_right(Right).
+    MsgData0=get_window_data(message),
+    put_window_data(message,MsgData0#win{z=highest_z()}),
+    wings_io:putback_event({wm,{message,get(wm_active),Message}}),
+    wings_io:putback_event({wm,{message_right,get(wm_active),Right}}).
 
 later(Ev) ->
     wings_io:putback_event({wm,{send_to,this(),Ev}}),
