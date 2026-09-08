@@ -140,11 +140,17 @@ import(Props, Importer, St0) ->
 do_import(Importer, Name, St0) ->
     wings_pb:start(?__(1,"reading file")),
     wings_pb:update(1.0),
-    case wings_pb:done(Importer(Name)) of
-	{ok,#e3d_file{}=E3DFile} ->
+    try Importer(Name) of
+        {ok,#e3d_file{}=E3DFile} ->
+            wings_pb:done(),
 	    wings_import:import(E3DFile, St0);
 	{error,Reason} ->
+            wings_pb:done(),
 	    wings_u:error_msg(Reason)
+    catch E:Reason:ST when E =:= error; E =:= exit ->
+            wings_pb:done() ,
+            io:format("Import error: ~P ~P~n",[Reason, 20, ST, 20]),
+            wings_u:error_msg(?__(1,"Import failed: Bad format in: " ++ Name))
     end.
 
 %% import_filename([Prop], Continuation).
