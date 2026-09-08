@@ -99,6 +99,7 @@ MODULES= \
 	wings_render \
 	wings_rotate \
 	wings_s \
+	wings_save_manager \
 	wings_sel \
 	wings_sel_conv \
 	wings_sel_cmd \

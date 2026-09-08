@@ -73,14 +73,20 @@ latin1_file_to_unicode(PrefFile) ->
 
 get_dir() ->
     PFile = case get_value(pref_directory) of
-		undefined -> 
-		    File = get_pref_directory("backup_prefs.pref"),
-		    set_value(pref_directory,File),
-		    File;
-		File -> File
-	    end,
+		undefined ->
+		    get_dir("backup_prefs.pref");
+		File ->
+		    case filelib:is_file(File) of
+		        true -> File;
+		        false -> get_dir("backup_prefs.pref")
+		    end
+		end,
     filename:dirname(PFile).
 
+get_dir(Name) ->
+    File = get_pref_directory(Name),
+    set_value(pref_directory,File),
+    File.
 
 %%%% Restore window layout on MS Windows
 win32_window_layout() ->

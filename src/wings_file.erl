@@ -13,7 +13,7 @@
 
 -module(wings_file).
 -export([init/0,init_autosave/0,menu/0,command/2]).
--export([import_filename/2,export_filename/2,export_filename/3]).
+-export([add_recent/1,import_filename/2,export_filename/2,export_filename/3]).
 -export([unsaved_filename/0,del_unsaved_file/0,autosave_filename/1]).
 -export([file_filters/1]).
 
@@ -304,6 +304,7 @@ new(#st{saved=true}=St0) ->
     St2 = clean_images(wings_undo:init(St1)),
     St = wings_obj:create_folder_system(St2),
     wings_u:caption(St),
+    reset_autosave_timer(),
     {new,St#st{saved=true}};
 new(#st{}=St0) ->		      %File is not saved or autosaved.
     wings_u:caption(St0#st{saved=false}),
@@ -353,6 +354,7 @@ confirmed_open(Name, St0) ->
 			  St4 = clean_images(St3),
 			  St = wings_obj:recreate_folder_system(St4),
 			  add_recent(Name),
+			  reset_autosave_timer(),
 			  wings_u:caption(St#st{saved=true,file=Name});
 		      {error,Reason} ->
 			  clean_new_images(St2),
@@ -433,15 +435,9 @@ save_now(Next, #st{file=Name0}=St) ->
     end,
     file:rename(Name, Backup),
     file:delete(autosave_filename(Name)),
-    case ?SLOW(wings_ff_wings:export(Name, false, St)) of
-	ok ->
-	    set_cwd(dirname(Name)),
-	    add_recent(Name),
-	    maybe_send_action(Next),
-	    {saved,wings_u:caption(St#st{saved=true})};
-	{error,Reason} ->
-	    wings_u:error_msg(?__(1,"Save failed: ") ++ Reason)
-    end.
+    wings_save_manager:save_state(St, Name, manual),
+    maybe_send_action(Next),
+    reset_autosave_timer().
 
 del_unsaved_file() ->
     File = autosave_filename(unsaved_filename()),
@@ -471,10 +467,8 @@ save_selected(St) ->
 
 save_selected(Name, St0) ->
     St = delete_unselected(St0),
-    case ?SLOW(wings_ff_wings:export(Name, true, St)) of
-	ok -> keep;
-	{error,Reason} -> wings_u:error_msg(Reason)
-    end.
+    wings_save_manager:save_state(St, Name, manual),
+    reset_autosave_timer().
 
 %%%
 %%% Save incrementally. Original code submitted by Clacos.
@@ -580,6 +574,12 @@ init_autosave() ->
 get_autosave_event(Ref, St) ->
     {replace,fun(Ev) -> autosave_event(Ev, Ref, St) end}.
 
+reset_autosave_timer() ->
+    case wings_wm:is_window(autosaver) of
+        true  -> wings_wm:send(autosaver, start_timer);
+        false -> keep  %% not created yet, so no timer to reset
+    end.
+
 autosave_event(start_timer, OldTimer, St) ->
     wings_wm:cancel_timer(OldTimer),
     case {wings_pref:get_value(autosave),wings_pref:get_value(autosave_time)} of
@@ -606,23 +606,8 @@ autosave(#st{saved=true} = St) -> St;
 autosave(#st{saved=auto} = St) -> St;
 autosave(#st{file=Name}=St) ->
     Auto = autosave_filename(Name),
-    %% Maybe this should be spawned to another process
-    %% to let the autosaving be done in the background.
-    %% But I don't want to copy a really big model either.
-
-    %% Set the current view export views read it..
-    %% Fix this later
-    View = wings_wm:get_prop(geom, current_view),
-    wings_view:set_current(View),
-    filelib:ensure_dir(Auto),
-    case ?SLOW(wings_ff_wings:export(Auto, false, St)) of
-	ok ->
-	    wings_u:caption(St#st{saved=auto});
-	{error,Reason} ->
-	    F = ?__(1,"Autosaving \"~s\" failed: ~s"),
-	    Msg = lists:flatten(wings_util:format(F, [Auto,Reason])),
-	    wings_u:message(Msg)
-    end.
+    wings_save_manager:save_state(St, Auto, autosave),
+    keep.
 
 autosave_filename(File) ->
     Base = filename:basename(File),
