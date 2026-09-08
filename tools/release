@@ -38,7 +38,7 @@ release() ->
     WingsVsn = get_vsn("vsn.mk", "WINGS_VSN"),
     Build = filename:absname("build"),
     run("rm", ["-rf",Build]),
-    _ = file:make_dir(Build),
+    ok = file:make_dir(Build),
     case filelib:wildcard(filename:join(Build, "*")) of
 	[] ->
 	    ok;
@@ -47,10 +47,13 @@ release() ->
     end,
     case os_type() of
 	{unix,darwin} ->
+            io:format("Building MacOS release to: ~s\n", [Build]),
 	    mac_release(Build, WingsVsn);
 	{unix,_} ->
+            io:format("Building LINUX release to: ~s\n", [Build]),
 	    unix_release(Build, WingsVsn);
 	{win32,nt} ->
+            io:format("Building WINDOWS release to: ~s\n", [Build]),
 	    win_release(Build, WingsVsn)
     end.
 
@@ -268,16 +271,16 @@ redist_version_ok(Current, Required) ->
 nsi_file(32) -> "wings.nsi";
 nsi_file(64) -> "wings64.nsi".
 
-wsl_path([$/|Rest]) ->
-    "\\\\\\\\" ++ wsl_path(Rest);
-wsl_path([$(|Rest]) ->
-    "\\(" ++ wsl_path(Rest);
-wsl_path([$)|Rest]) ->
-    "\\)" ++ wsl_path(Rest);
-wsl_path([Char|Rest]) ->
-    [Char | wsl_path(Rest)];
-wsl_path([]) ->
-    [].
+%% wsl_path([$/|Rest]) ->
+%%     "\\\\\\\\" ++ wsl_path(Rest);
+%% wsl_path([$(|Rest]) ->
+%%     "\\(" ++ wsl_path(Rest);
+%% wsl_path([$)|Rest]) ->
+%%     "\\)" ++ wsl_path(Rest);
+%% wsl_path([Char|Rest]) ->
+%%     [Char | wsl_path(Rest)];
+%% wsl_path([]) ->
+%%     [].
 
 convert_script(Root) ->
     set_cwd(filename:join(lib_dir(wings), src)),
