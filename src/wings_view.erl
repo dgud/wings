@@ -778,7 +778,10 @@ toggle_option(Key0) ->
     end.
 
 current() ->
-    wings_wm:get_prop(current_view).
+    case wings_wm:this() of
+        none -> wings_wm:get_prop(geom,current_view);
+        _ -> wings_wm:get_prop(current_view)
+    end.
 
 set_current(View) ->
     wings_wm:set_prop(current_view, View),

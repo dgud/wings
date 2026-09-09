@@ -65,6 +65,7 @@ init(Env) ->
     wings_plugin:init(),
     wings_sel_cmd:init(),
     wings_file:init(),
+    wings_save_manager:start_link(),
     macosx_workaround(),
     wings_text:init(),
     %% Ack that we are done, need to create top window now
@@ -693,8 +694,6 @@ command_response({drag,Drag}, Args, _) ->
     wings_drag:do_drag(Drag, Args);
 command_response({save_state,#st{}=St}, _, St0) ->
     save_state(St0, St);
-command_response({saved,St}, _, _) ->
-    main_loop(St);
 command_response({new,St}, _, _) ->
     main_loop(wings_u:caption(wings_undo:init(St)));
 command_response({push,_}=Push, _, _) ->
@@ -748,7 +747,7 @@ repeatable(Mode, Cmd) ->
     %% Some special cases.
     {_,tighten=C} when Mode == vertex; Mode == body -> {Mode,C};
     {_,smooth=C} when Mode == face; Mode == body -> {Mode,C};
-    
+
     %% No more commands are safe in body mode.
     {_,_} when Mode == body -> no;
     {_,{flatten,_}=C} when Mode == vertex; Mode == face; Mode == edge -> {Mode,C};
@@ -959,8 +958,12 @@ command_1({tweak, Cmd}, St) ->
 
 %% Hotkey setup or delete
 command_1({hotkey, Cmd}, St) ->
-    wings_hotkey:command(Cmd, St).
+    wings_hotkey:command(Cmd, St);
 
+%% Save file management.  If the file was saved, add it to the recent files list.
+command_1({saved,{Saved,TargetFile}}, St) ->
+    Saved andalso wings_file:add_recent(TargetFile),
+    main_loop(wings_u:caption(St#st{saved=Saved})).
 
 popup_menu(X, Y, #st{sel=[]}) ->
     wings_shapes:menu(wings_wm:this_win(), wings_wm:local2screen({X,Y}));
@@ -1228,7 +1231,7 @@ handle_drop_1({material,Name}, Pos, _) ->
           ?__(10,"Assign material \"")++Name++
           ?__(11,"\" to all faces in objects having a selection")}],
     wings_menu:popup_menu(wings_wm:this_win(), Pos, drop, Menu).
-    
+
 menu_cmd(Cmd, Id) ->
     {'VALUE',{Cmd,Id}}.
 

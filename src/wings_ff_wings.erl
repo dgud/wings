@@ -753,7 +753,7 @@ import_objects([], _Mode, _NameMap, Oid, Objs0) ->
     Objs = share_list(Objs0),
     %%io:format("size: ~p\n", [erts_debug:size(Objs)]),
     {Objs,Oid}.
-    
+
 import_edges([[{edge,Va,Vb,Lf,Rf,Ltpr,Ltsu,Rtpr,Rtsu}]|Es], Edge, Acc) ->
     Rec = #edge{vs=Va,ve=Vb,lf=Lf,rf=Rf,
 		ltpr=Ltpr,ltsu=Ltsu,rtpr=Rtpr,rtsu=Rtsu},
@@ -804,7 +804,7 @@ import_face_mat_1([_|T], NameMap, Mat) ->
     import_face_mat_1(T, NameMap, Mat);
 import_face_mat_1([], _, Mat) -> Mat.
 
-import_vs([Vtx|Vs], V, Acc) -> 
+import_vs([Vtx|Vs], V, Acc) ->
     Rec = import_vertex(Vtx, []),
     import_vs(Vs, V+1, [{V,Rec}|Acc]);
 import_vs([], _V, Acc) -> reverse(Acc).
@@ -853,7 +853,7 @@ import_props([{scene_prefs,ScenePrefs}|Ps], St) ->
 		  ScenePrefs),
     import_props(Ps, St);
 import_props([{plugin_states,Pst0}|Ps], #st{pst=Previous}=St0) ->
-    St = try 
+    St = try
 	     case gb_trees:keys(Previous) of
 		 [] ->
 		     Pst = gb_trees:from_orddict(lists:sort(Pst0)),
@@ -877,7 +877,7 @@ import_props([{plugin_states,Pst0}|Ps], #st{pst=Previous}=St0) ->
 		     Pst  = gb_trees:from_orddict(lists:sort(Pst1)),
 		     St0#st{pst=Pst}
 	     end
-	 catch error:Reason -> 
+	 catch error:Reason ->
 		 io:format("Failed importing plugins state Not a gb_tree ~p ~n",
 			   [Reason]),
 		 St0
@@ -905,14 +905,14 @@ import_images(Dir,Props) ->
 	undefined -> Empty;
 	Images -> import_images_1(Images, Dir, Empty)
     end.
-	    
+
 import_images_1([{Id0,Im}|T], Dir, Map) ->
-    try 
+    try
 	#e3d_image{name=Name} = E3D = import_image(Im,Dir),
 	Id = wings_image:new(Name, E3D),
 	import_images_1(T, Dir, gb_trees:insert(Id0, Id, Map))
     catch
-	throw:{bad_image,Image} -> 
+	throw:{bad_image,Image} ->
 	    E3d = #e3d_image{name=Image,width=1,height=1,image= <<0,0,0>>},
 	    ID = wings_image:new(Image, E3d),
 	    import_images_1(T, Dir, gb_trees:insert(Id0, ID, Map))
@@ -928,9 +928,9 @@ import_image(Im,Dir) ->
 	    PP = proplists:get_value(samples_per_pixel, Im, 0),
 	    Pixels = proplists:get_value(pixels, Im),
 	    if
-		W*H*PP =:= byte_size(Pixels) -> 
+		W*H*PP =:= byte_size(Pixels) ->
 		    ok;
-		true -> 
+		true ->
 		    Str = io_lib:format(?__(2,"Bad image: ~ts\n"), [Name]),
 		    wings_u:message(lists:flatten(Str)),
 		    throw({bad_image,Name})
@@ -1122,7 +1122,7 @@ share_tuple(none, _, Shared) -> {none,Shared}.
 
 translate_materials(Mats) ->
     [translate_material(M) || M <- Mats].
-    
+
 translate_material({Name,Props}=Mat) ->
     case proplists:is_defined(opengl, Props) of
 	true -> Mat;
@@ -1226,7 +1226,7 @@ validate_holes(#we{fs=Ftab,holes=Holes0}=We) ->
     %% Only keep faces that exist and are invisible.
     Holes = [F || F <- Holes0, F < 0, gb_trees:is_defined(F, Ftab)],
     We#we{holes=Holes}.
-    
+
 %%%
 %%% Save a Wings file (in version 2).
 %%%
@@ -1234,56 +1234,61 @@ validate_holes(#we{fs=Ftab,holes=Holes0}=We) ->
 export(Name, OnlySel, St0) ->
     wings_pb:start( ?__(1,"saving")),
     wings_pb:update(0.01, ?__(2,"lights")),
-    Lights = wings_light:export_bc(St0),
-    Materials = case wings_pref:get_value(save_unused_materials) of
-                    true ->
-                        #st{mat=Mat} = St0,
-                        gb_trees:to_list(Mat);
-                    false ->
-                        wings_material:used_materials(St0)
-                end,
-    #st{shapes=Shs0,views={CurrentView,_}} = St =
-        remove_lights(St0),
-    Sel0 = collect_sel(St),
-    wings_pb:update(0.65, ?__(3,"renumbering")),
-    Shs1 = [{Id,show_mirror_face(We)} ||
-	       {Id,We} <- gb_trees:to_list(Shs0)],
-    {Shs2,Sel} = renumber(Shs1, Sel0, 0, [], []),
-    Shs = foldl(fun shape/2, [], Shs2),
-    wings_pb:update(0.98, ?__(4,"objects")),
-    Props0 = export_props(Sel),
-    Props1 = case Lights of
-		 [] -> Props0;
-		 [_|_] -> [{lights,Lights}|Props0]
-	     end,
-    Props2 = case export_images() of
-                 [] -> Props1;
-                 Images ->
-                     case OnlySel of
-                         true ->
-                             case used_images(Images, Materials) of
-                                 [] -> Props1;
-                                 Imgs -> [{images,Imgs}|Props1]
-                             end;
-                         false ->
-                             [{images,Images}|Props1]
-                     end
-	     end,
-    Props3 = case wings_view:export_views(St) of
-		 [] -> Props2;
-		 Views -> [{current_view,CurrentView},{views,Views}|Props2]
-	     end,
-    Props4 = case wings_palette:palette(St) of
-		 [] -> Props3;
-		 Palette -> [{palette, Palette}|Props3]
-	     end,
-    Props5 = export_pst(St#st.pst,Props4),
-    Props  = [{scene_prefs,wings_pref:get_scene_value()}|Props5],
-    Wings = {wings,2,{Shs,Materials,Props}},
-    wings_pb:update(0.99, ?__(5,"compressing")),
-    Bin = term_to_binary(Wings, [compressed]),
-    wings_pb:update(1.0, ?__(6,"writing file")),
-    wings_pb:done(write_file(Name, Bin)).
+    try
+        Lights = wings_light:export_bc(St0),
+        Materials = case wings_pref:get_value(save_unused_materials) of
+                        true ->
+                            #st{mat=Mat} = St0,
+                            gb_trees:to_list(Mat);
+                        false ->
+                            wings_material:used_materials(St0)
+                    end,
+        #st{shapes=Shs0,views={CurrentView,_}} = St =
+            remove_lights(St0),
+        Sel0 = collect_sel(St),
+        wings_pb:update(0.65, ?__(3,"renumbering")),
+        Shs1 = [{Id,show_mirror_face(We)} ||
+            {Id,We} <- gb_trees:to_list(Shs0)],
+        {Shs2,Sel} = renumber(Shs1, Sel0, 0, [], []),
+        Shs = foldl(fun shape/2, [], Shs2),
+        wings_pb:update(0.98, ?__(4,"objects")),
+        Props0 = export_props(Sel),
+        Props1 = case Lights of
+            [] -> Props0;
+            [_|_] -> [{lights,Lights}|Props0]
+            end,
+        Props2 = case export_images() of
+                    [] -> Props1;
+                    Images ->
+                        case OnlySel of
+                            true ->
+                                case used_images(Images, Materials) of
+                                    [] -> Props1;
+                                    Imgs -> [{images,Imgs}|Props1]
+                                end;
+                            false ->
+                                [{images,Images}|Props1]
+                        end
+            end,
+        Props3 = case wings_view:export_views(St) of
+            [] -> Props2;
+            Views -> [{current_view,CurrentView},{views,Views}|Props2]
+            end,
+        Props4 = case wings_palette:palette(St) of
+            [] -> Props3;
+            Palette -> [{palette, Palette}|Props3]
+            end,
+        Props5 = export_pst(St#st.pst,Props4),
+        Props  = [{scene_prefs,wings_pref:get_scene_value()}|Props5],
+        Wings = {wings,2,{Shs,Materials,Props}},
+        wings_pb:update(0.99, ?__(5,"compressing")),
+        Bin = term_to_binary(Wings, [{compressed,1}]),
+        wings_pb:update(1.0, ?__(6,"writing file")),
+        wings_pb:done(write_file(Name, Bin))
+    catch
+        Class:Reason:Stack ->
+            wings_pb:done({error, {Class,Reason,Stack}})
+    end.
 
 remove_lights(#st{sel=Sel0,shapes=Shs0}=St) ->
     Shs1 = foldl(fun(We, A) when ?IS_ANY_LIGHT(We) -> A;
@@ -1357,12 +1362,12 @@ export_props_1([], Acc) -> Acc.
 
 export_pst(undefined, Props0) -> Props0;
 export_pst(Pst0,Props0) ->
-    try 
+    try
 	Pst1 = gb_trees:to_list(Pst0),
 	Pst = lists:filter(fun({Mod,_}) when is_atom(Mod) -> true;
 			      (_) -> false end, Pst1),
 	[{plugin_states,Pst}|Props0]
-    catch error:Reason -> 
+    catch error:Reason ->
 	    io:format("Failed exporting plugins state NOT a gb_tree ~p ~n",
 		      [Reason]),
 	    Props0
@@ -1415,7 +1420,7 @@ export_edge(E, Rec, UvFaces, We, Acc) ->
     Data0 = [{edge,Va,Vb,Lf,Rf,Ltpr,Ltsu,Rtpr,Rtsu}],
     Data = edge_data(E, Rec, We, UvFaces, Data0),
     [Data|Acc].
-    
+
 edge_data(E, #edge{lf=Lf,rf=Rf}, We, UvFaces, Acc0) ->
     A = wings_va:edge_attrs(E, left, We),
     B = wings_va:edge_attrs(E, right, We),
