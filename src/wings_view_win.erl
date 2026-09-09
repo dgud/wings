@@ -4,7 +4,7 @@
 %%     View window.
 %%
 %%  Copyright (c) 2016 Dan Gudmundsson
-%%
+%%                2026 Micheus (matcap feature)
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
@@ -26,6 +26,7 @@
 -define(HEMI_LIGHT, 1000).
 -define(HEMI_SKY, 1001).
 -define(HEMI_GROUND, 1002).
+-define(MATCAP_LIGHT, 1003).
 -define(CAM_LIGHT, 1010).
 -define(CAM_POSX, 1013).
 -define(CAM_POSY, 1014).
@@ -36,6 +37,9 @@
 -define(CAM_BG_IMAGE, 1023).
 -define(CAM_BG_ROTATE, 1024).
 -define(SCENE_LIGHT, 1030).
+-define(MATCAP_TEXTURE, 1040).
+-define(MATCAP_ROTATE, 1041).
+-define(MATCAP_USE_DIFFUSE, 1042).
 
 -define(AlignSz, 80).
 -define(SPACER_SIZE, 8).
@@ -88,7 +92,10 @@ get_init_state(#st{} = St) ->
       cam_bg_rotate => wings_pref:get_value(show_bg_rotate),
       cam_bg_image => wings_pref:get_value(bg_image),
       hemi_sky => wings_pref:get_value(hl_skycol),
-      hemi_ground => wings_pref:get_value(hl_groundcol)
+      hemi_ground => wings_pref:get_value(hl_groundcol),
+      matcap_texture => wings_pref:get_value(matcap_texture),
+      matcap_rotate => wings_pref:get_value(matcap_rotate),
+      matcap_use_diffuse => wings_pref:get_value(matcap_use_diffuse)
      }.
 
 have_scene_light(St) ->
@@ -100,10 +107,9 @@ have_scene_light(St) ->
     end.
 
 use_light(HaveSceneLight, SceneLight) ->
-    CameraLight = wings_pref:get_value(number_of_lights) == 1,
-    if SceneLight andalso HaveSceneLight -> scene_light;
-       CameraLight -> camera_light;
-       true -> hemi_light
+    LightId = wings_pref:get_value(number_of_lights),
+    if SceneLight andalso HaveSceneLight -> scene_lights;
+    true -> wings_shaders:shader_light(LightId)
     end.
 
 changed_state(Key0, Val0, Window, State) ->
@@ -119,43 +125,38 @@ changed_state(Key0, Val0, Window, State) ->
 changed_state(number_of_lights, Val, #{light := Light0}) ->
     Light = case Val of
                 1 -> camera_light;
-                2 -> hemi_light
+                2 -> hemi_light;
+                3 -> matcap_light
             end,
     {Light =/= Light0, {light, Light}};
 changed_state(scene_lights, Bool, #{light:=Light0, have_scene_light:=HaveSceneLight}) ->
     Light = use_light(Bool, HaveSceneLight),
     {Light =/= Light0, {light, Light}};
 changed_state(have_scene_light, Bool, #{have_scene_light:=HaveSceneLight}) ->
-    {Bool =/= HaveSceneLight, {have_scene_light, Bool}};
-changed_state(_Key, _Val, _State) ->
-    %% ?dbg("Ignore: ~p ~p in ~p~n",[_Key, _Val, _State]),
-    {false, ignored}.
+    {Bool =/= HaveSceneLight, {have_scene_light, Bool}}.
 
 change_state(Window, State) ->
     fun(Ev) -> forward_event(Ev, Window, State) end.
 
 %% Forward to view_window
-forward_event({current_state, St}, Window, State0) ->
+forward_event({current_state, St}, Window, #{have_scene_light:=HaveSceneLight0}=State0) ->
     HaveSceneLight = have_scene_light(St),
-    changed_state(have_scene_light, HaveSceneLight, Window, State0);
-forward_event({view,Key,Val}, Window, State0) ->
-    changed_state(Key, Val, Window, State0);
+    SceneLights = wings_pref:get_value(scene_lights, false),
+    if HaveSceneLight=/=HaveSceneLight0 ->
+        changed_state(have_scene_light, HaveSceneLight, Window, State0);
+    SceneLights andalso HaveSceneLight ->
+        changed_state(scene_lights, SceneLights, Window, State0);
+    true ->
+        LightId = wings_pref:get_value(number_of_lights),
+        changed_state(number_of_lights, LightId, Window, State0)
+    end;
 %% Forward to wings
 forward_event({apply, {Light, radio}, _}, _Window, #{light := Prev}) ->
-    case {Light, Prev} of
-        {_, scene_light} ->
-            CameraLight = wings_pref:get_value(number_of_lights) == 1,
-            if Light =:= camera_light, CameraLight ->
-                    wings_wm:send(geom, {action, {view, scene_lights}});
-               Light =:= hemi_light, not CameraLight ->
-                    wings_wm:send(geom, {action, {view, scene_lights}});
-               true ->
-                    wings_wm:send(geom, {action, {view, toggle_lights}})
-            end;
-        {scene_light, _} ->
-            wings_wm:psend(geom, {action, {view, scene_lights}});
-        {_, _} ->
-            wings_wm:psend(geom, {action, {view, toggle_lights}})
+    AnyEnabledLight = wings_light:any_enabled_lights(),
+    case Light of
+        Prev -> ignore;
+        scene_lights when not AnyEnabledLight -> ignore;
+        _ -> wings_wm:psend(geom, {action, {view, {light,Light}}})
     end,
     keep;
 forward_event({apply, {hemi_light, sky}, RGB}, Window, State) ->
@@ -215,6 +216,29 @@ forward_event({apply, {camera_opts, bg_image}, Image}, Window, State) ->
             wings_wm:dirty(),
             change_state(Window, State#{cam_bg_image := Image})
     end;
+forward_event({apply, {matcap_light, matcap_texture}, Image}, Window, State) ->
+    case wings_light:load_matcap_texture(Image) of
+        {file_error, Err} ->
+            handle_error(file, Err, Image),
+            keep;
+        ok ->
+            SliderRef = wxWindow:findWindowById(?MATCAP_ROTATE),
+            Slider = wx:typeCast(SliderRef, wxSlider),
+            wings_pref:set_value(matcap_texture, Image),
+            wings_pref:set_value(matcap_rotate, 0.0),
+            wxSlider:setValue(Slider, round(0.0)),
+            wings_wm:dirty(),
+            change_state(Window, State#{matcap_texture := Image, matcap_rotate := 0.0})
+    end;
+forward_event({apply, {matcap_light, matcap_rot_slider}, Val}, Window, State) ->
+    wings_pref:set_value(matcap_rotate, Val),
+    wings_status:message(?MODULE, io_lib:format(?__(24,"MatCap Rotate: ~.3f"), [Val/1.0])),
+    wings_wm:dirty(),
+    change_state(Window, State#{matcap_rotate := Val});
+forward_event({apply, {matcap_light, matcap_use_diffuse}, Val}, Window, State) ->
+    wings_pref:set_value(matcap_use_diffuse, Val),
+    wings_wm:dirty(),
+    change_state(Window, State#{matcap_use_diffuse := Val});
 
 forward_event(redraw, _, _) ->
     keep;
@@ -245,6 +269,7 @@ init([Frame, _Ps, Os]) ->
     LightSz = wxStaticBoxSizer:new(?wxVERTICAL, Panel, [{label, ?__(1, "Light Settings")}]),
     HemL = create_hemilight(Panel, LightSz, SubFlags),
     CamL = create_cameralight(Panel, LightSz, SubFlags),
+    MatCapL = create_matcap(Panel, LightSz, SubFlags),
     SceneL = create_scenelight(Panel, LightSz, SubFlags),
     wxSizer:add(Szr, LightSz, [{border, 5}, {flag, ?wxEXPAND bor ?wxALL}]),
 
@@ -253,7 +278,8 @@ init([Frame, _Ps, Os]) ->
     wxSizer:add(Szr, CameraSz, [{border, 5}, {flag, ?wxEXPAND bor ?wxALL}]),
 
     wxPanel:setSizer(Panel, Szr),
-    State0 = #{camera_light => CamL, hemi_light => HemL, scene_light => SceneL, camera_opts => CamS},
+    State0 = #{camera_light => CamL, hemi_light => HemL, scene_lights => SceneL,
+               matcap_light => MatCapL, camera_opts => CamS},
     State = ids_to_path(State0),
     wxWindow:connect(Panel, command_radiobutton_selected),
     wxWindow:connect(Panel, command_slider_updated),
@@ -319,6 +345,34 @@ create_cameralight(Panel, LightSz, SubFlags) ->
       x_slider => PosCtrlX, y_slider => PosCtrlY, col => ColCtrl,
       ids => [{radio, ?CAM_LIGHT}, {pos_x, ?CAM_POSX}, {pos_y, ?CAM_POSY}, {col, ?CAM_COL}]}.
 
+create_matcap(Panel, LightSz, SubFlags) ->
+    MatCapLB = wxRadioButton:new(Panel, ?MATCAP_LIGHT, ?__(1, "MatCap"), []),
+    Desc = ?__(2, "Baked lighting texture, ignores scene lights and projects a pre-rendered sphere onto the model."),
+    wxWindow:setToolTip(MatCapLB, wxToolTip:new(Desc)),
+    MatCapSz   = wxBoxSizer:new(?wxVERTICAL),
+
+    ImageCtrl = wxFilePickerCtrl:new(Panel, ?MATCAP_TEXTURE, []),
+    ImageSz = pre_text(?__(3, "Image:"), ImageCtrl, Panel),
+    wxSizer:add(MatCapSz, ImageSz, [{flag, ?wxEXPAND}]),
+
+    MatcapRotate = wxSlider:new(Panel, ?MATCAP_ROTATE, 0, -180, 180, [{style, ?wxSL_HORIZONTAL}]),
+    wxWindow:setToolTip(MatcapRotate, wxToolTip:new(?__(5, "Set MatCap texture Rotation"))),
+    RotateSz = pre_text(?__(6, "Rotation:"), MatcapRotate, Panel),
+    wxSizer:add(MatCapSz, RotateSz, [{flag, ?wxEXPAND}]),
+
+    UseDiffuse = wxCheckBox:new(Panel, ?MATCAP_USE_DIFFUSE, ?__(4, "Blend the diffuse (albedo) texture map"), [{style,?wxALIGN_LEFT}]),
+    wxSizer:add(MatCapSz, UseDiffuse, [{flag, ?wxEXPAND}]),
+
+    wxSizer:add(LightSz, MatCapLB),
+    wxSizer:add(LightSz, MatCapSz, SubFlags),
+    wxSizer:addSpacer(LightSz, ?SPACER_SIZE),
+    wxCheckBox:connect(UseDiffuse, command_checkbox_clicked),
+    wxFilePickerCtrl:connect(ImageCtrl, command_filepicker_changed),
+    #{radio => MatCapLB, sz => MatCapSz, matcap_texture => ImageCtrl,
+        matcap_use_diffuse => UseDiffuse, matcap_rot_slider => MatcapRotate,
+        ids => [{radio, ?MATCAP_LIGHT}, {matcap_texture, ?MATCAP_TEXTURE},
+            {matcap_use_diffuse, ?MATCAP_USE_DIFFUSE}, {matcap_rot_slider, ?MATCAP_ROTATE}]}.
+
 create_scenelight(Panel, LightSz, SubFlags) ->
     SceneLB = wxRadioButton:new(Panel, ?SCENE_LIGHT, ?__(10, "Scene Light"), []),
     Desc = ?__(3, "Scene light, uses the scene lights, emulates a physically based renderer, uses all material properties"),
@@ -373,14 +427,17 @@ pre_text(String, Ctrl, Parent) ->
 setup_gui(light, camera_light, #{camera_light:=Cam}) ->
     #{radio:=Button} = Cam,
     wxRadioButton:setValue(Button, true);
-setup_gui(light, scene_light, #{scene_light:=Cam}) ->
+setup_gui(light, scene_lights, #{scene_lights:=Cam}) ->
+    #{radio:=Button} = Cam,
+    wxRadioButton:setValue(Button, true);
+setup_gui(light, matcap_light, #{matcap_light:=Cam}) ->
     #{radio:=Button} = Cam,
     wxRadioButton:setValue(Button, true);
 setup_gui(light, hemi_light, #{hemi_light:=Cam}) ->
     #{radio:=Button} = Cam,
     wxRadioButton:setValue(Button, true);
 
-setup_gui(have_scene_light, Bool, #{scene_light:=Cam}) ->
+setup_gui(have_scene_light, Bool, #{scene_lights:=Cam}) ->
     %% Scene light is available
     #{radio:=Button} = Cam,
     wxRadioButton:enable(Button, [{enable, Bool}]);
@@ -418,6 +475,16 @@ setup_gui(hemi_sky, RGB, #{hemi_light:=Hemi}) ->
 setup_gui(hemi_ground, RGB, #{hemi_light:=Hemi}) ->
     #{ground:=Ctrl} = Hemi,
     ww_color_ctrl:setColor(Ctrl, RGB);
+
+setup_gui(matcap_texture, FileName, #{matcap_light:=Cam}) ->
+    #{matcap_texture:=Slider} = Cam,
+    wxFilePickerCtrl:setPath(Slider, FileName);
+setup_gui(matcap_rotate, Val, #{matcap_light:=Cam}) ->
+    #{matcap_rot_slider:=Slider} = Cam,
+    wxSlider:setValue(Slider, round(Val));
+setup_gui(matcap_use_diffuse, Bool, #{matcap_light:=Cam}) ->
+    #{matcap_use_diffuse:=Ctrl} = Cam,
+    wxCheckBox:setValue(Ctrl, Bool);
 setup_gui(_Key, _Val, _) ->
     ?dbg("Missing impl: ~p ~p~n",[_Key,_Val]),
     ok.
@@ -432,6 +499,10 @@ handle_event(#wx{id=?CAM_BG,event=#wxCommand{type=command_checkbox_clicked, comm
     #{bg_slider:=Slider} = Cam,
     wxSlider:enable(Slider, [{enable, Val == 1}]),
     {noreply, State};
+handle_event(#wx{id=?MATCAP_USE_DIFFUSE,event=#wxCommand{type=command_checkbox_clicked}=Ev}, #{ids:=Ids} = State) ->
+    What = maps:get(?MATCAP_USE_DIFFUSE, Ids),
+    forward_setting(What, Ev),
+    {noreply, State};
 handle_event(#wx{id=Id, event=#wxMouse{type=enter_window}}=Ev, #{ids:=Ids} = State) ->
     Msg = case maps:get(Id, Ids, none) of
               {hemi_light, _} -> ?__(2, "Change light color");
@@ -442,6 +513,9 @@ handle_event(#wx{id=Id, event=#wxMouse{type=enter_window}}=Ev, #{ids:=Ids} = Sta
               {camera_opts, bg_slider} -> ?__(12, "Blur environment");
               {camera_opts, bg_rot_slider} -> ?__(14, "Rotate environment");
               {camera_opts, bg_image} -> ?__(13, "Change environment image");
+              {matcap_light, matcap_texture} -> ?__(15, "Change matcap texture");
+              {matcap_light, matcap_rot_slider} -> ?__(16, "Rotate matcap texture");
+              {matcap_light, matcap_use_diffuse} -> ?__(17, "Blend diffuse colour/map and matcap texture");
               _What -> ?__(1, "Edit camera and light settings")
           end,
     wings_status:message(?MODULE, Msg),

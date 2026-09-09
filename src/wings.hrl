@@ -76,6 +76,7 @@
 -define(ENV_DIFF_MAP_UNIT, 3).
 -define(ENV_SPEC_MAP_UNIT, 4).
 -define(ENV_BRDF_MAP_UNIT, 5).
+-define(MATCAP_MAP_UNIT, 7).
 -define(AREA_LTC_MAT_UNIT, 8). %%
 %% Extra materials
 -define(EMISSION_MAP_UNIT, 6).

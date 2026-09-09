@@ -275,7 +275,7 @@ load_img_plane(FileName, #e3d_image{type=Type}=Image0) ->
         wpa:error_msg(?__(1,"The image cannot be loaded as a texture.~nFile: \"~s\"~n GLU Error: ~p - ~s~n"),
               [FileName,GlErr, wings_gl:error_string(GlErr)]);
     Image0i ->
-        Image1 = e3d_image:convert(Image0i, img_type(Type), 1, lower_left),
+        Image1 = e3d_image:convert(Image0i, wings_image:img_type(Type), 1, lower_left),
         #e3d_image{width=W0,height=H0} = Image1,
         Image = case pad_image(Image1) of
             Image1 ->
@@ -307,7 +307,7 @@ ratio(W, H) when W < H -> {1.0,H/W};
 ratio(W, H) -> {W/H,1.0}.
 
 pad_image(#e3d_image{width=W0,image=Pixels0,bytes_pp=PP}=Image) ->
-    case nearest_power_two(W0) of
+    case wings_image:nearest_power_two(W0) of
     W0 ->
         pad_image_1(Image);
     W ->
@@ -317,7 +317,7 @@ pad_image(#e3d_image{width=W0,image=Pixels0,bytes_pp=PP}=Image) ->
     end.
 
 pad_image_1(#e3d_image{width=W,height=H0,image=Pixels0,bytes_pp=PP}=Image) ->
-    case nearest_power_two(H0) of
+    case wings_image:nearest_power_two(H0) of
     H0 ->
         pad_image_2(Image);
     H ->
@@ -345,13 +345,3 @@ zeroes(N) when N rem 2 =:= 0 ->
 zeroes(N) ->
     Z = zeroes(N div 2),
     [0,Z|Z].
-
-nearest_power_two(N) ->
-    nearest_power_two(N, 1).
-
-nearest_power_two(N, B) when N =< B -> B;
-nearest_power_two(N, B) -> nearest_power_two(N, B bsl 1).
-
-img_type(b8g8r8) -> r8g8b8;
-img_type(b8g8r8a8) -> r8g8b8a8;
-img_type(Type) -> Type.

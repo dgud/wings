@@ -358,7 +358,7 @@ copy_app(App0, Lib, BitSize) ->
 	   ["plugins","autouv","*.{auv,fs,vs}"],
 	   ["priv","*.{so,dll}"],
 	   ["shaders","*"],
-	   ["textures","*"]
+	   ["textures","**","*.{png,md,bin}"]
 	  ],
     Files = lists:foldl(fun(Wc0, Acc) ->
 				Wc = filename:join([App|Wc0]),
@@ -427,6 +427,7 @@ ext(".png")  -> {image, png};
 ext(".bin")  -> {image, bin};
 ext(".bundle")  -> {image, bundle};
 ext(".lang") -> {text, lang};
+ext(".md")   -> {text, md};
 ext(".app")  -> {text, app};
 ext(".cl")   -> {text, shader};
 ext(".glsl") -> {text, shader};
@@ -449,7 +450,7 @@ fix_app_version(App0, Lib) ->
 	    case file:rename(App, App++"-"++Vsn) of
 		ok -> ok;
 		Error ->
-		    io:format("ERROR: cd ~p~n  ~p => ~p ~n", 
+		    io:format("ERROR: cd ~p~n  ~p => ~p ~n",
 			      [Lib, App, App++"-"++Vsn]),
 		    error(Error)
 	    end;

@@ -4,7 +4,7 @@
 %%     Support for vertex & fragment shaders (for cards with OpenGL 2.0).
 %%
 %%  Copyright (c) 2001-2011 Bjorn Gustavsson
-%%
+%%                2026 Micheus (matcap feature)
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
@@ -12,7 +12,7 @@
 %%
 
 -module(wings_shaders).
--export([init/0, compile_all/0, use_prog/2,
+-export([init/0, shader_light/1, compile_all/0, use_prog/2,
          set_uloc/3, change_uloc/3,
          set_state/3, get_state/2, clear_state/2]).
 
@@ -37,13 +37,27 @@ init() ->
     end,
     compile_all().
 
+shader_light(Id) when is_integer(Id) ->
+    case lists:keyfind(Id, 1, shader_lights()) of
+        {Id,Light} -> Light;
+        false -> camera_light
+    end;
+shader_light(Light) ->
+    case lists:keyfind(Light, 2, shader_lights()) of
+        {Id,Light} -> Id;
+        false -> 2 %% hemi_light
+    end.
+
+shader_lights() -> [{1,camera_light},{2,hemi_light},{3,matcap_light}].
+
 compile_all() ->
     HL = [{'LightPosition', wings_pref:get_value(hl_lightpos)},
 	  {'SkyColor', wings_pref:get_value(hl_skycol)},
 	  {'GroundColor', wings_pref:get_value(hl_groundcol)}],
 
     Programs0 = [{1, camera_light, [], "One Camera Lights"},
-                 {2, hemilight, HL, "Hemispherical Lighting"},
+                 {2, hemi_light, HL, "Hemispherical Lighting"},
+                 {3, matcap_light, [], "MatCap Lighting"},
                  {background, background, [{blurry, 0.5}], ""},
                  {ambient_light, ambient_light, [], ""},
                  {infinite_light, infinite_light, [], ""},
@@ -92,6 +106,15 @@ use_prog(Name, RS) ->
                     RS4 = set_uloc('ws_lightpos', LPos, RS3),
                     RS5 = set_uloc('SkyColor', linear(hl_skycol), RS4),
                     set_uloc('GroundColor', linear(hl_groundcol), RS5);
+                3 ->
+                    UseDiffuse =
+                        case wings_pref:get_value(matcap_use_diffuse) of
+                            true -> 1;
+                            false -> 0
+                        end,
+                    Rad = wings_pref:get_value(matcap_rotate) * math:pi() / 180.0,
+                    RS4 = set_uloc('MatCapUseDiffuse', UseDiffuse, RS3),
+                    set_uloc('MatCapRot', Rad, RS4);
                 _ ->
                     RS3
             end;
@@ -206,6 +229,7 @@ setup_uniforms(Prog, Vars, Name, Desc) ->
     wings_gl:set_uloc(Res, 'EnvBrdfMap',  ?ENV_BRDF_MAP_UNIT),
     wings_gl:set_uloc(Res, 'EnvSpecMap',  ?ENV_SPEC_MAP_UNIT),
     wings_gl:set_uloc(Res, 'EnvDiffMap',  ?ENV_DIFF_MAP_UNIT),
+    wings_gl:set_uloc(Res, 'MatCapMap',   ?MATCAP_MAP_UNIT),
     wings_gl:set_uloc(Res, 'AreaLTCMap',  ?AREA_LTC_MAT_UNIT),
 
     [wings_gl:set_uloc(Res, Var, Val) || {Var,Val} <- Vars],
