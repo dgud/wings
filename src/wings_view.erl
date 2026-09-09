@@ -63,6 +63,7 @@ menu() ->
 	   crossmark(filter_texture)}]}},
      separator,
      {?__(7,"Wireframe"),wireframe,?__(8,"Display selected objects as a wireframe (same for all objects if nothing is selected)")},
+     {?__(99,"X-Ray Mode"),xray,?__(100,"Toggle X-Ray transparent rendering mode"),crossmark(xray)},
      {?__(9,"Shade"),shade,?__(10,"Display selected objects as shaded (same for all objects if nothing is selected)")},
      {?__(11,"Toggle Wireframe"),toggle_wireframe,
       ?__(12,"Toggle display mode for selected objects (same for all objects if nothing is selected)")},
@@ -812,7 +813,8 @@ initial_properties() ->
      {current_view,default_view()},
      {allow_rotation,true},
      {show_info_text,true},
-     {show_wire_backfaces,false}
+     {show_wire_backfaces,false},
+     {xray,false}
     ].
 
 delete_all(St) -> St#st{views={0,{}}}.
