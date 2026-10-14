@@ -308,6 +308,7 @@ new(#st{saved=true}=St0) ->
     St2 = clean_images(wings_undo:init(St1)),
     St = wings_obj:create_folder_system(St2),
     wings_u:caption(St),
+    reset_autosave_timer(),
     {new,St#st{saved=true}};
 new(#st{}=St0) ->		      %File is not saved or autosaved.
     wings_u:caption(St0#st{saved=false}),
@@ -357,6 +358,7 @@ confirmed_open(Name, St0) ->
 			  St4 = clean_images(St3),
 			  St = wings_obj:recreate_folder_system(St4),
 			  add_recent(Name),
+			  reset_autosave_timer(),
 			  wings_u:caption(St#st{saved=true,file=Name});
 		      {error,Reason} ->
 			  clean_new_images(St2),
@@ -437,8 +439,9 @@ save_now(Next, #st{file=Name0}=St) ->
     end,
     file:rename(Name, Backup),
     file:delete(autosave_filename(Name)),
-    case ?SLOW(wings_ff_wings:export(Name, false, St)) of
+    case ?SLOW(wings_save_manager:save(Name, false, St)) of
 	ok ->
+            reset_autosave_timer(),
 	    set_cwd(dirname(Name)),
 	    add_recent(Name),
 	    maybe_send_action(Next),
@@ -475,9 +478,12 @@ save_selected(St) ->
 
 save_selected(Name, St0) ->
     St = delete_unselected(St0),
-    case ?SLOW(wings_ff_wings:export(Name, true, St)) of
-	ok -> keep;
-	{error,Reason} -> wings_u:error_msg(Reason)
+    case ?SLOW(wings_save_manager:save(Name, true, St)) of
+	ok ->
+            reset_autosave_timer(),
+            keep;
+	{error,Reason} ->
+            wings_u:error_msg(Reason)
     end.
 
 %%%
@@ -572,7 +578,8 @@ set_cwd(Cwd) ->
 init_autosave() ->
     Name = autosaver,
     case wings_wm:is_window(Name) of
-	true -> ok;
+	true ->
+            reset_autosave_timer();
 	false ->
 	    Op = {seq,push,get_autosave_event(make_ref(), #st{saved=auto})},
 	    wings_wm:new(Name, {0,0,1}, {0,0}, Op),
@@ -583,6 +590,12 @@ init_autosave() ->
 
 get_autosave_event(Ref, St) ->
     {replace,fun(Ev) -> autosave_event(Ev, Ref, St) end}.
+
+reset_autosave_timer() ->
+    case wings_wm:is_window(autosaver) of
+        true  -> wings_wm:send(autosaver, start_timer);
+        false -> keep  %% not created yet, so no timer to reset
+    end.
 
 autosave_event(start_timer, OldTimer, St) ->
     wings_wm:cancel_timer(OldTimer),
@@ -598,35 +611,40 @@ autosave_event(start_timer, OldTimer, St) ->
 	    get_autosave_event(Timer, St)
     end;
 autosave_event(autosave, _, St) ->
-    autosave(St),
-    wings_wm:later(start_timer);
+    DoAuto = autosave(St),
+    DoAuto orelse wings_wm:later(start_timer),
+    keep;
+autosave_event({auto_saved, File, Result}, OldTimer, St) ->
+    St1 = case Result of
+              ok ->
+                  %% Previously we set caption [autosave]
+                  %% which was broken, anyway, we can't do that
+                  %% now since the user could have made changes in
+                  %% parallel, so we don't now if the saved state is
+                  %% current state, that could be fixed but increase
+                  %% complexity and memory usage
+                  St#st{saved = auto};
+	      {error,Reason} ->
+	          F = ?__(1,"Autosaving \"~s\" failed: ~s"),
+	          Msg = lists:flatten(wings_util:format(F, [File,Reason])),
+	          wings_u:message(Msg),
+                  St
+          end,
+    wings_wm:later(start_timer),
+    get_autosave_event(OldTimer, St1);
 autosave_event({current_state,St}, Timer, _) ->
     get_autosave_event(Timer, St);
-autosave_event(_, _, _) -> keep.
+autosave_event(_Evt, _, _) ->
+    keep.
 
 autosave(#st{file=undefined} = St) ->
-	autosave(St#st{file=unsaved_filename()});
-autosave(#st{saved=true} = St) -> St;
-autosave(#st{saved=auto} = St) -> St;
+    autosave(St#st{file=unsaved_filename()});
+autosave(#st{saved=true}) -> false;
+autosave(#st{saved=auto}) -> false;
 autosave(#st{file=Name}=St) ->
     Auto = autosave_filename(Name),
-    %% Maybe this should be spawned to another process
-    %% to let the autosaving be done in the background.
-    %% But I don't want to copy a really big model either.
-
-    %% Set the current view export views read it..
-    %% Fix this later
-    View = wings_wm:get_prop(geom, current_view),
-    wings_view:set_current(View),
-    filelib:ensure_dir(Auto),
-    case ?SLOW(wings_ff_wings:export(Auto, false, St)) of
-	ok ->
-	    wings_u:caption(St#st{saved=auto});
-	{error,Reason} ->
-	    F = ?__(1,"Autosaving \"~s\" failed: ~s"),
-	    Msg = lists:flatten(wings_util:format(F, [Auto,Reason])),
-	    wings_u:message(Msg)
-    end.
+    wings_save_manager:autosave(Auto, St),
+    true.
 
 autosave_filename(File) ->
     Base = filename:basename(File),

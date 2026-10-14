@@ -128,7 +128,7 @@ state_check(#st{sel=Sel0}, Str) ->
 %%%
 
 gl_error_check_1(Cmd0) ->
-    case gl:getError() of
+    try gl:getError() of
 	0 -> ok;
 	ErrorCode ->
 	    Error = wings_gl:error_string(ErrorCode),
@@ -136,6 +136,9 @@ gl_error_check_1(Cmd0) ->
 		     true -> wings_util:stringify(Cmd0)
 		  end,
 	    io:format("~s caused OpenGL error ~s\n", [Cmd,Error])
+    catch error:{error,no_gl_context,_} ->
+            %% Probably from a non window process
+            ok
     end.
 
 toggle(Key) ->

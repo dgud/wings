@@ -42,7 +42,11 @@ done() ->
     wx_object:call(?PB,done).
 
 done(Ret) ->
-    done(),
+    Stat = done(),
+    case wings_pref:get_value(develop_time_commands, false) of
+	false -> ok;
+        true -> Stat()
+    end,
     Ret.
 
 done_stat() ->
@@ -188,7 +192,7 @@ draw_position(#state{pb=PB, msg=Msg, pos=Pos} = S) ->
 
 update(Msg, Percent, #state{msg=[_|Msg0],stats=Stats0,t0=Time0}=S) ->
     NowDiff = timer:now_diff(os:timestamp(), Time0),
-    Stats = [Percent,NowDiff|Stats0],
+    Stats = [{Percent,NowDiff,Msg}|Stats0],
     S#state{msg=[Msg|Msg0],next_pos=Percent,stats=Stats}.
 
 calc_position(#state{pos=Pos0,next_pos=NextPos}=S) when Pos0 < NextPos ->
@@ -200,15 +204,15 @@ calc_position(S) ->
     %% 1.0 because of limited floating point precision.
     S.
 
-print_stats(#state{t0=Time0,stats=[_|Stats0]}) ->
+print_stats(#state{t0=Time0,stats=Stats0}) ->
     Total = timer:now_diff(os:timestamp(), Time0),
-    [_|Stats] = lists:reverse(Stats0),
+    Stats = lists:reverse(Stats0),
     io:nl(),
     print_stats_1(Stats, Total).
 
-print_stats_1([Est,TimeDiff|T], Total) ->
-    io:format("Est: ~f Real: ~f\n",
-	      [Est,TimeDiff/Total]),
+print_stats_1([{Est,TimeDiff,Msg}|T], Total) ->
+    io:format("~-40.ts: Est: ~f Real: ~f\n",
+	      [Msg, Est,TimeDiff/Total]),
     print_stats_1(T, Total);
 print_stats_1([], _) -> ok.
 

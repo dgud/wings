@@ -92,6 +92,13 @@ init([top]) ->
                 shutdown => 5000,
                 type => worker,
                 modules => [wings_console]},
+    SaveManager = #{id => save_manager,
+                    start => {wings_save_manager, start_link, []},
+                    restart => permanent,
+                    shutdown => 5000,
+                    type => worker,
+                    modules => [wings_save_manager]},
+
     WindowSup = #{id => windows,
                   start => {?MODULE, window_sup, [Env]},
                   restart => permanent,
@@ -104,7 +111,7 @@ init([top]) ->
                      shutdown => 5000,
                      type => supervisor,
                      modules => [?MODULE]},
-    {ok, {SupFlags, [Console, WindowSup, Main, MandatorySup]}};
+    {ok, {SupFlags, [Console, WindowSup, Main, SaveManager, MandatorySup]}};
 
 init([mandatory, Env]) ->
     wx:set_env(Env),

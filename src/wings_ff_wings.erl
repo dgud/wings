@@ -1245,12 +1245,12 @@ export(Name, OnlySel, St0) ->
     #st{shapes=Shs0,views={CurrentView,_}} = St =
         remove_lights(St0),
     Sel0 = collect_sel(St),
-    wings_pb:update(0.65, ?__(3,"renumbering")),
+    wings_pb:update(0.10, ?__(3,"renumbering")),
     Shs1 = [{Id,show_mirror_face(We)} ||
 	       {Id,We} <- gb_trees:to_list(Shs0)],
     {Shs2,Sel} = renumber(Shs1, Sel0, 0, [], []),
     Shs = foldl(fun shape/2, [], Shs2),
-    wings_pb:update(0.98, ?__(4,"objects")),
+    wings_pb:update(0.30, ?__(4,"objects")),
     Props0 = export_props(Sel),
     Props1 = case Lights of
 		 [] -> Props0;
@@ -1280,9 +1280,9 @@ export(Name, OnlySel, St0) ->
     Props5 = export_pst(St#st.pst,Props4),
     Props  = [{scene_prefs,wings_pref:get_scene_value()}|Props5],
     Wings = {wings,2,{Shs,Materials,Props}},
-    wings_pb:update(0.99, ?__(5,"compressing")),
+    wings_pb:update(0.6, ?__(5,"compressing")),
     Bin = term_to_binary(Wings, [compressed]),
-    wings_pb:update(1.0, ?__(6,"writing file")),
+    wings_pb:update(0.9, ?__(6,"writing file")),
     wings_pb:done(write_file(Name, Bin)).
 
 remove_lights(#st{sel=Sel0,shapes=Shs0}=St) ->
