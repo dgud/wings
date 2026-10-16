@@ -1,0 +1,20 @@
+import_param Instruction
+<code><pre>
+<b>import_param</b> "script_texture_convert" 'auto'
+</pre></code>
+
+Sets an import parameter for the <tt>wpa:import</tt>
+ function or some scripting import functions on the scripting plugin side.
+ For <tt>"script_texture_convert"</tt>, the recommended option is 
+<tt>'auto'</tt> for the texture handling.
+
+This directive is only used with importer scripts.
+
+An <b>import_param</b> directive should be inside a
+<b>params_set { ... }</b> section.
+
+The second argument can be a string, an atom or a query value enclosed
+in %[...]
+
+Refer to the <b>Query Mini Language</b> about query values.
+

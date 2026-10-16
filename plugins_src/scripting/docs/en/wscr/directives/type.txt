@@ -1,0 +1,7 @@
+type Directive
+<code><pre>
+<b>type</b> "py"
+</pre></code>
+
+This is either "scm" or "py", depending on if the script is a Scheme or Python file.
+

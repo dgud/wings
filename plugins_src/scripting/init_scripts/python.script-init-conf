@@ -1,0 +1,29 @@
+
+%%
+%%  Scripting for Shapes
+%%
+%%  Copyright 2025 Edward Blake
+%%
+%%  See the file "license.terms" for information on usage and redistribution
+%%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+%%
+%%     $Id$
+%%
+
+%%
+%% Sets the default python binary filenames
+%%
+
+%% NAME  ARGS    INITIAL SCRIPT
+{  "py", false, "py/init.py", [
+    %% List of interpreter filenames to try
+    "python",
+    "python38",
+    "python36",
+    "python34",
+    "python32",
+    "python3"
+], [
+    %% No special arguments
+]}.
+

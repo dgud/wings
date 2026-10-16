@@ -1,0 +1,132 @@
+%% -*- mode:erlang; erlang-indent-level: 2 -*-
+{wpc_scripting_shapes,
+ [
+  {menu,
+   [
+    {1,"Scripts Preference"}
+   ]},
+  {from_script_menu,
+   [
+    {1,"Shape from Script"},
+    {2,"Script-based Importers..."},
+    {3,"Script-based Exporters..."},
+    {4,"Script-based Commands..."}
+   ]},
+  {help_script_menu,
+   [
+    {1,"Using Scripts"},
+    {2,"Scripting Information"},
+    {3,"Scripting Reference"}
+   ]},
+  {mouse_choice,
+   [
+    {1,"From Script"}
+   ]},
+  {installing_archive,
+   [
+    {1,"plugin script"}
+   ]},
+  {help_information,
+   [
+    {1,"Scripting Information"},
+    {2,"Scripting Information\n\n"
+          "Scripts are small programs that can be used to create new "
+          "shapes, importers, exporters and commands. Before "
+          "scripts can be used, the scripting interpreters needs to be "
+          "installed and its path set in 'Scripting Preference'.\n\n"
+          "The two scripting languages that are available are Python "
+          "and Scheme.\n\n"
+          "Each script needs the script itself (.py or .scm) and "
+          "a .wscr file with the same name before the extension for "
+          "the script to work."}
+   ]},
+  {run_script_w_preview,
+   [
+    {1, "Script file not found, check if script has the same name "
+        "as the .wscr file, and 'type' matches script file type."}
+   ]},
+  {run_script_w_preview_1,
+   [
+    {2,"Returned: "}
+   ]},
+  {run_script_w_preview_1_fun,
+   [
+    {1,"Did not recv 'exited'"}
+   ]},
+  {run_script_1,
+   [
+    {1,"Tuple:"},
+    {2,"No results"}
+   ]},
+  {info_dialog,
+   [
+    {1,"Info"}
+   ]},
+  {run_script_runner,
+   [
+    {1,"could not run script interpreter:"}
+   ]},
+  {run_script_runner_loop,
+   [
+    {1,"~p: Unexpected ret: ~p~n"}
+   ]},
+  {run_script_runner_inner_loop,
+   [
+    {1,"NOTE: Script runtime exited with code:"},
+    {2,"NOTE: Closing script due to timeout"}
+   ]},
+  {dlg_select_script_do_init,
+   [
+    {1,"Select Script"},
+    {2,"Refresh"},
+    {3,"OK"},
+    {4,"Cancel"}
+   ]},
+  {dlg_script_preference,
+   [
+    {1,"Script Preference"},
+    {2,"Enable Scripts"},
+    {3,"Shapes"},
+    {4,"Commands"},
+    {5,"Import/Export"},
+    {6,"Interpreters"},
+    {7,"Debug"}
+   ]},
+  {dlg_script_preference_paths,
+   [
+    {4,"Enable Debug Return Data"},
+    {9,"Each script must have with it a file with the extension .wscr "
+       "that contains its name, description and parameters."}
+   ]},
+  {dlg_script_preference_path_item,
+   [
+    {1,"Paths for Shape Scripts"},
+    {2,"Paths for Commands Scripts"},
+    {3,"Enable Scripts for Commands Menu"},
+    {4,"Paths for Import/Export Scripts"},
+    {5,"Enable Scripts for Import Menu"},
+    {6,"Enable Scripts for Export Menu"},
+    {8,"% Interpreter Path"},
+    {9,"% Extra Interpreter Arguments"}
+   ]},
+  {table_labels,
+   [
+    {1,"Paths"},
+    {2,"Add"},
+    {3,"Edit"},
+    {4,"Del"}
+   ]},
+  {get_wscr_params_default_param_title,
+   [
+    {1,"Set Parameters"}
+   ]},
+  {menu_script_folder,
+   [
+    {1,"Open Script Folder"}
+   ]},
+  {menu_script_folder_1,
+   [
+    {1,"No scripts available"},
+    {2,"None"}
+   ]}
+ ]}.

@@ -1,0 +1,29 @@
+e3d_object
+
+(<b>make-e3d_object</b>
+ .
+ sc)
+
+Make a e3d_object list structure with a constructor list, available items
+ are 'name 'obj 'mat 'attr
+
+(<b>e3d_object?</b>
+ l)
+
+Is the list structure an e3d_object?
+
+(<b>e3d_object-name</b>
+ l)
+
+(<b>e3d_object-obj</b>
+ l)
+
+(<b>e3d_object-mat</b>
+ l)
+
+(<b>e3d_object-attr</b>
+ l)
+
+Get the value of a given field in e3d_object
+
+

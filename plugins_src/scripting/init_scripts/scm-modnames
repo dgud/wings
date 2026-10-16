@@ -1,0 +1,36 @@
+
+%%
+%%  Scripting for Shapes
+%%
+%%  Copyright 2025 Edward Blake
+%%
+%%  See the file "license.terms" for information on usage and redistribution
+%%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+%%
+%%     $Id$
+%%
+
+%% How modules are named in the generated python script files.
+[
+{wings_collapse, [we,collapse]},
+{wings_dissolve, [we,dissolve]},
+{wings_edge, [we,edge]},
+{wings_edge_cmd, [we,edge_cmd]},
+{wings_edge_loop, [we,edge_loop]},
+{wings_extrude_edge, [we,extrude_edge]},
+{wings_extrude_face, [we,extrude_face]},
+{wings_face, [we,face]},
+{wings_face_cmd, [we,face_cmd]},
+{wings_facemat, [we,facemat]},
+{wings_subdiv, [we,subdiv]},
+{wings_tesselation, [we,tesselation]},
+{wings_util, [we,util]},
+{wings_va, [we,va]},
+{wings_vertex, [we,vertex]},
+{wings_vertex_cmd, [we,vertex_cmd]},
+{wings_we, [we,we]},
+{e3d_mat, [e3d_mat]},
+{e3d_vec, [e3d_vec]},
+{e3d_bv, [e3d_bv]}
+].
+

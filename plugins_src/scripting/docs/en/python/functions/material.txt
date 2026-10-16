@@ -1,0 +1,18 @@
+class Material
+
+Visible attributes name, attrs
+
+<b>Material</b>()
+
+Creates a new Material instance
+
+mat.<b>as_output_list</b>()
+
+Outputs the whole Material instance and all its values into an output list,
+ not usually used directly.
+
+mat.<b>load_from</b>(expr)
+
+Load contents into a Material instance, not usually used directly.
+
+

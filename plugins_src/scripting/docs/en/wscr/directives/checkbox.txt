@@ -1,0 +1,10 @@
+checkbox Directive
+<code><pre>
+<b>checkbox</b> "Enabled" 'true'
+</pre></code>
+
+Show a checkbox
+
+A <b>checkbox</b> directive should be inside a
+<b>params { ... }</b> section.
+

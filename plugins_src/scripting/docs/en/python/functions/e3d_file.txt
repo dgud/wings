@@ -1,0 +1,31 @@
+class E3DFile
+
+Visible attributes objs, mat, creator, dir
+
+<b>E3DFile</b>()
+
+Creates a new E3DFile instance
+
+e3df.<b>as_output_list</b>()
+
+Outputs the whole E3DFile instance and all its values into an output list which is then to be written to stdout
+
+<code><pre>
+b = w3d_e3d.E3DFile()
+b.objs.append(E3DObject())
+o_ok = OutputList()
+o_ok.add_symbol("ok")
+o_ok.add_list(b.as_output_list())
+o_ok.write_list_out(sys.stdout)
+</pre></code>
+
+e3df.<b>load_from</b>(expr)
+
+Load contents into a E3DFile instance
+
+<code><pre>
+content = w3d_e3d.E3DFile()
+content.load_from(extra_params["content"])
+</pre></code>
+
+

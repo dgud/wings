@@ -1,0 +1,10 @@
+param Directive
+<code><pre>
+<b>param</b> "Size" "2.0"
+</pre></code>
+
+A param directive specifies one field for user input
+
+A <b>param</b> directive should be inside a
+<b>params { ... }</b> section.
+

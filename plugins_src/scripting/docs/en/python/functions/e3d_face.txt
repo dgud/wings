@@ -1,0 +1,17 @@
+class E3DFace
+
+Visible attributes vs, vc, tx, ns, mat, sg, vis
+
+<b>E3DFace</b>()
+
+Creates a new E3DFace instance
+
+face.<b>as_output_list</b>()
+
+Outputs the whole E3DFace instance and all its values into an output list, not usually used directly.
+
+face.<b>load_from</b>(expr)
+
+Load contents into a E3DFace instance, not usually used directly.
+
+

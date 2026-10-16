@@ -1,0 +1,120 @@
+Importer Scripts
+
+Importer scripts are available from the "File" > "Import" menu.
+
+The "filename" extra parameter is needed which contain the file path of the file to read:
+
+<code><pre>
+def main(params, params_by_key, extra_params):
+    filename = extra_params["filename"]
+
+    ##
+    ## ...
+    ##
+
+    e3df = E3DFile()
+
+    ## After reading the file, return e3df
+    return Okay(ed3f)
+
+w3d_main_function = main
+</pre></code>
+
+Don't forget to assign the 'main' function to 'w3d_main_function'.
+
+Importers take the filename to read the file needed, construct a E3DObject, add it to an E3DFile and return the output list as part of an "ok" tuple.
+
+Constructing E3D objects involves instancing E3DFace, E3DObject, E3DFile, etc.
+
+<code><pre>
+    e3df = w3d_e3d.E3DFile()
+    e3df.objs = [obj] # obj is an E3DObject
+    return Okay(e3df)
+</pre></code>
+
+
+A minimal importer that reads vertices to a file:
+
+<code><pre>
+import w3d_e3d
+from os import path
+
+def import_fun(attr, filename):
+    with open(filename, "r", encoding="utf-8") as fp:
+        # Number of objects
+        num_objs = int(fp.readline().rstrip())
+        objs = []
+        # Read each object
+        for i in range(0, num_objs):
+            # Object name
+            objname = fp.readline().rstrip()
+            # Number of vertices
+            num_vs = int(fp.readline().rstrip())
+            vs = []
+            for i2 in range(0, num_vs):
+                v = fp.readline().rstrip().split(" ")
+                vs.append((float(v[0]),float(v[1]),float(v[2])))
+            # Number of faces
+            num_faces = int(fp.readline().rstrip())
+            faces = []
+            for i2 in range(0, num_faces):
+                # Vertex indices
+                vf0 = fp.readline().rstrip().split(" ")
+                vf = []
+                for v in vf0:
+                    vf.append(int(v))
+                face = w3d_e3d.E3DFace()
+                face.vs = vf
+                face.vc = []
+                face.tx = []
+                face.ns = []
+                faces.append(face)
+            
+            mesh = w3d_e3d.E3DMesh()
+            mesh.type="polygon"
+            mesh.vs=vs
+            mesh.fs=faces
+            mesh.vc=[]
+            mesh.tx=[]
+            mesh.ns=[]
+            mesh.he=[]
+            obj = w3d_e3d.E3DObject()
+            obj.name = objname
+            obj.obj = mesh
+            objs.append(obj)
+        
+        e3df = w3d_e3d.E3DFile()
+        e3df.objs = objs
+        return Okay(e3df)
+
+def importer(params, params_by_key, extra_params):
+    filename = extra_params["filename"]
+    return import_fun({}, filename)
+
+w3d_main_function = importer
+</pre></code>
+
+
+A .wscr file for the importer:
+
+<code><pre>
+type "py"
+name ?__(1,"Example Importer (.txt)")
+mode "import"
+params_title ?__(3,"Example Importer Settings")
+params_templates {
+  template import
+}
+params_set {
+  import_param script_texture_convert 'auto'
+}
+extensions {
+  ext .txt ?__(5,"Text Mesh")
+}
+</pre></code>
+
+
+The .wscr and .scm file should have the same name before the extension (script.scm and script.wscr).
+
+
+

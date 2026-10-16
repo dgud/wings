@@ -1,0 +1,8 @@
+template Directive
+<code><pre>
+<b>template</b> "export" ""
+</pre></code>
+
+A template in the params_template section.
+
+

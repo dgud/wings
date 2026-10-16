@@ -1,0 +1,14 @@
+extensions Section
+<code><pre>
+<b>extensions</b> {
+  ext ".tres" ?__(5,"Godot Mesh Library")
+}
+</pre></code>
+
+The extensions section indicates the extensions that are supported by the
+ importer or exporter script.
+ Each line within the section should be a ext directive, with its first
+ argument the extension including the dot, and the second argument is a
+ description of the file format.
+
+

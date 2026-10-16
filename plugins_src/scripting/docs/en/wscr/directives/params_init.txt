@@ -1,0 +1,16 @@
+params_init Instructions Section
+<code><pre>
+<b>params_init</b> {
+  do %[1>$'subdivisions']
+}
+</pre></code>
+
+The params_init section behaves as a subroutine, with each directive being
+evaluated sequentially. This section is used to load values into temporary
+variables to pass to the params and params_set sections.
+
+The state of temporary variables do not carry over after the params section.
+The argument of a <tt>do</tt> should be a query value enclosed in %[...]
+
+Refer to the <b>Query Mini Language</b> about query values.
+

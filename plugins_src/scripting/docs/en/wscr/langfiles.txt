@@ -1,0 +1,22 @@
+Language files
+
+Like normal wings3d plugins, wscr files can use language files to localize the user interface text into multiple languages. The lang file needs to be in the same directory as the wscr file, and begin with the same base file name without the extension, with a underscore and a language code following it, followed by the ".lang" file extension. The format of the language file is the same Erlang term format as wings3d lang files. To localize a string in the wscr file, enclose the string in the same enclosing syntax used in Erlang wings3d source files.
+
+<code><pre>
+name ?__(1,"Color")
+</pre></code>
+
+For a script called "script_name.wscr", the lang file for French should be named "script_name_fr.lang", and the content resembles other Wings3D lang files but the outer name is <tt>script</tt> and the inner name is <tt>wscr</tt>:
+
+<code><pre>
+{script,
+ [
+  {wscr,
+   [
+    {1,"Couleur"}
+   ]}
+ ]}.
+</pre></code>
+
+
+
