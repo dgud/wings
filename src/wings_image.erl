@@ -23,7 +23,7 @@
 	 window/1, debug_display/2]).
 -export([image_formats/0,image_read/1,image_write/1,
 	 e3d_to_wxImage/1, wxImage_to_e3d/1, resize_image/3]).
--export([maybe_exceds_opengl_caps/1]).
+-export([maybe_exceds_opengl_caps/1, img_type/1, nearest_power_two/1]).
 
 -behavior(gen_server).
 -export([start_link/0, init/1, handle_call/3, handle_cast/2]).

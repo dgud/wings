@@ -4,7 +4,7 @@
 %%     Implementation of lights.
 %%
 %%  Copyright (c) 2002-2011 Bjorn Gustavsson
-%%
+%%                2026 Micheus (support to matcap)
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
 %%
@@ -12,7 +12,7 @@
 %%
 
 -module(wings_light).
--export([init/0, init/1, init_opengl/0, load_env_image/1,
+-export([init/0, init/1, init_opengl/0, load_env_image/1, load_matcap_texture/1,
          light_types/0,menu/3,command/2,is_any_light_selected/1,
 	 any_enabled_lights/0,info/1,setup_light/2,
 	 create/2,update_dynamic/2,update_matrix/2,update/1,
@@ -55,11 +55,19 @@ def_envmap() ->
     DefPath = filename:join(wings_util:lib_dir(wings), "textures"),
     filename:join(DefPath, DefEnvMap).
 
+def_matcap() ->
+    DefMatCap = "LitSphere1.png",
+    DefPath = filename:join([wings_util:lib_dir(wings), "textures", "matcap"]),
+    filename:join(DefPath, DefMatCap).
+
 init() ->
     wings_pref:set_default(show_bg, false),
     wings_pref:set_default(show_bg_blur, 0.5),
     wings_pref:set_default(show_bg_rotate, 0.0),
     wings_pref:set_default(bg_image, def_envmap()),
+    wings_pref:set_default(matcap_texture, def_matcap()),
+    wings_pref:set_default(matcap_rotate, 0.0),
+    wings_pref:set_default(matcap_use_diffuse, false),
     EnvImgRec = load_env_file(wings_pref:get_value(bg_image)),
     init(false, EnvImgRec).
 
@@ -69,6 +77,7 @@ init(Recompile) ->  %% Debug
 
 init(Recompile, EnvImgRec) ->
     AreaMatTagId = load_area_light_tab(),
+    MatCapTagId = load_matcap_light_tag(),
     EnvIds = case wings:is_fast_start() orelse cl_setup(Recompile) of
                  true ->
                      fake_envmap(load_env_file(def_envmap()));
@@ -80,7 +89,7 @@ init(Recompile, EnvImgRec) ->
                  CL ->
                      make_envmap(CL, EnvImgRec)
              end,
-    [?SET(Tag, Id) || {Tag,Id} <- [AreaMatTagId|EnvIds]],
+    [?SET(Tag, Id) || {Tag,Id} <- [AreaMatTagId|EnvIds++MatCapTagId]],
     init_opengl(),
     wings_develop:gl_error_check({?MODULE,?FUNCTION_NAME}),
     ok.
@@ -106,12 +115,34 @@ load_env_image_1(FileName) ->
     wings_develop:gl_error_check({?MODULE,?FUNCTION_NAME}),
     ok.
 
+-spec load_matcap_texture(FileName::string()) -> ok | {file_error, {error, term()}}.
+load_matcap_texture(FileName) ->
+    try load_matcap_texture_1(FileName)
+    catch throw:Error ->
+        Error
+    end.
+
+load_matcap_texture_1(FileName) ->
+    Img = wings_image:image_read([{filename, FileName}]),
+    is_record(Img, e3d_image) orelse throw({file_error, Img}),
+    #e3d_image{width=W,height=H}=Img,
+    if (W=/=H) -> throw({file_error,{error,"Image must be square and sized to a power of two"}});
+    true -> ok
+    end,
+    Res = wings_image:nearest_power_two(W),
+    {{Tag,Id},_} = make_matcap(Img, Res),
+    ?SET(Tag, Id),
+    init_opengl(),
+    wings_develop:gl_error_check({?MODULE,?FUNCTION_NAME}),
+    ok.
+
 init_opengl() ->
     %% Bind textures to units
     Ids = [{areamatrix_tex, ?AREA_LTC_MAT_UNIT},
            {brdf_tex, ?ENV_BRDF_MAP_UNIT},
            {env_diffuse_tex, ?ENV_DIFF_MAP_UNIT},
-           {env_spec_tex, ?ENV_SPEC_MAP_UNIT}],
+           {env_spec_tex, ?ENV_SPEC_MAP_UNIT},
+           {matcap_tex, ?MATCAP_MAP_UNIT}],
     SetupUnit = fun({Tag, Unit}) ->
                         case ?GET(Tag) of
                             undefined -> ignore;
@@ -156,7 +187,6 @@ command({duplicate,Dir}, St) ->
     duplicate(Dir, St).
 
 -spec is_any_light_selected(#st{}) -> boolean().
-
 is_any_light_selected(St) ->
     MF = fun(_, We) -> ?IS_LIGHT(We) end,
     RF = fun erlang:'or'/2,
@@ -644,7 +674,9 @@ export_camera_lights() ->
 		 [{?__(2,"Infinite"),camera_infinite_1_0()}];
 	     2 ->
 		 [{?__(3,"Infinite1"),camera_infinite_2_0()},
-		  {?__(4,"Infinite2"),camera_infinite_2_1()}]
+		  {?__(4,"Infinite2"),camera_infinite_2_1()}];
+	     3 ->
+		 [{?__(2,"Infinite"),camera_infinite_1_0()}]
 	 end,
     #view{origin=Aim} = wings_view:current(),
     CameraPos = wings_view:eye_point(),
@@ -1011,6 +1043,16 @@ load_area_light_tab() ->
     ?CHECK_ERROR(),
     {areamatrix_tex, ImId}.
 
+load_matcap_light_tag() ->
+    FileName = wings_pref:get_value(matcap_texture, def_matcap()),
+    case load_matcap_texture(FileName) of
+        ok ->
+            Id = ?GET(matcap_tex),
+            [{matcap_tex,Id}];
+        _ ->
+            []
+    end.
+
 fake_envmap(EnvImgRec) ->
     %% Poor mans version with blurred images
     Path = filename:join(wings_util:lib_dir(wings), "textures"),
@@ -1119,6 +1161,13 @@ make_mipmaps(Img0, Level, W, H) when Level < 6 ->
 make_mipmaps(Img, _, _, _) ->
     wxImage:destroy(Img),
     [].
+
+make_matcap(Img0, Res) ->
+    Opts = [{wrap, {clamp,clamp}}, {filter, {linear, linear}}],
+    Img = wings_image:resize_image(Img0#e3d_image{extra=Opts},Res,Res),
+    %% wings_image:debug_display(matcap,Img#e3d_image{name="MatCap"}),
+    ImId = wings_image:new_hidden(matcap_tex, Img),
+    {{matcap_tex, ImId}, Img#e3d_image.image}.
 
 make_envmap(CL, #e3d_image{filename=FileName}=EnvImgRec) ->
     EnvIds =

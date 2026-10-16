@@ -12,6 +12,10 @@ varying vec4 ws_tangent;  // world space
 varying vec3 ws_position; // world space
 varying vec4 v_basecolor;
 
+varying vec3 vs_normal;   // view space
+varying vec3 vs_position; // view space
+varying mat3 wv_matrix;
+
 uniform mat3x4 ws_matrix;
 
 vec4 SRGBtoLINEAR(vec4 srgbIn)
@@ -23,6 +27,11 @@ vec4 SRGBtoLINEAR(vec4 srgbIn)
 
 void main(void)
 {
+    vec4 viewPos4 = gl_ModelViewMatrix * gl_Vertex;
+    vs_position = viewPos4.xyz;
+    vs_normal = normalize(gl_NormalMatrix * gl_Normal);
+    wv_matrix = mat3(gl_ModelViewMatrix);
+
     ws_position = mat3x3(ws_matrix)*gl_Vertex.xyz;
     // ws_position = gl_Vertex.xyz;
     v_basecolor	= diffuse * SRGBtoLINEAR(gl_Color);
