@@ -1290,7 +1290,12 @@ handle_command_1({move,{{absolute,Mode},{'ASK',Ask}}}, St) ->
     end;
 handle_command_1(move, St) ->
     case wings_wm:get_prop(wings_wm:this(), sprite_edit_mode) of
-        true -> move_sprite(St);
+        true ->
+            case ?GET({?MODULE,sprite_size}) of
+                undefined -> wings_move:setup(free_2d, St);
+                1 -> wings_move:setup(free_2d, St);
+                _ -> move_sprite(St)
+            end;
         false -> wings_move:setup(free_2d, St)
     end;
 handle_command_1({move,{'ASK',Ask}}, St) ->
@@ -2916,7 +2921,7 @@ draw_background(#st{bb=#uvstate{bg_img=Image, tile={U0,V0}, st=#st{shapes=Shs},i
             draw_texture(init_texture({0,0},Image))
     end,
 
-    %% Draw inned grid in the UV space.
+    %% Draw inner grid in the UV space.
     SpriteMode = wings_wm:get_prop(wings_wm:this(), sprite_edit_mode),
     if (SpriteMode) ->
         SprtImgWidth = ?GET({?MODULE,sprite_image_width}),
