@@ -881,6 +881,7 @@ update_focus(Active) ->
 		undefined ->
 		    Obj = wxwindow(Active),
 		    Obj =/= undefined andalso wxWindow:setFocus(Obj),
+            wings_io:set_cursor(get(wm_cursor)),
 		    send(top_frame, {got_focus, Active, get_props(Active)}),
 		    do_dispatch(Active, got_focus),
 		    Active;
@@ -1094,7 +1095,7 @@ handle_response(Res, Event, Stk0) ->
 
 pop_all_but_one([_]=Stk) -> Stk;
 pop_all_but_one(Stk) -> pop_all_but_one(pop(Stk)).
-    
+
 pop([_|Stk]) ->
     case Stk of
 	[#se{h={pop_handler,Handler0}}|_] ->
@@ -1284,7 +1285,7 @@ translate_bmask_1(B0, Mask, Mod0, Acc) ->
 	    {B,Mod} = translate_button(B0, Mod0),
 	    translate_bmask_1(B0+1, Mask, Mod, Acc bor (1 bsl (B-1)))
     end.
-    
+
 translate_button(B0, Mod0) ->
     Type = get(mouse_translation),
     case translate_button_1(B0, Type, Mod0) of
