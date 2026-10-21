@@ -30,6 +30,7 @@ endif
 MODULES= \
 	auv_mapping \
 	auv_matrix \
+	auv_packing \
 	auv_placement \
 	auv_segment \
 	auv_seg_ui \

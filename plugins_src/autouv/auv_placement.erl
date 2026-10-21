@@ -16,7 +16,8 @@
 -include_lib("wings/src/wings.hrl").
 -include("auv.hrl").
 
--export([place_areas/1,place_areas/2,rotate_area/2,group_edge_loops/2]).
+-export([place_areas/1,place_areas/2,place_areas/3,
+         rotate_area/2,group_edge_loops/2]).
 
 -import(lists, [max/1,sort/1,map/2,reverse/1]).
 
@@ -25,10 +26,13 @@
 
 %% Returns a gb_tree with areas...
 place_areas(Areas) ->
-    place_areas(arrange, Areas).
+    place_areas(arrange, #{margin=>+0.0, gap=>0.0}, Areas).
+
+place_areas(UVMode, Areas0) ->
+    place_areas(UVMode, #{margin=>+0.0, gap=>0.0}, Areas0).
 
 %% The 'preserve' mode will keep the projection layout for the UV islands
-place_areas(preserve, Areas0) ->
+place_areas(preserve, _, Areas0) ->
     Measure = fun(We, [{Xmin0,Xmax0},{Ymin0,Ymax0}]) ->
             [{Xmin,Xmax},{Ymin,Ymax}] = bbox(We),
             [{min(Xmin,Xmin0),max(Xmax,Xmax0)},
@@ -48,19 +52,30 @@ place_areas(preserve, Areas0) ->
                                 {We,[{Id,{-Xmin,-Ymin}}|Acc]}
                             end,[],Areas0),
     move_and_scale_charts(Areas1, lists:sort(Positions0), Scale, []);
-place_areas(arrange, Areas0) ->
+place_areas(arrange, #{margin:=Margin0, gap:=Gap0}, Areas0) ->
+    Gap = Gap0/100.0,
+    Margin = Margin0/100.0,
+    HalfGap = Gap/2.0,
     Rotate = fun(#we{id=Id,name=Ch0}=We0, BBs) ->
 		     {{Dx,Dy}=Size,Vs} = center(We0),
 		     Ch = Ch0#ch{size=Size},
 		     We = We0#we{vp=array:from_orddict(Vs),name=Ch},
-		     {We,[{Dx,Dy,Id}|BBs]}
+		     {We,[{Dx+Gap,Dy+Gap,Id}|BBs]}
 	     end,
     {Areas1,Sizes0} = lists:mapfoldl(Rotate, [], Areas0),
-%    ?DBG("~p~n",[Sizes0]),    
+%    ?DBG("~p~n",[Sizes0]),
     {Positions0, Max} = fill(Sizes0, [0,0]),
 %    ?DBG("~p~n",[Positions0]),
-    Scale  = 1 / max(Max),
-    move_and_scale_charts(Areas1, lists:sort(Positions0), Scale, []).
+    Scale  = 1 / ((max(Max)+Margin*2)-Gap), %% '-Gap' removes the halfgap around the final bounding box
+    Positions = offset_position(Positions0, Margin, HalfGap),
+    move_and_scale_charts(Areas1, lists:sort(Positions), Scale, []).
+
+%% Moves back the halfmargin remaining relative to origin and add the margin
+offset_position([], _Margin, _HalfGap) -> [];
+offset_position(Positions, +0.0, +0.0) -> Positions;
+offset_position(Positions0, Margin, HalfGap) ->
+    Ofs = -HalfGap + Margin,
+    [{I,{X+Ofs,Y+Ofs}} || {I,{X,Y}} <- Positions0].
 
 bbox(#we{vp=VTab}) ->
     VL = array:sparse_to_orddict(VTab),
@@ -103,24 +118,24 @@ fill([Biggest|SL], MX0, MY0, Res0) ->
     {W0,H0} = case Biggest of {{W,width},H,_} -> {W,H}; {{H,height},W,_} -> {W,H} end,
     %% Calc possible places
     A1 = max([(W0 + MX0), max([H0,MY0])]),  %% Build Element to the right
-    A2 = max([max([W0, MX0]), (MY0 + H0)]), %% Build Element on the top 
-    if 
+    A2 = max([max([W0, MX0]), (MY0 + H0)]), %% Build Element on the top
+    if
 	A1 < A2 ->
 	    {New, MX1, MY1} = insert(Biggest, MX0, 0),
 	    if MY0 >= MY1 ->
-		    {SL2, Res1} = fill_area(SL, W0,MY0-H0, MX0,MY1, [], [New|Res0]), 
+		    {SL2, Res1} = fill_area(SL, W0,MY0-H0, MX0,MY1, [], [New|Res0]),
 		    fill(SL2, MX1, MY0, Res1);
 	       MY1 > MY0 ->
-		    {SL2, Res1} = fill_area(SL, MX0,MY1-MY0, 0,MY0, [], [New|Res0]), 
+		    {SL2, Res1} = fill_area(SL, MX0,MY1-MY0, 0,MY0, [], [New|Res0]),
 		    fill(SL2, MX1, MY1, Res1)
 	    end;
-	true ->	    
+	true ->
 	    {New, MX1, MY1} = insert(Biggest, 0, MY0),
 	    if MX0 >= MX1 ->
-		    {SL2, Res1} = fill_area(SL, MX0-W0,H0, MX1,MY0, [], [New|Res0]), 
+		    {SL2, Res1} = fill_area(SL, MX0-W0,H0, MX1,MY0, [], [New|Res0]),
 		    fill(SL2, MX0, MY1, Res1);
 	       MX1 > MX0 ->
-		    {SL2, Res1} = fill_area(SL, MX1-MX0,MY0, MX0,0, [], [New|Res0]), 
+		    {SL2, Res1} = fill_area(SL, MX1-MX0,MY0, MX0,0, [], [New|Res0]),
 		    fill(SL2, MX1, MY1, Res1)
 	       end
     end.
@@ -132,12 +147,12 @@ insert({{Y,height}, X, I},XP,YP) ->
     New = {I, {XP+X/2, YP+Y/2}},
     {New, XP+X, YP+Y}.
 
-fill_area([Sel = {{X0,width},Y0,_}|SL], MX, MY, XP,YP, UU, Res0) 
+fill_area([Sel = {{X0,width},Y0,_}|SL], MX, MY, XP,YP, UU, Res0)
   when X0 =< MX, Y0 =< MY ->
     {New,_,_} = insert(Sel,XP,YP),
     {SL2, Res1}= fill_area(SL, MX-X0, MY, XP+X0, YP, [], Res0),
     fill_area(SL2, X0, MY-Y0, XP, YP+Y0, UU, [New|Res1]);
-fill_area([Sel={{Y0,height},X0,_}|SL], MX, MY, XP,YP,UU, Res0) 
+fill_area([Sel={{Y0,height},X0,_}|SL], MX, MY, XP,YP,UU, Res0)
   when X0 =< MX, Y0 =< MY ->
     {New,_,_} = insert(Sel,XP,YP),
     {SL2, Res1} = fill_area(SL, MX,MY-Y0, XP, YP+Y0,[], Res0),
@@ -165,23 +180,23 @@ rotate_area(Vs, #we{vp=Orig}=We) ->
     LV2P = array:get(LV2, VTab),
     O1 = array:get(LV1, Orig),
     O2 = array:get(LV2, Orig),
-    Normal = {NX,NY,NZ} = 
+    Normal = {NX,NY,NZ} =
 	try auv_mapping:chart_normal(Fs,We) catch throw:_ -> {0.0,0.0,1.0} end,
     ANX = abs(NX), ANY = abs(NY), ANZ = abs(NZ),
     Csys = if ANX > ANY, ANX > ANZ ->  csys(NX, Normal, {0.0,0.0,-1.0});
 	      ANZ > ANY -> csys(NZ, Normal, {1.0,0.0,0.0});
 	      true -> csys(NY, Normal, {1.0,0.0,0.0})
 	   end,
-    O11 = mul_point(O1, Csys), 
+    O11 = mul_point(O1, Csys),
     O12 = mul_point(O2, Csys),
     RealAngle = math:atan2(element(2,O12)-element(2,O11),
 			   element(1,O12)-element(1,O11)),
     Angle = math:atan2(element(2,LV2P)-element(2,LV1P),
  		       element(1,LV2P)-element(1,LV1P)),
-    Rotate = Angle - RealAngle,    
-    ?DBG("Angle ~p~n  P1 ~p~n  P2 ~p~n",  
- 	 [Angle*180/math:pi(), 
- 	  {auv_segment:map_vertex(LV1, (We#we.name)#ch.vmap), LV1P}, 
+    Rotate = Angle - RealAngle,
+    ?DBG("Angle ~p~n  P1 ~p~n  P2 ~p~n",
+ 	 [Angle*180/math:pi(),
+ 	  {auv_segment:map_vertex(LV1, (We#we.name)#ch.vmap), LV1P},
  	  {auv_segment:map_vertex(LV2, (We#we.name)#ch.vmap), LV2P}]),
     ?DBG("Real ~p ~p~n  ~p~n  RAngle ~p  => ~p~n",
  	 [O1,O2,{O11,O12},RealAngle*180/math:pi(),Rotate*180/math:pi()]),
@@ -200,16 +215,16 @@ csys(Dir0,Z,X0) ->
     Y = e3d_vec:cross(Z,X1),
     X = e3d_vec:cross(Y,Z),
     {e3d_vec:norm(X),e3d_vec:norm(Y),Z}.
-		
+
 -define(PI, 3.141592).
 -define(ALMOSTPI, (?PI-(0.5/180*?PI))). %% cluster together straight lines
 
 make_convex([This, Next|Rest], Acc, Vs) ->
     case calc_dir(This,Next,Vs) >= ?ALMOSTPI of
 	true ->
-	    New = #be{vs=This#be.vs, ve=Next#be.ve, 
+	    New = #be{vs=This#be.vs, ve=Next#be.ve,
 		      edge=[This#be.edge,Next#be.edge],
-		      dist=dist(This#be.vs,Next#be.ve,Vs)}, 
+		      dist=dist(This#be.vs,Next#be.ve,Vs)},
 	    if Acc == [] ->
 		    make_convex([New|Rest], Acc, Vs);
 	       true ->
@@ -230,7 +245,7 @@ make_convex([This],Acc, Vs) ->
 	false ->
 	    [This|Acc]
     end.
-	          
+
 %% Group edgeloops and return a list sorted by total dist.
 %% [{TotDist, [{V1,V2,Edge,Dist},...]}, ...]
 group_edge_loops(Fs, We = #we{name=#ch{emap=Emap}}) ->
@@ -256,39 +271,39 @@ group_edge_loops(Fs, We = #we{name=#ch{emap=Emap}}) ->
 	    Loops = sort_edges(Eds),
 %%	    io:format("Cuts ~p ~n",[Loops]),
 	    Add = fun(#be{dist=Dist}, Acc) ->  Acc + Dist end,
-	    SumLoops = [{lists:foldl(Add, 0, Loop), Loop} 
+	    SumLoops = [{lists:foldl(Add, 0, Loop), Loop}
 			|| Loop <- Loops],
 	    lists:reverse(lists:sort(SumLoops))
     end.
 
-calc_dir(#be{vs=V11,ve=V12},#be{vs=V12,ve=V22}, Vs) ->    
+calc_dir(#be{vs=V11,ve=V12},#be{vs=V12,ve=V22}, Vs) ->
     C  = array:get(V12, Vs),
     V1 = array:get(V11, Vs),
     V2 = array:get(V22, Vs),
     {X1,Y1,_} = e3d_vec:sub(V1, C),
     {X2,Y2,_} = e3d_vec:sub(V2, C),
-    Angle = case (math:atan2(Y1,X1) - math:atan2(Y2,X2)) of 
+    Angle = case (math:atan2(Y1,X1) - math:atan2(Y2,X2)) of
 		A when A >= 0.0 ->
 		    A;
-		A -> 
+		A ->
 		    2 * math:pi() + A
 	    end,
 %    ?DBG("Angle Vertex ~p Edges ~w : ~p-~p = ~p ~n",
 %	[V12,{_E1,_E2},math:atan2(Y1,X1), math:atan2(Y2,X2),Angle]),
     Angle.
- 
+
 dist(V1, V2, Vs) ->
     e3d_vec:dist(array:get(V1, Vs), array:get(V2, Vs)).
 
-%% Returns a list of loops 
+%% Returns a list of loops
 sort_edges(Eds) ->
     {_V1, BE=#be{ve=V2}, EdsT0} = gb_trees:take_smallest(Eds),
     sort_edges(V2, EdsT0, [[BE]]).
 
 sort_edges(V21, EdsT0, All = [Current|Acc]) ->
     case gb_trees:lookup(V21, EdsT0) of
-	{value, BE = #be{ve=V22}} -> 
-	    sort_edges(V22, gb_trees:delete(V21,EdsT0), 
+	{value, BE = #be{ve=V22}} ->
+	    sort_edges(V22, gb_trees:delete(V21,EdsT0),
 		       [[BE|Current]|Acc]);
 	none ->
 	    try gb_trees:take_smallest(EdsT0) of
