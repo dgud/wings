@@ -925,7 +925,8 @@ packing_menu() ->
      {?__(1,"Pack Charts"),
         {pack,
          [{?__(2,"Legacy (Rows/Columns)"), legacy, ?__(3,"Packs using the legacy algorithm"),[option]},
-	      {?__(4,"Bounding Box"), maxrects, ?__(5,"Packs using the bounding box algorithm"),[option]}
+	      {?__(4,"Bounding Box"), maxrects, ?__(5,"Packs using the bounding box algorithm"),[option]},
+          {?__(6,"Polygon"), polygon, ?__(7,"Packs using the charts' outlines"),[option]}
          ]}, ?__(9,"Pack the UV charts into the texture space of the current tile")}
     ].
 
@@ -3251,7 +3252,7 @@ pack_charts(Param, #st{bb=#uvstate{tile={U,V}}}=St) ->
     case Method of
         legacy -> pack_legacy(Options, St);
         maxrects -> pack_maxrects(Options, St);
-        _ -> keep
+        polygon -> pack_polygon(Options, St)
     end.
 
 build_pack_dlg(legacy, #{gap:=Gap, margin:=Margin}, _Tile) ->
@@ -3265,9 +3266,13 @@ build_pack_dlg(legacy, #{gap:=Gap, margin:=Margin}, _Tile) ->
                                  {range, {0.0,10.0}}]}}
             ]}],
     {?__(17, "Legacy packing Options"), Dlg};
-build_pack_dlg(maxrects, #{gap:=Gap, margin:=Margin,
-                            rotation_step:=RotationStep,
-                            profile:=Profile, normalize:=Normalize}, _Tile) ->
+build_pack_dlg(Method,
+               #{gap:=Gap, margin:=Margin, rotation_step:=RotationStep,
+                profile:=Profile, normalize:=Normalize, scale:=Scale}=Opts, _Tile) when Method =:= maxrects; Method =:= polygon ->
+    Title = case Method of
+                maxrects -> ?__(1, "Bounding Box Options");
+                polygon -> ?__(18, "Polygon Options")
+            end,
     RotationChoices =
         [{?__(7, "None"), 0},
          {?__(8, "7 degrees"), 7},
@@ -3284,50 +3289,72 @@ build_pack_dlg(maxrects, #{gap:=Gap, margin:=Margin,
         [{label_column, [
                 {?__(2, "Profile"),
                  {menu, ProfileChoices, Profile,
-                  [{key, {maxrects,profile}}]}},
+                  [{key, {Method,profile}}]}},
                 separator,
                 {?__(3, "Gap (%)"),
-                 {text, Gap, [{key, {maxrects,gap}},
+                 {text, Gap, [{key, {Method,gap}},
                               {range, {0.0,20.0}}]}},
                 {?__(4, "Margin (%)"),
-                 {text, Margin, [{key, {maxrects,margin}},
+                 {text, Margin, [{key, {Method,margin}},
                                  {range, {0.0,10.0}}]}},
                 {?__(5, "Rotation step"),
                  {menu, RotationChoices, RotationStep,
-                  [{key, {maxrects,rotation_step}}]}},
+                  [{key, {Method,rotation_step}}]}},
                 separator,
                 {?__(6, "Normalize orientation"),
                  {"",Normalize,
-                 [{key, {maxrects,normalize}}]}}
-            ]}],
-    {?__(1, "Bounding Box Options"), Dlg};
+                 [{key, {Method,normalize}}]}},
+                {?__(19, "Scale to fit"),
+                 {"",Scale,
+                 [{key, {Method,scale}}]}}
+            ] ++ order_dlg(Method, Opts)}],
+    {Title, Dlg};
 build_pack_dlg(_, _, _) ->
     keep.
 
+order_dlg(polygon, Opts) ->
+    Order = maps:get(order, Opts, maxdim),
+    Choices = [{?__(2, "Longest side"), maxdim},
+               {?__(3, "Largest area"), area},
+               {?__(4, "Largest box"), bbox}],
+    [separator,
+     {?__(1, "Order"), {menu, Choices, Order, [{key, {polygon,order}}]}}];
+order_dlg(_, _) ->
+    [].
+
 %% Legacy packing: arranges ALL charts of the current tile inside the
-%% tile's unit square (uniform rescale). Selection is ignored.
-pack_legacy(Options, #st{shapes=Shs0, bb=#uvstate{tile={U,V}=Tile}}=St0) ->
-    Areas = case wings_wm:get_prop(wings_wm:this(), texture_set_mode) of
-                true ->
-                    [We || We <- gb_trees:values(Shs0), get_tile_id(We) =:= Tile];
-                false ->
-                    gb_trees:values(Shs0)
-            end,
+%% tile's unit square (uniform rescale if not selection found).
+pack_legacy(Options, #st{sel=Sel0,shapes=Shs0, bb=#uvstate{tile={U,V}=Tile}}=St0) ->
+    Shs =
+        case wings_wm:get_prop(wings_wm:this(), texture_set_mode) of
+            true ->
+                [We || We <- gb_trees:values(Shs0), get_tile_id(We) =:= Tile];
+            false ->
+                gb_trees:values(Shs0)
+        end,
+    HasSel = length(Sel0) > 0,
+    Areas =
+        case HasSel of
+            false -> Shs;
+            true -> [We || #we{id=Id}=We <- Shs, lists:keymember(Id, 1, Sel0)]
+        end,
     case Areas of
         [] ->
             wings_u:error_msg(?__(1,"No charts to arrange in the current tile"));
         _ ->
-            Placed0 = auv_placement:place_areas(arrange, Options, Areas),
+            Placed0 = auv_placement:place_areas(arrange, Options#{scale=>(not HasSel)}, Areas),
             Move = e3d_mat:translate(float(U), float(V), 0.0),
             Placed = [{Id,wings_we:transform_vs(Move, We)} || {Id,We} <- Placed0],
             pack_apply(Placed, St0)
     end.
 
-%% Pre-rotate charts to their minimum-area oriented bounding box when
-%% normalization is requested. This modifies the charts in-place before
-%% the core packing algorithm sees them, so the bounds passed to the core
-%% already reflect the OBB.
-pack_maxrects(Options, #st{sel=Sel0,shapes=Shs0,
+pack_maxrects(Options, St) ->
+    do_pack(maxrects, Options, St).
+
+pack_polygon(Options, St) ->
+    do_pack(polygon, Options, St).
+
+do_pack(Method, Options, #st{sel=Sel0,shapes=Shs0,
                            bb=#uvstate{tile=Tile}}=St0) ->
     ChtOnTile =
         case wings_wm:get_prop(wings_wm:this(), texture_set_mode) of
@@ -3342,30 +3369,37 @@ pack_maxrects(Options, #st{sel=Sel0,shapes=Shs0,
             wings_u:error_msg(?__(1,"No charts to pack in the current tile"));
         _ ->
             SelIds = [Id || {Id,_} <- Sel0,
-                            lists:keymember(Id, #we.id, ChtOnTile)],
+                            lists:keymember(Id, 1, ChtOnTile)],
             Movable = case SelIds of [] -> all; _ -> SelIds end,
-            case auv_packing:pack_charts(ChtOnTile, Movable, Options) of
+            Result = case Method of
+                         maxrects ->
+                             auv_pack_maxrects:pack_charts(ChtOnTile, Movable, Options);
+                         polygon ->
+                             auv_pack_poly:pack_charts(ChtOnTile, Movable, Options)
+                     end,
+            case Result of
                 {error,Reason} ->
-                    Msg = io_lib:format(?__(2,"Packing failed: ~p"),
-                                        [Reason]),
+                    Msg = io_lib:format(?__(2,"Packing failed: ~p"), [Reason]),
                     wings_u:error_msg(lists:flatten(Msg));
-                #{placed := Placed, unpacked := Unpacked} ->
-                    FixedIds =
-                        case Movable of
-                            all ->
-                                [];
-                            Ids ->
-                                [Id || Id <- lists:subtract(
-                                            [We#we.id || We <- ChtOnTile],
-                                            Ids)]
-                        end,
-                    Critical = auv_packing:critical_unpacked(
-                                 ChtOnTile, Placed, Unpacked, FixedIds),
-                    St = pack_apply(Placed, St0),
+                #{placed := Placed} = Res ->
+                    Critical = pack_critical(Method, Res, ChtOnTile, Movable),
+                    St1 = pack_apply(Placed, St0),
+%                    St = select_unpacked_charts(Critical, St1),
                     pack_unpacked_msg(Critical),
-                    St
+                    St1
+
             end
     end.
+
+pack_critical(polygon, #{critical := Critical}, _Charts, _Movable) ->
+    Critical;
+pack_critical(maxrects, #{placed := Placed, unpacked := Unpacked},
+              Charts, Movable) ->
+    FixedIds = case Movable of
+                   all -> [];
+                   Ids -> lists:subtract([We#we.id || We <- Charts], Ids)
+               end,
+    auv_pack_utils:critical_unpacked(Charts, Placed, Unpacked, FixedIds).
 
 pack_unpacked_msg([]) ->
     ok;
@@ -3662,15 +3696,14 @@ setup_we(body, _, #we{vp=Vtab}) ->
 %%%
 
 %% Parameters each method declares, with defaults.
+pack_params(legacy) ->
+    [{gap,0.0},{margin,0.0}];
 pack_params(maxrects) ->
     [{gap,0.0},{margin,0.0},{rotation_step,0},
-     {profile,balanced},{normalize,false}];
-pack_params(legacy) ->
-    [{gap,0.0},{margin,0.0}].
+     {profile,balanced},{normalize,false},{scale,false}];
+pack_params(polygon) ->
+    pack_params(maxrects) ++ [{order,maxdim}].
 
-pack_save_options(Method, [Param|_]=Options0) when is_tuple(Param), tuple_size(Param) =:= 2 ->
-    Options = maps:from_list(Options0),
-    pack_save_options(Method, Options);
 pack_save_options(Method, Options) when is_map(Options) ->
     [wings_pref:set_value({Method,Key}, maps:get({Method,Key}, Options)) ||
         {Key,_} <- pack_params(Method)],
