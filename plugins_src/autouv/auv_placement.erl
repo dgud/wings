@@ -26,10 +26,10 @@
 
 %% Returns a gb_tree with areas...
 place_areas(Areas) ->
-    place_areas(arrange, #{margin=>+0.0, gap=>0.0}, Areas).
+    place_areas(arrange, #{margin=>+0.0, gap=>0.0, scale=>true}, Areas).
 
 place_areas(UVMode, Areas0) ->
-    place_areas(UVMode, #{margin=>+0.0, gap=>0.0}, Areas0).
+    place_areas(UVMode, #{margin=>+0.0, gap=>0.0, scale=>true}, Areas0).
 
 %% The 'preserve' mode will keep the projection layout for the UV islands
 place_areas(preserve, _, Areas0) ->
@@ -52,7 +52,7 @@ place_areas(preserve, _, Areas0) ->
                                 {We,[{Id,{-Xmin,-Ymin}}|Acc]}
                             end,[],Areas0),
     move_and_scale_charts(Areas1, lists:sort(Positions0), Scale, []);
-place_areas(arrange, #{margin:=Margin0, gap:=Gap0}, Areas0) ->
+place_areas(arrange, #{margin:=Margin0, gap:=Gap0, scale:=CanScale}, Areas0) ->
     Gap = Gap0/100.0,
     Margin = Margin0/100.0,
     HalfGap = Gap/2.0,
@@ -66,7 +66,11 @@ place_areas(arrange, #{margin:=Margin0, gap:=Gap0}, Areas0) ->
 %    ?DBG("~p~n",[Sizes0]),
     {Positions0, Max} = fill(Sizes0, [0,0]),
 %    ?DBG("~p~n",[Positions0]),
-    Scale  = 1 / ((max(Max)+Margin*2)-Gap), %% '-Gap' removes the halfgap around the final bounding box
+    Scale =
+        case CanScale of
+            true -> 1 / ((max(Max)+Margin*2)-Gap); %% '-Gap' removes the halfgap around the final bounding box
+            false -> 1.0
+        end,
     Positions = offset_position(Positions0, Margin, HalfGap),
     move_and_scale_charts(Areas1, lists:sort(Positions), Scale, []).
 

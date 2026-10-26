@@ -30,7 +30,10 @@ endif
 MODULES= \
 	auv_mapping \
 	auv_matrix \
-	auv_packing \
+	auv_pack_maxrects \
+	auv_poly \
+	auv_pack_poly \
+	auv_pack_utils \
 	auv_placement \
 	auv_segment \
 	auv_seg_ui \
