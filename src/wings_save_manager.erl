@@ -36,7 +36,7 @@ autosave(TargetFile, St0) ->
 
 save(TargetFile, SaveSelParts, St0) ->
     St = wings_undo:init(St0),  %% Clear undo
-    gen_server:call(?MODULE, {save, TargetFile, SaveSelParts, St}).
+    gen_server:call(?MODULE, {save, TargetFile, SaveSelParts, St}, infinity).
 
 %%====================================================================
 %% gen_server callbacks
