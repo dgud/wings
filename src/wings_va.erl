@@ -20,7 +20,8 @@
 	 set_edge_color/4,blend_edge_color/4,
 	 vtx_attrs/2,vtx_attrs/3,attr/2,new_attr/2,average_attrs/1,average_attrs/2,
 	 set_vtx_face_uvs/4,
-	 remove/2,remove/3,renumber/2,merge/2,gc/1,any_update/2]).
+	 remove/2,remove/3,renumber/2,merge/2,gc/1,any_update/2,
+	 uv_move_data/2,uv_move/3]).
 
 -include("wings.hrl").
 
@@ -893,3 +894,138 @@ afoldl(Fun, Acc, VaTab) -> array:sparse_foldl(Fun, Acc, VaTab).
 
 amap(_Fun, none) -> none;
 amap(Fun, VaTab) -> array:sparse_map(Fun, VaTab).
+
+%%%
+%%% Keeping the UV coordinates when vertices move.
+%%%
+%%% UV coordinates are stored per face corner. When a vertex V is moved
+%%% by the displacement DP, each corner of V gets the UV that the original
+%%% mapping of a face at V assigns to the new position, so the texture
+%%% stays attached to the surface.
+%%%
+%%% For a corner in face F, let E1 and E2 be the vectors from V to its
+%%% two neighbors in F, and DU1 and DU2 the UV differences between those
+%%% neighbors and V. DP is written as DP = A*E1 + B*E2 (least squares
+%%% when DP is not in the plane of F) and the UV displacement is
+%%% A*DU1 + B*DU2. When DP follows an edge of F, this is the linear
+%%% interpolation along that edge. Values of A and B outside of [0,1]
+%%% extrapolate the mapping.
+%%%
+%%% Corners of V that share the same UV (no seam between them) are
+%%% moved together, using the corner of the class that best fits DP,
+%%% so the continuity of the mapping is kept.
+%%%
+
+%% uv_move_data(Vs, We) -> MoveData
+%%  MoveData = [{V,[Class]}]
+%%  Class = [Corner]
+%%  Corner = {Edge,Side,Color,UV,Wedge}
+%%  Wedge = none | {E1,E2,Ka,Kb,DU1,DU2}
+%%  Collects, from the original We, what is needed to recompute the UV
+%%  coordinates of the corners of each vertex in Vs.
+-spec uv_move_data([vertex_num()], #we{}) -> list().
+uv_move_data(Vs, We) ->
+    [{V,uv_move_classes(V, We)} || V <- Vs].
+
+%% uv_move(MoveData, DPFun, We) -> We
+%%  DPFun(V) -> {Dx,Dy,Dz}
+%%  Sets the UV coordinates of the corners of every vertex in MoveData
+%%  as if the vertex was moved by DPFun(V) from the position it had
+%%  when MoveData was collected. The result only depends on MoveData
+%%  and DPFun (not on the current UV coordinates of We), so it can be
+%%  called repeatedly, for instance while dragging. A displacement
+%%  of zero restores the original UV coordinates.
+-spec uv_move(list(), fun((vertex_num()) -> {float(),float(),float()}),
+	      #we{}) -> #we{}.
+uv_move(MoveData, DPFun, We) ->
+    lists:foldl(fun({V,Classes}, W) ->
+			DP = DPFun(V),
+			lists:foldl(fun(Class, W0) ->
+					    uv_move_class(Class, DP, W0)
+				    end, W, Classes)
+		end, We, MoveData).
+
+uv_move_classes(V, #we{es=Etab,vp=Vtab}=We) ->
+    Pos = array:get(V, Vtab),
+    %% The corner of V in a face is stored on the edge of that face that
+    %% starts at V (left face) or ends at V (right face). Note that the face
+    %% given by wings_vertex:fold/4 is not necessarily that face.
+    Fun = fun(Edge, _, Rec, Acc) ->
+		  {Side,OtherEdge,Face} =
+		      case Rec of
+			  #edge{vs=V,ltsu=LS,lf=LF} -> {left,LS,LF};
+			  #edge{ve=V,rtsu=RS,rf=RF} -> {right,RS,RF}
+		      end,
+		  case edge_attrs(Edge, Side, We) of
+		      [Col|{_,_}=UV] ->
+			  Na = wings_vertex:other(V, Rec),
+			  Nb = wings_vertex:other(V, array:get(OtherEdge, Etab)),
+			  Wedge = uv_move_wedge(Pos, UV, Na, Nb, Face, We),
+			  [{Edge,Side,Col,UV,Wedge}|Acc];
+		      _ ->
+			  Acc
+		  end
+	  end,
+    uv_move_group(wings_vertex:fold(Fun, [], V, We), []).
+
+uv_move_wedge(Pos, {U0,V0}, Na, Nb, Face, #we{vp=Vtab}=We) ->
+    case {attr(uv, vtx_attrs(Na, Face, We)),
+	  attr(uv, vtx_attrs(Nb, Face, We))} of
+	{{Ua,Va},{Ub,Vb}} ->
+	    E1 = e3d_vec:sub(array:get(Na, Vtab), Pos),
+	    E2 = e3d_vec:sub(array:get(Nb, Vtab), Pos),
+	    G11 = e3d_vec:dot(E1, E1), G22 = e3d_vec:dot(E2, E2),
+	    G12 = e3d_vec:dot(E1, E2),
+	    Det = G11*G22 - G12*G12,
+	    if
+		Det =< 1.0e-9*G11*G22 ->	%Degenerate (collinear) corner.
+		    none;
+		true ->
+		    Ka = e3d_vec:mul(e3d_vec:sub(e3d_vec:mul(E1, G22),
+						 e3d_vec:mul(E2, G12)), 1/Det),
+		    Kb = e3d_vec:mul(e3d_vec:sub(e3d_vec:mul(E2, G11),
+						 e3d_vec:mul(E1, G12)), 1/Det),
+		    {E1,E2,Ka,Kb,{Ua-U0,Va-V0},{Ub-U0,Vb-V0}}
+	    end;
+	_ ->
+	    none
+    end.
+
+%% Group the corners that have the same UV.
+uv_move_group([{_,_,_,UV,_}=Corner|Cs], Classes) ->
+    {Same,Other} = lists:partition(fun([{_,_,_,UV0,_}|_]) ->
+					   uv_move_same(UV, UV0)
+				   end, Classes),
+    uv_move_group(Cs, [[Corner|lists:append(Same)]|Other]);
+uv_move_group([], Classes) -> Classes.
+
+uv_move_same({U1,V1}, {U2,V2}) ->
+    abs(U1-U2) < 1.0e-6 andalso abs(V1-V2) < 1.0e-6.
+
+uv_move_class(Class, DP, We) ->
+    {DU,DV} = uv_move_delta(Class, DP),
+    lists:foldl(fun({Edge,Side,Col,{U,V},_}, W) ->
+			set_edge_attrs(Edge, Side, [Col|{U+DU,V+DV}], W)
+		end, We, Class).
+
+%% Use the corner whose face fits DP best: smallest distance from DP to
+%% the plane of the face, preferring faces that contain DP in their wedge.
+uv_move_delta(Class, DP) ->
+    Limit = 1.0e-3*e3d_vec:len(DP),
+    Cands = [uv_move_cand(Wedge, DP, Limit) ||
+		{_,_,_,_,Wedge} <- Class, Wedge =/= none],
+    case Cands of
+	[] -> {0.0,0.0};
+	_ -> element(2, lists:min(Cands))
+    end.
+
+uv_move_cand({E1,E2,Ka,Kb,{U1,V1},{U2,V2}}, DP, Limit) ->
+    A = e3d_vec:dot(DP, Ka),
+    B = e3d_vec:dot(DP, Kb),
+    Res = e3d_vec:len(e3d_vec:sub(DP, e3d_vec:add(e3d_vec:mul(E1, A),
+						  e3d_vec:mul(E2, B)))),
+    Score = if
+		A >= -1.0e-6, B >= -1.0e-6 -> Res;
+		true -> Res + Limit
+	    end,
+    {Score,{A*U1+B*U2,A*V1+B*V2}}.

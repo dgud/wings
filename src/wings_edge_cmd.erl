@@ -427,7 +427,11 @@ slide(#st{sel=[]}=St) -> St;
 slide(St0) ->
     Mode = wings_pref:get_value(slide_mode, relative),
     Stop = wings_pref:get_value(slide_stop, false),
-    State = {Mode,none,Stop},
+    Uv = wings_pref:get_value(slide_uv, true),
+    State = {Mode,none,Stop,Uv},
+    %% The UV adjusting funs (see slide_uv_fun/4) are not notified when
+    %% the mode changes, so they read the current state from here.
+    put(wings_slide_state, State),
     SUp = SDown = SN = SBi = {0.0,0.0,0.0},
 
     %% FIXME: The use of the process dictionary (wings_slide) will
@@ -446,7 +450,7 @@ slide(St0) ->
 		  {{Slides,MUp,MDw},Up,Dw,N,Bi} =
 		      slide_setup_edges(LofEs,Up0,Dw0,N0,Bi0,We,
 					{gb_trees:empty(),MinUp,MinDw}),
-		  {We#we{temp=make_slide_tv(Slides, State)},
+		  {We#we{temp=make_slide_tv(Slides, State, We)},
                    {Up,Dw,N,Bi,MUp,MDw}}
 	  end, {SUp, SDown, SN, SBi, unknown,unknown}, St0),
     Units = slide_units(State,MinUp,MinDw),
@@ -456,44 +460,48 @@ slide(St0) ->
 
 slide_mode(MinUp,MinDw) ->
     fun(help, State)		  ->	slide_help(State);
-       ({key,$1}, {relative,F,S}) ->	{absolute,F,S};
-       ({key,$1}, {absolute,F,S}) ->	{relative,F,S};
-       ({key,$2}, {Mode,none,S})  ->
+       ({key,$1}, {relative,F,S,U}) ->	{absolute,F,S,U};
+       ({key,$1}, {absolute,F,S,U}) ->	{relative,F,S,U};
+       ({key,$2}, {Mode,none,S,U})  ->
 	    case get(wings_slide) of
 		undefined ->
-		    {Mode,none,S};
+		    {Mode,none,S,U};
 		Dx when Dx >= 0 ->
-		    {Mode,positive,S};
+		    {Mode,positive,S,U};
 		_ ->
-		    {Mode,negative,S}
+		    {Mode,negative,S,U}
 	    end;
-       ({key,$2}, {Mode,_,S})	  ->	{Mode,none,S};
-       ({key,$3}, {Mode,F,false}) ->	{Mode,F,true};
-       ({key,$3}, {Mode,F,true})  ->	{Mode,F,false};
+       ({key,$2}, {Mode,_,S,U})	  ->	{Mode,none,S,U};
+       ({key,$3}, {Mode,F,false,U}) ->	{Mode,F,true,U};
+       ({key,$3}, {Mode,F,true,U})  ->	{Mode,F,false,U};
+       ({key,$4}, {Mode,F,S,U})	  ->	{Mode,F,S,not U};
 
        (units, NewState) ->
 	    slide_units(NewState,MinUp,MinDw);
 
-       (done, {NewMode,_,NewStop})->
+       (done, {NewMode,_,NewStop,NewUv})->
 	    wings_pref:set_value(slide_mode, NewMode),
 	    wings_pref:set_value(slide_stop, NewStop),
+	    wings_pref:set_value(slide_uv, NewUv),
+	    erase(wings_slide_state),
 	    erase(wings_slide);
 
        (_, _) -> none
     end.
 
-slide_units({absolute,_,false},_,_) -> [distance];
-slide_units({absolute,_Freeze,true},unknown,unknown) ->
+slide_units({absolute,_,false,_},_,_) -> [distance];
+slide_units({absolute,_Freeze,true,_},unknown,unknown) ->
     [{distance, {-1.0, 1.0}}];
-slide_units({absolute,_Freeze,true},MinUp,MinDw) ->
+slide_units({absolute,_Freeze,true,_},MinUp,MinDw) ->
     [{distance, {-MinUp, MinDw}}];
-slide_units({relative,_,false},_,_) -> [percent];
-slide_units({relative,_,true},_,_) -> [{percent,{-1.0,1.0}}].
+slide_units({relative,_,false,_},_,_) -> [percent];
+slide_units({relative,_,true,_},_,_) -> [{percent,{-1.0,1.0}}].
 
-slide_help({Mode,Freeze,Stop}) ->
+slide_help({Mode,Freeze,Stop,Uv}) ->
     ["[1] ",slide_help_mode(Mode),
      "  [2] ",slide_help_freeze(Freeze),
-     "  [3] ",slide_help_stop(Stop)].
+     "  [3] ",slide_help_stop(Stop),
+     "  [4] ",slide_help_uv(Uv)].
 
 slide_help_mode(relative) -> ?__(1,"Absolute");
 slide_help_mode(absolute) -> ?__(2,"Relative").
@@ -504,12 +512,27 @@ slide_help_freeze(_)	  -> ?STR(slide_help_mode,4,"Thaw direction").
 slide_help_stop(false)	  -> ?STR(slide_help_mode,5,"Stop at other edges");
 slide_help_stop(true)	  -> ?STR(slide_help_mode,6,"Continue past other edges").
 
-make_slide_tv(Slides, State) ->
-    Vs = gb_trees:keys(Slides),
-    {Vs,make_slide_fun(Vs, Slides, State)}.
+%% Like the other keys, shows what pressing [4] will switch to.
+slide_help_uv(true)	  -> ?STR(slide_help_mode,7,"Keep UVs");
+slide_help_uv(false)	  -> ?STR(slide_help_mode,8,"Adjust UVs").
 
-%% The calculating fun
-slide_fun(Dx0,{Mode,Freeze,_Stop}, Slides) ->
+%% make_slide_tv(Slides, State, We) -> Tv
+%%  When the object has UV coordinates, the Tv also carries a fun
+%%  that adjusts them while dragging (see slide_uv_fun/4).
+make_slide_tv(Slides, State, We) ->
+    Vs = gb_trees:keys(Slides),
+    Tv = {Vs,make_slide_fun(Vs, Slides, State)},
+    case wings_va:any_uvs(We) of
+	false ->
+	    Tv;
+	true ->
+	    UvFun = slide_uv_fun(Vs, Slides, State, We),
+	    {we,[UvFun],Tv}
+    end.
+
+%% slide_delta(Dx, State, Slide) -> Vector
+%%  The displacement of a vertex for the drag value Dx.
+slide_delta(Dx0,{Mode,Freeze,_Stop,_Uv}, Slide) ->
     {Dx,I} =
 	case Freeze of	 %% 3 = UP, 2 = Down
 	    none when Dx0 >= 0 -> {Dx0, 3};
@@ -517,21 +540,18 @@ slide_fun(Dx0,{Mode,Freeze,_Stop}, Slides) ->
 	    positive -> 	  {Dx0, 3};
 	    negative -> 	  {-Dx0,2}
 	end,
+    {Dir, Len, Count} = element(I, Slide),
     case Mode of
-	relative ->
-	    fun(V,A) ->
-		    Slide = gb_trees:get(V, Slides),
-		    {Dir, Len, Count} = element(I, Slide),
-		    ScaleDir = e3d_vec:mul(e3d_vec:norm(Dir), Dx*(Len/Count)),
-		    [{V,e3d_vec:add(element(1,Slide), ScaleDir)}|A]
-	    end;
-	absolute ->
-	    fun(V,A) ->
-		    Slide = gb_trees:get(V, Slides),
-		    {Dir, _Len, _C} = element(I, Slide),
-		    ScaleDir = e3d_vec:mul(e3d_vec:norm(Dir), Dx),
-		    [{V,e3d_vec:add(element(1,Slide), ScaleDir)}|A]
-	    end
+	relative -> e3d_vec:mul(e3d_vec:norm(Dir), Dx*(Len/Count));
+	absolute -> e3d_vec:mul(e3d_vec:norm(Dir), Dx)
+    end.
+
+%% The calculating fun
+slide_fun(Dx0, State, Slides) ->
+    fun(V,A) ->
+	    Slide = gb_trees:get(V, Slides),
+	    ScaleDir = slide_delta(Dx0, State, Slide),
+	    [{V,e3d_vec:add(element(1,Slide), ScaleDir)}|A]
     end.
 
 make_slide_fun(Vs, Slides, State) ->
@@ -540,6 +560,7 @@ make_slide_fun(Vs, Slides, State) ->
 	    Fun = slide_fun(Dx,State,Slides),
 	    foldl(Fun, Acc, Vs);
        (new_mode_data, {NewState,_}) ->
+	    put(wings_slide_state, NewState),
 	    make_slide_fun(Vs,Slides,NewState);
        (_,_) ->
 	    make_slide_fun(Vs,Slides,State)
@@ -682,6 +703,35 @@ add_slide_vertex(V,{Vpos,{Ndir,NL},{Pdir,PL}},Acc) ->
 		   {add(Pdir,Pdir0),PL+PL0,PC0+1}},
 	    gb_trees:update(V, New, Acc)
     end.
+
+%%%
+%%% Slide: adjusting the UV coordinates.
+%%%
+%%% The calculation is done by wings_va:uv_move_data/2 and
+%%% wings_va:uv_move/3. Here we only supply the displacement
+%%% of each sliding vertex.
+%%%
+
+%% slide_uv_fun(Vs, Slides, State0, We) -> WeFun
+%%  The fun that is called by wings_drag for each mouse movement.
+%%  It always starts from the original UV coordinates (collected here
+%%  from the original We), never from the current ones.
+slide_uv_fun(Vs, Slides, State0, We) ->
+    MoveData = wings_va:uv_move_data(Vs, We),
+    fun(W, [Dx|_]) ->
+	    %% State0 is used until the mode is changed with a key.
+	    {_,_,_,Uv} = State = case get(wings_slide_state) of
+				     undefined -> State0;
+				     State1 -> State1
+				 end,
+	    wings_va:uv_move(MoveData, slide_uv_dp(Uv, Dx, State, Slides), W)
+    end.
+
+%% Without UV adjustment the original UV coordinates are restored.
+slide_uv_dp(true, Dx, State, Slides) ->
+    fun(V) -> slide_delta(Dx, State, gb_trees:get(V, Slides)) end;
+slide_uv_dp(false, _, _, _) ->
+    fun(_) -> {0.0,0.0,0.0} end.
 
 %%%
 %%% The Loop Cut command.
