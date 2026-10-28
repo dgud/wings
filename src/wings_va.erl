@@ -21,7 +21,7 @@
 	 vtx_attrs/2,vtx_attrs/3,attr/2,new_attr/2,average_attrs/1,average_attrs/2,
 	 set_vtx_face_uvs/4,
 	 remove/2,remove/3,renumber/2,merge/2,gc/1,any_update/2,
-	 uv_move_data/2,uv_move/3,corners/2,uv_wedge/3,uv_wedge_delta/2]).
+	 uv_move_data/2,uv_move/3,corners/2,uv_wedge/3,uv_wedge_delta/2,uv_class/3,uv_class_color/1,uv_set/3]).
 
 -include("wings.hrl").
 
@@ -1086,3 +1086,32 @@ uv_wedge_delta({_,_,Ka,Kb,{U1,V1},{U2,V2}}, DP) ->
     A = e3d_vec:dot(DP, Ka),
     B = e3d_vec:dot(DP, Kb),
     {A*U1+B*U2,A*V1+B*V2}.
+
+%% uv_class(V, Face, We) -> {UV,[{Edge,Side,Color}]} | none
+%%  The corner of vertex V in Face and the other corners of V that have
+%%  the same UV coordinates, i.e. the corners that follow the corner of
+%%  Face when the texture is moved. It is none if the corner of Face
+%%  has no UV coordinates.
+-spec uv_class(vertex_num(), face_num(), #we{}) ->
+		      {{float(),float()},[{edge_num(),side(),term()}]} | 'none'.
+uv_class(V, Face, We) ->
+    Cs = corners(V, We),
+    case lists:keyfind(Face, 3, Cs) of
+	{_,_,_,[_|{U,W}]} ->
+	    {{U,W},[{Edge,Side,uv_class_color(Attr)} ||
+		       {Edge,Side,_,[_|{U1,W1}]=Attr} <- Cs,
+		       abs(U1-U) < 1.0e-6, abs(W1-W) < 1.0e-6]};
+	_ ->
+	    none
+    end.
+
+uv_class_color([Col|_]) -> Col;
+uv_class_color(_) -> none.
+
+%% uv_set(Corners, UV, We) -> We
+%%  Sets the UV coordinates of corners given as in uv_class/3.
+-spec uv_set([{edge_num(),side(),term()}], {float(),float()}, #we{}) -> #we{}.
+uv_set(Corners, UV, We) ->
+    lists:foldl(fun({Edge,Side,Col}, W) ->
+			set_edge_attrs(Edge, Side, [Col|UV], W)
+		end, We, Corners).

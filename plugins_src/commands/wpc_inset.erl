@@ -77,6 +77,7 @@ inset_setup(offset_region, St0) ->
     offset_regions_setup(offset_region, St).
 
 offset_regions_setup(offset_region, St0) ->
+    erase_uv_state(),
     State = drag_mode(offset_region),
     St = wings_sel:map(
            fun(Faces0, We) ->
@@ -86,7 +87,18 @@ offset_regions_setup(offset_region, St0) ->
                        collect_offset_regions_data(FaceRegions, We, [], []),
                    test_selection(AllVs0),
                    AllVs = ordsets:from_list(AllVs0),
-                   Tv = {AllVs,offset_regions_fun(VsData, State)},
+                   Fun = offset_regions_fun(VsData, State),
+                   Tv = case offset_uv_data(Faces0, Faces, AllVs0, We) of
+                            [] ->
+                                {AllVs,Fun};
+                            UvData ->
+                                uv_start(),
+                                {we,[inset_uv_fun(UvData,
+                                                  fun(S) ->
+                                                          offset_regions_fun(VsData, S)
+                                                  end, State)],
+                                 {AllVs,inset_tr_fun(Fun)}}
+                        end,
                    We#we{temp=Tv}
            end, St0),
     Flags = [{mode,{modes(),State}}],
@@ -94,6 +106,7 @@ offset_regions_setup(offset_region, St0) ->
     wings_drag:fold(DF, drag_units(State), Flags, St).
 
 inset_regions_setup(inset_region, St) ->
+    erase_uv_state(),
     State = drag_mode(inset_region),
     Flags = [{mode,{modes(),State}}],
     wings_drag:fold(
@@ -105,9 +118,20 @@ inset_regions_setup_1(Faces, We, State) ->
     FaceRegions = wings_sel:face_regions(Faces, We),
     {AllVs0,VsData} = collect_inset_regions_data(FaceRegions, We, [], []),
     AllVs = ordsets:from_list(AllVs0),
-    {AllVs,inset_regions_fun(VsData, State)}.
+    Fun = inset_regions_fun(VsData, State),
+    case inset_uv_data(Faces, We) of
+	[] ->
+	    {AllVs,Fun};
+	UvData ->
+	    uv_start(),
+	    {we,[inset_uv_fun(UvData,
+			      fun(S) -> inset_regions_fun(VsData, S) end,
+			      State)],
+	     {AllVs,inset_tr_fun(Fun)}}
+    end.
 
 inset_faces_setup(inset_faces, St) ->
+    erase_uv_state(),
     State = drag_mode(inset_faces),
     Flags = [{mode,{modes(),State}}],
     wings_drag:fold(
@@ -117,7 +141,182 @@ inset_faces_setup(inset_faces, St) ->
 
 inset_faces_setup_1(Faces, We, State) ->
     {AllVs,VData} = collect_inset_face_data(Faces, We),
-    {AllVs,inset_faces_fun(VData, State)}.
+    Fun = inset_faces_fun(VData, State),
+    case inset_uv_data(Faces, We) of
+	[] ->
+	    {AllVs,Fun};
+	UvData ->
+	    uv_start(),
+	    {we,[inset_uv_fun(UvData,
+			      fun(S) -> inset_faces_fun(VData, S) end, State)],
+	     {AllVs,inset_tr_fun(Fun)}}
+    end.
+
+%% [6] switches between keeping and adjusting the UV coordinates.
+%% The UV fun is not told about changes of mode, so it reads the
+%% current state from the process dictionary.
+uv_start() ->
+    put(wings_inset_uv, {wings_pref:get_value(inset_uv, true)}).
+
+erase_uv_state() ->
+    erase(wings_inset_uv),
+    erase(wings_inset_state).
+
+%%%% Keeping the texture on the surface (Inset Faces).
+%%%%
+%%%% The vertices of the inset faces move in the plane of their face, so
+%%%% the UV coordinates of their corners are moved with the mapping of
+%%%% that face (see wings_va:uv_wedge/3). The corners of the new side
+%%%% faces at the vertex have the same UV coordinates as the corner of the
+%%%% inset face and move with it, so the texture continues over them.
+%%%% The corners of the side faces at the original vertices get the UV
+%%%% coordinates of the inset face (Extrude gives them those of the
+%%%% neighbor faces, which are not the ones that continue the texture).
+
+%% inset_uv_data(Sel, We) -> [{V,Pos0,Wedge,UV,Corners,Outer}]
+%%  Sel are the selected (inset) faces. Only the vertices that have an
+%%  edge to a face that is not selected move in the plane of the faces.
+%%  Outer are the corners of the side faces at the original vertex of V.
+inset_uv_data(Sel, #we{vp=Vtab}=We) ->
+    case wings_va:any_uvs(We) of
+	false ->
+	    [];
+	true ->
+	    [{V,array:get(V, Vtab),Wedge,UV,Corners,Outer} ||
+		Face <- gb_sets:to_list(Sel),
+		V <- wings_face:vertices_ccw(Face, We),
+		inset_uv_loop(V, Sel, We),
+		Wedge <- [wings_va:uv_wedge(V, Face, We)],
+		Wedge =/= none,
+		{UV,Corners} <- [wings_va:uv_class(V, Face, We)],
+		Outer <- [inset_uv_outer(V, Sel, We)]]
+    end.
+
+inset_uv_loop(V, Sel, We) ->
+    wings_vertex:fold(
+      fun(_, _, #edge{lf=Lf,rf=Rf}, Acc) ->
+	      Acc orelse not gb_sets:is_member(Lf, Sel)
+		  orelse not gb_sets:is_member(Rf, Sel)
+      end, false, V, We).
+
+inset_uv_outer(V, Sel, We) ->
+    %% The edge from V to the original vertex is the one that is not
+    %% in a selected face.
+    Es = wings_vertex:fold(
+	   fun(_, _, #edge{lf=Lf,rf=Rf}=Rec, Acc) ->
+		   case gb_sets:is_member(Lf, Sel) orelse
+		       gb_sets:is_member(Rf, Sel) of
+		       true -> Acc;
+		       false -> [{Lf,Rf,wings_vertex:other(V, Rec)}|Acc]
+		   end
+	   end, [], V, We),
+    case Es of
+	[{Lf,Rf,Orig}] ->
+	    [{Edge,Side,wings_va:uv_class_color(Attr)} ||
+		{Edge,Side,F,Attr} <- wings_va:corners(Orig, We),
+		F =:= Lf orelse F =:= Rf];
+	_ ->
+	    []
+    end.
+
+%% offset_uv_data(Sel, Reg, LoopVs, We) -> [{V,Pos0,Wedge,UV,Corners,[]}]
+%%  Sel are the extruded faces and Reg the faces of the region (the
+%%  extruded faces and the side faces around them). The vertices of the
+%%  outer loop of the region move in the plane of the faces outside the
+%%  region, so the corners of those faces are moved with their mapping.
+%%  The corners of the side faces at the vertex are moved with the mapping
+%%  of the extruded face at the other end of the side edge, so the
+%%  texture of the extruded face continues over the side faces. They are
+%%  listed last, so their UV coordinates are the ones that are kept.
+offset_uv_data(Sel, Reg, Vs, #we{vp=Vtab}=We) ->
+    case wings_va:any_uvs(We) of
+	false ->
+	    [];
+	true ->
+	    Items = [offset_uv_items(V, array:get(V, Vtab), Sel, Reg, We) ||
+			V <- lists:usort(Vs)],
+	    lists:append([O || {O,_} <- Items]) ++
+		lists:append([S || {_,S} <- Items])
+    end.
+
+offset_uv_items(V, Pos, Sel, Reg, We) ->
+    Cs = wings_va:corners(V, We),
+    Outside = lists:usort([F || {_,_,F,_} <- Cs, not gb_sets:is_member(F, Reg)]),
+    case Outside of
+	[] -> {[],[]};			%Not in the loop: does not move in the plane.
+	_ -> offset_uv_items_1(V, Pos, Outside, Cs, Sel, Reg, We)
+    end.
+
+offset_uv_items_1(V, Pos, Outside, Cs, Sel, Reg, We) ->
+    Sides = [{Edge,Side,wings_va:uv_class_color(Attr)} ||
+		{Edge,Side,F,Attr} <- Cs, gb_sets:is_member(F, Reg)],
+    Out = [{V,Pos,Wedge,UV,Corners,[]} ||
+	      Face <- Outside,
+	      Wedge <- [wings_va:uv_wedge(V, Face, We)],
+	      Wedge =/= none,
+	      {UV,Corners} <- [wings_va:uv_class(V, Face, We)]],
+    %% The edge to the vertex of the extruded faces is between two side
+    %% faces.
+    Ins = wings_vertex:fold(
+	    fun(_, _, #edge{lf=Lf,rf=Rf}=Rec, Acc) ->
+		    case gb_sets:is_member(Lf, Reg) andalso
+			gb_sets:is_member(Rf, Reg) of
+			true -> [wings_vertex:other(V, Rec)|Acc];
+			false -> Acc
+		    end
+	    end, [], V, We),
+    Side = [{V,Pos,Wedge,UV,Sides,[]} ||
+	       VIn <- Ins,
+	       Face <- gb_sets:to_list(Sel),
+	       Wedge <- [wings_va:uv_wedge(VIn, Face, We)],
+	       Wedge =/= none,
+	       {UV,_} <- [wings_va:uv_class(VIn, Face, We)]],
+    {Out,Side}.
+
+%% The translation fun is told about the changes of mode by wings_drag.
+inset_tr_fun(Fun) ->
+    fun(new_mode_data, {NewState,_}=Val) ->
+	    put(wings_inset_state, NewState),
+	    inset_tr_fun(Fun(new_mode_data, Val));
+       (Move, Acc) ->
+	    Fun(Move, Acc)
+    end.
+
+%% The UV fun is absolute: it starts from the data collected before
+%% the drag. The new positions come from the translation fun.
+inset_uv_fun(UvData, MakeFun, State0) ->
+    fun(We, Move) ->
+	    Uv = case get(wings_inset_uv) of
+		     {Uv0} -> Uv0;
+		     undefined -> false
+		 end,
+	    State = case get(wings_inset_state) of
+			undefined -> State0;
+			State1 -> State1
+		    end,
+	    NewPos = case Uv of
+			 true ->
+			     gb_trees:from_orddict(
+			       lists:sort((MakeFun(State))(Move, [])));
+			 false ->
+			     gb_trees:empty()
+		     end,
+	    lists:foldl(
+	      fun({V,Pos0,Wedge,{U,W},Corners,Outer}, Acc0) ->
+		      Acc = case Uv of
+				true -> wings_va:uv_set(Outer, {U,W}, Acc0);
+				false -> Acc0
+			    end,
+		      {DU,DW} = case gb_trees:lookup(V, NewPos) of
+				    {value,Pos} ->
+					DP = e3d_vec:sub(Pos, Pos0),
+					wings_va:uv_wedge_delta(Wedge, DP);
+				    none ->
+					{0.0,0.0}
+				end,
+		      wings_va:uv_set(Corners, {U+DU,W+DW}, Acc)
+	      end, We, UvData)
+    end.
 
 test_selection(AllVs) ->
     case length(AllVs) == length(lists:usort(AllVs)) of
@@ -140,7 +339,13 @@ drag_units({_,_,_}) -> [distance,skip,bump].
 
 modes() ->
     fun
-      (help,State) -> mode_help(State);
+      (help,State) -> mode_help(State) ++ uv_help(State);
+
+      ({key,$6}, State) ->
+          case get(wings_inset_uv) of
+              undefined -> none;
+              {Uv} -> put(wings_inset_uv, {not Uv}), State
+          end;
 
       ({key,$3}, {inset_faces,Mode,relative,continue,Smallest}) ->
           {inset_faces,Mode,relative,stop,Smallest};
@@ -166,10 +371,13 @@ modes() ->
       (units, State) ->
           drag_units(State);
       (done,{inset_faces,Mode,AbRel,Stop,Smallest}) ->
+          uv_done(),
           wings_pref:set_value(inset_faces,{Mode,AbRel,Stop,Smallest});
       (done,{inset_region,Mode,Norm}) ->
+          uv_done(),
           wings_pref:set_value(inset_region,{Mode,Norm});
       (done,{offset_region,Mode,Norm}) ->
+          uv_done(),
           wings_pref:set_value(offset_region,{Mode,Norm});
       (_,_) -> none
     end.
@@ -215,6 +423,21 @@ mode_help({Type,Mode,Norm}) ->
     Divider = [{bold," | "}],
     Extrude = extrude_norm_help0(Type,Norm),
     Help ++ Divider ++ Extrude.
+
+%% Like the other keys, shows what pressing [6] will switch to.
+uv_help(_) ->
+    case get(wings_inset_uv) of
+	{true} -> "  [6] " ++ ?__(1,"Keep UVs");
+	{false} -> "  [6] " ++ ?__(2,"Adjust UVs");
+	undefined -> []
+    end.
+
+uv_done() ->
+    case get(wings_inset_uv) of
+	{Uv} -> wings_pref:set_value(inset_uv, Uv);
+	undefined -> ok
+    end,
+    erase_uv_state().
 
 solution_type(Mode, [{Num,Mode}|Rest]) ->
     Num ++ [{bold,string(Mode)}] ++ solution_type(Mode, Rest);
