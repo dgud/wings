@@ -61,8 +61,14 @@ plus_minus(Type, F, #st{selmode=Mode}=St) when is_function(F, 2) ->
     Vec = make_vector(Type),
     Flags = [{initial,[0.0,0.0,1.0]}|flags(Type)],
     DF = fun(Items, We) ->
-                 PlusMinus = F(Items, We),
-                 plus_minus_1(Mode, Vec, PlusMinus, We)
+                 case F(Items, We) of
+                     {we,WeFuns,PlusMinus} when is_list(WeFuns) ->
+                         %% Funs that also change the #we{} (e.g. its UV
+                         %% coordinates), see wings_drag:fold/4.
+                         {we,WeFuns,plus_minus_1(Mode, Vec, PlusMinus, We)};
+                     PlusMinus ->
+                         plus_minus_1(Mode, Vec, PlusMinus, We)
+                 end
          end,
     wings_drag:fold(DF, unit(Type, [{percent,{0.0,infinity}}]), Flags, St).
 

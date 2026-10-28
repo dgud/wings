@@ -702,7 +702,12 @@ extrude_problem() ->
 
 crease(St0) ->
     Dist = calc_extrude_dist(St0),
-    MF = fun(Edges, We0) ->
+    MF = fun(Edges, We0) -> crease_edges(Edges, Dist, We0) end,
+    St = wings_sel:map(MF, St0),
+    DF = fun(_, #we{temp=PlusMinus}) -> PlusMinus end,
+    wings_move:plus_minus(normal, DF, St).
+
+crease_edges(Edges, Dist, We0) ->
         We1 = extrude_1(Edges, Dist, We0),
         #we{temp={_,NewVs0,F}} = We1,
         ValidCaps = find_cap_vs(Edges, We0, []),
@@ -734,9 +739,10 @@ crease(St0) ->
                 [{d,E1},{c,E2,V1}] ->
                     We3 = wings_edge:dissolve_edge(E1, We2),
                     Pos = wings_vertex:pos(V1, We3),
+                    Saved = crease_uv_save(V1, We3),
                     #we{vp=Vtab0}=We4 = wings_collapse:collapse_edge(E2, V1, We3),
                     Vtab = array:set(V1, Pos, Vtab0),
-                    We4#we{vp=Vtab};
+                    crease_uv_restore(V1, Saved, We4#we{vp=Vtab});
                 [{d,E1}|_] ->
                     #we{vp=Vtab0}=We3 = wings_edge:dissolve_edge(E1, We2),
                     RVs = wings_vertex:fold(fun(_,_,Erec,RVs0) ->
@@ -744,17 +750,141 @@ crease(St0) ->
                     end, [], V, We3),
                     Center = wings_vertex:center(RVs, We3),
                     Vtab = array:set(V, Center, Vtab0),
-                    We3#we{vp=Vtab};
+                    (crease_uv_move(V, Center, We3))#we{vp=Vtab};
                 _ -> We2
             end
         end, We1, NewVs0), % list foldl
         AllVs = orddict:fetch_keys(array:sparse_to_orddict(Vtab)),
         NewVs =  ordsets:intersection(lists:sort(NewVs0), AllVs),
-        We#we{temp={Edges,NewVs,F}}
-    end,
-    St = wings_sel:map(MF, St0),
-    DF = fun(_, #we{temp=PlusMinus}) -> PlusMinus end,
-    wings_move:plus_minus(normal, DF, St).
+        We#we{temp=crease_uv(Edges, NewVs, F, We0, We)}.
+
+%%%
+%%% Keeping the texture on the surface while dragging Crease.
+%%%
+%%% The new vertices (cut out of the edges next to the creased edges) are
+%%% moved along the surface by wings_move:plus_minus/3 when the third
+%%% value of the drag (the percent) changes: they go away from the vertex
+%%% of the creased edge by the vector Vec*(Percent-1), where Vec is the
+%%% vector from that vertex to the new vertex when the drag starts.
+%%% This is a movement in the plane of the faces around the new vertex, so
+%%% their corners are moved with the mapping of an original face (see
+%%% wings_va:uv_wedge/3), the same way as a new vertex of Bevel. The
+%%% vertices of the creased edges only move along the normal, which
+%%% does not change the UV coordinates. The preference crease_uv (default
+%%% true) turns the adjustment off.
+%%%
+
+%% The end caps of Crease collapse a new vertex into a vertex of the
+%% object, or move a new vertex to the center of its neighbors, without
+%% looking at the UV coordinates. The corners of the vertex that keeps
+%% its position get back the UV coordinates it had, and the corners of
+%% the vertex that moves are moved along the faces.
+
+%% crease_uv_save(V, We) -> [{Face,Attr}] | none
+crease_uv_save(V, We) ->
+    case wings_va:any_uvs(We) andalso wings_pref:get_value(crease_uv, true) of
+	true -> [{F,Attr} || {_,_,F,Attr} <- wings_va:corners(V, We)];
+	false -> none
+    end.
+
+%% crease_uv_restore(V, Saved, We) -> We
+%%  A corner in a face that had no corner of V gets the attributes of the
+%%  corner of V in the face with the lowest number.
+crease_uv_restore(_, none, We) ->
+    We;
+crease_uv_restore(V, Saved, We) ->
+    [{_,Default}|_] = lists:sort(Saved),
+    foldl(fun({Edge,Side,Face,_}, W) ->
+		  Attr = case lists:keyfind(Face, 1, Saved) of
+			     {_,A} -> A;
+			     false -> Default
+			 end,
+		  wings_va:set_edge_attrs(Edge, Side, Attr, W)
+	  end, We, wings_va:corners(V, We)).
+
+%% crease_uv_move(V, Pos, We) -> We
+%%  Moves the UV coordinates of the corners of V as if V was moved to Pos.
+crease_uv_move(V, Pos, We) ->
+    case wings_va:any_uvs(We) andalso wings_pref:get_value(crease_uv, true) of
+	true ->
+	    DP = e3d_vec:sub(Pos, wings_vertex:pos(V, We)),
+	    wings_va:uv_move(wings_va:uv_move_data([V], We), fun(_) -> DP end, We);
+	false ->
+	    We
+    end.
+
+%% crease_uv(Edges, NewVs, Forbidden, We0, We) -> PlusMinus
+%%  The data for wings_move:plus_minus/3, with the UV fun if needed.
+crease_uv(Edges, NewVs, Forbidden, We0, We) ->
+    PlusMinus = {Edges,NewVs,Forbidden},
+    case wings_pref:get_value(crease_uv, true) andalso wings_va:any_uvs(We) of
+	false ->
+	    PlusMinus;
+	true ->
+	    case crease_uv_data(Edges, NewVs, Forbidden, We0, We) of
+		[] -> PlusMinus;
+		Nvs -> {we,[crease_uv_fun(Nvs)],PlusMinus}
+	    end
+    end.
+
+%% crease_uv_data(Edges, NewVs, Forbidden, We0, We) -> [{NV,Vec,wedge,[Class]}]
+crease_uv_data(Edges, NewVs, Forbidden, #we{next_id=Next,fs=Fs0}=We0, We) ->
+    EdgeVs = gb_sets:from_list(wings_edge:to_vertices(Edges, We0)),
+    %% The same vectors as wings_move:move_vectors/5.
+    Vecs = [{NV,crease_uv_vec(NV, EdgeVs, Forbidden, We)} || NV <- NewVs],
+    [Nv || {NV,Vec} <- Vecs, Vec =/= none,
+	   Nv <- [crease_uv_vertex(NV, Vec, Next, Fs0, We)],
+	   Nv =/= none].
+
+crease_uv_vec(NV, EdgeVs, Forbidden, We) ->
+    Pos = wings_vertex:pos(NV, We),
+    wings_vertex:fold(
+      fun(Edge, _, Rec, Acc) ->
+	      Other = wings_vertex:other(NV, Rec),
+	      case gb_sets:is_member(Other, EdgeVs) andalso
+		  not gb_sets:is_member(Edge, Forbidden) of
+		  false ->
+		      Acc;
+		  true ->
+		      Vec = e3d_vec:sub(Pos, wings_vertex:pos(Other, We)),
+		      case Acc of
+			  none -> Vec;
+			  _ -> e3d_vec:add(Acc, Vec)
+		      end
+	      end
+      end, none, NV, We).
+
+crease_uv_vertex(NV, Vec, Next, Fs0, We) ->
+    Faces = [F || {_,_,F,Attr} <- wings_va:corners(NV, We),
+		  F < Next, is_uv_attr(Attr)],
+    case lists:sort(Faces) of
+	[Face|_] ->
+	    case wings_va:uv_wedge(NV, Face, We) of
+		none ->
+		    none;
+		Wedge ->
+		    Classes = bevel_uv_classes(NV, [], [Face], Fs0, We),
+		    {NV,Vec,wedge,[{Cs,UV,Wedge} || {Cs,UV,_} <- Classes]}
+	    end;
+	[] ->
+	    none
+    end.
+
+%% The UV fun is absolute: it always starts from the UV coordinates
+%% collected before the drag.
+crease_uv_fun(Nvs) ->
+    fun(We, [_,_,Percent|_]) ->
+	    foldl(fun({_,Vec,Kind,Classes}, W0) ->
+			  Delta = bevel_uv_delta(true, Kind, Vec, Percent-1.0),
+			  foldl(fun({Corners,{U,V},Wedge}, W1) ->
+					{DU,DV} = Delta(Wedge),
+					UV = {U+DU,V+DV},
+					foldl(fun({Edge,Side,Col}, W2) ->
+						      wings_va:set_edge_attrs(Edge, Side, [Col|UV], W2)
+					      end, W1, Corners)
+				end, W0, Classes)
+		  end, We, Nvs)
+    end.
 
 find_cap_vs(Edges0, #we{es=Etab}=We, Acc) ->
     case gb_sets:is_empty(Edges0) of
