@@ -21,7 +21,7 @@
 	 vtx_attrs/2,vtx_attrs/3,attr/2,new_attr/2,average_attrs/1,average_attrs/2,
 	 set_vtx_face_uvs/4,
 	 remove/2,remove/3,renumber/2,merge/2,gc/1,any_update/2,
-	 uv_move_data/2,uv_move/3]).
+	 uv_move_data/2,uv_move/3,corners/2,uv_wedge/3,uv_wedge_delta/2]).
 
 -include("wings.hrl").
 
@@ -1029,3 +1029,60 @@ uv_move_cand({E1,E2,Ka,Kb,{U1,V1},{U2,V2}}, DP, Limit) ->
 		true -> Res + Limit
 	    end,
     {Score,{A*U1+B*U2,A*V1+B*V2}}.
+
+%% corners(V, We) -> [{Edge,Side,Face,Attr}]
+%%  All the corners of vertex V, also those without attributes. A corner is
+%%  stored on the edge of its face that starts at V (Side = left, the face
+%%  is the left face of Edge) or ends at V (Side = right, the face is the
+%%  right face of Edge). Attr is what edge_attrs/3 returns for Edge and Side.
+-spec corners(vertex_num(), #we{}) ->
+	  [{edge_num(),'left'|'right',face_num(),all_attributes()|list()}].
+corners(V, We) ->
+    Fun = fun(Edge, _, Rec, Acc) ->
+		  {Side,Face} =
+		      case Rec of
+			  #edge{vs=V,lf=LF} -> {left,LF};
+			  #edge{ve=V,rf=RF} -> {right,RF}
+		      end,
+		  [{Edge,Side,Face,edge_attrs(Edge, Side, We)}|Acc]
+	  end,
+    wings_vertex:fold(Fun, [], V, We).
+
+%% uv_wedge(V, Face, We) -> Wedge | none
+%%  The wedge (see uv_move_data/2) of the corner of vertex V in Face.
+%%  It is none if the corner has no UV coordinates or is degenerate.
+-spec uv_wedge(vertex_num(), face_num(), #we{}) -> tuple() | 'none'.
+uv_wedge(V, Face, #we{es=Etab,vp=Vtab}=We) ->
+    Pos = array:get(V, Vtab),
+    Fun = fun(Edge, _, Rec, Acc) ->
+		  {Side,OtherEdge,F} =
+		      case Rec of
+			  #edge{vs=V,ltsu=LS,lf=LF} -> {left,LS,LF};
+			  #edge{ve=V,rtsu=RS,rf=RF} -> {right,RS,RF}
+		      end,
+		  case F =:= Face of
+		      false ->
+			  Acc;
+		      true ->
+			  case edge_attrs(Edge, Side, We) of
+			      [_|{_,_}=UV] ->
+				  Na = wings_vertex:other(V, Rec),
+				  Nb = wings_vertex:other(V, array:get(OtherEdge, Etab)),
+				  uv_move_wedge(Pos, UV, Na, Nb, Face, We);
+			      _ ->
+				  Acc
+			  end
+		  end
+	  end,
+    wings_vertex:fold(Fun, none, V, We).
+
+%% uv_wedge_delta(Wedge, DP) -> {DU,DV}
+%%  The change of UV for a displacement DP of the vertex of the wedge.
+-spec uv_wedge_delta(tuple() | 'none', {float(),float(),float()}) ->
+	  {float(),float()}.
+uv_wedge_delta(none, _) ->
+    {0.0,0.0};
+uv_wedge_delta({_,_,Ka,Kb,{U1,V1},{U2,V2}}, DP) ->
+    A = e3d_vec:dot(DP, Ka),
+    B = e3d_vec:dot(DP, Kb),
+    {A*U1+B*U2,A*V1+B*V2}.
