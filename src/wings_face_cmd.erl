@@ -183,7 +183,7 @@ command(put_on, St) ->
 command(clone_on, St) ->
     clone_on(St);
 command(collapse, St) ->
-    {save_state, wings_collapse:collapse(dissolve(St))};
+    {save_state, wings_collapse:collapse(collapse_uv(dissolve(St)))};
 command({material,Cmd}, St) ->
     wings_material:command(Cmd, St);
 command({move,Type}, St) ->
@@ -350,6 +350,44 @@ dissolve_sel(Faces, #we{fs=Ftab,holes=Holes,mirror=M}=We0) ->
 	    {We,Sel};
 	true ->
 	    {#we{},gb_sets:empty()}
+    end.
+
+%%%
+%%% Keeping the texture on the surface when collapsing faces.
+%%%
+%%% wings_collapse moves the vertices of each face to the center of the
+%%% face. Before that, the UV coordinates of their corners are moved as
+%%% if the vertices were moved there along the faces (see
+%%% wings_va:uv_move/3), so the faces around the new vertex keep the scale
+%%% of the texture. Collapsing itself is not changed. The preference
+%%% collapse_uv (default true) turns the adjustment off.
+%%%
+
+collapse_uv(St) ->
+    case wings_pref:get_value(collapse_uv, true) of
+	true -> wings_sel:map(fun collapse_uv/2, St);
+	false -> St
+    end.
+
+collapse_uv(Faces, We) ->
+    case wings_va:any_uvs(We) of
+	false ->
+	    We;
+	true ->
+	    %% A vertex shared by two of the faces is only moved once.
+	    {_,W} = gb_sets:fold(
+		      fun(Face, {Done,W0}) ->
+			      Vs = wings_face:vertices_ccw(Face, We),
+			      Center = wings_vertex:center(Vs, We),
+			      Move = [V || V <- Vs, not gb_sets:is_member(V, Done)],
+			      Data = wings_va:uv_move_data(Move, We),
+			      DPFun = fun(V) ->
+					      e3d_vec:sub(Center, wings_vertex:pos(V, We))
+				      end,
+			      {gb_sets:union(Done, gb_sets:from_list(Move)),
+			       wings_va:uv_move(Data, DPFun, W0)}
+		      end, {gb_sets:empty(),We}, Faces),
+	    W
     end.
 
 %%%

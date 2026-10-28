@@ -154,10 +154,11 @@ command(clean_dissolve, St) ->
     {save_state,clean_dissolve(St)};
 command(dissolve, St) ->
     {save_state,dissolve(St)};
-command(collapse, St) ->
+command(collapse, St0) ->
+    St = collapse_uv(St0),
     {save_state, wings_collapse:uniform_collapse(St)};
 command(clean_collapse, St0) ->
-    St = wings_collapse:clean_uniform_collapse(St0),
+    St = wings_collapse:clean_uniform_collapse(collapse_uv(St0)),
     {save_state,St};
 command({hardness,Type}, St) ->
     {save_state,hardness(Type, St)};
@@ -732,6 +733,38 @@ slide_uv_dp(true, Dx, State, Slides) ->
     fun(V) -> slide_delta(Dx, State, gb_trees:get(V, Slides)) end;
 slide_uv_dp(false, _, _, _) ->
     fun(_) -> {0.0,0.0,0.0} end.
+
+%%%
+%%% Keeping the texture on the surface when collapsing edges.
+%%%
+%%% The vertices of the collapsed edges are moved to the center of their
+%%% group of edges by wings_collapse. Before that, the UV coordinates of
+%%% their corners are moved as if the vertices were moved there along the
+%%% faces, so the faces around the new vertex keep the scale of the
+%%% texture. Collapsing itself is not changed. The preference collapse_uv
+%%% (default true) turns the adjustment off.
+%%%
+
+collapse_uv(St) ->
+    case wings_pref:get_value(collapse_uv, true) of
+	true -> wings_sel:map(fun collapse_uv/2, St);
+	false -> St
+    end.
+
+collapse_uv(Edges, We) ->
+    case wings_va:any_uvs(We) of
+	false ->
+	    We;
+	true ->
+	    %% Same groups and centers as wings_collapse:uniform_collapse/3.
+	    foldl(fun(Es, W) ->
+			  Vs = wings_edge:to_vertices(Es, We),
+			  Center = wings_vertex:center(Vs, We),
+			  Data = wings_va:uv_move_data(Vs, We),
+			  DPFun = fun(V) -> sub(Center, wings_vertex:pos(V, We)) end,
+			  wings_va:uv_move(Data, DPFun, W)
+		  end, We, wings_edge_loop:partition_edges(Edges, We))
+    end.
 
 %%%
 %%% The Loop Cut command.
