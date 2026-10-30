@@ -47,7 +47,9 @@ bump(Faces, Dist, We0) ->
     Edges = gb_sets:from_list(wings_face:outer_edges(Faces, We0)),
     {We,_,_,_} = extrude_edges(Edges, Faces, Dist, We0),
     NewVs = wings_we:new_items_as_ordset(vertex, We0, We),
-    We#we{temp={Faces,NewVs,gb_sets:empty()}}.
+    PlusMinus = {Faces,NewVs,gb_sets:empty()},
+    FaceVs = gb_sets:from_list(wings_face:to_vertices(Faces, We)),
+    We#we{temp=crease_uv(PlusMinus, FaceVs, We0, We)}.
 
 %%
 %% The Bevel command (for edges).
@@ -112,86 +114,23 @@ bevel_drag(St) ->
     MF = fun(_, #we{temp={Limit,_,_}}) -> Limit end,
     RF = fun min/2,
     Limit = wings_sel:dfold(MF, RF, infinite, St),
-    Uv = wings_pref:get_value(bevel_uv, true),
-    State = {Uv},
-    %% The UV adjusting funs are not notified when the mode changes
-    %% (see bevel_tr_fun/1), so they read the current state from here.
-    put(wings_bevel_uv, State),
     DF = fun(_, #we{temp={_,Tv,UvData}}=We) ->
-                 bevel_tv_fun(Tv, UvData, State, We)
+                 bevel_tv_fun(Tv, UvData, We)
          end,
-    HasUv = wings_sel:dfold(fun(_, #we{temp={_,_,UvData}}) -> UvData =/= none end,
-			    fun(A, B) -> A orelse B end, false, St),
-    Flags = case HasUv of
-		true -> [{mode,{bevel_mode(),State}}];
-		false -> []
-	    end,
-    wings_drag:fold(DF, [{distance,{0.0,Limit}}], Flags, St).
+    wings_drag:fold(DF, [{distance,{0.0,Limit}}], [], St).
 
-%% The mode fun adds the [1] key to the drag.
-bevel_mode() ->
-    fun(help, {Uv}) -> "[1] " ++ bevel_help_uv(Uv);
-       ({key,$1}, {Uv}) -> {not Uv};
-       (done, {Uv}) ->
-	    wings_pref:set_value(bevel_uv, Uv),
-	    erase(wings_bevel_uv);
-       (_, _) -> none
-    end.
-
-%% Like the other keys, shows what pressing [1] will switch to.
-bevel_help_uv(true)  -> ?__(1,"Keep UVs");
-bevel_help_uv(false) -> ?__(2,"Adjust UVs").
-
-bevel_tv_fun(Tv, UvData, State, We) ->
-    {Vs,TrFun} = wings_drag:translate_fun(Tv, We),
-    Tr = {Vs,bevel_tr_fun(TrFun)},
+bevel_tv_fun(Tv, UvData, We) ->
+    Tr = wings_drag:translate_fun(Tv, We),
     case UvData of
 	none -> Tr;
-	_ -> {we,[bevel_uv_fun(UvData, State)],Tr}
-    end.
-
-%% wings_drag tells the translation fun about changes of mode, which the
-%% standard translation fun does not expect.
-bevel_tr_fun(Tr) ->
-    fun(new_mode_data, {NewState,_}) ->
-	    put(wings_bevel_uv, NewState),
-	    bevel_tr_fun(Tr);
-       (new_falloff, Falloff) ->
-	    bevel_tr_fun(Tr(new_falloff, Falloff));
-       (Move, Acc) ->
-	    Tr(Move, Acc)
+	_ -> {we,[bevel_uv_fun(UvData)],Tr}
     end.
 
 %%%
-%%% Bevel: adjusting the UV coordinates.
-%%%
-%%% The new vertices of the bevel start at the position of an original
-%%% vertex V and move away from it as the distance is dragged. There are
-%%% two kinds of them:
-%%%
-%%% * A vertex NV that slides along one of the original edges (V,Z). The
-%%%   UV coordinates of its corners follow the linear interpolation along
-%%%   that edge, in the mapping of the face on each side of the edge (the
-%%%   rate is read from the cut that extrude_edges did, where the
-%%%   attributes are interpolated).
-%%%
-%%% * A vertex NV of an extruded face F (a face that is beveled as
-%%%   a whole), which moves inside F. Its corners follow the mapping of F
-%%%   at V, the same way as in the Slide command (see wings_va:uv_wedge/3).
-%%%
-%%% The corners of NV with the same UV (no seam between them) are
-%%% moved together. The corners of NV in the faces that the bevel created
-%%% (they may have no UV coordinates) join the class of the corner in the
-%%% face with the lowest number that gives the rate, so a new face
-%%% continues the mapping of that face and does not become an island of
-%%% its own.
-%%%
-%%% A new face may still have corners without UV coordinates (when the
-%%% faces next to it have no UV coordinates, for instance because they use
-%%% a material without texture). Those corners get the UV coordinates that
-%%% the mapping of a neighbor face gives when the new face is unfolded
-%%% into the plane of that neighbor, so the texture continues over the
-%%% new face (see bevel_uv_fill/3).
+%%% Bevel: the UV coordinates follow the new vertices while dragging.
+%%% A new vertex either slides along an original edge ('rate') or moves
+%%% inside an extruded face ('wedge'). Corners of new faces without UV
+%%% continue the mapping of a neighbour face.
 %%%
 
 %% bevel_uv_data(OrigVs, Forbidden, Tv, We0, We2, We) -> none | {[NvData],Fill}
@@ -243,10 +182,8 @@ bevel_uv_kinds(Vs, Forbidden, #we{next_id=Next}=We0, We2) ->
 		    end, A, V, We2)
 	  end, [], Vs).
 
-%% The corners of NV that are in faces of the original object. A vertex
-%% that was cut out of an original edge is in two of them (the faces on
-%% both sides of the edge). A vertex of an extruded face F (a face that is
-%% beveled as a whole) is only in F.
+%% A vertex cut from an original edge is in two original faces, a vertex of
+%% an extruded face in one.
 bevel_uv_kind(V, NV, _, _, Next, We0, We2) ->
     case [F || {_,_,F,_} <- wings_va:corners(NV, We2), F < Next] of
 	[Face] ->
@@ -258,10 +195,7 @@ bevel_uv_kind(V, NV, _, _, Next, We0, We2) ->
     end.
 
 %% bevel_uv_edge_rates(V, NV, We0, We2) -> [{Face,{DU,DV}}]
-%%  NV was cut out of an edge (V,Z) of the original object. {DU,DV} is the
-%%  change of UV per unit of length from V towards Z in each of the faces
-%%  Face on the sides of that edge. The original object is used because
-%%  the faces of We2 near V may have lost their UV coordinates.
+%%  Uses We0 because the faces of We2 near V may have lost their UVs.
 bevel_uv_edge_rates(V, NV, We0, We2) ->
     Pos = wings_vertex:pos(V, We0),
     Dir = e3d_vec:norm(e3d_vec:sub(wings_vertex:pos(NV, We2), Pos)),
@@ -294,8 +228,6 @@ bevel_uv_rate(V, NV, Face, Dist, We) ->
     end.
 
 %% bevel_uv_classes(NV, Rates, RefFaces, Fs0, We) -> [Class]
-%%  The corners in new faces (faces not in Fs0) that have no UV
-%%  coordinates join the class that has a corner in the first of RefFaces.
 bevel_uv_classes(NV, Rates, RefFaces, Fs0, We) ->
     Corners = wings_va:corners(NV, We),
     WithUv = [{Edge,Side,Face,Col,UV} ||
@@ -308,7 +240,6 @@ bevel_uv_classes(NV, Rates, RefFaces, Fs0, We) ->
 			false -> {Group,[]}
 		    end, Rates) || Group <- Groups].
 
-%% The corners of NV in new faces that have no UV coordinates.
 bevel_uv_new_corners(NV, Fs0, We) ->
     [{Edge,Side,case Attr of
 		    [Col|_] -> Col;
@@ -321,7 +252,6 @@ bevel_uv_new_corners(NV, Fs0, We) ->
 is_uv_attr([_|{_,_}]) -> true;
 is_uv_attr(_) -> false.
 
-%% The class with a corner in the first of the faces that has one.
 bevel_uv_ref([Class|_]=Classes, Faces) ->
     case [Cl || F <- Faces, Cl <- Classes,
 		lists:keymember(F, 3, Cl)] of
@@ -348,18 +278,10 @@ bevel_uv_group([{_,_,_,_,{U,V}}=Corner|Cs], Classes) ->
     bevel_uv_group(Cs, [[Corner|lists:append(Same)]|Other]);
 bevel_uv_group([], Classes) -> Classes.
 
-%% The fun that is called by wings_drag for each mouse movement. The new
-%% UV coordinates are always calculated from the ones when the drag
-%% started.
-bevel_uv_fun({Nvs,Fill}, State0) ->
+bevel_uv_fun({Nvs,Fill}) ->
     fun(We, [Dx|_]) ->
-	    %% State0 is used until the mode is changed with a key.
-	    {Uv} = case get(wings_bevel_uv) of
-		       undefined -> State0;
-		       State -> State
-		   end,
 	    W1 = foldl(fun({_,Vec,Kind,Classes}, W0) ->
-			       Delta = bevel_uv_delta(Uv, Kind, Vec, Dx),
+			       Delta = bevel_uv_delta(Kind, Vec, Dx),
 			       foldl(fun({Corners,{U,V},Rate}, W2) ->
 					     {DU,DV} = Delta(Rate),
 					     UV = {U+DU,V+DV},
@@ -368,22 +290,13 @@ bevel_uv_fun({Nvs,Fill}, State0) ->
 						   end, W2, Corners)
 				     end, W0, Classes)
 		       end, We, Nvs),
-	    case Uv of
-		true -> bevel_uv_fill(Fill, Dx, W1);
-		false -> W1
-	    end
+	    bevel_uv_fill(Fill, Dx, W1)
     end.
 
-%% bevel_uv_delta(Uv, Kind, Vec, Dx) -> fun(Rate) -> {DU,DV}
-%%  Without UV adjustment the original UV coordinates are restored.
-bevel_uv_delta(false, _, _, _) ->
-    fun(_) -> {0.0,0.0} end;
-bevel_uv_delta(true, {rate,Dist}, Vec, Dx) ->
-    %% The UV coordinates at the start are those of the
-    %% distance Dist from the original vertex.
+bevel_uv_delta({rate,Dist}, Vec, Dx) ->
     L = Dx*e3d_vec:len(Vec) - Dist,
     fun({DU,DV}) -> {DU*L,DV*L} end;
-bevel_uv_delta(true, wedge, Vec, Dx) ->
+bevel_uv_delta(wedge, Vec, Dx) ->
     DP = e3d_vec:mul(Vec, Dx),
     fun(Wedge) -> wings_va:uv_wedge_delta(Wedge, DP) end.
 
@@ -450,9 +363,7 @@ bevel_uv_corner(V, Face, We) ->
 bevel_uv_color([Col|_]) -> Col;
 bevel_uv_color(_) -> none.
 
-%% bevel_uv_fill(Fill, Dx, We) -> We
-%%  The positions at Dx are calculated from the start positions (the
-%%  positions in We are not yet moved when the fun is called).
+%% Positions come from the start positions: those in We are not moved yet.
 bevel_uv_fill({Faces,Moves}, Dx, We) ->
     Pos = fun(V) ->
 		  {P,Vec} = gb_trees:get(V, Moves),
@@ -492,11 +403,9 @@ bevel_uv_get(Edge, Side, We) ->
 	_ -> none
     end.
 
-%% bevel_uv_unfold(P, Pa, Pb, UvA, UvB, Across, Pos, We) -> UV
-%%  Rotate the new face about its edge (Pa,Pb) into the plane of the face
-%%  Across that has the mapping, on the other side of the edge, and
-%%  map the point P with the mapping of that face. Without a usable
-%%  mapping, P gets the UV coordinates of Pa.
+%% Rotates the new face about its edge (Pa,Pb) into the plane of the face
+%% Across and maps P with that face. Without a usable mapping P gets the
+%% UV of Pa.
 bevel_uv_unfold(P, Pa, Pb, UvA, UvB, Across, Pos, We) ->
     E = e3d_vec:sub(Pb, Pa),
     Len = e3d_vec:len(E),
@@ -525,8 +434,6 @@ bevel_uv_unfold(P, Pa, Pb, UvA, UvB, Across, Pos, We) ->
 	    end
     end.
 
-%% The unit vector in the plane of the points, perpendicular to U, that
-%% points to the points from the line through Pa with direction U.
 bevel_uv_inward(Pts, Pa, U) ->
     Ds = [begin
 	      D = e3d_vec:sub(P, Pa),
@@ -756,33 +663,19 @@ crease_edges(Edges, Dist, We0) ->
         end, We1, NewVs0), % list foldl
         AllVs = orddict:fetch_keys(array:sparse_to_orddict(Vtab)),
         NewVs =  ordsets:intersection(lists:sort(NewVs0), AllVs),
-        We#we{temp=crease_uv(Edges, NewVs, F, We0, We)}.
+        EdgeVs = gb_sets:from_list(wings_edge:to_vertices(Edges, We0)),
+        We#we{temp=crease_uv({Edges,NewVs,F}, EdgeVs, We0, We)}.
 
 %%%
-%%% Keeping the texture on the surface while dragging Crease.
-%%%
-%%% The new vertices (cut out of the edges next to the creased edges) are
-%%% moved along the surface by wings_move:plus_minus/3 when the third
-%%% value of the drag (the percent) changes: they go away from the vertex
-%%% of the creased edge by the vector Vec*(Percent-1), where Vec is the
-%%% vector from that vertex to the new vertex when the drag starts.
-%%% This is a movement in the plane of the faces around the new vertex, so
-%%% their corners are moved with the mapping of an original face (see
-%%% wings_va:uv_wedge/3), the same way as a new vertex of Bevel. The
-%%% vertices of the creased edges only move along the normal, which
-%%% does not change the UV coordinates. The preference crease_uv (default
-%%% true) turns the adjustment off.
+%%% Crease: the new vertices slide by Vec*(Percent-1) (third drag value),
+%%% so their corners follow the mapping of an original face (wedge).
 %%%
 
-%% The end caps of Crease collapse a new vertex into a vertex of the
-%% object, or move a new vertex to the center of its neighbors, without
-%% looking at the UV coordinates. The corners of the vertex that keeps
-%% its position get back the UV coordinates it had, and the corners of
-%% the vertex that moves are moved along the faces.
-
+%% The end caps collapse or move vertices without looking at the UVs;
+%% the corners of those vertices are saved/restored/moved here.
 %% crease_uv_save(V, We) -> [{Face,Attr}] | none
 crease_uv_save(V, We) ->
-    case wings_va:any_uvs(We) andalso wings_pref:get_value(crease_uv, true) of
+    case wings_va:any_uvs(We) of
 	true -> [{F,Attr} || {_,_,F,Attr} <- wings_va:corners(V, We)];
 	false -> none
     end.
@@ -805,7 +698,7 @@ crease_uv_restore(V, Saved, We) ->
 %% crease_uv_move(V, Pos, We) -> We
 %%  Moves the UV coordinates of the corners of V as if V was moved to Pos.
 crease_uv_move(V, Pos, We) ->
-    case wings_va:any_uvs(We) andalso wings_pref:get_value(crease_uv, true) of
+    case wings_va:any_uvs(We) of
 	true ->
 	    DP = e3d_vec:sub(Pos, wings_vertex:pos(V, We)),
 	    wings_va:uv_move(wings_va:uv_move_data([V], We), fun(_) -> DP end, We);
@@ -813,23 +706,23 @@ crease_uv_move(V, Pos, We) ->
 	    We
     end.
 
-%% crease_uv(Edges, NewVs, Forbidden, We0, We) -> PlusMinus
-%%  The data for wings_move:plus_minus/3, with the UV fun if needed.
-crease_uv(Edges, NewVs, Forbidden, We0, We) ->
-    PlusMinus = {Edges,NewVs,Forbidden},
-    case wings_pref:get_value(crease_uv, true) andalso wings_va:any_uvs(We) of
+%% crease_uv(PlusMinus, MovedVs, We0, We) -> PlusMinus
+%%  PlusMinus is the data for wings_move:plus_minus/3 (also used by Bump);
+%%  MovedVs are the vertices that it moves along the normal. A UV fun is
+%%  added if needed.
+crease_uv({_,NewVs,Forbidden}=PlusMinus, MovedVs, We0, We) ->
+    case wings_va:any_uvs(We) of
 	false ->
 	    PlusMinus;
 	true ->
-	    case crease_uv_data(Edges, NewVs, Forbidden, We0, We) of
+	    case crease_uv_data(MovedVs, NewVs, Forbidden, We0, We) of
 		[] -> PlusMinus;
 		Nvs -> {we,[crease_uv_fun(Nvs)],PlusMinus}
 	    end
     end.
 
-%% crease_uv_data(Edges, NewVs, Forbidden, We0, We) -> [{NV,Vec,wedge,[Class]}]
-crease_uv_data(Edges, NewVs, Forbidden, #we{next_id=Next,fs=Fs0}=We0, We) ->
-    EdgeVs = gb_sets:from_list(wings_edge:to_vertices(Edges, We0)),
+%% crease_uv_data(EdgeVs, NewVs, Forbidden, We0, We) -> [{NV,Vec,wedge,[Class]}]
+crease_uv_data(EdgeVs, NewVs, Forbidden, #we{next_id=Next,fs=Fs0}, We) ->
     %% The same vectors as wings_move:move_vectors/5.
     Vecs = [{NV,crease_uv_vec(NV, EdgeVs, Forbidden, We)} || NV <- NewVs],
     [Nv || {NV,Vec} <- Vecs, Vec =/= none,
@@ -870,12 +763,10 @@ crease_uv_vertex(NV, Vec, Next, Fs0, We) ->
 	    none
     end.
 
-%% The UV fun is absolute: it always starts from the UV coordinates
-%% collected before the drag.
 crease_uv_fun(Nvs) ->
     fun(We, [_,_,Percent|_]) ->
 	    foldl(fun({_,Vec,Kind,Classes}, W0) ->
-			  Delta = bevel_uv_delta(true, Kind, Vec, Percent-1.0),
+			  Delta = bevel_uv_delta(Kind, Vec, Percent-1.0),
 			  foldl(fun({Corners,{U,V},Wedge}, W1) ->
 					{DU,DV} = Delta(Wedge),
 					UV = {U+DU,V+DV},
@@ -1010,9 +901,9 @@ straighten_1(Vec, N, {Cx,Cy,Cz}, OtherV, OPos0, Vt) ->
     catch _:_ -> Vt
     end.
 
-%% 
+%%
 %% Common help function for actually extruding edges.
-%%    
+%%
 extrude_edges(Edges, ExtrudeDist, We) ->
     NoForbiddenFaces = gb_sets:empty(),
     extrude_edges(Edges, NoForbiddenFaces, ExtrudeDist, We).

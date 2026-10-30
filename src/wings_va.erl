@@ -898,43 +898,25 @@ amap(Fun, VaTab) -> array:sparse_map(Fun, VaTab).
 %%%
 %%% Keeping the UV coordinates when vertices move.
 %%%
-%%% UV coordinates are stored per face corner. When a vertex V is moved
-%%% by the displacement DP, each corner of V gets the UV that the original
-%%% mapping of a face at V assigns to the new position, so the texture
-%%% stays attached to the surface.
+%%% When a vertex V moves by DP, each of its corners gets the UV that the
+%%% original mapping of a face at V gives to the new position:
+%%% dUV = A*DU1 + B*DU2, where DP = A*E1 + B*E2 (least squares) and E1, E2
+%%% are the vectors to the two neighbours in the face. Corners with the
+%%% same UV (no seam) move together.
 %%%
-%%% For a corner in face F, let E1 and E2 be the vectors from V to its
-%%% two neighbors in F, and DU1 and DU2 the UV differences between those
-%%% neighbors and V. DP is written as DP = A*E1 + B*E2 (least squares
-%%% when DP is not in the plane of F) and the UV displacement is
-%%% A*DU1 + B*DU2. When DP follows an edge of F, this is the linear
-%%% interpolation along that edge. Values of A and B outside of [0,1]
-%%% extrapolate the mapping.
-%%%
-%%% Corners of V that share the same UV (no seam between them) are
-%%% moved together, using the corner of the class that best fits DP,
-%%% so the continuity of the mapping is kept.
-%%%
-
 %% uv_move_data(Vs, We) -> MoveData
 %%  MoveData = [{V,[Class]}]
 %%  Class = [Corner]
 %%  Corner = {Edge,Side,Color,UV,Wedge}
 %%  Wedge = none | {E1,E2,Ka,Kb,DU1,DU2}
-%%  Collects, from the original We, what is needed to recompute the UV
-%%  coordinates of the corners of each vertex in Vs.
 -spec uv_move_data([vertex_num()], #we{}) -> list().
 uv_move_data(Vs, We) ->
     [{V,uv_move_classes(V, We)} || V <- Vs].
 
 %% uv_move(MoveData, DPFun, We) -> We
 %%  DPFun(V) -> {Dx,Dy,Dz}
-%%  Sets the UV coordinates of the corners of every vertex in MoveData
-%%  as if the vertex was moved by DPFun(V) from the position it had
-%%  when MoveData was collected. The result only depends on MoveData
-%%  and DPFun (not on the current UV coordinates of We), so it can be
-%%  called repeatedly, for instance while dragging. A displacement
-%%  of zero restores the original UV coordinates.
+%%  Absolute: depends only on MoveData and DPFun (not on the current UVs
+%%  of We), so it can be called repeatedly while dragging.
 -spec uv_move(list(), fun((vertex_num()) -> {float(),float(),float()}),
 	      #we{}) -> #we{}.
 uv_move(MoveData, DPFun, We) ->
@@ -968,7 +950,28 @@ uv_move_classes(V, #we{es=Etab,vp=Vtab}=We) ->
 	  end,
     uv_move_group(wings_vertex:fold(Fun, [], V, We), []).
 
-uv_move_wedge(Pos, {U0,V0}, Na, Nb, Face, #we{vp=Vtab}=We) ->
+%% At a straight corner (a vertex that cuts an edge in two) the neighbours
+%% are collinear with V, so the other vertices of Face are used instead:
+%% the mapping of the face is the same.
+uv_move_wedge(Pos, UV0, Na, Nb, Face, #we{vp=Vtab}=We) ->
+    case uv_move_wedge_1(Pos, UV0, Na, Nb, Face, We) of
+	none ->
+	    Wedges = [W || C <- wings_face:vertices_ccw(Face, We),
+			   C =/= Na, C =/= Nb, array:get(C, Vtab) =/= Pos,
+			   W <- [uv_move_wedge_1(Pos, UV0, Na, C, Face, We)],
+			   W =/= none],
+	    case Wedges of
+		[] -> none;
+		_ -> element(2, lists:max([{uv_move_det(W),W} || W <- Wedges]))
+	    end;
+	Wedge ->
+	    Wedge
+    end.
+
+uv_move_det({E1,E2,_,_,_,_}) ->
+    e3d_vec:len(e3d_vec:cross(E1, E2)).
+
+uv_move_wedge_1(Pos, {U0,V0}, Na, Nb, Face, #we{vp=Vtab}=We) ->
     case {attr(uv, vtx_attrs(Na, Face, We)),
 	  attr(uv, vtx_attrs(Nb, Face, We))} of
 	{{Ua,Va},{Ub,Vb}} ->

@@ -14,6 +14,7 @@
 -export([init/0,menu/2,command/2]).
 
 -export([collect_inset_face_data/2]).  %% For wpc_greebles
+-export([inset_uv_data/2,inset_uv_set/3,wall_uv/2]).  %% For wpc_greebles
 
 -include_lib("wings/src/wings.hrl").
 
@@ -92,7 +93,6 @@ offset_regions_setup(offset_region, St0) ->
                             [] ->
                                 {AllVs,Fun};
                             UvData ->
-                                uv_start(),
                                 {we,[inset_uv_fun(UvData,
                                                   fun(S) ->
                                                           offset_regions_fun(VsData, S)
@@ -123,7 +123,6 @@ inset_regions_setup_1(Faces, We, State) ->
 	[] ->
 	    {AllVs,Fun};
 	UvData ->
-	    uv_start(),
 	    {we,[inset_uv_fun(UvData,
 			      fun(S) -> inset_regions_fun(VsData, S) end,
 			      State)],
@@ -146,37 +145,22 @@ inset_faces_setup_1(Faces, We, State) ->
 	[] ->
 	    {AllVs,Fun};
 	UvData ->
-	    uv_start(),
 	    {we,[inset_uv_fun(UvData,
 			      fun(S) -> inset_faces_fun(VData, S) end, State)],
 	     {AllVs,inset_tr_fun(Fun)}}
     end.
 
-%% [6] switches between keeping and adjusting the UV coordinates.
-%% The UV fun is not told about changes of mode, so it reads the
-%% current state from the process dictionary.
-uv_start() ->
-    put(wings_inset_uv, {wings_pref:get_value(inset_uv, true)}).
-
+%% The UV fun is not told about changes of mode (see inset_tr_fun/1),
+%% so the mode is kept in the process dictionary.
 erase_uv_state() ->
-    erase(wings_inset_uv),
     erase(wings_inset_state).
 
-%%%% Keeping the texture on the surface (Inset Faces).
-%%%%
-%%%% The vertices of the inset faces move in the plane of their face, so
-%%%% the UV coordinates of their corners are moved with the mapping of
-%%%% that face (see wings_va:uv_wedge/3). The corners of the new side
-%%%% faces at the vertex have the same UV coordinates as the corner of the
-%%%% inset face and move with it, so the texture continues over them.
-%%%% The corners of the side faces at the original vertices get the UV
-%%%% coordinates of the inset face (Extrude gives them those of the
-%%%% neighbor faces, which are not the ones that continue the texture).
+%%%% Keeping the texture on the surface.
+%% The side faces at the original vertices get the UV of the inset face
+%% ("Outer"): Extrude gives them those of the neighbour faces.
 
 %% inset_uv_data(Sel, We) -> [{V,Pos0,Wedge,UV,Corners,Outer}]
-%%  Sel are the selected (inset) faces. Only the vertices that have an
-%%  edge to a face that is not selected move in the plane of the faces.
-%%  Outer are the corners of the side faces at the original vertex of V.
+%%  Outer: corners of the side faces at the original vertex of V.
 inset_uv_data(Sel, #we{vp=Vtab}=We) ->
     case wings_va:any_uvs(We) of
 	false ->
@@ -220,14 +204,7 @@ inset_uv_outer(V, Sel, We) ->
     end.
 
 %% offset_uv_data(Sel, Reg, LoopVs, We) -> [{V,Pos0,Wedge,UV,Corners,[]}]
-%%  Sel are the extruded faces and Reg the faces of the region (the
-%%  extruded faces and the side faces around them). The vertices of the
-%%  outer loop of the region move in the plane of the faces outside the
-%%  region, so the corners of those faces are moved with their mapping.
-%%  The corners of the side faces at the vertex are moved with the mapping
-%%  of the extruded face at the other end of the side edge, so the
-%%  texture of the extruded face continues over the side faces. They are
-%%  listed last, so their UV coordinates are the ones that are kept.
+%%  Side-face corners are listed last, so their UV is the one kept.
 offset_uv_data(Sel, Reg, Vs, #we{vp=Vtab}=We) ->
     case wings_va:any_uvs(We) of
 	false ->
@@ -282,40 +259,168 @@ inset_tr_fun(Fun) ->
 	    Fun(Move, Acc)
     end.
 
-%% The UV fun is absolute: it starts from the data collected before
-%% the drag. The new positions come from the translation fun.
+%% The new positions come from the translation fun, so the UV coordinates
+%% are always calculated from the ones collected before the drag.
 inset_uv_fun(UvData, MakeFun, State0) ->
     fun(We, Move) ->
-	    Uv = case get(wings_inset_uv) of
-		     {Uv0} -> Uv0;
-		     undefined -> false
-		 end,
 	    State = case get(wings_inset_state) of
 			undefined -> State0;
 			State1 -> State1
 		    end,
-	    NewPos = case Uv of
-			 true ->
-			     gb_trees:from_orddict(
-			       lists:sort((MakeFun(State))(Move, [])));
-			 false ->
-			     gb_trees:empty()
+	    NewPos = gb_trees:from_orddict(
+		       lists:sort((MakeFun(State))(Move, []))),
+	    PosFun = fun(V) ->
+			     case gb_trees:lookup(V, NewPos) of
+				 {value,Pos} -> Pos;
+				 none -> none
+			     end
 		     end,
-	    lists:foldl(
-	      fun({V,Pos0,Wedge,{U,W},Corners,Outer}, Acc0) ->
-		      Acc = case Uv of
-				true -> wings_va:uv_set(Outer, {U,W}, Acc0);
-				false -> Acc0
-			    end,
-		      {DU,DW} = case gb_trees:lookup(V, NewPos) of
-				    {value,Pos} ->
-					DP = e3d_vec:sub(Pos, Pos0),
-					wings_va:uv_wedge_delta(Wedge, DP);
-				    none ->
-					{0.0,0.0}
+	    inset_uv_set(UvData, PosFun, We)
+    end.
+
+%% inset_uv_set(UvData, PosFun, We) -> We
+%%  PosFun(V) -> NewPos | none (the vertex does not move).
+inset_uv_set(UvData, PosFun, We) ->
+    lists:foldl(
+      fun({V,Pos0,Wedge,{U,W},Corners,Outer}, Acc0) ->
+	      Acc = wings_va:uv_set(Outer, {U,W}, Acc0),
+	      {DU,DW} = case PosFun(V) of
+			    none ->
+				{0.0,0.0};
+			    Pos ->
+				DP = e3d_vec:sub(Pos, Pos0),
+				wings_va:uv_wedge_delta(Wedge, DP)
+			end,
+	      wings_va:uv_set(Corners, {U+DU,W+DW}, Acc)
+      end, We, UvData).
+
+%% AutoUV makes a new chart where the UV of the two sides of an edge differ
+%% (exact comparison). The walls are shifted by this amount so that they are
+%% charts of their own and not part of the chart of the face they stand on.
+-define(WALL_SEPARATION, 1.0e-5).
+
+%% wall_uv(Sel, We) -> We
+%%  The side faces of the extruded faces Sel that are not in the plane of
+%%  the extruded face (the walls) are laid flat (unfolded about their base
+%%  edge) into the plane of the face they stand on and get its mapping, so
+%%  the texture keeps its scale on them. They form a seam with the top face.
+wall_uv(Sel, We) ->
+    case wings_va:any_uvs(We) of
+	false ->
+	    We;
+	true ->
+	    WFs = lists:usort(
+		      [{W,F} || F <- gb_sets:to_list(Sel),
+			    W <- wings_face:fold(
+				   fun(_, _, #edge{lf=Lf,rf=Rf}, A) ->
+					   [case Lf of F -> Rf; _ -> Lf end|A]
+				   end, [], F, We),
+			    not gb_sets:is_member(W, Sel)]),
+	    Walls = [W || {W,_} <- WFs],
+	    lists:foldl(fun({W,F}, Acc) -> wall_uv_1(W, F, Sel, Walls, Acc) end,
+			We, WFs)
+    end.
+
+%% Two walls that share their base edge (the extruded faces were next to
+%% each other) have no face to stand on: the top face is used instead.
+wall_uv_1(W, F, Sel, Walls, We) ->
+    Vs = wings_face:vertices_ccw(W, We),
+    TopVs = lists:usort([V || F0 <- gb_sets:to_list(Sel),
+			      V <- wings_face:vertices_ccw(F0, We)]),
+    case {Vs,[V || V <- Vs, not lists:member(V, TopVs)]} of
+	{[_,_,_,_],[Va,Vb]} ->
+	    case wings_vertex:edge_through(Va, Vb, W, We) of
+		none ->
+		    We;
+		Edge ->
+		    #edge{lf=Lf,rf=Rf} = array:get(Edge, We#we.es),
+		    B = case Lf of W -> Rf; _ -> Lf end,
+		    case lists:member(B, Walls) orelse gb_sets:is_member(B, Sel) of
+			true -> wall_uv_2(W, F, F, true, Va, Vb, Vs -- [Va,Vb], We);
+			false -> wall_uv_2(W, F, B, false, Va, Vb, Vs -- [Va,Vb], We)
+		    end
+	    end;
+	_ ->
+	    We
+    end.
+
+wall_uv_2(W, F, B, Swap, Va, Vb, Tops, We) ->
+    Flat = e3d_vec:dot(wings_face:normal(W, We), wings_face:normal(F, We)),
+    case wall_uv_map(B, We) of
+	none ->
+	    We;
+	_ when Flat > 0.999999 ->
+	    We;
+	{Map,Center0} ->
+	    Pa = wings_vertex:pos(Va, We),
+	    Pb = wings_vertex:pos(Vb, We),
+	    Center = case Swap of
+			 true -> e3d_vec:sub(e3d_vec:add(Pa, Pb), Center0);
+			 false -> Center0
+		     end,
+	    E = e3d_vec:sub(Pb, Pa),
+	    U = e3d_vec:norm(E),
+	    DC = e3d_vec:sub(Center, Pa),
+	    In = e3d_vec:norm(e3d_vec:sub(DC, e3d_vec:mul(U, e3d_vec:dot(DC, U)))),
+	    Flatten = fun(V) ->
+			      D = e3d_vec:sub(wings_vertex:pos(V, We), Pa),
+			      S = e3d_vec:dot(D, U),
+			      Perp = e3d_vec:sub(D, e3d_vec:mul(U, S)),
+			      e3d_vec:sub(e3d_vec:add(Pa, e3d_vec:mul(U, S)),
+					  e3d_vec:mul(In, e3d_vec:len(Perp)))
+		      end,
+	    Set = fun(V, {U0,V0}, Acc) ->
+			  UV = {U0+?WALL_SEPARATION,V0},
+			  {Edge,Side,_,Attr} = lists:keyfind(W, 3, wings_va:corners(V, Acc)),
+			  Col = case Attr of
+				    [C|_] -> C;
+				    _ -> none
 				end,
-		      wings_va:uv_set(Corners, {U+DU,W+DW}, Acc)
-	      end, We, UvData)
+			  wings_va:set_edge_attrs(Edge, Side, [Col|UV], Acc)
+		  end,
+	    We1 = lists:foldl(fun(V, Acc) ->
+				      Set(V, Map(wings_vertex:pos(V, We)), Acc)
+			      end, We, [Va,Vb]),
+	    lists:foldl(fun(V, Acc) -> Set(V, Map(Flatten(V)), Acc) end, We1, Tops)
+    end.
+
+%% wall_uv_map(Face, We) -> {Map,Center} | none
+%%  Map(Pos) -> {U,V}: the mapping of Face, taken from three of its corners.
+wall_uv_map(Face, We) ->
+    Pts = [{wings_vertex:pos(V, We),UV} ||
+	      V <- wings_face:vertices_ccw(Face, We),
+	      {_,_} = UV <- [wings_va:attr(uv, wings_va:vtx_attrs(V, Face, We))]],
+    case Pts of
+	[{P0,UV0},{P1,UV1}|Rest] when Rest =/= [] ->
+	    E1 = e3d_vec:sub(P1, P0),
+	    Cands = [{e3d_vec:len(e3d_vec:cross(E1, e3d_vec:sub(P, P0))),P,UV} ||
+			{P,UV} <- Rest],
+	    {Area,P2,UV2} = lists:max(Cands),
+	    case Area > 1.0e-9 of
+		false ->
+		    none;
+		true ->
+		    E2 = e3d_vec:sub(P2, P0),
+		    A = e3d_vec:dot(E1, E1),
+		    Bb = e3d_vec:dot(E1, E2),
+		    C = e3d_vec:dot(E2, E2),
+		    Det = A*C - Bb*Bb,
+		    {U0,V0} = UV0,
+		    {U1,V1} = UV1,
+		    {U2,V2} = UV2,
+		    Map = fun(Q) ->
+				  D = e3d_vec:sub(Q, P0),
+				  D1 = e3d_vec:dot(D, E1),
+				  D2 = e3d_vec:dot(D, E2),
+				  Sc = (C*D1 - Bb*D2)/Det,
+				  Tc = (A*D2 - Bb*D1)/Det,
+				  {U0 + Sc*(U1-U0) + Tc*(U2-U0),
+				   V0 + Sc*(V1-V0) + Tc*(V2-V0)}
+			  end,
+		    {Map,wings_face:center(Face, We)}
+	    end;
+	_ ->
+	    none
     end.
 
 test_selection(AllVs) ->
@@ -339,13 +444,7 @@ drag_units({_,_,_}) -> [distance,skip,bump].
 
 modes() ->
     fun
-      (help,State) -> mode_help(State) ++ uv_help(State);
-
-      ({key,$6}, State) ->
-          case get(wings_inset_uv) of
-              undefined -> none;
-              {Uv} -> put(wings_inset_uv, {not Uv}), State
-          end;
+      (help,State) -> mode_help(State);
 
       ({key,$3}, {inset_faces,Mode,relative,continue,Smallest}) ->
           {inset_faces,Mode,relative,stop,Smallest};
@@ -371,13 +470,13 @@ modes() ->
       (units, State) ->
           drag_units(State);
       (done,{inset_faces,Mode,AbRel,Stop,Smallest}) ->
-          uv_done(),
+          erase_uv_state(),
           wings_pref:set_value(inset_faces,{Mode,AbRel,Stop,Smallest});
       (done,{inset_region,Mode,Norm}) ->
-          uv_done(),
+          erase_uv_state(),
           wings_pref:set_value(inset_region,{Mode,Norm});
       (done,{offset_region,Mode,Norm}) ->
-          uv_done(),
+          erase_uv_state(),
           wings_pref:set_value(offset_region,{Mode,Norm});
       (_,_) -> none
     end.
@@ -423,21 +522,6 @@ mode_help({Type,Mode,Norm}) ->
     Divider = [{bold," | "}],
     Extrude = extrude_norm_help0(Type,Norm),
     Help ++ Divider ++ Extrude.
-
-%% Like the other keys, shows what pressing [6] will switch to.
-uv_help(_) ->
-    case get(wings_inset_uv) of
-	{true} -> "  [6] " ++ ?__(1,"Keep UVs");
-	{false} -> "  [6] " ++ ?__(2,"Adjust UVs");
-	undefined -> []
-    end.
-
-uv_done() ->
-    case get(wings_inset_uv) of
-	{Uv} -> wings_pref:set_value(inset_uv, Uv);
-	undefined -> ok
-    end,
-    erase_uv_state().
 
 solution_type(Mode, [{Num,Mode}|Rest]) ->
     Num ++ [{bold,string(Mode)}] ++ solution_type(Mode, Rest);
