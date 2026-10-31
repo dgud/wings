@@ -14,7 +14,7 @@
 -export([init/0,menu/2,command/2]).
 
 -export([collect_inset_face_data/2]).  %% For wpc_greebles
--export([inset_uv_data/2,inset_uv_set/3,wall_uv/2]).  %% For wpc_greebles
+-export([inset_uv_data/2,inset_uv_set/3]).  %% For wpc_greebles
 
 -include_lib("wings/src/wings.hrl").
 
@@ -93,7 +93,7 @@ offset_regions_setup(offset_region, St0) ->
                             [] ->
                                 {AllVs,Fun};
                             UvData ->
-                                {we,[inset_uv_fun(UvData,
+                                {we,[inset_uv_fun(Faces0, We, UvData,
                                                   fun(S) ->
                                                           offset_regions_fun(VsData, S)
                                                   end, State)],
@@ -120,13 +120,13 @@ inset_regions_setup_1(Faces, We, State) ->
     AllVs = ordsets:from_list(AllVs0),
     Fun = inset_regions_fun(VsData, State),
     case inset_uv_data(Faces, We) of
-	[] ->
-	    {AllVs,Fun};
-	UvData ->
-	    {we,[inset_uv_fun(UvData,
-			      fun(S) -> inset_regions_fun(VsData, S) end,
-			      State)],
-	     {AllVs,inset_tr_fun(Fun)}}
+        [] ->
+            {AllVs,Fun};
+        UvData ->
+            {we,[inset_uv_fun(Faces, We, UvData,
+                              fun(S) -> inset_regions_fun(VsData, S) end,
+                              State)],
+             {AllVs,inset_tr_fun(Fun)}}
     end.
 
 inset_faces_setup(inset_faces, St) ->
@@ -142,12 +142,12 @@ inset_faces_setup_1(Faces, We, State) ->
     {AllVs,VData} = collect_inset_face_data(Faces, We),
     Fun = inset_faces_fun(VData, State),
     case inset_uv_data(Faces, We) of
-	[] ->
-	    {AllVs,Fun};
-	UvData ->
-	    {we,[inset_uv_fun(UvData,
-			      fun(S) -> inset_faces_fun(VData, S) end, State)],
-	     {AllVs,inset_tr_fun(Fun)}}
+        [] ->
+            {AllVs,Fun};
+        UvData ->
+            {we,[inset_uv_fun(Faces, We, UvData,
+                              fun(S) -> inset_faces_fun(VData, S) end, State)],
+             {AllVs,inset_tr_fun(Fun)}}
     end.
 
 %% The UV fun is not told about changes of mode (see inset_tr_fun/1),
@@ -161,121 +161,185 @@ erase_uv_state() ->
 
 %% inset_uv_data(Sel, We) -> [{V,Pos0,Wedge,UV,Corners,Outer}]
 %%  Outer: corners of the side faces at the original vertex of V.
-inset_uv_data(Sel, #we{vp=Vtab}=We) ->
+inset_uv_data(Sel, We) ->
     case wings_va:any_uvs(We) of
-	false ->
-	    [];
-	true ->
-	    [{V,array:get(V, Vtab),Wedge,UV,Corners,Outer} ||
-		Face <- gb_sets:to_list(Sel),
-		V <- wings_face:vertices_ccw(Face, We),
-		inset_uv_loop(V, Sel, We),
-		Wedge <- [wings_va:uv_wedge(V, Face, We)],
-		Wedge =/= none,
-		{UV,Corners} <- [wings_va:uv_class(V, Face, We)],
-		Outer <- [inset_uv_outer(V, Sel, We)]]
+        false ->
+            [];
+        true ->
+            Corners = [{F,V} || F <- gb_sets:to_list(Sel),
+                                V <- wings_face:vertices_ccw(F, We)],
+            Moved = [FV || {_,V}=FV <- Corners,
+                           inset_uv_loop(V, Sel, We) orelse inset_uv_bent(V, We)],
+            ItemOf = fun({Face,V}) -> inset_uv_item(Face, V, Sel, We) end,
+            lists:append(lists:map(ItemOf, Moved))
     end.
+
+inset_uv_item(Face, V, Sel, #we{vp=Vtab}=We) ->
+    Wedge = wings_va:uv_wedge(V, Face, We),
+    Class = wings_va:uv_class(V, Face, We),
+    case {Wedge,Class} of
+        {none,_} ->
+            [];
+        {_,none} ->
+            [];
+        {_,{UV,Corners0}} ->
+            Outer = inset_uv_outer(Face, V, Sel, We),
+            Corners = inset_uv_own(Face, V, Corners0, Sel, We),
+            [{V,array:get(V, Vtab),Wedge,UV,Corners,Outer}]
+    end.
+
+%% The corners of the other selected faces that have the same UV (the
+%% texture continues from one face to the next) are not moved with those of
+%% Face: each face keeps its own shape when the vertex moves along a
+%% different direction in it.
+inset_uv_own(Face, V, Corners, Sel, We) ->
+    Others = [{Edge,Side} || {Edge,Side,F,_} <- wings_va:corners(V, We),
+                             F =/= Face, gb_sets:is_member(F, Sel)],
+    [C || {Edge,Side,_}=C <- Corners, not lists:member({Edge,Side}, Others)].
 
 inset_uv_loop(V, Sel, We) ->
     wings_vertex:fold(
       fun(_, _, #edge{lf=Lf,rf=Rf}, Acc) ->
-	      Acc orelse not gb_sets:is_member(Lf, Sel)
-		  orelse not gb_sets:is_member(Rf, Sel)
+              Acc orelse not gb_sets:is_member(Lf, Sel)
+                  orelse not gb_sets:is_member(Rf, Sel)
       end, false, V, We).
 
-inset_uv_outer(V, Sel, We) ->
+%% The vertices inside a region that is not flat move in the surface of its
+%% faces when the region is bumped.
+inset_uv_bent(V, We) ->
+    Normals = wings_vertex:fold(
+                fun(_, Face, _, Acc) -> [wings_face:normal(Face, We)|Acc] end,
+                [], V, We),
+    [N|Ns] = Normals,
+    lists:any(fun(M) -> e3d_vec:dot(N, M) < 0.999999 end, Ns).
+
+inset_uv_outer(Face, V, Sel, We) ->
     %% The edge from V to the original vertex is the one that is not
     %% in a selected face.
     Es = wings_vertex:fold(
-	   fun(_, _, #edge{lf=Lf,rf=Rf}=Rec, Acc) ->
-		   case gb_sets:is_member(Lf, Sel) orelse
-		       gb_sets:is_member(Rf, Sel) of
-		       true -> Acc;
-		       false -> [{Lf,Rf,wings_vertex:other(V, Rec)}|Acc]
-		   end
-	   end, [], V, We),
+           fun(_, _, #edge{lf=Lf,rf=Rf}=Rec, Acc) ->
+                   case gb_sets:is_member(Lf, Sel) orelse
+                       gb_sets:is_member(Rf, Sel) of
+                       true -> Acc;
+                       false -> [{Lf,Rf,wings_vertex:other(V, Rec)}|Acc]
+                   end
+           end, [], V, We),
+    Walls = inset_uv_walls(Face, V, Sel, We),
     case Es of
-	[{Lf,Rf,Orig}] ->
-	    [{Edge,Side,wings_va:uv_class_color(Attr)} ||
-		{Edge,Side,F,Attr} <- wings_va:corners(Orig, We),
-		F =:= Lf orelse F =:= Rf];
-	_ ->
-	    []
+        [{Lf,Rf,Orig}] ->
+            [{Edge,Side,wings_va:uv_class_color(Attr)} ||
+                {Edge,Side,F,Attr} <- wings_va:corners(Orig, We),
+                F =:= Lf orelse F =:= Rf,
+                lists:member(F, Walls)];
+        _ ->
+            []
     end.
+
+%% The side faces that touch Face at V. V can be in several selected faces
+%% (a region that is not flat): each one gives its UV to its own side faces.
+inset_uv_walls(Face, V, Sel, We) ->
+    wings_vertex:fold(
+      fun(_, _, #edge{lf=Lf,rf=Rf}, Acc) ->
+              Other = case Lf of Face -> Rf; _ -> Lf end,
+              case (Lf =:= Face orelse Rf =:= Face) andalso
+                  not gb_sets:is_member(Other, Sel) of
+                  true -> [Other|Acc];
+                  false -> Acc
+              end
+      end, [], V, We).
 
 %% offset_uv_data(Sel, Reg, LoopVs, We) -> [{V,Pos0,Wedge,UV,Corners,[]}]
 %%  Side-face corners are listed last, so their UV is the one kept.
 offset_uv_data(Sel, Reg, Vs, #we{vp=Vtab}=We) ->
     case wings_va:any_uvs(We) of
-	false ->
-	    [];
-	true ->
-	    Items = [offset_uv_items(V, array:get(V, Vtab), Sel, Reg, We) ||
-			V <- lists:usort(Vs)],
-	    lists:append([O || {O,_} <- Items]) ++
-		lists:append([S || {_,S} <- Items])
+        false ->
+            [];
+        true ->
+            Items = [offset_uv_items(V, array:get(V, Vtab), Sel, Reg, We) ||
+                        V <- lists:usort(Vs)],
+            lists:append([O || {O,_} <- Items]) ++
+                lists:append([S || {_,S} <- Items])
     end.
 
 offset_uv_items(V, Pos, Sel, Reg, We) ->
     Cs = wings_va:corners(V, We),
     Outside = lists:usort([F || {_,_,F,_} <- Cs, not gb_sets:is_member(F, Reg)]),
     case Outside of
-	[] -> {[],[]};			%Not in the loop: does not move in the plane.
-	_ -> offset_uv_items_1(V, Pos, Outside, Cs, Sel, Reg, We)
+        [] -> {[],[]};                  %Not in the loop: does not move in the plane.
+        _ -> offset_uv_items_1(V, Pos, Outside, Cs, Sel, Reg, We)
     end.
 
 offset_uv_items_1(V, Pos, Outside, Cs, Sel, Reg, We) ->
     Sides = [{Edge,Side,wings_va:uv_class_color(Attr)} ||
-		{Edge,Side,F,Attr} <- Cs, gb_sets:is_member(F, Reg)],
-    Out = [{V,Pos,Wedge,UV,Corners,[]} ||
-	      Face <- Outside,
-	      Wedge <- [wings_va:uv_wedge(V, Face, We)],
-	      Wedge =/= none,
-	      {UV,Corners} <- [wings_va:uv_class(V, Face, We)]],
+                {Edge,Side,F,Attr} <- Cs, gb_sets:is_member(F, Reg)],
+    OutOf = fun(Face) -> offset_uv_out(V, Pos, Face, We) end,
+    Out = lists:append(lists:map(OutOf, Outside)),
     %% The edge to the vertex of the extruded faces is between two side
     %% faces.
     Ins = wings_vertex:fold(
-	    fun(_, _, #edge{lf=Lf,rf=Rf}=Rec, Acc) ->
-		    case gb_sets:is_member(Lf, Reg) andalso
-			gb_sets:is_member(Rf, Reg) of
-			true -> [wings_vertex:other(V, Rec)|Acc];
-			false -> Acc
-		    end
-	    end, [], V, We),
-    Side = [{V,Pos,Wedge,UV,Sides,[]} ||
-	       VIn <- Ins,
-	       Face <- gb_sets:to_list(Sel),
-	       Wedge <- [wings_va:uv_wedge(VIn, Face, We)],
-	       Wedge =/= none,
-	       {UV,_} <- [wings_va:uv_class(VIn, Face, We)]],
+            fun(_, _, #edge{lf=Lf,rf=Rf}=Rec, Acc) ->
+                    case gb_sets:is_member(Lf, Reg) andalso
+                        gb_sets:is_member(Rf, Reg) of
+                        true -> [wings_vertex:other(V, Rec)|Acc];
+                        false -> Acc
+                    end
+            end, [], V, We),
+    InFaces = [{VIn,Face} || VIn <- Ins, Face <- gb_sets:to_list(Sel)],
+    SideOf = fun({VIn,Face}) -> offset_uv_side(V, Pos, Sides, VIn, Face, We) end,
+    Side = lists:append(lists:map(SideOf, InFaces)),
     {Out,Side}.
+
+offset_uv_out(V, Pos, Face, We) ->
+    Wedge = wings_va:uv_wedge(V, Face, We),
+    Class = wings_va:uv_class(V, Face, We),
+    case {Wedge,Class} of
+        {none,_} -> [];
+        {_,none} -> [];
+        {_,{UV,Corners}} -> [{V,Pos,Wedge,UV,Corners,[]}]
+    end.
+
+offset_uv_side(V, Pos, Sides, VIn, Face, We) ->
+    Wedge = wings_va:uv_wedge(VIn, Face, We),
+    Class = wings_va:uv_class(VIn, Face, We),
+    case {Wedge,Class} of
+        {none,_} -> [];
+        {_,none} -> [];
+        {_,{UV,_}} -> [{V,Pos,Wedge,UV,Sides,[]}]
+    end.
 
 %% The translation fun is told about the changes of mode by wings_drag.
 inset_tr_fun(Fun) ->
     fun(new_mode_data, {NewState,_}=Val) ->
-	    put(wings_inset_state, NewState),
-	    inset_tr_fun(Fun(new_mode_data, Val));
+            put(wings_inset_state, NewState),
+            inset_tr_fun(Fun(new_mode_data, Val));
        (Move, Acc) ->
-	    Fun(Move, Acc)
+            Fun(Move, Acc)
     end.
 
 %% The new positions come from the translation fun, so the UV coordinates
 %% are always calculated from the ones collected before the drag.
-inset_uv_fun(UvData, MakeFun, State0) ->
+inset_uv_fun(Sel, #we{fs=AllFs,vp=AllVp}, UvData, MakeFun, State0) ->
     fun(We, Move) ->
-	    State = case get(wings_inset_state) of
-			undefined -> State0;
-			State1 -> State1
-		    end,
-	    NewPos = gb_trees:from_orddict(
-		       lists:sort((MakeFun(State))(Move, []))),
-	    PosFun = fun(V) ->
-			     case gb_trees:lookup(V, NewPos) of
-				 {value,Pos} -> Pos;
-				 none -> none
-			     end
-		     end,
-	    inset_uv_set(UvData, PosFun, We)
+            State = case get(wings_inset_state) of
+                        undefined -> State0;
+                        State1 -> State1
+                    end,
+            NewPos = gb_trees:from_orddict(
+                       lists:sort((MakeFun(State))(Move, []))),
+            PosFun = fun(V) ->
+                             case gb_trees:lookup(V, NewPos) of
+                                 {value,Pos} -> Pos;
+                                 none -> none
+                             end
+                     end,
+            We1 = inset_uv_set(UvData, PosFun, We),
+            Vp = lists:foldl(fun({V,Pos}, A) -> array:set(V, Pos, A) end,
+                             AllVp, gb_trees:to_list(NewPos)),
+            %% The faces and vertices of We are only those that are moved or
+            %% next to moved ones (see wings_draw:split/3), but a wall stands
+            %% on a face that may be none of them.
+            We2 = wings_va:wall_uv(Sel, We1#we{vp=Vp,fs=AllFs}),
+            We2#we{vp=We1#we.vp,fs=We1#we.fs}
     end.
 
 %% inset_uv_set(UvData, PosFun, We) -> We
@@ -283,145 +347,16 @@ inset_uv_fun(UvData, MakeFun, State0) ->
 inset_uv_set(UvData, PosFun, We) ->
     lists:foldl(
       fun({V,Pos0,Wedge,{U,W},Corners,Outer}, Acc0) ->
-	      Acc = wings_va:uv_set(Outer, {U,W}, Acc0),
-	      {DU,DW} = case PosFun(V) of
-			    none ->
-				{0.0,0.0};
-			    Pos ->
-				DP = e3d_vec:sub(Pos, Pos0),
-				wings_va:uv_wedge_delta(Wedge, DP)
-			end,
-	      wings_va:uv_set(Corners, {U+DU,W+DW}, Acc)
+              Acc = wings_va:uv_set(Outer, {U,W}, Acc0),
+              {DU,DW} = case PosFun(V) of
+                            none ->
+                                {0.0,0.0};
+                            Pos ->
+                                DP = e3d_vec:sub(Pos, Pos0),
+                                wings_va:uv_wedge_delta(Wedge, DP)
+                        end,
+              wings_va:uv_set(Corners, {U+DU,W+DW}, Acc)
       end, We, UvData).
-
-%% AutoUV makes a new chart where the UV of the two sides of an edge differ
-%% (exact comparison). The walls are shifted by this amount so that they are
-%% charts of their own and not part of the chart of the face they stand on.
--define(WALL_SEPARATION, 1.0e-5).
-
-%% wall_uv(Sel, We) -> We
-%%  The side faces of the extruded faces Sel that are not in the plane of
-%%  the extruded face (the walls) are laid flat (unfolded about their base
-%%  edge) into the plane of the face they stand on and get its mapping, so
-%%  the texture keeps its scale on them. They form a seam with the top face.
-wall_uv(Sel, We) ->
-    case wings_va:any_uvs(We) of
-	false ->
-	    We;
-	true ->
-	    WFs = lists:usort(
-		      [{W,F} || F <- gb_sets:to_list(Sel),
-			    W <- wings_face:fold(
-				   fun(_, _, #edge{lf=Lf,rf=Rf}, A) ->
-					   [case Lf of F -> Rf; _ -> Lf end|A]
-				   end, [], F, We),
-			    not gb_sets:is_member(W, Sel)]),
-	    Walls = [W || {W,_} <- WFs],
-	    lists:foldl(fun({W,F}, Acc) -> wall_uv_1(W, F, Sel, Walls, Acc) end,
-			We, WFs)
-    end.
-
-%% Two walls that share their base edge (the extruded faces were next to
-%% each other) have no face to stand on: the top face is used instead.
-wall_uv_1(W, F, Sel, Walls, We) ->
-    Vs = wings_face:vertices_ccw(W, We),
-    TopVs = lists:usort([V || F0 <- gb_sets:to_list(Sel),
-			      V <- wings_face:vertices_ccw(F0, We)]),
-    case {Vs,[V || V <- Vs, not lists:member(V, TopVs)]} of
-	{[_,_,_,_],[Va,Vb]} ->
-	    case wings_vertex:edge_through(Va, Vb, W, We) of
-		none ->
-		    We;
-		Edge ->
-		    #edge{lf=Lf,rf=Rf} = array:get(Edge, We#we.es),
-		    B = case Lf of W -> Rf; _ -> Lf end,
-		    case lists:member(B, Walls) orelse gb_sets:is_member(B, Sel) of
-			true -> wall_uv_2(W, F, F, true, Va, Vb, Vs -- [Va,Vb], We);
-			false -> wall_uv_2(W, F, B, false, Va, Vb, Vs -- [Va,Vb], We)
-		    end
-	    end;
-	_ ->
-	    We
-    end.
-
-wall_uv_2(W, F, B, Swap, Va, Vb, Tops, We) ->
-    Flat = e3d_vec:dot(wings_face:normal(W, We), wings_face:normal(F, We)),
-    case wall_uv_map(B, We) of
-	none ->
-	    We;
-	_ when Flat > 0.999999 ->
-	    We;
-	{Map,Center0} ->
-	    Pa = wings_vertex:pos(Va, We),
-	    Pb = wings_vertex:pos(Vb, We),
-	    Center = case Swap of
-			 true -> e3d_vec:sub(e3d_vec:add(Pa, Pb), Center0);
-			 false -> Center0
-		     end,
-	    E = e3d_vec:sub(Pb, Pa),
-	    U = e3d_vec:norm(E),
-	    DC = e3d_vec:sub(Center, Pa),
-	    In = e3d_vec:norm(e3d_vec:sub(DC, e3d_vec:mul(U, e3d_vec:dot(DC, U)))),
-	    Flatten = fun(V) ->
-			      D = e3d_vec:sub(wings_vertex:pos(V, We), Pa),
-			      S = e3d_vec:dot(D, U),
-			      Perp = e3d_vec:sub(D, e3d_vec:mul(U, S)),
-			      e3d_vec:sub(e3d_vec:add(Pa, e3d_vec:mul(U, S)),
-					  e3d_vec:mul(In, e3d_vec:len(Perp)))
-		      end,
-	    Set = fun(V, {U0,V0}, Acc) ->
-			  UV = {U0+?WALL_SEPARATION,V0},
-			  {Edge,Side,_,Attr} = lists:keyfind(W, 3, wings_va:corners(V, Acc)),
-			  Col = case Attr of
-				    [C|_] -> C;
-				    _ -> none
-				end,
-			  wings_va:set_edge_attrs(Edge, Side, [Col|UV], Acc)
-		  end,
-	    We1 = lists:foldl(fun(V, Acc) ->
-				      Set(V, Map(wings_vertex:pos(V, We)), Acc)
-			      end, We, [Va,Vb]),
-	    lists:foldl(fun(V, Acc) -> Set(V, Map(Flatten(V)), Acc) end, We1, Tops)
-    end.
-
-%% wall_uv_map(Face, We) -> {Map,Center} | none
-%%  Map(Pos) -> {U,V}: the mapping of Face, taken from three of its corners.
-wall_uv_map(Face, We) ->
-    Pts = [{wings_vertex:pos(V, We),UV} ||
-	      V <- wings_face:vertices_ccw(Face, We),
-	      {_,_} = UV <- [wings_va:attr(uv, wings_va:vtx_attrs(V, Face, We))]],
-    case Pts of
-	[{P0,UV0},{P1,UV1}|Rest] when Rest =/= [] ->
-	    E1 = e3d_vec:sub(P1, P0),
-	    Cands = [{e3d_vec:len(e3d_vec:cross(E1, e3d_vec:sub(P, P0))),P,UV} ||
-			{P,UV} <- Rest],
-	    {Area,P2,UV2} = lists:max(Cands),
-	    case Area > 1.0e-9 of
-		false ->
-		    none;
-		true ->
-		    E2 = e3d_vec:sub(P2, P0),
-		    A = e3d_vec:dot(E1, E1),
-		    Bb = e3d_vec:dot(E1, E2),
-		    C = e3d_vec:dot(E2, E2),
-		    Det = A*C - Bb*Bb,
-		    {U0,V0} = UV0,
-		    {U1,V1} = UV1,
-		    {U2,V2} = UV2,
-		    Map = fun(Q) ->
-				  D = e3d_vec:sub(Q, P0),
-				  D1 = e3d_vec:dot(D, E1),
-				  D2 = e3d_vec:dot(D, E2),
-				  Sc = (C*D1 - Bb*D2)/Det,
-				  Tc = (A*D2 - Bb*D1)/Det,
-				  {U0 + Sc*(U1-U0) + Tc*(U2-U0),
-				   V0 + Sc*(V1-V0) + Tc*(V2-V0)}
-			  end,
-		    {Map,wings_face:center(Face, We)}
-	    end;
-	_ ->
-	    none
-    end.
 
 test_selection(AllVs) ->
     case length(AllVs) == length(lists:usort(AllVs)) of

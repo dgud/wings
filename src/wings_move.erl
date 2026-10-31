@@ -11,7 +11,7 @@
 %%     $Id$
 %%
 -module(wings_move).
--export([setup/2,setup_we/4,plus_minus/3,magnet_move_fun/3]).
+-export([setup/2,setup_we/4,plus_minus/3,magnet_move_fun/3,walls_fun/3]).
 
 -include("wings.hrl").
 -import(lists, [foldl/3,sort/1]).
@@ -39,8 +39,38 @@ setup(Vec0, Magnet, #st{selmode=Mode}=St) ->
     wings_drag:fold(
       fun(Items, We) ->
               Tv = setup_we(Mode, Vec, Items, We),
-              magnet_move(Tv, Vec, Magnet, We)
+              extruded_walls(Vec, Items, We, magnet_move(Tv, Vec, Magnet, We))
       end, unit(Vec0, magnet_unit(Magnet)), Flags, St).
+
+%% After Extrude or Intrude (see wings_face_cmd) the UV coordinates of the
+%% side faces follow the move. The vertices must not depend on the view.
+extruded_walls(Vec, Faces, #we{temp=Kind}=We, Tv)
+  when Kind =:= extruded orelse Kind =:= intruded,
+       Vec =/= free, Vec =/= free_2d ->
+    walls_fun(fun(W) -> walls_uv(Kind, Faces, W) end, We, Tv);
+extruded_walls(_, _, _, Tv) ->
+    Tv.
+
+%% walls_fun(UvFun, We, Tv) -> {we,[WeFun],Tv}
+%%  UvFun(We) sets the UV coordinates of the side faces to the positions that
+%%  Tv gives to the vertices (these must not depend on the view).
+-spec walls_fun(fun((#we{}) -> #we{}), #we{}, wings_drag:vertex_transform()) ->
+                       {we,[fun((#we{}, [float()]) -> #we{})],
+                        wings_drag:vertex_transform()}.
+walls_fun(UvFun, #we{fs=AllFs,vp=AllVp}, {_,TrFun}=Tv) ->
+    WeFun = fun(We, Move) ->
+                    Vp = lists:foldl(fun({V,Pos}, A) -> array:set(V, Pos, A) end,
+                                     AllVp, TrFun(Move, [])),
+                    %% See wings_draw:split/3 for the faces and vertices.
+                    We1 = UvFun(We#we{vp=Vp,fs=AllFs}),
+                    We1#we{vp=We#we.vp,fs=We#we.fs}
+            end,
+    {we,[WeFun],Tv}.
+
+walls_uv(extruded, Faces, We) ->
+    wings_va:flat_wall_uv(Faces, wings_va:wall_uv(Faces, We));
+walls_uv(intruded, Faces, We) ->
+    wings_va:wall_uv_ring(Faces, We).
 
 magnet_unit(none) -> [];
 magnet_unit(_) -> [falloff].
@@ -64,13 +94,26 @@ plus_minus(Type, F, #st{selmode=Mode}=St) when is_function(F, 2) ->
                  case F(Items, We) of
                      {we,WeFuns,PlusMinus} when is_list(WeFuns) ->
                          %% Funs that also change the #we{} (e.g. its UV
-                         %% coordinates), see wings_drag:fold/4.
-                         {we,WeFuns,plus_minus_1(Mode, Vec, PlusMinus, We)};
+                         %% coordinates), see wings_drag:fold/4. They are
+                         %% called fun(We, Move, TrFun) as TrFun(Move, [])
+                         %% gives the new positions of the vertices (or
+                         %% TrFun is 'none' if they depend on the view).
+                         {_,TrFun}=Tv = plus_minus_1(Mode, Vec, PlusMinus, We),
+                         WithTr = fun(WeFun) ->
+                                          fun(W, Move) ->
+                                                  WeFun(W, Move, view_free(Vec, TrFun))
+                                          end
+                                  end,
+                         {we,lists:map(WithTr, WeFuns),Tv};
                      PlusMinus ->
                          plus_minus_1(Mode, Vec, PlusMinus, We)
                  end
          end,
     wings_drag:fold(DF, unit(Type, [{percent,{0.0,infinity}}]), Flags, St).
+
+view_free(free, _) -> none;
+view_free(free_2d, _) -> none;
+view_free(_, TrFun) -> TrFun.
 
 -spec plus_minus_1(Mode, Vec, PlusMinus, #we{}) -> Res when
       Mode :: wings_sel:mode(),

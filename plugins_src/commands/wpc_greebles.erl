@@ -177,7 +177,7 @@ inset_uv(Fs, We0, We) ->
             We;
         UvData ->
             We1 = wpc_inset:inset_uv_set(UvData, fun(V) -> wings_vertex:pos(V, We) end, We),
-            wpc_inset:wall_uv(Fs, We1)
+            wings_va:wall_uv(Fs, We1)
     end.
 
 inset_faces(_,{Vpos,_},+0.0) -> Vpos;

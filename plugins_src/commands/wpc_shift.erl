@@ -122,7 +122,26 @@ shift_verts_2(ShiftFun, Data, Vs, We) ->
                                 [{V,ShiftFun(Vpos, Distance, Data)}|VsAcc]
                         end, A, VsPos)
           end,
-    {Vs,Fun}.
+    shift_uv(Vs, VsPos, Fun, We).
+
+%% The UV coordinates follow the shifted vertices (the texture keeps its
+%% place on the surface).
+shift_uv(Vs, VsPos, Fun, We) ->
+    case wings_va:any_uvs(We) of
+        false ->
+            {Vs,Fun};
+        true ->
+            MoveData = wings_va:uv_move_data(Vs, We),
+            Old = maps:from_list(VsPos),
+            UvFun = fun(W, [Distance|_]) ->
+                            New = maps:from_list(Fun([Distance], [])),
+                            DPFun = fun(V) ->
+                                            e3d_vec:sub(maps:get(V, New), maps:get(V, Old))
+                                    end,
+                            wings_va:uv_move(MoveData, DPFun, W)
+                    end,
+            {we,[UvFun],{Vs,Fun}}
+    end.
 
 -spec convert_sel(SelMode, Items, #we{}) -> Vertices when
       SelMode :: wings_sel:mode(),
