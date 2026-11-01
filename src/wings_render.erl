@@ -59,9 +59,10 @@ render(#st{selmode=Mode}=St) ->
     user_clipping_planes(on),
     RS = render_objects(Mode, PM, MM, SceneLights),
     user_clipping_planes(off),
-    call_post_hook(St),
     ground_and_axes(View, PM,MM, RS),
     show_camera_image_plane(),
+    wings_view:load_matrices(true),
+    call_post_hook(St),
     gl:popAttrib(),
     wings_develop:gl_error_check("Rendering scene").
 
@@ -150,21 +151,35 @@ render_objects(Mode, PM, MM, UseSceneLights) ->
             view_from_world => MM},
     RS1 = render_lights(Lights, Mode, PM, RS0),
     {SL, RS2} = setup_scene_lights(UseSceneLights, Lights, RS1),
+
+    IsXray = wings_wm:get_prop(xray),
+    case IsXray of
+        true ->
+            gl:enable(?GL_BLEND),
+            %% CONSTANT_COLOR to tint the geometry, and ONE_MINUS_CONSTANT_ALPHA for opacity
+            gl:blendFunc(?GL_CONSTANT_COLOR, ?GL_ONE_MINUS_CONSTANT_ALPHA),
+            gl:blendColor(0.55, 0.60, 0.95, 0.40), 
+            gl:depthMask(?GL_FALSE);
+        _ -> ok
+    end,
+
     case wings_wm:get_prop(workmode) of
-	false ->
+    false ->
             RS10 = case UseSceneLights of
                        true -> render_smooth_objects(Open, Closed, ambient, RS2); %% amb pass
                        false -> RS2
                    end,
             RS21 = render_smooth_objects(Open, Closed, SL, RS10),
+            IsXray =:= true andalso (begin gl:disable(?GL_BLEND), gl:depthMask(?GL_TRUE) end),
             RS22 = render_wire(NonLights, Mode, true, RS21),
             render_sel_highlight(NonLights, Mode, true, PM, RS22);
-	true ->
+    true ->
             RS10 = case UseSceneLights of
                        true -> render_work_objects(Open, Closed, ambient, RS2); %% amb pass
                        false -> RS2
                   end,
             RS21 = render_work_objects(Open, Closed, SL, RS10),
+            IsXray =:= true andalso (begin gl:disable(?GL_BLEND), gl:depthMask(?GL_TRUE) end),
             RS22 = render_wire(NonLights, Mode, false, RS21),
             render_sel_highlight(NonLights, Mode, false, PM, RS22)
     end.
