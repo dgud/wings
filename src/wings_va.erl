@@ -23,7 +23,8 @@
          remove/2,remove/3,renumber/2,merge/2,gc/1,any_update/2,
          uv_move_data/2,uv_move/3,corners/2,uv_wedge/3,uv_wedge_delta/2,uv_class/3,uv_class_color/1,uv_set/3,
          wall_uv/2,wall_uv_ring/2,wall_uv_bridge/3,wall_uv_strips/3,flat_wall_uv/2,
-    seam_strips/2,seam_strip_uv/2,lift_wall_uv/3,restore_corners/4]).
+    seam_strips/2,seam_strip_uv/2,lift_wall_uv/3,restore_corners/4,
+    follow_uvs/1]).
 
 -include("wings.hrl").
 
@@ -75,14 +76,23 @@ any_colors(#we{lv=none,rv=none}) -> false;
 any_colors(#we{lv=Lva,rv=Rva}) ->
     any_colors_1(Lva) orelse any_colors_1(Rva).
 
-%% any_uvs(We) -> true|false.
-%%  Find out whether We has any vertex colors.
+%% any_uvs(We | St) -> true|false.
+%%  Find out whether We (or a selected object of St) has any UVs.
 %%
--spec any_uvs(#we{}) -> boolean().
+-spec any_uvs(#we{} | #st{}) -> boolean().
+any_uvs(#st{}=St) ->
+    wings_sel:fold(fun(_, We, Any) -> Any orelse any_uvs(We) end, false, St);
 any_uvs(#we{lv=none,rv=none}) -> false;
 any_uvs(#we{lv=Lva,rv=Rva}) ->
     any_uvs_1(Lva) orelse any_uvs_1(Rva).
 
+%% follow_uvs(We) -> true|false.
+%%  Find out whether the UVs of We should follow the changes of the geometry,
+%%  i.e. the preference update_uv is on and We has UVs.
+%%
+-spec follow_uvs(#we{}) -> boolean().
+follow_uvs(We) ->
+    wings_pref:get_value(update_uv) andalso any_uvs(We).
 
 %% face_attr(What, Face, We) -> [Attribute]
 %%  Return vertex attributes for all vertices in the face.
@@ -1226,7 +1236,7 @@ wall_uv_tri(W, F, Sel, Walls, We) ->
 %%  in From (collapsing the edges of the hinge of Lift mixes them up).
 -spec restore_corners(face_num(), [vertex_num()], #we{}, #we{}) -> #we{}.
 restore_corners(Face, Vs, From, We) ->
-    case any_uvs(We) of
+    case follow_uvs(We) of
         false ->
             We;
         true ->

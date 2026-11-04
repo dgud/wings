@@ -928,7 +928,7 @@ weld_1(Tol, #we{fs=Fs0}=We0) ->
 %% collapse of the edges overwrite them at the welded vertices. The corners
 %% are found again by position, so the weld becomes a seam in the UV map.
 weld_uv(Tol, #we{fs=Ftab0}=We0, #we{fs=Ftab}=We) ->
-    case wings_va:any_uvs(We0) of
+    case wings_va:follow_uvs(We0) of
         false ->
             We;
         true ->

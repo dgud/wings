@@ -165,7 +165,8 @@ sweep_setup(Type, Axis, St) ->
 
 %% The UV coordinates follow the moved vertices and the walls are unfolded
 %% (as in Extrude), so the texture keeps its place and its scale.
-sweep_uv(Fs, AllVs, VsData, #we{id=Id,fs=AllFs,vp=AllVp}=We, Fun) ->
+sweep_uv(Fs, AllVs, VsData,
+         #we{id=Id,fs=AllFs,vp=AllVp,lv=Lv0,rv=Rv0}=We, Fun) ->
     case wings_va:any_uvs(We) of
         false ->
             {AllVs,Fun};
@@ -176,11 +177,17 @@ sweep_uv(Fs, AllVs, VsData, #we{id=Id,fs=AllFs,vp=AllVp}=We, Fun) ->
             SeedVs = [V || {_,VPs} <- VsData, {V,seed,_} <- VPs],
             Seeds = maps:from_list([{V,true} || V <- SeedVs]),
             Old = maps:from_list(wings_util:add_vpos(AllVs, We)),
-            UvFun = fun(W, Move) ->
-                            Tr = case get(Key) of
-                                     undefined -> Fun;
-                                     Fun1 -> Fun1
-                                 end,
+            UvFun =
+                fun(W, Move) ->
+                    case wings_pref:get_value(update_uv) of
+                        false ->
+                            W#we{lv=Lv0,rv=Rv0};
+                        true ->
+                            Tr =
+                                case get(Key) of
+                                    undefined -> Fun;
+                                    Fun1 -> Fun1
+                                end,
                             New = maps:from_list(Tr(Move, [])),
                             %% The extruded faces are moved as a whole (the
                             %% tilt and the distance do not change their
@@ -195,7 +202,8 @@ sweep_uv(Fs, AllVs, VsData, #we{id=Id,fs=AllFs,vp=AllVp}=We, Fun) ->
                             W2 = wings_va:wall_uv(Fs, W1#we{vp=Vp,fs=AllFs}),
                             W3 = wings_va:flat_wall_uv(Fs, W2),
                             W3#we{vp=W1#we.vp,fs=W1#we.fs}
-                    end,
+                    end
+                end,
             {we,[UvFun],{AllVs,sweep_tr_fun(Key, Fun)}}
     end.
 
@@ -414,6 +422,10 @@ modes() ->
       ({key,$4},{_lock,_axis,_warp,_cntr,free_base})   -> {_lock,_axis,_warp,_cntr,freeze_base};
       ({key,$4},{_lock,_axis,_warp,_cntr,freeze_base}) -> {_lock,_axis,_warp,_cntr,free_base};
 
+      ({key,$5}, State) ->
+          wings_pref:set_value(update_uv, not wings_pref:get_value(update_uv)),
+          State;
+
       (done,{Lock,_axis,Warp,Cntr,Base}) -> wings_pref:set_value(sweep,{Lock,Warp,Cntr,Base});
       (_,_) -> none
     end.
@@ -423,7 +435,8 @@ sweep_help({Lock,Axis,Warp,Cntr,Base}) ->
     [cntr_help(Cntr),
      warp_help(Axis,Warp),
      lock_help(Lock,Axis),
-     base_help(Axis,Base)].
+     base_help(Axis,Base),
+     uv_help()].
 
 cntr_help(region)         -> ?__(1,"[1] Selection Center");
 cntr_help(common)         -> ?__(2,"[1] Region Center").
@@ -437,6 +450,12 @@ lock_help(_,_)            -> [].
 
 base_help(_,free_base)      -> ?__(1,"  [4] Freeze Base");
 base_help(_,freeze_base)    -> ?__(2,"  [4] Thaw Base").
+
+uv_help() ->
+    case wings_pref:get_value(update_uv) of
+        true -> ?__(1,"  [5] Turn Off UV");
+        false -> ?__(2,"  [5] Turn On UV")
+    end.
 
 %%%% Sweep Mode/View Changes
 sweep_fun(Type, VsData, State) ->

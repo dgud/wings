@@ -370,7 +370,7 @@ collapse_uv(St) ->
     wings_sel:map(fun collapse_uv/2, St).
 
 collapse_uv(Faces, We) ->
-    case wings_va:any_uvs(We) of
+    case wings_va:follow_uvs(We) of
         false ->
             We;
         true ->
@@ -968,8 +968,13 @@ bridge_1(Reference, FaceA, VsA, FaceB, VsB, #we{vp=Vtab}=We) ->
 %% The new faces get UV coordinates: unfolded from the face around the first
 %% hole, a seam at the second one.
 bridge_uv(VsB, We0, We) ->
-    Walls = wings_we:new_items_as_ordset(face, We0, We),
-    wings_va:wall_uv_bridge(Walls, VsB, We).
+    case wings_va:follow_uvs(We) of
+        true ->
+            Walls = wings_we:new_items_as_ordset(face, We0, We),
+            wings_va:wall_uv_bridge(Walls, VsB, We);
+        false ->
+            We
+    end.
 
 bridge(FaceA, VsA0, FaceB, VsB0, We0) ->
     Len = wings_face:vertices(FaceA, We0),
@@ -1178,11 +1183,49 @@ lift(Dir, St) ->
     wings:ask(lift_selection(Dir, St), St, fun lift/2).
 
 lift_setup_drag(F, rotate, St) ->
-    wings_drag:fold(F, [angle], St);
+    lift_drag(F, [angle], St);
 lift_setup_drag(F, free, St) ->
     wings_drag:fold(F, [dx,dy,dz], [screen_relative], St);
 lift_setup_drag(F, _, St) ->
-    wings_drag:fold(F, [distance], St).
+    lift_drag(F, [distance], St).
+
+lift_drag(F, Units, St) ->
+    Follow = wings_va:any_uvs(St),
+    DF = fun(Items, We) -> lift_uv_tv(Follow, F(Items, We)) end,
+    wings_drag:fold(DF, Units, lift_uv_flags(Follow), St).
+
+%% The key [1] switches the update of the UV coordinates. The transformation
+%% fun must accept the change of the mode.
+lift_uv_flags(true) -> [{mode,{fun lift_uv_mode/2,uv}}];
+lift_uv_flags(false) -> [].
+
+lift_uv_mode(help, _) ->
+    [?__(1,"[Shift] and/or [Ctrl] and/or [Alt] Constrain"),
+     "  [1] ",lift_uv_help()];
+lift_uv_mode({key,$1}, Mode) ->
+    wings_pref:set_value(update_uv, not wings_pref:get_value(update_uv)),
+    Mode;
+lift_uv_mode(_, _) ->
+    none.
+
+lift_uv_help() ->
+    case wings_pref:get_value(update_uv) of
+        true -> ?__(1,"Turn Off UV");
+        false -> ?__(2,"Turn On UV")
+    end.
+
+lift_uv_tv(true, {Vs,Tr}) ->
+    {Vs,lift_uv_tr(Tr)};
+lift_uv_tv(true, {we,WeFuns,Tv}) ->
+    {we,WeFuns,lift_uv_tv(true, Tv)};
+lift_uv_tv(false, Tv) ->
+    Tv.
+
+lift_uv_tr(Tr) ->
+    fun(Move, Acc) when is_list(Move) -> Tr(Move, Acc);
+       (new_mode_data, {uv,_}) -> lift_uv_tr(Tr);
+       (Key, Val) -> lift_uv_tr(Tr(Key, Val))
+    end.
 
 %%%
 %%% Lift from edge.
@@ -1209,9 +1252,14 @@ lift_from_edge(Dir, EdgeSel0, St0) ->
 %% The UV coordinates of the side faces follow the lifted faces (not when
 %% the move depends on the view).
 lift_walls(Dir, Faces, We0, We, Tv) when Dir =/= free ->
-    Walls = wings_we:new_items_as_ordset(face, We0, We),
-    wings_move:walls_fun(fun(W) -> wings_va:lift_wall_uv(Walls, Faces, W) end,
-                         We, Tv);
+    case wings_va:any_uvs(We) of
+        true ->
+            Walls = wings_we:new_items_as_ordset(face, We0, We),
+            UvFun = fun(W) -> wings_va:lift_wall_uv(Walls, Faces, W) end,
+            wings_move:walls_fun(UvFun, We, Tv);
+        false ->
+            Tv
+    end;
 lift_walls(_, _, _, _, Tv) ->
     Tv.
 

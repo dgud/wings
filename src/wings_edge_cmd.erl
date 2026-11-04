@@ -469,6 +469,9 @@ slide_mode(MinUp,MinDw) ->
        ({key,$2}, {Mode,_,S})	  ->	{Mode,none,S};
        ({key,$3}, {Mode,F,false}) ->	{Mode,F,true};
        ({key,$3}, {Mode,F,true})  ->	{Mode,F,false};
+       ({key,$4}, State)          ->
+            wings_pref:set_value(update_uv, not wings_pref:get_value(update_uv)),
+            State;
 
        (units, NewState) ->
 	    slide_units(NewState,MinUp,MinDw);
@@ -493,7 +496,8 @@ slide_units({relative,_,true},_,_) -> [{percent,{-1.0,1.0}}].
 slide_help({Mode,Freeze,Stop}) ->
     ["[1] ",slide_help_mode(Mode),
      "  [2] ",slide_help_freeze(Freeze),
-     "  [3] ",slide_help_stop(Stop)].
+     "  [3] ",slide_help_stop(Stop),
+     "  [4] ",slide_help_uv()].
 
 slide_help_mode(relative) -> ?__(1,"Absolute");
 slide_help_mode(absolute) -> ?__(2,"Relative").
@@ -503,6 +507,12 @@ slide_help_freeze(_)	  -> ?STR(slide_help_mode,4,"Thaw direction").
 
 slide_help_stop(false)	  -> ?STR(slide_help_mode,5,"Stop at other edges");
 slide_help_stop(true)	  -> ?STR(slide_help_mode,6,"Continue past other edges").
+
+slide_help_uv() ->
+    case wings_pref:get_value(update_uv) of
+        true -> ?__(1,"Turn Off UV");
+        false -> ?__(2,"Turn On UV")
+    end.
 
 make_slide_tv(Slides, State, We) ->
     Vs = gb_trees:keys(Slides),
@@ -691,19 +701,24 @@ add_slide_vertex(V,{Vpos,{Ndir,NL},{Pdir,PL}},Acc) ->
 %%% Slide: the UV coordinates follow the sliding vertices.
 %%%
 
-slide_uv_fun(Vs, Slides, State0, We) ->
+slide_uv_fun(Vs, Slides, State0, #we{lv=Lv0,rv=Rv0}=We) ->
     MoveData = wings_va:uv_move_data(Vs, We),
     fun(W, [Dx|_]) ->
-        State =
-            case get(wings_slide_state) of
-                undefined -> State0;
-                State1 -> State1
-            end,
-        DPFun =
-            fun(V) ->
-                slide_delta(Dx, State, gb_trees:get(V, Slides))
-            end,
-        wings_va:uv_move(MoveData, DPFun, W)
+        case wings_pref:get_value(update_uv) of
+            false ->
+                W#we{lv=Lv0,rv=Rv0};
+            true ->
+                State =
+                    case get(wings_slide_state) of
+                        undefined -> State0;
+                        State1 -> State1
+                    end,
+                DPFun =
+                    fun(V) ->
+                        slide_delta(Dx, State, gb_trees:get(V, Slides))
+                    end,
+                wings_va:uv_move(MoveData, DPFun, W)
+        end
     end.
 
 %%%
@@ -723,7 +738,7 @@ collapse_uv(St) ->
     wings_sel:map(fun collapse_uv/2, St).
 
 collapse_uv(Edges, We) ->
-    case wings_va:any_uvs(We) of
+    case wings_va:follow_uvs(We) of
         false ->
             We;
         true ->

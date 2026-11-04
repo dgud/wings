@@ -32,7 +32,7 @@ bump(St0) ->
     Dist = calc_bump_dist(St0),
     MF = fun(Fs, We) -> bump(Fs, Dist, We) end,
     St = wings_sel:map(MF, St0),
-    DF = fun(_, #we{temp={finish,_,Tv}}) -> Tv end,
+    DF = fun(_, #we{temp={finish,_,Tv}}) -> Tv; (_, #we{temp=Tv}) -> Tv end,
     wings_move:plus_minus(normal, DF, St).
 
 calc_bump_dist(St) ->
@@ -52,13 +52,24 @@ bump(Faces, Dist, We0) ->
     FaceVs = gb_sets:from_list(wings_face:to_vertices(Faces, We)),
     We#we{temp=uv_temp(PlusMinus, FaceVs, We0, We)}.
 
-%% uv_temp(PlusMinus, MovedVs, We0, We) -> {finish,Fun,Tv}
+%% uv_temp(PlusMinus, MovedVs, We0, We) -> {finish,Fun,Tv} | PlusMinus
 %%  The temp of the commands that use wings_move:plus_minus/3 to move the
 %%  vertices MovedVs and slide the new ones. Tv is for plus_minus/3, Fun
 %%  is called when the drag ends (see wings_drag:normalize_fun/3).
 uv_temp({_,NewVs,_}=PlusMinus, MovedVs, We0, We) ->
-    {finish,fun(W) -> merge_overlapped(NewVs, W) end,
-     crease_uv(PlusMinus, MovedVs, We0, We)}.
+    case wings_va:any_uvs(We) of
+        true ->
+            Merge =
+                fun(W) ->
+                    case wings_pref:get_value(update_uv) of
+                        true -> merge_overlapped(NewVs, W);
+                        false -> W
+                    end
+                end,
+            {finish,Merge,crease_uv(PlusMinus, MovedVs, We0, We)};
+        false ->
+            PlusMinus
+    end.
 
 %% With the third drag value at 0% some of the new vertices are on top of
 %% each other and the faces between them have no area. They are merged when
@@ -213,16 +224,50 @@ bevel_drag(St) ->
     MF = fun(_, #we{temp={Limit,_,_}}) -> Limit end,
     RF = fun min/2,
     Limit = wings_sel:dfold(MF, RF, infinite, St),
+    Follow = wings_va:any_uvs(St),
     DF = fun(_, #we{temp={_,Tv,UvData}}=We) ->
-            bevel_tv_fun(Tv, UvData, We)
+            uv_tv(Follow, bevel_tv_fun(Tv, UvData, We))
          end,
-    wings_drag:fold(DF, [{distance,{0.0,Limit}}], [], St).
+    wings_drag:fold(DF, [{distance,{0.0,Limit}}], uv_flags(Follow), St).
 
 bevel_tv_fun(Tv, UvData, We) ->
     Tr = wings_drag:translate_fun(Tv, We),
     case UvData of
         none -> Tr;
-        _ -> {we,[bevel_uv_fun(UvData)],Tr}
+        _ -> {we,[bevel_uv_fun(UvData, We)],Tr}
+    end.
+
+%% The key [1] switches the update of the UV coordinates. The transformation
+%% fun must accept the change of the mode.
+uv_flags(true) -> [{mode,{fun uv_mode/2,uv}}];
+uv_flags(false) -> [].
+
+uv_mode(help, _) ->
+    [?__(1,"[Shift] and/or [Ctrl] and/or [Alt] Constrain"),
+     "  [1] ",uv_help()];
+uv_mode({key,$1}, Mode) ->
+    wings_pref:set_value(update_uv, not wings_pref:get_value(update_uv)),
+    Mode;
+uv_mode(_, _) ->
+    none.
+
+uv_help() ->
+    case wings_pref:get_value(update_uv) of
+        true -> ?__(1,"Turn Off UV");
+        false -> ?__(2,"Turn On UV")
+    end.
+
+uv_tv(true, {Vs,Tr}) ->
+    {Vs,uv_tr(Tr)};
+uv_tv(true, {we,WeFuns,Tv}) ->
+    {we,WeFuns,uv_tv(true, Tv)};
+uv_tv(false, Tv) ->
+    Tv.
+
+uv_tr(Tr) ->
+    fun(Move, Acc) when is_list(Move) -> Tr(Move, Acc);
+       (new_mode_data, {uv,_}) -> uv_tr(Tr);
+       (Key, Val) -> uv_tr(Tr(Key, Val))
     end.
 
 %%%
@@ -378,19 +423,24 @@ bevel_uv_group([{_,_,_,_,{U,V}}=Corner|Cs], Classes) ->
     bevel_uv_group(Cs, [[Corner|lists:append(Same)]|Other]);
 bevel_uv_group([], Classes) -> Classes.
 
-bevel_uv_fun({Nvs,Fill}) ->
+bevel_uv_fun({Nvs,Fill}, #we{lv=Lv0,rv=Rv0}) ->
     fun(We, [Dx|_]) ->
-        W1 = foldl(fun({_,Vec,Kind,Classes}, W0) ->
-                        Delta = bevel_uv_delta(Kind, Vec, Dx),
-                        foldl(fun({Corners,{U,V},Rate}, W2) ->
-                                {DU,DV} = Delta(Rate),
-                                UV = {U+DU,V+DV},
-                                foldl(fun({Edge,Side,Col}, W3) ->
-                                          wings_va:set_edge_attrs(Edge, Side, [Col|UV], W3)
-                                      end, W2, Corners)
-                                end, W0, Classes)
-                    end, We, Nvs),
-        bevel_uv_fill(Fill, Dx, W1)
+        case wings_pref:get_value(update_uv) of
+            false ->
+                We#we{lv=Lv0,rv=Rv0};
+            true ->
+                W1 = foldl(fun({_,Vec,Kind,Classes}, W0) ->
+                                Delta = bevel_uv_delta(Kind, Vec, Dx),
+                                foldl(fun({Corners,{U,V},Rate}, W2) ->
+                                        {DU,DV} = Delta(Rate),
+                                        UV = {U+DU,V+DV},
+                                        foldl(fun({Edge,Side,Col}, W3) ->
+                                                  wings_va:set_edge_attrs(Edge, Side, [Col|UV], W3)
+                                              end, W2, Corners)
+                                        end, W0, Classes)
+                            end, We, Nvs),
+                bevel_uv_fill(Fill, Dx, W1)
+        end
     end.
 
 bevel_uv_delta({rate,Dist}, Vec, Dx) ->
@@ -728,7 +778,7 @@ crease(St0) ->
     Dist = calc_extrude_dist(St0),
     MF = fun(Edges, We0) -> crease_edges(Edges, Dist, We0) end,
     St = wings_sel:map(MF, St0),
-    DF = fun(_, #we{temp={finish,_,Tv}}) -> Tv end,
+    DF = fun(_, #we{temp={finish,_,Tv}}) -> Tv; (_, #we{temp=Tv}) -> Tv end,
     wings_move:plus_minus(normal, DF, St).
 
 crease_edges(Edges, Dist, We0) ->
@@ -792,7 +842,7 @@ crease_edges(Edges, Dist, We0) ->
 %% the corners of those vertices are saved/restored/moved here.
 %% crease_uv_save(V, We) -> [{Face,Attr}] | none
 crease_uv_save(V, We) ->
-    case wings_va:any_uvs(We) of
+    case wings_va:follow_uvs(We) of
         true -> [{F,Attr} || {_,_,F,Attr} <- wings_va:corners(V, We)];
         false -> none
     end.
@@ -816,7 +866,7 @@ crease_uv_restore(V, Saved, We) ->
 %% crease_uv_move(V, Pos, We) -> We
 %%  Moves the UV coordinates of the corners of V as if V was moved to Pos.
 crease_uv_move(V, Pos, We) ->
-    case wings_va:any_uvs(We) of
+    case wings_va:follow_uvs(We) of
         true ->
             DP = e3d_vec:sub(Pos, wings_vertex:pos(V, We)),
             wings_va:uv_move(wings_va:uv_move_data([V], We), fun(_) -> DP end, We);
@@ -974,7 +1024,7 @@ extrude(Type, St0) ->
     Dist = calc_extrude_dist(St0),
     MF = fun(Edges, We) -> extrude_edges_uv(Edges, Dist, We) end,
     St = wings_sel:map(MF, St0),
-    DF = fun(_, #we{temp={finish,_,Tv}}) -> Tv end,
+    DF = fun(_, #we{temp={finish,_,Tv}}) -> Tv; (_, #we{temp=Tv}) -> Tv end,
     wings_move:plus_minus(Type, DF, St).
 
 extrude_edges_uv(Edges, Dist, We0) ->

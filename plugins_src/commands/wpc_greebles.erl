@@ -172,6 +172,14 @@ inset(Fs, InsetP, BumpP, State, #we{vp=Vp0}=We) ->
 
 %% Keeps the UV coordinates on the surface, as the Inset commands do.
 inset_uv(Fs, We0, We) ->
+    case wings_va:follow_uvs(We0) of
+        false ->
+            We;
+        true ->
+            inset_uv_1(Fs, We0, We)
+    end.
+
+inset_uv_1(Fs, We0, We) ->
     case wpc_inset:inset_uv_data(Fs, We0) of
         [] ->
             We;

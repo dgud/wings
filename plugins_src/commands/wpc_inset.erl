@@ -318,28 +318,36 @@ inset_tr_fun(Fun) ->
 
 %% The new positions come from the translation fun, so the UV coordinates
 %% are always calculated from the ones collected before the drag.
-inset_uv_fun(Sel, #we{fs=AllFs,vp=AllVp}, UvData, MakeFun, State0) ->
+inset_uv_fun(Sel, #we{fs=AllFs,vp=AllVp,lv=Lv0,rv=Rv0},
+             UvData, MakeFun, State0) ->
     fun(We, Move) ->
-            State = case get(wings_inset_state) of
+        case wings_pref:get_value(update_uv) of
+            false ->
+                We#we{lv=Lv0,rv=Rv0};
+            true ->
+                State =
+                    case get(wings_inset_state) of
                         undefined -> State0;
                         State1 -> State1
                     end,
-            NewPos = gb_trees:from_orddict(
-                       lists:sort((MakeFun(State))(Move, []))),
-            PosFun = fun(V) ->
-                             case gb_trees:lookup(V, NewPos) of
-                                 {value,Pos} -> Pos;
-                                 none -> none
-                             end
-                     end,
-            We1 = inset_uv_set(UvData, PosFun, We),
-            Vp = lists:foldl(fun({V,Pos}, A) -> array:set(V, Pos, A) end,
-                             AllVp, gb_trees:to_list(NewPos)),
-            %% The faces and vertices of We are only those that are moved or
-            %% next to moved ones (see wings_draw:split/3), but a wall stands
-            %% on a face that may be none of them.
-            We2 = wings_va:wall_uv(Sel, We1#we{vp=Vp,fs=AllFs}),
-            We2#we{vp=We1#we.vp,fs=We1#we.fs}
+                NewPos = gb_trees:from_orddict(
+                           lists:sort((MakeFun(State))(Move, []))),
+                PosFun =
+                    fun(V) ->
+                        case gb_trees:lookup(V, NewPos) of
+                            {value,Pos} -> Pos;
+                            none -> none
+                        end
+                    end,
+                We1 = inset_uv_set(UvData, PosFun, We),
+                Vp = lists:foldl(fun({V,Pos}, A) -> array:set(V, Pos, A) end,
+                                 AllVp, gb_trees:to_list(NewPos)),
+                %% The faces and vertices of We are only those that are moved
+                %% or next to moved ones (see wings_draw:split/3), but a wall
+                %% stands on a face that may be none of them.
+                We2 = wings_va:wall_uv(Sel, We1#we{vp=Vp,fs=AllFs}),
+                We2#we{vp=We1#we.vp,fs=We1#we.fs}
+        end
     end.
 
 %% inset_uv_set(UvData, PosFun, We) -> We
@@ -379,7 +387,7 @@ drag_units({_,_,_}) -> [distance,skip,bump].
 
 modes() ->
     fun
-      (help,State) -> mode_help(State);
+      (help,State) -> mode_help(State) ++ uv_mode_help(State);
 
       ({key,$3}, {inset_faces,Mode,relative,continue,Smallest}) ->
           {inset_faces,Mode,relative,stop,Smallest};
@@ -397,6 +405,14 @@ modes() ->
           {inset_faces,Mode,relative,Stop,Smallest};
       ({key,$5}, {inset_faces,Mode,relative,Stop,Smallest}) ->
           {inset_faces,Mode,absolute,Stop,Smallest};
+
+      ({key,$5}, {_,_,_}=State) ->
+          wings_pref:set_value(update_uv, not wings_pref:get_value(update_uv)),
+          State;
+
+      ({key,$6}, {inset_faces,_,_,_,_}=State) ->
+          wings_pref:set_value(update_uv, not wings_pref:get_value(update_uv)),
+          State;
 
       ({key,Key}, {inset_faces,Mode,AbRel,Stop,Smallest}) ->
           key_press(Key,inset_faces,Mode,AbRel,Stop,Smallest);
@@ -457,6 +473,15 @@ mode_help({Type,Mode,Norm}) ->
     Divider = [{bold," | "}],
     Extrude = extrude_norm_help0(Type,Norm),
     Help ++ Divider ++ Extrude.
+
+uv_mode_help({inset_faces,_,_,_,_}) -> uv_help("6");
+uv_mode_help(_) -> uv_help("5").
+
+uv_help(Key) ->
+    case wings_pref:get_value(update_uv) of
+        true -> ["  [",Key,"] ",?__(1,"Turn Off UV")];
+        false -> ["  [",Key,"] ",?__(2,"Turn On UV")]
+    end.
 
 solution_type(Mode, [{Num,Mode}|Rest]) ->
     Num ++ [{bold,string(Mode)}] ++ solution_type(Mode, Rest);
