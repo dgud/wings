@@ -31,7 +31,12 @@
 -import(lists, [any/2,member/2,sort/1,reverse/1]).
 -export_type([all_attributes/0]).
 
--type all_attributes() :: {float(),float(),float()} | {float(),float()} | 'none'.
+-type uv_coords() :: {float(),float()}.
+-type vertex_color() :: {float(),float(),float()}.
+-type all_attributes() :: 'none' |
+                          {float(),float(),float()} | {float(),float()} |
+                          nonempty_improper_list(vertex_color() | 'none',
+                                                 uv_coords() | 'none').
 -type side() :: 'left'|'right'|face_num().
 
 -type edge_num() :: wings_edge:edge_num().
@@ -296,7 +301,6 @@ set_edge_attrs(List, #we{lv=Lva0,rv=Rva0}=We) ->
 %% set_edge_uvs([{Edge,LeftUV,RightUV}, We0) -> We
 %%  Assign UV coordinates to the edges in the list.
 %%
--type uv_coords() :: {float(),float()}.
 -spec set_edge_uvs([{edge_num(),uv_coords(),uv_coords()}], #we{}) -> #we{}.
 set_edge_uvs(List, #we{lv=Lva0,rv=Rva0}=We) ->
     {Lva,Rva} = set_edge_uvs_1(List, Lva0, Rva0),
@@ -305,7 +309,6 @@ set_edge_uvs(List, #we{lv=Lva0,rv=Rva0}=We) ->
 %% set_edge_colors([{Edge,LeftColor,RightColor}, We0) -> We
 %%  Assign vertex colors to the edges in the list.
 %%
--type vertex_color() :: {float(),float(),float()}.
 -spec set_edge_colors([{edge_num(),vertex_color(),vertex_color()}], #we{}) -> #we{}.
 set_edge_colors(List, #we{lv=Lva0,rv=Rva0}=We) ->
     {Lva,Rva} = set_edge_colors_1(List, Lva0, Rva0),

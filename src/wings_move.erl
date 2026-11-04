@@ -91,8 +91,6 @@ uv_help() ->
 
 uv_tv(true, {Vs,Tr}) ->
     {Vs,uv_tr(Tr)};
-uv_tv(true, {we,WeFuns,Tv}) ->
-    {we,WeFuns,uv_tv(true, Tv)};
 uv_tv(false, Tv) ->
     Tv.
 
@@ -165,7 +163,7 @@ plus_minus(Type, F, #st{selmode=Mode}=St) when is_function(F, 2) ->
                                          false ->
                                              W#we{lv=Lv0,rv=Rv0};
                                          true ->
-                                             WeFun(W, Move, view_free(Vec, TrFun))
+                                             WeFun(W, Move, view_free(Type, TrFun))
                                      end
                                  end
                              end,
@@ -244,12 +242,12 @@ move_away_fun(Tv, VsPos0) ->
 
 move_away(R0, Tv, Acc) ->
     R = R0-1.0,
-    foldl(fun({V,Vec,{X,Y,Z}}, A) -> 
+    foldl(fun({V,Vec,{X,Y,Z}}, A) ->
 		  {Xt,Yt,Zt} = e3d_vec:mul(Vec, R),
 		  Pos = wings_util:share(X+Xt, Y+Yt, Z+Zt),
 		  [{V,Pos}|A]
 	  end, Acc, Tv).
-    
+
 move_vectors([V|Vs], Forbidden, VsSet, #we{vp=Vtab}=We, Acc0) ->
     Acc = wings_vertex:fold(
 	    fun(Edge, _, Rec, A) ->
@@ -414,7 +412,7 @@ filter_normals([Na|[_|_]=Ns]) ->
 largest_angle([N|Ns], Na) ->
     Dot = abs(e3d_vec:dot(Na, N)),
     largest_angle(Ns, Na, Dot, N).
-    
+
 largest_angle([N|Ns], Na, OldDot, OldN) ->
     case abs(e3d_vec:dot(Na, N)) of
 	Dot when Dot < OldDot ->
@@ -428,7 +426,7 @@ largest_angle([], _Na, _Dot, N) -> N.
 smallest_angle([N|Ns], Na) ->
     Dot = abs(e3d_vec:dot(Na, N)),
     smallest_angle(Ns, Na, Dot, N).
-    
+
 smallest_angle([N|Ns], Na, OldDot, OldN) ->
     case abs(e3d_vec:dot(Na, N)) of
 	Dot when Dot > OldDot ->
@@ -574,13 +572,13 @@ move_fun(VsPos, ViewMatrix) ->
 	    move_fun(wings_util:update_vpos(VsPos, NewWe), view_matrix());
        ([Dx,Dy,Dz|_], Acc) ->
 	    {Xt,Yt,Zt} = e3d_mat:mul_point(ViewMatrix, {Dx,Dy,-Dz}),
-	    foldl(fun({V,{X,Y,Z}}, A) -> 
+	    foldl(fun({V,{X,Y,Z}}, A) ->
 			  Pos = wings_util:share(X+Xt, Y+Yt, Z+Zt),
 			  [{V,Pos}|A]
 		  end, Acc, VsPos);
        ([Dx,Dy|_], Acc) ->
 	    {Xt,Yt,_} = e3d_mat:mul_point(ViewMatrix, {Dx,Dy,0.0}),
-	    foldl(fun({V,{X,Y,Z}}, A) -> 
+	    foldl(fun({V,{X,Y,Z}}, A) ->
 			  Pos = wings_util:share(X+Xt, Y+Yt, Z),
 			  [{V,Pos}|A]
 		  end, Acc, VsPos)
