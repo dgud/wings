@@ -57,9 +57,9 @@ MODULES= \
 	wpc_move_planar \
 	wpc_numeric_camera \
 	wpc_plane_cut \
+	wpc_quadfill \
 	wpc_region \
 	wpc_rotate_unconstrained \
-	wpc_tools_win_resize \
 	wpc_sculpt \
 	wpc_sel_absolute \
 	wpc_sel_fill \
@@ -67,6 +67,7 @@ MODULES= \
 	wpc_shear \
 	wpc_shift \
 	wpc_sweep_extrude \
+	wpc_tools_win_resize \
 	wpc_turnedge \
 	wpc_untriangulate \
 	wpc_views_win \
