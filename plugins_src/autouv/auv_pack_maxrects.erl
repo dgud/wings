@@ -11,23 +11,12 @@
 %%     $Id$
 %%
 
-%% Packs the charts of one tile by their bounding boxes (MaxRects, Best
-%% Short Side Fit). pack_charts/3 is the adapter used by wpc_autouv; options
-%% are validated by auv_pack_utils:validate_options/1 (gap and margin are
-%% percent of the tile side, the tile has its own origin).
-%%
-%% pack_tile/2 gets [#{id, bounds := {X, Y, W, H}, fixed => boolean(), obb =>
-%% {Angle, W, H}}] (fixed charts are obstacles) and returns
-%% #{placements := [#{id, bounds, rotation}], unpacked, stats} | {error, Reason}.
-%% A placement is applied with auv_pack_utils:place_chart/3.
-
 -module(auv_pack_maxrects).
 
 -include_lib("wings/src/wings.hrl").
+-include("auv.hrl").
 
 -export([pack_charts/3]).
-
--define(EPS, 1.0e-9).
 
 -record(rect, {x, y, w, h, obb = none}).
 
@@ -35,6 +24,10 @@
 %%% Packing
 %%%
 
+%% pack_tile/2 gets [#{id, bounds := {X, Y, W, H}, fixed => boolean(), obb =>
+%% {Angle, W, H}}] (fixed charts are obstacles) and returns
+%% #{placements := [#{id, bounds, rotation}], unpacked, stats} | {error, Reason}.
+%% A placement is applied with auv_pack_utils:place_chart/3.
 pack_tile(Charts, Options) when is_list(Charts), is_map(Options) ->
     case auv_pack_utils:validate_options(Options) of
         {Gap, Margin, RotationStep, Profile, _Normalize, Origin} ->
@@ -57,7 +50,7 @@ pack_tile(_, _) ->
 
 valid_bounds({X, Y, W, H}) ->
     is_number(X) andalso is_number(Y) andalso
-    is_number(W) andalso is_number(H) andalso W > 0 andalso H > 0;
+    is_number(W) andalso is_number(H) andalso (W > 0) andalso (H > 0);
 valid_bounds(_) ->
     false.
 
@@ -99,7 +92,7 @@ valid_obb(none) ->
     true;
 valid_obb({Angle, W, H}) ->
     is_number(Angle) andalso is_number(W) andalso is_number(H) andalso
-    W > 0 andalso H > 0;
+    (W > 0) andalso (H > 0);
 valid_obb(_) ->
     false.
 
@@ -110,7 +103,7 @@ valid_obb(_) ->
 pack_validated(Fixed, Movable, Gap, Margin, RotationStep, Profile,
                {OU, OV}) ->
     HalfGap = Gap / 2.0,
-    Side = 1.0 - 2.0 * Margin,
+    Side = 1.0 - (2.0 * Margin),
     case Side > ?EPS of
         false ->
             {error, margin_exceeds_tile};
@@ -119,13 +112,11 @@ pack_validated(Fixed, Movable, Gap, Margin, RotationStep, Profile,
                          y = OV + Margin - HalfGap,
                          w = Side + Gap,
                          h = Side + Gap},
-            Free = lists:foldl(
-                     fun({_Id, Rect}, Acc) ->
-                             prune_free(
-                               subtract_from_free(Acc, expand(Rect, HalfGap)))
-                     end,
-                     [Area],
-                     Fixed),
+            Free =
+                lists:foldl(fun({_Id, Rect}, Acc) ->
+                                Cut = subtract_from_free(Acc, expand(Rect, HalfGap)),
+                                prune_free(Cut)
+                            end, [Area], Fixed),
             {Placements, Unpacked} =
                 place_all(sort_movable(Movable), Free, Gap, HalfGap,
                           RotationStep, Profile, [], []),
@@ -201,20 +192,20 @@ best_position(Rect, Free, Gap, RotationStep, MaxSearch) ->
 %% Best Short Side Fit: smallest short-side leftover; then long side, y, x, angle.
 candidate_positions(W, H, Free, Angle) ->
     lists:filtermap(
-      fun(F) ->
-              case W =< F#rect.w + ?EPS andalso H =< F#rect.h + ?EPS of
-                  true ->
-                      LeftoverW = abs(F#rect.w - W),
-                      LeftoverH = abs(F#rect.h - H),
-                      Score = {min(LeftoverW, LeftoverH),
-                               max(LeftoverW, LeftoverH),
-                               F#rect.y, F#rect.x, Angle},
-                      {true, {Score, F#rect.x, F#rect.y, W, H, Angle}};
-                  false ->
-                      false
-              end
-      end,
-      Free).
+        fun(F) ->
+            Fits = (W =< (F#rect.w + ?EPS)) andalso (H =< (F#rect.h + ?EPS)),
+            case Fits of
+                true ->
+                    LeftoverW = abs(F#rect.w - W),
+                    LeftoverH = abs(F#rect.h - H),
+                    Score = {min(LeftoverW, LeftoverH),
+                                max(LeftoverW, LeftoverH),
+                                F#rect.y, F#rect.x, Angle},
+                    {true, {Score, F#rect.x, F#rect.y, W, H, Angle}};
+                false ->
+                    false
+            end
+        end, Free).
 
 unpack_candidate({_Score, X, Y, W, H, Angle}) ->
     {X, Y, W, H, Angle}.
@@ -276,21 +267,21 @@ prune_free([Rect | Rest], Acc) ->
 expand(Rect, Amount) ->
     #rect{x = Rect#rect.x - Amount,
           y = Rect#rect.y - Amount,
-          w = Rect#rect.w + 2.0 * Amount,
-          h = Rect#rect.h + 2.0 * Amount}.
+          w = Rect#rect.w + (2.0 * Amount),
+          h = Rect#rect.h + (2.0 * Amount)}.
 
 contains(Outer, Inner) ->
-    Inner#rect.x >= Outer#rect.x - ?EPS andalso
-    Inner#rect.y >= Outer#rect.y - ?EPS andalso
-    Inner#rect.x + Inner#rect.w =< Outer#rect.x + Outer#rect.w + ?EPS andalso
-    Inner#rect.y + Inner#rect.h =< Outer#rect.y + Outer#rect.h + ?EPS.
+    (Inner#rect.x >= (Outer#rect.x - ?EPS)) andalso
+    (Inner#rect.y >= (Outer#rect.y - ?EPS)) andalso
+    ((Inner#rect.x + Inner#rect.w) =< ((Outer#rect.x + Outer#rect.w) + ?EPS)) andalso
+    ((Inner#rect.y + Inner#rect.h) =< ((Outer#rect.y + Outer#rect.h) + ?EPS)).
 
 %% Touching edges do not count.
 intersects(A, B) ->
-    A#rect.x < B#rect.x + B#rect.w - ?EPS andalso
-    A#rect.x + A#rect.w > B#rect.x + ?EPS andalso
-    A#rect.y < B#rect.y + B#rect.h - ?EPS andalso
-    A#rect.y + A#rect.h > B#rect.y + ?EPS.
+    (A#rect.x < ((B#rect.x + B#rect.w) - ?EPS)) andalso
+    ((A#rect.x + A#rect.w) > (B#rect.x + ?EPS)) andalso
+    (A#rect.y < ((B#rect.y + B#rect.h) - ?EPS)) andalso
+    ((A#rect.y + A#rect.h) > (B#rect.y + ?EPS)).
 
 %%%
 %%% Result
@@ -298,11 +289,7 @@ intersects(A, B) ->
 
 make_result(Placements, Unpacked, Movable, Fixed) ->
     MovableArea = lists:sum([R#rect.w * R#rect.h || {_Id, R} <- Movable]),
-    PackedArea = lists:sum(
-                   [begin
-                        {_X, _Y, W, H} = maps:get(bounds, Placement),
-                        W * H
-                    end || Placement <- Placements]),
+    PackedArea = lists:sum([placement_area(P) || P <- Placements]),
     #{placements => Placements,
       unpacked => Unpacked,
       stats => #{movable => length(Movable),
@@ -312,6 +299,9 @@ make_result(Placements, Unpacked, Movable, Fixed) ->
                  movable_area => MovableArea,
                  packed_area => PackedArea}}.
 
+placement_area(#{bounds := {_X, _Y, W, H}}) ->
+    W * H.
+
 %%%
 %%%  Wings3D adapter
 %%%
@@ -320,12 +310,14 @@ make_result(Placements, Unpacked, Movable, Fixed) ->
 %% Charts: #we{} of one tile; Movable: all | [Id] (the others are obstacles).
 %% Result = #{placed := [{Id, #we{}}], unpacked := [Id], degenerate := [Id],
 %%           stats := #{}}; degenerate charts are also listed in unpacked.
+%% It is the adapter used by wpc_autouv; options are validated by
+%% auv_pack_utils:validate_options/1 (gap and margin are percent of
+%% the tile side, the tile has its own origin).
 %% With normalize, each movable chart gets its OBB as a rotation candidate;
 %% with scale, charts are enlarged or reduced to fill the tile.
 pack_charts(Charts, Movable, Options) ->
-    auv_pack_utils:fit_scale(
-      fun(Cs) -> pack_charts_1(Cs, Movable, Options) end,
-      Charts, Movable, Options).
+    Pack = fun(Cs) -> pack_charts_1(Cs, Movable, Options) end,
+    auv_pack_utils:fit_scale(Pack, Charts, Movable, Options).
 
 pack_charts_1(Charts, Movable, Options) ->
     Normalize = maps:get(normalize, Options, false),

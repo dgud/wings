@@ -5,7 +5,7 @@
 %%%
 %%% Created :  3 Oct 2002 by Dan Gudmundsson <dgud@erix.ericsson.se>
 %%%-------------------------------------------------------------------
-%%  Copyright (c) 2001-2011 Dan Gudmundsson 
+%%  Copyright (c) 2001-2011 Dan Gudmundsson
 %%
 %%  See the file "license.terms" for information on usage and redistribution
 %%  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -33,6 +33,7 @@
 -define(TILE_ROWS, 5).
 -define(SINGLE, single_tx).
 -define(MULTIPLE, multi_tx).
+-define(EPS, 1.0e-9).
 
 -ifdef(DEBUG).
 -define(DBG(S,A), io:format("~p:~p " ++ S, [?MODULE,?LINE|A])).

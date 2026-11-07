@@ -4,6 +4,9 @@
 %%      Shared functions for the UV island packing algorithms
 %%      (auv_pack_maxrects and auv_pack_poly).
 %%
+%%      Option validation, rotation candidates, convex hull and minimum-area OBB,
+%%      chart bounds, chart transforms, outline extraction and critical charts.
+%%
 %%  Copyright (c) 2026 Micheus Vieira (micheus)
 %%
 %%  See the file "license.terms" for information on usage and redistribution
@@ -12,12 +15,10 @@
 %%     $Id$
 %%
 
-%% Option validation, rotation candidates, convex hull and minimum-area OBB,
-%% chart bounds, chart transforms, outline extraction and critical charts.
-
 -module(auv_pack_utils).
 
 -include_lib("wings/src/wings.hrl").
+-include("auv.hrl").
 
 -export([validate_options/1,
          rotation_angles/2, rotated_bounds/3, unique_orientations/1,
@@ -27,7 +28,6 @@
          transform_chart/3, place_chart/3,
          extract_polygons/1, fit_scale/4]).
 
--define(EPS, 1.0e-9).
 -define(SCALE_MIN, 0.25).
 -define(SCALE_MAX, 4.0).
 -define(SCALE_TRIES, 6).
@@ -46,8 +46,8 @@ validate_options(Options) ->
     Normalize = maps:get(normalize, Options, false),
     Origin = maps:get(origin, Options, {+0.0, +0.0}),
     ValidateAll = valid_percent(Gap) andalso valid_percent(Margin) andalso
-         valid_rotation_step(RotationStep) andalso valid_profile(Profile) andalso
-         is_boolean(Normalize) andalso valid_origin(Origin),
+        valid_rotation_step(RotationStep) andalso valid_profile(Profile) andalso
+        is_boolean(Normalize) andalso valid_origin(Origin),
     case ValidateAll of
         true ->
             {Gap/100.0, Margin/100.0, RotationStep, Profile, Normalize,
@@ -99,7 +99,7 @@ rotation_angles(Step, MaxSearch) ->
         false ->
             Indices =
                 lists:usort(
-                  [1 + round(I * (Count - 1) / (MaxSearch - 1))
+                  [1 + round((I * (Count - 1)) / (MaxSearch - 1))
                    || I <- lists:seq(0, MaxSearch - 1)]),
             [lists:nth(I, All) || I <- Indices]
     end.
@@ -108,10 +108,10 @@ rotation_angles(Step, MaxSearch) ->
 rotated_bounds(W, H, +0.0) ->
     {W, H};
 rotated_bounds(W, H, Angle) ->
-    Rad = Angle * math:pi() / 180.0,
+    Rad = (Angle * math:pi()) / 180.0,
     C = abs(math:cos(Rad)),
     S = abs(math:sin(Rad)),
-    {C * W + S * H, S * W + C * H}.
+    {(C * W) + (S * H), (S * W) + (C * H)}.
 
 %% One candidate {Angle, ...} per angle; the first one wins.
 unique_orientations(Candidates) ->
@@ -139,9 +139,7 @@ xy({X, Y}) -> {X, Y};
 xy({X, Y, _}) -> {X, Y}.
 
 hull_chain(Points) ->
-    Lp = lists:foldl(fun(Point, Acc) ->
-                        hull_chain_add(Point, Acc)
-                    end, [], Points),
+    Lp = lists:foldl(fun hull_chain_add/2, [], Points),
     lists:reverse(Lp).
 
 hull_chain_add(Point, [B, A | Rest] = Acc) ->
@@ -155,7 +153,7 @@ hull_chain_add(Point, Acc) ->
     [Point | Acc].
 
 cross_2d({X1, Y1}, {X2, Y2}, {X3, Y3}) ->
-    (X2 - X1) * (Y3 - Y1) - (Y2 - Y1) * (X3 - X1).
+    ((X2 - X1) * (Y3 - Y1)) - ((Y2 - Y1) * (X3 - X1)).
 
 %% Minimum-area oriented bounding box -> {Angle, Area}: Angle is the hull edge
 %% direction in degrees; rotate the chart by -Angle to align the OBB.
@@ -163,24 +161,18 @@ min_area_obb_2d(Hull) when length(Hull) < 2 ->
     {0.0, 0.0};
 min_area_obb_2d(Hull) ->
     Edges = hull_edges(Hull),
-    {Angle, Area} =
-        lists:foldl(
-          fun({A, B}, {BestAngle, BestArea}) ->
-              {DX, DY} = sub_2d(B, A),
-              AngleRad = math:atan2(DY, DX),
-              {{MinX, MinY}, {MaxX, MaxY}} =
-                  project_hull(Hull, AngleRad),
-              Area0 = (MaxX - MinX) * (MaxY - MinY),
-              case Area0 < BestArea of
-                  true ->
-                      {AngleRad, Area0};
-                  false ->
-                      {BestAngle, BestArea}
-              end
-          end,
-          {0.0, 1.0e308},
-          Edges),
-    {Angle * 180.0 / math:pi(), Area}.
+    {Angle, Area} = lists:foldl(fun({A, B}, {BestAngle, BestArea}) ->
+                                        {DX, DY} = sub_2d(B, A),
+                                        AngleRad = math:atan2(DY, DX),
+                                        {{MinX, MinY}, {MaxX, MaxY}} =
+                                            project_hull(Hull, AngleRad),
+                                        Area0 = (MaxX - MinX) * (MaxY - MinY),
+                                        case Area0 < BestArea of
+                                            true -> {AngleRad, Area0};
+                                            false -> {BestAngle, BestArea}
+                                        end
+                                end, {0.0, 1.0e308}, Edges),
+    {(Angle * 180.0) / math:pi(), Area}.
 
 hull_edges([_]) ->
     [];
@@ -191,7 +183,7 @@ hull_edges(Hull) ->
 project_hull(Hull, Angle) ->
     Cos = math:cos(Angle),
     Sin = math:sin(Angle),
-    Rotated = [{X * Cos + Y * Sin, -X * Sin + Y * Cos}
+    Rotated = [{(X * Cos) + (Y * Sin), ((-X) * Sin) + (Y * Cos)}
                || {X, Y} <- Hull],
     Xs = [X || {X, _Y} <- Rotated],
     Ys = [Y || {_X, Y} <- Rotated],
@@ -205,17 +197,18 @@ sub_2d({X1, Y1}, {X2, Y2}) ->
 %% minimum-area OBB with the axes, and the OBB size.
 chart_obb(#we{vp=Vs}) ->
     Points = [{X, Y} || {X, Y, _} <- array:sparse_to_list(Vs)],
-    case length(lists:usort(Points)) of
-        N when N < 3 ->
+    Count = length(lists:usort(Points)),
+    case Count < 3 of
+        true ->
             none;
-        _ ->
+        false ->
             Hull = convex_hull_2d(Points),
             {Angle, _Area} = min_area_obb_2d(Hull),
             {{MinX, MinY}, {MaxX, MaxY}} =
-                project_hull(Hull, Angle * math:pi() / 180.0),
+                project_hull(Hull, (Angle * math:pi()) / 180.0),
             W = MaxX - MinX,
             H = MaxY - MinY,
-            case W < ?EPS orelse H < ?EPS of
+            case (W < ?EPS) orelse (H < ?EPS) of
                 true -> none;
                 false -> {-Angle, W, H}
             end
@@ -234,7 +227,7 @@ chart_bbox(#we{vp=Vs}) ->
             {{X0,Y0,_}, {X1,Y1,_}} = e3d_bv:box(Positions),
             W = X1 - X0,
             H = Y1 - Y0,
-            case W < ?EPS orelse H < ?EPS of
+            case (W < ?EPS) orelse (H < ?EPS) of
                 true -> degenerate;
                 false -> {X0, Y0, W, H}
             end
@@ -245,8 +238,8 @@ chart_bounds(#we{vp=Vs}) ->
     {X0,Y0,X1-X0,Y1-Y0}.
 
 bounds_overlap({X1,Y1,W1,H1}, {X2,Y2,W2,H2}) ->
-    X1 < (X2 + W2) andalso (X1 + W1) > X2 andalso
-    Y1 < (Y2 + H2) andalso (Y1 + H1) > Y2.
+    (X1 < (X2 + W2)) andalso ((X1 + W1) > X2) andalso
+    (Y1 < (Y2 + H2)) andalso ((Y1 + H1) > Y2).
 
 is_movable(_Id, all) ->
     true;
@@ -266,16 +259,18 @@ critical_unpacked(Charts, Placed, Unpacked, FixedIds) ->
     PlacedBounds = [Bounds || {_Id, We} <- Placed,
                               Bounds <- [chart_bounds(We)]],
     ObstacleBounds = FixedBounds ++ PlacedBounds,
-    [Id || Id <- Candidates,
-           case lists:keyfind(Id, #we.id, Charts) of
-               false ->
-                   false;
-               We ->
-                   Bounds = chart_bounds(We),
-                   lists:any(fun(Other) ->
-                                     bounds_overlap(Bounds, Other)
-                             end, ObstacleBounds)
-           end].
+    [Id || Id <- Candidates, hits_obstacle(Id, Charts, ObstacleBounds)].
+
+hits_obstacle(Id, Charts, ObstacleBounds) ->
+    case lists:keyfind(Id, #we.id, Charts) of
+        false ->
+            false;
+        We ->
+            Bounds = chart_bounds(We),
+            lists:any(fun(Other) ->
+                              bounds_overlap(Bounds, Other)
+                      end, ObstacleBounds)
+    end.
 
 %%%
 %%% Chart transforms
@@ -305,8 +300,8 @@ transform_chart(We, Angle, {Dx, Dy}) ->
 place_chart(We, {X, Y, W, H}, Angle) ->
     #we{vp=Vs} = We1 = rotate_chart(We, Angle),
     {{X0,Y0,_},{X1,Y1,_}} = e3d_bv:box(array:sparse_to_list(Vs)),
-    Dx = X + W / 2.0 - (X0 + X1) / 2.0,
-    Dy = Y + H / 2.0 - (Y0 + Y1) / 2.0,
+    Dx = (X + (W / 2.0)) - ((X0 + X1) / 2.0),
+    Dy = (Y + (H / 2.0)) - ((Y0 + Y1) / 2.0),
     wings_we:transform_vs(e3d_mat:translate({Dx, Dy, +0.0}), We1).
 
 %%%
@@ -319,14 +314,14 @@ place_chart(We, {X, Y, W, H}, Angle) ->
 %% PackFun(Charts) with scaled copies of the charts. The result is the one of
 %% the best scale, with 'scale' added; when nothing fits it is the unscaled one.
 fit_scale(PackFun, Charts, Movable, Options) ->
-    Run = case maps:get(scale, Options, false) andalso
-              all_movable(Charts, Movable) of
-              true -> validate_options(Options);
-              false -> none
-          end,
-    case Run of
+    Enabled = maps:get(scale, Options, false) andalso all_movable(Charts, Movable),
+    Valid = case Enabled of
+                true -> validate_options(Options);
+                false -> none
+            end,
+    case Valid of
         {_Gap, Margin, _Step, _Profile, _Normalize, {_U, V}} ->
-            scale_search(PackFun, Charts, 1.0 - 2.0 * Margin, V + Margin);
+            scale_search(PackFun, Charts, 1.0 - (2.0 * Margin), V + Margin);
         _ ->
             PackFun(Charts)
     end.
@@ -360,14 +355,16 @@ scaled_run(PackFun, Charts, S, Y0) ->
             Error;
         #{placed := Placed, unpacked := Unpacked, degenerate := Degenerate,
           stats := Stats}=R ->
-            Top = lists:max([Y0 | [Y + H || {_, We} <- Placed,
-                                            {_, Y, _, H} <- [chart_bbox(We)]]]),
+            Tops = [Y + H || {_, We} <- Placed, {_, Y, _, H} <- [chart_bbox(We)]],
+            Top = lists:max([Y0 | Tops]),
             Total = maps:get(movable_area, Stats),
+            Packed = maps:get(packed_area, Stats),
             Frac = case Total > ?EPS of
-                       true -> maps:get(packed_area, Stats) / Total;
+                       true -> Packed / Total;
                        false -> 1.0
                    end,
-            {S, Unpacked -- Degenerate =:= [], R#{scale => S}, Top - Y0, Frac}
+            Fits = (Unpacked -- Degenerate) =:= [],
+            {S, Fits, R#{scale => S}, Top - Y0, Frac}
     end.
 
 scale_loop(_Run, _Side, Base, Lo, _Hi, 0) ->
@@ -388,12 +385,12 @@ scale_loop(Run, Side, Base, Lo, Hi, Tries) ->
     end.
 
 next_scale(none, {Sh, _, _, _, Frac}, _Side) ->
-    case Sh =< ?SCALE_MIN + ?EPS of
+    case Sh =< (?SCALE_MIN + ?EPS) of
         true ->
             stop;
         false ->
             C = max(?SCALE_MIN, Sh * math:sqrt(Frac) * 0.95),
-            case C >= Sh * 0.99 of
+            case C >= (Sh * 0.99) of
                 true -> max(?SCALE_MIN, Sh * 0.9);
                 false -> C
             end
@@ -404,13 +401,13 @@ next_scale({Sl, _, _, Used, _}, none, Side) ->
             stop;
         true ->
             C = min(?SCALE_MAX, Sl * math:sqrt(Side / Used) * 0.99),
-            case C < Sl * 1.01 of
+            case C < (Sl * 1.01) of
                 true -> stop;
                 false -> C
             end
     end;
 next_scale({Sl, _, _, _, _}, {Sh, _, _, _, _}, _Side) ->
-    case Sh / Sl < 1.02 of
+    case (Sh / Sl) < 1.02 of
         true -> stop;
         false -> math:sqrt(Sl * Sh)
     end.
@@ -438,15 +435,18 @@ extract_polygons(WeList) ->
     [extract_chart(We) || We <- WeList].
 
 extract_chart(#we{id=Id, fs=Ftab, vp=Vtab}=We) ->
-    Loops = case [F || F <- gb_trees:keys(Ftab), F < 0] of
-                [] -> [];
-                HoleFs ->
+    HoleFs = [F || F <- gb_trees:keys(Ftab), F < 0],
+    Loops = case HoleFs of
+                [] ->
+                    [];
+                _ ->
                     Edges = wings_face:outer_edges(HoleFs, We),
                     wings_edge_loop:edge_loop_vertices(Edges, We)
             end,
     Items = [{loop_area(L, Vtab), loop_length(L, Vtab), L}
              || L <- Loops, length(L) >= 3],
-    case lists:reverse(lists:keysort(1, Items)) of
+    Sorted = lists:reverse(lists:keysort(1, Items)),
+    case Sorted of
         [] ->
             {Id, none};
         [{_, Len, Outer} | Inner] ->
@@ -461,9 +461,10 @@ loop_length(L, Vtab) ->
                || {A, B} <- loop_pairs(L)]).
 
 loop_area(L, Vtab) ->
-    S = lists:sum([begin
-                       {X1, Y1, _} = array:get(A, Vtab),
-                       {X2, Y2, _} = array:get(B, Vtab),
-                       X1 * Y2 - X2 * Y1
-                   end || {A, B} <- loop_pairs(L)]),
+    S = lists:sum([cross_vs(A, B, Vtab) || {A, B} <- loop_pairs(L)]),
     abs(S) / 2.0.
+
+cross_vs(A, B, Vtab) ->
+    {X1, Y1, _} = array:get(A, Vtab),
+    {X2, Y2, _} = array:get(B, Vtab),
+    (X1 * Y2) - (X2 * Y1).

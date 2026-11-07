@@ -32,10 +32,10 @@
 -module(auv_pack_poly).
 
 -include_lib("wings/src/wings.hrl").
+-include("auv.hrl").
 
 -export([pack_charts/3]).
 
--define(EPS, 1.0e-9).
 -define(CEPS, 1.0e-9).       %% tolerance, in cell units
 -define(MAX_SLIDE, 3.0).     %% max slide per move, in cells
 -define(MAX_VERIFY, 32).     %% exact-test failures tolerated per rotation
@@ -46,80 +46,82 @@
 
 pack(Items, Options) when is_list(Items), is_map(Options) ->
     Order = maps:get(order, Options, maxdim),
+    ValidOrder = lists:member(Order, [area, maxdim, bbox]),
     case auv_pack_utils:validate_options(Options) of
-        {error, _} = Error1 ->
-            Error1;
-        _ when Order =/= area, Order =/= maxdim, Order =/= bbox ->
+        {error, _} = Error ->
+            Error;
+        _ when not ValidOrder ->
             {error, invalid_options};
-        {Gap, Margin, RotationStep, Profile, Normalize, {OU, OV}} ->
-            Side = 1.0 - 2.0 * Margin,
-            case Side > ?EPS of
-                false ->
-                    {error, margin_exceeds_tile};
-                true ->
-                    case validate_items(Items) of
-                        {error, _} = Error2 ->
-                            Error2;
-                        {Fixed, Movable} ->
-                            X0 = OU + Margin,
-                            Y0 = OV + Margin,
-                            #{max_search := MaxSearch, grid := N, compact := Rounds} =
-                                profile_params(Profile),
-                            C = Side / N,
-                            Ctx = #{rect => {X0, Y0, X0 + Side, Y0 + Side},
-                                    gap => Gap,
-                                    step => RotationStep,
-                                    max_search => MaxSearch,
-                                    normalize => Normalize,
-                                    n => N,
-                                    c => C,
-                                    compact => Rounds,
-                                    g => max(0, ceil(Gap / C - ?CEPS))},
-                            Obstacles = [Poly || {_Id, Poly} <- Fixed],
-                            Occ0 = lists:foldl(
-                                     fun(P, Acc) -> occ_add_global(P, Acc, Ctx) end,
-                                     erlang:make_tuple(N, 0), Obstacles),
-                            {Placements, Unpacked, Critical} =
-                                place_all(sort_movable(Movable, Order), Obstacles,
-                                          Occ0, Ctx, [], [], []),
-                            Final = compact(Placements, Movable, Fixed,
-                                            Unpacked, Ctx),
-                            Used = used_height(Final, Movable, Fixed, Y0),
-                            make_result(Final, Unpacked, Critical,
-                                        Movable, Fixed, Used, Side)
-                    end
-            end
+        Opts ->
+            pack_valid(Items, Order, Opts)
     end;
 pack(_, _) ->
     {error, invalid_input}.
 
+pack_valid(Items, Order, {_Gap, Margin, _Step, _Profile, _Normalize, _Origin} = Opts) ->
+    Side = 1.0 - (2.0 * Margin),
+    case Side > ?EPS of
+        false ->
+            {error, margin_exceeds_tile};
+        true ->
+            pack_checked(validate_items(Items), Order, Opts, Side)
+    end.
+
+pack_checked({error, _} = Error, _Order, _Opts, _Side) ->
+    Error;
+pack_checked({Fixed, Movable}, Order, Opts, Side) ->
+    {Gap, Margin, RotationStep, Profile, Normalize, {OU, OV}} = Opts,
+    X0 = OU + Margin,
+    Y0 = OV + Margin,
+    #{max_search := MaxSearch, grid := N, compact := Rounds} = profile_params(Profile),
+    C = Side / N,
+    Ctx = #{rect => {X0, Y0, X0 + Side, Y0 + Side},
+            gap => Gap,
+            step => RotationStep,
+            max_search => MaxSearch,
+            normalize => Normalize,
+            n => N,
+            c => C,
+            compact => Rounds,
+            g => max(0, ceil((Gap / C) - ?CEPS))},
+    Obstacles = [Poly || {_Id, Poly} <- Fixed],
+    Occ0 = lists:foldl(fun(P, Acc) ->
+                               occ_add_global(P, Acc, Ctx)
+                       end, erlang:make_tuple(N, 0), Obstacles),
+    {Placements, Unpacked, Critical} =
+        place_all(sort_movable(Movable, Order), Obstacles, Occ0, Ctx, [], [], []),
+    Final = compact(Placements, Movable, Fixed, Unpacked, Ctx),
+    Used = used_height(Final, Movable, Fixed, Y0),
+    make_result(Final, Unpacked, Critical, Movable, Fixed, Used, Side).
+
 %% Contours (auv_pack_utils:extract_polygons/1) -> {Items, Degenerate}.
 %% Degenerate: movable charts without a usable outline.
 to_items(Contours, Vtabs, Movable) ->
-    lists:foldr(
-      fun({Id, _} = Contour, {Items, Bad}) ->
-              case contour_to_poly(Contour, maps:get(Id, Vtabs, undefined)) of
-                  #{} = Poly ->
-                      IsFixed = not auv_pack_utils:is_movable(Id, Movable),
-                      {[#{id => Id, poly => Poly, fixed => IsFixed} | Items],
-                       Bad};
-                  {error, _} ->
-                      case auv_pack_utils:is_movable(Id, Movable) of
-                          true -> {Items, [Id | Bad]};
-                          false -> {Items, Bad}
-                      end
-              end
-      end, {[], []}, Contours).
+    lists:foldr(fun({Id, _} = Contour, {Items, Bad}) ->
+                        Poly = contour_to_poly(Contour, maps:get(Id, Vtabs, undefined)),
+                        IsMovable = auv_pack_utils:is_movable(Id, Movable),
+                        add_item(Poly, Id, IsMovable, {Items, Bad})
+                end, {[], []}, Contours).
+
+add_item(#{} = Poly, Id, IsMovable, {Items, Bad}) ->
+    Item = #{id => Id, poly => Poly, fixed => not IsMovable},
+    {[Item | Items], Bad};
+add_item({error, _}, Id, true, {Items, Bad}) ->
+    {Items, [Id | Bad]};
+add_item({error, _}, _Id, false, Acc) ->
+    Acc.
 
 %% Vertex ids -> {U,V} positions -> polygon.
 contour_to_poly({_Id, none}, _Vtab) ->
     {error, no_contour};
 contour_to_poly({_Id, {{_Perim, Outer}, Inners}}, Vtab) ->
-    Pts = fun(Vs) ->
-                  [begin {U, V, _} = array:get(V0, Vtab), {U, V} end
-                   || V0 <- Vs]
-          end,
-    auv_poly:new(Pts(Outer), [Pts(L) || {_Perim1, L} <- Inners]).
+    Holes = [uv_points(L, Vtab) || {_Perim1, L} <- Inners],
+    auv_poly:new(uv_points(Outer, Vtab), Holes).
+
+uv_points(Vs, Vtab) ->
+    [uv_point(array:get(V, Vtab)) || V <- Vs].
+
+uv_point({U, V, _}) -> {U, V}.
 
 %% Rotation (degrees) aligning the minimum-area OBB with the axes.
 obb_rotation(#{outer := Outer}) ->
@@ -191,15 +193,17 @@ sort_key(Order, #{bbox := {X0, Y0, X1, Y1}}) ->
 %% Top of the highest polygon, measured from the bottom of the usable area.
 used_height(Placements, Movable, Fixed, Y0) ->
     MovMap = maps:from_list(Movable),
-    Tops = [begin {_, _, _, Y1} = maps:get(bbox, placed_poly(maps:get(Id, MovMap),
-                                                            Rot, Delta)),
-                  Y1
-            end || #{id := Id, rotation := Rot, delta := Delta} <- Placements]
-        ++ [begin {_, _, _, Y1} = maps:get(bbox, P), Y1 end || {_, P} <- Fixed],
+    PlacedTops = [top_of(placed_poly(maps:get(Id, MovMap), Rot, Delta))
+                  || #{id := Id, rotation := Rot, delta := Delta} <- Placements],
+    FixedTops = [top_of(P) || {_, P} <- Fixed],
+    Tops = PlacedTops ++ FixedTops,
     case Tops of
         [] -> 0.0;
         _ -> max(0.0, lists:max(Tops) - Y0)
     end.
+
+top_of(#{bbox := {_, _, _, Y1}}) ->
+    Y1.
 
 place_all([], _Obstacles, _Occ, _Ctx, Placements, Unpacked, Critical) ->
     {lists:reverse(Placements), lists:reverse(Unpacked),
@@ -231,7 +235,8 @@ rotation_candidates(Poly, #{step := Step, max_search := MaxSearch,
                             normalize := Normalize}) ->
     Regular = auv_pack_utils:rotation_angles(Step, MaxSearch),
     %% OBB angle first.
-    All = case Normalize andalso obb_rotation(Poly) of
+    Obb = Normalize andalso obb_rotation(Poly),
+    All = case Obb of
               false -> Regular;
               none -> Regular;
               Angle -> [Angle | Regular]
@@ -239,51 +244,50 @@ rotation_candidates(Poly, #{step := Step, max_search := MaxSearch,
     dedup_angles(All).
 
 dedup_angles(Angles) ->
-    lists:reverse(
-      lists:foldl(
-        fun(A, Acc) ->
-                case lists:any(fun(B) -> abs(A - B) < 1.0e-6 end, Acc) of
-                    true -> Acc;
-                    false -> [A | Acc]
-                end
-        end, [], Angles)).
+    Unique = lists:foldl(fun(A, Acc) ->
+                                 Seen = lists:any(fun(B) -> abs(A - B) < 1.0e-6 end, Acc),
+                                 case Seen of
+                                     true -> Acc;
+                                     false -> [A | Acc]
+                                 end
+                         end, [], Angles),
+    lists:reverse(Unique).
 
 %% -> none | {Angle, {Dx, Dy}, PlacedPoly, X, Y, Rows}
-best_placement(Poly, Angles, Obstacles, Occ,
-               #{rect := {RX0, RY0, _, _}, c := C} = Ctx) ->
-    %% After a fit, later angles only search up to the best top found.
-    Best =
-        lists:foldl(
-          fun(Angle, Acc) ->
-                  Rot = auv_poly:rotate(Poly, Angle),
-                  {BX0, BY0, BX1, BY1} = maps:get(bbox, Rot),
-                  W = BX1 - BX0,
-                  H = BY1 - BY0,
-                  P0 = auv_poly:translate(Rot, -BX0, -BY0),
-                  TopLimit = case Acc of
-                                 none -> infinity;
-                                 {{T, _, _}, _, _, _, _, _} -> T
-                             end,
-                  case grid_search(P0, W, H, Obstacles, Occ, Ctx, TopLimit) of
-                      none ->
-                          Acc;
-                      {X, Y, Rows} ->
-                          LX = RX0 + X * C,
-                          LY = RY0 + Y * C,
-                          Cand = {{LY + H, LX, Angle},
-                                  {LX - BX0, LY - BY0}, Rot, X, Y, Rows},
-                          case Acc of
-                              none -> Cand;
-                              _ -> erlang:min(Acc, Cand)
-                          end
-                  end
-          end, none, Angles),
+best_placement(Poly, Angles, Obstacles, Occ, Ctx) ->
+    Best = lists:foldl(fun(Angle, Acc) ->
+                               try_angle(Angle, Acc, Poly, Obstacles, Occ, Ctx)
+                       end, none, Angles),
     case Best of
         none ->
             none;
         {{_Top, _X, Angle1}, {Dx, Dy}, Rot1, X1, Y1, Rows1} ->
             {Angle1, {Dx, Dy}, auv_poly:translate(Rot1, Dx, Dy),
              X1, Y1, Rows1}
+    end.
+
+%% After a fit, later angles only search up to the best top found.
+try_angle(Angle, Acc, Poly, Obstacles, Occ, #{rect := {RX0, RY0, _, _}, c := C} = Ctx) ->
+    Rot = auv_poly:rotate(Poly, Angle),
+    {BX0, BY0, BX1, BY1} = maps:get(bbox, Rot),
+    W = BX1 - BX0,
+    H = BY1 - BY0,
+    P0 = auv_poly:translate(Rot, -BX0, -BY0),
+    TopLimit = case Acc of
+                   none -> infinity;
+                   {{T, _, _}, _, _, _, _, _} -> T
+               end,
+    case grid_search(P0, W, H, Obstacles, Occ, Ctx, TopLimit) of
+        none ->
+            Acc;
+        {X, Y, Rows} ->
+            LX = RX0 + (X * C),
+            LY = RY0 + (Y * C),
+            Cand = {{LY + H, LX, Angle}, {LX - BX0, LY - BY0}, Rot, X, Y, Rows},
+            case Acc of
+                none -> Cand;
+                _ -> erlang:min(Acc, Cand)
+            end
     end.
 
 %%%
@@ -296,20 +300,28 @@ compact(Placements, _Movable, _Fixed, _Unpacked, #{compact := 0}) ->
     Placements;
 compact([], _Movable, _Fixed, _Unpacked, _Ctx) ->
     [];
-compact(Placements, Movable, Fixed, Unpacked,
-        #{compact := Rounds} = Ctx) ->
+compact(Placements, Movable, Fixed, Unpacked, #{compact := Rounds} = Ctx) ->
     MovMap = maps:from_list(Movable),
     Static = [P || {_Id, P} <- Fixed] ++ [maps:get(Id, MovMap) || Id <- Unpacked],
-    Cur0 = maps:from_list(
-             [{Id, {Delta, placed_poly(maps:get(Id, MovMap), Rot, Delta)}}
-              || #{id := Id, rotation := Rot, delta := Delta} <- Placements]),
-    Order = [Id || {_Y, _X, Id} <-
-                       lists:sort([begin {X0, Y0, _, _} = maps:get(bbox, P),
-                                         {Y0, X0, Id}
-                                   end || {Id, {_, P}} <- maps:to_list(Cur0)])],
+    Cur0 = maps:from_list([cur_entry(Pl, MovMap) || Pl <- Placements]),
+    Order = compaction_order(Cur0),
     Cur = compact_rounds(Rounds, Order, Static, Cur0, Ctx),
-    [begin {Delta, _} = maps:get(Id, Cur), Pl#{delta => Delta} end
-     || #{id := Id} = Pl <- Placements].
+    [with_delta(Pl, Cur) || Pl <- Placements].
+
+cur_entry(#{id := Id, rotation := Rot, delta := Delta}, MovMap) ->
+    {Id, {Delta, placed_poly(maps:get(Id, MovMap), Rot, Delta)}}.
+
+%% Bottom-left first.
+compaction_order(Cur) ->
+    Keyed = [bottom_left_key(Id, P) || {Id, {_, P}} <- maps:to_list(Cur)],
+    [Id || {_Y, _X, Id} <- lists:sort(Keyed)].
+
+bottom_left_key(Id, #{bbox := {X0, Y0, _, _}}) ->
+    {Y0, X0, Id}.
+
+with_delta(#{id := Id} = Pl, Cur) ->
+    {Delta, _} = maps:get(Id, Cur),
+    Pl#{delta => Delta}.
 
 placed_poly(Poly, Rot, {Dx, Dy}) ->
     auv_poly:translate(auv_poly:rotate(Poly, Rot), Dx, Dy).
@@ -317,46 +329,38 @@ placed_poly(Poly, Rot, {Dx, Dy}) ->
 compact_rounds(0, _Order, _Static, Cur, _Ctx) ->
     Cur;
 compact_rounds(R, Order, Static, Cur, Ctx) ->
-    {Cur1, Moved} =
-        lists:foldl(
-          fun(Id, {C, Mv}) ->
-                  {{Dx, Dy}, P} = maps:get(Id, C),
-                  Others = Static ++ [Q || {I, {_, Q}} <- maps:to_list(C),
-                                           I =/= Id],
-                  {P1, TY} = slide(P, down, Others, Ctx),
-                  {P2, TX} = slide(P1, left, Others, Ctx),
-                  case TX + TY > 0.0 of
-                      true -> {C#{Id => {{Dx - TX, Dy - TY}, P2}}, Mv + TX + TY};
-                      false -> {C, Mv}
-                  end
-          end, {Cur, 0.0}, Order),
+    {Cur1, Moved} = lists:foldl(fun(Id, Acc) ->
+                                        compact_one(Id, Acc, Static, Ctx)
+                                end, {Cur, 0.0}, Order),
     case Moved > 1.0e-9 of
         true -> compact_rounds(R - 1, Order, Static, Cur1, Ctx);
         false -> Cur1
     end.
 
+compact_one(Id, {C, Mv}, Static, Ctx) ->
+    {{Dx, Dy}, P} = maps:get(Id, C),
+    Others = Static ++ [Q || {I, {_, Q}} <- maps:to_list(C), I =/= Id],
+    {P1, TY} = slide(P, down, Others, Ctx),
+    {P2, TX} = slide(P1, left, Others, Ctx),
+    case (TX + TY) > 0.0 of
+        true -> {C#{Id => {{Dx - TX, Dy - TY}, P2}}, Mv + TX + TY};
+        false -> {C, Mv}
+    end.
+
 %% -> {MovedPoly, Distance}. Tries the whole run, then steps that halve on failure.
 slide(P, Dir, Others, #{rect := {RX0, RY0, _, _}, c := C, gap := Gap}) ->
-    {BX0, BY0, BX1, BY1} = maps:get(bbox, P),
     Smin = C / 8.0,
-    {Tmax, Swept, Sx, Sy} =
-        case Dir of
-            down -> T1 = min(BY0 - RY0, ?MAX_SLIDE * C),
-                    {T1, {BX0, BY0 - T1, BX1, BY1}, 0.0, -1.0};
-            left -> T2 = min(BX0 - RX0, ?MAX_SLIDE * C),
-                    {T2, {BX0 - T2, BY0, BX1, BY1}, -1.0, 0.0}
-        end,
+    {Tmax, Swept, Sx, Sy} = sweep(Dir, maps:get(bbox, P), {RX0, RY0}, C),
     case Tmax > Smin of
         false ->
             {P, 0.0};
         true ->
             Near = [O || O <- Others, box_near(Swept, maps:get(bbox, O), Gap)],
-            Valid = fun(T) ->
-                            M = auv_poly:translate(P, Sx * T, Sy * T),
-                            not lists:any(
-                                  fun(O) -> auv_poly:collide(M, O, Gap) end,
-                                  Near)
-                    end,
+            Valid =
+                fun(T) ->
+                        M = auv_poly:translate(P, Sx * T, Sy * T),
+                        not lists:any(fun(O) -> auv_poly:collide(M, O, Gap) end, Near)
+                end,
             T = case Valid(Tmax) of
                     true -> Tmax;
                     false -> gallop(0.0, min(8.0 * C, Tmax), Smin, Tmax, Valid)
@@ -367,11 +371,20 @@ slide(P, Dir, Others, #{rect := {RX0, RY0, _, _}, c := C, gap := Gap}) ->
             end
     end.
 
+%% Longest run in direction Dir, the box it sweeps and the unit step.
+sweep(down, {BX0, BY0, BX1, BY1}, {_RX0, RY0}, C) ->
+    T = min(BY0 - RY0, ?MAX_SLIDE * C),
+    {T, {BX0, BY0 - T, BX1, BY1}, 0.0, -1.0};
+sweep(left, {BX0, BY0, BX1, BY1}, {RX0, _RY0}, C) ->
+    T = min(BX0 - RX0, ?MAX_SLIDE * C),
+    {T, {BX0 - T, BY0, BX1, BY1}, -1.0, 0.0}.
+
 gallop(T, S, Smin, _Tmax, _Valid) when S < Smin ->
     T;
 gallop(T, S, Smin, Tmax, Valid) ->
     T2 = T + S,
-    case T2 =< Tmax andalso Valid(T2) of
+    Ok = (T2 =< Tmax) andalso Valid(T2),
+    case Ok of
         true -> gallop(T2, S, Smin, Tmax, Valid);
         false -> gallop(T, S / 2.0, Smin, Tmax, Valid)
     end.
@@ -381,37 +394,37 @@ gallop(T, S, Smin, Tmax, Valid) ->
 %%%
 
 %% P0 has its bbox corner at the origin. -> none | {X, Y, Rows}
-grid_search(P0, W, H, Obstacles, Occ,
-            #{rect := {RX0, RY0, RX1, RY1}, n := N, c := C, g := G,
-              gap := Gap}, TopLimit) ->
-    case W =< RX1 - RX0 + ?EPS andalso H =< RY1 - RY0 + ?EPS of
-        false ->
-            none;
-        true ->
-            case raster(P0, 0.0, 0.0, C, N) of
-                [] ->
-                    none;
-                Rows0 ->
-                    Rows = dilate(Rows0, G),
-                    Xmax = max(0, floor((RX1 - RX0 - W) / C + ?CEPS)),
-                    Ymax0 = max(0, floor((RY1 - RY0 - H) / C + ?CEPS)),
-                    Ymax = case TopLimit of
-                               infinity -> Ymax0;
-                               _ -> min(Ymax0,
-                                        floor((TopLimit - H - RY0) / C + ?CEPS))
-                           end,
-                    Verify = fun(X, Y) ->
-                                     fits(P0, RX0 + X * C, RY0 + Y * C,
-                                          W, H, Obstacles, Gap)
-                             end,
-                    S = #{xmax => Xmax, ymax => Ymax,
-                          key => key_rows(Rows), all => order_rows(Rows),
-                          occ => Occ, g => G, n => N, verify => Verify},
-                    case scan(0, S, ?MAX_VERIFY) of
-                        none -> none;
-                        {X, Y} -> {X, Y, Rows0}
-                    end
-            end
+grid_search(P0, W, H, Obstacles, Occ, Ctx, TopLimit) ->
+    #{rect := {RX0, RY0, RX1, RY1}, n := N, c := C} = Ctx,
+    Fits = (W =< ((RX1 - RX0) + ?EPS)) andalso (H =< ((RY1 - RY0) + ?EPS)),
+    Rows0 = case Fits of
+                true -> raster(P0, 0.0, 0.0, C, N);
+                false -> []
+            end,
+    case Rows0 of
+        [] -> none;
+        _ -> scan_rows(Rows0, P0, {W, H}, Obstacles, Occ, Ctx, TopLimit)
+    end.
+
+scan_rows(Rows0, P0, {W, H}, Obstacles, Occ, Ctx, TopLimit) ->
+    #{rect := {RX0, RY0, RX1, RY1}, n := N, c := C, g := G, gap := Gap} = Ctx,
+    Rows = dilate(Rows0, G),
+    Xmax = max(0, floor((((RX1 - RX0) - W) / C) + ?CEPS)),
+    Ymax0 = max(0, floor((((RY1 - RY0) - H) / C) + ?CEPS)),
+    Ymax = case TopLimit of
+               infinity -> Ymax0;
+               _ -> min(Ymax0, floor((((TopLimit - H) - RY0) / C) + ?CEPS))
+           end,
+    Verify =
+        fun(X, Y) ->
+                fits(P0, RX0 + (X * C), RY0 + (Y * C), W, H, Obstacles, Gap)
+        end,
+    S = #{xmax => Xmax, ymax => Ymax,
+          key => key_rows(Rows), all => order_rows(Rows),
+          occ => Occ, g => G, n => N, verify => Verify},
+    case scan(0, S, ?MAX_VERIFY) of
+        none -> none;
+        {X, Y} -> {X, Y, Rows0}
     end.
 
 %% Bottom-up scan; key rows prefilter X, survivors get the full row test.
@@ -454,8 +467,8 @@ filter_rows(_Key, _Y, 0, _Occ, _G, _N) ->
 filter_rows([], _Y, Cand, _Occ, _G, _N) ->
     Cand;
 filter_rows([{R, _M, Runs} | Rest], Y, Cand, Occ, G, N) ->
-    Yy = Y + R - G,
-    case Yy < 0 orelse Yy >= N of
+    Yy = (Y + R) - G,
+    case (Yy < 0) orelse (Yy >= N) of
         true ->
             filter_rows(Rest, Y, Cand, Occ, G, N);
         false ->
@@ -463,11 +476,10 @@ filter_rows([{R, _M, Runs} | Rest], Y, Cand, Occ, G, N) ->
                 0 ->
                     filter_rows(Rest, Y, Cand, Occ, G, N);
                 O ->
-                    Cand1 = lists:foldl(
-                              fun({B0, Len}, C0) ->
-                                      Blocked = shift(window_or(O, Len), G - B0),
-                                      C0 band (bnot Blocked)
-                              end, Cand, Runs),
+                    Cand1 = lists:foldl(fun({B0, Len}, C0) ->
+                                                Blocked = shift(window_or(O, Len), G - B0),
+                                                C0 band (bnot Blocked)
+                                        end, Cand, Runs),
                     filter_rows(Rest, Y, Cand1, Occ, G, N)
             end
     end.
@@ -476,8 +488,8 @@ filter_rows([{R, _M, Runs} | Rest], Y, Cand, Occ, G, N) ->
 free_at([], _X, _Y, _G, _Occ, _N) ->
     true;
 free_at([{R, M} | Rest], X, Y, G, Occ, N) ->
-    Yy = Y + R - G,
-    case Yy < 0 orelse Yy >= N of
+    Yy = (Y + R) - G,
+    case (Yy < 0) orelse (Yy >= N) of
         true ->
             free_at(Rest, X, Y, G, Occ, N);
         false ->
@@ -540,7 +552,7 @@ key_rows(Rows) ->
               true ->
                   Rows;
               false ->
-                  Idx = lists:usort([1 + (I * (L - 1)) div 4
+                  Idx = lists:usort([1 + ((I * (L - 1)) div 4)
                                      || I <- lists:seq(0, 4)]),
                   [lists:nth(K, Rows) || K <- Idx]
           end,
@@ -552,42 +564,42 @@ order_rows(Rows) when length(Rows) =< 3 ->
 order_rows(Rows) ->
     First = hd(Rows),
     Last = lists:last(Rows),
-    Mid = lists:nth(length(Rows) div 2 + 1, Rows),
+    Len = length(Rows),
+    Mid = lists:nth((Len div 2) + 1, Rows),
     [Mid, First, Last | (Rows -- [Mid, First, Last])].
 
 %% Dilation by G cells; the result is offset by G in rows and bits.
 dilate(Rows, 0) ->
     Rows;
 dilate(Rows, G) ->
-    W = 2 * G + 1,
+    W = (2 * G) + 1,
     Hmap = maps:from_list([{R, spread(M, W)} || {R, M} <- Rows]),
     {R0, _} = hd(Rows),
     {R1, _} = lists:last(Rows),
-    lists:filtermap(
-      fun(Rp) ->
-              M = lists:foldl(
-                    fun(R, Acc) -> Acc bor maps:get(R, Hmap, 0) end,
-                    0, lists:seq(max(R0, Rp - 2 * G), min(R1, Rp))),
-              case M of
-                  0 -> false;
-                  _ -> {true, {Rp, M}}
-              end
-      end, lists:seq(R0, R1 + 2 * G)).
+    lists:filtermap(fun(Rp) ->
+                            Span = lists:seq(max(R0, Rp - (2 * G)), min(R1, Rp)),
+                            M = lists:foldl(fun(R, Acc) ->
+                                                    Acc bor maps:get(R, Hmap, 0)
+                                            end, 0, Span),
+                            case M of
+                                0 -> false;
+                                _ -> {true, {Rp, M}}
+                            end
+                    end, lists:seq(R0, R1 + (2 * G))).
 
 %% Marks Rows of a chart placed at cell shift {X, Y}.
 occ_add(Rows, X, Y, Occ, N) ->
     Full = (1 bsl N) - 1,
-    lists:foldl(
-      fun({R, M}, Acc) ->
-              Yy = Y + R,
-              case Yy >= 0 andalso Yy < N of
-                  true ->
-                      setelement(Yy + 1, Acc,
-                                 element(Yy + 1, Acc) bor ((M bsl X) band Full));
-                  false ->
-                      Acc
-              end
-      end, Occ, Rows).
+    lists:foldl(fun({R, M}, Acc) ->
+                        Yy = Y + R,
+                        case (Yy >= 0) andalso (Yy < N) of
+                            true ->
+                                Row = element(Yy + 1, Acc) bor ((M bsl X) band Full),
+                                setelement(Yy + 1, Acc, Row);
+                            false ->
+                                Acc
+                        end
+                end, Occ, Rows).
 
 %% Marks a polygon at its tile position.
 occ_add_global(Poly, Occ, #{rect := {RX0, RY0, _, _}, c := C, n := N}) ->
@@ -601,19 +613,18 @@ occ_add_global(Poly, Occ, #{rect := {RX0, RY0, _, _}, c := C, n := N}) ->
 %% [{Row, Mask}] clipped to the N x N grid; holes stay free.
 raster(#{outer := Outer, holes := Holes}, OX, OY, C, N) ->
     Segs = lists:append([loop_segments(L) || L <- [Outer | Holes]]),
-    {Bd, Cr} = lists:foldl(
-                 fun(S, Acc) -> raster_edge(S, OX, OY, C, N, Acc) end,
-                 {#{}, #{}}, Segs),
+    {Bd, Cr} = lists:foldl(fun(S, Acc) ->
+                                   raster_edge(S, OX, OY, C, N, Acc)
+                           end, {#{}, #{}}, Segs),
     Rows = lists:usort(maps:keys(Bd) ++ maps:keys(Cr)),
-    lists:filtermap(
-      fun(J) ->
-              M0 = maps:get(J, Bd, 0),
-              M = span_mask(lists:sort(maps:get(J, Cr, [])), OX, C, N, M0),
-              case M of
-                  0 -> false;
-                  _ -> {true, {J, M}}
-              end
-      end, Rows).
+    lists:filtermap(fun(J) ->
+                            M0 = maps:get(J, Bd, 0),
+                            M = span_mask(lists:sort(maps:get(J, Cr, [])), OX, C, N, M0),
+                            case M of
+                                0 -> false;
+                                _ -> {true, {J, M}}
+                            end
+                    end, Rows).
 
 loop_segments(Pts) ->
     lists:zip(Pts, tl(Pts) ++ [hd(Pts)]).
@@ -647,8 +658,8 @@ raster_rows(J, J1, _E, _YR, _G, Bd, Cr) when J > J1 ->
     {Bd, Cr};
 raster_rows(J, J1, {X1, Y1, X2, Y2} = E, {YMin, YMax} = YR,
             {OX, OY, C, N} = G, Bd, Cr) ->
-    YA = max(YMin, OY + J * C),
-    YB = min(YMax, OY + (J + 1) * C),
+    YA = max(YMin, OY + (J * C)),
+    YB = min(YMax, OY + ((J + 1) * C)),
     {XA, XB} = case Y1 == Y2 of
                    true -> {X1, X2};
                    false -> {x_at(YA, X1, Y1, X2, Y2),
@@ -660,7 +671,7 @@ raster_rows(J, J1, {X1, Y1, X2, Y2} = E, {YMin, YMax} = YR,
               true -> Bd#{J => maps:get(J, Bd, 0) bor range_mask(I0, I1)};
               false -> Bd
           end,
-    YC = OY + (J + 0.5) * C,
+    YC = OY + ((J + 0.5) * C),
     Cr1 = case (Y1 > YC) =/= (Y2 > YC) of
               true -> Cr#{J => [x_at(YC, X1, Y1, X2, Y2)
                                 | maps:get(J, Cr, [])]};
@@ -669,7 +680,7 @@ raster_rows(J, J1, {X1, Y1, X2, Y2} = E, {YMin, YMax} = YR,
     raster_rows(J + 1, J1, E, YR, G, Bd1, Cr1).
 
 x_at(Y, X1, Y1, X2, Y2) ->
-    X1 + (Y - Y1) * (X2 - X1) / (Y2 - Y1).
+    X1 + (((Y - Y1) * (X2 - X1)) / (Y2 - Y1)).
 
 %%%
 %%% Exact verification
@@ -678,29 +689,32 @@ x_at(Y, X1, Y1, X2, Y2) ->
 %% Exact test against the obstacles whose bbox is near.
 fits(P0, X, Y, W, H, Obstacles, Gap) ->
     Box = {X, Y, X + W, Y + H},
-    case [O || O <- Obstacles, box_near(Box, maps:get(bbox, O), Gap)] of
+    Near = [O || O <- Obstacles, box_near(Box, maps:get(bbox, O), Gap)],
+    case Near of
         [] ->
             true;
-        Near ->
+        _ ->
             Placed = auv_poly:translate(P0, X, Y),
             not lists:any(fun(O) -> auv_poly:collide(Placed, O, Gap) end, Near)
     end.
 
 %% Same bbox filter as auv_poly:collide/3.
 box_near({AX0, AY0, AX1, AY1}, {BX0, BY0, BX1, BY1}, Gap) ->
-    AX0 < BX1 + Gap andalso AX1 > BX0 - Gap andalso
-    AY0 < BY1 + Gap andalso AY1 > BY0 - Gap.
+    (AX0 < (BX1 + Gap)) andalso (AX1 > (BX0 - Gap)) andalso
+    (AY0 < (BY1 + Gap)) andalso (AY1 > (BY0 - Gap)).
 
 %%%
 %%% Result
 %%%
 
 make_result(Placements, Unpacked, Critical, Movable, Fixed, Used, Side) ->
-    AreaOf = fun(Id) ->
-                     {_, Poly} = lists:keyfind(Id, 1, Movable),
-                     maps:get(area, Poly)
-             end,
-    PackedArea = lists:sum([AreaOf(maps:get(id, P)) || P <- Placements]),
+    PackedArea = lists:sum([movable_area(maps:get(id, P), Movable) || P <- Placements]),
+    MovableArea = lists:sum([maps:get(area, P) || {_, P} <- Movable]),
+    %% packed area / (full-width strip up to the highest top)
+    Efficiency = case Used > ?EPS of
+                     true -> PackedArea / (Used * Side);
+                     false -> 0.0
+                 end,
     #{placements => Placements,
       unpacked => Unpacked,
       critical => Critical,
@@ -708,15 +722,14 @@ make_result(Placements, Unpacked, Critical, Movable, Fixed, Used, Side) ->
                  fixed => length(Fixed),
                  packed => length(Placements),
                  unpacked => length(Unpacked),
-                 movable_area => lists:sum([maps:get(area, P)
-                                            || {_, P} <- Movable]),
+                 movable_area => MovableArea,
                  packed_area => PackedArea,
                  used_height => Used,
-                 %% packed area / (full-width strip up to the highest top)
-                 efficiency => case Used > ?EPS of
-                                   true -> PackedArea / (Used * Side);
-                                   false -> 0.0
-                               end}}.
+                 efficiency => Efficiency}}.
+
+movable_area(Id, Movable) ->
+    {_, Poly} = lists:keyfind(Id, 1, Movable),
+    maps:get(area, Poly).
 
 %%%
 %%%  Wings3D adapter
@@ -727,9 +740,8 @@ make_result(Placements, Unpacked, Critical, Movable, Fixed, Used, Side) ->
 %% Fixed charts without outline block their bounding box.
 %% With scale, charts are enlarged or reduced to fill the tile.
 pack_charts(Charts, Movable, Options) ->
-    auv_pack_utils:fit_scale(
-      fun(Cs) -> pack_charts_1(Cs, Movable, Options) end,
-      Charts, Movable, Options).
+    Pack = fun(Cs) -> pack_charts_1(Cs, Movable, Options) end,
+    auv_pack_utils:fit_scale(Pack, Charts, Movable, Options).
 
 pack_charts_1(Charts, Movable, Options) ->
     Contours = auv_pack_utils:extract_polygons(Charts),
@@ -742,10 +754,7 @@ pack_charts_1(Charts, Movable, Options) ->
         #{placements := Placements, unpacked := Unpacked0,
           critical := Critical, stats := Stats0} ->
             Wes = maps:from_list([{We#we.id, We} || We <- Charts]),
-            Placed = [{Id, auv_pack_utils:transform_chart(
-                             maps:get(Id, Wes), Rotation, Delta)}
-                      || #{id := Id, rotation := Rotation, delta := Delta}
-                             <- Placements],
+            Placed = [transformed(Pl, Wes) || Pl <- Placements],
             Unpacked = Unpacked0 ++ Degenerate,
             #{placed => Placed,
               unpacked => Unpacked,
@@ -754,28 +763,27 @@ pack_charts_1(Charts, Movable, Options) ->
               stats => Stats0#{unpacked => length(Unpacked)}}
     end.
 
+transformed(#{id := Id, rotation := Rotation, delta := Delta}, Wes) ->
+    {Id, auv_pack_utils:transform_chart(maps:get(Id, Wes), Rotation, Delta)}.
+
 bbox_obstacles(Charts, Movable, Items) ->
     Have = [Id || #{id := Id} <- Items],
-    lists:filtermap(
-      fun(#we{id = Id} = We) ->
-              case auv_pack_utils:is_movable(Id, Movable)
-                  orelse lists:member(Id, Have) of
-                  true ->
-                      false;
-                  false ->
-                      case auv_pack_utils:chart_bbox(We) of
-                          degenerate ->
-                              false;
-                          {X, Y, W, H} ->
-                              Box = [{X, Y}, {X + W, Y},
-                                     {X + W, Y + H}, {X, Y + H}],
-                              case auv_poly:new(Box, []) of
-                                  #{} = Poly ->
-                                      {true, #{id => Id, poly => Poly,
-                                               fixed => true}};
-                                  {error, _} ->
-                                      false
-                              end
-                      end
-              end
-      end, Charts).
+    lists:filtermap(fun(#we{id = Id} = We) ->
+                            Skip = auv_pack_utils:is_movable(Id, Movable)
+                                orelse lists:member(Id, Have),
+                            bbox_item(Skip, Id, We)
+                    end, Charts).
+
+bbox_item(true, _Id, _We) ->
+    false;
+bbox_item(false, Id, We) ->
+    case auv_pack_utils:chart_bbox(We) of
+        degenerate ->
+            false;
+        {X, Y, W, H} ->
+            Box = [{X, Y}, {X + W, Y}, {X + W, Y + H}, {X, Y + H}],
+            case auv_poly:new(Box, []) of
+                #{} = Poly -> {true, #{id => Id, poly => Poly, fixed => true}};
+                {error, _} -> false
+            end
+    end.

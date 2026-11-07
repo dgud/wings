@@ -12,17 +12,15 @@
 %% Pure geometry. A polygon is #{outer := [{U,V}], holes := [[{U,V}]]};
 %% new/2 normalizes it (outer CCW, holes CW, no repeated end point) and adds
 %% area and bbox := {X0,Y0,X1,Y1}.
-%%
-%% collide/3: with Gap =< EPS touching is allowed and only overlap counts;
-%% with Gap > EPS a minimum outline distance below Gap collides. A region
-%% inside another (and not in a hole) always collides.
 
 -module(auv_poly).
 
+-include("auv.hrl").
+
 -export([new/2, rotate/2, translate/3, collide/3]).
 
+-define(BINS, 32).
 -define(BOXPAD, 1.0e-6).
--define(EPS, 1.0e-9).
 -define(PROBE, 1.0e-7).
 
 %%%
@@ -46,18 +44,20 @@ new(Outer0, Holes0) ->
 %% Drops repeated points; loops with fewer than 3 points or no area are dropped.
 clean(Pts0) ->
     Pts1 = dedup(Pts0),
-    Pts = case Pts1 of
-              [F | _] = L when length(L) > 1 ->
-                  case near(F, lists:last(L)) of
-                      true -> lists:droplast(L);
-                      false -> L
-                  end;
-              L -> L
-          end,
-    case length(Pts) >= 3 andalso abs(signed_area(Pts)) > ?EPS of
+    Pts = close_loop(Pts1),
+    case (length(Pts) >= 3) andalso (abs(signed_area(Pts)) > ?EPS) of
         true -> Pts;
         false -> []
     end.
+
+close_loop([F | _] = L) when length(L) > 1 ->
+    Last = lists:last(L),
+    case near(F, Last) of
+        true -> lists:droplast(L);
+        false -> L
+    end;
+close_loop(L) ->
+    L.
 
 dedup([A, B | R]) ->
     case near(A, B) of
@@ -67,7 +67,7 @@ dedup([A, B | R]) ->
 dedup(L) -> L.
 
 near({X1, Y1}, {X2, Y2}) ->
-    abs(X1 - X2) =< ?EPS andalso abs(Y1 - Y2) =< ?EPS.
+    (abs(X1 - X2) =< ?EPS) andalso (abs(Y1 - Y2) =< ?EPS).
 
 orient(Pts, Want) ->
     Is = case signed_area(Pts) > 0.0 of true -> ccw; false -> cw end,
@@ -79,12 +79,14 @@ orient(Pts, Want) ->
 %% Shoelace; positive = CCW.
 signed_area(Pts) ->
     Next = tl(Pts) ++ [hd(Pts)],
-    lists:sum([X1 * Y2 - X2 * Y1
-               || {{X1, Y1}, {X2, Y2}} <- lists:zip(Pts, Next)]) / 2.0.
+    Terms = [(X1 * Y2) - (X2 * Y1) || {{X1, Y1}, {X2, Y2}} <- lists:zip(Pts, Next)],
+    Sum = lists:sum(Terms),
+    Sum / 2.0.
 
 %% Region area (outer minus holes).
 area(#{outer := O, holes := Hs}) ->
-    signed_area(O) + lists:sum([signed_area(H) || H <- Hs]).
+    HolesArea = lists:sum([signed_area(H) || H <- Hs]),
+    signed_area(O) + HolesArea.
 
 bbox(#{outer := O}) ->
     Xs = [X || {X, _} <- O],
@@ -102,11 +104,13 @@ rotate(#{bbox := {X0, Y0, X1, Y1}} = P, Deg) ->
 %% Rotation by Deg degrees around Center.
 transform(P, +0.0, _) -> P;
 transform(#{outer := O, holes := Hs}, Deg, {CX, CY}) ->
-    R = Deg * math:pi() / 180.0,
-    C = math:cos(R), S = math:sin(R),
+    R = (Deg * math:pi()) / 180.0,
+    C = math:cos(R),
+    S = math:sin(R),
     F = fun({X, Y}) ->
-                DX = X - CX, DY = Y - CY,
-                {CX + DX * C - DY * S, CY + DX * S + DY * C}
+                DX = X - CX,
+                DY = Y - CY,
+                {(CX + (DX * C)) - (DY * S), (CY + (DX * S)) + (DY * C)}
         end,
     rebuild([F(P) || P <- O], [[F(Q) || Q <- H] || H <- Hs]).
 
@@ -123,6 +127,9 @@ rebuild(O, Hs) ->
 %%% Collision
 %%%
 
+%% collide/3: with Gap =< EPS touching is allowed and only overlap counts;
+%% with Gap > EPS a minimum outline distance below Gap collides. A region
+%% inside another (and not in a hole) always collides.
 collide(#{bbox := BA} = A, #{bbox := BB} = B, Gap) ->
     G = max(Gap, 0.0),
     case bbox_overlap(BA, BB, G) of
@@ -132,22 +139,22 @@ collide(#{bbox := BA} = A, #{bbox := BB} = B, Gap) ->
             M = G + ?BOXPAD,
             SA = in_box(segments(A), BB, M),
             SB = in_box(segments(B), BA, M),
-            case G > ?EPS of
-                true -> close_segments(SA, SB, G - ?EPS)
-                            orelse probe_inside(SA, B) orelse probe_inside(SB, A);
-                false -> cross_segments(SA, SB)
-                             orelse probe_inside(SA, B) orelse probe_inside(SB, A)
-            end
+            {Mode, Dist} = case G > ?EPS of
+                               true -> {close, G - ?EPS};
+                               false -> {cross, 0.0}
+                           end,
+            any_pair(SA, SB, Mode, Dist) orelse probe_inside(SA, B)
+                orelse probe_inside(SB, A)
     end.
 
 bbox_overlap({AX0, AY0, AX1, AY1}, {BX0, BY0, BX1, BY1}, G) ->
-    AX0 < BX1 + G andalso AX1 > BX0 - G andalso
-    AY0 < BY1 + G andalso AY1 > BY0 - G.
+    (AX0 < (BX1 + G)) andalso (AX1 > (BX0 - G)) andalso
+    (AY0 < (BY1 + G)) andalso (AY1 > (BY0 - G)).
 
 in_box(Segs, {X0, Y0, X1, Y1}, M) ->
     [S || {{AX, AY}, {BX, BY}} = S <- Segs,
-          max(AX, BX) >= X0 - M, min(AX, BX) =< X1 + M,
-          max(AY, BY) >= Y0 - M, min(AY, BY) =< Y1 + M].
+          max(AX, BX) >= (X0 - M), min(AX, BX) =< (X1 + M),
+          max(AY, BY) >= (Y0 - M), min(AY, BY) =< (Y1 + M)].
 
 %% Directed edges of all loops.
 segments(#{outer := O, holes := Hs}) ->
@@ -159,80 +166,79 @@ loop_segments(Pts) ->
 seg_box({{AX, AY}, {BX, BY}}) ->
     {min(AX, BX), min(AY, BY), max(AX, BX), max(AY, BY)}.
 
-%% True when a segment pair is closer than Dist (boxes prefilter).
-close_segments(SA, SB, Dist) ->
-    Boxed = [begin {X0, Y0, X1, Y1} = seg_box(S),
-                   {X0 - Dist, Y0 - Dist, X1 + Dist, Y1 + Dist, S}
-             end || S <- SB],
+inflate(S, Dist) ->
+    {X0, Y0, X1, Y1} = seg_box(S),
+    {X0 - Dist, Y0 - Dist, X1 + Dist, Y1 + Dist, S}.
+
+%% True when a segment pair crosses (cross) or is closer than Dist (close);
+%% the boxes prefilter the pairs.
+any_pair(SA, SB, Mode, Dist) ->
+    Boxed = [inflate(S, Dist) || S <- SB],
     lists:any(fun(S1) ->
-                      {X0, Y0, X1, Y1} = seg_box(S1),
-                      lists:any(
-                        fun({BX0, BY0, BX1, BY1, S2}) ->
-                                X0 =< BX1 andalso X1 >= BX0 andalso
-                                Y0 =< BY1 andalso Y1 >= BY0 andalso
-                                seg_dist(S1, S2) < Dist
-                        end, Boxed)
+                 {X0, Y0, X1, Y1} = seg_box(S1),
+                 lists:any(fun({BX0, BY0, BX1, BY1, S2}) ->
+                               (X0 =< BX1) andalso (X1 >= BX0) andalso
+                               (Y0 =< BY1) andalso (Y1 >= BY0) andalso
+                               pair_hit(Mode, Dist, S1, S2)
+                           end, Boxed)
               end, SA).
 
-cross_segments(SA, SB) ->
-    Boxed = [begin {X0, Y0, X1, Y1} = seg_box(S), {X0, Y0, X1, Y1, S} end
-             || S <- SB],
-    lists:any(fun(S1) ->
-                      {X0, Y0, X1, Y1} = seg_box(S1),
-                      lists:any(
-                        fun({BX0, BY0, BX1, BY1, S2}) ->
-                                X0 =< BX1 andalso X1 >= BX0 andalso
-                                Y0 =< BY1 andalso Y1 >= BY0 andalso
-                                proper_cross(S1, S2)
-                        end, Boxed)
-              end, SA).
+pair_hit(cross, _, S1, S2) ->
+    proper_cross(S1, S2);
+pair_hit(close, Dist, S1, S2) ->
+    seg_dist(S1, S2) < Dist.
 
 %% Probe points just inside each edge; detects containment and coincident outlines.
 probe_inside(Segs, Poly) ->
     Idx = index(Poly),
     lists:any(fun({{X1, Y1}, {X2, Y2}}) ->
-                      DX = X2 - X1, DY = Y2 - Y1,
-                      L = math:sqrt(DX * DX + DY * DY),
+                      DX = X2 - X1,
+                      DY = Y2 - Y1,
+                      L = math:sqrt((DX * DX) + (DY * DY)),
                       case L > ?EPS of
                           false -> false;
                           true ->
-                              P = {(X1 + X2) / 2.0 - DY / L * ?PROBE,
-                                   (Y1 + Y2) / 2.0 + DX / L * ?PROBE},
+                              P = {((X1 + X2) / 2.0) - ((DY / L) * ?PROBE),
+                                   ((Y1 + Y2) / 2.0) + ((DX / L) * ?PROBE)},
                               in_index(P, Idx)
                       end
               end, Segs).
 
 %% Y-band index of the segments, so a point only checks its band.
--define(BINS, 32).
 index(#{bbox := {_, Y0, _, Y1}} = Poly) ->
     H = (Y1 - Y0) / ?BINS,
     Bin = fun(Y) when H > 0.0 -> max(0, min(?BINS - 1, floor((Y - Y0) / H)));
              (_) -> 0
           end,
     Map = lists:foldl(
-            fun({{_, YA}, {_, YB}} = S, M) ->
-                    lists:foldl(fun(K, M1) -> M1#{K => [S | maps:get(K, M1, [])]} end,
-                                M, lists:seq(Bin(min(YA, YB)), Bin(max(YA, YB))))
-            end, #{}, segments(Poly)),
+                fun({{_, YA}, {_, YB}} = S, M) ->
+                    Keys = lists:seq(Bin(min(YA, YB)), Bin(max(YA, YB))),
+                    lists:foldl(fun(K, M1) ->
+                                    M1#{K => [S | maps:get(K, M1, [])]}
+                                end, M, Keys)
+                    end, #{}, segments(Poly)),
     {Map, Bin}.
 
 in_index({PX, PY}, {Map, Bin}) ->
-    Hits = lists:foldl(
-             fun({{X1, Y1}, {X2, Y2}}, N) ->
-                     case (Y1 > PY) =/= (Y2 > PY) of
-                         true ->
-                             XI = X1 + (PY - Y1) * (X2 - X1) / (Y2 - Y1),
-                             case XI > PX of true -> N + 1; false -> N end;
-                         false -> N
-                     end
-             end, 0, maps:get(Bin(PY), Map, [])),
-    Hits rem 2 =:= 1.
+    Hits =
+        lists:foldl(fun({{X1, Y1}, {X2, Y2}}, N) ->
+                        case (Y1 > PY) =/= (Y2 > PY) of
+                            true ->
+                                XI = X1 + (((PY - Y1) * (X2 - X1)) / (Y2 - Y1)),
+                                case XI > PX of
+                                    true -> N + 1;
+                                    false -> N
+                                end;
+                            false -> N
+                        end
+                    end, 0, maps:get(Bin(PY), Map, [])),
+    (Hits rem 2) =:= 1.
 
 %%%
 %%% Segments
 %%%
 
-cross2({X1, Y1}, {X2, Y2}) -> X1 * Y2 - Y1 * X2.
+cross2({X1, Y1}, {X2, Y2}) -> (X1 * Y2) - (Y1 * X2).
 sub({X1, Y1}, {X2, Y2}) -> {X1 - X2, Y1 - Y2}.
 
 %% Strict crossing; touching does not count.
@@ -241,7 +247,7 @@ proper_cross({A, B}, {C, D}) ->
     D2 = cross2(sub(B, A), sub(D, A)),
     D3 = cross2(sub(D, C), sub(A, C)),
     D4 = cross2(sub(D, C), sub(B, C)),
-    sgn(D1) * sgn(D2) < 0 andalso sgn(D3) * sgn(D4) < 0.
+    ((sgn(D1) * sgn(D2)) < 0) andalso ((sgn(D3) * sgn(D4)) < 0).
 
 sgn(V) when V > ?EPS -> 1;
 sgn(V) when V < -?EPS -> -1;
@@ -256,11 +262,15 @@ seg_dist({A, B} = S1, {C, D} = S2) ->
     end.
 
 pt_seg({PX, PY}, {{AX, AY}, {BX, BY}}) ->
-    DX = BX - AX, DY = BY - AY,
-    L2 = DX * DX + DY * DY,
+    DX = BX - AX,
+    DY = BY - AY,
+    L2 = (DX * DX) + (DY * DY),
     T = case L2 > ?EPS of
-            true -> max(0.0, min(1.0, ((PX - AX) * DX + (PY - AY) * DY) / L2));
+            true ->
+                Dot = ((PX - AX) * DX) + ((PY - AY) * DY),
+                max(0.0, min(1.0, Dot / L2));
             false -> 0.0
         end,
-    QX = AX + T * DX, QY = AY + T * DY,
-    math:sqrt((PX - QX) * (PX - QX) + (PY - QY) * (PY - QY)).
+    QX = AX + (T * DX),
+    QY = AY + (T * DY),
+    math:sqrt(((PX - QX) * (PX - QX)) + ((PY - QY) * (PY - QY))).
