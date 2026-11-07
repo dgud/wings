@@ -126,7 +126,7 @@ flatten(Plane0, Center, St) ->
 extrude(Type, St0) ->
     MF = fun(Vs, We0) -> extrude_vertices(Vs, We0) end,
     St = wings_sel:map(MF, St0),
-    DF = fun(_, #we{temp=PlusMinus}) -> PlusMinus end,
+    DF = fun(_, #we{temp={finish,_,Tv}}) -> Tv; (_, #we{temp=Tv}) -> Tv end,
     wings_move:plus_minus(Type, DF, St).
 
 extrude_vertices(Vs, We0) ->
@@ -135,7 +135,8 @@ extrude_vertices(Vs, We0) ->
 		   ex_new_vertices(V, We0, A)
 	   end, We0, Vs),
     NewVs = wings_we:new_items_as_ordset(vertex, We0, We),
-    We#we{temp={Vs,NewVs,gb_sets:empty()}}.
+    PlusMinus = {Vs,NewVs,gb_sets:empty()},
+    We#we{temp=wings_extrude_edge:uv_temp(PlusMinus, Vs, We0, We)}.
 
 ex_new_vertices(V, OrigWe, #we{vp=Vtab}=We0) ->
     Center = wings_vertex:pos(V, We0),

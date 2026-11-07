@@ -156,6 +156,8 @@ advanced_prefs() ->
        [{info,?__(9,"Don't show the selection when the camera is being moved")}]},
       {?__(54,"Extend selection via hotkey on temporary highlight"),hilite_select,
 	   [{info,?__(55,"Affects: Select All, Edge Loop, Edge Ring, Select Similar, Similar Normals, Similar Materials, and Similar Area.")}]},
+      {?__(56,"Update UV coordinates when modeling"),update_uv,
+	   [{info,?__(57,"The UV coordinates follow the geometry, so the texture keeps its place and scale")}]},
      {vframe,
        [{label_column,
      [{?__(14,"Length"),active_vector_size,
@@ -433,7 +435,7 @@ viewer_prefs(Format) ->
 	  {text,{viewer_postopts,Format},[{width,10}]}]}]}]}.
 
 %% Localised languages in their local language with unicode integers
-language_name("cs") -> [268,"esk",253]; %Czech 
+language_name("cs") -> [268,"esk",253]; %Czech
 language_name("en") -> "English";
 language_name("de") -> "Deutsch";
 language_name("es") -> ["Espa",241,"ol"];
@@ -443,7 +445,7 @@ language_name("fr") -> ["Fran",231,"ais"];
 language_name("hu") -> "Hungarian";
 language_name("it") -> "Italiano";
 language_name("pl") -> "Polski";
-language_name("pt") -> ["Portugu",234,"s"]; 
+language_name("pt") -> ["Portugu",234,"s"];
 language_name("tr") -> ["T",252,"rk",231,"e"]; %Turkish
 language_name("ru") -> [1056,1091,1089,1089,1082,1080,1081]; %Russian
 language_name("sv") -> "Svenska";

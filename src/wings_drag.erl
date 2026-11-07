@@ -1432,8 +1432,17 @@ normalize_fun(#dlo{drag={general,Fun}, src_sel={_,DSel}, src_we=#we{id=Id}=We0}=
     {wings_draw:changed_we(D, D),{gb_trees:update(Id, We, Shs),update_sel(Id,DSel,Sel)}};
 normalize_fun(#dlo{src_sel={_,DSel}, src_we=#we{id=Id}}=D0, _Move, {Shs,Sel}) ->
     #dlo{src_we=We0} = D = wings_draw:join(D0),
-    We = We0#we{temp=[]},
-    {D,{gb_trees:update(Id, We, Shs),update_sel(Id,DSel,Sel)}}.
+    case gb_trees:get(Id, Shs) of
+        #we{temp={finish,Fun,_}} ->
+            %% The command changes the mesh when the drag ends.
+            We = (Fun(We0))#we{temp=[]},
+            D1 = D#dlo{work=none,smooth=none,edges=none,sel=none,src_we=We},
+            {wings_draw:changed_we(D1, D1),
+             {gb_trees:update(Id, We, Shs),update_sel(Id,DSel,Sel)}};
+        _ ->
+            We = We0#we{temp=[]},
+            {D,{gb_trees:update(Id, We, Shs),update_sel(Id,DSel,Sel)}}
+    end.
 
 update_sel(Id, DSel, Sel) ->
     case orddict:is_key(Id,Sel) of

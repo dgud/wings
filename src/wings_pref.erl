@@ -384,6 +384,7 @@ defaults() ->
      {clip_plane_size,1.5},
      {hilite_select,false},
      {conditional_deselect, false},
+     {update_uv, false},
 
      %% Constraints preferences.
      {con_dist_alt,10.0},

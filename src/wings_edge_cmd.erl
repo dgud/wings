@@ -155,10 +155,9 @@ command(clean_dissolve, St) ->
 command(dissolve, St) ->
     {save_state,dissolve(St)};
 command(collapse, St) ->
-    {save_state, wings_collapse:uniform_collapse(St)};
-command(clean_collapse, St0) ->
-    St = wings_collapse:clean_uniform_collapse(St0),
-    {save_state,St};
+    {save_state, collapse(St)};
+command(clean_collapse, St) ->
+    {save_state, clean_collapse(St)};
 command({hardness,Type}, St) ->
     {save_state,hardness(Type, St)};
 command(loop_cut, St) ->
@@ -428,6 +427,8 @@ slide(St0) ->
     Mode = wings_pref:get_value(slide_mode, relative),
     Stop = wings_pref:get_value(slide_stop, false),
     State = {Mode,none,Stop},
+    %% The UV fun is not told about mode changes, so it reads them here.
+    put(wings_slide_state, State),
     SUp = SDown = SN = SBi = {0.0,0.0,0.0},
 
     %% FIXME: The use of the process dictionary (wings_slide) will
@@ -440,15 +441,13 @@ slide(St0) ->
 
     {St,{_,_,_,_,MinUp,MinDw}} =
 	wings_sel:mapfold(
-	  fun(EsSet, We, {Up0,Dw0,N0,Bi0,MinUp,MinDw}) ->
-		  LofEs0 = wings_edge_loop:partition_edges(EsSet, We),
-		  LofEs = reverse(sort([{length(Es),Es} || Es <- LofEs0])),
-		  {{Slides,MUp,MDw},Up,Dw,N,Bi} =
-		      slide_setup_edges(LofEs,Up0,Dw0,N0,Bi0,We,
-					{gb_trees:empty(),MinUp,MinDw}),
-		  {We#we{temp=make_slide_tv(Slides, State)},
-                   {Up,Dw,N,Bi,MUp,MDw}}
-	  end, {SUp, SDown, SN, SBi, unknown,unknown}, St0),
+        fun(EsSet, We, {Up0,Dw0,N0,Bi0,MinUp,MinDw}) ->
+            LofEs0 = wings_edge_loop:partition_edges(EsSet, We),
+            LofEs = reverse(sort([{length(Es),Es} || Es <- LofEs0])),
+            {{Slides,MUp,MDw},Up,Dw,N,Bi} =
+                slide_setup_edges(LofEs,Up0,Dw0,N0,Bi0,We, {gb_trees:empty(),MinUp,MinDw}),
+            {We#we{temp=make_slide_tv(Slides, State, We)}, {Up,Dw,N,Bi,MUp,MDw}}
+        end, {SUp, SDown, SN, SBi, unknown,unknown}, St0),
     Units = slide_units(State,MinUp,MinDw),
     Flags = [{mode,{slide_mode(MinUp,MinDw),State}},{initial,[0]}],
     DF = fun(_, #we{temp=Tv}) -> Tv end,
@@ -470,6 +469,9 @@ slide_mode(MinUp,MinDw) ->
        ({key,$2}, {Mode,_,S})	  ->	{Mode,none,S};
        ({key,$3}, {Mode,F,false}) ->	{Mode,F,true};
        ({key,$3}, {Mode,F,true})  ->	{Mode,F,false};
+       ({key,$4}, State)          ->
+            wings_pref:set_value(update_uv, not wings_pref:get_value(update_uv)),
+            State;
 
        (units, NewState) ->
 	    slide_units(NewState,MinUp,MinDw);
@@ -477,6 +479,7 @@ slide_mode(MinUp,MinDw) ->
        (done, {NewMode,_,NewStop})->
 	    wings_pref:set_value(slide_mode, NewMode),
 	    wings_pref:set_value(slide_stop, NewStop),
+        erase(wings_slide_state),
 	    erase(wings_slide);
 
        (_, _) -> none
@@ -493,7 +496,8 @@ slide_units({relative,_,true},_,_) -> [{percent,{-1.0,1.0}}].
 slide_help({Mode,Freeze,Stop}) ->
     ["[1] ",slide_help_mode(Mode),
      "  [2] ",slide_help_freeze(Freeze),
-     "  [3] ",slide_help_stop(Stop)].
+     "  [3] ",slide_help_stop(Stop),
+     "  [4] ",slide_help_uv()].
 
 slide_help_mode(relative) -> ?__(1,"Absolute");
 slide_help_mode(absolute) -> ?__(2,"Relative").
@@ -504,12 +508,24 @@ slide_help_freeze(_)	  -> ?STR(slide_help_mode,4,"Thaw direction").
 slide_help_stop(false)	  -> ?STR(slide_help_mode,5,"Stop at other edges");
 slide_help_stop(true)	  -> ?STR(slide_help_mode,6,"Continue past other edges").
 
-make_slide_tv(Slides, State) ->
-    Vs = gb_trees:keys(Slides),
-    {Vs,make_slide_fun(Vs, Slides, State)}.
+slide_help_uv() ->
+    case wings_pref:get_value(update_uv) of
+        true -> ?__(1,"Turn Off UV");
+        false -> ?__(2,"Turn On UV")
+    end.
 
-%% The calculating fun
-slide_fun(Dx0,{Mode,Freeze,_Stop}, Slides) ->
+make_slide_tv(Slides, State, We) ->
+    Vs = gb_trees:keys(Slides),
+    Tv = {Vs,make_slide_fun(Vs, Slides, State)},
+    case wings_va:any_uvs(We) of
+        false ->
+            Tv;
+        true ->
+            UvFun = slide_uv_fun(Vs, Slides, State, We),
+            {we,[UvFun],Tv}
+    end.
+
+slide_delta(Dx0,{Mode,Freeze,_Stop}, Slide) ->
     {Dx,I} =
 	case Freeze of	 %% 3 = UP, 2 = Down
 	    none when Dx0 >= 0 -> {Dx0, 3};
@@ -517,21 +533,18 @@ slide_fun(Dx0,{Mode,Freeze,_Stop}, Slides) ->
 	    positive -> 	  {Dx0, 3};
 	    negative -> 	  {-Dx0,2}
 	end,
+    {Dir, Len, Count} = element(I, Slide),
     case Mode of
-	relative ->
-	    fun(V,A) ->
-		    Slide = gb_trees:get(V, Slides),
-		    {Dir, Len, Count} = element(I, Slide),
-		    ScaleDir = e3d_vec:mul(e3d_vec:norm(Dir), Dx*(Len/Count)),
-		    [{V,e3d_vec:add(element(1,Slide), ScaleDir)}|A]
-	    end;
-	absolute ->
-	    fun(V,A) ->
-		    Slide = gb_trees:get(V, Slides),
-		    {Dir, _Len, _C} = element(I, Slide),
-		    ScaleDir = e3d_vec:mul(e3d_vec:norm(Dir), Dx),
-		    [{V,e3d_vec:add(element(1,Slide), ScaleDir)}|A]
-	    end
+        relative -> e3d_vec:mul(e3d_vec:norm(Dir), Dx*(Len/Count));
+        absolute -> e3d_vec:mul(e3d_vec:norm(Dir), Dx)
+    end.
+
+%% The calculating fun
+slide_fun(Dx0, State, Slides) ->
+    fun(V,A) ->
+        Slide = gb_trees:get(V, Slides),
+        ScaleDir = slide_delta(Dx0, State, Slide),
+        [{V,e3d_vec:add(element(1,Slide), ScaleDir)}|A]
     end.
 
 make_slide_fun(Vs, Slides, State) ->
@@ -540,6 +553,7 @@ make_slide_fun(Vs, Slides, State) ->
 	    Fun = slide_fun(Dx,State,Slides),
 	    foldl(Fun, Acc, Vs);
        (new_mode_data, {NewState,_}) ->
+        put(wings_slide_state, NewState),
 	    make_slide_fun(Vs,Slides,NewState);
        (_,_) ->
 	    make_slide_fun(Vs,Slides,State)
@@ -681,6 +695,64 @@ add_slide_vertex(V,{Vpos,{Ndir,NL},{Pdir,PL}},Acc) ->
 	    New = {Vpos, {add(Ndir,Ndir0),NL+NL0,NC0+1},
 		   {add(Pdir,Pdir0),PL+PL0,PC0+1}},
 	    gb_trees:update(V, New, Acc)
+    end.
+
+%%%
+%%% Slide: the UV coordinates follow the sliding vertices.
+%%%
+
+slide_uv_fun(Vs, Slides, State0, #we{lv=Lv0,rv=Rv0}=We) ->
+    MoveData = wings_va:uv_move_data(Vs, We),
+    fun(W, [Dx|_]) ->
+        case wings_pref:get_value(update_uv) of
+            false ->
+                W#we{lv=Lv0,rv=Rv0};
+            true ->
+                State =
+                    case get(wings_slide_state) of
+                        undefined -> State0;
+                        State1 -> State1
+                    end,
+                DPFun =
+                    fun(V) ->
+                        slide_delta(Dx, State, gb_trees:get(V, Slides))
+                    end,
+                wings_va:uv_move(MoveData, DPFun, W)
+        end
+    end.
+
+%%%
+%%% Collapse: the UV coordinates of the collapsed vertices are moved to
+%%% the center first (wings_collapse itself is not changed).
+%%%
+
+collapse(St0) ->
+    St = collapse_uv(St0),
+    wings_collapse:uniform_collapse(St).
+
+clean_collapse(St0) ->
+    St = collapse_uv(St0),
+    wings_collapse:clean_uniform_collapse(St).
+
+collapse_uv(St) ->
+    wings_sel:map(fun collapse_uv/2, St).
+
+collapse_uv(Edges, We) ->
+    case wings_va:follow_uvs(We) of
+        false ->
+            We;
+        true ->
+            %% Same groups and centers as wings_collapse:uniform_collapse/3.
+            foldl(fun(Es, W) ->
+                    Vs = wings_edge:to_vertices(Es, We),
+                    Center = wings_vertex:center(Vs, We),
+                    Data = wings_va:uv_move_data(Vs, We),
+                    DPFun =
+                        fun(V) ->
+                            sub(Center, wings_vertex:pos(V, We))
+                        end,
+                    wings_va:uv_move(Data, DPFun, W)
+                  end, We, wings_edge_loop:partition_edges(Edges, We))
     end.
 
 %%%

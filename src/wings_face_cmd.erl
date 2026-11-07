@@ -183,7 +183,7 @@ command(put_on, St) ->
 command(clone_on, St) ->
     clone_on(St);
 command(collapse, St) ->
-    {save_state, wings_collapse:collapse(dissolve(St))};
+    {save_state, collapse(St)};
 command({material,Cmd}, St) ->
     wings_material:command(Cmd, St);
 command({move,Type}, St) ->
@@ -214,10 +214,14 @@ command(remove_hole, St) ->
 %%%
 
 extrude({faces, Axis}, St) ->
-    wings_move:setup(Axis, extrude_faces(St));
+    wings_move:setup(Axis, extruded(extrude_faces(St)));
 extrude({region, Axis}, St0) ->
     St = extrude_region(St0),
-    wings_move:setup(Axis, St).
+    wings_move:setup(Axis, extruded(St)).
+
+%% Tells wings_move:setup/2 that the faces have just been extruded.
+extruded(St) ->
+    wings_sel:map(fun(_, We) -> We#we{temp=extruded} end, St).
 
 %%% Extrude Faces
 extrude_faces(St) ->
@@ -272,7 +276,7 @@ extrude_region_vmirror(OldWe, #we{mirror=Face0}=We0) ->
 
 shell_extrude(Axis, St0) ->
     St = shell_extrude(St0),
-    wings_move:setup(Axis, St).
+    wings_move:setup(Axis, intruded(St)).
 
 shell_extrude(St0) ->
     CF = fun(Faces, We) ->
@@ -353,6 +357,39 @@ dissolve_sel(Faces, #we{fs=Ftab,holes=Holes,mirror=M}=We0) ->
     end.
 
 %%%
+%%% Collapse: the UV coordinates of the face vertices are moved to the
+%%% center first (wings_collapse itself is not changed).
+%%%
+
+collapse(St1) ->
+    St0 = dissolve(St1),
+    St = collapse_uv(St0),
+    wings_collapse:collapse(St).
+
+collapse_uv(St) ->
+    wings_sel:map(fun collapse_uv/2, St).
+
+collapse_uv(Faces, We) ->
+    case wings_va:follow_uvs(We) of
+        false ->
+            We;
+        true ->
+            %% A vertex shared by two of the faces is only moved once.
+            CollapseFace = fun(Face, Acc) -> collapse_uv_face(Face, We, Acc) end,
+            {_,W} = gb_sets:fold(CollapseFace, {gb_sets:empty(),We}, Faces),
+            W
+    end.
+
+collapse_uv_face(Face, We, {Done,W0}) ->
+    Vs = wings_face:vertices_ccw(Face, We),
+    Center = wings_vertex:center(Vs, We),
+    Move = [V || V <- Vs, not gb_sets:is_member(V, Done)],
+    Data = wings_va:uv_move_data(Move, We),
+    DPFun = fun(V) -> e3d_vec:sub(Center, wings_vertex:pos(V, We)) end,
+    {gb_sets:union(Done, gb_sets:from_list(Move)),
+     wings_va:uv_move(Data, DPFun, W0)}.
+
+%%%
 %%% Clean Dissolve
 %%%
 
@@ -382,7 +419,11 @@ clean_dissolve_sel(Faces, #we{fs=Ftab,holes=Holes,mirror=M}=We0) ->
 
 intrude(St0) ->
     St = wings_sel:map_update_sel(fun intrude/2, St0),
-    wings_move:setup(intrude, St).
+    wings_move:setup(intrude, intruded(St)).
+
+%% Tells wings_move:setup/2 that the faces have just been intruded.
+intruded(St) ->
+    wings_sel:map(fun(_, We) -> We#we{temp=intruded} end, St).
 
 intrude(Faces0, We0) ->
     We1 = wings_dissolve:faces(Faces0, wings_we:break_mirror(We0)),
@@ -917,11 +958,22 @@ bridge_1(Reference, FaceA, VsA, FaceB, VsB, #we{vp=Vtab}=We) ->
 		false ->
 		    case Reference of
 			[VsAr,VsBr] ->
-			    bridge_ref(FaceA, VsAr, FaceB, VsBr, We);
+                            bridge_uv(VsB, We, bridge_ref(FaceA, VsAr, FaceB, VsBr, We));
 			_ ->
-			    bridge(FaceA, VsA, FaceB, VsB, We)
+                            bridge_uv(VsB, We, bridge(FaceA, VsA, FaceB, VsB, We))
 		    end
 	    end
+    end.
+
+%% The new faces get UV coordinates: unfolded from the face around the first
+%% hole, a seam at the second one.
+bridge_uv(VsB, We0, We) ->
+    case wings_va:follow_uvs(We) of
+        true ->
+            Walls = wings_we:new_items_as_ordset(face, We0, We),
+            wings_va:wall_uv_bridge(Walls, VsB, We);
+        false ->
+            We
     end.
 
 bridge(FaceA, VsA0, FaceB, VsB0, We0) ->
@@ -1131,11 +1183,49 @@ lift(Dir, St) ->
     wings:ask(lift_selection(Dir, St), St, fun lift/2).
 
 lift_setup_drag(F, rotate, St) ->
-    wings_drag:fold(F, [angle], St);
+    lift_drag(F, [angle], St);
 lift_setup_drag(F, free, St) ->
     wings_drag:fold(F, [dx,dy,dz], [screen_relative], St);
 lift_setup_drag(F, _, St) ->
-    wings_drag:fold(F, [distance], St).
+    lift_drag(F, [distance], St).
+
+lift_drag(F, Units, St) ->
+    Follow = wings_va:any_uvs(St),
+    DF = fun(Items, We) -> lift_uv_tv(Follow, F(Items, We)) end,
+    wings_drag:fold(DF, Units, lift_uv_flags(Follow), St).
+
+%% The key [1] switches the update of the UV coordinates. The transformation
+%% fun must accept the change of the mode.
+lift_uv_flags(true) -> [{mode,{fun lift_uv_mode/2,uv}}];
+lift_uv_flags(false) -> [].
+
+lift_uv_mode(help, _) ->
+    [?__(1,"[Shift] and/or [Ctrl] and/or [Alt] Constrain"),
+     "  [1] ",lift_uv_help()];
+lift_uv_mode({key,$1}, Mode) ->
+    wings_pref:set_value(update_uv, not wings_pref:get_value(update_uv)),
+    Mode;
+lift_uv_mode(_, _) ->
+    none.
+
+lift_uv_help() ->
+    case wings_pref:get_value(update_uv) of
+        true -> ?__(1,"Turn Off UV");
+        false -> ?__(2,"Turn On UV")
+    end.
+
+lift_uv_tv(true, {Vs,Tr}) ->
+    {Vs,lift_uv_tr(Tr)};
+lift_uv_tv(true, {we,WeFuns,Tv}) ->
+    {we,WeFuns,lift_uv_tv(true, Tv)};
+lift_uv_tv(false, Tv) ->
+    Tv.
+
+lift_uv_tr(Tr) ->
+    fun(Move, Acc) when is_list(Move) -> Tr(Move, Acc);
+       (new_mode_data, {uv,_}) -> lift_uv_tr(Tr);
+       (Key, Val) -> lift_uv_tr(Tr(Key, Val))
+    end.
 
 %%%
 %%% Lift from edge.
@@ -1148,7 +1238,7 @@ lift_from_edge(Dir, EdgeSel0, St0) ->
                      #{Id:=Edges} ->
                          {We,Tv0} = lift_from_edge(Dir, Faces, Edges, We0),
                          Tv = wings_drag:compose(Tv0),
-                         We#we{temp=Tv};
+                         We#we{temp=lift_walls(Dir, Faces, We0, We, Tv)};
                      #{} ->
                          We0#we{temp=[]}
                  end
@@ -1158,6 +1248,20 @@ lift_from_edge(Dir, EdgeSel0, St0) ->
             (_, #we{temp=Tv}) -> Tv
          end,
     lift_setup_drag(FF, Dir, St).
+
+%% The UV coordinates of the side faces follow the lifted faces (not when
+%% the move depends on the view).
+lift_walls(Dir, Faces, We0, We, Tv) when Dir =/= free ->
+    case wings_va:any_uvs(We) of
+        true ->
+            Walls = wings_we:new_items_as_ordset(face, We0, We),
+            UvFun = fun(W) -> wings_va:lift_wall_uv(Walls, Faces, W) end,
+            wings_move:walls_fun(UvFun, We, Tv);
+        false ->
+            Tv
+    end;
+lift_walls(_, _, _, _, Tv) ->
+    Tv.
 
 -spec lift_sel_mismatch() -> no_return().
 lift_sel_mismatch() ->
@@ -1177,7 +1281,9 @@ lift_from_edge_1(Dir, [{Face,Edge}|T], #we{es=Etab}=OrigWe, We0, Tv0) ->
 	       #edge{lf=Face} -> left;
 	       #edge{rf=Face} -> right
 	   end,
-    {We,Tv} = lift_from_edge_2(Dir, Face, Edge, Side, We0, Tv0),
+    #edge{vs=Va,ve=Vb} = array:get(Edge, Etab),
+    {We1,Tv} = lift_from_edge_2(Dir, Face, Edge, Side, We0, Tv0),
+    We = wings_va:restore_corners(Face, [Va,Vb], OrigWe, We1),
     lift_from_edge_1(Dir, T, OrigWe, We, Tv);
 lift_from_edge_1(_Dir, [], _OrigWe, We, Tv) -> {We,Tv}.
 
@@ -1246,7 +1352,7 @@ lift_from_vertex(Dir, VsSel0, St0) ->
                      #{Id:=Vs} ->
                          {We,Tv0} = lift_from_vertex(Dir, Faces, Vs, We0),
                          Tv = wings_drag:compose(Tv0),
-                         We#we{temp=Tv};
+                         We#we{temp=lift_walls(Dir, Faces, We0, We, Tv)};
                      #{} ->
                          We0#we{temp=[]}
                  end
@@ -1269,7 +1375,8 @@ lift_from_vertex(Dir, Faces, Vs, We) ->
     end.
 
 lift_from_vertex_1(Dir, [{Face,V}|T], We0, Tv0) ->
-    {We,Tv} = lift_from_vertex_2(Dir, Face, V, We0, Tv0),
+    {We1,Tv} = lift_from_vertex_2(Dir, Face, V, We0, Tv0),
+    We = wings_va:restore_corners(Face, [V], We0, We1),
     lift_from_vertex_1(Dir, T, We, Tv);
 lift_from_vertex_1(_Dir, [], We, Tv) -> {We,Tv}.
 

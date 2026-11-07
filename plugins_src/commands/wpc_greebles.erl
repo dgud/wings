@@ -168,7 +168,25 @@ inset(Fs, InsetP, BumpP, State, #we{vp=Vp0}=We) ->
                                     end,
                              lists:foldl(Move,Vp1,VData)
                      end, Vp0, FacesData),
-    We#we{vp=Vp}.
+    inset_uv(Fs, We, We#we{vp=Vp}).
+
+%% Keeps the UV coordinates on the surface, as the Inset commands do.
+inset_uv(Fs, We0, We) ->
+    case wings_va:follow_uvs(We0) of
+        false ->
+            We;
+        true ->
+            inset_uv_1(Fs, We0, We)
+    end.
+
+inset_uv_1(Fs, We0, We) ->
+    case wpc_inset:inset_uv_data(Fs, We0) of
+        [] ->
+            We;
+        UvData ->
+            We1 = wpc_inset:inset_uv_set(UvData, fun(V) -> wings_vertex:pos(V, We) end, We),
+            wings_va:wall_uv(Fs, We1)
+    end.
 
 inset_faces(_,{Vpos,_},+0.0) -> Vpos;
 inset_faces(SFDist,{Vpos,Dir},Percent) ->

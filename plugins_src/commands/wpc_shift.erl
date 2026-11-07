@@ -108,12 +108,13 @@ shift_verts_1(F, ShiftMode, #st{selmode=SelMode}=St) ->
                 cylindrical_shift -> fun shift_cylindrical/3;
                 spherical_shift -> fun shift_spherical/3
             end,
+    Follow = wings_va:any_uvs(St),
     DF = fun(Items, We) ->
                  Vs = convert_sel(SelMode, Items, We),
                  Data = F(Vs, We),
-                 shift_verts_2(Shift, Data, Vs, We)
+                 uv_tv(Follow, shift_verts_2(Shift, Data, Vs, We))
          end,
-    wings_drag:fold(DF, [distance], St).
+    wings_drag:fold(DF, [distance], uv_flags(Follow), St).
 
 shift_verts_2(ShiftFun, Data, Vs, We) ->
     VsPos = wings_util:add_vpos(Vs, We),
@@ -122,7 +123,66 @@ shift_verts_2(ShiftFun, Data, Vs, We) ->
                                 [{V,ShiftFun(Vpos, Distance, Data)}|VsAcc]
                         end, A, VsPos)
           end,
-    {Vs,Fun}.
+    shift_uv(Vs, VsPos, Fun, We).
+
+%% The UV coordinates follow the shifted vertices (the texture keeps its
+%% place on the surface).
+shift_uv(Vs, VsPos, Fun, #we{lv=Lv0,rv=Rv0}=We) ->
+    case wings_va:any_uvs(We) of
+        false ->
+            {Vs,Fun};
+        true ->
+            MoveData = wings_va:uv_move_data(Vs, We),
+            Old = maps:from_list(VsPos),
+            UvFun =
+                fun(W, [Distance|_]) ->
+                    case wings_pref:get_value(update_uv) of
+                        false ->
+                            W#we{lv=Lv0,rv=Rv0};
+                        true ->
+                            New = maps:from_list(Fun([Distance], [])),
+                            DPFun =
+                                fun(V) ->
+                                    e3d_vec:sub(maps:get(V, New), maps:get(V, Old))
+                                end,
+                            wings_va:uv_move(MoveData, DPFun, W)
+                    end
+                end,
+            {we,[UvFun],{Vs,Fun}}
+    end.
+
+%% The key [1] switches the update of the UV coordinates. The transformation
+%% fun must accept the change of the mode.
+uv_flags(true) -> [{mode,{fun uv_mode/2,uv}}];
+uv_flags(false) -> [].
+
+uv_mode(help, _) ->
+    [?__(1,"[Shift] and/or [Ctrl] and/or [Alt] Constrain"),
+     "  [1] ",uv_help()];
+uv_mode({key,$1}, Mode) ->
+    wings_pref:set_value(update_uv, not wings_pref:get_value(update_uv)),
+    Mode;
+uv_mode(_, _) ->
+    none.
+
+uv_help() ->
+    case wings_pref:get_value(update_uv) of
+        true -> ?__(1,"Turn Off UV");
+        false -> ?__(2,"Turn On UV")
+    end.
+
+uv_tv(true, {Vs,Tr}) ->
+    {Vs,uv_tr(Tr)};
+uv_tv(true, {we,WeFuns,Tv}) ->
+    {we,WeFuns,uv_tv(true, Tv)};
+uv_tv(false, Tv) ->
+    Tv.
+
+uv_tr(Tr) ->
+    fun(Move, Acc) when is_list(Move) -> Tr(Move, Acc);
+       (new_mode_data, {uv,_}) -> uv_tr(Tr);
+       (Key, Val) -> uv_tr(Tr(Key, Val))
+    end.
 
 -spec convert_sel(SelMode, Items, #we{}) -> Vertices when
       SelMode :: wings_sel:mode(),

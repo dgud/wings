@@ -921,8 +921,50 @@ weld_1(Tol, #we{fs=Fs0}=We0) ->
         We0 ->
             error;
         We ->
-            {We,weld_selection(lists:append(Parts), We0, We)}
+            {weld_uv(Tol, We0, We),weld_selection(lists:append(Parts), We0, We)}
     end.
+
+%% The faces that stay keep their UV coordinates: the bridge and the
+%% collapse of the edges overwrite them at the welded vertices. The corners
+%% are found again by position, so the weld becomes a seam in the UV map.
+weld_uv(Tol, #we{fs=Ftab0}=We0, #we{fs=Ftab}=We) ->
+    case wings_va:follow_uvs(We0) of
+        false ->
+            We;
+        true ->
+            Fs = [F || F <- gb_trees:keys(Ftab), gb_trees:is_defined(F, Ftab0)],
+            foldl(fun(F, W) -> weld_uv_face(F, Tol, We0, W) end, We, Fs)
+    end.
+
+weld_uv_face(Face, Tol, We0, We) ->
+    CornerUv = fun(V) ->
+                       Attrs = wings_va:vtx_attrs(V, Face, We0),
+                       {wings_vertex:pos(V, We0),wings_va:attr(uv, Attrs)}
+               end,
+    Corners = lists:map(CornerUv, wings_face:vertices_ccw(Face, We0)),
+    Old = [{Pos,UV} || {Pos,{_,_}=UV} <- Corners],
+    foldl(fun(V, W) -> weld_uv_corner(V, Face, Old, Tol, W) end,
+          We, wings_face:vertices_ccw(Face, We)).
+
+weld_uv_corner(V, Face, Old, Tol, We) ->
+    Pos = wings_vertex:pos(V, We),
+    Dists = lists:sort([{e3d_vec:dist(Pos, P),UV} || {P,UV} <- Old]),
+    case Dists of
+        [{D,UV}|_] when D < 2*Tol ->
+            {Edge,Side,_,Attr} = lists:keyfind(Face, 3, wings_va:corners(V, We)),
+            weld_uv_set(Edge, Side, Attr, UV, We);
+        _ ->
+            We
+    end.
+
+weld_uv_set(_, _, [_|UV], UV, We) ->
+    We;
+weld_uv_set(Edge, Side, Attr, UV, We) ->
+    Col = case Attr of
+              [C|_] -> C;
+              _ -> none
+          end,
+    wings_va:set_edge_attrs(Edge, Side, [Col|UV], We).
 
 qualified_fs([F|Fs], Tol, We, Acc) ->
     Vs = wings_face:fold(
