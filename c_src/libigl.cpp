@@ -28,9 +28,11 @@ public:
   int line = 0;
 };
 
+static bool no_more_assert = false;
+
 #define eigen_assert(x) \
  do { \
-   if(!Eigen::internal::copy_bool(x))                          \
+   if(!(x))                             \
      throw nif_error(#x, __FUNCTION__, __FILE__, __LINE__);    \
  } while(false)
 
