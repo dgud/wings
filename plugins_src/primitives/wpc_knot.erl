@@ -56,7 +56,7 @@ make_knot(Arg, _) ->
     Vres = Ures div 10,
     Verts = make_verts(Ures, Vres, Knot_Func),
     Vs = wings_shapes:transform_obj({Rot_X,Rot_Y,Rot_Z},{Mov_X,Mov_Y,Mov_Z},Ground, Verts),
-    Faces = make_faces(Ures, Vres),
+    Faces = make_faces(Ures, Vres, Vs),
     {new_shape,"knot",Faces,Vs}.
 
 dialog() ->
@@ -103,17 +103,50 @@ make_verts(Ures, Vres, Knot_Func) ->
     Verts = lists:map(Process_Us, Us),
     lists:flatten(Verts).
 
-make_faces(Ures, Vres) ->
-    Us = lists:seq(0, Ures-1),
-    Vs = lists:seq(0, Vres-1),
+make_faces(Ures, Vres, Vs) ->
+    Vt = list_to_tuple(Vs),
+    Pos =
+        fun(I, J) ->
+            element((I rem Ures)*Vres + (J rem Vres) + 1, Vt)
+        end,
+    Is = lists:seq(0, Ures-1),
+    Js = lists:seq(0, Vres-1),
+    RingLen =
+        fun(I) ->
+            Ds = [e3d_vec:dist(Pos(I, J), Pos(I+1, J)) || J <- Js],
+            DSum = lists:sum(Ds),
+            DSum / Vres
+        end,
+    {Starts, Total} = lists:mapfoldl(fun(D, Acc) ->
+                                         {Acc, Acc+D}
+                                     end, 0.0, [RingLen(I) || I <- Is]),
+    Cum = list_to_tuple(Starts ++ [Total]),
+    Loops = [lists:sum([e3d_vec:dist(Pos(I, J), Pos(I, J+1)) || J <- Js]) || I <- Is],
+    LoopSum = lists:sum(Loops),
+    Lv = LoopSum / Ures,
+    Mid = Total / 2,
+    Cuts = [{abs(element(I+1, Cum) - Mid), I} || I <- lists:seq(1, Ures-1)],
+    {_, Half} = lists:min(Cuts),
+    LenA = element(Half+1, Cum),
+    LenB = Total - LenA,
+    Gap = 0.01,
+    Scale = min(1.0 / max(LenA, LenB), (1.0 - Gap) / (2*Lv)),
     Make_Face = fun(I,J) ->
-	Idx1 = (J+1) rem Vres + I*Vres,
-	Idx2 = (J+1) rem Vres + ((I+1) rem Ures)*Vres,
-	Idx3 = J + ((I+1) rem Ures) * Vres,
-	Idx4 = J + I*Vres,
-	[Idx1,Idx2,Idx3,Idx4]
+        Idx1 = (J+1) rem Vres + I*Vres,
+        Idx2 = (J+1) rem Vres + ((I+1) rem Ures)*Vres,
+        Idx3 = J + ((I+1) rem Ures) * Vres,
+        Idx4 = J + I*Vres,
+        {Start, Len, Base} = case I < Half of
+            true -> {0.0, LenA, 0.0};
+            false -> {LenA, LenB, Lv*Scale + Gap}
+        end,
+        U0 = (Len - (element(I+1, Cum) - Start)) * Scale,
+        U1 = (Len - (element(I+2, Cum) - Start)) * Scale,
+        V0 = Base + (J/Vres) * Lv * Scale,
+        V1 = Base + ((J+1)/Vres) * Lv * Scale,
+        {default,[Idx1,Idx2,Idx3,Idx4],[{U0,V1},{U1,V1},{U1,V0},{U0,V0}],none,none}
     end,
-    [Make_Face(I,J) || I <- Us, J <- Vs].
+    [Make_Face(I,J) || I <- Is, J <- Js].
 
 knot1(T) ->
     X = math:cos(T) - 2*math:cos(2*T),

@@ -107,7 +107,8 @@ make_thread(Arg0, _St) ->
 make_thread(Type, Dir, Sections, Height, TopRadius, BotRadius, CrestH, Pitch, Rows, [Rot, Mov, Ground]) ->
     Vs1 = thread_verts(Type,Sections,TopRadius,BotRadius,CrestH,Pitch,Rows,Height),
     Fs0 = thread_faces(Type,Sections,Rows),
-    {Vs0,Fs} = set_direction(Dir,Vs1,Fs0),
+    {Vs0,Fs1} = set_direction(Dir,Vs1,Fs0),
+    Fs = thread_uv_faces(Dir,Sections,Vs0,Fs1),
     Vs = wings_shapes:transform_obj(Rot,Mov,Ground,Vs0),
    {new_shape,thread(),Fs,Vs}.
 
@@ -180,3 +181,67 @@ set_direction(right,Vs0,Fs0) ->
     Vs = [e3d_mat:mul_point(FlipX, Pos) || Pos <- Vs0],
     Fs = [lists:reverse(F) || F <- Fs0],
     {Vs,Fs}.
+%%%
+%%% UV layout: the sides are a strip in the upper three quarters (U from the
+%%% angle of the section, V from the height), the two end caps are polygons
+%%% in the lower quarter.
+%%%
+
+thread_uv_faces(Dir, N, Vs, [Top,Bottom|Sides]) ->
+    Ys = [Y || {_,Y,_} <- Vs],
+    YMin = lists:min(Ys),
+    YDiff = max(lists:max(Ys)-YMin, 1.0e-9),
+    Vt = list_to_tuple(Vs),
+    Ctx = {Dir,N,Vt,YMin,YDiff},
+    Factor = thread_cap_factor(Top, Vt, YDiff),
+    RTop = cap_radius(Top, Vt, Factor),
+    RBottom = cap_radius(Bottom, Vt, Factor),
+    Shrink = min(1.0, 0.12/max(RTop, RBottom)),
+    [thread_cap(Top, {0.125,0.125}, RTop*Shrink),
+     thread_cap(Bottom, {0.375,0.125}, RBottom*Shrink) |
+     [thread_side(F, Ctx) || F <- Sides]].
+
+%% The sides map the perimeter of the top to U and the height to V, so the
+%% caps use the geometric mean of both scales to keep the texture scale; if
+%% they do not fit in their band both are reduced by the same amount.
+thread_cap_factor(Top, Vt, YDiff) ->
+    Ps = [element(V+1, Vt) || V <- Top],
+    Pairs = lists:zip(Ps, tl(Ps) ++ [hd(Ps)]),
+    Lens = [e3d_vec:dist(A, B) || {A,B} <- Pairs],
+    Perimeter = lists:sum(Lens),
+    (1.0/Perimeter) * (0.75/YDiff).
+
+thread_cap(Idx, {Cx,Cy}, R) ->
+    N = length(Idx),
+    Delta = pi()*2/N,
+    UVs = [{Cx+R*cos(I*Delta), Cy+R*sin(I*Delta)} || I <- lists:seq(0, N-1)],
+    {default,Idx,UVs,none,none}.
+
+cap_radius(Idx, Vt, Factor) ->
+    Ps = [element(V+1, Vt) || V <- Idx],
+    N = length(Ps),
+    Pairs = lists:zip(Ps, tl(Ps) ++ [hd(Ps)]),
+    Sum = lists:foldl(fun({A,B}, Acc) ->
+                          e3d_vec:add(Acc, e3d_vec:cross(A, B))
+                      end, {0.0,0.0,0.0}, Pairs),
+    Area = e3d_vec:len(Sum) / 2,
+    RegArea = (N/2) * math:sin(2*math:pi()/N),
+    math:sqrt(Area*Factor/RegArea).
+
+thread_side(F, {_,N,_,_,_}=Ctx) ->
+    Ss = [V rem N || V <- F],
+    Seam = lists:member(0, Ss) andalso lists:member(N-1, Ss),
+    {default,F,[thread_uv(V, Seam, Ctx) || V <- F],none,none}.
+
+thread_uv(V, Seam, {Dir,N,VsT,YMin,YDiff}) ->
+    S = V rem N,
+    U0 = case Seam andalso (S =:= N-1) of
+             true -> 1.0;
+             false -> (N-1-S)/N
+         end,
+    U = case Dir of
+            left -> 1.0-U0;
+            right -> U0
+        end,
+    {_,Y,_} = element(V+1, VsT),
+    {U, 0.25+0.75*(Y-YMin)/YDiff}.

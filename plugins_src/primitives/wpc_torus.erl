@@ -80,19 +80,19 @@ make_torus([{_,Ures},{_,Vres},{_,MajXR},{_,MajZR},{_,MinR},{_,smooth},_,_|Transf
     Vres0=min_uv_torus_res(Vres),
     Vs0 = make_verts(Ures0, Vres0, MajXR, MajZR, MinR, none, none, 1),
     Vs = wings_shapes:transform_obj(Transf, Vs0),
-    Fs = make_faces(Ures0, Vres0),
+    Fs = make_faces(Ures0, Vres0, Vs),
     {new_shape,"Torus",Fs,Vs};
 make_torus([{_,Ures},{_,Vres},{_,MajXR},{_,MajZR},{_,MinR},{_,lumpy},
             {_,Loops},{_,LoopRad}|Transf], _) ->
     Vs0 = make_verts(Ures, Vres, MajXR, MajZR, MinR, Loops, LoopRad, 2),
     Vs = wings_shapes:transform_obj(Transf, Vs0),
-    Fs = make_faces(Ures, Vres),
+    Fs = make_faces(Ures, Vres, Vs),
     {new_shape,"Lumpy Torus",Fs,Vs};
 make_torus([{_,Ures},{_,Vres},{_,MajXR},{_,MajZR},{_,MinR},{_,spiral},
             {_,Loops},{_,LoopRad}|Transf], _) ->
     Vs0 = make_verts(Ures, Vres, MajXR, MajZR, MinR, Loops, LoopRad, 3),
     Vs = wings_shapes:transform_obj(Transf, Vs0),
-    Fs = make_faces(Ures, Vres),
+    Fs = make_faces(Ures, Vres, Vs),
     {new_shape,"Spiral Torus",Fs,Vs}.
 
 min_uv_torus_res(Res) when Res =< 3 -> 3;
@@ -138,14 +138,37 @@ make_verts(Ures, Vres, MajXR, MajZR, MinR, Loops, LoopRad, Type) ->
 	end,
     [Make_Vert(I,J) || I <- Us, J <- Vs].
 
-make_faces(Ures, Vres) ->
-    Us = lists:seq(0, Ures-1),
-    Vs = lists:seq(0, Vres-1),
+make_faces(Ures, Vres, Vs) ->
+    Vt = list_to_tuple(Vs),
+    Pos =
+        fun(I, J) ->
+            element((I rem Ures)*Vres + (J rem Vres) + 1, Vt)
+        end,
+    Is = lists:seq(0, Ures-1),
+    Js = lists:seq(0, Vres-1),
+    RingLen =
+        fun(I) ->
+            Ds = [e3d_vec:dist(Pos(I, J), Pos(I+1, J)) || J <- Js],
+            DSum = lists:sum(Ds),
+            DSum / Vres
+        end,
+    {Starts, Total} = lists:mapfoldl(fun(D, Acc) ->
+                                         {Acc, Acc+D}
+                                     end, 0.0, [RingLen(I) || I <- Is]),
+    Cum = list_to_tuple(Starts ++ [Total]),
+    Loops = [lists:sum([e3d_vec:dist(Pos(I, J), Pos(I, J+1)) || J <- Js]) || I <- Is],
+    LoopSum = lists:sum(Loops),
+    Lv = LoopSum / Ures,
+    Scale = 1.0 / max(Total, Lv),
     Make_Face = fun(I,J) ->
-	Idx1 = (J+1) rem Vres + I*Vres,
-	Idx2 = (J+1) rem Vres + ((I+1) rem Ures)*Vres,
-	Idx3 = J + ((I+1) rem Ures) * Vres,
-	Idx4 = J + I*Vres,
-	[Idx4,Idx3,Idx2,Idx1]
+        Idx1 = (J+1) rem Vres + I*Vres,
+        Idx2 = (J+1) rem Vres + ((I+1) rem Ures)*Vres,
+        Idx3 = J + ((I+1) rem Ures) * Vres,
+        Idx4 = J + I*Vres,
+        U0 = element(I+1, Cum) * Scale,
+        U1 = element(I+2, Cum) * Scale,
+        V0 = (J/Vres) * Lv * Scale,
+        V1 = ((J+1)/Vres) * Lv * Scale,
+        {default,[Idx4,Idx3,Idx2,Idx1],[{U0,V0},{U1,V0},{U1,V1},{U0,V1}],none,none}
     end,
-    [Make_Face(I,J) || I <- Us, J <- Vs].
+    [Make_Face(I,J) || I <- Is, J <- Js].

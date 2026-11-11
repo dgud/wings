@@ -139,12 +139,12 @@ sombrero_plane_verts(Nres, Size, Waves, Falloff, Height, Thickness) ->
       || I <- lists:seq(0, Nres-1), J <- lists:seq(0, Nres-1)].
 
 plane_faces(Nres, Nres) ->
-    plane_faces_top(Nres, Nres) ++
-    plane_faces_bot(Nres, Nres) ++
-    plane_faces_left(Nres, Nres) ++
-    plane_faces_right(Nres, Nres) ++
-    plane_faces_front(Nres, Nres) ++
-    plane_faces_back(Nres, Nres).
+    plane_uv_faces(top, plane_faces_top(Nres, Nres), Nres) ++
+    plane_uv_faces(bot, plane_faces_bot(Nres, Nres), Nres) ++
+    plane_uv_faces(left, plane_faces_left(Nres, Nres), Nres) ++
+    plane_uv_faces(right, plane_faces_right(Nres, Nres), Nres) ++
+    plane_uv_faces(front, plane_faces_front(Nres, Nres), Nres) ++
+    plane_uv_faces(back, plane_faces_back(Nres, Nres), Nres).
 
 plane_faces_top(Ures, Vres) ->
     [[I*Vres+J,I*Vres+J+1,(I+1)*Vres+J+1,(I+1)*Vres+J]
@@ -177,3 +177,37 @@ plane_faces_back(Ures, Vres) ->
     A = lists:seq(Vres-1, Ures*Vres-1, Vres),
     B = lists:map(fun(X) -> (Ures*Vres)+X end, A),
     [lists:reverse(A) ++ B].
+
+%%%
+%%% UV layout: the bottom and the four sides are unfolded like an opened box
+%%% (a cross in the lower left), the top is a separate square at the right.
+%%%
+
+plane_uv_faces(Side, Fs, N) ->
+    [{default,F,[plane_uv(Side, V, N) || V <- F],none,none} || F <- Fs].
+
+plane_uv(top, V, N) ->
+    {I,J} = plane_ij(V, N),
+    {0.6+0.4*J/(N-1), 0.4*I/(N-1)};
+plane_uv(bot, V, N) ->
+    plane_bot_uv(plane_ij(V, N), N);
+plane_uv(Side, V, N) ->
+    {U,W} = plane_bot_uv(plane_ij(V, N), N),
+    {Du,Dv} = plane_side_dir(Side),
+    Len = case V < N*N of
+              true -> 0.1;
+              false -> 0.0
+          end,
+    {U+Du*Len, W+Dv*Len}.
+
+plane_bot_uv({I,J}, N) ->
+    {0.1+0.4*(1.0-J/(N-1)), 0.1+0.4*I/(N-1)}.
+
+plane_ij(V, N) ->
+    L = V rem (N*N),
+    {L div N, L rem N}.
+
+plane_side_dir(left) -> {0.0,-1.0};
+plane_side_dir(right) -> {0.0,1.0};
+plane_side_dir(front) -> {1.0,0.0};
+plane_side_dir(back) -> {-1.0,0.0}.
