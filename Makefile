@@ -117,12 +117,12 @@ lang: opt
 #
 
 CL_REPO = https://github.com/tonyrog/cl.git
-IGL_REPO = https://github.com/dgud/libigl.git
-EIGEN_REPO = https://github.com/eigenteam/eigen-git-mirror.git
+IGL_REPO = https://github.com/libigl/libigl.git
+EIGEN_REPO = https://gitlab.com/libeigen/eigen.git
 
 CL_VER=cl-1.2.4
-IGL_VER=master
-EIGEN_VER=3.3.7
+IGL_VER=main
+EIGEN_VER=5.0.1
 # see libigl/cmake/LibiglDownloadExternal.cmake for eigen version
 
 GIT_FLAGS = -c advice.detachedHead=false clone --depth 1
