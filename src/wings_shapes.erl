@@ -110,9 +110,10 @@ tetrahedron(Ask, St) when is_atom(Ask) ->
     Q = [{label_column, [
 	    {?STR(tetrahedron,1,"Edge Length"), {text, 2.0,[{range,{0.0,infinity}}]}}]
 	 },
+         wings_shapes_uv:create_uv_dlg(),
 	 transform_obj_dlg()],
   ask(tetrahedron, Ask, Q, St);
-tetrahedron([L|Transf], St) ->
+tetrahedron([L,{_,CreateUV}|Transf], St) ->
     Xi = L/2.0,
     Hp = sqrt(3.0),
     Li = Xi*Hp,
@@ -127,29 +128,31 @@ tetrahedron([L|Transf], St) ->
 	   {  Xi, -Yf,     -Zi}],
     %% The string below is intentionally not translated.
     Vs = transform_obj(Transf, Vs0),
-    build_shape("tetrahedron", Fs, Vs, St).
+    build_shape("tetrahedron", flat_uv_faces(CreateUV, Fs, Vs0), Vs, St).
 
 octahedron(Ask, St) when is_atom(Ask) ->
     Q = [{label_column, [
 	{?STR(octahedron,1,"Height"), {text, 2.0,[{range,{0.0,infinity}}]}}]
 	 },
+         wings_shapes_uv:create_uv_dlg(),
 	 transform_obj_dlg()],
     ask(octahedron, Ask, Q, St);
-octahedron([L|Transf], St) ->
+octahedron([L,{_,CreateUV}|Transf], St) ->
     Fs = [[2,4,0],[4,2,1],[4,3,0],[3,4,1],[5,2,0],[2,5,1],[3,5,0],[5,3,1]],
     Vs0 = [{L,0.0,0.0},{-L,0.0,0.0},{0.0,L,0.0},
 	   {0.0,-L,0.0},{0.0,0.0,L},{0.0,0.0,-L}],
     Vs = transform_obj(Transf, Vs0),
     %% The string below is intentionally not translated.
-    build_shape("octahedron", Fs, Vs, St).
+    build_shape("octahedron", flat_uv_faces(CreateUV, Fs, Vs0), Vs, St).
 
 octotoad(Ask, St) when is_atom(Ask) ->
     Q = [{label_column, [
 	{?STR(octotoad,1,"Height"), {text, 2.0,[{range,{0.0,infinity}}]}}]
 	 },
+         wings_shapes_uv:create_uv_dlg(),
 	 transform_obj_dlg()],
     ask(octotoad, Ask, Q, St);
-octotoad([L|Transf], St) ->
+octotoad([L,{_,CreateUV}|Transf], St) ->
     Fs = [[2,3,1,0],[7,6,4,5],[9,8,0,1],[10,11,3,2],
 	  [12,0,8],[12,14,2,0],[13,9,1],[14,10,2],
 	  [15,3,11],[15,13,1,3],[16,17,5,4],[16,20,12,8],
@@ -174,15 +177,16 @@ octotoad([L|Transf], St) ->
     Vs0 = [{X*Scale,Y*Scale,Z*Scale} || {X,Y,Z} <- Vs1],
     Vs = transform_obj(Transf, Vs0),
     %% The string below is intentionally not translated.
-    build_shape("octotoad", Fs, Vs, St).
+    build_shape("octotoad", flat_uv_faces(CreateUV, Fs, Vs0), Vs, St).
 
 dodecahedron(Ask, St) when is_atom(Ask) ->
     Q = [{label_column, [
 	    {?STR(dodecahedron,1,"Edge Length"), {text, 1.0,[{range,{0.0,infinity}}]}}
 	 ]},
+         wings_shapes_uv:create_uv_dlg(),
 	 transform_obj_dlg()],
     ask(dodecahedron, Ask, Q, St);
-dodecahedron([L|Transf], St) ->
+dodecahedron([L,{_,CreateUV}|Transf], St) ->
 	 Pn = sqrt(5.0),
 	 Phi = (1.0 + Pn)/2.0,
 	 Li = L/2.0 * Phi,
@@ -201,15 +205,16 @@ dodecahedron([L|Transf], St) ->
 	   {0.0,-Beta,-Alpha}],
     Vs = transform_obj(Transf, Vs0),
     %% The string below is intentionally not translated.
-    build_shape("dodecahedron", Fs, Vs, St).
+    build_shape("dodecahedron", flat_uv_faces(CreateUV, Fs, Vs0), Vs, St).
 
 icosahedron(Ask, St) when is_atom(Ask) ->
     Q = [{label_column, [
 	    {?STR(icosahedron,1,"Edge Length"), {text,2.0,[{range,{0.0,infinity}}]}}
 	 ]},
+         wings_shapes_uv:create_uv_dlg(),
 	 transform_obj_dlg()],
     ask(icosahedron, Ask, Q, St);
-icosahedron([S|Transf], St) ->
+icosahedron([S,{_,CreateUV}|Transf], St) ->
     T2 = pi()/10.0,
     T4 = 2.0 * T2,
     CT4 = cos(T4),
@@ -241,7 +246,13 @@ icosahedron([S|Transf], St) ->
       {0.0, -Z1, 0.0	}],
     Vs = transform_obj(Transf, Vs0),
     %% The string below is intentionally not translated.
-    build_shape("icosahedron", Fs, Vs, St).
+    build_shape("icosahedron", flat_uv_faces(CreateUV, Fs, Vs0), Vs, St).
+
+%% UV layout of the polyhedra: the faces unfolded through their edges.
+flat_uv_faces(false, Fs, _) -> Fs;
+flat_uv_faces(true, Fs, Vs) ->
+    Vt = list_to_tuple(Vs),
+    wings_shapes_uv:pack(Fs, wings_shapes_uv:unfold(Fs, Vt)).
 
 circle(N, Y, R) ->
     Delta = pi()*2 / N,
