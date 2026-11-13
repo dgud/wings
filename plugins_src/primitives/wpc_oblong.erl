@@ -106,6 +106,7 @@ oblong_dialog() ->
     {label_column,[
         {?__(11,"Thickness"), {text,0.8,[{key,thickness},{range,{0.0,infinity}},{hook,Hook}]}},
         {?__(12,"Thickness Slices"), {text,0,[{key,t_sections},{range,{0,infinity}}]}}]},
+     prm_uv_unfold:create_uv_dlg(),
      wings_shapes:transform_obj_dlg()].
 
 make_oblong(Arg, St) when is_atom(Arg) ->
@@ -123,6 +124,7 @@ make_oblong(Arg, _St) ->
     BevelSec = dict:fetch(b_sections, ArgDict),
     Type = dict:fetch(oblong_type, ArgDict),
     ThickSec = dict:fetch(t_sections, ArgDict),
+    CreateUV = dict:fetch(create_uv, ArgDict),
     Thickness = dict:fetch(thickness, ArgDict),
 
     Modify = [{dict:fetch(rot_x, ArgDict), dict:fetch(rot_y, ArgDict), dict:fetch(rot_z, ArgDict)},
@@ -131,22 +133,22 @@ make_oblong(Arg, _St) ->
 
     case Type of
         regular ->
-            make_regular(Width,Middle,Height,Bevel,SideSec,HeightSec,ThickSec,BevelSec,Modify);
+            make_regular(Width,Middle,Height,Bevel,SideSec,HeightSec,ThickSec,BevelSec,CreateUV,Modify);
         void ->
             Min = (Width/2)-?EPSILON,
             Thickness1 = min(Min, Thickness),
             Bevel1 = min(Min-(Thickness1/2.0),Bevel),
-            make_void(Width,Middle,Height,Bevel1,SideSec,HeightSec,ThickSec,BevelSec,Thickness1,Modify)
+            make_void(Width,Middle,Height,Bevel1,SideSec,HeightSec,ThickSec,BevelSec,Thickness1,CreateUV,Modify)
     end.
 
 %%%
 %%%  Oblong - regular
 %%%
 make_regular(Width, Middle, Height, Bevel, SideSec,
-            HeightSec, _ThickSec, BevelSec, [Rot, Mov, Ground]) ->
+            HeightSec, _ThickSec, BevelSec, CreateUV, [Rot, Mov, Ground]) ->
     Vs2 = make_outer_contour(Width, Height, Bevel, HeightSec, BevelSec),
     Vs1 = calc_vertices(SideSec, Width, Middle, Vs2),
-    Fs = oblong_uv_faces(regular, Vs1, calc_faces(regular,Vs1)),
+    Fs = oblong_uv_faces(CreateUV, regular, Vs1, calc_faces(regular,Vs1)),
     Vs = wings_shapes:transform_obj(Rot,Mov,Ground,lists:flatten(Vs1)),
     {new_shape,oblong(),Fs,Vs}.
 
@@ -154,12 +156,12 @@ make_regular(Width, Middle, Height, Bevel, SideSec,
 %%%  Oblong - void
 %%%
 make_void(Width, Middle, Height, Bevel, SideSec,
-          HeightSec, ThickSec, BevelSec, Thickness, [Rot, Mov, Ground]) ->
+          HeightSec, ThickSec, BevelSec, Thickness, CreateUV, [Rot, Mov, Ground]) ->
 
     Vs3 = make_outer_contour(Width, Height, Bevel, HeightSec, BevelSec),
     Vs2 = calc_inner_contour(Width, Thickness, ThickSec, Vs3),
     Vs1 = calc_vertices(SideSec, Width, Middle, Vs2),
-    Fs = oblong_uv_faces(void, Vs1, calc_faces(void,Vs1)),
+    Fs = oblong_uv_faces(CreateUV, void, Vs1, calc_faces(void,Vs1)),
     Vs = wings_shapes:transform_obj(Rot,Mov,Ground,lists:flatten(Vs1)),
     {new_shape,oblong(),Fs,Vs}.
 
@@ -258,7 +260,8 @@ calc_faces(Type, [Vs|_]=Vss) ->
                     Item++Acc
                 end, Caps, Sides).
 
-oblong_uv_faces(Type, [Vs0|_]=Vss, Fs) ->
+oblong_uv_faces(false, _, _, Fs) -> Fs;
+oblong_uv_faces(true, Type, [Vs0|_]=Vss, Fs) ->
     NSecs = length(Vss),
     NVs = length(Vs0),
     Vt = list_to_tuple(lists:append(Vss)),

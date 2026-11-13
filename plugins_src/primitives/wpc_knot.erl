@@ -45,6 +45,7 @@ make_knot(Arg, _) ->
     Mov_Y = dict:fetch(mov_y, ArgDict),
     Mov_Z = dict:fetch(mov_z, ArgDict),
     Ground = dict:fetch(ground, ArgDict),
+    CreateUV = dict:fetch(create_uv, ArgDict),
 
     case TypeFlag of
 	knot2 -> Knot_Func = fun knot2/1;
@@ -56,7 +57,7 @@ make_knot(Arg, _) ->
     Vres = Ures div 10,
     Verts = make_verts(Ures, Vres, Knot_Func),
     Vs = wings_shapes:transform_obj({Rot_X,Rot_Y,Rot_Z},{Mov_X,Mov_Y,Mov_Z},Ground, Verts),
-    Faces = make_faces(Ures, Vres, Vs),
+    Faces = uv_faces(CreateUV, make_faces(Ures, Vres), Ures, Vres, Vs),
     {new_shape,"knot",Faces,Vs}.
 
 dialog() ->
@@ -70,6 +71,7 @@ dialog() ->
 	       {"Type 3", knot3},
 	       {"Type 4", knot4}],
 	       TypeFlag, [{key,typeflag}, {title, "Knot Type"}]},
+     prm_uv_unfold:create_uv_dlg(),
      wings_shapes:transform_obj_dlg()
     ].
 
@@ -103,15 +105,26 @@ make_verts(Ures, Vres, Knot_Func) ->
     Verts = lists:map(Process_Us, Us),
     lists:flatten(Verts).
 
-make_faces(Ures, Vres, Vs) ->
+make_faces(Ures, Vres) ->
+    Us = lists:seq(0, Ures-1),
+    Vs = lists:seq(0, Vres-1),
+    Make_Face = fun(I,J) ->
+	Idx1 = (J+1) rem Vres + I*Vres,
+	Idx2 = (J+1) rem Vres + ((I+1) rem Ures)*Vres,
+	Idx3 = J + ((I+1) rem Ures) * Vres,
+	Idx4 = J + I*Vres,
+	[Idx1,Idx2,Idx3,Idx4]
+    end,
+    [Make_Face(I,J) || I <- Us, J <- Vs].
+
+uv_faces(false, Fs, _, _, _) -> Fs;
+uv_faces(true, Fs, Ures, Vres, Vs) ->
     Vt = list_to_tuple(Vs),
     Pos = fun(K, N) ->
               element((N rem Ures)*Vres + (K rem Vres) + 1, Vt)
           end,
     {Cum, Lv} = prm_uv_unfold:lengths(Pos, Vres, Ures, true),
     Total = element(Ures+1, Cum),
-    Is = lists:seq(0, Ures-1),
-    Js = lists:seq(0, Vres-1),
     Mid = Total / 2,
     Cuts = [{abs(element(I+1, Cum) - Mid), I} || I <- lists:seq(1, Ures-1)],
     {_, Half} = lists:min(Cuts),
@@ -119,12 +132,8 @@ make_faces(Ures, Vres, Vs) ->
     LenB = Total - LenA,
     Gap = 0.01,
     Scale = min(1.0 / max(LenA, LenB), (1.0 - Gap) / (2*Lv)),
-    Make_Face =
+    Make_UV =
         fun(I,J) ->
-            Idx1 = (J+1) rem Vres + I*Vres,
-            Idx2 = (J+1) rem Vres + ((I+1) rem Ures)*Vres,
-            Idx3 = J + ((I+1) rem Ures) * Vres,
-            Idx4 = J + I*Vres,
             {Start, Len, Base} =
                 case I < Half of
                     true -> {0.0, LenA, 0.0};
@@ -134,9 +143,10 @@ make_faces(Ures, Vres, Vs) ->
             U1 = (Len - (element(I+2, Cum) - Start)) * Scale,
             V0 = Base + (J/Vres) * Lv * Scale,
             V1 = Base + ((J+1)/Vres) * Lv * Scale,
-            {default,[Idx1,Idx2,Idx3,Idx4],[{U0,V1},{U1,V1},{U1,V0},{U0,V0}],none,none}
+            [{U0,V1},{U1,V1},{U1,V0},{U0,V0}]
         end,
-    [Make_Face(I,J) || I <- Is, J <- Js].
+    UVs = [Make_UV(I,J) || I <- lists:seq(0, Ures-1), J <- lists:seq(0, Vres-1)],
+    [{default,F,UV,none,none} || {F,UV} <- lists:zip(Fs, UVs)].
 
 knot1(T) ->
     X = math:cos(T) - 2*math:cos(2*T),

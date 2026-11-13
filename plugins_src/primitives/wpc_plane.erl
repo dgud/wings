@@ -70,37 +70,38 @@ plane_dialog() ->
             {?__(10,"Height"), {text,0.4,[{key,height},{range,{0.0,infinity}}]}},
             {?__(11,"Falloff"), {text,0.4,[{key,falloff},{range,{0.0,infinity}}]}}]
         },
+        prm_uv_unfold:create_uv_dlg(),
         wings_shapes:transform_obj_dlg()]
      }].
 
 make_plane(Ask, St) when is_atom(Ask) ->
     Qs = plane_dialog(),
     wings_dialog:dialog_preview({shape,plane}, Ask, ?__(1,"Plane Options"), Qs, St);
-make_plane([{_,Nres},{_,Size},{_,Thickness},{_,regular},_,_,_|Transf], _) ->
+make_plane([{_,Nres},{_,Size},{_,Thickness},{_,regular},_,_,_,{_,CreateUV}|Transf], _) ->
     Vs0 = regular_plane_verts(Nres, Size, +Thickness/2) ++
 	 regular_plane_verts(Nres, Size, -Thickness/2),
     Vs = wings_shapes:transform_obj(Transf, Vs0),
-    Fs = plane_faces(Nres, Size, Thickness),
+    Fs = plane_faces(CreateUV, Nres, Size, Thickness),
     {new_shape,"Regular Plane",Fs,Vs};
-make_plane([{_,Nres},{_,Size},{_,Thickness},{_,lumpy},{_,Lumps},_,_,
+make_plane([{_,Nres},{_,Size},{_,Thickness},{_,lumpy},{_,Lumps},_,_,{_,CreateUV},
             Rot_X, Rot_Y, Rot_Z, Mov_X ,Mov_Y ,Mov_Z ,Ground], _) ->
     Vs0 = lumpy_plane_verts(Nres, Size, Lumps, +Thickness/2) ++
 	 lumpy_plane_verts(Nres, Size, Lumps, -Thickness/2),
     Vs = wings_shapes:transform_obj([Rot_X,Rot_Y,Rot_Z,Mov_X,Mov_Y,Mov_Z,Ground], Vs0),
-    Fs = plane_faces(Nres, Size, Thickness),
+    Fs = plane_faces(CreateUV, Nres, Size, Thickness),
     {new_shape,"Lumpy Plane",Fs,Vs};
-make_plane([{_,Nres},{_,Size},{_,Thickness},{_,wavy},{_,Waves},{_,Height},_|Transf], _) ->
+make_plane([{_,Nres},{_,Size},{_,Thickness},{_,wavy},{_,Waves},{_,Height},_,{_,CreateUV}|Transf], _) ->
     Vs0 = wavy_plane_verts(Nres, Size, Waves, Height, +Thickness/2) ++
 	 wavy_plane_verts(Nres, Size, Waves, Height, -Thickness/2),
     Vs = wings_shapes:transform_obj(Transf, Vs0),
-    Fs = plane_faces(Nres, Size, Thickness),
+    Fs = plane_faces(CreateUV, Nres, Size, Thickness),
     {new_shape,"Wavy Plane",Fs,Vs};
 make_plane([{_,Nres},{_,Size},{_,Thickness},{_,sombrero},
-            {_,Waves},{_,Height},{_,Falloff}|Transf], _) ->
+            {_,Waves},{_,Height},{_,Falloff},{_,CreateUV}|Transf], _) ->
     Vs0 = sombrero_plane_verts(Nres, Size, Waves, Falloff, Height, +Thickness/2) ++
 	 sombrero_plane_verts(Nres, Size, Waves, Falloff, Height, -Thickness/2),
     Vs = wings_shapes:transform_obj(Transf, Vs0),
-    Fs = plane_faces(Nres, Size, Thickness),
+    Fs = plane_faces(CreateUV, Nres, Size, Thickness),
     {new_shape,"Sombrero Plane",Fs,Vs}.
 
 %%%
@@ -140,15 +141,20 @@ sombrero_plane_verts(Nres, Size, Waves, Falloff, Height, Thickness) ->
 
 %% UV layout: the plane is unfolded like an opened box with the real
 %% proportions, the top being the front of the box.
-plane_faces(N, Size, Thickness) ->
-    Sizes = {Size, Size, Thickness/2},
-    Scale = prm_uv_unfold:cross_scale(Sizes),
+plane_faces(CreateUV, N, Size, Thickness) ->
     Groups = [{front, plane_faces_top(N, N)},
               {back, plane_faces_bot(N, N)},
               {left, plane_faces_left(N, N)},
               {right, plane_faces_right(N, N)},
               {top, plane_faces_front(N, N)},
               {bottom, plane_faces_back(N, N)}],
+    plane_uv_faces(CreateUV, Groups, N, Size, Thickness).
+
+plane_uv_faces(false, Groups, _, _, _) ->
+    [F || {_, Fs} <- Groups, F <- Fs];
+plane_uv_faces(true, Groups, N, Size, Thickness) ->
+    Sizes = {Size, Size, Thickness/2},
+    Scale = prm_uv_unfold:cross_scale(Sizes),
     CalcUV =
         fun(Side, F) ->
             [plane_uv(Side, V, N, Sizes, Scale) || V <- F]

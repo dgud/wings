@@ -76,6 +76,7 @@ thread_dialog() ->
          {?__(7,"Left hand"),left},
          {?__(8,"Right hand"),right}],
       right, [{key,direction},{title,?__(9,"Direction")}]},
+     prm_uv_unfold:create_uv_dlg(),
      wings_shapes:transform_obj_dlg()].
 
 make_thread(Arg, St) when is_atom(Arg) ->
@@ -92,23 +93,24 @@ make_thread(Arg0, _St) ->
     Occurrences = maps:get(occurrences, Arg),
     Dir = maps:get(direction, Arg),
     Type = maps:get(thread_type, Arg),
+    CreateUV = maps:get(create_uv, Arg),
     Modify = [{maps:get(rot_x, Arg), maps:get(rot_y, Arg), maps:get(rot_z, Arg)},
               {maps:get(mov_x, Arg), maps:get(mov_y, Arg), maps:get(mov_z, Arg)},
               maps:get(ground, Arg)],
 
     Height = Pitch*(Occurrences+0.5),
     Rows = Occurrences+1,
-    make_thread(Type, Dir, Sections, Height, TopRadius, BotRadius, CrestH, Pitch, Rows, Modify).
+    make_thread(Type, Dir, Sections, Height, TopRadius, BotRadius, CrestH, Pitch, Rows, CreateUV, Modify).
 
 %%%
 %%% Thread
 %%%
 
-make_thread(Type, Dir, Sections, Height, TopRadius, BotRadius, CrestH, Pitch, Rows, [Rot, Mov, Ground]) ->
+make_thread(Type, Dir, Sections, Height, TopRadius, BotRadius, CrestH, Pitch, Rows, CreateUV, [Rot, Mov, Ground]) ->
     Vs1 = thread_verts(Type,Sections,TopRadius,BotRadius,CrestH,Pitch,Rows,Height),
     Fs0 = thread_faces(Type,Sections,Rows),
     {Vs0,Fs1} = set_direction(Dir,Vs1,Fs0),
-    Fs = thread_uv_faces(Dir,Sections,Vs0,Fs1),
+    Fs = thread_uv_faces(CreateUV,Dir,Sections,Vs0,Fs1),
     Vs = wings_shapes:transform_obj(Rot,Mov,Ground,Vs0),
    {new_shape,thread(),Fs,Vs}.
 
@@ -188,7 +190,8 @@ set_direction(right,Vs0,Fs0) ->
 %%% in the lower quarter.
 %%%
 
-thread_uv_faces(Dir, N, Vs, [Top,Bottom|Sides]) ->
+thread_uv_faces(false, _, _, _, Fs) -> Fs;
+thread_uv_faces(true, Dir, N, Vs, [Top,Bottom|Sides]) ->
     Ys = [Y || {_,Y,_} <- Vs],
     YMin = lists:min(Ys),
     YDiff = max(lists:max(Ys)-YMin, ?EPSILON),

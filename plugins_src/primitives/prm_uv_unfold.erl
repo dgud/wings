@@ -12,7 +12,7 @@
 %%
 
 -module(prm_uv_unfold).
--export([layout/3,lengths/4,cap_radius/2,cap_face/3,cross_scale/1,cross/4]).
+-export([create_uv_dlg/0,layout/3,lengths/4,cap_radius/2,cap_face/3,cross_scale/1,cross/4]).
 
 -include_lib("wings/src/wings.hrl").
 
@@ -28,8 +28,12 @@
 %%% own layout: lengths/4 measures a grid for a proportional strip,
 %%% cap_radius/2 and cap_face/3 draw a cap as a regular polygon with the area
 %%% of the real one, and cross_scale/1 and cross/4 unfold a box like an opened
-%%% box (a cross with the front in the middle).
+%%% box (a cross with the front in the middle). create_uv_dlg/0 is the dialog
+%%% item that lets the user choose whether the UV coordinates are created.
 %%%
+
+create_uv_dlg() ->
+    {?__(1,"Create UV coordinates"),wings_pref:get_value(primitive_uv, false),[{key,create_uv}]}.
 
 layout({Pos, M, L, Closed, Cell, Walls}, Caps, Vt) ->
     Parts = parts(Pos, M, L, Closed, Cell, Walls),

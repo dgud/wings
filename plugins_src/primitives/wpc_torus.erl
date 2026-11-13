@@ -70,29 +70,30 @@ torus_dialog() ->
 	[{?__(10,"Nodes"), {text,8,[{key,torus_nodes},{range,{1,infinity}}]}},
 	 {?__(11,"Node Height"), {text,0.25,[{key,node_height},{range,{0.0,infinity}}]}}
 	]},
+     prm_uv_unfold:create_uv_dlg(),
      wings_shapes:transform_obj_dlg()].
 
 make_torus(Ask, St) when is_atom(Ask) ->
     Qs = torus_dialog(),
     wings_dialog:dialog_preview({shape,torus}, Ask, ?__(1,"Torus Options"), Qs, St);
-make_torus([{_,Ures},{_,Vres},{_,MajXR},{_,MajZR},{_,MinR},{_,smooth},_,_|Transf], _) ->
+make_torus([{_,Ures},{_,Vres},{_,MajXR},{_,MajZR},{_,MinR},{_,smooth},_,_,{_,CreateUV}|Transf], _) ->
     Ures0=min_uv_torus_res(Ures),
     Vres0=min_uv_torus_res(Vres),
     Vs0 = make_verts(Ures0, Vres0, MajXR, MajZR, MinR, none, none, 1),
     Vs = wings_shapes:transform_obj(Transf, Vs0),
-    Fs = make_faces(Ures0, Vres0, Vs),
+    Fs = uv_faces(CreateUV, make_faces(Ures0, Vres0), Ures0, Vres0, Vs),
     {new_shape,"Torus",Fs,Vs};
 make_torus([{_,Ures},{_,Vres},{_,MajXR},{_,MajZR},{_,MinR},{_,lumpy},
-            {_,Loops},{_,LoopRad}|Transf], _) ->
+            {_,Loops},{_,LoopRad},{_,CreateUV}|Transf], _) ->
     Vs0 = make_verts(Ures, Vres, MajXR, MajZR, MinR, Loops, LoopRad, 2),
     Vs = wings_shapes:transform_obj(Transf, Vs0),
-    Fs = make_faces(Ures, Vres, Vs),
+    Fs = uv_faces(CreateUV, make_faces(Ures, Vres), Ures, Vres, Vs),
     {new_shape,"Lumpy Torus",Fs,Vs};
 make_torus([{_,Ures},{_,Vres},{_,MajXR},{_,MajZR},{_,MinR},{_,spiral},
-            {_,Loops},{_,LoopRad}|Transf], _) ->
+            {_,Loops},{_,LoopRad},{_,CreateUV}|Transf], _) ->
     Vs0 = make_verts(Ures, Vres, MajXR, MajZR, MinR, Loops, LoopRad, 3),
     Vs = wings_shapes:transform_obj(Transf, Vs0),
-    Fs = make_faces(Ures, Vres, Vs),
+    Fs = uv_faces(CreateUV, make_faces(Ures, Vres), Ures, Vres, Vs),
     {new_shape,"Spiral Torus",Fs,Vs}.
 
 min_uv_torus_res(Res) when Res =< 3 -> 3;
@@ -138,26 +139,34 @@ make_verts(Ures, Vres, MajXR, MajZR, MinR, Loops, LoopRad, Type) ->
 	end,
     [Make_Vert(I,J) || I <- Us, J <- Vs].
 
-make_faces(Ures, Vres, Vs) ->
+make_faces(Ures, Vres) ->
+    Us = lists:seq(0, Ures-1),
+    Vs = lists:seq(0, Vres-1),
+    Make_Face = fun(I,J) ->
+	Idx1 = (J+1) rem Vres + I*Vres,
+	Idx2 = (J+1) rem Vres + ((I+1) rem Ures)*Vres,
+	Idx3 = J + ((I+1) rem Ures) * Vres,
+	Idx4 = J + I*Vres,
+	[Idx4,Idx3,Idx2,Idx1]
+    end,
+    [Make_Face(I,J) || I <- Us, J <- Vs].
+
+uv_faces(false, Fs, _, _, _) -> Fs;
+uv_faces(true, Fs, Ures, Vres, Vs) ->
     Vt = list_to_tuple(Vs),
     Pos = fun(K, N) ->
               element((N rem Ures)*Vres + (K rem Vres) + 1, Vt)
           end,
     {Cum, Lv} = prm_uv_unfold:lengths(Pos, Vres, Ures, true),
     Total = element(Ures+1, Cum),
-    Is = lists:seq(0, Ures-1),
-    Js = lists:seq(0, Vres-1),
     Scale = 1.0 / max(Total, Lv),
-    Make_Face =
+    Make_UV =
         fun(I,J) ->
-            Idx1 = (J+1) rem Vres + I*Vres,
-            Idx2 = (J+1) rem Vres + ((I+1) rem Ures)*Vres,
-            Idx3 = J + ((I+1) rem Ures) * Vres,
-            Idx4 = J + I*Vres,
             U0 = element(I+1, Cum) * Scale,
             U1 = element(I+2, Cum) * Scale,
             V0 = (J/Vres) * Lv * Scale,
             V1 = ((J+1)/Vres) * Lv * Scale,
-            {default,[Idx4,Idx3,Idx2,Idx1],[{U0,V0},{U1,V0},{U1,V1},{U0,V1}],none,none}
+            [{U0,V0},{U1,V0},{U1,V1},{U0,V1}]
         end,
-    [Make_Face(I,J) || I <- Is, J <- Js].
+    UVs = [Make_UV(I,J) || I <- lists:seq(0, Ures-1), J <- lists:seq(0, Vres-1)],
+    [{default,F,UV,none,none} || {F,UV} <- lists:zip(Fs, UVs)].

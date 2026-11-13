@@ -76,6 +76,7 @@ cylinder_dialog() ->
 	 {?__(11,"Thickness"), {text,0.25,[{key,thickness},{range,{0.0,infinity}}]}},
 	 {?__(12,"Degrees"), {text,360.0,[{key,degrees},{range,{0.0,360.0}}]}},
 	 {?__(13,"Angle Offset"), {text,0.0,[{key,angle_offset},{range,{-360.0,360.0}}]}}]},
+     prm_uv_unfold:create_uv_dlg(),
      wings_shapes:transform_obj_dlg()].
 
 make_cylinder(Arg, St) when is_atom(Arg) ->
@@ -93,6 +94,7 @@ make_cylinder(Arg, _St) ->
     Thickness = dict:fetch(thickness, ArgDict),
     Degrees = dict:fetch(degrees, ArgDict),
     AngleOffset = dict:fetch(angle_offset, ArgDict),
+    CreateUV = dict:fetch(create_uv, ArgDict),
     Modify = [{dict:fetch(rot_x, ArgDict), dict:fetch(rot_y, ArgDict), dict:fetch(rot_z, ArgDict)},
 	      {dict:fetch(mov_x, ArgDict), dict:fetch(mov_y, ArgDict), dict:fetch(mov_z, ArgDict)},
 	      dict:fetch(ground, ArgDict)],
@@ -100,25 +102,25 @@ make_cylinder(Arg, _St) ->
     Type = dict:fetch(cylinder_type, ArgDict),
     case Type of
         cylinder ->
-            make_cylinder(Sections, TopX, TopZ, BotX, BotZ, Height, Modify);
+            make_cylinder(Sections, TopX, TopZ, BotX, BotZ, Height, CreateUV, Modify);
         tube ->
-            make_tube(Sections, TopX, TopZ, BotX, BotZ, Height, Thickness, Modify);
+            make_tube(Sections, TopX, TopZ, BotX, BotZ, Height, Thickness, CreateUV, Modify);
         gear ->
             [Min|_] = lists:sort([TopX, TopZ, BotX, BotZ]),
             Thickness1 = min(Min, Thickness),
-            make_gear(Sections, TopX, TopZ, BotX, BotZ, Height, Thickness1, Modify);
+            make_gear(Sections, TopX, TopZ, BotX, BotZ, Height, Thickness1, CreateUV, Modify);
         pie ->
-            make_pie(Sections, TopX, TopZ, BotX, BotZ, Height, Degrees, AngleOffset, Modify)
+            make_pie(Sections, TopX, TopZ, BotX, BotZ, Height, Degrees, AngleOffset, CreateUV, Modify)
     end.
 
 %%%
 %%% Cylinder
 %%%
 
-make_cylinder(Sections, TopX, TopZ, BotX, BotZ, Height, [Rot, Mov, Ground]) ->
+make_cylinder(Sections, TopX, TopZ, BotX, BotZ, Height, CreateUV, [Rot, Mov, Ground]) ->
     Vs0 = cylinder_verts(Sections, TopX, TopZ, BotX, BotZ, Height),
     Vs = wings_shapes:transform_obj(Rot,Mov,Ground, Vs0),
-    Fs = cylinder_uv_faces(Sections, Vs0, cylinder_faces(Sections)),
+    Fs = cylinder_uv_faces(CreateUV, Sections, Vs0, cylinder_faces(Sections)),
     {new_shape,cylinder_type(cylinder),Fs,Vs}.
 
 cylinder_verts(Sections, TopX, TopZ, BotX, BotZ, Height) ->
@@ -140,11 +142,11 @@ cylinder_faces(N) ->
 %%% Gear
 %%%
 
-make_gear(Sections0, TopX, TopZ, BotX, BotZ, Height, ToothHeight, [Rot, Mov, Ground]) ->
+make_gear(Sections0, TopX, TopZ, BotX, BotZ, Height, ToothHeight, CreateUV, [Rot, Mov, Ground]) ->
     Sections = (Sections0 div 2)*2,
     Vs0 = gear_verts(Sections, TopX, TopZ, BotX, BotZ, Height, ToothHeight),
     Vs = wings_shapes:transform_obj(Rot,Mov,Ground, Vs0),
-    Fs = gear_uv_faces(Sections, Vs0, gear_faces(Sections)),
+    Fs = gear_uv_faces(CreateUV, Sections, Vs0, gear_faces(Sections)),
     {new_shape,cylinder_type(gear),Fs,Vs}.
 
 gear_verts(Sections, TopX, TopZ, BotX, BotZ, Height, ToothHeight) ->
@@ -181,10 +183,10 @@ gear_faces(Nres) ->
 %%% Tube
 %%%
 
-make_tube(Sections, TopX, TopZ, BotX, BotZ, Height, Thickness, [Rot, Mov, Ground]) ->
+make_tube(Sections, TopX, TopZ, BotX, BotZ, Height, Thickness, CreateUV, [Rot, Mov, Ground]) ->
     Vs0 = tube_verts(Sections, TopX, TopZ, BotX, BotZ, Height, Thickness),
     Vs = wings_shapes:transform_obj(Rot,Mov,Ground, Vs0),
-    Fs = tube_uv_faces(Sections, Vs0, tube_faces(Sections)),
+    Fs = tube_uv_faces(CreateUV, Sections, Vs0, tube_faces(Sections)),
     {new_shape,cylinder_type(tube),Fs,Vs}.
 
 tube_verts(Sections, TopX, TopZ, BotX, BotZ, Height, Thickness) ->
@@ -213,7 +215,8 @@ tube_faces(Nres) ->
 	[[2*Nres-1, Nres, 3*Nres, 4*Nres-1] ], % the last face
     TopFaces ++ BotFaces ++ InnerFaces ++ OuterFaces.
 
-cylinder_uv_faces(N, Vs, [Upper,Lower|Sides]) ->
+cylinder_uv_faces(false, _, _, Fs) -> Fs;
+cylinder_uv_faces(true, N, Vs, [Upper,Lower|Sides]) ->
     Vt = list_to_tuple(Vs),
     Pos = fun(I, Lv) -> element(Lv*N + (I rem N) + 1, Vt) end,
     Cell = fun(V) -> {V rem N, V div N} end,
@@ -222,7 +225,8 @@ cylinder_uv_faces(N, Vs, [Upper,Lower|Sides]) ->
 
 %% The outline of the gear walks the tips, the flanks and the valleys; the
 %% vertices of a ring are numbered outer first and then inner.
-gear_uv_faces(Nres, Vs, [Top,Bot|Walls]) ->
+gear_uv_faces(false, _, _, Fs) -> Fs;
+gear_uv_faces(true, Nres, Vs, [Top,Bot|Walls]) ->
     Vt = list_to_tuple(Vs),
     Count = Nres*2,
     Steps = [[2*J, 2*J+1, Nres+2*J+1, Nres+((2*J+2) rem Nres)]
@@ -236,7 +240,8 @@ gear_uv_faces(Nres, Vs, [Top,Bot|Walls]) ->
 
 %% The levels of the loop around the wall are the top outer, bottom outer,
 %% bottom inner and top inner rings, so the vertex groups are swapped 2 <-> 3.
-tube_uv_faces(Nres, Vs, Fs) ->
+tube_uv_faces(false, _, _, Fs) -> Fs;
+tube_uv_faces(true, Nres, Vs, Fs) ->
     Vt = list_to_tuple(Vs),
     Levels = {0, 1, 3, 2},
     Pos = fun(I, Lv) -> element(element(Lv+1, Levels)*Nres + (I rem Nres) + 1, Vt) end,
@@ -257,11 +262,11 @@ zip_lists_2e(A, B) ->	      % Both lists must be equal in length
 %%% Pie
 %%%
 
-make_pie(Sections, TopX, TopZ, BotX, BotZ, Height, Degrees, AngleOffset, [Rot, Mov, Ground]) ->
+make_pie(Sections, TopX, TopZ, BotX, BotZ, Height, Degrees, AngleOffset, CreateUV, [Rot, Mov, Ground]) ->
     Vs0 = pie_verts(Sections, TopX, TopZ, BotX, BotZ, Height, Degrees, AngleOffset),
     Vs = wings_shapes:transform_obj(Rot,Mov,Ground, Vs0),
     Count = trunc(length(Vs0)/2),
-    Fs = cylinder_uv_faces(Count, Vs0, cylinder_faces(Count)),
+    Fs = cylinder_uv_faces(CreateUV, Count, Vs0, cylinder_faces(Count)),
     {new_shape,cylinder_type(pie),Fs,Vs}.
 
 pie_verts(Sections, TopX, TopZ, BotX, BotZ, Height, Degrees, AngleOffset) ->
