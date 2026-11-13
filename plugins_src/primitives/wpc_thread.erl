@@ -76,7 +76,7 @@ thread_dialog() ->
          {?__(7,"Left hand"),left},
          {?__(8,"Right hand"),right}],
       right, [{key,direction},{title,?__(9,"Direction")}]},
-     prm_uv_unfold:create_uv_dlg(),
+     wings_shapes_uv:create_uv_dlg(),
      wings_shapes:transform_obj_dlg()].
 
 make_thread(Arg, St) when is_atom(Arg) ->
@@ -201,8 +201,8 @@ thread_uv_faces(true, Dir, N, Vs, [Top,Bottom|Sides]) ->
     RTop = thread_cap_radius(Top, Vt, Factor),
     RBottom = thread_cap_radius(Bottom, Vt, Factor),
     Shrink = min(1.0, 0.12/max(RTop, RBottom)),
-    TopUV = prm_uv_unfold:cap_face(Top, {0.125,0.125}, RTop*Shrink),
-    BotUV = prm_uv_unfold:cap_face(Bottom, {0.375,0.125}, RBottom*Shrink),
+    TopUV = wings_shapes_uv:cap_face(Top, {0.125,0.125}, RTop*Shrink),
+    BotUV = wings_shapes_uv:cap_face(Bottom, {0.375,0.125}, RBottom*Shrink),
     BodUV = [thread_side(F, Ctx) || F <- Sides],
     [TopUV, BotUV | BodUV].
 
@@ -218,7 +218,7 @@ thread_cap_factor(Top, Vt, YDiff) ->
 
 thread_cap_radius(Idx, Vt, Factor) ->
     Ps = [element(V+1, Vt) || V <- Idx],
-    prm_uv_unfold:cap_radius(Ps, Factor).
+    wings_shapes_uv:cap_radius(Ps, Factor).
 
 thread_side(F, {_,N,_,_,_}=Ctx) ->
     Ss = [V rem N || V <- F],

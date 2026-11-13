@@ -1,5 +1,5 @@
 %%
-%%  prm_uv_unfold.erl --
+%%  wings_shapes_uv.erl --
 %%
 %%     Unfolds the walls of a primitive into UV islands.
 %%
@@ -11,10 +11,11 @@
 %%     $Id$
 %%
 
--module(prm_uv_unfold).
--export([create_uv_dlg/0,layout/3,lengths/4,cap_radius/2,cap_face/3,cross_scale/1,cross/4]).
+-module(wings_shapes_uv).
+-export([create_uv_dlg/0,layout/3,unfold/2,spherical/2,island/2,pack/2,fan/2,
+         lengths/4,cap_radius/2,cap_face/3,cross_scale/1,cross/4]).
 
--include_lib("wings/src/wings.hrl").
+-include("wings.hrl").
 
 %%%
 %%% The walls of a primitive are a grid of M columns around a closed loop (K)
@@ -28,8 +29,13 @@
 %%% own layout: lengths/4 measures a grid for a proportional strip,
 %%% cap_radius/2 and cap_face/3 draw a cap as a regular polygon with the area
 %%% of the real one, and cross_scale/1 and cross/4 unfold a box like an opened
-%%% box (a cross with the front in the middle). create_uv_dlg/0 is the dialog
-%%% item that lets the user choose whether the UV coordinates are created.
+%%% box (a cross with the front in the middle); unfold/2 unfolds a mesh of
+%%% flat faces into islands; spherical/2 maps a mesh around the origin on the
+%%% equirectangular map; island/2 and pack/2 move the islands of a layout
+%%% of their own to the origin and place them side by side in 0..1, and fan/2
+%%% unfolds the triangles around an apex as a sector.
+%%% create_uv_dlg/0 is the dialog item that lets the user choose whether the
+%%% UV coordinates are created.
 %%%
 
 create_uv_dlg() ->
@@ -256,6 +262,210 @@ tri({Px,Py}, {Qx,Qy}, RP, RQ, Side) ->
 
 project(Fs, Vt) ->
     island(Fs, [[{X,-Z} || V <- F, {X,_,Z} <- [element(V+1, Vt)]] || F <- Fs]).
+
+%% pack(Fs, Islands) -> [{default,F,UVs,none,none}]
+%%  Places the islands {Fs,Uvs,W,H} in rows, the tallest first, choosing the
+%%  width of the rows that gives the squarest result, scaled to fit in 0..1,
+%%  and returns the faces Fs with their UVs.
+pack(Fs, Islands0) ->
+    Islands = lists:reverse(lists:keysort(4, Islands0)),
+    Ws = [W || {_,_,W,_} <- Islands],
+    Hs = [H || {_,_,_,H} <- Islands],
+    Gap = 0.02 * max(lists:max(Ws), lists:max(Hs)),
+    {Widths, _} =
+        lists:mapfoldl(fun(W, Acc) ->
+                           {Acc + W, Acc + W + Gap}
+                       end, 0.0, Ws),
+    Layouts = [shelves(Islands, Wt, Gap) || Wt <- Widths],
+    {Size, Placed} = lists:min(Layouts),
+    Scale = 1.0 / max(Size, ?EPSILON),
+    Pairs = [place(Fs1, Uvs, X, Y, Scale) || {{Fs1, Uvs, _, _}, X, Y} <- Placed],
+    Map = maps:from_list(lists:append(Pairs)),
+    [{default,F,maps:get(F, Map),none,none} || F <- Fs].
+
+%% The islands in rows of at most the width Wt: {Size, [{Island,X,Y}]}, where
+%% Size is the larger side of the result.
+shelves(Islands, Wt, Gap) ->
+    Put =
+        fun({_,_,W,H}=Isl, {X, Y, RowH, Acc}) ->
+            case (X > 0.0) andalso (X + W > Wt + ?EPSILON) of
+                true -> {W + Gap, Y + RowH + Gap, H, [{Isl, 0.0, Y + RowH + Gap} | Acc]};
+                false -> {X + W + Gap, Y, max(RowH, H), [{Isl, X, Y} | Acc]}
+            end
+        end,
+    {_, Y, RowH, Placed} = lists:foldl(Put, {0.0, 0.0, 0.0, []}, Islands),
+    Width = lists:max([X + W || {{_,_,W,_}, X, _} <- Placed]),
+    {max(Width, Y + RowH), Placed}.
+
+%% fan(Apex, Ps) -> [[A2,P2,Q2]]
+%%  Unfolds the triangles {Apex,P,Q} of the consecutive points of the closed
+%%  loop Ps side by side, as the sector of a cone.
+fan(Apex, [P0|_]=Ps) ->
+    A2 = {0.0, 0.0},
+    Start = {e3d_vec:dist(Apex, P0), 0.0},
+    Pairs = lists:zip(Ps, tl(Ps) ++ [P0]),
+    {Tris, _} =
+        lists:mapfoldl(fun({P, Q}, P2) ->
+                           Q2 = tri(A2, P2, e3d_vec:dist(Apex, Q), e3d_vec:dist(P, Q), 1.0),
+                           {[A2, P2, Q2], Q2}
+                       end, Start, Pairs),
+    Tris.
+
+%% unfold(Fs, Vt) -> [{Fs1,Uvs1,W,H}]
+%%  Unfolds a mesh of flat faces into islands: each face is attached to a
+%%  placed neighbor through their common edge, breadth first from the first
+%%  face, and a face that would overlap the island is left for another
+%%  neighbor or for a new island.
+unfold(Fs, Vt) ->
+    FsT = list_to_tuple(Fs),
+    Edges = edge_map(Fs),
+    unfold_islands(lists:seq(1, tuple_size(FsT)), FsT, Vt, Edges, []).
+
+unfold_islands([], _, _, _, Acc) ->
+    lists:reverse(Acc);
+unfold_islands([Root|Rest], FsT, Vt, Edges, Acc) ->
+    [P,Q|_] = Ps = face_points(element(Root, FsT), Vt),
+    Root2 = place_face(Ps, {P, Q}, {{0.0,0.0}, {e3d_vec:dist(P, Q), 0.0}}),
+    Placed = unfold_bfs([Root], #{Root => Root2}, FsT, Vt, Edges),
+    Ids = lists:sort(maps:keys(Placed)),
+    Island = island([element(I, FsT) || I <- Ids], [maps:get(I, Placed) || I <- Ids]),
+    unfold_islands(Rest -- Ids, FsT, Vt, Edges, [Island|Acc]).
+
+unfold_bfs([], Placed, _, _, _) ->
+    Placed;
+unfold_bfs([I|Queue], Placed0, FsT, Vt, Edges) ->
+    F = element(I, FsT),
+    F2 = maps:get(I, Placed0),
+    Corners = lists:zip(F, F2),
+    Pairs = lists:zip(Corners, tl(Corners) ++ [hd(Corners)]),
+    Attach =
+        fun({{A,A2},{B,B2}}, {Placed, New}) ->
+            case neighbor(A, B, Edges, Placed) of
+                none ->
+                    {Placed, New};
+                J ->
+                    Ps = face_points(element(J, FsT), Vt),
+                    G2 = place_face(Ps, {point(B, element(J, FsT), Ps), point(A, element(J, FsT), Ps)}, {B2, A2}),
+                    case overlaps(G2, maps:values(Placed)) of
+                        true -> {Placed, New};
+                        false -> {Placed#{J => G2}, New ++ [J]}
+                    end
+            end
+        end,
+    {Placed1, New} = lists:foldl(Attach, {Placed0, []}, Pairs),
+    unfold_bfs(Queue ++ New, Placed1, FsT, Vt, Edges).
+
+face_points(F, Vt) ->
+    [element(V+1, Vt) || V <- F].
+
+point(V, F, Ps) ->
+    element(index_of(V, F), list_to_tuple(Ps)).
+
+index_of(V, [V|_]) -> 1;
+index_of(V, [_|T]) -> 1 + index_of(V, T).
+
+edge_map(Fs) ->
+    Add =
+        fun({I, F}, Map) ->
+            Es = lists:zip(F, tl(F) ++ [hd(F)]),
+            lists:foldl(fun({A, B}, M) ->
+                            Key = {min(A, B), max(A, B)},
+                            M#{Key => [I | maps:get(Key, M, [])]}
+                        end, Map, Es)
+        end,
+    lists:foldl(Add, #{}, lists:zip(lists:seq(1, length(Fs)), Fs)).
+
+neighbor(A, B, Edges, Placed) ->
+    Others = [J || J <- maps:get({min(A, B), max(A, B)}, Edges, []),
+                   not maps:is_key(J, Placed)],
+    case Others of
+        [J|_] -> J;
+        [] -> none
+    end.
+
+%% Places the flat face with the points Ps in the plane, with its points P and
+%% Q at P2 and Q2 and the face to the left of P2->Q2.
+place_face(Ps, {P, Q}, {{Px,Py}=P2, {Qx,Qy}}) ->
+    Ex = e3d_vec:norm_sub(Q, P),
+    Ey = e3d_vec:cross(e3d_vec:normal(Ps), Ex),
+    Len = e3d_vec:dist(P, Q),
+    Dx = (Qx-Px) / Len,
+    Dy = (Qy-Py) / Len,
+    [uv_point(e3d_vec:sub(Pt, P), {Ex, Ey}, P2, {Dx, Dy}) || Pt <- Ps].
+
+uv_point(D, {Ex, Ey}, {Px, Py}, {Dx, Dy}) ->
+    X = e3d_vec:dot(D, Ex),
+    Y = e3d_vec:dot(D, Ey),
+    {Px + X*Dx - Y*Dy, Py + X*Dy + Y*Dx}.
+
+overlaps(P, Polys) ->
+    Eps = 1.0e-5 * perimeter(P),
+    lists:any(fun(Q) -> not separated(P, Q, Eps) end, Polys).
+
+%% Convex polygons are apart when one of their edge normals separates them.
+separated(P, Q, Eps) ->
+    Axes = axes(P) ++ axes(Q),
+    lists:any(fun(Axis) ->
+                  {PMin, PMax} = extent(P, Axis),
+                  {QMin, QMax} = extent(Q, Axis),
+                  (PMax < QMin + Eps) orelse (QMax < PMin + Eps)
+              end, Axes).
+
+axes(P) ->
+    [{Y1-Y2, X2-X1} || {{X1,Y1},{X2,Y2}} <- lists:zip(P, tl(P) ++ [hd(P)])].
+
+extent(P, {Ax, Ay}) ->
+    Ds = [X*Ax + Y*Ay || {X,Y} <- P],
+    {lists:min(Ds), lists:max(Ds)}.
+
+perimeter(P) ->
+    Ls = [math:sqrt((X1-X2)*(X1-X2) + (Y1-Y2)*(Y1-Y2)) || {{X1,Y1},{X2,Y2}} <- lists:zip(P, tl(P) ++ [hd(P)])],
+    lists:sum(Ls).
+
+%% spherical(Fs, Vt) -> [{Fs1,Uvs1,W,H}]
+%%  The equirectangular map of the directions of the vertices from the
+%%  origin, with the length of the equator as width, the faces across the
+%%  seam and at the poles being fixed. A face that wraps around a pole does
+%%  not fit the map, so it is projected as an island of its own.
+spherical(Fs, Vt) ->
+    Points = fun(F) -> [element(V+1, Vt) || V <- F] end,
+    Ls = [e3d_vec:len(P) || F <- Fs, P <- Points(F)],
+    LSum = lists:sum(Ls),
+    R = LSum / length(Ls),
+    Mapped = [{F, sphere_face([e3d_vec:norm(P) || P <- Points(F)], R)} || F <- Fs],
+    Good = [{F, Uvs} || {F, {ok, Uvs}} <- Mapped],
+    Wrapped = [island([F], [[{X,-Z} || {X,_,Z} <- Points(F)]]) || {F, wraps} <- Mapped],
+    case Good of
+        [] -> Wrapped;
+        _ -> [island([F || {F,_} <- Good], [Uvs || {_,Uvs} <- Good]) | Wrapped]
+    end.
+
+sphere_face(Ps, R) ->
+    Half = R*math:pi(),
+    Uvs = [{Half + R*math:atan2(X, Z), Half/2 + R*math:asin(max(-1.0, min(1.0, Y)))}
+           || {X,Y,Z} <- Ps],
+    Us = [U || {{U,_}, {_,Y,_}} <- lists:zip(Uvs, Ps), abs(Y) < 1.0 - ?EPSILON],
+    case Us of
+        [] -> wraps;
+        _ -> sphere_face(Ps, Uvs, Us, Half)
+    end.
+
+sphere_face(Ps, Uvs, Us, Half) ->
+    Seam = (lists:max(Us) - lists:min(Us)) > Half,
+    Fixed = [seam_u(U, Seam, Half) || U <- Us],
+    Span = lists:max(Fixed) - lists:min(Fixed),
+    FSum = lists:sum(Fixed),
+    UMid = FSum / length(Fixed),
+    case Span > Half of
+        true -> wraps;
+        false -> {ok, [sphere_uv(Uv, P, Seam, Half, UMid) || {Uv, P} <- lists:zip(Uvs, Ps)]}
+    end.
+
+sphere_uv({_, V}, {_,Y,_}, _, _, UMid) when abs(Y) >= 1.0 - ?EPSILON -> {UMid, V};
+sphere_uv({U, V}, _, Seam, Half, _) -> {seam_u(U, Seam, Half), V}.
+
+seam_u(U, true, Half) when U < Half -> U + 2*Half;
+seam_u(U, _, _) -> U.
 
 %% Moves the island to the origin and mirrors it when it is turned over.
 island(Fs, Uvs0) ->

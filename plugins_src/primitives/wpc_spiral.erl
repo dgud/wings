@@ -43,7 +43,7 @@ make_spiral(Ask, St) when is_atom(Ask) ->
             {?__(3,"Segments"), {text, 16,[{range,{3,128}}]}},
             {?__(4,"Sections"), {text, 8,[{range,{2,64}}]}}
         ]},
-        prm_uv_unfold:create_uv_dlg(),
+        wings_shapes_uv:create_uv_dlg(),
 	wings_shapes:transform_obj_dlg()],
     wings_dialog:dialog_preview({shape,spiral}, Ask, ?__(1,"Create Spiral"), Qs, St);
 make_spiral([L,Ns,Nl,{_,CreateUV}|Transf], _) ->
@@ -59,7 +59,7 @@ make_spring(Ask, St) when is_atom(Ask) ->
             {?__(3,"Segments"), {text, 16,[{range,{3,128}}]}},
             {?__(4,"Sections"), {text, 8,[{range,{2,64}}]}}
         ]},
-        prm_uv_unfold:create_uv_dlg(),
+        wings_shapes_uv:create_uv_dlg(),
 	wings_shapes:transform_obj_dlg()],
     wings_dialog:dialog_preview({shape,spring}, Ask, ?__(1,"Create Spring"), Qs, St);
 make_spring([L,Ns,Nl,{_,CreateUV}|Transf], _) ->
@@ -101,7 +101,7 @@ spiral_uv_fun(Vs, Ns, Nl2) ->
     Pos = fun(K, N) ->
               element(N + (K rem Nl2)*Ns + 1, Vt)
           end,
-    {Cum, Lv} = prm_uv_unfold:lengths(Pos, Nl2, Ns, false),
+    {Cum, Lv} = wings_shapes_uv:lengths(Pos, Nl2, Ns, false),
     Total = element(Ns, Cum),
     Mid = Total / 2,
     Cuts = [{abs(element(I+1, Cum) - Mid), I} || I <- lists:seq(1, Ns-2)],
@@ -127,8 +127,8 @@ spiral_uv_fun(Vs, Ns, Nl2) ->
 
 spiral_cap(Idx, Center, Vt, Factor) ->
     Ps = [element(V+1, Vt) || V <- Idx],
-    R = min(0.12, prm_uv_unfold:cap_radius(Ps, Factor)),
-    prm_uv_unfold:cap_face(Idx, Center, R).
+    R = min(0.12, wings_shapes_uv:cap_radius(Ps, Factor)),
+    wings_shapes_uv:cap_face(Idx, Center, R).
 
 spiral_circle(N, Y, R, D, L) ->
     Delta= pi()*2 / N,

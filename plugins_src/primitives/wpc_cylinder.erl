@@ -76,7 +76,7 @@ cylinder_dialog() ->
 	 {?__(11,"Thickness"), {text,0.25,[{key,thickness},{range,{0.0,infinity}}]}},
 	 {?__(12,"Degrees"), {text,360.0,[{key,degrees},{range,{0.0,360.0}}]}},
 	 {?__(13,"Angle Offset"), {text,0.0,[{key,angle_offset},{range,{-360.0,360.0}}]}}]},
-     prm_uv_unfold:create_uv_dlg(),
+     wings_shapes_uv:create_uv_dlg(),
      wings_shapes:transform_obj_dlg()].
 
 make_cylinder(Arg, St) when is_atom(Arg) ->
@@ -220,7 +220,7 @@ cylinder_uv_faces(true, N, Vs, [Upper,Lower|Sides]) ->
     Vt = list_to_tuple(Vs),
     Pos = fun(I, Lv) -> element(Lv*N + (I rem N) + 1, Vt) end,
     Cell = fun(V) -> {V rem N, V div N} end,
-    {Caps, WallFs} = prm_uv_unfold:layout({Pos, N, 2, false, Cell, Sides}, [Upper,Lower], Vt),
+    {Caps, WallFs} = wings_shapes_uv:layout({Pos, N, 2, false, Cell, Sides}, [Upper,Lower], Vt),
     Caps ++ WallFs.
 
 %% The outline of the gear walks the tips, the flanks and the valleys; the
@@ -235,7 +235,7 @@ gear_uv_faces(true, Nres, Vs, [Top,Bot|Walls]) ->
     Index = maps:from_list(lists:zip(tuple_to_list(Outline), lists:seq(0, Count-1))),
     Pos = fun(I, Lv) -> element(Lv*Count + element((I rem Count)+1, Outline) + 1, Vt) end,
     Cell = fun(V) -> {maps:get(V rem Count, Index), V div Count} end,
-    {Caps, WallFs} = prm_uv_unfold:layout({Pos, Count, 2, false, Cell, Walls}, [Top,Bot], Vt),
+    {Caps, WallFs} = wings_shapes_uv:layout({Pos, Count, 2, false, Cell, Walls}, [Top,Bot], Vt),
     Caps ++ WallFs.
 
 %% The levels of the loop around the wall are the top outer, bottom outer,
@@ -246,7 +246,7 @@ tube_uv_faces(true, Nres, Vs, Fs) ->
     Levels = {0, 1, 3, 2},
     Pos = fun(I, Lv) -> element(element(Lv+1, Levels)*Nres + (I rem Nres) + 1, Vt) end,
     Cell = fun(V) -> {V rem Nres, element((V div Nres)+1, Levels)} end,
-    {[], WallFs} = prm_uv_unfold:layout({Pos, Nres, 4, true, Cell, Fs}, [], Vt),
+    {[], WallFs} = wings_shapes_uv:layout({Pos, Nres, 4, true, Cell, Fs}, [], Vt),
     WallFs.
 
 ring_of_verts(Rings, Delta, YAxis, XAxis, ZAxis, Offset) ->

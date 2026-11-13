@@ -70,7 +70,7 @@ torus_dialog() ->
 	[{?__(10,"Nodes"), {text,8,[{key,torus_nodes},{range,{1,infinity}}]}},
 	 {?__(11,"Node Height"), {text,0.25,[{key,node_height},{range,{0.0,infinity}}]}}
 	]},
-     prm_uv_unfold:create_uv_dlg(),
+     wings_shapes_uv:create_uv_dlg(),
      wings_shapes:transform_obj_dlg()].
 
 make_torus(Ask, St) when is_atom(Ask) ->
@@ -157,7 +157,7 @@ uv_faces(true, Fs, Ures, Vres, Vs) ->
     Pos = fun(K, N) ->
               element((N rem Ures)*Vres + (K rem Vres) + 1, Vt)
           end,
-    {Cum, Lv} = prm_uv_unfold:lengths(Pos, Vres, Ures, true),
+    {Cum, Lv} = wings_shapes_uv:lengths(Pos, Vres, Ures, true),
     Total = element(Ures+1, Cum),
     Scale = 1.0 / max(Total, Lv),
     Make_UV =

@@ -28,7 +28,6 @@ TYPE_FLAGS=
 endif
 
 MODULES= \
-	prm_uv_unfold \
 	wpc_bbox \
 	wpc_cylinder \
 	wpc_geodome \

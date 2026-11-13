@@ -71,7 +71,7 @@ dialog() ->
 	       {"Type 3", knot3},
 	       {"Type 4", knot4}],
 	       TypeFlag, [{key,typeflag}, {title, "Knot Type"}]},
-     prm_uv_unfold:create_uv_dlg(),
+     wings_shapes_uv:create_uv_dlg(),
      wings_shapes:transform_obj_dlg()
     ].
 
@@ -123,7 +123,7 @@ uv_faces(true, Fs, Ures, Vres, Vs) ->
     Pos = fun(K, N) ->
               element((N rem Ures)*Vres + (K rem Vres) + 1, Vt)
           end,
-    {Cum, Lv} = prm_uv_unfold:lengths(Pos, Vres, Ures, true),
+    {Cum, Lv} = wings_shapes_uv:lengths(Pos, Vres, Ures, true),
     Total = element(Ures+1, Cum),
     Mid = Total / 2,
     Cuts = [{abs(element(I+1, Cum) - Mid), I} || I <- lists:seq(1, Ures-1)],

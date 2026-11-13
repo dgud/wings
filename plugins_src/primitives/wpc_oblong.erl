@@ -106,7 +106,7 @@ oblong_dialog() ->
     {label_column,[
         {?__(11,"Thickness"), {text,0.8,[{key,thickness},{range,{0.0,infinity}},{hook,Hook}]}},
         {?__(12,"Thickness Slices"), {text,0,[{key,t_sections},{range,{0,infinity}}]}}]},
-     prm_uv_unfold:create_uv_dlg(),
+     wings_shapes_uv:create_uv_dlg(),
      wings_shapes:transform_obj_dlg()].
 
 make_oblong(Arg, St) when is_atom(Arg) ->
@@ -277,8 +277,8 @@ oblong_uv_faces(true, Type, [Vs0|_]=Vss, Fs) ->
 %% void one is a single wall closed around the contour.
 oblong_uv_layout(regular, {Pos, M, L, Cell}, Fs, Vt) ->
     {Walls, [Up,Down]} = lists:split(length(Fs)-2, Fs),
-    {Caps, WallFs} = prm_uv_unfold:layout({Pos, M, L, false, Cell, Walls}, [Up,Down], Vt),
+    {Caps, WallFs} = wings_shapes_uv:layout({Pos, M, L, false, Cell, Walls}, [Up,Down], Vt),
     WallFs ++ Caps;
 oblong_uv_layout(void, {Pos, M, L, Cell}, Fs, Vt) ->
-    {[], WallFs} = prm_uv_unfold:layout({Pos, M, L, true, Cell, Fs}, [], Vt),
+    {[], WallFs} = wings_shapes_uv:layout({Pos, M, L, true, Cell, Fs}, [], Vt),
     WallFs.

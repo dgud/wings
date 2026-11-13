@@ -70,7 +70,7 @@ plane_dialog() ->
             {?__(10,"Height"), {text,0.4,[{key,height},{range,{0.0,infinity}}]}},
             {?__(11,"Falloff"), {text,0.4,[{key,falloff},{range,{0.0,infinity}}]}}]
         },
-        prm_uv_unfold:create_uv_dlg(),
+        wings_shapes_uv:create_uv_dlg(),
         wings_shapes:transform_obj_dlg()]
      }].
 
@@ -154,7 +154,7 @@ plane_uv_faces(false, Groups, _, _, _) ->
     [F || {_, Fs} <- Groups, F <- Fs];
 plane_uv_faces(true, Groups, N, Size, Thickness) ->
     Sizes = {Size, Size, Thickness/2},
-    Scale = prm_uv_unfold:cross_scale(Sizes),
+    Scale = wings_shapes_uv:cross_scale(Sizes),
     CalcUV =
         fun(Side, F) ->
             [plane_uv(Side, V, N, Sizes, Scale) || V <- F]
@@ -169,7 +169,7 @@ plane_uv(Side, V, N, Sizes, Scale) ->
             true -> 1.0;
             false -> -1.0
         end,
-    prm_uv_unfold:cross(Side, {X,Y,Z}, Sizes, Scale).
+    wings_shapes_uv:cross(Side, {X,Y,Z}, Sizes, Scale).
 
 plane_faces_top(Ures, Vres) ->
     [[I*Vres+J,I*Vres+J+1,(I+1)*Vres+J+1,(I+1)*Vres+J]
