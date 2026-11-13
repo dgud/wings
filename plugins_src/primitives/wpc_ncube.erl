@@ -65,8 +65,9 @@ make_ncube(Arg, _) ->
     Faces = ncube_faces(Xres+1, Yres+1, Zres+1),
     {Vs0, Fs} = clean_indexed_mesh(Verts, Faces),
     Vs1 = transform_mesh(SpherizeFlag, {X,Y,Z}, Vs0),
+    FsUv = ncube_uv_faces(SpherizeFlag, Vs0, Fs, {X,Y,Z}),
     Vs = wings_shapes:transform_obj({Rot_X,Rot_Y,Rot_Z},{Mov_X,Mov_Y,Mov_Z},Ground, Vs1),
-    {new_shape,cube_str(),Fs,Vs}.
+    {new_shape,cube_str(),FsUv,Vs}.
 
 ncube_dialog() ->
     Xres = get_pref(xres, 1),
@@ -194,7 +195,7 @@ make_ngon(Arg, _) ->
 
     Vs1 = ngon_verts(NumVerts, Radius),
     Vs = wings_shapes:transform_obj({Rot_X,Rot_Y,Rot_Z},{Mov_X,Mov_Y,Mov_Z},Ground, Vs1),
-    Fs = ngon_faces(NumVerts),
+    Fs = ngon_uv_faces(Vs1, ngon_faces(NumVerts)),
     {new_shape,?__(2,"N-Gon"),Fs,Vs}.
 
 ngon_dialog() ->
@@ -232,6 +233,75 @@ ngon_faces(NumVerts) ->
     TopFaces = lists:reverse(BotFaces),
     Faces = [TopFaces, BotFaces],
     Faces.
+
+%% UV layout: the sides are unfolded like an opened box with the real
+%% proportions of the box, from the positions of the cube before the spherize
+%% and the sizes. With the spherize the six sides are separated, each one in
+%% its own cell.
+ncube_uv_faces(false, Vs, Fs, Sizes) ->
+    Vt = list_to_tuple(Vs),
+    Scale = prm_uv_unfold:cross_scale(Sizes),
+    CalcUV =
+        fun(Ps) ->
+            [prm_uv_unfold:cross(cube_side(Ps), P, Sizes, Scale) || P <- Ps]
+        end,
+    [{default,F,CalcUV(Ps),none,none} || F <- Fs, Ps <- [[element(V+1, Vt) || V <- F]]];
+ncube_uv_faces(true, Vs, Fs, _) ->
+    Vt = list_to_tuple(Vs),
+    CalcUV =
+        fun(Ps) ->
+            [cube_cell(cube_side(Ps), P) || P <- Ps]
+        end,
+    [{default,F,CalcUV(Ps),none,none} || F <- Fs, Ps <- [[element(V+1, Vt) || V <- F]]].
+
+cube_side(Ps) ->
+    Xs = [X || {X,_,_} <- Ps],
+    Ys = [Y || {_,Y,_} <- Ps],
+    Zs = [Z || {_,_,Z} <- Ps],
+    case {cube_flat(Xs), cube_flat(Ys), cube_flat(Zs)} of
+        {true,_,_} when hd(Xs) > 0 -> right;
+        {true,_,_} -> left;
+        {_,true,_} when hd(Ys) > 0 -> top;
+        {_,true,_} -> bottom;
+        {_,_,true} when hd(Zs) > 0 -> front;
+        {_,_,true} -> back
+    end.
+
+cube_flat(Cs) ->
+    Min = lists:min(Cs),
+    Max = lists:max(Cs),
+    ((Max-Min) < ?EPSILON) andalso (abs(Max) > (1.0-?EPSILON)).
+
+cube_cell(Side, {X,Y,Z}) ->
+    {A, B} = cube_axes(Side, {X,Y,Z}),
+    {Col, Row} = cube_cell_pos(Side),
+    {(Col + 0.02 + 0.96*(A+1)/2) / 3, (Row + 0.02 + 0.96*(B+1)/2) / 3}.
+
+cube_axes(front, {X,Y,_}) -> {X, Y};
+cube_axes(left, {_,Y,Z}) -> {Z, Y};
+cube_axes(right, {_,Y,Z}) -> {-Z, Y};
+cube_axes(back, {X,Y,_}) -> {-X, Y};
+cube_axes(top, {X,_,Z}) -> {X, -Z};
+cube_axes(bottom, {X,_,Z}) -> {X, Z}.
+
+cube_cell_pos(right) -> {0, 1};
+cube_cell_pos(left) -> {1, 1};
+cube_cell_pos(top) -> {2, 1};
+cube_cell_pos(bottom) -> {0, 0};
+cube_cell_pos(front) -> {1, 0};
+cube_cell_pos(back) -> {2, 0}.
+
+%% UV layout of the N-Gon: the top and the bottom side by side with the
+%% real size.
+ngon_uv_faces(Vs, [Top,Bot]) ->
+    Vt = list_to_tuple(Vs),
+    Rs = [max(abs(X), abs(Z)) || {X,_,Z} <- Vs],
+    R = lists:max(Rs),
+    Gap = 0.08 * R,
+    Scale = 1.0 / (4*R + Gap),
+    TopUv = [{(X+R)*Scale, (R-Z)*Scale} || V <- Top, {X,_,Z} <- [element(V+1, Vt)]],
+    BotUv = [{(X+3*R+Gap)*Scale, (Z+R)*Scale} || V <- Bot, {X,_,Z} <- [element(V+1, Vt)]],
+    [{default,Top,TopUv,none,none}, {default,Bot,BotUv,none,none}].
 
 clean_indexed_mesh(Verts, Faces) ->
     Raw = e3d_util:indexed_to_raw(Verts, Faces),

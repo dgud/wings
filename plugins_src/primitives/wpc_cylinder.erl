@@ -118,7 +118,7 @@ make_cylinder(Arg, _St) ->
 make_cylinder(Sections, TopX, TopZ, BotX, BotZ, Height, [Rot, Mov, Ground]) ->
     Vs0 = cylinder_verts(Sections, TopX, TopZ, BotX, BotZ, Height),
     Vs = wings_shapes:transform_obj(Rot,Mov,Ground, Vs0),
-    Fs = cylinder_faces(Sections),
+    Fs = cylinder_uv_faces(Sections, Vs0, cylinder_faces(Sections)),
     {new_shape,cylinder_type(cylinder),Fs,Vs}.
 
 cylinder_verts(Sections, TopX, TopZ, BotX, BotZ, Height) ->
@@ -144,7 +144,7 @@ make_gear(Sections0, TopX, TopZ, BotX, BotZ, Height, ToothHeight, [Rot, Mov, Gro
     Sections = (Sections0 div 2)*2,
     Vs0 = gear_verts(Sections, TopX, TopZ, BotX, BotZ, Height, ToothHeight),
     Vs = wings_shapes:transform_obj(Rot,Mov,Ground, Vs0),
-    Fs = gear_faces(Sections),
+    Fs = gear_uv_faces(Sections, Vs0, gear_faces(Sections)),
     {new_shape,cylinder_type(gear),Fs,Vs}.
 
 gear_verts(Sections, TopX, TopZ, BotX, BotZ, Height, ToothHeight) ->
@@ -184,7 +184,7 @@ gear_faces(Nres) ->
 make_tube(Sections, TopX, TopZ, BotX, BotZ, Height, Thickness, [Rot, Mov, Ground]) ->
     Vs0 = tube_verts(Sections, TopX, TopZ, BotX, BotZ, Height, Thickness),
     Vs = wings_shapes:transform_obj(Rot,Mov,Ground, Vs0),
-    Fs = tube_faces(Sections),
+    Fs = tube_uv_faces(Sections, Vs0, tube_faces(Sections)),
     {new_shape,cylinder_type(tube),Fs,Vs}.
 
 tube_verts(Sections, TopX, TopZ, BotX, BotZ, Height, Thickness) ->
@@ -213,6 +213,37 @@ tube_faces(Nres) ->
 	[[2*Nres-1, Nres, 3*Nres, 4*Nres-1] ], % the last face
     TopFaces ++ BotFaces ++ InnerFaces ++ OuterFaces.
 
+cylinder_uv_faces(N, Vs, [Upper,Lower|Sides]) ->
+    Vt = list_to_tuple(Vs),
+    Pos = fun(I, Lv) -> element(Lv*N + (I rem N) + 1, Vt) end,
+    Cell = fun(V) -> {V rem N, V div N} end,
+    {Caps, WallFs} = prm_uv_unfold:layout({Pos, N, 2, false, Cell, Sides}, [Upper,Lower], Vt),
+    Caps ++ WallFs.
+
+%% The outline of the gear walks the tips, the flanks and the valleys; the
+%% vertices of a ring are numbered outer first and then inner.
+gear_uv_faces(Nres, Vs, [Top,Bot|Walls]) ->
+    Vt = list_to_tuple(Vs),
+    Count = Nres*2,
+    Steps = [[2*J, 2*J+1, Nres+2*J+1, Nres+((2*J+2) rem Nres)]
+             || J <- lists:seq(0, (Nres div 2)-1)],
+    Outline = list_to_tuple(lists:append(Steps)),
+    Index = maps:from_list(lists:zip(tuple_to_list(Outline), lists:seq(0, Count-1))),
+    Pos = fun(I, Lv) -> element(Lv*Count + element((I rem Count)+1, Outline) + 1, Vt) end,
+    Cell = fun(V) -> {maps:get(V rem Count, Index), V div Count} end,
+    {Caps, WallFs} = prm_uv_unfold:layout({Pos, Count, 2, false, Cell, Walls}, [Top,Bot], Vt),
+    Caps ++ WallFs.
+
+%% The levels of the loop around the wall are the top outer, bottom outer,
+%% bottom inner and top inner rings, so the vertex groups are swapped 2 <-> 3.
+tube_uv_faces(Nres, Vs, Fs) ->
+    Vt = list_to_tuple(Vs),
+    Levels = {0, 1, 3, 2},
+    Pos = fun(I, Lv) -> element(element(Lv+1, Levels)*Nres + (I rem Nres) + 1, Vt) end,
+    Cell = fun(V) -> {V rem Nres, element((V div Nres)+1, Levels)} end,
+    {[], WallFs} = prm_uv_unfold:layout({Pos, Nres, 4, true, Cell, Fs}, [], Vt),
+    WallFs.
+
 ring_of_verts(Rings, Delta, YAxis, XAxis, ZAxis, Offset) ->
     [{XAxis*cos(Offset+I*Delta), YAxis, ZAxis*sin(Offset+I*Delta)} || I <- Rings].
 
@@ -229,7 +260,8 @@ zip_lists_2e(A, B) ->	      % Both lists must be equal in length
 make_pie(Sections, TopX, TopZ, BotX, BotZ, Height, Degrees, AngleOffset, [Rot, Mov, Ground]) ->
     Vs0 = pie_verts(Sections, TopX, TopZ, BotX, BotZ, Height, Degrees, AngleOffset),
     Vs = wings_shapes:transform_obj(Rot,Mov,Ground, Vs0),
-    Fs = cylinder_faces(trunc(length(Vs0)/2)),
+    Count = trunc(length(Vs0)/2),
+    Fs = cylinder_uv_faces(Count, Vs0, cylinder_faces(Count)),
     {new_shape,cylinder_type(pie),Fs,Vs}.
 
 pie_verts(Sections, TopX, TopZ, BotX, BotZ, Height, Degrees, AngleOffset) ->

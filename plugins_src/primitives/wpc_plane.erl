@@ -80,27 +80,27 @@ make_plane([{_,Nres},{_,Size},{_,Thickness},{_,regular},_,_,_|Transf], _) ->
     Vs0 = regular_plane_verts(Nres, Size, +Thickness/2) ++
 	 regular_plane_verts(Nres, Size, -Thickness/2),
     Vs = wings_shapes:transform_obj(Transf, Vs0),
-    Fs = plane_faces(Nres, Nres),
+    Fs = plane_faces(Nres, Size, Thickness),
     {new_shape,"Regular Plane",Fs,Vs};
 make_plane([{_,Nres},{_,Size},{_,Thickness},{_,lumpy},{_,Lumps},_,_,
             Rot_X, Rot_Y, Rot_Z, Mov_X ,Mov_Y ,Mov_Z ,Ground], _) ->
     Vs0 = lumpy_plane_verts(Nres, Size, Lumps, +Thickness/2) ++
 	 lumpy_plane_verts(Nres, Size, Lumps, -Thickness/2),
     Vs = wings_shapes:transform_obj([Rot_X,Rot_Y,Rot_Z,Mov_X,Mov_Y,Mov_Z,Ground], Vs0),
-    Fs = plane_faces(Nres, Nres),
+    Fs = plane_faces(Nres, Size, Thickness),
     {new_shape,"Lumpy Plane",Fs,Vs};
 make_plane([{_,Nres},{_,Size},{_,Thickness},{_,wavy},{_,Waves},{_,Height},_|Transf], _) ->
     Vs0 = wavy_plane_verts(Nres, Size, Waves, Height, +Thickness/2) ++
 	 wavy_plane_verts(Nres, Size, Waves, Height, -Thickness/2),
     Vs = wings_shapes:transform_obj(Transf, Vs0),
-    Fs = plane_faces(Nres, Nres),
+    Fs = plane_faces(Nres, Size, Thickness),
     {new_shape,"Wavy Plane",Fs,Vs};
 make_plane([{_,Nres},{_,Size},{_,Thickness},{_,sombrero},
             {_,Waves},{_,Height},{_,Falloff}|Transf], _) ->
     Vs0 = sombrero_plane_verts(Nres, Size, Waves, Falloff, Height, +Thickness/2) ++
 	 sombrero_plane_verts(Nres, Size, Waves, Falloff, Height, -Thickness/2),
     Vs = wings_shapes:transform_obj(Transf, Vs0),
-    Fs = plane_faces(Nres, Nres),
+    Fs = plane_faces(Nres, Size, Thickness),
     {new_shape,"Sombrero Plane",Fs,Vs}.
 
 %%%
@@ -138,13 +138,32 @@ sombrero_plane_verts(Nres, Size, Waves, Falloff, Height, Thickness) ->
       Size*(J/(Nres-1.0)*2-1)}
       || I <- lists:seq(0, Nres-1), J <- lists:seq(0, Nres-1)].
 
-plane_faces(Nres, Nres) ->
-    plane_uv_faces(top, plane_faces_top(Nres, Nres), Nres) ++
-    plane_uv_faces(bot, plane_faces_bot(Nres, Nres), Nres) ++
-    plane_uv_faces(left, plane_faces_left(Nres, Nres), Nres) ++
-    plane_uv_faces(right, plane_faces_right(Nres, Nres), Nres) ++
-    plane_uv_faces(front, plane_faces_front(Nres, Nres), Nres) ++
-    plane_uv_faces(back, plane_faces_back(Nres, Nres), Nres).
+%% UV layout: the plane is unfolded like an opened box with the real
+%% proportions, the top being the front of the box.
+plane_faces(N, Size, Thickness) ->
+    Sizes = {Size, Size, Thickness/2},
+    Scale = prm_uv_unfold:cross_scale(Sizes),
+    Groups = [{front, plane_faces_top(N, N)},
+              {back, plane_faces_bot(N, N)},
+              {left, plane_faces_left(N, N)},
+              {right, plane_faces_right(N, N)},
+              {top, plane_faces_front(N, N)},
+              {bottom, plane_faces_back(N, N)}],
+    CalcUV =
+        fun(Side, F) ->
+            [plane_uv(Side, V, N, Sizes, Scale) || V <- F]
+        end,
+    [{default,F,CalcUV(Side,F),none,none} || {Side, Fs} <- Groups, F <- Fs].
+
+plane_uv(Side, V, N, Sizes, Scale) ->
+    L = V rem (N*N),
+    X = 2*((L div N)/(N-1)) - 1,
+    Y = 1 - 2*((L rem N)/(N-1)),
+    Z = case V < N*N of
+            true -> 1.0;
+            false -> -1.0
+        end,
+    prm_uv_unfold:cross(Side, {X,Y,Z}, Sizes, Scale).
 
 plane_faces_top(Ures, Vres) ->
     [[I*Vres+J,I*Vres+J+1,(I+1)*Vres+J+1,(I+1)*Vres+J]
@@ -177,37 +196,3 @@ plane_faces_back(Ures, Vres) ->
     A = lists:seq(Vres-1, Ures*Vres-1, Vres),
     B = lists:map(fun(X) -> (Ures*Vres)+X end, A),
     [lists:reverse(A) ++ B].
-
-%%%
-%%% UV layout: the bottom and the four sides are unfolded like an opened box
-%%% (a cross in the lower left), the top is a separate square at the right.
-%%%
-
-plane_uv_faces(Side, Fs, N) ->
-    [{default,F,[plane_uv(Side, V, N) || V <- F],none,none} || F <- Fs].
-
-plane_uv(top, V, N) ->
-    {I,J} = plane_ij(V, N),
-    {0.6+0.4*J/(N-1), 0.4*I/(N-1)};
-plane_uv(bot, V, N) ->
-    plane_bot_uv(plane_ij(V, N), N);
-plane_uv(Side, V, N) ->
-    {U,W} = plane_bot_uv(plane_ij(V, N), N),
-    {Du,Dv} = plane_side_dir(Side),
-    Len = case V < N*N of
-              true -> 0.1;
-              false -> 0.0
-          end,
-    {U+Du*Len, W+Dv*Len}.
-
-plane_bot_uv({I,J}, N) ->
-    {0.1+0.4*(1.0-J/(N-1)), 0.1+0.4*I/(N-1)}.
-
-plane_ij(V, N) ->
-    L = V rem (N*N),
-    {L div N, L rem N}.
-
-plane_side_dir(left) -> {0.0,-1.0};
-plane_side_dir(right) -> {0.0,1.0};
-plane_side_dir(front) -> {1.0,0.0};
-plane_side_dir(back) -> {-1.0,0.0}.

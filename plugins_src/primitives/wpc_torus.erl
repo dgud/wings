@@ -140,35 +140,24 @@ make_verts(Ures, Vres, MajXR, MajZR, MinR, Loops, LoopRad, Type) ->
 
 make_faces(Ures, Vres, Vs) ->
     Vt = list_to_tuple(Vs),
-    Pos =
-        fun(I, J) ->
-            element((I rem Ures)*Vres + (J rem Vres) + 1, Vt)
-        end,
+    Pos = fun(K, N) ->
+              element((N rem Ures)*Vres + (K rem Vres) + 1, Vt)
+          end,
+    {Cum, Lv} = prm_uv_unfold:lengths(Pos, Vres, Ures, true),
+    Total = element(Ures+1, Cum),
     Is = lists:seq(0, Ures-1),
     Js = lists:seq(0, Vres-1),
-    RingLen =
-        fun(I) ->
-            Ds = [e3d_vec:dist(Pos(I, J), Pos(I+1, J)) || J <- Js],
-            DSum = lists:sum(Ds),
-            DSum / Vres
-        end,
-    {Starts, Total} = lists:mapfoldl(fun(D, Acc) ->
-                                         {Acc, Acc+D}
-                                     end, 0.0, [RingLen(I) || I <- Is]),
-    Cum = list_to_tuple(Starts ++ [Total]),
-    Loops = [lists:sum([e3d_vec:dist(Pos(I, J), Pos(I, J+1)) || J <- Js]) || I <- Is],
-    LoopSum = lists:sum(Loops),
-    Lv = LoopSum / Ures,
     Scale = 1.0 / max(Total, Lv),
-    Make_Face = fun(I,J) ->
-        Idx1 = (J+1) rem Vres + I*Vres,
-        Idx2 = (J+1) rem Vres + ((I+1) rem Ures)*Vres,
-        Idx3 = J + ((I+1) rem Ures) * Vres,
-        Idx4 = J + I*Vres,
-        U0 = element(I+1, Cum) * Scale,
-        U1 = element(I+2, Cum) * Scale,
-        V0 = (J/Vres) * Lv * Scale,
-        V1 = ((J+1)/Vres) * Lv * Scale,
-        {default,[Idx4,Idx3,Idx2,Idx1],[{U0,V0},{U1,V0},{U1,V1},{U0,V1}],none,none}
-    end,
+    Make_Face =
+        fun(I,J) ->
+            Idx1 = (J+1) rem Vres + I*Vres,
+            Idx2 = (J+1) rem Vres + ((I+1) rem Ures)*Vres,
+            Idx3 = J + ((I+1) rem Ures) * Vres,
+            Idx4 = J + I*Vres,
+            U0 = element(I+1, Cum) * Scale,
+            U1 = element(I+2, Cum) * Scale,
+            V0 = (J/Vres) * Lv * Scale,
+            V1 = ((J+1)/Vres) * Lv * Scale,
+            {default,[Idx4,Idx3,Idx2,Idx1],[{U0,V0},{U1,V0},{U1,V1},{U0,V1}],none,none}
+        end,
     [Make_Face(I,J) || I <- Is, J <- Js].

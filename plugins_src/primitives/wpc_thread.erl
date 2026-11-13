@@ -181,6 +181,7 @@ set_direction(right,Vs0,Fs0) ->
     Vs = [e3d_mat:mul_point(FlipX, Pos) || Pos <- Vs0],
     Fs = [lists:reverse(F) || F <- Fs0],
     {Vs,Fs}.
+
 %%%
 %%% UV layout: the sides are a strip in the upper three quarters (U from the
 %%% angle of the section, V from the height), the two end caps are polygons
@@ -190,16 +191,17 @@ set_direction(right,Vs0,Fs0) ->
 thread_uv_faces(Dir, N, Vs, [Top,Bottom|Sides]) ->
     Ys = [Y || {_,Y,_} <- Vs],
     YMin = lists:min(Ys),
-    YDiff = max(lists:max(Ys)-YMin, 1.0e-9),
+    YDiff = max(lists:max(Ys)-YMin, ?EPSILON),
     Vt = list_to_tuple(Vs),
     Ctx = {Dir,N,Vt,YMin,YDiff},
     Factor = thread_cap_factor(Top, Vt, YDiff),
-    RTop = cap_radius(Top, Vt, Factor),
-    RBottom = cap_radius(Bottom, Vt, Factor),
+    RTop = thread_cap_radius(Top, Vt, Factor),
+    RBottom = thread_cap_radius(Bottom, Vt, Factor),
     Shrink = min(1.0, 0.12/max(RTop, RBottom)),
-    [thread_cap(Top, {0.125,0.125}, RTop*Shrink),
-     thread_cap(Bottom, {0.375,0.125}, RBottom*Shrink) |
-     [thread_side(F, Ctx) || F <- Sides]].
+    TopUV = prm_uv_unfold:cap_face(Top, {0.125,0.125}, RTop*Shrink),
+    BotUV = prm_uv_unfold:cap_face(Bottom, {0.375,0.125}, RBottom*Shrink),
+    BodUV = [thread_side(F, Ctx) || F <- Sides],
+    [TopUV, BotUV | BodUV].
 
 %% The sides map the perimeter of the top to U and the height to V, so the
 %% caps use the geometric mean of both scales to keep the texture scale; if
@@ -211,27 +213,15 @@ thread_cap_factor(Top, Vt, YDiff) ->
     Perimeter = lists:sum(Lens),
     (1.0/Perimeter) * (0.75/YDiff).
 
-thread_cap(Idx, {Cx,Cy}, R) ->
-    N = length(Idx),
-    Delta = pi()*2/N,
-    UVs = [{Cx+R*cos(I*Delta), Cy+R*sin(I*Delta)} || I <- lists:seq(0, N-1)],
-    {default,Idx,UVs,none,none}.
-
-cap_radius(Idx, Vt, Factor) ->
+thread_cap_radius(Idx, Vt, Factor) ->
     Ps = [element(V+1, Vt) || V <- Idx],
-    N = length(Ps),
-    Pairs = lists:zip(Ps, tl(Ps) ++ [hd(Ps)]),
-    Sum = lists:foldl(fun({A,B}, Acc) ->
-                          e3d_vec:add(Acc, e3d_vec:cross(A, B))
-                      end, {0.0,0.0,0.0}, Pairs),
-    Area = e3d_vec:len(Sum) / 2,
-    RegArea = (N/2) * math:sin(2*math:pi()/N),
-    math:sqrt(Area*Factor/RegArea).
+    prm_uv_unfold:cap_radius(Ps, Factor).
 
 thread_side(F, {_,N,_,_,_}=Ctx) ->
     Ss = [V rem N || V <- F],
     Seam = lists:member(0, Ss) andalso lists:member(N-1, Ss),
-    {default,F,[thread_uv(V, Seam, Ctx) || V <- F],none,none}.
+    UV = [thread_uv(V, Seam, Ctx) || V <- F],
+    {default,F,UV,none,none}.
 
 thread_uv(V, Seam, {Dir,N,VsT,YMin,YDiff}) ->
     S = V rem N,
