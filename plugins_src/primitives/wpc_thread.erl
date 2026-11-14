@@ -76,6 +76,7 @@ thread_dialog() ->
          {?__(7,"Left hand"),left},
          {?__(8,"Right hand"),right}],
       right, [{key,direction},{title,?__(9,"Direction")}]},
+     wings_shapes_uv:create_uv_dlg(),
      wings_shapes:transform_obj_dlg()].
 
 make_thread(Arg, St) when is_atom(Arg) ->
@@ -92,22 +93,24 @@ make_thread(Arg0, _St) ->
     Occurrences = maps:get(occurrences, Arg),
     Dir = maps:get(direction, Arg),
     Type = maps:get(thread_type, Arg),
+    CreateUV = maps:get(create_uv, Arg),
     Modify = [{maps:get(rot_x, Arg), maps:get(rot_y, Arg), maps:get(rot_z, Arg)},
               {maps:get(mov_x, Arg), maps:get(mov_y, Arg), maps:get(mov_z, Arg)},
               maps:get(ground, Arg)],
 
     Height = Pitch*(Occurrences+0.5),
     Rows = Occurrences+1,
-    make_thread(Type, Dir, Sections, Height, TopRadius, BotRadius, CrestH, Pitch, Rows, Modify).
+    make_thread(Type, Dir, Sections, Height, TopRadius, BotRadius, CrestH, Pitch, Rows, CreateUV, Modify).
 
 %%%
 %%% Thread
 %%%
 
-make_thread(Type, Dir, Sections, Height, TopRadius, BotRadius, CrestH, Pitch, Rows, [Rot, Mov, Ground]) ->
+make_thread(Type, Dir, Sections, Height, TopRadius, BotRadius, CrestH, Pitch, Rows, CreateUV, [Rot, Mov, Ground]) ->
     Vs1 = thread_verts(Type,Sections,TopRadius,BotRadius,CrestH,Pitch,Rows,Height),
     Fs0 = thread_faces(Type,Sections,Rows),
-    {Vs0,Fs} = set_direction(Dir,Vs1,Fs0),
+    {Vs0,Fs1} = set_direction(Dir,Vs1,Fs0),
+    Fs = thread_uv_faces(CreateUV,Dir,Sections,Vs0,Fs1),
     Vs = wings_shapes:transform_obj(Rot,Mov,Ground,Vs0),
    {new_shape,thread(),Fs,Vs}.
 
@@ -180,3 +183,58 @@ set_direction(right,Vs0,Fs0) ->
     Vs = [e3d_mat:mul_point(FlipX, Pos) || Pos <- Vs0],
     Fs = [lists:reverse(F) || F <- Fs0],
     {Vs,Fs}.
+
+%%%
+%%% UV layout: the sides are a strip in the upper three quarters (U from the
+%%% angle of the section, V from the height), the two end caps are polygons
+%%% in the lower quarter.
+%%%
+
+thread_uv_faces(false, _, _, _, Fs) -> Fs;
+thread_uv_faces(true, Dir, N, Vs, [Top,Bottom|Sides]) ->
+    Ys = [Y || {_,Y,_} <- Vs],
+    YMin = lists:min(Ys),
+    YDiff = max(lists:max(Ys)-YMin, ?EPSILON),
+    Vt = list_to_tuple(Vs),
+    Ctx = {Dir,N,Vt,YMin,YDiff},
+    Factor = thread_cap_factor(Top, Vt, YDiff),
+    RTop = thread_cap_radius(Top, Vt, Factor),
+    RBottom = thread_cap_radius(Bottom, Vt, Factor),
+    Shrink = min(1.0, 0.12/max(RTop, RBottom)),
+    TopUV = wings_shapes_uv:cap_face(Top, {0.125,0.125}, RTop*Shrink),
+    BotUV = wings_shapes_uv:cap_face(Bottom, {0.375,0.125}, RBottom*Shrink),
+    BodUV = [thread_side(F, Ctx) || F <- Sides],
+    [TopUV, BotUV | BodUV].
+
+%% The sides map the perimeter of the top to U and the height to V, so the
+%% caps use the geometric mean of both scales to keep the texture scale; if
+%% they do not fit in their band both are reduced by the same amount.
+thread_cap_factor(Top, Vt, YDiff) ->
+    Ps = [element(V+1, Vt) || V <- Top],
+    Pairs = lists:zip(Ps, tl(Ps) ++ [hd(Ps)]),
+    Lens = [e3d_vec:dist(A, B) || {A,B} <- Pairs],
+    Perimeter = lists:sum(Lens),
+    (1.0/Perimeter) * (0.75/YDiff).
+
+thread_cap_radius(Idx, Vt, Factor) ->
+    Ps = [element(V+1, Vt) || V <- Idx],
+    wings_shapes_uv:cap_radius(Ps, Factor).
+
+thread_side(F, {_,N,_,_,_}=Ctx) ->
+    Ss = [V rem N || V <- F],
+    Seam = lists:member(0, Ss) andalso lists:member(N-1, Ss),
+    UV = [thread_uv(V, Seam, Ctx) || V <- F],
+    {default,F,UV,none,none}.
+
+thread_uv(V, Seam, {Dir,N,VsT,YMin,YDiff}) ->
+    S = V rem N,
+    U0 = case Seam andalso (S =:= N-1) of
+             true -> 1.0;
+             false -> (N-1-S)/N
+         end,
+    U = case Dir of
+            left -> 1.0-U0;
+            right -> U0
+        end,
+    {_,Y,_} = element(V+1, VsT),
+    {U, 0.25+0.75*(Y-YMin)/YDiff}.

@@ -43,14 +43,15 @@ make_spiral(Ask, St) when is_atom(Ask) ->
             {?__(3,"Segments"), {text, 16,[{range,{3,128}}]}},
             {?__(4,"Sections"), {text, 8,[{range,{2,64}}]}}
         ]},
+        wings_shapes_uv:create_uv_dlg(),
 	wings_shapes:transform_obj_dlg()],
     wings_dialog:dialog_preview({shape,spiral}, Ask, ?__(1,"Create Spiral"), Qs, St);
-make_spiral([L,Ns,Nl|Transf], _) ->
+make_spiral([L,Ns,Nl,{_,CreateUV}|Transf], _) ->
     Vs0 = spiral_vertices(Ns, Nl, L),
     Vs = wings_shapes:transform_obj(Transf, Vs0),
-    Fs = spiral_faces(Ns, Nl, L),
+    Fs = spiral_uv_faces(CreateUV, spiral_faces(Ns, Nl, L), Ns, Nl, L, Vs),
     {new_shape,"spiral",Fs,Vs}.
- 
+
 make_spring(Ask, St) when is_atom(Ask) ->
     Qs = [
         {label_column, [
@@ -58,12 +59,13 @@ make_spring(Ask, St) when is_atom(Ask) ->
             {?__(3,"Segments"), {text, 16,[{range,{3,128}}]}},
             {?__(4,"Sections"), {text, 8,[{range,{2,64}}]}}
         ]},
+        wings_shapes_uv:create_uv_dlg(),
 	wings_shapes:transform_obj_dlg()],
     wings_dialog:dialog_preview({shape,spring}, Ask, ?__(1,"Create Spring"), Qs, St);
-make_spring([L,Ns,Nl|Transf], _) ->
+make_spring([L,Ns,Nl,{_,CreateUV}|Transf], _) ->
     Vs0 = spiral_vertices2(Ns, Nl, L),
     Vs = wings_shapes:transform_obj(Transf, Vs0),
-    Fs = spiral_faces(Ns, Nl, L),
+    Fs = spiral_uv_faces(CreateUV, spiral_faces(Ns, Nl, L), Ns, Nl, L, Vs),
     {new_shape,"spring",Fs,Vs}.
 
 spiral_faces(Ns0, Nl, L) ->
@@ -76,7 +78,57 @@ spiral_faces(Ns0, Nl, L) ->
     F0 = lists:append(Slices),
     F1 = [lists:seq((Nl2-1)*Ns, 0, -Ns) | F0],
     F = [lists:seq(Ns-1, Ns*Nl2-1, Ns) | F1],
-    F. 
+    F.
+
+%% UV layout: the body is cut near the middle of its length into two strips
+%% stacked in the upper three quarters, with the proportions of the real
+%% lengths; the two end caps are polygons in the lower quarter, sized to
+%% keep the texture scale of the body.
+spiral_uv_faces(false, Fs, _, _, _, _) -> Fs;
+spiral_uv_faces(true, [CapB,CapA|Body], Ns0, Nl, L, Vs) ->
+    Nl2 = Nl*2,
+    Ns = Ns0*L,
+    {UvFun, Scale} = spiral_uv_fun(Vs, Ns, Nl2),
+    Vt = list_to_tuple(Vs),
+    Factor = Scale*Scale,
+    UVs = [UvFun(I, J) || J <- lists:seq(0, Nl2 - 1), I <- lists:seq(0, Ns - 2)],
+    BodyUV = [{default,F,UV,none,none} || {F,UV} <- lists:zip(Body, UVs)],
+    [spiral_cap(CapB, {0.375,0.125}, Vt, Factor),
+     spiral_cap(CapA, {0.125,0.125}, Vt, Factor) | BodyUV].
+
+spiral_uv_fun(Vs, Ns, Nl2) ->
+    Vt = list_to_tuple(Vs),
+    Pos = fun(K, N) ->
+              element(N + (K rem Nl2)*Ns + 1, Vt)
+          end,
+    {Cum, Lv} = wings_shapes_uv:lengths(Pos, Nl2, Ns, false),
+    Total = element(Ns, Cum),
+    Mid = Total / 2,
+    Cuts = [{abs(element(I+1, Cum) - Mid), I} || I <- lists:seq(1, Ns-2)],
+    {_, Half} = lists:min(Cuts),
+    LenA = element(Half+1, Cum),
+    LenB = Total - LenA,
+    Gap = 0.01,
+    Scale = min(1.0 / max(LenA, LenB), (0.75 - Gap) / (2*Lv)),
+    UvFun =
+        fun(I, J) ->
+            {Start, Len, Base} =
+                case I < Half of
+                    true -> {0.0, LenA, 0.25};
+                    false -> {LenA, LenB, 0.25 + Lv*Scale + Gap}
+                end,
+            U0 = (Len - (element(I+1, Cum) - Start)) * Scale,
+            U1 = (Len - (element(I+2, Cum) - Start)) * Scale,
+            V0 = Base + (J/Nl2) * Lv * Scale,
+            V1 = Base + ((J+1)/Nl2) * Lv * Scale,
+            [{U1,V0},{U0,V0},{U0,V1},{U1,V1}]
+        end,
+    {UvFun, Scale}.
+
+spiral_cap(Idx, Center, Vt, Factor) ->
+    Ps = [element(V+1, Vt) || V <- Idx],
+    R = min(0.12, wings_shapes_uv:cap_radius(Ps, Factor)),
+    wings_shapes_uv:cap_face(Idx, Center, R).
 
 spiral_circle(N, Y, R, D, L) ->
     Delta= pi()*2 / N,

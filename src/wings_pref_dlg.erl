@@ -156,6 +156,8 @@ advanced_prefs() ->
        [{info,?__(9,"Don't show the selection when the camera is being moved")}]},
       {?__(54,"Extend selection via hotkey on temporary highlight"),hilite_select,
 	   [{info,?__(55,"Affects: Select All, Edge Loop, Edge Ring, Select Similar, Similar Normals, Similar Materials, and Similar Area.")}]},
+      {?__(56,"Create UV coordinates for new primitives"),primitive_uv,
+       [{info,?__(57,"Default state of the Create UV coordinates option in the primitive dialogs")}]},
      {vframe,
        [{label_column,
      [{?__(14,"Length"),active_vector_size,

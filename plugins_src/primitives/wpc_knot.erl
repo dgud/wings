@@ -45,6 +45,7 @@ make_knot(Arg, _) ->
     Mov_Y = dict:fetch(mov_y, ArgDict),
     Mov_Z = dict:fetch(mov_z, ArgDict),
     Ground = dict:fetch(ground, ArgDict),
+    CreateUV = dict:fetch(create_uv, ArgDict),
 
     case TypeFlag of
 	knot2 -> Knot_Func = fun knot2/1;
@@ -56,7 +57,7 @@ make_knot(Arg, _) ->
     Vres = Ures div 10,
     Verts = make_verts(Ures, Vres, Knot_Func),
     Vs = wings_shapes:transform_obj({Rot_X,Rot_Y,Rot_Z},{Mov_X,Mov_Y,Mov_Z},Ground, Verts),
-    Faces = make_faces(Ures, Vres),
+    Faces = uv_faces(CreateUV, make_faces(Ures, Vres), Ures, Vres, Vs),
     {new_shape,"knot",Faces,Vs}.
 
 dialog() ->
@@ -70,6 +71,7 @@ dialog() ->
 	       {"Type 3", knot3},
 	       {"Type 4", knot4}],
 	       TypeFlag, [{key,typeflag}, {title, "Knot Type"}]},
+     wings_shapes_uv:create_uv_dlg(),
      wings_shapes:transform_obj_dlg()
     ].
 
@@ -114,6 +116,37 @@ make_faces(Ures, Vres) ->
 	[Idx1,Idx2,Idx3,Idx4]
     end,
     [Make_Face(I,J) || I <- Us, J <- Vs].
+
+uv_faces(false, Fs, _, _, _) -> Fs;
+uv_faces(true, Fs, Ures, Vres, Vs) ->
+    Vt = list_to_tuple(Vs),
+    Pos = fun(K, N) ->
+              element((N rem Ures)*Vres + (K rem Vres) + 1, Vt)
+          end,
+    {Cum, Lv} = wings_shapes_uv:lengths(Pos, Vres, Ures, true),
+    Total = element(Ures+1, Cum),
+    Mid = Total / 2,
+    Cuts = [{abs(element(I+1, Cum) - Mid), I} || I <- lists:seq(1, Ures-1)],
+    {_, Half} = lists:min(Cuts),
+    LenA = element(Half+1, Cum),
+    LenB = Total - LenA,
+    Gap = 0.01,
+    Scale = min(1.0 / max(LenA, LenB), (1.0 - Gap) / (2*Lv)),
+    Make_UV =
+        fun(I,J) ->
+            {Start, Len, Base} =
+                case I < Half of
+                    true -> {0.0, LenA, 0.0};
+                    false -> {LenA, LenB, Lv*Scale + Gap}
+                end,
+            U0 = (Len - (element(I+1, Cum) - Start)) * Scale,
+            U1 = (Len - (element(I+2, Cum) - Start)) * Scale,
+            V0 = Base + (J/Vres) * Lv * Scale,
+            V1 = Base + ((J+1)/Vres) * Lv * Scale,
+            [{U0,V1},{U1,V1},{U1,V0},{U0,V0}]
+        end,
+    UVs = [Make_UV(I,J) || I <- lists:seq(0, Ures-1), J <- lists:seq(0, Vres-1)],
+    [{default,F,UV,none,none} || {F,UV} <- lists:zip(Fs, UVs)].
 
 knot1(T) ->
     X = math:cos(T) - 2*math:cos(2*T),

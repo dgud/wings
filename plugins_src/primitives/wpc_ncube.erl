@@ -61,12 +61,14 @@ make_ncube(Arg, _) ->
     Ground = dict:fetch(ground, ArgDict),
 
     SpherizeFlag = dict:fetch(spherizeflag, ArgDict),
+    CreateUV = dict:fetch(create_uv, ArgDict),
     Verts = ncube_verts(Xres+1, Yres+1, Zres+1),
     Faces = ncube_faces(Xres+1, Yres+1, Zres+1),
     {Vs0, Fs} = clean_indexed_mesh(Verts, Faces),
     Vs1 = transform_mesh(SpherizeFlag, {X,Y,Z}, Vs0),
+    FsUv = ncube_uv_faces(CreateUV, SpherizeFlag, Vs0, Fs, {X,Y,Z}),
     Vs = wings_shapes:transform_obj({Rot_X,Rot_Y,Rot_Z},{Mov_X,Mov_Y,Mov_Z},Ground, Vs1),
-    {new_shape,cube_str(),Fs,Vs}.
+    {new_shape,cube_str(),FsUv,Vs}.
 
 ncube_dialog() ->
     Xres = get_pref(xres, 1),
@@ -95,6 +97,7 @@ ncube_dialog() ->
         {hradio,[{?__(2,"Yes"), true},
                  {?__(3,"No"), false}],
                 SpherizeFlag, [{key,spherizeflag}, {title, ?__(4,"Spherize")}]},
+        wings_shapes_uv:create_uv_dlg(),
         wings_shapes:transform_obj_dlg()
     ],[{margin,false}]}].
 
@@ -174,6 +177,7 @@ make_ngon(Arg, _) ->
     NumVerts = dict:fetch(numverts, ArgDict),
     Radius0 = dict:fetch(radius, ArgDict),
     DistType = dict:fetch(dist_type, ArgDict),
+    CreateUV = dict:fetch(create_uv, ArgDict),
     Radius =
         case DistType of
             radius -> Radius0;
@@ -194,7 +198,7 @@ make_ngon(Arg, _) ->
 
     Vs1 = ngon_verts(NumVerts, Radius),
     Vs = wings_shapes:transform_obj({Rot_X,Rot_Y,Rot_Z},{Mov_X,Mov_Y,Mov_Z},Ground, Vs1),
-    Fs = ngon_faces(NumVerts),
+    Fs = ngon_uv_faces(CreateUV, Vs1, ngon_faces(NumVerts)),
     {new_shape,?__(2,"N-Gon"),Fs,Vs}.
 
 ngon_dialog() ->
@@ -216,6 +220,7 @@ ngon_dialog() ->
                 {?__(4,"Value"), {slider, {text, Radius, [{key, radius}, {range, {0.1, 50.0}}]}}}]
             }
         ],[{title,?__(5,"Perimeter Computed by")},{margin,false}]},
+         wings_shapes_uv:create_uv_dlg(),
          wings_shapes:transform_obj_dlg()]
     }].
 
@@ -232,6 +237,59 @@ ngon_faces(NumVerts) ->
     TopFaces = lists:reverse(BotFaces),
     Faces = [TopFaces, BotFaces],
     Faces.
+
+%% UV layout: the sides are unfolded like an opened box with the real
+%% proportions of the box, from the positions of the cube before the spherize
+%% and the sizes. With the spherize each side is an island of the azimuthal
+%% projection around its center, and the six islands are packed.
+ncube_uv_faces(false, _, _, Fs, _) -> Fs;
+ncube_uv_faces(true, false, Vs, Fs, Sizes) ->
+    Vt = list_to_tuple(Vs),
+    Scale = wings_shapes_uv:cross_scale(Sizes),
+    CalcUV =
+        fun(Ps) ->
+            [wings_shapes_uv:cross(cube_side(Ps), P, Sizes, Scale) || P <- Ps]
+        end,
+    [{default,F,CalcUV(Ps),none,none} || F <- Fs, Ps <- [[element(V+1, Vt) || V <- F]]];
+ncube_uv_faces(true, true, Vs, Fs, Sizes) ->
+    Vt = list_to_tuple(Vs),
+    Vp = list_to_tuple(transform_mesh(true, Sizes, Vs)),
+    Side = fun(F) -> cube_side([element(V+1, Vt) || V <- F]) end,
+    Patch = fun(S) -> [F || F <- Fs, Side(F) =:= S] end,
+    Sides = [right, left, top, bottom, front, back],
+    Islands = [wings_shapes_uv:azimuthal(Patch(S), Vp) || S <- Sides],
+    wings_shapes_uv:pack(Fs, Islands).
+
+cube_side(Ps) ->
+    Xs = [X || {X,_,_} <- Ps],
+    Ys = [Y || {_,Y,_} <- Ps],
+    Zs = [Z || {_,_,Z} <- Ps],
+    case {cube_flat(Xs), cube_flat(Ys), cube_flat(Zs)} of
+        {true,_,_} when hd(Xs) > 0 -> right;
+        {true,_,_} -> left;
+        {_,true,_} when hd(Ys) > 0 -> top;
+        {_,true,_} -> bottom;
+        {_,_,true} when hd(Zs) > 0 -> front;
+        {_,_,true} -> back
+    end.
+
+cube_flat(Cs) ->
+    Min = lists:min(Cs),
+    Max = lists:max(Cs),
+    ((Max-Min) < ?EPSILON) andalso (abs(Max) > (1.0-?EPSILON)).
+
+%% UV layout of the N-Gon: the top and the bottom side by side with the
+%% real size.
+ngon_uv_faces(false, _, Fs) -> Fs;
+ngon_uv_faces(true, Vs, [Top,Bot]) ->
+    Vt = list_to_tuple(Vs),
+    Rs = [max(abs(X), abs(Z)) || {X,_,Z} <- Vs],
+    R = lists:max(Rs),
+    Gap = 0.08 * R,
+    Scale = 1.0 / (4*R + Gap),
+    TopUv = [{(X+R)*Scale, (R-Z)*Scale} || V <- Top, {X,_,Z} <- [element(V+1, Vt)]],
+    BotUv = [{(X+3*R+Gap)*Scale, (Z+R)*Scale} || V <- Bot, {X,_,Z} <- [element(V+1, Vt)]],
+    [{default,Top,TopUv,none,none}, {default,Bot,BotUv,none,none}].
 
 clean_indexed_mesh(Verts, Faces) ->
     Raw = e3d_util:indexed_to_raw(Verts, Faces),
