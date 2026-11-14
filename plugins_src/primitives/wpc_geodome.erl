@@ -48,13 +48,100 @@ make_geodome(Arg, _) ->
     Mov_Y = dict:fetch(mov_y, ArgDict),
     Mov_Z = dict:fetch(mov_z, ArgDict),
     Ground = dict:fetch(ground, ArgDict),
+    CreateUV = dict:fetch(create_uv, ArgDict),
 
-    {Verts, Faces} = geodome_main(Resolution, AlgorithmFlag, BaseFlag, SpherizeFlag, DomeFlag),
+    {Verts, Faces0} = geodome_main(Resolution, AlgorithmFlag, BaseFlag, SpherizeFlag, DomeFlag),
     Vs = wings_shapes:transform_obj({Rot_X,Rot_Y,Rot_Z},{Mov_X,Mov_Y,Mov_Z},Ground, Verts),
     [H|_] = atom_to_list(AlgorithmFlag),
     Name = ?__(2,":GeoDome"),
     ObjName = lists:concat([[H-32], Resolution, Name]),
+    Base = {base_shape(BaseFlag, DomeFlag), base_shape(BaseFlag, false)},
+    Faces = geodome_uv_faces(CreateUV, SpherizeFlag, Faces0, Verts, Base),
     {new_shape, ObjName, Faces, Vs}.
+
+%% UV layout: a flat geodome is unfolded like the polyhedron, its coplanar
+%% faces together; a spherized one is cut along the edges of the regular
+%% polyhedron, its faces in pairs across their most horizontal edge when the
+%% pair fits in a hemisphere, each piece projected around its center. The
+%% faces of the inside of a dome make pieces of their own.
+geodome_uv_faces(false, _, Fs, _, _) -> Fs;
+geodome_uv_faces(true, false, Fs, Vs, _) ->
+    wings_shapes_uv:pack(Fs, wings_shapes_uv:unfold(Fs, list_to_tuple(Vs)));
+geodome_uv_faces(true, true, Fs, Vs, {{BaseVs, BaseFs}, {RegVs, RegFs}}) ->
+    Vt = list_to_tuple(Vs),
+    FsT = list_to_tuple(Fs),
+    K = length(Fs) div length(BaseFs),
+    Piece = fun(I) -> [element(I*K + J + 1, FsT) || J <- lists:seq(0, K-1)] end,
+    Regions = base_regions(BaseVs, BaseFs, RegVs, RegFs),
+    Groups = base_groups(RegVs, RegFs),
+    Keys = lists:usort([{G, Out} || {{R, Out}, _} <- maps:to_list(Regions), G <- Groups, lists:member(R, G)]),
+    Faces =
+        fun({G, Out}) ->
+            lists:append([Piece(I) || R <- G, I <- maps:get({R, Out}, Regions, [])])
+        end,
+    Islands = [wings_shapes_uv:azimuthal(Faces(Key), Vt) || Key <- Keys],
+    wings_shapes_uv:pack(Fs, Islands).
+
+%% The faces of the subdivision come in the order of the base faces, so each
+%% base face is an index. The regions are the base faces by the face of the
+%% regular polyhedron they look at and by the side they look to:
+%% #{{RegularFace, Outwards} => [BaseFace]}.
+base_regions(BaseVs, BaseFs, RegVs, RegFs) ->
+    Centers = list_to_tuple([e3d_vec:norm(e3d_vec:average(Ps)) || Ps <- base_points(RegVs, RegFs)]),
+    Nearest =
+        fun(C) ->
+            {_, R} = lists:max([{e3d_vec:dot(C, element(R+1, Centers)), R} || R <- lists:seq(0, tuple_size(Centers)-1)]),
+            R
+        end,
+    Add =
+        fun({I, Ps}, Map) ->
+            C = e3d_vec:norm(e3d_vec:average(Ps)),
+            Key = {Nearest(C), e3d_vec:dot(e3d_vec:normal(Ps), C) > 0},
+            Map#{Key => maps:get(Key, Map, []) ++ [I]}
+        end,
+    lists:foldl(Add, #{}, lists:zip(lists:seq(0, length(BaseFs)-1), base_points(BaseVs, BaseFs))).
+
+base_points(Vs, Fs) ->
+    Vt = list_to_tuple(Vs),
+    [[element(V+1, Vt) || V <- F] || F <- Fs].
+
+%% The faces of the regular polyhedron in pairs: [[I,J]] or [[I]].
+base_groups(Vs, Fs) ->
+    Vt = list_to_tuple(Vs),
+    Infos = list_to_tuple([{F, e3d_vec:norm(e3d_vec:average(Ps))} || {F, Ps} <- lists:zip(Fs, base_points(Vs, Fs))]),
+    Pair =
+        fun(I, {Used, Acc}) ->
+            case gb_sets:is_member(I, Used) of
+                true -> {Used, Acc};
+                false -> base_pair(I, Infos, Vt, Used, Acc)
+            end
+        end,
+    {_, Groups} = lists:foldl(Pair, {gb_sets:empty(), []}, lists:seq(0, length(Fs)-1)),
+    lists:reverse(Groups).
+
+base_pair(I, Infos, Vt, Used, Acc) ->
+    {F, Center} = element(I+1, Infos),
+    Edges = lists:zip(F, tl(F) ++ [hd(F)]),
+    Level = fun({A, B}) -> abs(element(2, element(A+1, Vt)) - element(2, element(B+1, Vt))) end,
+    Candidates = [{Level(E), J} || E <- Edges, J <- base_neighbors(E, Infos),
+                                  J =/= I, not gb_sets:is_member(J, Used),
+                                  base_fits(Center, element(J+1, Infos), Vt)],
+    case lists:sort(Candidates) of
+        [{_, J}|_] -> {gb_sets:add(J, gb_sets:add(I, Used)), [[I, J] | Acc]};
+        [] -> {gb_sets:add(I, Used), [[I] | Acc]}
+    end.
+
+base_neighbors({A, B}, Infos) ->
+    [J || J <- lists:seq(0, tuple_size(Infos)-1),
+          {F, _} <- [element(J+1, Infos)],
+          lists:member(A, F), lists:member(B, F)].
+
+%% Every vertex of the pair is within a quarter of a turn from the mean of
+%% the centers of the two faces.
+base_fits(Center, {F, Center2}, Vt) ->
+    Mean = e3d_vec:norm(e3d_vec:add(Center, Center2)),
+    Ds = [e3d_vec:dot(e3d_vec:norm(element(V+1, Vt)), Mean) || V <- F],
+    lists:min(Ds) > -?EPSILON.
 
 dialog() ->
     BaseFlag = get_pref(baseflag, icosahedron),
@@ -79,14 +166,11 @@ dialog() ->
 	       SpherizeFlag,
 	       [{key,spherizeflag}, {title, ?__(11,"Spherize")}]},
      {?__(12,"Generate Half-Dome"), DomeFlag, [{key, domeflag}]},
+     wings_shapes_uv:create_uv_dlg(),
      wings_shapes:transform_obj_dlg()].
 
 geodome_main(Resolution, AlgorithmFlag, BaseFlag, SpherizeFlag, DomeFlag) ->
-    case BaseFlag of
-	octahedron  -> {Verts, Faces} = octahedron(DomeFlag);
-	icosahedron -> {Verts, Faces} = icosahedron(DomeFlag);
-	tetrahedron -> {Verts, Faces} = tetrahedron(DomeFlag)
-    end,
+    {Verts, Faces} = base_shape(BaseFlag, DomeFlag),
     RawTriangles1 = e3d_util:indexed_to_raw(Verts, Faces),
     case AlgorithmFlag of
 	frequency ->
@@ -102,6 +186,10 @@ geodome_main(Resolution, AlgorithmFlag, BaseFlag, SpherizeFlag, DomeFlag) ->
 	false -> Vs2 = Vs
     end,
     {Vs2, Fs}.
+
+base_shape(octahedron, DomeFlag) -> octahedron(DomeFlag);
+base_shape(icosahedron, DomeFlag) -> icosahedron(DomeFlag);
+base_shape(tetrahedron, DomeFlag) -> tetrahedron(DomeFlag).
 
 icosahedron(false) ->
     H = math:sqrt(1/5),

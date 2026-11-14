@@ -12,7 +12,7 @@
 %%
 
 -module(wings_shapes_uv).
--export([create_uv_dlg/0,layout/3,unfold/2,spherical/2,island/2,pack/2,fan/2,
+-export([create_uv_dlg/0,layout/3,unfold/2,azimuthal/2,island/2,pack/2,fan/2,
          lengths/4,cap_radius/2,cap_face/3,cross_scale/1,cross/4]).
 
 -include("wings.hrl").
@@ -30,8 +30,8 @@
 %%% cap_radius/2 and cap_face/3 draw a cap as a regular polygon with the area
 %%% of the real one, and cross_scale/1 and cross/4 unfold a box like an opened
 %%% box (a cross with the front in the middle); unfold/2 unfolds a mesh of
-%%% flat faces into islands; spherical/2 maps a mesh around the origin on the
-%%% equirectangular map; island/2 and pack/2 move the islands of a layout
+%%% flat faces into islands; azimuthal/2 projects a patch of a sphere around
+%%% its center; island/2 and pack/2 move the islands of a layout
 %%% of their own to the origin and place them side by side in 0..1, and fan/2
 %%% unfolds the triangles around an apex as a sector.
 %%% create_uv_dlg/0 is the dialog item that lets the user choose whether the
@@ -312,68 +312,122 @@ fan(Apex, [P0|_]=Ps) ->
     Tris.
 
 %% unfold(Fs, Vt) -> [{Fs1,Uvs1,W,H}]
-%%  Unfolds a mesh of flat faces into islands: each face is attached to a
-%%  placed neighbor through their common edge, breadth first from the first
-%%  face, and a face that would overlap the island is left for another
-%%  neighbor or for a new island.
+%%  Unfolds a mesh of flat faces into islands. The coplanar faces are grouped
+%%  as one piece; each piece is attached to a placed neighbor through a
+%%  common edge, breadth first from the first piece, and a piece that would
+%%  overlap the island is left for another neighbor or for a new island.
 unfold(Fs, Vt) ->
     FsT = list_to_tuple(Fs),
-    Edges = edge_map(Fs),
-    unfold_islands(lists:seq(1, tuple_size(FsT)), FsT, Vt, Edges, []).
+    Pieces = list_to_tuple(pieces(FsT, Vt)),
+    Edges = edge_map(Pieces, FsT),
+    Ctx = {Pieces, FsT, Vt, Edges},
+    unfold_islands(lists:seq(1, tuple_size(Pieces)), Ctx, []).
 
-unfold_islands([], _, _, _, Acc) ->
+unfold_islands([], _, Acc) ->
     lists:reverse(Acc);
-unfold_islands([Root|Rest], FsT, Vt, Edges, Acc) ->
-    [P,Q|_] = Ps = face_points(element(Root, FsT), Vt),
-    Root2 = place_face(Ps, {P, Q}, {{0.0,0.0}, {e3d_vec:dist(P, Q), 0.0}}),
-    Placed = unfold_bfs([Root], #{Root => Root2}, FsT, Vt, Edges),
+unfold_islands([Root|Rest], {Pieces, FsT, Vt, _}=Ctx, Acc) ->
+    {_, [P,Q|_]} = element(Root, Pieces),
+    Anchor = {{P, Q}, {{0.0,0.0}, {e3d_vec:dist(P, Q), 0.0}}},
+    Placed = unfold_bfs([Root], #{Root => Anchor}, Ctx),
     Ids = lists:sort(maps:keys(Placed)),
-    Island = island([element(I, FsT) || I <- Ids], [maps:get(I, Placed) || I <- Ids]),
-    unfold_islands(Rest -- Ids, FsT, Vt, Edges, [Island|Acc]).
+    Members = [{F, maps:get(Id, Placed)} || Id <- Ids, F <- element(1, element(Id, Pieces))],
+    Uvs = [place_face(face_points(element(F, FsT), Vt), P3, P2) || {F, {P3, P2}} <- Members],
+    Island = island([element(F, FsT) || {F, _} <- Members], Uvs),
+    unfold_islands(Rest -- Ids, Ctx, [Island|Acc]).
 
-unfold_bfs([], Placed, _, _, _) ->
+%% The placed pieces are kept with the anchor of their placement: two of
+%% their points and the positions of these in the plane.
+unfold_bfs([], Placed, _) ->
     Placed;
-unfold_bfs([I|Queue], Placed0, FsT, Vt, Edges) ->
-    F = element(I, FsT),
-    F2 = maps:get(I, Placed0),
-    Corners = lists:zip(F, F2),
-    Pairs = lists:zip(Corners, tl(Corners) ++ [hd(Corners)]),
+unfold_bfs([I|Queue], Placed0, {Pieces, FsT, Vt, Edges}=Ctx) ->
+    {Members, _} = element(I, Pieces),
+    {P3, P2} = maps:get(I, Placed0),
+    Outline = fun(J) -> {_, Hull} = element(J, Pieces), Hull end,
+    Placed2D = [place_face(Outline(J), JP3, JP2) || {J, {JP3, JP2}} <- maps:to_list(Placed0)],
     Attach =
-        fun({{A,A2},{B,B2}}, {Placed, New}) ->
+        fun({A, B, A2, B2}, {Placed, New}) ->
             case neighbor(A, B, Edges, Placed) of
                 none ->
                     {Placed, New};
                 J ->
-                    Ps = face_points(element(J, FsT), Vt),
-                    G2 = place_face(Ps, {point(B, element(J, FsT), Ps), point(A, element(J, FsT), Ps)}, {B2, A2}),
-                    case overlaps(G2, maps:values(Placed)) of
+                    PA = element(A+1, Vt),
+                    PB = element(B+1, Vt),
+                    Hull2 = place_face(Outline(J), {PB, PA}, {B2, A2}),
+                    case overlaps(Hull2, Placed2D) of
                         true -> {Placed, New};
-                        false -> {Placed#{J => G2}, New ++ [J]}
+                        false -> {Placed#{J => {{PB, PA}, {B2, A2}}}, New ++ [J]}
                     end
             end
         end,
-    {Placed1, New} = lists:foldl(Attach, {Placed0, []}, Pairs),
-    unfold_bfs(Queue ++ New, Placed1, FsT, Vt, Edges).
+    EdgeList = [E || F <- Members, E <- face_edges(element(F, FsT), Vt, P3, P2)],
+    {Placed1, New} = lists:foldl(Attach, {Placed0, []}, EdgeList),
+    unfold_bfs(Queue ++ New, Placed1, Ctx).
+
+face_edges(F, Vt, P3, P2) ->
+    F2 = place_face(face_points(F, Vt), P3, P2),
+    Corners = lists:zip(F, F2),
+    [{A, B, A2, B2} || {{A,A2},{B,B2}} <- lists:zip(Corners, tl(Corners) ++ [hd(Corners)])].
 
 face_points(F, Vt) ->
     [element(V+1, Vt) || V <- F].
 
-point(V, F, Ps) ->
-    element(index_of(V, F), list_to_tuple(Ps)).
-
-index_of(V, [V|_]) -> 1;
-index_of(V, [_|T]) -> 1 + index_of(V, T).
-
-edge_map(Fs) ->
-    Add =
-        fun({I, F}, Map) ->
-            Es = lists:zip(F, tl(F) ++ [hd(F)]),
-            lists:foldl(fun({A, B}, M) ->
-                            Key = {min(A, B), max(A, B)},
-                            M#{Key => [I | maps:get(Key, M, [])]}
-                        end, Map, Es)
+%% The pieces of coplanar faces: {Members, Hull}, the members as indexes in
+%% FsT and the hull as the points of their convex outline.
+pieces(FsT, Vt) ->
+    Key =
+        fun(I) ->
+            Ps = face_points(element(I, FsT), Vt),
+            N = e3d_vec:normal(Ps),
+            D = e3d_vec:dot(N, hd(Ps)),
+            {round_key(N), round(D*1.0e4)}
         end,
-    lists:foldl(Add, #{}, lists:zip(lists:seq(1, length(Fs)), Fs)).
+    Groups = lists:foldl(fun(I, Map) ->
+                             K = Key(I),
+                             Map#{K => [I | maps:get(K, Map, [])]}
+                         end, #{}, lists:seq(1, tuple_size(FsT))),
+    [{lists:reverse(Is), hull(Is, FsT, Vt)} || {_, Is} <- lists:sort(maps:to_list(Groups))].
+
+round_key({X,Y,Z}) ->
+    {round(X*1.0e4), round(Y*1.0e4), round(Z*1.0e4)}.
+
+%% The convex outline of the faces Is, which are coplanar, as 3D points in
+%% counterclockwise order seen from outside.
+hull([I|_]=Is, FsT, Vt) ->
+    [P0,P1|_] = Ps0 = face_points(element(I, FsT), Vt),
+    Ex = e3d_vec:norm_sub(P1, P0),
+    Ey = e3d_vec:cross(e3d_vec:normal(Ps0), Ex),
+    Ps = lists:usort(lists:append([face_points(element(J, FsT), Vt) || J <- Is])),
+    Flat = lists:sort([{e3d_vec:dot(e3d_vec:sub(P, P0), Ex), e3d_vec:dot(e3d_vec:sub(P, P0), Ey), P} || P <- Ps]),
+    Lower = chain(Flat, []),
+    Upper = chain(lists:reverse(Flat), []),
+    [P || {_,_,P} <- tl(Lower) ++ tl(Upper)].
+
+%% Andrew's monotone chain: the points sorted, keeping only left turns.
+chain([], Acc) ->
+    lists:reverse(Acc);
+chain([P|Rest], [B,A|Acc0]=Acc) ->
+    case turn(A, B, P) =< 0.0 of
+        true -> chain([P|Rest], [A|Acc0]);
+        false -> chain(Rest, [P|Acc])
+    end;
+chain([P|Rest], Acc) ->
+    chain(Rest, [P|Acc]).
+
+turn({Ax,Ay,_}, {Bx,By,_}, {Px,Py,_}) ->
+    (Bx-Ax)*(Py-Ay) - (By-Ay)*(Px-Ax).
+
+edge_map(Pieces, FsT) ->
+    Add =
+        fun({J, {Members, _}}, Map0) ->
+            lists:foldl(fun(I, Map) ->
+                            F = element(I, FsT),
+                            lists:foldl(fun({A, B}, M) ->
+                                            Key = {min(A, B), max(A, B)},
+                                            M#{Key => [J | maps:get(Key, M, [])]}
+                                        end, Map, lists:zip(F, tl(F) ++ [hd(F)]))
+                        end, Map0, Members)
+        end,
+    lists:foldl(Add, #{}, lists:zip(lists:seq(1, tuple_size(Pieces)), tuple_to_list(Pieces))).
 
 neighbor(A, B, Edges, Placed) ->
     Others = [J || J <- maps:get({min(A, B), max(A, B)}, Edges, []),
@@ -422,50 +476,36 @@ perimeter(P) ->
     Ls = [math:sqrt((X1-X2)*(X1-X2) + (Y1-Y2)*(Y1-Y2)) || {{X1,Y1},{X2,Y2}} <- lists:zip(P, tl(P) ++ [hd(P)])],
     lists:sum(Ls).
 
-%% spherical(Fs, Vt) -> [{Fs1,Uvs1,W,H}]
-%%  The equirectangular map of the directions of the vertices from the
-%%  origin, with the length of the equator as width, the faces across the
-%%  seam and at the poles being fixed. A face that wraps around a pole does
-%%  not fit the map, so it is projected as an island of its own.
-spherical(Fs, Vt) ->
+%% azimuthal(Fs, Vt) -> {Fs,Uvs,W,H}
+%%  The azimuthal equidistant projection of the faces of a patch of a sphere
+%%  around the mean direction of their vertices: the distances from the
+%%  center of the patch are kept and the directions around it too.
+azimuthal(Fs, Vt) ->
     Points = fun(F) -> [element(V+1, Vt) || V <- F] end,
-    Ls = [e3d_vec:len(P) || F <- Fs, P <- Points(F)],
+    Ps = lists:append([Points(F) || F <- Fs]),
+    Dirs = [e3d_vec:norm(P) || P <- Ps],
+    C = e3d_vec:norm(e3d_vec:add(Dirs)),
+    Ls = [e3d_vec:len(P) || P <- Ps],
     LSum = lists:sum(Ls),
     R = LSum / length(Ls),
-    Mapped = [{F, sphere_face([e3d_vec:norm(P) || P <- Points(F)], R)} || F <- Fs],
-    Good = [{F, Uvs} || {F, {ok, Uvs}} <- Mapped],
-    Wrapped = [island([F], [[{X,-Z} || {X,_,Z} <- Points(F)]]) || {F, wraps} <- Mapped],
-    case Good of
-        [] -> Wrapped;
-        _ -> [island([F || {F,_} <- Good], [Uvs || {_,Uvs} <- Good]) | Wrapped]
+    Up = case abs(element(2, C)) > 0.9 of
+             true -> {0.0,0.0,1.0};
+             false -> {0.0,1.0,0.0}
+         end,
+    E1 = e3d_vec:norm(e3d_vec:sub(Up, e3d_vec:mul(C, e3d_vec:dot(Up, C)))),
+    E2 = e3d_vec:cross(E1, C),
+    Frame = {C, E1, E2, R},
+    island(Fs, [[azimuthal_uv(e3d_vec:norm(P), Frame) || P <- Points(F)] || F <- Fs]).
+
+azimuthal_uv(D, {C, E1, E2, R}) ->
+    Theta = math:acos(max(-1.0, min(1.0, e3d_vec:dot(D, C)))),
+    A = e3d_vec:dot(D, E2),
+    B = e3d_vec:dot(D, E1),
+    L = math:sqrt(A*A + B*B),
+    case L < ?EPSILON of
+        true -> {0.0, 0.0};
+        false -> {R*Theta*A/L, R*Theta*B/L}
     end.
-
-sphere_face(Ps, R) ->
-    Half = R*math:pi(),
-    Uvs = [{Half + R*math:atan2(X, Z), Half/2 + R*math:asin(max(-1.0, min(1.0, Y)))}
-           || {X,Y,Z} <- Ps],
-    Us = [U || {{U,_}, {_,Y,_}} <- lists:zip(Uvs, Ps), abs(Y) < 1.0 - ?EPSILON],
-    case Us of
-        [] -> wraps;
-        _ -> sphere_face(Ps, Uvs, Us, Half)
-    end.
-
-sphere_face(Ps, Uvs, Us, Half) ->
-    Seam = (lists:max(Us) - lists:min(Us)) > Half,
-    Fixed = [seam_u(U, Seam, Half) || U <- Us],
-    Span = lists:max(Fixed) - lists:min(Fixed),
-    FSum = lists:sum(Fixed),
-    UMid = FSum / length(Fixed),
-    case Span > Half of
-        true -> wraps;
-        false -> {ok, [sphere_uv(Uv, P, Seam, Half, UMid) || {Uv, P} <- lists:zip(Uvs, Ps)]}
-    end.
-
-sphere_uv({_, V}, {_,Y,_}, _, _, UMid) when abs(Y) >= 1.0 - ?EPSILON -> {UMid, V};
-sphere_uv({U, V}, _, Seam, Half, _) -> {seam_u(U, Seam, Half), V}.
-
-seam_u(U, true, Half) when U < Half -> U + 2*Half;
-seam_u(U, _, _) -> U.
 
 %% Moves the island to the origin and mirrors it when it is turned over.
 island(Fs, Uvs0) ->
