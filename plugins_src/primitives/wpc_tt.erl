@@ -138,17 +138,18 @@ make_text(Ask, St) when is_atom(Ask) ->
                  {slider,{text,Bisect,[{key,{wpc_tt,bisections}},{range,{0,4}}]}}},
 		{?__(3,"TrueType font"),
                  {fontpicker,FontInfo,[{key,{wpc_tt,font}}]}}]},
+            wings_shapes_uv:create_uv_dlg(),
 	    wings_shapes:transform_obj_dlg()
 	],[{margin,false}]
 	 }],
-    Fun = fun({dialog_preview,[T,N,{_,Ctrl},RX,RY,RZ,MX,MY,MZ,Grnd]=_Res}) ->
+    Fun = fun({dialog_preview,[T,N,{_,Ctrl},UV,RX,RY,RZ,MX,MY,MZ,Grnd]=_Res}) ->
                   {NewFontI, FPath} = find_font_file(GbtFonts,Ctrl),
                   Size = maps:get(size, NewFontI),
                   {preview,{shape,{text,[T,N,{fontdir,FPath},
-                                         Size,RX,RY,RZ,MX,MY,MZ,Grnd]}},St};
+                                         Size,UV,RX,RY,RZ,MX,MY,MZ,Grnd]}},St};
              (cancel) ->
                   St;
-             ([T,N,{_,WxFont},RX,RY,RZ,MX,MY,MZ,Grnd]=_Res) when is_tuple(WxFont) ->
+             ([T,N,{_,WxFont},UV,RX,RY,RZ,MX,MY,MZ,Grnd]=_Res) when is_tuple(WxFont) ->
                   {NewFontI, FPath} = find_font_file(GbtFonts,WxFont),
                   Size = maps:get(size, NewFontI),
                   case FPath of
@@ -159,14 +160,14 @@ make_text(Ask, St) when is_atom(Ask) ->
                           wpa:pref_set(wpc_tt, text, element(2,T)),
                           wpa:pref_set(wpc_tt, bisections, element(2,N)),
                           {commit,{shape,{text,[T,N,{fontdir,FPath},
-                                                Size,RX,RY,RZ,MX,MY,MZ,Grnd]}},St}
+                                                Size,UV,RX,RY,RZ,MX,MY,MZ,Grnd]}},St}
                   end
           end,
     wings_dialog:dialog(Ask,?__(1,"Create Text"), {preview, Dlg}, Fun);
 
-make_text([{_,T},{_,N},{_,FontFile}, Size|Transf], _) ->
+make_text([{_,T},{_,N},{_,FontFile}, Size, {_,CreateUV}|Transf], _) ->
     %% Assuming 10 ppi is 2 w.u. which the other primitives are
-    gen(FontFile, T, N, Size*0.25, Transf).
+    gen(FontFile, T, N, Size*0.25, CreateUV, Transf).
 
 help_button() ->
     Title = ?__(1,"Select font"),
@@ -178,20 +179,20 @@ help() ->
          "and they must be installed in the standard operating system\n"
          "directories for fonts.")].
 
-gen(_FontFile, "", _Nsubsteps, _, _Transf) ->
+gen(_FontFile, "", _Nsubsteps, _, _, _Transf) ->
     keep;
-gen({FName,{{error, Reason, _}, _Idx}}, _, _, _, _) ->
+gen({FName,{{error, Reason, _}, _Idx}}, _, _, _, _, _) ->
     Msg = ?__(1,"Text: ") ++ FName ++ " " ++ format_error(Reason),
     wpa:error_msg(Msg);
-gen({FName,undefined}, _, _, _, _) ->
+gen({FName,undefined}, _, _, _, _, _) ->
     Msg = ?__(2,"Text: Failed to locate the TTF file or unknown format: ") ++ FName,
     wpa:error_msg(Msg);
-gen({_FName, {File, Idx}}, Text, Nsubsteps, Size, Transf) ->
+gen({_FName, {File, Idx}}, Text, Nsubsteps, Size, CreateUV, Transf) ->
     try trygen(File, Text, Idx, Nsubsteps, Size) of
-	{new_shape,Name,Fs0,Vs0,He} ->
+	{new_shape,Name,Fs0,Vs0,He,Parts} ->
 	    Vs = wings_shapes:transform_obj(Transf, Vs0),
-	    Fs = [#e3d_face{vs=Vsidx} || Vsidx <- Fs0],
-	    Mesh = #e3d_mesh{type=polygon, vs=Vs, fs=Fs, he=He},
+	    {Fs, Tx} = text_faces(CreateUV, Fs0, Vs0, Parts),
+	    Mesh = #e3d_mesh{type=polygon, vs=Vs, fs=Fs, tx=Tx, he=He},
 	    {new_shape, Name, #e3d_object{obj=Mesh}, []};
         keep ->
             keep
@@ -251,12 +252,12 @@ trygen(File, Text, Idx, Nsubsteps, Size) ->
     TTF = init_font(File, Idx),
     ?DBG("~P~n",[TTF, 20]),
     Pa0 = get_polyareas(Text, TTF, Nsubsteps, Size),
-    {Vs0,Fs,He} = polyareas_to_faces(Pa0),
+    {Vs0,Fs,He,Parts} = polyareas_to_faces(Pa0),
     case Vs0 of
         [_|_] ->
             {CX,_CY,CZ} = e3d_vec:average(tuple_to_list(e3d_bv:box(Vs0))),
             Vs = [{X-CX,Y,Z-CZ} || {X,Y,Z} <- Vs0],
-            {new_shape,"text: " ++ Text,Fs,Vs,He};
+            {new_shape,"text: " ++ Text,Fs,Vs,He,Parts};
         [] ->
             keep
     end.
@@ -326,16 +327,17 @@ polyareas_to_faces(Pas) ->
     VFpairs = map(fun pa2object/1, Pas),
     concatvfs(VFpairs).
 
-concatvfs(Vfp) -> concatvfs(Vfp, 0, [], [], []).
+concatvfs(Vfp) -> concatvfs(Vfp, 0, [], [], [], []).
 
-concatvfs([{Vs,Fs,HardEdges}|Rest], Offset, Vsacc, Fsacc, Hdacc) ->
+concatvfs([{Vs,Fs,HardEdges,Parts}|Rest], Offset, Vsacc, Fsacc, Hdacc, Pacc) ->
     Fs1 = offsetfaces(Fs, Offset),
     He1 = offsetfaces(HardEdges, Offset),
+    Parts1 = [{Kind, offsetfaces(PFs, Offset)} || {Kind, PFs} <- Parts],
     Off1 = Offset + length(Vs),
-    concatvfs(Rest, Off1, [Vs|Vsacc], Fsacc ++ Fs1, He1 ++ Hdacc);
-concatvfs([], _Offset, Vsacc, Fsacc, Hdacc) ->
+    concatvfs(Rest, Off1, [Vs|Vsacc], Fsacc ++ Fs1, He1 ++ Hdacc, Pacc ++ Parts1);
+concatvfs([], _Offset, Vsacc, Fsacc, Hdacc, Pacc) ->
     He = build_hard_edges(Hdacc, []),
-    {flatten(reverse(Vsacc)),Fsacc, He}.
+    {flatten(reverse(Vsacc)),Fsacc, He, Pacc}.
 
 build_hard_edges([[First|_]=Loop|Rest], All) ->
     New = build_hard_edges(Loop, First, All),
@@ -680,6 +682,75 @@ contains(I,J,Art,Lent,Clsd) ->
 	    end
     end.
 
+%%%
+%%% UV layout: the top and the bottom of each glyph are projected, the sides
+%%% of each outline are a strip with the real length, cut at its sharpest
+%%% corners when it is longer than the text, and the islands are packed in
+%%% rows.
+%%%
+
+text_faces(false, Fs, _, _) ->
+    {[#e3d_face{vs=F} || F <- Fs], []};
+text_faces(true, Fs, Vs, Parts) ->
+    Vt = list_to_tuple(Vs),
+    Xs = [X || {X,_,_} <- Vs],
+    MaxLen = lists:max(Xs) - lists:min(Xs),
+    Islands = append([text_islands(Part, Vt, MaxLen) || Part <- Parts]),
+    UvFs = wings_shapes_uv:pack(Fs, Islands),
+    Uvs = lists:usort(append([Uv || {default,_,Uv,_,_} <- UvFs])),
+    Index = maps:from_list(lists:zip(Uvs, seq(0, length(Uvs)-1))),
+    {[#e3d_face{vs=F,tx=[maps:get(Uv, Index) || Uv <- FUvs]} || {default,F,FUvs,_,_} <- UvFs], Uvs}.
+
+text_islands({side, Quads}, Vt, MaxLen) ->
+    Dirs = [e3d_vec:norm_sub(element(B+1, Vt), element(A+1, Vt)) || [A,_,_,B] <- Quads],
+    Lens = [e3d_vec:dist(element(A+1, Vt), element(B+1, Vt)) || [A,_,_,B] <- Quads],
+    Turns = [math:acos(max(-1.0, min(1.0, e3d_vec:dot(D0, D1))))
+             || {D0, D1} <- lists:zip([lists:last(Dirs) | lists:droplast(Dirs)], Dirs)],
+    Items = lists:zip3(Quads, Lens, Turns),
+    [text_strip(Seg, Vt) || Seg <- text_segments(Items, MaxLen)];
+text_islands({_, Fs}, Vt, _) ->
+    [wings_shapes_uv:island(Fs, [[{X,Y} || V <- F, {X,Y,_} <- [element(V+1, Vt)]] || F <- Fs])].
+
+%% The strip of the side quads [Top,Bottom,NextBottom,NextTop] of a run of
+%% consecutive edges, the height being the thickness of the text.
+text_strip(Quads, Vt) ->
+    Lens = [e3d_vec:dist(element(A+1, Vt), element(B+1, Vt)) || [A,_,_,B] <- Quads],
+    {Starts, _} =
+        lists:mapfoldl(fun(L, Acc) ->
+                           {Acc, Acc+L}
+                       end, 0.0, Lens),
+    Uvs = [[{U0,0.2}, {U0,0.0}, {U0+L,0.0}, {U0+L,0.2}] || {U0, L} <- lists:zip(Starts, Lens)],
+    wings_shapes_uv:island(Quads, Uvs).
+
+%% The quads {Quad,Len,Turn} of the loop in runs no longer than MaxLen: the
+%% loop is opened at its sharpest corner and each run is cut at the sharpest
+%% corner it has when it gets too long. Turn is the angle of the outline at
+%% the first corner of the quad.
+text_segments(Items, MaxLen) ->
+    {_, Start} = lists:max([{T, I} || {I, {_, _, T}} <- lists:zip(seq(1, length(Items)), Items)]),
+    {Head, Tail} = lists:split(Start-1, Items),
+    text_segments(Tail ++ Head, MaxLen, 0.0, none, [], []).
+
+text_segments([], _, _, _, [], Acc) ->
+    reverse(Acc);
+text_segments([], _, _, _, Cur, Acc) ->
+    reverse([reverse(Cur) | Acc]);
+text_segments([{Q, L, T}|Rest]=Items, MaxLen, Len, Best, Cur, Acc) ->
+    Long = (Len + L > MaxLen) andalso (Cur =/= []),
+    case {Long, Best} of
+        {true, none} ->
+            text_segments(Items, MaxLen, 0.0, none, [], [reverse(Cur) | Acc]);
+        {true, {_, CurAtBest, ItemsAtBest}} ->
+            text_segments(ItemsAtBest, MaxLen, 0.0, none, [], [reverse(CurAtBest) | Acc]);
+        {false, _} ->
+            Sharper = (Cur =/= []) andalso ((Best =:= none) orelse (T > element(1, Best))),
+            Best1 = case Sharper of
+                        true -> {T, Cur, Items};
+                        false -> Best
+                    end,
+            text_segments(Rest, MaxLen, Len + L, Best1, [Q | Cur], Acc)
+    end.
+
 %% Return {Vs,Fs} where Vs is list of {X,Y,Z} for vertices 0, 1, ...
 %% and Fs is list of lists, each sublist is a face (CCW ordering of
 %% (zero-based) indices into Vs).
@@ -697,8 +768,9 @@ pa2object(#polyarea{boundary=B,islands=Isls}) ->
     FbotQ = e3d__tri_quad:quadrangulate_face_with_holes(FBbot, Holesbot, Vs),
     Ft = [ F#e3d_face.vs || F <- FtopQ ],
     Fb = [ F#e3d_face.vs || F <- FbotQ ],
-    Fs = Ft ++ Fb ++ Fsides,
-    {Vs,Fs, [ F#e3d_face.vs || F <- Fs1 ++ Fs2]}.
+    Fs = Ft ++ Fb ++ append(Fsides),
+    Parts = [{top, Ft}, {bot, Fb} | [{side, Loop} || Loop <- Fsides]],
+    {Vs,Fs, [ F#e3d_face.vs || F <- Fs1 ++ Fs2], Parts}.
 
 cel2vec(Cel, Z) -> map(fun({{X,Y},_}) -> {X,Y,Z} end, Cel).
 
@@ -714,7 +786,7 @@ faces([N|T],Org,Kind,Acc) ->
 
 sidefaces(Nlist,Ntot) -> sidefaces(Nlist,0,Ntot,[]).
 
-sidefaces([],_Org,_Ntot,Acc) -> append(reverse(Acc));
+sidefaces([],_Org,_Ntot,Acc) -> reverse(Acc);
 sidefaces([N|T],Org,Ntot,Acc) ->
     End = Org+N-1,
     Fs = [ [I, Ntot+I, wrap(Ntot+I+1,Ntot+Org,Ntot+End), wrap(I+1,Org,End)]
