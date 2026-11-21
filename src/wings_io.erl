@@ -14,7 +14,7 @@
 -module(wings_io).
 
 -export([init/0,quit/0,
-	 set_cursor/1,hourglass/0,eyedropper/0,
+	 set_cursor/1,set_cursor/2,get_cursor/0,get_cursor/1,hourglass/0,eyedropper/0,
 	 info/1, info/3, version_info/0,
 
 	 is_maximized/0, maximize/0, set_title/1, reset_video_mode_for_gl/1,
@@ -124,7 +124,7 @@ eyedropper() ->
 
 hourglass() ->
     case get(wings_not_running) of
-	undefined -> 
+	undefined ->
 	    wings_io_wx:hourglass();
 	_ ->
 	    ignore
@@ -132,6 +132,15 @@ hourglass() ->
 
 set_cursor(Cursor) ->
     wings_io_wx:set_cursor(Cursor).
+
+set_cursor(Win, Cursor) ->
+    wings_io_wx:set_cursor(Win, Cursor).
+
+get_cursor() ->
+    wings_io_wx:get_cursor().
+
+get_cursor(Win) ->
+    wings_io_wx:get_cursor(Win).
 
 grab() ->
     wings_io_wx:grab(wings_wm:this_win()).

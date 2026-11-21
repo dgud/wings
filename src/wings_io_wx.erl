@@ -19,7 +19,7 @@
 -include("wings.hrl").
 
 -export([init/0, quit/0, version_info/0,
-	 set_cursor/1,hourglass/0,eyedropper/0,
+	 set_cursor/1,set_cursor/2,get_cursor/0,get_cursor/1,hourglass/0,eyedropper/0,
 	 get_mouse_state/0, is_modkey_pressed/1, is_key_pressed/1,
 	 get_buffer/2, read_buffer/3, get_bin/1,
 	 is_maximized/0, maximize/0, set_title/1, set_icon/2,
@@ -132,16 +132,44 @@ set_cursor(CursorId) ->
     case get(active_cursor) of
         CursorId -> ok;
         _ ->
+            set_os_cursor(?GET(top_frame), CursorId),
+            put(active_cursor, CursorId),
+            ok
+    end.
+
+set_cursor(Name, CursorId) ->
+    case get({Name, active_cursor}) of
+        CursorId -> ok;
+        _ ->
+            case wings_wm:is_window(Name) of
+                false ->
+                    erase({Name, active_cursor}),
+                    set_cursor(get(wm_cursor));
+                true ->
+                    set_os_cursor(Name, CursorId),
+                    put({Name, active_cursor}, CursorId)
+            end,
+            ok
+    end.
+
+get_cursor() ->
+    ?GET(active_cursor).
+
+get_cursor(Name) ->
+    ?GET({Name, active_cursor}).
+
+set_os_cursor(Name, CursorId) ->
+    case wings_wm:wxwindow(Name) of
+        undefined -> ignore;
+        Win ->
             Cursors = ?GET(cursors),
             Cursor = proplists:get_value(CursorId, Cursors),
             case os:type() of
                 {win32, _} ->
-                    Frame = ?GET(top_frame),
-                    wxWindow:setCursor(Frame, Cursor);
+                    wxWindow:setCursor(Win, Cursor);
                 {_, _} ->
                     wx_misc:setCursor(Cursor)
             end,
-            put(active_cursor, CursorId),
             ok
     end.
 
